@@ -682,8 +682,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     setTimeout(() => setSessionSaved(false), 3000);
   };
 
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [savedSessionData, setSavedSessionData] = useState(null);
+
   // Load session from localStorage
   useEffect(() => {
+    // Only check localStorage if this is a NEW document (not continuing an existing one)
     if (!existingDocument) {
       const savedSession = localStorage.getItem('affidavit-session');
       if (savedSession) {
@@ -691,19 +695,30 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           const sessionData = JSON.parse(savedSession);
           const sessionAge = new Date() - new Date(sessionData.timestamp);
           if (sessionAge < 24 * 60 * 60 * 1000) {
-            const loadSession = window.confirm('You have an unsaved affidavit. Would you like to continue where you left off?');
-            if (loadSession) {
-              setMessages(sessionData.messages);
-              setAffidavitData(sessionData.affidavitData);
-              setDocumentComplete(sessionData.documentComplete);
-            }
+            setSavedSessionData(sessionData);
+            setShowResumeModal(true);
           }
         } catch (e) {
           console.error('Failed to load session:', e);
+          localStorage.removeItem('affidavit-session');
         }
       }
     }
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
+
+  const handleResumeDecision = (resume) => {
+    if (resume && savedSessionData) {
+      setMessages(savedSessionData.messages);
+      setAffidavitData(savedSessionData.affidavitData);
+      setDocumentComplete(savedSessionData.documentComplete);
+      // Keep the session for future saves
+    } else {
+      // User wants to start fresh - clear the saved session
+      localStorage.removeItem('affidavit-session');
+    }
+    setShowResumeModal(false);
+    setSavedSessionData(null);
+  };
 
   const streamResponse = async (response) => {
     const words = response.split(' ');
@@ -974,6 +989,41 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Resume Session Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full m-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Resume Previous Affidavit?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              You have an unsaved affidavit from your last session. Would you like to continue working on it?
+            </p>
+            {savedSessionData && (
+              <div className="bg-gray-50 rounded p-3 mb-6 text-sm text-gray-600">
+                <p><strong>State:</strong> {savedSessionData.affidavitData?.state || 'Not specified'}</p>
+                <p><strong>Name:</strong> {savedSessionData.affidavitData?.affiantName || 'Not specified'}</p>
+                <p><strong>Last saved:</strong> {new Date(savedSessionData.timestamp).toLocaleString()}</p>
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => handleResumeDecision(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Start New
+              </button>
+              <button
+                onClick={() => handleResumeDecision(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Continue Previous
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white shadow-sm px-6 py-4">
         <div className="flex items-center justify-between">

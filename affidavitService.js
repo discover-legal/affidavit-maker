@@ -25,7 +25,7 @@ class AffidavitService {
     const prompt = this.buildSimplePrompt(affidavitData);
     
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-3.5-turbo', // Using faster model
       messages: [
         { 
           role: 'system', 

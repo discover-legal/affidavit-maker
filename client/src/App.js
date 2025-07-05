@@ -219,7 +219,11 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">{user?.email}</span>
               <button
-                onClick={() => logout({ returnTo: window.location.origin })}
+                onClick={() => logout({ 
+                  logoutParams: {
+                    returnTo: window.location.origin
+                  }
+                })}
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
               >
                 <LogOut className="h-5 w-5" />
@@ -1079,10 +1083,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Chat Section */}
         <div className={`flex-1 flex flex-col ${showPreview ? 'w-1/2' : 'w-full'}`}>
-          <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -1213,7 +1217,8 @@ function App() {
       domain={process.env.REACT_APP_AUTH0_DOMAIN}
       clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: window.location.origin
+        redirect_uri: window.location.origin,
+        audience: process.env.REACT_APP_AUTH0_AUDIENCE
       }}
     >
       {currentView === 'landing' && (

@@ -1,12 +1,6 @@
 // server-enhanced.js
 require('dotenv').config();
 
-const AffidavitService = require('./affidavitService');
-const affidavitService = new AffidavitService(process.env.OPENAI_API_KEY);
-
-// server-enhanced.js
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');

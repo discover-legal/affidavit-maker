@@ -7,6 +7,49 @@ import {
 } from 'lucide-react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 
+// API Base URL
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
+// Global Error Boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('React Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md mx-auto text-center p-6">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-xl font-semibold text-gray-900 mb-2">Oops! Something went wrong</h1>
+            <p className="text-gray-600 mb-4">
+              There was an unexpected error. Please refresh the page to try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Generate unique tab identifier for session management
 const getTabId = () => {
   let tabId = sessionStorage.getItem('tabId');
@@ -630,15 +673,19 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const fetchTemplateData = async () => {
     try {
       const [statesResponse, typesResponse] = await Promise.all([
-        fetch('http://localhost:3001/api/templates/states'),
-        fetch('http://localhost:3001/api/templates/document-types')
+        fetch(`${API_BASE}/api/templates/states`),
+        fetch(`${API_BASE}/api/templates/document-types`)
       ]);
       
-      const statesData = await statesResponse.json();
-      const typesData = await typesResponse.json();
+      if (statesResponse.ok) {
+        const statesData = await statesResponse.json();
+        if (statesData.success) setSupportedStates(statesData.states);
+      }
       
-      if (statesData.success) setSupportedStates(statesData.states);
-      if (typesData.success) setDocumentTypes(typesData.documentTypes);
+      if (typesResponse.ok) {
+        const typesData = await typesResponse.json();
+        if (typesData.success) setDocumentTypes(typesData.documentTypes);
+      }
     } catch (error) {
       console.error('Failed to fetch template data:', error);
     }
@@ -646,7 +693,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
   const validateData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/templates/validate', {
+      const response = await fetch(`${API_BASE}/api/templates/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -657,9 +704,11 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         })
       });
       
-      const data = await response.json();
-      if (data.success) {
-        setValidation(data.validation);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setValidation(data.validation);
+        }
       }
     } catch (error) {
       console.error('Validation error:', error);
@@ -668,24 +717,35 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
   const generatePreview = async () => {
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/preview', {
+      let token = null;
+      try {
+        token = await getAccessTokenSilently({ cacheMode: 'cache-only' });
+      } catch (authError) {
+        // Preview should work without auth
+      }
+      
+      const response = await fetch(`${API_BASE}/api/preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ affidavitData })
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         setPreview(data.preview);
+      } else if (data.fallback) {
+        setPreview(data.fallback);
+      } else {
+        console.error('Preview generation failed:', data.error);
       }
     } catch (error) {
-      if (error.error === 'login_required') {
-        loginWithRedirect();
-      }
       console.error('Preview generation error:', error);
     }
   };
@@ -717,8 +777,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     localStorage.setItem(sessionKey, JSON.stringify(sessionData));
     
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/save-draft', {
+      const token = await getAccessTokenSilently({
+        timeoutInSeconds: 60,
+        cacheMode: 'cache-only'
+      });
+      
+      const response = await fetch(`${API_BASE}/api/save-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -729,6 +793,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           affidavitData
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const data = await response.json();
       if (data.success && data.documentId) {
@@ -744,13 +812,48 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         console.log('✅ Draft saved successfully:', data.documentId);
       } else {
         console.error('❌ Save failed:', data.error);
+        alert(`Save failed: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
-      if (error.error === 'login_required') {
-        loginWithRedirect();
-        return;
+      // Handle token refresh errors
+      if (error.error === 'login_required' || error.message.includes('401')) {
+        try {
+          // Try to get a fresh token
+          const freshToken = await getAccessTokenSilently({
+            ignoreCache: true,
+            timeoutInSeconds: 60
+          });
+          
+          // Retry the save with fresh token
+          const retryResponse = await fetch(`${API_BASE}/api/save-draft`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${freshToken}`
+            },
+            body: JSON.stringify({
+              documentId: affidavitData.documentId,
+              affidavitData
+            })
+          });
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            if (retryData.success) {
+              setAffidavitData(prev => ({ ...prev, documentId: retryData.documentId }));
+              setSessionSaved(true);
+              setTimeout(() => setSessionSaved(false), 3000);
+              return;
+            }
+          }
+        } catch (refreshError) {
+          loginWithRedirect();
+          return;
+        }
       }
+      
       console.error('Failed to save to backend:', error);
+      alert(`Save failed: ${error.message}. Your progress is still saved locally.`);
     }
   };
 
@@ -860,7 +963,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     
     try {
       const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/generate-affidavit', {
+      const response = await fetch(`${API_BASE}/api/generate-affidavit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -873,18 +976,30 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         const tabId = getTabId();
         const sessionKey = `affidavit-session-${tabId}`;
         localStorage.removeItem(sessionKey);
-        window.open(data.downloadUrl, '_blank');
+        
+        if (data.downloadUrl) {
+          window.open(`${API_BASE}${data.downloadUrl}`, '_blank');
+        } else {
+          alert('Document generated successfully! Download link not available.');
+        }
+      } else {
+        alert(`Generation failed: ${data.error}`);
       }
     } catch (error) {
-      if (error.error === 'login_required') {
+      if (error.error === 'login_required' || error.message.includes('401')) {
         loginWithRedirect();
       }
       console.error('Document generation error:', error);
+      alert(`Generation failed: ${error.message}`);
     }
   };
 
@@ -1187,7 +1302,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   );
 };
 
-// Main App Component
+// Main App Component with Error Boundary
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentDocument, setCurrentDocument] = useState(null);
@@ -1212,37 +1327,39 @@ function App() {
   };
 
   return (
-    <Auth0Provider
-      domain={process.env.REACT_APP_AUTH0_DOMAIN}
-      clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: "openid profile email"
-      }}
-      useRefreshTokens={true}
-      cacheLocation="localstorage"
-    >
-      <div className="App">
-        {currentView === 'landing' && (
-          <LandingPage onGetStarted={handleGetStarted} />
-        )}
-        
-        {currentView === 'dashboard' && (
-          <UserDashboard 
-            onNewDocument={handleNewDocument}
-            onContinueDocument={handleContinueDocument}
-          />
-        )}
-        
-        {currentView === 'editor' && (
-          <DocumentEditor 
-            existingDocument={currentDocument}
-            onBack={handleBackToDashboard}
-          />
-        )}
-      </div>
-    </Auth0Provider>
+    <ErrorBoundary>
+      <Auth0Provider
+        domain={process.env.REACT_APP_AUTH0_DOMAIN}
+        clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
+        authorizationParams={{
+          redirect_uri: window.location.origin,
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+          scope: "openid profile email"
+        }}
+        useRefreshTokens={true}
+        cacheLocation="localstorage"
+      >
+        <div className="App">
+          {currentView === 'landing' && (
+            <LandingPage onGetStarted={handleGetStarted} />
+          )}
+          
+          {currentView === 'dashboard' && (
+            <UserDashboard 
+              onNewDocument={handleNewDocument}
+              onContinueDocument={handleContinueDocument}
+            />
+          )}
+          
+          {currentView === 'editor' && (
+            <DocumentEditor 
+              existingDocument={currentDocument}
+              onBack={handleBackToDashboard}
+            />
+          )}
+        </div>
+      </Auth0Provider>
+    </ErrorBoundary>
   );
 }
 

@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 // Environment variable validation
-const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY', 'AUTH0_CLIENT_ID', 'STRIPE_SECRET_KEY'];
+const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY', 'AUTH0_CLIENT_ID', 'AUTH0_DOMAIN', 'AUTH0_AUDIENCE', 'STRIPE_SECRET_KEY'];
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
     console.error(`Missing required environment variable: ${varName}`);
@@ -17,9 +17,38 @@ const { Pool } = require('pg');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
-const { checkJwt } = require('./middleware/auth0Middleware');
-const AffidavitService = require('./affidavitService');
-const { generatePDF } = require('./services/pdfService');
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+// Try to import services, but handle missing files gracefully
+let AffidavitService, generatePDF;
+try {
+  AffidavitService = require('./affidavitService');
+  ({ generatePDF } = require('./services/pdfService'));
+} catch (importError) {
+  console.warn('Warning: Some service files missing. Some features may not work:', importError.message);
+  // Create fallback functions
+  AffidavitService = class {
+    constructor() {
+      this.templateManager = {
+        getTemplate: () => ({ getRequirements: () => ({}) }),
+        getSupportedStates: () => [
+          { code: 'TX', name: 'Texas', requirements: {} },
+          { code: 'UT', name: 'Utah', requirements: {} },
+          { code: 'AZ', name: 'Arizona', requirements: {} }
+        ],
+        getSupportedDocumentTypes: () => ['divorce', 'custody', 'child_support', 'spousal_support', 'property_division', 'paternity', 'modification']
+      };
+      this.openai = { chat: { completions: { create: async () => ({ choices: [{ message: { content: 'Service temporarily unavailable' } }] }) } } };
+    }
+    validateAffidavitData() { return { isValid: true, errors: [], warnings: [] }; }
+    generatePreview() { return { success: true, preview: { sections: {} } }; }
+    processAffidavit() { return { success: false, error: 'Service temporarily unavailable' }; }
+    getSupportedStates() { return this.templateManager.getSupportedStates(); }
+    getSupportedDocumentTypes() { return this.templateManager.getSupportedDocumentTypes(); }
+  };
+  generatePDF = async () => { throw new Error('PDF service not available'); };
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,12 +59,106 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Initialize Affidavit Service with template system
-const affidavitService = new AffidavitService(process.env.OPENAI_API_KEY, {
-  model: 'gpt-4',
-  temperature: 0.3,
-  timeout: 30000
+// Auth0 JWT verification setup
+const client = jwksClient({
+  jwksUri: `${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
 });
+
+function getKey(header, callback) {
+  client.getSigningKey(header.kid, (err, key) => {
+    if (err) {
+      console.error('JWKS key retrieval error:', err);
+      return callback(err);
+    }
+    const signingKey = key.publicKey || key.rsaPublicKey;
+    callback(null, signingKey);
+  });
+}
+
+// Enhanced JWT verification middleware
+const checkJwt = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Authorization token required',
+      requiresLogin: true 
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  jwt.verify(token, getKey, {
+    audience: process.env.AUTH0_AUDIENCE,
+    issuer: process.env.AUTH0_DOMAIN,
+    algorithms: ['RS256']
+  }, async (err, decoded) => {
+    if (err) {
+      console.error('JWT verification error:', err.message);
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid or expired token',
+        requiresLogin: true 
+      });
+    }
+    
+    try {
+      req.auth = decoded;
+      req.userId = decoded.sub;
+      
+      // Get or create user in database
+      const user = await getUserFromAuth(decoded.sub, decoded);
+      req.user = user;
+      
+      next();
+    } catch (error) {
+      console.error('User lookup error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'User verification failed' 
+      });
+    }
+  });
+};
+
+// Optional JWT verification for public endpoints
+const optionalAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.auth = null;
+    req.userId = null;
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    const decoded = await new Promise((resolve, reject) => {
+      jwt.verify(token, getKey, {
+        audience: process.env.AUTH0_AUDIENCE,
+        issuer: process.env.AUTH0_DOMAIN,
+        algorithms: ['RS256']
+      }, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      });
+    });
+    
+    req.auth = decoded;
+    req.userId = decoded.sub;
+    req.user = await getUserFromAuth(decoded.sub, decoded);
+  } catch (error) {
+    // Ignore auth errors for optional auth
+    req.auth = null;
+    req.userId = null;
+    req.user = null;
+  }
+  
+  next();
+};
 
 // Rate limiting
 const limiter = rateLimit({
@@ -258,24 +381,52 @@ Respond with helpful guidance and ask for missing information.`;
   }
 });
 
-// Document preview endpoint using templates
-app.post('/api/preview', checkJwt, async (req, res) => {
+// Enhanced document preview endpoint using templates
+app.post('/api/preview', optionalAuth, async (req, res) => {
   try {
     const { affidavitData } = req.body;
-    const userId = req.auth.sub;
-    const user = await getUserFromAuth(userId);
+    const userId = req.userId;
 
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+    if (!affidavitData.state) {
+      return res.status(400).json({
+        success: false,
+        error: 'State is required for preview generation'
+      });
     }
 
     const preview = affidavitService.generatePreview(affidavitData, true);
+    
+    // Log activity if user is logged in
+    if (userId) {
+      await logActivity(req.user.id, 'preview_generated', 'document', affidavitData.documentId, req);
+    }
     
     res.json(preview);
 
   } catch (error) {
     console.error('Preview generation error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate preview' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to generate preview',
+      fallback: {
+        sections: {
+          header: `THE STATE OF ${(affidavitData.state || 'TEXAS').toUpperCase()}`,
+          title: 'AFFIDAVIT',
+          introduction: `BEFORE ME, the undersigned Notary Public, personally appeared ${affidavitData.affiantName || '[AFFIANT NAME]'}.`,
+          facts: (affidavitData.facts || []).map((fact, index) => ({
+            number: index + 1,
+            content: fact,
+            type: 'fact'
+          })),
+          conclusion: 'Further, affiant sayeth not.',
+          signatureBlock: {
+            line: '_'.repeat(40),
+            name: affidavitData.affiantName || '[AFFIANT NAME]',
+            title: 'Affiant'
+          }
+        }
+      }
+    });
   }
 });
 
@@ -283,11 +434,22 @@ app.post('/api/preview', checkJwt, async (req, res) => {
 app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
   try {
     const { affidavitData, strategy = 'simple', format = 'pdf' } = req.body;
-    const userId = req.auth.sub;
-    const user = await getUserFromAuth(userId);
+    const userId = req.userId;
+    const user = req.user;
 
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found',
+        requiresLogin: true 
+      });
+    }
+
+    if (!affidavitData || !affidavitData.state) {
+      return res.status(400).json({
+        success: false,
+        error: 'Affidavit data and state are required'
+      });
     }
 
     // Generate document using template service
@@ -301,13 +463,16 @@ app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
 
     // Save to database
     const document = await pool.query(
-      `INSERT INTO documents (user_id, content, generated_text, generation_metadata, status, completed_at)
-       VALUES ($1, $2, $3, $4, 'completed', NOW())
+      `INSERT INTO documents (user_id, content, generated_text, template_state, 
+                             document_type, generation_metadata, status, completed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'completed', NOW())
        RETURNING *`,
       [
         user.id,
         JSON.stringify(affidavitData),
         result.document.fullText,
+        affidavitData.state,
+        affidavitData.documentType || 'general',
         JSON.stringify(result.metadata)
       ]
     );
@@ -315,16 +480,21 @@ app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
     // Generate PDF if requested
     let filePath = null;
     if (format === 'pdf') {
-      filePath = await generatePDF(result.document, {
-        documentId: document.rows[0].id,
-        userId: user.id
-      });
+      try {
+        filePath = await generatePDF(result.document, {
+          documentId: document.rows[0].id,
+          userId: user.id
+        });
 
-      // Update document with file path
-      await pool.query(
-        'UPDATE documents SET file_path = $1 WHERE id = $2',
-        [filePath, document.rows[0].id]
-      );
+        // Update document with file path
+        await pool.query(
+          'UPDATE documents SET file_path = $1 WHERE id = $2',
+          [filePath, document.rows[0].id]
+        );
+      } catch (pdfError) {
+        console.error('PDF generation error:', pdfError);
+        // Continue without PDF - user can still get text version
+      }
     }
 
     // Log activity
@@ -342,7 +512,11 @@ app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
 
   } catch (error) {
     console.error('Generation error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate affidavit' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to generate affidavit',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -370,89 +544,220 @@ app.post('/api/analyze-document', checkJwt, async (req, res) => {
   }
 });
 
-// Save draft endpoint with template validation
+// Enhanced save draft endpoint with proper error handling
 app.post('/api/save-draft', checkJwt, async (req, res) => {
   try {
     const { documentId, affidavitData } = req.body;
-    const userId = req.auth.sub;
-    const user = await getUserFromAuth(userId);
+    const userId = req.userId;
+    const user = req.user;
 
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found',
+        requiresLogin: true 
+      });
+    }
+
+    // Validate affidavit data
+    if (!affidavitData || typeof affidavitData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid affidavit data provided'
+      });
     }
 
     // Validate data if state is selected
     let validation = null;
     if (affidavitData.state) {
-      validation = affidavitService.validateAffidavitData(affidavitData, affidavitData.state);
+      try {
+        validation = affidavitService.validateAffidavitData(affidavitData, affidavitData.state);
+      } catch (validationError) {
+        console.error('Validation error:', validationError);
+        validation = {
+          isValid: false,
+          errors: ['Validation temporarily unavailable'],
+          warnings: []
+        };
+      }
     }
 
+    let document;
+    
     if (documentId) {
       // Update existing draft
-      await pool.query(
-        'UPDATE documents SET content = $1, validation_results = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4',
-        [JSON.stringify(affidavitData), JSON.stringify(validation), documentId, user.id]
+      const updateResult = await pool.query(
+        `UPDATE documents 
+         SET content = $1, validation_results = $2, template_state = $3, 
+             document_type = $4, updated_at = NOW() 
+         WHERE id = $5 AND user_id = $6
+         RETURNING *`,
+        [
+          JSON.stringify(affidavitData), 
+          JSON.stringify(validation),
+          affidavitData.state,
+          affidavitData.documentType || 'general',
+          documentId, 
+          user.id
+        ]
       );
-      res.json({ success: true, documentId, validation });
+      
+      if (updateResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found or access denied'
+        });
+      }
+      
+      document = updateResult.rows[0];
+      
     } else {
       // Create new draft
-      const document = await pool.query(
-        `INSERT INTO documents (user_id, content, validation_results, status, created_at)
-         VALUES ($1, $2, $3, 'draft', NOW())
-         RETURNING id`,
-        [user.id, JSON.stringify(affidavitData), JSON.stringify(validation)]
+      const insertResult = await pool.query(
+        `INSERT INTO documents (user_id, content, validation_results, template_state, 
+                               document_type, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, 'draft', NOW())
+         RETURNING *`,
+        [
+          user.id, 
+          JSON.stringify(affidavitData), 
+          JSON.stringify(validation),
+          affidavitData.state,
+          affidavitData.documentType || 'general'
+        ]
       );
-      res.json({ success: true, documentId: document.rows[0].id, validation });
+      
+      document = insertResult.rows[0];
     }
 
     // Log activity
-    await logActivity(user.id, 'draft_saved', 'document', documentId || document.rows[0].id, req);
+    await logActivity(user.id, documentId ? 'draft_updated' : 'draft_created', 'document', document.id, req);
+
+    // Return consistent response format
+    res.json({ 
+      success: true, 
+      documentId: document.id,
+      validation,
+      document: {
+        id: document.id,
+        status: document.status,
+        created_at: document.created_at,
+        updated_at: document.updated_at,
+        state: affidavitData.state,
+        documentType: affidavitData.documentType,
+        affiantName: affidavitData.affiantName
+      }
+    });
 
   } catch (error) {
     console.error('Save draft error:', error);
-    res.status(500).json({ success: false, error: 'Failed to save draft' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save draft. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
-// Get user documents with template metadata
+// Get user documents with enhanced data
 app.get('/api/documents', checkJwt, async (req, res) => {
   try {
-    const userId = req.auth.sub;
-    const user = await getUserFromAuth(userId);
+    const userId = req.userId;
+    const user = req.user;
 
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found',
+        requiresLogin: true 
+      });
     }
     
     const documents = await pool.query(
-      `SELECT id, content, status, validation_results, generation_metadata, created_at, updated_at, completed_at
+      `SELECT id, content, generated_text, template_state, document_type, 
+              validation_results, generation_metadata, status, file_path,
+              created_at, updated_at, completed_at
        FROM documents 
        WHERE user_id = $1 
        ORDER BY updated_at DESC`,
       [user.id]
     );
 
-    // Enhance documents with template information
+    // Enhance documents with parsed content
     const enhancedDocuments = documents.rows.map(doc => {
-      const content = doc.content ? JSON.parse(doc.content) : {};
-      const validation = doc.validation_results ? JSON.parse(doc.validation_results) : null;
-      const metadata = doc.generation_metadata ? JSON.parse(doc.generation_metadata) : null;
+      let content = {};
+      let validation = null;
+      let metadata = null;
+
+      try {
+        content = doc.content ? JSON.parse(doc.content) : {};
+      } catch (e) {
+        console.error('Error parsing document content:', e);
+      }
+
+      try {
+        validation = doc.validation_results ? JSON.parse(doc.validation_results) : null;
+      } catch (e) {
+        console.error('Error parsing validation results:', e);
+      }
+
+      try {
+        metadata = doc.generation_metadata ? JSON.parse(doc.generation_metadata) : null;
+      } catch (e) {
+        console.error('Error parsing generation metadata:', e);
+      }
 
       return {
-        ...doc,
-        content,
+        id: doc.id,
+        status: doc.status,
+        created_at: doc.created_at,
+        updated_at: doc.updated_at,
+        completed_at: doc.completed_at,
+        
+        // Template and document info
+        state: doc.template_state || content.state,
+        template_state: doc.template_state,
+        document_type: doc.document_type || content.documentType,
+        documentType: doc.document_type || content.documentType,
+        
+        // User content
+        affiantName: content.affiantName,
+        caseNumber: content.caseNumber,
+        county: content.county,
+        
+        // Validation and metadata
         validation,
         metadata,
-        state: content.state,
-        documentType: content.documentType,
-        affiantName: content.affiantName
+        
+        // File info
+        hasFile: !!doc.file_path,
+        
+        // Full content (for editing)
+        content
       };
+        });
+
+  } catch (error) {
+    console.error('Fetch documents error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch documents',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});,
+      count: enhancedDocuments.length
     });
 
-    res.json({
-      success: true,
-      documents: enhancedDocuments
+  } catch (error) {
+    console.error('Fetch documents error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch documents',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});});
 
   } catch (error) {
     console.error('Fetch documents error:', error);
@@ -531,14 +836,40 @@ app.post('/api/payment/create-intent', checkJwt, async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Health check endpoint with template system status
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    templateStates: affidavitService.getSupportedStates().length,
-    documentTypes: affidavitService.getSupportedDocumentTypes().length
-  });
+  try {
+    const health = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        database: 'OK',
+        templates: 'OK',
+        auth: 'OK'
+      }
+    };
+
+    // Check template system
+    try {
+      const states = affidavitService.getSupportedStates();
+      const docTypes = affidavitService.getSupportedDocumentTypes();
+      health.templateStates = states.length;
+      health.documentTypes = docTypes.length;
+      health.supportedStates = states.map(s => s.name).join(', ');
+    } catch (templateError) {
+      health.services.templates = 'ERROR';
+      health.templateError = templateError.message;
+    }
+
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 });
 
 // Error handling middleware

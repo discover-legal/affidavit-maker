@@ -1,292 +1,321 @@
-// affidavitService.js - Modular LLM-based affidavit generation
-
+// affidavitService.js - Updated to use template system
 const OpenAI = require('openai');
+const { StateTemplateManager } = require('./templates/StateTemplateManager');
 
 class AffidavitService {
-  constructor(openaiApiKey) {
-    this.openai = new OpenAI({ apiKey: openaiApiKey });
+  constructor(apiKey, options = {}) {
+    this.openai = new OpenAI({ apiKey });
+    this.templateManager = new StateTemplateManager();
+    this.model = options.model || 'gpt-4';
+    this.temperature = options.temperature || 0.3;
+    this.maxTokens = options.maxTokens || 2000;
+    this.timeout = options.timeout || 30000;
     
-    // Different processing strategies
-    this.strategies = {
-      simple: this.simpleStrategy.bind(this),
-      structured: this.structuredStrategy.bind(this),
-      advanced: this.advancedStrategy.bind(this)
+    // AI strategies for content generation
+    this.contentStrategies = {
+      simple: this.generateSimpleContent.bind(this),
+      detailed: this.generateDetailedContent.bind(this),
+      persuasive: this.generatePersuasiveContent.bind(this),
+      legal: this.generateLegalContent.bind(this)
     };
   }
 
-  // Main entry point - uses strategy pattern
-  async processAffidavit(affidavitData, strategy = 'simple') {
-    const processingStrategy = this.strategies[strategy] || this.strategies.simple;
-    return await processingStrategy(affidavitData);
-  }
-
-  // STRATEGY 1: Simple single-shot generation (current approach)
-  async simpleStrategy(affidavitData) {
-    const prompt = this.buildSimplePrompt(affidavitData);
-    
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo', // Using faster model
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are a legal document specialist creating formal affidavits. Focus on clear, persuasive legal language.'
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.3,
-    });
-
-    return {
-      content: completion.choices[0].message.content,
-      metadata: {
-        strategy: 'simple',
-        model: 'gpt-4',
-        timestamp: new Date().toISOString()
+  async processAffidavit(affidavitData, strategy = 'simple', options = {}) {
+    try {
+      // Validate data using template
+      const template = this.templateManager.getTemplate(affidavitData.state);
+      const validation = template.validateData(affidavitData);
+      
+      if (!validation.isValid) {
+        throw new Error(`Invalid affidavit data: ${validation.errors.join(', ')}`);
       }
-    };
-  }
 
-  // STRATEGY 2: Structured multi-step approach
-  async structuredStrategy(affidavitData) {
-    // Step 1: Break down and outline the story
-    const outline = await this.generateOutline(affidavitData);
-    
-    // Step 2: Organize based on legal issues
-    const organized = await this.organizeByLegalIssues(outline, affidavitData);
-    
-    // Step 3: Generate final affidavit
-    const final = await this.generateFromOrganizedContent(organized, affidavitData);
-    
-    return {
-      content: final,
-      metadata: {
-        strategy: 'structured',
-        outline,
-        organized,
-        model: 'gpt-4',
-        timestamp: new Date().toISOString()
+      // Generate AI content if needed
+      let enhancedData = { ...affidavitData };
+      if (strategy !== 'template_only') {
+        const aiContent = await this.generateContent(affidavitData, strategy);
+        enhancedData = this.mergeAIContent(affidavitData, aiContent);
       }
-    };
+
+      // Generate final document using template
+      const document = template.generateDocument(enhancedData, {
+        documentId: options.documentId,
+        includeMetadata: true
+      });
+
+      return {
+        success: true,
+        document,
+        validation,
+        metadata: {
+          strategy,
+          state: affidavitData.state,
+          template: template.constructor.name,
+          generatedAt: new Date().toISOString(),
+          model: this.model,
+          wordCount: document.fullText.split(' ').length
+        }
+      };
+
+    } catch (error) {
+      console.error('Affidavit processing error:', error);
+      return this.handleError(error, affidavitData);
+    }
   }
 
-  // STRATEGY 3: Advanced iterative approach
-  async advancedStrategy(affidavitData) {
-    // Step 1: Extract key facts and timeline
-    const analysis = await this.analyzeFactsAndTimeline(affidavitData);
-    
-    // Step 2: Identify legal issues and relevant points
-    const legalFramework = await this.identifyLegalFramework(analysis, affidavitData);
-    
-    // Step 3: Create persuasive narrative structure
-    const narrative = await this.createPersuasiveNarrative(legalFramework, analysis);
-    
-    // Step 4: Generate draft
-    const draft = await this.generateDraft(narrative, affidavitData);
-    
-    // Step 5: Review and refine for legal compliance
-    const refined = await this.refineForCompliance(draft, affidavitData);
-    
-    return {
-      content: refined,
-      metadata: {
-        strategy: 'advanced',
-        analysis,
-        legalFramework,
-        narrative,
-        draft,
-        model: 'gpt-4',
-        timestamp: new Date().toISOString()
+  async generateContent(affidavitData, strategy) {
+    if (!this.contentStrategies[strategy]) {
+      throw new Error(`Unknown content strategy: ${strategy}`);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const content = await this.contentStrategies[strategy](affidavitData, controller.signal);
+      clearTimeout(timeout);
+      return content;
+    } catch (error) {
+      clearTimeout(timeout);
+      if (error.name === 'AbortError') {
+        throw new Error('Content generation timeout - please try again');
       }
-    };
+      throw error;
+    }
   }
 
-  // Helper methods for structured approach
-  async generateOutline(affidavitData) {
+  async generateSimpleContent(affidavitData, signal) {
+    const template = this.templateManager.getTemplate(affidavitData.state);
+    const requirements = template.getRequirements();
+
+    const prompt = `Enhance the following affidavit facts for ${template.stateName} legal requirements:
+
+Current Facts:
+${affidavitData.facts ? affidavitData.facts.map((fact, i) => `${i + 1}. ${fact}`).join('\n') : 'No facts provided'}
+
+Requirements:
+${JSON.stringify(requirements, null, 2)}
+
+Instructions:
+- Keep facts clear and concise
+- Ensure first-person perspective
+- Add specific details where helpful
+- Maintain truthful tone
+- Follow ${template.stateName} legal standards
+
+Return ONLY a JSON object with this structure:
+{
+  "enhancedFacts": ["fact1", "fact2", ...],
+  "suggestions": ["suggestion1", "suggestion2", ...]
+}`;
+
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'Create a structured outline of facts for a legal affidavit. Group related facts and identify key themes.'
-        },
-        {
-          role: 'user',
-          content: `Create an outline for an affidavit with these facts: ${JSON.stringify(affidavitData.facts)}`
-        }
-      ],
-      temperature: 0.5,
-    });
-
-    return JSON.parse(completion.choices[0].message.content);
-  }
-
-  async organizeByLegalIssues(outline, affidavitData) {
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a legal strategist organizing facts for maximum persuasive impact in ${affidavitData.caseType} cases.`
-        },
-        {
-          role: 'user',
-          content: `Reorganize this outline for maximum legal impact in a ${affidavitData.state} ${affidavitData.caseType} case: ${JSON.stringify(outline)}`
-        }
-      ],
-      temperature: 0.3,
-    });
-
-    return completion.choices[0].message.content;
-  }
-
-  async generateFromOrganizedContent(organized, affidavitData) {
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: this.getStateSpecificInstructions(affidavitData.state)
-        },
-        {
-          role: 'user',
-          content: `Generate a formal affidavit based on this organized content: ${organized}`
-        }
-      ],
-      temperature: 0.2,
-    });
-
-    return completion.choices[0].message.content;
-  }
-
-  // Helper methods for advanced approach
-  async analyzeFactsAndTimeline(affidavitData) {
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'Analyze facts to extract timeline, key events, parties involved, and critical details.'
-        },
-        {
-          role: 'user',
-          content: `Analyze these facts for timeline and key elements: ${JSON.stringify(affidavitData)}`
-        }
-      ],
-      temperature: 0.3,
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: this.temperature,
+      max_tokens: this.maxTokens,
+      signal,
       response_format: { type: "json_object" }
     });
 
     return JSON.parse(completion.choices[0].message.content);
   }
 
-  async identifyLegalFramework(analysis, affidavitData) {
+  async generateDetailedContent(affidavitData, signal) {
+    const template = this.templateManager.getTemplate(affidavitData.state);
+    
+    const prompt = `Create detailed, legally sound affidavit content for ${template.stateName}:
+
+Case Information:
+- Type: ${affidavitData.documentType || 'general'}
+- Affiant: ${affidavitData.affiantName}
+- Basic Facts: ${JSON.stringify(affidavitData.facts)}
+
+Requirements:
+- Expand on provided facts with relevant detail
+- Add chronological structure where appropriate
+- Include specific dates, times, locations when helpful
+- Maintain first-person perspective
+- Ensure legal sufficiency for ${template.stateName}
+
+Return JSON with:
+{
+  "enhancedFacts": ["detailed fact statements"],
+  "timeline": [{"date": "YYYY-MM-DD", "event": "description"}],
+  "legalElements": ["key legal points to emphasize"],
+  "suggestions": ["additional recommendations"]
+}`;
+
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `Identify legal issues and relevant legal standards for ${affidavitData.caseType} in ${affidavitData.state}.`
-        },
-        {
-          role: 'user',
-          content: `Based on this analysis, identify legal issues and how to frame them: ${JSON.stringify(analysis)}`
-        }
-      ],
-      temperature: 0.4,
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: this.temperature,
+      max_tokens: this.maxTokens,
+      signal,
+      response_format: { type: "json_object" }
     });
 
-    return completion.choices[0].message.content;
+    return JSON.parse(completion.choices[0].message.content);
   }
 
-  async createPersuasiveNarrative(legalFramework, analysis) {
+  async generatePersuasiveContent(affidavitData, signal) {
+    const template = this.templateManager.getTemplate(affidavitData.state);
+    
+    const prompt = `Create persuasive affidavit content for ${template.stateName} that presents facts in the most compelling legal order:
+
+Case Context:
+- Document Type: ${affidavitData.documentType}
+- Legal Matter: ${affidavitData.caseType || 'General civil matter'}
+- Current Facts: ${JSON.stringify(affidavitData.facts)}
+
+Strategy:
+- Organize facts for maximum legal impact
+- Lead with strongest evidence
+- Build logical narrative flow
+- Address potential counterarguments
+- Emphasize credibility factors
+
+Return JSON structure:
+{
+  "strategicFacts": ["facts ordered for maximum impact"],
+  "narrative": "overall story structure",
+  "strengthPoints": ["strongest legal arguments"],
+  "credibilityFactors": ["elements that enhance believability"],
+  "suggestions": ["strategic recommendations"]
+}`;
+
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'Create a persuasive narrative structure that presents facts in the most compelling legal order.'
-        },
-        {
-          role: 'user',
-          content: `Create narrative structure using this legal framework: ${legalFramework} and analysis: ${JSON.stringify(analysis)}`
-        }
-      ],
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.4,
+      max_tokens: this.maxTokens,
+      signal,
+      response_format: { type: "json_object" }
     });
 
-    return completion.choices[0].message.content;
+    return JSON.parse(completion.choices[0].message.content);
   }
 
-  async generateDraft(narrative, affidavitData) {
+  async generateLegalContent(affidavitData, signal) {
+    const template = this.templateManager.getTemplate(affidavitData.state);
+    
+    const prompt = `Generate legally precise affidavit content for ${template.stateName} court proceedings:
+
+Legal Context:
+- Document Type: ${affidavitData.documentType}
+- Court: ${affidavitData.court || 'District Court'}
+- Case Type: ${affidavitData.caseType}
+- Facts: ${JSON.stringify(affidavitData.facts)}
+
+Legal Standards:
+- Use precise legal terminology
+- Ensure evidentiary sufficiency
+- Address all required elements
+- Include foundation statements
+- Follow ${template.stateName} procedural rules
+
+Return JSON:
+{
+  "legalFacts": ["precisely worded fact statements"],
+  "foundationStatements": ["personal knowledge foundations"],
+  "proceduralElements": ["required legal elements"],
+  "citations": ["relevant legal standards"],
+  "recommendations": ["legal strategy suggestions"]
+}`;
+
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'Generate a formal legal affidavit following the provided narrative structure.'
-        },
-        {
-          role: 'user',
-          content: `Generate affidavit following this narrative: ${narrative} for ${affidavitData.affiantName}`
-        }
-      ],
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
+      max_tokens: this.maxTokens,
+      signal
     });
 
-    return completion.choices[0].message.content;
+    try {
+      return JSON.parse(completion.choices[0].message.content);
+    } catch (parseError) {
+      // Fallback if JSON parsing fails
+      return {
+        legalFacts: affidavitData.facts || [],
+        foundationStatements: [],
+        proceduralElements: [],
+        citations: [],
+        recommendations: []
+      };
+    }
   }
 
-  async refineForCompliance(draft, affidavitData) {
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `Review and refine this affidavit for ${affidavitData.state} legal compliance and maximum clarity.`
-        },
-        {
-          role: 'user',
-          content: `Refine this draft for legal compliance: ${draft}`
-        }
-      ],
-      temperature: 0.1,
-    });
+  mergeAIContent(originalData, aiContent) {
+    const enhanced = { ...originalData };
 
-    return completion.choices[0].message.content;
-  }
+    // Merge facts - prioritize AI enhanced facts if available
+    if (aiContent.enhancedFacts) {
+      enhanced.facts = aiContent.enhancedFacts;
+    } else if (aiContent.strategicFacts) {
+      enhanced.facts = aiContent.strategicFacts;
+    } else if (aiContent.legalFacts) {
+      enhanced.facts = aiContent.legalFacts;
+    }
 
-  // Utility methods
-  buildSimplePrompt(affidavitData) {
-    return `Generate a formal legal affidavit with the following information:
-    
-State: ${affidavitData.state}
-Case Type: ${affidavitData.caseType}
-Affiant: ${affidavitData.affiantName}
-Case Number: ${affidavitData.caseNumber}
+    // Add timeline information if available
+    if (aiContent.timeline) {
+      enhanced.timeline = aiContent.timeline;
+    }
 
-Facts to include:
-${affidavitData.facts.map((fact, i) => `${i + 1}. ${fact}`).join('\n')}
-
-Format the affidavit with:
-1. Proper heading with state and county
-2. Case caption with case number
-3. Title "AFFIDAVIT OF [NAME]"
-4. Opening statement (I, [name], being duly sworn...)
-5. Numbered facts in first person
-6. Closing statement under penalty of perjury
-7. Signature and notary blocks
-
-Make it formal and legally appropriate for ${affidavitData.state}.`;
-  }
-
-  getStateSpecificInstructions(state) {
-    const instructions = {
-      'TX': 'Generate a Texas-compliant affidavit with "THE STATE OF TEXAS" header, proper venue section, and Texas notary language.',
-      'UT': 'Generate a Utah-compliant affidavit with "STATE OF UTAH" header and Utah-specific notary requirements.',
-      'AZ': 'Generate an Arizona-compliant affidavit with simplified format and Arizona notary block.'
+    // Add AI insights as metadata
+    enhanced.aiInsights = {
+      suggestions: aiContent.suggestions || [],
+      strengthPoints: aiContent.strengthPoints || [],
+      recommendations: aiContent.recommendations || [],
+      narrative: aiContent.narrative || null
     };
+
+    return enhanced;
+  }
+
+  handleError(error, affidavitData) {
+    console.error('Affidavit service error:', error);
     
-    return instructions[state] || instructions['TX'];
+    // Generate fallback document using template only
+    try {
+      const template = this.templateManager.getTemplate(affidavitData.state);
+      const fallbackDocument = template.generateDocument(affidavitData, {
+        includeMetadata: true
+      });
+
+      return {
+        success: true,
+        document: fallbackDocument,
+        fallback: true,
+        error: error.message,
+        metadata: {
+          strategy: 'fallback',
+          state: affidavitData.state,
+          template: template.constructor.name,
+          generatedAt: new Date().toISOString(),
+          fallbackReason: error.message
+        }
+      };
+    } catch (fallbackError) {
+      return {
+        success: false,
+        error: `Failed to generate affidavit: ${error.message}`,
+        fallbackError: fallbackError.message
+      };
+    }
+  }
+
+  // Public utility methods
+  getSupportedStates() {
+    return this.templateManager.getSupportedStates();
+  }
+
+  getSupportedDocumentTypes() {
+    return this.templateManager.getSupportedDocumentTypes();
+  }
+
+  validateAffidavitData(data, state) {
+    return this.templateManager.validateAffidavitData(data, state);
   }
 
   // Configuration methods
@@ -298,69 +327,199 @@ Make it formal and legally appropriate for ${affidavitData.state}.`;
     this.temperature = temperature;
   }
 
-  // Add custom strategies
-  addStrategy(name, strategyFunction) {
-    this.strategies[name] = strategyFunction.bind(this);
+  setTimeout(timeout) {
+    this.timeout = timeout;
+  }
+
+  // Add custom content strategies
+  addContentStrategy(name, strategyFunction) {
+    this.contentStrategies[name] = strategyFunction.bind(this);
+  }
+
+  // Preview generation for frontend
+  generatePreview(affidavitData, includeWatermark = true) {
+    try {
+      const template = this.templateManager.getTemplate(affidavitData.state);
+      const document = template.generateDocument(affidavitData, {
+        preview: true,
+        includeWatermark
+      });
+
+      return {
+        success: true,
+        preview: {
+          sections: document.sections,
+          html: document.htmlContent,
+          text: document.fullText,
+          validation: document.validation
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        fallback: this.generateFallbackPreview(affidavitData)
+      };
+    }
+  }
+
+  generateFallbackPreview(affidavitData) {
+    return {
+      sections: {
+        header: `THE STATE OF ${(affidavitData.state || 'TEXAS').toUpperCase()}`,
+        title: 'AFFIDAVIT',
+        introduction: `BEFORE ME, the undersigned Notary Public, personally appeared ${affidavitData.affiantName || '[AFFIANT NAME]'}.`,
+        facts: (affidavitData.facts || []).map((fact, index) => ({
+          number: index + 1,
+          content: fact,
+          type: 'fact'
+        })),
+        conclusion: 'Further, affiant sayeth not.',
+        signatureBlock: {
+          line: '_'.repeat(40),
+          name: affidavitData.affiantName || '[AFFIANT NAME]',
+          title: 'Affiant'
+        }
+      }
+    };
+  }
+
+  // Document generation with different output formats
+  async generateDocument(affidavitData, strategy = 'simple', format = 'pdf') {
+    const result = await this.processAffidavit(affidavitData, strategy);
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    switch (format.toLowerCase()) {
+      case 'html':
+        return {
+          content: result.document.htmlContent,
+          filename: `affidavit-${result.document.id}.html`,
+          mimeType: 'text/html'
+        };
+      
+      case 'text':
+        return {
+          content: result.document.fullText,
+          filename: `affidavit-${result.document.id}.txt`,
+          mimeType: 'text/plain'
+        };
+      
+      case 'json':
+        return {
+          content: JSON.stringify(result.document, null, 2),
+          filename: `affidavit-${result.document.id}.json`,
+          mimeType: 'application/json'
+        };
+      
+      case 'pdf':
+      default:
+        // PDF generation will be handled by the PDF service
+        return {
+          document: result.document,
+          format: 'pdf',
+          filename: `affidavit-${result.document.id}.pdf`
+        };
+    }
+  }
+
+  // Batch processing for multiple affidavits
+  async processMultipleAffidavits(affidavitDataArray, strategy = 'simple') {
+    const results = [];
+    
+    for (const data of affidavitDataArray) {
+      try {
+        const result = await this.processAffidavit(data, strategy);
+        results.push(result);
+      } catch (error) {
+        results.push({
+          success: false,
+          error: error.message,
+          inputData: data
+        });
+      }
+    }
+    
+    return {
+      success: true,
+      results,
+      summary: {
+        total: affidavitDataArray.length,
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length
+      }
+    };
+  }
+
+  // Analysis methods for existing documents
+  analyzeDocument(documentText, state) {
+    const template = this.templateManager.getTemplate(state);
+    
+    return {
+      stateCompliance: this.checkStateCompliance(documentText, template),
+      completeness: this.checkCompleteness(documentText, template),
+      suggestions: this.generateImprovementSuggestions(documentText, template)
+    };
+  }
+
+  checkStateCompliance(documentText, template) {
+    const requirements = template.getRequirements();
+    const compliance = {};
+    
+    // Check for required elements
+    compliance.hasHeader = documentText.includes(template.getStateHeaderName());
+    compliance.hasVenue = !requirements.venue || documentText.includes(template.getCountyFormat());
+    compliance.hasNotaryBlock = documentText.includes('Notary Public');
+    compliance.hasPerjuryStatement = documentText.includes('PENALTY OF PERJURY');
+    
+    compliance.score = Object.values(compliance).filter(Boolean).length / Object.keys(compliance).length;
+    compliance.isCompliant = compliance.score >= 0.8;
+    
+    return compliance;
+  }
+
+  checkCompleteness(documentText, template) {
+    const completeness = {};
+    
+    completeness.hasIntroduction = documentText.includes('personally appeared');
+    completeness.hasFacts = /\d+\.\s/.test(documentText);
+    completeness.hasConclusion = documentText.includes('Further, affiant sayeth not');
+    completeness.hasSignature = documentText.includes('_______');
+    
+    completeness.score = Object.values(completeness).filter(Boolean).length / Object.keys(completeness).length;
+    completeness.isComplete = completeness.score >= 0.75;
+    
+    return completeness;
+  }
+
+  generateImprovementSuggestions(documentText, template) {
+    const suggestions = [];
+    const requirements = template.getRequirements();
+    
+    if (!documentText.includes(template.getStateHeaderName())) {
+      suggestions.push(`Add proper ${template.stateName} header: "${template.getStateHeaderName()}"`);
+    }
+    
+    if (requirements.venue && !documentText.includes(template.getCountyFormat())) {
+      suggestions.push(`Include venue section with county information`);
+    }
+    
+    if (!documentText.includes('personally appeared')) {
+      suggestions.push('Include proper notarial introduction');
+    }
+    
+    if (!/\d+\.\s/.test(documentText)) {
+      suggestions.push('Format facts as numbered paragraphs');
+    }
+    
+    if (!documentText.includes('PENALTY OF PERJURY')) {
+      suggestions.push('Include penalty of perjury statement');
+    }
+    
+    return suggestions;
   }
 }
-
-// Usage in server.js
-const affidavitService = new AffidavitService(process.env.OPENAI_API_KEY);
-
-// Simple endpoint modification
-app.post('/api/generate-affidavit', requiresAuth(), async (req, res) => {
-  try {
-    const { affidavitData, strategy = 'simple' } = req.body;
-    
-    // Use the modular service
-    const result = await affidavitService.processAffidavit(affidavitData, strategy);
-    
-    // Save to database with metadata
-    const document = await pool.query(
-      `UPDATE documents 
-       SET generated_text = $1, 
-           generation_metadata = $2,
-           status = 'completed',
-           completed_at = NOW()
-       WHERE id = $3
-       RETURNING *`,
-      [result.content, JSON.stringify(result.metadata), affidavitData.documentId]
-    );
-    
-    // Generate PDF
-    const pdfPath = await generatePDF(result.content, affidavitData);
-    
-    res.json({
-      success: true,
-      content: result.content,
-      downloadUrl: `/api/download/${document.rows[0].id}`,
-      metadata: result.metadata
-    });
-    
-  } catch (error) {
-    console.error('Generation error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate affidavit' });
-  }
-});
-
-// Example: Adding a custom strategy
-affidavitService.addStrategy('persuasive_divorce', async function(affidavitData) {
-  // Custom logic for divorce cases
-  const childrenInvolved = affidavitData.facts.some(f => 
-    f.toLowerCase().includes('child') || f.toLowerCase().includes('custody')
-  );
-  
-  if (childrenInvolved) {
-    // Special handling for custody matters
-    const bestInterests = await this.analyzeBestInterestsFactors(affidavitData);
-    const parentingPlan = await this.structureParentingNarrative(bestInterests, affidavitData);
-    return await this.generateFromParentingPlan(parentingPlan, affidavitData);
-  } else {
-    // Property division focus
-    const assets = await this.identifyAssets(affidavitData);
-    const equitableNarrative = await this.createEquitableDistributionNarrative(assets, affidavitData);
-    return await this.generateFromPropertyNarrative(equitableNarrative, affidavitData);
-  }
-});
 
 module.exports = AffidavitService;

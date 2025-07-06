@@ -280,120 +280,143 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {documents.length > 0 ? (
-                documents.map(doc => (
-                  <div key={doc.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
-                      <FileText className="h-8 w-8 text-blue-600" />
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(doc.status)}`}>
-                        {doc.status}
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
-                    </h3>
-                    <div className="text-sm text-gray-600 mb-4 space-y-1">
-                      {doc.state && (
-                        <p>State: {supportedStates.find(s => s.code === doc.state)?.name || doc.state}</p>
-                      )}
-                      {doc.documentType && (
-                        <p>Type: {doc.documentType.replace('_', ' ')}</p>
-                      )}
-                      <p>Created: {new Date(doc.created_at).toLocaleDateString()}</p>
-                      {doc.validation && !doc.validation.isValid && (
-                        <p className="text-red-600 flex items-center">
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Needs attention
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => onContinueDocument(doc)}
-                      className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      {doc.status === 'completed' ? 'View & Download' : 'Continue Editing'}
-                    </button>
-                  </div>
-                ))
-              ) : null}
-              
-              {/* Always show these cards to maintain grid structure */}
-              {documents.length === 0 && (
-                <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-blue-200 p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      start here
-                    </span>
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-2">Your First Affidavit</h3>
-                  <div className="text-sm text-gray-600 mb-4 space-y-1">
-                    <p>✓ State-compliant format</p>
-                    <p>✓ AI-guided process</p>
-                    <p>✓ Professional quality</p>
-                  </div>
-                  <button
-                    onClick={onNewDocument}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Get Started
-                  </button>
+            {/* Action Cards Grid - Always Visible */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-blue-200 p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <FileText className="h-8 w-8 text-blue-600" />
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    start here
+                  </span>
                 </div>
-              )}
+                <h3 className="font-medium text-gray-900 mb-2">Create New Affidavit</h3>
+                <div className="text-sm text-gray-600 mb-4 space-y-1">
+                  <p>✓ State-compliant format</p>
+                  <p>✓ AI-guided process</p>
+                  <p>✓ Professional quality</p>
+                </div>
+                <button
+                  onClick={onNewDocument}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Get Started
+                </button>
+              </div>
 
-              {/* Future feature anticipation cards - always show when empty */}
-              {documents.length === 0 && (
-                <>
-                  <div className="bg-white rounded-lg shadow-sm border p-6 border-dashed border-gray-300 opacity-70">
-                    <div className="flex items-start justify-between mb-4">
-                      <FileText className="h-8 w-8 text-gray-400" />
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
-                        coming soon
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-gray-600 mb-2">Document Templates</h3>
-                    <div className="text-sm text-gray-500 mb-4 space-y-1">
-                      <p>Pre-filled forms</p>
-                      <p>Attorney-reviewed</p>
-                      <p>Save time & effort</p>
-                    </div>
-                    <div className="w-full px-4 py-2 bg-gray-50 text-gray-500 rounded-lg text-center">
-                      Future Update
-                    </div>
-                  </div>
+              <div className="bg-white rounded-lg shadow-sm border p-6 border-dashed border-gray-300 opacity-70">
+                <div className="flex items-start justify-between mb-4">
+                  <FileText className="h-8 w-8 text-gray-400" />
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                    coming soon
+                  </span>
+                </div>
+                <h3 className="font-medium text-gray-600 mb-2">Document Templates</h3>
+                <div className="text-sm text-gray-500 mb-4 space-y-1">
+                  <p>Pre-filled forms</p>
+                  <p>Attorney-reviewed</p>
+                  <p>Save time & effort</p>
+                </div>
+                <div className="w-full px-4 py-2 bg-gray-50 text-gray-500 rounded-lg text-center">
+                  Future Update
+                </div>
+              </div>
 
-                  <div className="bg-white rounded-lg shadow-sm border p-6 border-dashed border-gray-300 opacity-50">
-                    <div className="flex items-start justify-between mb-4">
-                      <FileText className="h-8 w-8 text-gray-300" />
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-50 text-gray-500">
-                        roadmap
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-gray-500 mb-2">Smart Forms</h3>
-                    <div className="text-sm text-gray-400 mb-4 space-y-1">
-                      <p>Auto-fill from previous</p>
-                      <p>Family case tracking</p>
-                      <p>Multi-document suites</p>
-                    </div>
-                    <div className="w-full px-4 py-2 bg-gray-50 text-gray-400 rounded-lg text-center">
-                      In Development
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="bg-white rounded-lg shadow-sm border p-6 border-dashed border-gray-300 opacity-50">
+                <div className="flex items-start justify-between mb-4">
+                  <FileText className="h-8 w-8 text-gray-300" />
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-50 text-gray-500">
+                    roadmap
+                  </span>
+                </div>
+                <h3 className="font-medium text-gray-500 mb-2">Smart Forms</h3>
+                <div className="text-sm text-gray-400 mb-4 space-y-1">
+                  <p>Auto-fill from previous</p>
+                  <p>Family case tracking</p>
+                  <p>Multi-document suites</p>
+                </div>
+                <div className="w-full px-4 py-2 bg-gray-50 text-gray-400 rounded-lg text-center">
+                  In Development
+                </div>
+              </div>
             </div>
-            
-            {/* Info section below the grid */}
+
+            {/* Documents Section */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="px-6 py-4 border-b bg-gray-50 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Your Documents</h3>
+                  {documents.length > 0 && (
+                    <span className="text-sm text-gray-600">{documents.length} document{documents.length !== 1 ? 's' : ''}</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {documents.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-4 flex-1">
+                          <FileText className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
+                            </h4>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                              {doc.state && (
+                                <span>{supportedStates.find(s => s.code === doc.state)?.name || doc.state}</span>
+                              )}
+                              {doc.documentType && (
+                                <span className="capitalize">{doc.documentType.replace('_', ' ')}</span>
+                              )}
+                              <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          {doc.validation && !doc.validation.isValid && (
+                            <div className="flex items-center text-red-600">
+                              <AlertTriangle className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Needs attention</span>
+                            </div>
+                          )}
+                          
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(doc.status)}`}>
+                            {doc.status}
+                          </span>
+                          
+                          <button
+                            onClick={() => onContinueDocument(doc)}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          >
+                            {doc.status === 'completed' ? 'View' : 'Continue'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h4 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h4>
+                    <p className="text-gray-600 mb-4">
+                      Your completed affidavits will appear here. Each document is securely saved and can be downloaded anytime.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Click "Get Started" above to create your first family law affidavit.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Info/Stats Section */}
             {documents.length === 0 ? (
               <div className="mt-8 text-center">
                 <div className="max-w-2xl mx-auto">
-                  <p className="text-gray-600 mb-6">
-                    Your completed documents will appear in the grid above. Each document is securely saved 
-                    and can be downloaded anytime.
-                  </p>
-                  
+                  <h4 className="text-lg font-medium text-gray-900 mb-6">How It Works</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                     <div className="flex flex-col items-center">
                       <div className="bg-blue-50 rounded-full w-12 h-12 flex items-center justify-center mb-3">
@@ -420,7 +443,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                 </div>
               </div>
             ) : (
-              <div className="mt-8 bg-gray-50 rounded-lg p-6">
+              <div className="mt-6 bg-gray-50 rounded-lg p-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-gray-900">{documents.length}</div>

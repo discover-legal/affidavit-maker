@@ -736,16 +736,22 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         if (data.validation) {
           setValidation(data.validation);
         }
+        
+        // Show success message
+        setSessionSaved(true);
+        setTimeout(() => setSessionSaved(false), 3000);
+        
+        console.log('✅ Draft saved successfully:', data.documentId);
+      } else {
+        console.error('❌ Save failed:', data.error);
       }
     } catch (error) {
       if (error.error === 'login_required') {
         loginWithRedirect();
+        return;
       }
       console.error('Failed to save to backend:', error);
     }
-    
-    setSessionSaved(true);
-    setTimeout(() => setSessionSaved(false), 3000);
   };
 
   const streamResponse = async (response) => {

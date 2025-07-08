@@ -234,8 +234,12 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   const fetchDocuments = async () => {
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/documents', {
+      const token = await getAccessTokenSilently({
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE
+        }
+      });
+      const response = await fetch(`${API_BASE}/api/documents`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -255,7 +259,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   const fetchSupportedStates = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/templates/states');
+      const response = await fetch(`${API_BASE}/api/templates/states`);
       const data = await response.json();
       if (data.success) {
         setSupportedStates(data.states);
@@ -323,7 +327,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           </div>
         ) : (
           <>
-            {/* Action Cards Grid - Always Visible */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-blue-200 p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -384,7 +387,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
               </div>
             </div>
 
-            {/* Documents Section */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="px-6 py-4 border-b bg-gray-50 rounded-t-lg">
                 <div className="flex items-center justify-between">
@@ -455,7 +457,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
               </div>
             </div>
 
-            {/* Info/Stats Section */}
             {documents.length === 0 ? (
               <div className="mt-8 text-center">
                 <div className="max-w-2xl mx-auto">
@@ -590,7 +591,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess }) => {
   );
 };
 
-// Enhanced Document Editor with Template Integration
+// RESPONSIVE DOCUMENT EDITOR WITH FIXED TOKENS
 const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
   const [messages, setMessages] = useState([{
@@ -614,6 +615,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const [documentTypes, setDocumentTypes] = useState([]);
   const [validation, setValidation] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [affidavitData, setAffidavitData] = useState(existingDocument?.content || {
     state: '',
     affiantName: '',
@@ -627,12 +629,27 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Fetch template data on mount
+  // Check screen size and auto-hide preview
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isSmall = window.innerWidth < 1024; // lg breakpoint
+      setIsSmallScreen(isSmall);
+      
+      // Auto-hide preview on small screens
+      if (isSmall && showPreview) {
+        setShowPreview(false);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [showPreview]);
+
   useEffect(() => {
     fetchTemplateData();
   }, []);
 
-  // Load session from localStorage with tab isolation
   useEffect(() => {
     if (!existingDocument) {
       const tabId = getTabId();
@@ -656,14 +673,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     setSessionLoading(false);
   }, [existingDocument]);
 
-  // Generate preview when affidavit data changes
   useEffect(() => {
     if (affidavitData.state && affidavitData.affiantName) {
       generatePreview();
     }
   }, [affidavitData]);
 
-  // Validate data when state or affiantName changes
   useEffect(() => {
     if (affidavitData.state) {
       validateData();
@@ -719,9 +734,13 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     try {
       let token = null;
       try {
-        token = await getAccessTokenSilently({ cacheMode: 'cache-only' });
+        token = await getAccessTokenSilently({ 
+          authorizationParams: {
+            audience: process.env.REACT_APP_AUTH0_AUDIENCE
+          }
+        });
       } catch (authError) {
-        // Preview should work without auth
+        console.warn('Auth token not available, continuing without auth');
       }
       
       const response = await fetch(`${API_BASE}/api/preview`, {
@@ -778,8 +797,9 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     
     try {
       const token = await getAccessTokenSilently({
-        timeoutInSeconds: 60,
-        cacheMode: 'cache-only'
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE
+        }
       });
       
       const response = await fetch(`${API_BASE}/api/save-draft`, {
@@ -805,7 +825,6 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           setValidation(data.validation);
         }
         
-        // Show success message
         setSessionSaved(true);
         setTimeout(() => setSessionSaved(false), 3000);
         
@@ -815,13 +834,13 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         alert(`Save failed: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
-      // Handle token refresh errors
       if (error.error === 'login_required' || error.message.includes('401')) {
         try {
-          // Try to get a fresh token
           const freshToken = await getAccessTokenSilently({
             ignoreCache: true,
-            timeoutInSeconds: 60
+            authorizationParams: {
+              audience: process.env.REACT_APP_AUTH0_AUDIENCE
+            }
           });
           
           // Retry the save with fresh token
@@ -885,8 +904,13 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     setIsLoading(true);
 
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const token = await getAccessTokenSilently({
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE
+        }
+      });
+      
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -913,22 +937,18 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
         setMessages(prev => [...prev, botMessage]);
 
-        // Update affidavit data if provided
         if (data.extractedData) {
           setAffidavitData(prev => ({ ...prev, ...data.extractedData }));
         }
 
-        // Update validation if provided
         if (data.validation) {
           setValidation(data.validation);
         }
 
-        // Check if conversation is complete
         if (data.conversationComplete) {
           setDocumentComplete(true);
         }
 
-        // Auto-save session
         await saveSession();
       } else {
         const errorMessage = {
@@ -962,7 +982,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     setShowPayment(false);
     
     try {
-      const token = await getAccessTokenSilently();
+      const token = await getAccessTokenSilently({
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE
+        }
+      });
+      
       const response = await fetch(`${API_BASE}/api/generate-affidavit`, {
         method: 'POST',
         headers: {
@@ -1053,37 +1078,37 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
         {/* Document Content */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {preview.sections.header && (
+          {preview.sections?.header && (
             <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
               {preview.sections.header}
             </div>
           )}
           
-          {preview.sections.venue && (
+          {preview.sections?.venue && (
             <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
               {preview.sections.venue}
             </div>
           )}
           
-          {preview.sections.caseCaption && (
+          {preview.sections?.caseCaption && (
             <div style={{ textAlign: 'right', marginBottom: '20px' }}>
               {preview.sections.caseCaption.formatted}
             </div>
           )}
           
-          {preview.sections.title && (
+          {preview.sections?.title && (
             <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14pt', marginBottom: '30px' }}>
               {preview.sections.title}
             </div>
           )}
           
-          {preview.sections.introduction && (
+          {preview.sections?.introduction && (
             <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
               {preview.sections.introduction}
             </div>
           )}
           
-          {preview.sections.facts && preview.sections.facts.length > 0 && (
+          {preview.sections?.facts && preview.sections.facts.length > 0 && (
             <div style={{ marginBottom: '20px' }}>
               {preview.sections.facts.map((fact, index) => (
                 <div key={index} style={{ marginBottom: '15px', textAlign: 'justify' }}>
@@ -1093,19 +1118,19 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
             </div>
           )}
           
-          {preview.sections.conclusion && (
+          {preview.sections?.conclusion && (
             <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
               {preview.sections.conclusion}
             </div>
           )}
           
-          {preview.sections.perjuryStatement && (
+          {preview.sections?.perjuryStatement && (
             <div style={{ textAlign: 'justify', marginBottom: '30px' }}>
               {preview.sections.perjuryStatement}
             </div>
           )}
           
-          {preview.sections.signatureBlock && (
+          {preview.sections?.signatureBlock && (
             <div style={{ marginBottom: '30px' }}>
               <div>{preview.sections.signatureBlock.line}</div>
               <div>{preview.sections.signatureBlock.name}</div>
@@ -1116,7 +1141,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
             </div>
           )}
           
-          {preview.sections.notaryBlock && (
+          {preview.sections?.notaryBlock && (
             <div style={{ 
               border: '2px solid #000', 
               padding: '20px', 
@@ -1163,27 +1188,34 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                   'Save Progress'
                 )}
               </button>
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+              {(!isSmallScreen || !showPreview) && (
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                  {showPreview ? 'Hide' : 'Show'} Preview
+                </button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className={`grid ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-8`}>
+        <div className={`grid gap-8 ${showPreview && !isSmallScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           {/* Chat Interface */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
               <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
               <p className="text-sm text-gray-600">I'll guide you through creating your state-compliant affidavit.</p>
               
-              {/* Validation Display */}
+              {isSmallScreen && (
+                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  📱 Preview auto-hidden on mobile. Use "Show Preview" button to view document.
+                </div>
+              )}
+              
               <ValidationDisplay validation={validation} />
             </div>
             
@@ -1254,8 +1286,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
             </div>
           </div>
 
-          {/* Document Preview */}
-          {showPreview && (
+          {/* Document Preview - Auto-hidden on small screens */}
+          {showPreview && !isSmallScreen && (
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b flex justify-between items-center">
                 <div>
@@ -1271,6 +1303,28 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                     Download PDF
                   </button>
                 )}
+              </div>
+              
+              <div className="p-6 overflow-y-auto" style={{ maxHeight: '600px' }}>
+                {renderPreview()}
+              </div>
+            </div>
+          )}
+
+          {/* Full-width preview for small screens when manually shown */}
+          {showPreview && isSmallScreen && (
+            <div className="bg-white rounded-lg shadow-sm border mt-8">
+              <div className="p-6 border-b flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
+                  <p className="text-sm text-gray-600">Live preview using {affidavitData.state || 'state'} template</p>
+                </div>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="p-2 text-gray-600 hover:text-gray-900"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
               
               <div className="p-6 overflow-y-auto" style={{ maxHeight: '600px' }}>
@@ -1334,7 +1388,7 @@ function App() {
         authorizationParams={{
           redirect_uri: window.location.origin,
           audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: "openid profile email"
+          scope: "openid profile email read:documents write:documents access:chat offline_access"
         }}
         useRefreshTokens={true}
         cacheLocation="localstorage"

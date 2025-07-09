@@ -1,37 +1,84 @@
-// middleware/auth0Middleware.js
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
-
-const client = jwksClient({
-  jwksUri: `${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
-});
-
-function getKey(header, callback) {
-  client.getSigningKey(header.kid, (err, key) => {
-    const signingKey = key.publicKey || key.rsaPublicKey;
-    callback(null, signingKey);
-  });
-}
-
+// Enhanced JWT verification middleware with debugging
 const checkJwt = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  console.log('🔍 Auth middleware called for:', req.path);
+  console.log('🔍 Headers received:', JSON.stringify(req.headers, null, 2));
   
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ No auth header or invalid format');
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Authorization token required',
+      requiresLogin: true 
+    });
   }
 
+  const token = authHeader.split(' ')[1];
+  console.log('🔍 Token extracted (first 50 chars):', token.substring(0, 50) + '...');
+  
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
-    issuer: process.env.AUTH0_DOMAIN,
+    issuer: process.env.AUTH0_DOMAIN, // Should be https://your-domain.auth0.com
     algorithms: ['RS256']
-  }, (err, decoded) => {
+  }, async (err, decoded) => {
     if (err) {
-      return res.status(401).json({ error: 'Invalid token' });
+      console.error('❌ JWT verification error:', err.message);
+      console.error('❌ Expected audience:', process.env.AUTH0_AUDIENCE);
+      console.error('❌ Expected issuer:', process.env.AUTH0_DOMAIN);
+      
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid or expired token',
+        requiresLogin: true,
+        debug: {
+          errorMessage: err.message,
+          expectedAudience: process.env.AUTH0_AUDIENCE,
+          expectedIssuer: process.env.AUTH0_DOMAIN
+        }
+      });
     }
     
-    req.auth = decoded;
-    next();
+    try {
+      console.log('✅ JWT verified successfully');
+      console.log('🔍 Decoded token:', JSON.stringify(decoded, null, 2));
+      
+      req.auth = decoded;
+      req.userId = decoded.sub;
+      
+      // Get or create user in database
+      const user = await getUserFromAuth(decoded.sub, decoded);
+      req.user = user;
+      
+      console.log('✅ User found/created:', user?.id);
+      
+      next();
+    } catch (error) {
+      console.error('❌ User lookup error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'User verification failed' 
+      });
+    }
   });
 };
 
-module.exports = { checkJwt };
+// Debug endpoint to check auth configuration
+app.get('/api/debug/auth-config', (req, res) => {
+  res.json({
+    auth0Domain: process.env.AUTH0_DOMAIN,
+    auth0Audience: process.env.AUTH0_AUDIENCE,
+    hasClientId: !!process.env.AUTH0_CLIENT_ID,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Debug endpoint to test token validation
+app.get('/api/debug/verify-token', checkJwt, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user,
+    auth: req.auth,
+    timestamp: new Date().toISOString()
+  });
+});

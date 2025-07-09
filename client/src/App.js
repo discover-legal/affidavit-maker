@@ -60,9 +60,18 @@ const getTabId = () => {
   return tabId;
 };
 
-// Enhanced Landing Page
+// Landing Page - Allow browsing, require auth for action
 const LandingPage = ({ onGetStarted }) => {
-  const { loginWithRedirect, isAuthenticated, user } = useAuth0();
+  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
+
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      onGetStarted();
+    } else {
+      // Prompt for login when they try to start
+      loginWithRedirect();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -94,15 +103,17 @@ const LandingPage = ({ onGetStarted }) => {
             Professional affidavits for Texas, Utah, and Arizona.
           </p>
           <button
-            onClick={onGetStarted}
+            onClick={handleGetStarted}
             className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Get Started Free
+            Get Started {!isAuthenticated && '(Sign Up Required)'}
             <ChevronRight className="ml-2 h-5 w-5" />
           </button>
-          <p className="mt-4 text-sm text-gray-500">
-            No credit card required for your first document
-          </p>
+          {!isAuthenticated && (
+            <p className="mt-4 text-sm text-gray-500">
+              No credit card required for your first document
+            </p>
+          )}
         </div>
       </div>
 
@@ -140,6 +151,58 @@ const LandingPage = ({ onGetStarted }) => {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="bg-gray-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Trusted by Families Across Three States
+            </h2>
+            <p className="text-lg text-gray-600">
+              Our AI-powered platform makes legal document preparation accessible and affordable
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">$9.99</div>
+              <div className="text-sm text-gray-600">Per Document</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">10 Min</div>
+              <div className="text-sm text-gray-600">Average Completion</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">3 States</div>
+              <div className="text-sm text-gray-600">TX, UT, AZ Supported</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">24/7</div>
+              <div className="text-sm text-gray-600">Available Anytime</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-blue-600 py-16">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Create Your Affidavit?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of families who have used our platform for their legal document needs
+          </p>
+          <button
+            onClick={handleGetStarted}
+            className="inline-flex items-center px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Start Creating Now
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -220,17 +283,26 @@ const ValidationDisplay = ({ validation }) => {
   );
 };
 
-// Enhanced User Dashboard
+// Enhanced User Dashboard - Only require auth when accessed
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
-  const { user, logout, getAccessTokenSilently, loginWithRedirect } = useAuth0();
+  const { user, logout, getAccessTokenSilently, loginWithRedirect, isLoading, isAuthenticated } = useAuth0();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supportedStates, setSupportedStates] = useState([]);
 
+  // Only redirect if trying to access dashboard while not authenticated
   useEffect(() => {
-    fetchDocuments();
-    fetchSupportedStates();
-  }, []);
+    if (!isLoading && !isAuthenticated) {
+      console.log('Dashboard: Not authenticated, redirecting to login...');
+      loginWithRedirect();
+      return;
+    }
+    
+    if (isAuthenticated && user) {
+      fetchDocuments();
+      fetchSupportedStates();
+    }
+  }, [isAuthenticated, isLoading, user, loginWithRedirect]);
 
   const fetchDocuments = async () => {
     try {
@@ -247,6 +319,8 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       const data = await response.json();
       if (data.success) {
         setDocuments(data.documents);
+      } else {
+        console.error('Failed to fetch documents:', data.error);
       }
     } catch (error) {
       if (error.error === 'login_required') {
@@ -279,6 +353,29 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Show loading while auth is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -591,9 +688,9 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess }) => {
   );
 };
 
-// RESPONSIVE DOCUMENT EDITOR WITH FIXED TOKENS
+// FIXED DOCUMENT EDITOR - Auth and Mobile Preview Issues
 const DocumentEditor = ({ existingDocument = null, onBack }) => {
-  const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
+  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
   const [messages, setMessages] = useState([{
     id: 1,
     type: 'bot',
@@ -602,9 +699,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       : "Hi! I'm here to help you create a professional family law affidavit. I can help with divorce, custody, child support, and other family law matters in Texas, Utah, or Arizona. To get started, which state is your case in?"
   }]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading_, setIsLoading_] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
   const [showPreview, setShowPreview] = useState(true);
+  const [userToggledPreview, setUserToggledPreview] = useState(false); // Track user preference
   const [documentComplete, setDocumentComplete] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [sessionSaved, setSessionSaved] = useState(false);
@@ -629,29 +727,54 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Check screen size and auto-hide preview
+  // Only require auth when accessing DocumentEditor
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      console.log('DocumentEditor: Not authenticated, redirecting to login...');
+      loginWithRedirect();
+      return;
+    }
+  }, [isAuthenticated, isLoading, loginWithRedirect]);
+
+  // FIXED: Check screen size and handle preview visibility with user preference
   useEffect(() => {
     const checkScreenSize = () => {
       const isSmall = window.innerWidth < 1024; // lg breakpoint
       setIsSmallScreen(isSmall);
       
-      // Auto-hide preview on small screens
-      if (isSmall && showPreview) {
+      // Only auto-hide preview on small screens if user hasn't explicitly toggled it
+      if (isSmall && showPreview && !userToggledPreview) {
         setShowPreview(false);
+      }
+      // If user toggled preview on and screen becomes large, respect their choice
+      else if (!isSmall && userToggledPreview && !showPreview) {
+        // Keep it hidden if user explicitly turned it off
+      }
+      // Default behavior for large screens with no user preference
+      else if (!isSmall && !userToggledPreview) {
+        setShowPreview(true);
       }
     };
 
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
-  }, [showPreview]);
+  }, [showPreview, userToggledPreview]);
+
+  // Handle preview toggle by user
+  const handlePreviewToggle = () => {
+    setShowPreview(!showPreview);
+    setUserToggledPreview(true); // Mark that user has explicitly toggled
+  };
 
   useEffect(() => {
-    fetchTemplateData();
-  }, []);
+    if (isAuthenticated) {
+      fetchTemplateData();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!existingDocument) {
+    if (!existingDocument && isAuthenticated) {
       const tabId = getTabId();
       const sessionKey = `affidavit-session-${tabId}`;
       const savedSession = localStorage.getItem(sessionKey);
@@ -671,7 +794,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       }
     }
     setSessionLoading(false);
-  }, [existingDocument]);
+  }, [existingDocument, isAuthenticated]);
 
   useEffect(() => {
     if (affidavitData.state && affidavitData.affiantName) {
@@ -740,7 +863,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           }
         });
       } catch (authError) {
-        console.warn('Auth token not available, continuing without auth');
+        console.warn('Auth token not available for preview, this should not happen in authenticated mode');
+        // In authenticated mode, we should always have a token
+        if (authError.error === 'login_required') {
+          loginWithRedirect();
+          return;
+        }
       }
       
       const response = await fetch(`${API_BASE}/api/preview`, {
@@ -753,6 +881,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          loginWithRedirect();
+          return;
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
@@ -815,6 +947,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          loginWithRedirect();
+          return;
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
@@ -835,40 +971,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       }
     } catch (error) {
       if (error.error === 'login_required' || error.message.includes('401')) {
-        try {
-          const freshToken = await getAccessTokenSilently({
-            ignoreCache: true,
-            authorizationParams: {
-              audience: process.env.REACT_APP_AUTH0_AUDIENCE
-            }
-          });
-          
-          // Retry the save with fresh token
-          const retryResponse = await fetch(`${API_BASE}/api/save-draft`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${freshToken}`
-            },
-            body: JSON.stringify({
-              documentId: affidavitData.documentId,
-              affidavitData
-            })
-          });
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            if (retryData.success) {
-              setAffidavitData(prev => ({ ...prev, documentId: retryData.documentId }));
-              setSessionSaved(true);
-              setTimeout(() => setSessionSaved(false), 3000);
-              return;
-            }
-          }
-        } catch (refreshError) {
-          loginWithRedirect();
-          return;
-        }
+        loginWithRedirect();
+        return;
       }
       
       console.error('Failed to save to backend:', error);
@@ -890,8 +994,9 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     return currentText;
   };
 
+  // FIXED: Chat endpoint with better error handling that doesn't redirect to landing
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || sessionLoading) return;
+    if (!input.trim() || isLoading_ || sessionLoading) return;
 
     const userMessage = {
       id: Date.now(),
@@ -901,7 +1006,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setIsLoading_(true);
 
     try {
       const token = await getAccessTokenSilently({
@@ -909,6 +1014,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           audience: process.env.REACT_APP_AUTH0_AUDIENCE
         }
       });
+      
+      console.log('📡 Sending chat request with token present:', !!token);
       
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
@@ -923,6 +1030,83 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
           documentId: affidavitData.documentId
         })
       });
+
+      console.log('📡 Chat response status:', response.status);
+
+      if (response.status === 401) {
+        console.log('🔒 Received 401, trying to refresh token...');
+        try {
+          // Try to get a fresh token
+          const freshToken = await getAccessTokenSilently({
+            ignoreCache: true,
+            authorizationParams: {
+              audience: process.env.REACT_APP_AUTH0_AUDIENCE
+            }
+          });
+          
+          // Retry the request with fresh token
+          const retryResponse = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${freshToken}`
+            },
+            body: JSON.stringify({
+              message: userMessage.content,
+              conversationHistory: messages,
+              currentData: affidavitData,
+              documentId: affidavitData.documentId
+            })
+          });
+
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            if (retryData.success) {
+              const streamedResponse = await streamResponse(retryData.response);
+              
+              const botMessage = {
+                id: Date.now() + 1,
+                type: 'bot',
+                content: streamedResponse
+              };
+
+              setMessages(prev => [...prev, botMessage]);
+
+              if (retryData.extractedData) {
+                setAffidavitData(prev => ({ ...prev, ...retryData.extractedData }));
+              }
+
+              if (retryData.validation) {
+                setValidation(retryData.validation);
+              }
+
+              if (retryData.conversationComplete) {
+                setDocumentComplete(true);
+              }
+
+              await saveSession();
+              setIsLoading_(false);
+              return;
+            }
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+        }
+        
+        // If token refresh fails, show error but don't redirect
+        const errorMessage = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: 'Sorry, there was an authentication error. Please try refreshing the page or logging in again.'
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsLoading_(false);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
       const data = await response.json();
       
@@ -959,19 +1143,26 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
+      console.error('❌ Chat error:', error);
+      
+      // Don't redirect to login for network errors - show user-friendly message
+      let errorText = 'Sorry, I encountered an error. Please check your internet connection and try again.';
+      
       if (error.error === 'login_required') {
-        loginWithRedirect();
+        errorText = 'Your session has expired. Please refresh the page to continue.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorText = 'Unable to connect to the server. Please check your internet connection.';
       }
-      console.error('Chat error:', error);
+      
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: errorText
       };
       setMessages(prev => [...prev, errorMessage]);
     }
 
-    setIsLoading(false);
+    setIsLoading_(false);
   };
 
   const handleDownload = () => {
@@ -1002,6 +1193,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          loginWithRedirect();
+          return;
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -1022,6 +1217,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     } catch (error) {
       if (error.error === 'login_required' || error.message.includes('401')) {
         loginWithRedirect();
+        return;
       }
       console.error('Document generation error:', error);
       alert(`Generation failed: ${error.message}`);
@@ -1158,6 +1354,29 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     );
   };
 
+  // Show loading while auth is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -1188,15 +1407,13 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                   'Save Progress'
                 )}
               </button>
-              {(!isSmallScreen || !showPreview) && (
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-                >
-                  {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-                  {showPreview ? 'Hide' : 'Show'} Preview
-                </button>
-              )}
+              <button
+                onClick={handlePreviewToggle}
+                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {showPreview ? 'Hide' : 'Show'} Preview
+              </button>
             </div>
           </div>
         </div>
@@ -1209,12 +1426,6 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
             <div className="p-6 border-b">
               <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
               <p className="text-sm text-gray-600">I'll guide you through creating your state-compliant affidavit.</p>
-              
-              {isSmallScreen && (
-                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  📱 Preview auto-hidden on mobile. Use "Show Preview" button to view document.
-                </div>
-              )}
               
               <ValidationDisplay validation={validation} />
             </div>
@@ -1246,7 +1457,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                 </div>
               )}
               
-              {isLoading && !streamingMessage && (
+              {isLoading_ && !streamingMessage && (
                 <div className="flex justify-start">
                   <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900 flex items-center">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -1271,13 +1482,13 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                     }
                   }}
                   placeholder="Type your response..."
-                  disabled={isLoading || sessionLoading}
+                  disabled={isLoading_ || sessionLoading}
                   className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   rows="1"
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={!input.trim() || isLoading || sessionLoading}
+                  disabled={!input.trim() || isLoading_ || sessionLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   <Send className="h-4 w-4" />
@@ -1286,45 +1497,33 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
             </div>
           </div>
 
-          {/* Document Preview - Auto-hidden on small screens */}
-          {showPreview && !isSmallScreen && (
+          {/* Document Preview - Shows when toggled on OR when not small screen (unless user toggled off) */}
+          {showPreview && (
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
                   <p className="text-sm text-gray-600">Live preview using {affidavitData.state || 'state'} template</p>
                 </div>
-                {documentComplete && validation?.isValid && (
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </button>
-                )}
-              </div>
-              
-              <div className="p-6 overflow-y-auto" style={{ maxHeight: '600px' }}>
-                {renderPreview()}
-              </div>
-            </div>
-          )}
-
-          {/* Full-width preview for small screens when manually shown */}
-          {showPreview && isSmallScreen && (
-            <div className="bg-white rounded-lg shadow-sm border mt-8">
-              <div className="p-6 border-b flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
-                  <p className="text-sm text-gray-600">Live preview using {affidavitData.state || 'state'} template</p>
+                <div className="flex items-center space-x-2">
+                  {documentComplete && validation?.isValid && (
+                    <button
+                      onClick={handleDownload}
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </button>
+                  )}
+                  {isSmallScreen && (
+                    <button
+                      onClick={handlePreviewToggle}
+                      className="p-2 text-gray-600 hover:text-gray-900"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="p-2 text-gray-600 hover:text-gray-900"
-                >
-                  <X className="h-5 w-5" />
-                </button>
               </div>
               
               <div className="p-6 overflow-y-auto" style={{ maxHeight: '600px' }}>
@@ -1356,7 +1555,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   );
 };
 
-// Main App Component with Error Boundary
+// Main App Component - Allow landing page browsing
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentDocument, setCurrentDocument] = useState(null);
@@ -1377,6 +1576,11 @@ function App() {
 
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
+    setCurrentDocument(null);
+  };
+
+  const handleBackToLanding = () => {
+    setCurrentView('landing');
     setCurrentDocument(null);
   };
 
@@ -1418,3 +1622,4 @@ function App() {
 }
 
 export default App;
+  

@@ -1,5 +1,5 @@
 // affidavitService.js - Fixed version with proper OpenAI integration
-const OpenAI = require('openai');
+const { OpenAI } = require('openai');
 const { StateTemplateManager } = require('./templates/StateTemplateManager');
 
 class AffidavitService {

@@ -152,7 +152,7 @@ const checkJwt = (req, res, next) => {
   
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
-    issuer: process.env.AUTH0_DOMAIN,
+    issuer: `${process.env.AUTH0_DOMAIN}/`,
     algorithms: ['RS256']
   }, async (err, decoded) => {
     if (err) {
@@ -200,7 +200,7 @@ const optionalAuth = async (req, res, next) => {
     const decoded = await new Promise((resolve, reject) => {
       jwt.verify(token, getKey, {
         audience: process.env.AUTH0_AUDIENCE,
-        issuer: process.env.AUTH0_DOMAIN,
+        issuer: `${process.env.AUTH0_DOMAIN}/`,
         algorithms: ['RS256']
       }, (err, result) => {
         if (err) reject(err);

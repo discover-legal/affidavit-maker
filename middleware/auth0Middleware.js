@@ -19,7 +19,7 @@ const checkJwt = (req, res, next) => {
   
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
-    issuer: process.env.AUTH0_DOMAIN, // Should be https://your-domain.auth0.com
+    issuer: `${process.env.AUTH0_DOMAIN}/`, // Should be https://your-domain.auth0.com
     algorithms: ['RS256']
   }, async (err, decoded) => {
     if (err) {
@@ -34,7 +34,7 @@ const checkJwt = (req, res, next) => {
         debug: {
           errorMessage: err.message,
           expectedAudience: process.env.AUTH0_AUDIENCE,
-          expectedIssuer: process.env.AUTH0_DOMAIN
+          expectedissuer: `${process.env.AUTH0_DOMAIN}/`
         }
       });
     }

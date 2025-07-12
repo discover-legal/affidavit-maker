@@ -7,6 +7,12 @@ import {
 } from 'lucide-react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 
+// If you created the separate component files:
+//import ChatInterface from './components/ChatInterface';
+//import DocumentPreview from './components/DocumentPreview';
+//import ValidationDisplay from './components/ValidationDisplay';
+
+
 // API Base URL
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 

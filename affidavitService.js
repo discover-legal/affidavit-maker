@@ -18,7 +18,7 @@ class AffidavitService {
     }
     
     this.templateManager = new StateTemplateManager();
-    this.model = options.model || 'gpt-4';
+    this.model = options.model || 'gpt-4-turbo';
     this.temperature = options.temperature || 0.3;
     this.maxTokens = options.maxTokens || 2000;
     this.timeout = options.timeout || 30000;
@@ -208,7 +208,7 @@ class AffidavitService {
     const timeout = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const content = await this.contentStrategies[strategy](affidavitData, controller.signal);
+      const content = await this.contentStrategies[strategy](affidavitData);
       clearTimeout(timeout);
       return content;
     } catch (error) {
@@ -220,7 +220,7 @@ class AffidavitService {
     }
   }
 
-  async generateSimpleContent(affidavitData, signal) {
+  async generateSimpleContent(affidavitData) {
     const template = this.templateManager.getTemplate(affidavitData.state);
     const requirements = template.getRequirements();
 
@@ -250,14 +250,13 @@ Return ONLY a JSON object with this structure:
       messages: [{ role: 'user', content: prompt }],
       temperature: this.temperature,
       max_tokens: this.maxTokens,
-      signal,
-      response_format: { type: "json_object" }
+      response_format: "json"
     });
 
     return JSON.parse(completion.choices[0].message.content);
   }
 
-  async generateDetailedContent(affidavitData, signal) {
+  async generateDetailedContent(affidavitData) {
     const template = this.templateManager.getTemplate(affidavitData.state);
     
     const prompt = `Create detailed, legally sound affidavit content for ${template.stateName}:
@@ -287,14 +286,13 @@ Return JSON with:
       messages: [{ role: 'user', content: prompt }],
       temperature: this.temperature,
       max_tokens: this.maxTokens,
-      signal,
-      response_format: { type: "json_object" }
+      response_format: "json"
     });
 
     return JSON.parse(completion.choices[0].message.content);
   }
 
-  async generatePersuasiveContent(affidavitData, signal) {
+  async generatePersuasiveContent(affidavitData) {
     const template = this.templateManager.getTemplate(affidavitData.state);
     
     const prompt = `Create persuasive affidavit content for ${template.stateName} that presents facts in the most compelling legal order:
@@ -325,14 +323,13 @@ Return JSON structure:
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.4,
       max_tokens: this.maxTokens,
-      signal,
-      response_format: { type: "json_object" }
+      response_format: "json"
     });
 
     return JSON.parse(completion.choices[0].message.content);
   }
 
-  async generateLegalContent(affidavitData, signal) {
+  async generateLegalContent(affidavitData) {
     const template = this.templateManager.getTemplate(affidavitData.state);
     
     const prompt = `Generate legally precise affidavit content for ${template.stateName} court proceedings:
@@ -363,8 +360,7 @@ Return JSON:
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
-      max_tokens: this.maxTokens,
-      signal
+      max_tokens: this.maxTokens
     });
 
     try {

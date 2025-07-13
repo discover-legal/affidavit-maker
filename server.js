@@ -528,11 +528,13 @@ app.post('/api/chat', apiRateLimit, checkJwt, ...validationRules.chat, async (re
     }
 
     // Enhanced chat logic with template awareness
-    const template = currentData?.state ? affidavitService.templateManager.getTemplate(currentData.state) : null;
+    const template = currentData?.state && affidavitService.templateManager ? affidavitService.templateManager.getTemplate(currentData.state) : null;
     const requirements = template ? template.getRequirements() : {};
 
     // Build AI prompt with template context
-    const systemPrompt = `You are a legal assistant helping create affidavits. You have access to state-specific templates and requirements.
+    const systemPrompt = `You are a legal document assistant helping create affidavits. You have access to state-specific templates and requirements.
+
+IMPORTANT: You MUST NOT provide legal advice. You can only provide information about the document creation process and gather facts. Always remind users to consult with an attorney for legal advice.
 
 Current State: ${currentData?.state || 'Not selected'}
 Document Type: ${currentData?.documentType || 'general'}
@@ -552,7 +554,7 @@ Always respond with a JSON object containing:
 - conversationComplete: boolean indicating if enough info is collected
 - nextSteps: array of suggested next steps
 
-Be conversational but professional. Ask for one piece of information at a time.`;
+Be conversational but professional. Ask for one piece of information at a time. If asked for legal advice, politely explain that you can only help with document preparation, not legal guidance.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -573,7 +575,7 @@ Be conversational but professional. Ask for one piece of information at a time.`
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: { type: "json_object" }
+        response_format: "json"
       });
 
       clearTimeout(timeout);
@@ -934,21 +936,30 @@ app.get('/api/documents', checkJwt, async (req, res) => {
       let metadata = null;
 
       try {
-        content = doc.content ? JSON.parse(doc.content) : {};
+        content = typeof doc.content === 'string' 
+          ? JSON.parse(doc.content) 
+          : doc.content || {};
       } catch (e) {
         console.error('Error parsing document content:', e);
+        content = {};
       }
 
       try {
-        validation = doc.validation_results ? JSON.parse(doc.validation_results) : null;
+        validation = typeof doc.validation_results === 'string'
+          ? JSON.parse(doc.validation_results)
+          : doc.validation_results || null;
       } catch (e) {
         console.error('Error parsing validation results:', e);
+        validation = null;
       }
 
       try {
-        metadata = doc.generation_metadata ? JSON.parse(doc.generation_metadata) : null;
+        metadata = typeof doc.generation_metadata === 'string'
+          ? JSON.parse(doc.generation_metadata)
+          : doc.generation_metadata || null;
       } catch (e) {
         console.error('Error parsing generation metadata:', e);
+        metadata = null;
       }
 
       return {

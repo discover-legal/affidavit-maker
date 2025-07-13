@@ -56,9 +56,9 @@ const authConfig = getAuth0Config();
 console.log(`🔐 Auth0 configured with issuer: ${authConfig.issuer}`);
 
 // Import services - with fallbacks if files don't exist yet
-//let logger, morganMiddleware, errorLogger, performanceMonitor;
-//let helmetConfig, validationRules, validate, generateCSRFToken, validateCSRFToken, authRateLimit, apiRateLimit, sanitizeSQL, sanitizeOutput;
-//let monitoringService, enhancedPdfService, AffidavitService;
+let logger, morganMiddleware, errorLogger, performanceMonitor;
+let helmetConfig, validationRules, validate, generateCSRFToken, validateCSRFToken, authRateLimit, apiRateLimit, sanitizeSQL, sanitizeOutput;
+let monitoringService, enhancedPdfService, AffidavitService;
 
 try {
   logger = require('./services/logger');
@@ -72,8 +72,6 @@ try {
 }
 
 // Import security middleware with better fallbacks
-let helmetConfig, validate, generateCSRFToken, validateCSRFToken, authRateLimit, apiRateLimit, sanitizeSQL, sanitizeOutput;
-
 try {
   const securityMiddleware = require('./middleware/securityMiddleware');
   helmetConfig = securityMiddleware.helmetConfig;
@@ -106,7 +104,6 @@ try {
 }
 
 // Import validation rules with fallback
-let validationRules;
 try {
   validationRules = require('./middleware/validationRules');
 } catch (e) {
@@ -572,11 +569,11 @@ Be conversational but professional. Ask for one piece of information at a time.`
 
     try {
       const completion = await affidavitService.openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4-turbo",
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: "json"
+        response_format: { type: "json_object" }
       });
 
       clearTimeout(timeout);

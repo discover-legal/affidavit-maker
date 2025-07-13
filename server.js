@@ -575,7 +575,6 @@ Be conversational but professional. Ask for one piece of information at a time. 
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: "json"
       });
 
       clearTimeout(timeout);

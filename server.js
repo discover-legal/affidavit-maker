@@ -1,12 +1,27 @@
-// server.js - Complete production-ready version
+// server.js - Complete production-ready version with fixed Auth0 configuration
 require('dotenv').config();
 
 // Environment variable validation
 const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY', 'AUTH0_CLIENT_ID', 'AUTH0_DOMAIN', 'AUTH0_AUDIENCE', 'STRIPE_SECRET_KEY'];
+const optionalEnvVars = ['FRONTEND_URL', 'LOG_LEVEL', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_PORT'];
+
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
     console.error(`Missing required environment variable: ${varName}`);
     process.exit(1);
+  }
+});
+
+// Validate Auth0 domain format
+if (!process.env.AUTH0_DOMAIN.startsWith('https://')) {
+  console.error('AUTH0_DOMAIN must start with https://');
+  process.exit(1);
+}
+
+// Log optional variables that are missing
+optionalEnvVars.forEach(varName => {
+  if (!process.env[varName]) {
+    console.warn(`Optional environment variable not set: ${varName}`);
   }
 });
 
@@ -20,6 +35,25 @@ const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const rateLimit = require('express-rate-limit');
+
+// Auth0 configuration helper
+const getAuth0Config = () => {
+  const domain = process.env.AUTH0_DOMAIN;
+  const domainWithProtocol = domain.startsWith('http') ? domain : `https://${domain}`;
+  const issuer = domainWithProtocol.endsWith('/') ? domainWithProtocol : `${domainWithProtocol}/`;
+  
+  return {
+    domain: domainWithProtocol,
+    issuer: issuer,
+    audience: process.env.AUTH0_AUDIENCE,
+    clientId: process.env.AUTH0_CLIENT_ID,
+    algorithms: ['RS256'],
+    jwksUri: `${domainWithProtocol}/.well-known/jwks.json`
+  };
+};
+
+const authConfig = getAuth0Config();
+console.log(`🔐 Auth0 configured with issuer: ${authConfig.issuer}`);
 
 // Import services - with fallbacks if files don't exist yet
 let logger, morganMiddleware, errorLogger, performanceMonitor;
@@ -37,23 +71,29 @@ try {
   performanceMonitor = (req, res, next) => next();
 }
 
+// Import security middleware with better fallbacks
 try {
-  ({ 
-    helmetConfig, 
-    validationRules, 
-    validate, 
-    generateCSRFToken,
-    validateCSRFToken,
-    authRateLimit,
-    apiRateLimit,
-    sanitizeSQL,
-    sanitizeOutput
-  } = require('./middleware/securityMiddleware'));
+  const securityMiddleware = require('./middleware/securityMiddleware');
+  helmetConfig = securityMiddleware.helmetConfig;
+  validate = securityMiddleware.validate;
+  generateCSRFToken = securityMiddleware.generateCSRFToken;
+  validateCSRFToken = securityMiddleware.validateCSRFToken;
+  authRateLimit = securityMiddleware.authRateLimit;
+  apiRateLimit = securityMiddleware.apiRateLimit;
+  sanitizeSQL = securityMiddleware.sanitizeSQL;
+  sanitizeOutput = securityMiddleware.sanitizeOutput;
 } catch (e) {
   console.warn('Security middleware not found, using basic setup');
-  const helmet = require('helmet');
-  helmetConfig = helmet();
-  validationRules = {};
+  
+  // Basic helmet setup
+  try {
+    const helmet = require('helmet');
+    helmetConfig = helmet();
+  } catch (e2) {
+    helmetConfig = (req, res, next) => next();
+  }
+  
+  // Basic fallbacks
   validate = (req, res, next) => next();
   generateCSRFToken = () => 'mock-token';
   validateCSRFToken = (req, res, next) => next();
@@ -61,6 +101,16 @@ try {
   apiRateLimit = (req, res, next) => next();
   sanitizeSQL = (input) => input;
   sanitizeOutput = (data) => data;
+}
+
+// Import validation rules with fallback
+try {
+  validationRules = require('./middleware/validationRules');
+} catch (e) {
+  // Fallback validation rules if file doesn't exist
+  validationRules = {
+    chat: [(req, res, next) => next()]
+  };
 }
 
 try {
@@ -122,7 +172,7 @@ pool.on('error', (err) => {
 
 // Auth0 JWT verification setup
 const client = jwksClient({
-  jwksUri: `${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
+  jwksUri: authConfig.jwksUri
 });
 
 function getKey(header, callback) {
@@ -150,13 +200,25 @@ const checkJwt = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   
+  // Validate token format
+  if (!token || token.split('.').length !== 3) {
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Invalid token format',
+      requiresLogin: true 
+    });
+  }
+  
   jwt.verify(token, getKey, {
-    audience: process.env.AUTH0_AUDIENCE,
-    issuer: `${process.env.AUTH0_DOMAIN}/`,
-    algorithms: ['RS256']
+    audience: authConfig.audience,
+    issuer: authConfig.issuer,
+    algorithms: authConfig.algorithms
   }, async (err, decoded) => {
     if (err) {
       console.error('JWT verification error:', err.message);
+      console.error('Expected issuer:', authConfig.issuer);
+      console.error('Expected audience:', authConfig.audience);
+      
       return res.status(401).json({ 
         success: false, 
         error: 'Invalid or expired token',
@@ -199,9 +261,9 @@ const optionalAuth = async (req, res, next) => {
   try {
     const decoded = await new Promise((resolve, reject) => {
       jwt.verify(token, getKey, {
-        audience: process.env.AUTH0_AUDIENCE,
-        issuer: `${process.env.AUTH0_DOMAIN}/`,
-        algorithms: ['RS256']
+        audience: authConfig.audience,
+        issuer: authConfig.issuer,
+        algorithms: authConfig.algorithms
       }, (err, result) => {
         if (err) reject(err);
         else resolve(result);
@@ -247,8 +309,9 @@ app.use(morganMiddleware);
 app.use(performanceMonitor);
 
 // Email configuration
-let transporter;
+let transporter = null;
 try {
+  const nodemailer = require('nodemailer');
   if (process.env.SMTP_HOST && process.env.SMTP_USER) {
     transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST,
@@ -270,7 +333,7 @@ try {
     });
   }
 } catch (emailError) {
-  console.warn('Email setup failed:', emailError.message);
+  console.warn('Nodemailer not installed, email features disabled');
   transporter = null;
 }
 
@@ -348,6 +411,11 @@ app.get('/health', async (req, res) => {
       status: 'OK',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
+      auth0: {
+        domain: authConfig.domain,
+        issuer: authConfig.issuer,
+        configured: true
+      },
       services: {
         database: 'OK',
         templates: 'OK',
@@ -437,7 +505,7 @@ app.post('/api/templates/validate', (req, res) => {
 });
 
 // Chat endpoint with AI integration
-app.post('/api/chat', checkJwt, async (req, res) => {
+app.post('/api/chat', apiRateLimit, checkJwt, ...validationRules.chat, async (req, res) => {
   const startTime = Date.now();
   
   try {
@@ -501,11 +569,10 @@ Be conversational but professional. Ask for one piece of information at a time.`
 
     try {
       const completion = await affidavitService.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4-turbo",
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        signal: controller.signal,
         response_format: { type: "json_object" }
       });
 
@@ -623,7 +690,7 @@ app.post('/api/preview', optionalAuth, async (req, res) => {
 });
 
 // Generate affidavit document
-app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
+app.post('/api/generate-affidavit', checkJwt, validateCSRFToken, async (req, res) => {
   try {
     const { affidavitData, strategy = 'simple', format = 'pdf' } = req.body;
     const userId = req.userId;
@@ -723,7 +790,7 @@ app.post('/api/generate-affidavit', checkJwt, async (req, res) => {
 });
 
 // Save draft endpoint
-app.post('/api/save-draft', checkJwt, async (req, res) => {
+app.post('/api/save-draft', checkJwt, validateCSRFToken, async (req, res) => {
   try {
     const { documentId, affidavitData } = req.body;
     const userId = req.userId;
@@ -941,6 +1008,11 @@ app.get('/api/download/:documentId', checkJwt, async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    // Validate documentId format
+    if (!documentId || !/^\d+$/.test(documentId)) {
+      return res.status(400).json({ success: false, error: 'Invalid document ID' });
+    }
+
     const document = await pool.query(
       'SELECT file_path, content FROM documents WHERE id = $1 AND user_id = $2',
       [documentId, user.id]
@@ -955,6 +1027,23 @@ app.get('/api/download/:documentId', checkJwt, async (req, res) => {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
 
+    // Validate file path to prevent directory traversal
+    const path = require('path');
+    const documentsDir = path.join(__dirname, 'documents');
+    const resolvedPath = path.resolve(filePath);
+    
+    // Ensure the file is within the documents directory
+    if (!resolvedPath.startsWith(documentsDir)) {
+      console.error('Potential directory traversal attempt:', filePath);
+      return res.status(403).json({ success: false, error: 'Invalid file path' });
+    }
+
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({ success: false, error: 'File not found on disk' });
+    }
+
     // Log download activity
     await logActivity(user.id, 'document_downloaded', 'document', documentId, req);
 
@@ -964,7 +1053,7 @@ app.get('/api/download/:documentId', checkJwt, async (req, res) => {
       [documentId]
     );
 
-    res.download(filePath, `affidavit-${documentId}.pdf`);
+    res.download(resolvedPath, `affidavit-${documentId}.pdf`);
 
   } catch (error) {
     console.error('Download error:', error);
@@ -1076,6 +1165,22 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
   const sig = req.headers['stripe-signature'];
   let event;
 
+  // Validate webhook IP if in production
+  if (process.env.NODE_ENV === 'production') {
+    // Stripe's webhook IPs (you should get the latest list from Stripe)
+    const allowedIPs = [
+      '3.18.12.63', '3.130.192.231', '13.235.14.237', '13.235.122.149',
+      '18.211.135.69', '35.154.171.200', '52.15.183.38', '54.88.130.119',
+      '54.88.130.237', '54.187.174.169', '54.187.205.235', '54.187.216.72'
+    ];
+    
+    const clientIP = req.ip || req.connection.remoteAddress;
+    if (!allowedIPs.includes(clientIP)) {
+      console.warn('Webhook request from unauthorized IP:', clientIP);
+      return res.status(403).send('Forbidden');
+    }
+  }
+
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
@@ -1176,12 +1281,22 @@ app.use((req, res) => {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
   
-  // Close database connections
-  await pool.end();
+  try {
+    // Close database connections
+    await pool.end();
+    console.log('Database pool closed');
+  } catch (error) {
+    console.error('Error closing database pool:', error);
+  }
   
   // Close PDF service if available
   if (enhancedPdfService && enhancedPdfService.cleanup) {
-    await enhancedPdfService.cleanup();
+    try {
+      await enhancedPdfService.cleanup();
+      console.log('PDF service cleaned up');
+    } catch (error) {
+      console.error('Error cleaning up PDF service:', error);
+    }
   }
   
   process.exit(0);
@@ -1190,12 +1305,22 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
   
-  // Close database connections
-  await pool.end();
+  try {
+    // Close database connections
+    await pool.end();
+    console.log('Database pool closed');
+  } catch (error) {
+    console.error('Error closing database pool:', error);
+  }
   
   // Close PDF service if available
   if (enhancedPdfService && enhancedPdfService.cleanup) {
-    await enhancedPdfService.cleanup();
+    try {
+      await enhancedPdfService.cleanup();
+      console.log('PDF service cleaned up');
+    } catch (error) {
+      console.error('Error cleaning up PDF service:', error);
+    }
   }
   
   process.exit(0);
@@ -1205,6 +1330,7 @@ process.on('SIGINT', async () => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 Auth0 Issuer: ${authConfig.issuer}`);
   
   try {
     const states = affidavitService.getSupportedStates();

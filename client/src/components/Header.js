@@ -1,3 +1,6 @@
+import React from 'react';
+import { Scale, Home } from 'lucide-react';
+
 const Header = ({ currentView, onBackToDashboard, onBackToLanding }) => {
     const showHomeButton = currentView === 'editor';
     const homeAction = currentView === 'editor' ? onBackToDashboard : null;
@@ -24,3 +27,5 @@ const Header = ({ currentView, onBackToDashboard, onBackToLanding }) => {
         </header>
     );
 };
+
+export default Header;

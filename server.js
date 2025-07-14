@@ -1,52 +1,30 @@
-// server.js - Complete production-ready version with fixed Auth0 configuration
-require('dotenv').config();
+// server.js 
+const config = require('./config');
 
-// Environment variable validation
-const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY', 'AUTH0_CLIENT_ID', 'AUTH0_DOMAIN', 'AUTH0_AUDIENCE', 'STRIPE_SECRET_KEY'];
-const optionalEnvVars = ['FRONTEND_URL', 'LOG_LEVEL', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_PORT'];
-
-requiredEnvVars.forEach(varName => {
-  if (!process.env[varName]) {
-    console.error(`Missing required environment variable: ${varName}`);
-    process.exit(1);
-  }
-});
-
-// Validate Auth0 domain format
-if (!process.env.AUTH0_DOMAIN.startsWith('https://')) {
-  console.error('AUTH0_DOMAIN must start with https://');
-  process.exit(1);
-}
-
-// Log optional variables that are missing
-optionalEnvVars.forEach(varName => {
-  if (!process.env[varName]) {
-    console.warn(`Optional environment variable not set: ${varName}`);
-  }
-});
 
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const { Pool } = require('pg');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(config.stripeSecretKey);
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const rateLimit = require('express-rate-limit');
+//const { validationRules, validate } = require('./middleware/securityMiddleware');
 
 // Auth0 configuration helper
 const getAuth0Config = () => {
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = config.auth0.domain;
   const domainWithProtocol = domain.startsWith('http') ? domain : `https://${domain}`;
   const issuer = domainWithProtocol.endsWith('/') ? domainWithProtocol : `${domainWithProtocol}/`;
   
   return {
     domain: domainWithProtocol,
     issuer: issuer,
-    audience: process.env.AUTH0_AUDIENCE,
-    clientId: process.env.AUTH0_CLIENT_ID,
+    audience: config.auth0.audience,
+    clientId: config.auth0.clientId,
     algorithms: ['RS256'],
     jwksUri: `${domainWithProtocol}/.well-known/jwks.json`
   };
@@ -55,21 +33,13 @@ const getAuth0Config = () => {
 const authConfig = getAuth0Config();
 console.log(`🔐 Auth0 configured with issuer: ${authConfig.issuer}`);
 
-// Import services - with fallbacks if files don't exist yet
-let logger, morganMiddleware, errorLogger, performanceMonitor;
-let helmetConfig, validationRules, validate, generateCSRFToken, validateCSRFToken, authRateLimit, apiRateLimit, sanitizeSQL, sanitizeOutput;
-let monitoringService, enhancedPdfService, AffidavitService;
+let logger = require('./services/logger');
+let { morganMiddleware, errorLogger, performanceMonitor } = require('./middleware/loggingMiddleware');
+let { helmetConfig, validationRules, validate, generateCSRFToken, validateCSRFToken, authRateLimit, apiRateLimit } = require('./middleware/securityMiddleware');
+let monitoringService = require('./services/monitoringService');
+let { enhancedPdfService } = require('./services/enhancedPdfService');
+let AffidavitService = require('./affidavitService');
 
-try {
-  logger = require('./services/logger');
-  ({ morganMiddleware, errorLogger, performanceMonitor } = require('./middleware/loggingMiddleware'));
-} catch (e) {
-  console.warn('Logging services not found, using console');
-  logger = console;
-  morganMiddleware = (req, res, next) => next();
-  errorLogger = (err, req, res, next) => next(err);
-  performanceMonitor = (req, res, next) => next();
-}
 
 // Import security middleware with better fallbacks
 try {
@@ -144,15 +114,15 @@ try {
 }
 
 // Initialize services
-const affidavitService = new AffidavitService(process.env.OPENAI_API_KEY);
+const affidavitService = new AffidavitService(config.openaiApiKey);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port || 3001;
 
 // Enhanced database connection pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionString: config.databaseUrl,
+  ssl: config.nodeEnv === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -298,8 +268,8 @@ const limiter = rateLimit({
 app.use(compression());
 app.use(helmetConfig);
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+  origin: config.nodeEnv === 'production' 
+    ? config.frontendUrl 
     : 'http://localhost:3000',
   credentials: true
 }));
@@ -312,14 +282,14 @@ app.use(performanceMonitor);
 let transporter = null;
 try {
   const nodemailer = require('nodemailer');
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  if (config.smtp.host && config.smtp.user) {
     transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_PORT === '465',
+      host: config.smtp.host,
+      port: config.smtp.port || 587,
+      secure: config.smtp.port === '465',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: config.smtp.user,
+        pass: config.smtp.pass
       }
     });
     
@@ -410,7 +380,7 @@ app.get('/health', async (req, res) => {
     const health = {
       status: 'OK',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
+      environment: config.nodeEnv || 'development',
       auth0: {
         domain: authConfig.domain,
         issuer: authConfig.issuer,
@@ -505,7 +475,7 @@ app.post('/api/templates/validate', (req, res) => {
 });
 
 // Chat endpoint with AI integration
-app.post('/api/chat', apiRateLimit, checkJwt, ...validationRules.chat, async (req, res) => {
+app.post('/api/chat', apiRateLimit, checkJwt, validationRules.chat, validate, async (req, res) => {
   const startTime = Date.now();
   
   try {
@@ -575,7 +545,6 @@ Be conversational but professional. Ask for one piece of information at a time. 
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: "json"
       });
 
       clearTimeout(timeout);
@@ -786,7 +755,7 @@ app.post('/api/generate-affidavit', checkJwt, validateCSRFToken, async (req, res
     res.status(500).json({ 
       success: false, 
       error: 'Failed to generate affidavit',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: config.nodeEnv === 'development' ? error.message : undefined
     });
   }
 });
@@ -900,7 +869,7 @@ app.post('/api/save-draft', checkJwt, validateCSRFToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to save draft. Please try again.',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: config.nodeEnv === 'development' ? error.message : undefined
     });
   }
 });
@@ -1003,7 +972,7 @@ app.get('/api/documents', checkJwt, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to fetch documents',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: config.nodeEnv === 'development' ? error.message : undefined
     });
   }
 });
@@ -1177,7 +1146,7 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
   let event;
 
   // Validate webhook IP if in production
-  if (process.env.NODE_ENV === 'production') {
+  if (config.nodeEnv === 'production') {
     // Stripe's webhook IPs (you should get the latest list from Stripe)
     const allowedIPs = [
       '3.18.12.63', '3.130.192.231', '13.235.14.237', '13.235.122.149',
@@ -1193,7 +1162,7 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
   }
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(req.body, sig, config.stripeWebhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -1266,7 +1235,7 @@ app.use((error, req, res, next) => {
   }
   
   // Don't leak error details in production
-  const errorMessage = process.env.NODE_ENV === 'production' 
+  const errorMessage = config.nodeEnv === 'production' 
     ? 'Internal server error' 
     : error.message;
     
@@ -1340,7 +1309,7 @@ process.on('SIGINT', async () => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📍 Environment: ${config.nodeEnv || 'development'}`);
   console.log(`🔐 Auth0 Issuer: ${authConfig.issuer}`);
   
   try {
@@ -1354,7 +1323,7 @@ app.listen(PORT, () => {
   
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   
-  if (process.env.NODE_ENV === 'development') {
+  if (config.nodeEnv === 'development') {
     console.log(`🔧 Frontend should be running on: http://localhost:3000`);
   }
 });

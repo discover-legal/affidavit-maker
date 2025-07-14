@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const logger = require('../services/logger');
+const rateLimit = require('express-rate-limit');
 
 // CSRF Protection
 const csrfTokens = new Map();

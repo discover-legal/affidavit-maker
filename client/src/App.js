@@ -8,9 +8,10 @@ import {
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 
 // If you created the separate component files:
-//import ChatInterface from './components/ChatInterface';
-//import DocumentPreview from './components/DocumentPreview';
-//import ValidationDisplay from './components/ValidationDisplay';
+import ChatInterface from './components/ChatInterface';
+import DocumentPreview from './components/DocumentPreview';
+import ValidationDisplay from './components/ValidationDisplay';
+import Header from './components/Header.js'
 
 
 // API Base URL
@@ -238,52 +239,6 @@ const StateSelector = ({ selectedState, onStateChange, states = [] }) => {
         <p className="mt-2 text-sm text-blue-600">
           Using {states.find(s => s.code === selectedState)?.name} legal requirements
         </p>
-      )}
-    </div>
-  );
-};
-
-// Validation Display Component
-const ValidationDisplay = ({ validation }) => {
-  if (!validation) return null;
-
-  return (
-    <div className="mb-4">
-      {validation.errors && validation.errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
-          <div className="flex items-center mb-2">
-            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-            <h4 className="text-red-800 font-medium">Validation Errors</h4>
-          </div>
-          <ul className="text-red-700 text-sm">
-            {validation.errors.map((error, index) => (
-              <li key={index}>• {error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
-      {validation.warnings && validation.warnings.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-3">
-          <div className="flex items-center mb-2">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-            <h4 className="text-yellow-800 font-medium">Warnings</h4>
-          </div>
-          <ul className="text-yellow-700 text-sm">
-            {validation.warnings.map((warning, index) => (
-              <li key={index}>• {warning}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
-      {validation.isValid && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-            <span className="text-green-800 font-medium">All requirements met!</span>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -1253,16 +1208,29 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       );
     }
 
+    const previewScale = 0.8; // Adjust this scale factor as needed for a good fit
+
     return (
-      <div className="bg-white shadow-lg mx-auto" style={{ 
-        width: '8.5in', 
-        minHeight: '11in',
-        padding: '1in',
-        fontSize: '12pt',
-        lineHeight: '1.5',
-        fontFamily: 'Times New Roman, serif',
-        position: 'relative'
-      }}>
+        // The outer container is responsive
+        <div className="w-full h-full overflow-hidden flex justify-center items-start">
+            {/* The inner container is scaled */}
+            <div 
+            className="bg-white shadow-lg"
+                style={{
+                    width: '8.5in',
+                    minHeight: '11in',
+                    padding: '1in',
+                    fontFamily: 'Times New Roman, serif',
+                    position: 'relative',
+                    // --- NEW SCALING LOGIC ---
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'top center',
+                    // Ensure it doesn't cause horizontal scroll on the body
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                }}
+            >
+
         {/* Watermark for preview */}
         <div style={{
           position: 'absolute',
@@ -1604,23 +1572,30 @@ function App() {
         cacheLocation="localstorage"
       >
         <div className="App">
-          {currentView === 'landing' && (
-            <LandingPage onGetStarted={handleGetStarted} />
-          )}
-          
-          {currentView === 'dashboard' && (
-            <UserDashboard 
-              onNewDocument={handleNewDocument}
-              onContinueDocument={handleContinueDocument}
+            <Header
+                currentView={currentView}
+                onBackToDashboard={handleBackToDashboard}
+                onBackToLanding={handleBackToLanding}
             />
-          )}
-          
-          {currentView === 'editor' && (
-            <DocumentEditor 
-              existingDocument={currentDocument}
-              onBack={handleBackToDashboard}
-            />
-          )}
+
+            {/* The content below the header will change */}
+            <main>
+                {currentView === 'landing' && (
+                    <LandingPage onGetStarted={handleGetStarted} />
+                )}
+                {currentView === 'dashboard' && (
+                    <UserDashboard
+                        onNewDocument={handleNewDocument}
+                        onContinueDocument={handleContinueDocument}
+                    />
+                )}
+                {currentView === 'editor' && (
+                    <DocumentEditor
+                        existingDocument={currentDocument}
+                        onBack={handleBackToDashboard}
+                    />
+                )}
+            </main>
         </div>
       </Auth0Provider>
     </ErrorBoundary>

@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Send, FileText, Download, AlertCircle, Loader2, CreditCard, 
-  Lock, CheckCircle, Menu, X, Home, FileBox, Settings, LogOut,
-  Star, Users, Shield, Zap, ChevronRight, Eye, EyeOff, Scale, Clock, ArrowLeft,
-  AlertTriangle, Info
+  Send, FileText, Download, Loader2, CreditCard, X, Scale, Clock,
+  AlertTriangle, Shield, Zap, ChevronRight
 } from 'lucide-react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-// If you created the separate component files:
-import ChatInterface from './components/ChatInterface';
-import DocumentPreview from './components/DocumentPreview';
+// Import only the components being used
 import ValidationDisplay from './components/ValidationDisplay';
 import Header from './components/Header.js'
 
@@ -251,6 +247,55 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [loading, setLoading] = useState(true);
   const [supportedStates, setSupportedStates] = useState([]);
 
+  // Delete and rename buttons
+const handleDelete = async (docId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this affidavit?')) {
+        return;
+    }
+    try {
+        const token = await getAccessTokenSilently({ /* ... */ });
+        const response = await fetch(`${API_BASE}/api/documents/${docId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            // Refresh list on success
+            setDocuments(prev => prev.filter(doc => doc.id !== docId));
+        } else {
+            alert('Failed to delete document.');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+    }
+};
+
+const handleRename = async (docId, currentName) => {
+    const newName = prompt('Enter the new name for the affidavit:', currentName);
+    if (!newName || newName.trim() === '') {
+        return;
+    }
+    try {
+        const token = await getAccessTokenSilently({ /* ... */ });
+        const response = await fetch(`${API_BASE}/api/documents/${docId}/rename`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ newName: newName.trim() })
+        });
+        if (response.ok) {
+            // Refresh list on success
+            fetchDocuments();
+        } else {
+            alert('Failed to rename document.');
+        }
+    } catch (error) {
+        console.error('Rename error:', error);
+    }
+};
+
+
   // Only redirect if trying to access dashboard while not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -263,35 +308,35 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       fetchDocuments();
       fetchSupportedStates();
     }
-  }, [isAuthenticated, isLoading, user, loginWithRedirect]);
+  }, [isAuthenticated, isLoading, user, loginWithRedirect, fetchDocuments]);
 
-  const fetchDocuments = async () => {
-    try {
-      const token = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE
+  const fetchDocuments = useCallback(async () => {
+      try {
+        const token = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: process.env.REACT_APP_AUTH0_AUDIENCE
+          }
+        });
+        const response = await fetch(`${API_BASE}/api/documents`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setDocuments(data.documents);
+        } else {
+          console.error('Failed to fetch documents:', data.error);
         }
-      });
-      const response = await fetch(`${API_BASE}/api/documents`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      } catch (error) {
+        if (error.error === 'login_required') {
+          loginWithRedirect();
         }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setDocuments(data.documents);
-      } else {
-        console.error('Failed to fetch documents:', data.error);
+        console.error('Failed to fetch documents:', error);
       }
-    } catch (error) {
-      if (error.error === 'login_required') {
-        loginWithRedirect();
-      }
-      console.error('Failed to fetch documents:', error);
-    }
-    setLoading(false);
-  };
-
+      setLoading(false);
+  }, [getAccessTokenSilently, loginWithRedirect, setDocuments]); // <-- Correct placement for dependency array
+  
   const fetchSupportedStates = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/templates/states`);
@@ -340,26 +385,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Scale className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">Affidavit Pro</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Welcome, {user?.name}</span>
-              <button
-                onClick={() => logout({ returnTo: window.location.origin })}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Documents</h2>
@@ -458,47 +483,54 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
               <div className="p-6">
                 {documents.length > 0 ? (
                   <div className="space-y-3">
-                    {documents.map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                {documents.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        
+                        {/* Document Info Section (Left side) */}
                         <div className="flex items-center space-x-4 flex-1">
-                          <FileText className="h-6 w-6 text-blue-600 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 truncate">
-                              {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
-                            </h4>
-                            <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                              {doc.state && (
-                                <span>{supportedStates.find(s => s.code === doc.state)?.name || doc.state}</span>
-                              )}
-                              {doc.documentType && (
-                                <span className="capitalize">{doc.documentType.replace('_', ' ')}</span>
-                              )}
-                              <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                            <FileText className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 truncate">
+                                    {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
+                                </h4>
+                                <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                                    {doc.state && (
+                                        <span>{supportedStates.find(s => s.code === doc.state)?.name || doc.state}</span>
+                                    )}
+                                    {doc.documentType && (
+                                        <span className="capitalize">{doc.documentType.replace('_', ' ')}</span>
+                                    )}
+                                    <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                                </div>
                             </div>
-                          </div>
                         </div>
                         
+                        {/* Action Buttons Section (Right side) */}
                         <div className="flex items-center space-x-3">
-                          {doc.validation && !doc.validation.isValid && (
-                            <div className="flex items-center text-red-600">
-                              <AlertTriangle className="h-4 w-4 mr-1" />
-                              <span className="text-xs">Needs attention</span>
-                            </div>
-                          )}
-                          
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(doc.status)}`}>
-                            {doc.status}
-                          </span>
-                          
-                          <button
-                            onClick={() => onContinueDocument(doc)}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          >
-                            {doc.status === 'completed' ? 'View' : 'Continue'}
-                          </button>
+                            {doc.validation && !doc.validation.isValid && (
+                                <div className="flex items-center text-red-600">
+                                    <AlertTriangle className="h-4 w-4 mr-1" />
+                                    <span className="text-xs">Needs attention</span>
+                                </div>
+                            )}
+                            
+                            {/* Rename and Delete buttons */}
+                            <button onClick={() => handleRename(doc.id, doc.affiantName)} className="text-xs text-gray-500 hover:text-gray-800">Rename</button>
+                            <button onClick={() => handleDelete(doc.id)} className="text-xs text-red-500 hover:text-red-800">Delete</button>
+                            
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(doc.status)}`}>
+                                {doc.status}
+                            </span>
+                            
+                            <button
+                                onClick={() => onContinueDocument(doc)}
+                                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                            >
+                                {doc.status === 'completed' ? 'View' : 'Continue'}
+                            </button>
                         </div>
-                      </div>
-                    ))}
+                    </div>
+                ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -650,7 +682,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess }) => {
 };
 
 // FIXED DOCUMENT EDITOR - Auth and Mobile Preview Issues
-const DocumentEditor = ({ existingDocument = null, onBack }) => {
+const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef }) => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
   const [messages, setMessages] = useState([{
     id: 1,
@@ -666,7 +698,6 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const [userToggledPreview, setUserToggledPreview] = useState(false); // Track user preference
   const [documentComplete, setDocumentComplete] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [sessionSaved, setSessionSaved] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [savedSessionData, setSavedSessionData] = useState(null);
@@ -687,6 +718,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   });
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+
+
 
   // Only require auth when accessing DocumentEditor
   useEffect(() => {
@@ -758,16 +791,16 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   }, [existingDocument, isAuthenticated]);
 
   useEffect(() => {
-    if (affidavitData.state && affidavitData.affiantName) {
+    if (affidavitData.state) {
       generatePreview();
     }
-  }, [affidavitData]);
+  }, [affidavitData.state, affidavitData.facts, affidavitData.affiantName, generatePreview]);
 
   useEffect(() => {
     if (affidavitData.state) {
       validateData();
     }
-  }, [affidavitData.state, affidavitData.affiantName, affidavitData.facts]);
+  }, [affidavitData.state, affidavitData.affiantName, affidavitData.facts, validateData]);
 
   const fetchTemplateData = async () => {
     try {
@@ -790,7 +823,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     }
   };
 
-  const validateData = async () => {
+  const validateData = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/templates/validate`, {
         method: 'POST',
@@ -812,9 +845,9 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     } catch (error) {
       console.error('Validation error:', error);
     }
-  };
+  }, [affidavitData]);
 
-  const generatePreview = async () => {
+  const generatePreview = useCallback(async () => {
     try {
       let token = null;
       try {
@@ -825,7 +858,6 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         });
       } catch (authError) {
         console.warn('Auth token not available for preview, this should not happen in authenticated mode');
-        // In authenticated mode, we should always have a token
         if (authError.error === 'login_required') {
           loginWithRedirect();
           return;
@@ -860,7 +892,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     } catch (error) {
       console.error('Preview generation error:', error);
     }
-  };
+  }, [getAccessTokenSilently, loginWithRedirect, affidavitData]);
 
   const handleResumeDecision = (resume) => {
     if (resume && savedSessionData) {
@@ -876,7 +908,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     setSavedSessionData(null);
   };
 
-  const saveSession = async () => {
+  const saveSession = useCallback(async () => {
     const sessionData = {
       messages,
       affidavitData,
@@ -939,8 +971,14 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       console.error('Failed to save to backend:', error);
       alert(`Save failed: ${error.message}. Your progress is still saved locally.`);
     }
-  };
+  }, [messages, affidavitData, documentComplete, getAccessTokenSilently, loginWithRedirect, setSessionSaved]);
 
+  // Expose the saveSession function to the parent component
+  useEffect(() => {
+      if (saveSessionRef) {
+          saveSessionRef.current = saveSession;
+      }
+  }, [saveSession, saveSessionRef]);
   const streamResponse = async (response) => {
     const words = response.split(' ');
     let currentText = '';
@@ -956,7 +994,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   };
 
   // FIXED: Chat endpoint with better error handling that doesn't redirect to landing
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading_ || sessionLoading) return;
 
     const userMessage = {
@@ -1124,7 +1162,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
     }
 
     setIsLoading_(false);
-  };
+  }, [input, messages, affidavitData, /* etc. */]);
 
   const handleDownload = () => {
     setShowPayment(true);
@@ -1316,7 +1354,12 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
                         marginTop: '30px',
                         backgroundColor: '#f9f9f9'
                       }}>
-                        <pre style={{ fontFamily: 'Times New Roman, serif', fontSize: '12pt', margin: 0 }}>
+                        <pre style={{ 
+                          fontFamily: 'Times New Roman, serif', 
+                          fontSize: '12pt', 
+                          margin: 0, 
+                          whiteSpace: 'pre-wrap' // Add this line
+                        }}>
                           {preview.sections.notaryBlock}
                         </pre>
                       </div>
@@ -1352,46 +1395,6 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <button
-                onClick={onBack}
-                className="mr-4 p-2 text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <Scale className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">Affidavit Editor</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={saveSession}
-                disabled={sessionSaved}
-                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-              >
-                {sessionSaved ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
-                    Saved
-                  </>
-                ) : (
-                  'Save Progress'
-                )}
-              </button>
-              <button
-                onClick={handlePreviewToggle}
-                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className={`grid gap-8 ${showPreview && !isSmallScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           {/* Chat Interface */}
@@ -1532,6 +1535,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentDocument, setCurrentDocument] = useState(null);
+  const [sessionSaved, setSessionSaved] = useState(false);
+  const saveSessionRef = useRef(null); // To call the save function from the header
 
   const handleGetStarted = () => {
     setCurrentView('dashboard');
@@ -1557,49 +1562,44 @@ function App() {
     setCurrentDocument(null);
   };
 
-  return (
-    <ErrorBoundary>
-      <Auth0Provider
-        domain={process.env.REACT_APP_AUTH0_DOMAIN}
-        clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
-        authorizationParams={{
-          redirect_uri: window.location.origin,
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: "openid profile email read:documents write:documents access:chat offline_access"
-        }}
-        useRefreshTokens={true}
-        cacheLocation="localstorage"
-      >
-        <div className="App">
-            <Header
-                currentView={currentView}
-                onBackToDashboard={handleBackToDashboard}
-                onBackToLanding={handleBackToLanding}
-            />
+    return (
+        <ErrorBoundary>
+            <Auth0Provider /* ... */ >
+                <div className="App">
+                    <Header
+                        currentView={currentView}
+                        onBackToDashboard={handleBackToDashboard}
+                        onSave={() => saveSessionRef.current && saveSessionRef.current()}
+                        sessionSaved={sessionSaved}
+                    />
+                    <main>
+                        {/* This restores the logic for the landing page */}
+                        {currentView === 'landing' && (
+                            <LandingPage onGetStarted={handleGetStarted} />
+                        )}
 
-            {/* The content below the header will change */}
-            <main>
-                {currentView === 'landing' && (
-                    <LandingPage onGetStarted={handleGetStarted} />
-                )}
-                {currentView === 'dashboard' && (
-                    <UserDashboard
-                        onNewDocument={handleNewDocument}
-                        onContinueDocument={handleContinueDocument}
-                    />
-                )}
-                {currentView === 'editor' && (
-                    <DocumentEditor
-                        existingDocument={currentDocument}
-                        onBack={handleBackToDashboard}
-                    />
-                )}
-            </main>
-        </div>
-      </Auth0Provider>
-    </ErrorBoundary>
-  );
+                        {/* This restores the logic for the dashboard */}
+                        {currentView === 'dashboard' && (
+                            <UserDashboard
+                                onNewDocument={handleNewDocument}
+                                onContinueDocument={handleContinueDocument}
+                            />
+                        )}
+                        
+                        {/* This is the existing logic for the editor */}
+                        {currentView === 'editor' && (
+                            <DocumentEditor
+                                existingDocument={currentDocument}
+                                onBack={handleBackToDashboard}
+                                setSessionSaved={setSessionSaved}
+                                saveSessionRef={saveSessionRef}
+                            />
+                        )}
+                    </main>
+                </div>
+            </Auth0Provider>
+        </ErrorBoundary>
+    );
 }
-
 export default App;
   

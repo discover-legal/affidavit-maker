@@ -977,6 +977,61 @@ app.get('/api/documents', checkJwt, async (req, res) => {
   }
 });
 
+// RENAME a document
+app.put('/api/documents/:id/rename', checkJwt, async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const { newName } = req.body;
+    const user = req.user;
+
+    if (!newName) {
+      return res.status(400).json({ success: false, error: 'New name is required' });
+    }
+
+    const doc = await pool.query('SELECT content FROM documents WHERE id = $1 AND user_id = $2', [documentId, user.id]);
+
+    if (doc.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Document not found or access denied' });
+    }
+
+    const newContent = { ...doc.rows[0].content, affiantName: newName };
+
+    const updatedDoc = await pool.query(
+      'UPDATE documents SET content = $1, updated_at = NOW() WHERE id = $2 RETURNING id, content',
+      [JSON.stringify(newContent), documentId]
+    );
+
+    res.json({ success: true, document: updatedDoc.rows[0] });
+
+  } catch (error) {
+    console.error('Rename document error:', error);
+    res.status(500).json({ success: false, error: 'Failed to rename document' });
+  }
+});
+
+// DELETE a document
+app.delete('/api/documents/:id', checkJwt, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    const deleteResult = await pool.query(
+      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, user.id]
+    );
+
+    if (deleteResult.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Document not found or access denied' });
+    }
+
+    res.json({ success: true, message: 'Document deleted successfully' });
+
+  } catch (error) {
+    console.error('Delete document error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete document' });
+  }
+});
+
 // Download endpoint
 app.get('/api/download/:documentId', checkJwt, async (req, res) => {
   try {

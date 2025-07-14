@@ -1197,137 +1197,136 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   }, [input]);
 
   const renderPreview = () => {
-    if (!preview) {
-      return (
-        <div className="flex items-center justify-center h-64 text-gray-500">
-          <div className="text-center">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>Preview will appear when you provide basic information</p>
+      if (!preview) {
+        return (
+          <div className="flex items-center justify-center h-64 text-gray-500">
+            <div className="text-center">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>Preview will appear when you provide basic information</p>
+            </div>
           </div>
-        </div>
+        );
+      }
+
+      const previewScale = 0.8; // Adjust this scale factor as needed for a good fit
+
+      return (
+          // The outer container is responsive
+          <div className="w-full h-full overflow-hidden flex justify-center items-start">
+              {/* The inner container is scaled */}
+              <div 
+                  className="bg-white shadow-lg"
+                  style={{
+                      width: '8.5in',
+                      minHeight: '11in',
+                      padding: '1in',
+                      fontFamily: 'Times New Roman, serif',
+                      position: 'relative',
+                      transform: `scale(${previewScale})`,
+                      transformOrigin: 'top center',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                  }}
+              >
+                  {/* Watermark for preview */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%) rotate(-45deg)',
+                    fontSize: '72px',
+                    color: 'rgba(0,0,0,0.08)',
+                    fontWeight: 'bold',
+                    zIndex: 0,
+                    pointerEvents: 'none'
+                  }}>
+                    PREVIEW
+                  </div>
+
+                  {/* Document Content */}
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    {preview.sections?.header && (
+                      <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
+                        {preview.sections.header}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.venue && (
+                      <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
+                        {preview.sections.venue}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.caseCaption && (
+                      <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+                        {preview.sections.caseCaption.formatted}
+                      </div>
+
+                    )}
+                    
+                    {preview.sections?.title && (
+                      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14pt', marginBottom: '30px' }}>
+                        {preview.sections.title}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.introduction && (
+                      <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
+                        {preview.sections.introduction}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.facts && preview.sections.facts.length > 0 && (
+                      <div style={{ marginBottom: '20px' }}>
+                        {preview.sections.facts.map((fact, index) => (
+                          <div key={index} style={{ marginBottom: '15px', textAlign: 'justify' }}>
+                            <strong>{fact.number}.</strong> {fact.content}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.conclusion && (
+                      <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
+                        {preview.sections.conclusion}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.perjuryStatement && (
+                      <div style={{ textAlign: 'justify', marginBottom: '30px' }}>
+                        {preview.sections.perjuryStatement}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.signatureBlock && (
+                      <div style={{ marginBottom: '30px' }}>
+                        <div>{preview.sections.signatureBlock.line}</div>
+                        <div>{preview.sections.signatureBlock.name}</div>
+                        <div>{preview.sections.signatureBlock.title}</div>
+                        {preview.sections.signatureBlock.date && (
+                          <div style={{ marginTop: '10px' }}>{preview.sections.signatureBlock.date}</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {preview.sections?.notaryBlock && (
+                      <div style={{ 
+                        border: '2px solid #000', 
+                        padding: '20px', 
+                        marginTop: '30px',
+                        backgroundColor: '#f9f9f9'
+                      }}>
+                        <pre style={{ fontFamily: 'Times New Roman, serif', fontSize: '12pt', margin: 0 }}>
+                          {preview.sections.notaryBlock}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+              </div>
+          </div>
       );
-    }
-
-    const previewScale = 0.8; // Adjust this scale factor as needed for a good fit
-
-    return (
-        // The outer container is responsive
-        <div className="w-full h-full overflow-hidden flex justify-center items-start">
-            {/* The inner container is scaled */}
-            <div 
-            className="bg-white shadow-lg"
-                style={{
-                    width: '8.5in',
-                    minHeight: '11in',
-                    padding: '1in',
-                    fontFamily: 'Times New Roman, serif',
-                    position: 'relative',
-                    // --- NEW SCALING LOGIC ---
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: 'top center',
-                    // Ensure it doesn't cause horizontal scroll on the body
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                }}
-            >
-
-        {/* Watermark for preview */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%) rotate(-45deg)',
-          fontSize: '72px',
-          color: 'rgba(0,0,0,0.08)',
-          fontWeight: 'bold',
-          zIndex: 0,
-          pointerEvents: 'none'
-        }}>
-          PREVIEW
-        </div>
-
-        {/* Document Content */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {preview.sections?.header && (
-            <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
-              {preview.sections.header}
-            </div>
-          )}
-          
-          {preview.sections?.venue && (
-            <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px' }}>
-              {preview.sections.venue}
-            </div>
-          )}
-          
-          {preview.sections?.caseCaption && (
-            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-              {preview.sections.caseCaption.formatted}
-            </div>
-          )}
-          
-          {preview.sections?.title && (
-            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14pt', marginBottom: '30px' }}>
-              {preview.sections.title}
-            </div>
-          )}
-          
-          {preview.sections?.introduction && (
-            <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
-              {preview.sections.introduction}
-            </div>
-          )}
-          
-          {preview.sections?.facts && preview.sections.facts.length > 0 && (
-            <div style={{ marginBottom: '20px' }}>
-              {preview.sections.facts.map((fact, index) => (
-                <div key={index} style={{ marginBottom: '15px', textAlign: 'justify' }}>
-                  <strong>{fact.number}.</strong> {fact.content}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {preview.sections?.conclusion && (
-            <div style={{ textAlign: 'justify', marginBottom: '20px' }}>
-              {preview.sections.conclusion}
-            </div>
-          )}
-          
-          {preview.sections?.perjuryStatement && (
-            <div style={{ textAlign: 'justify', marginBottom: '30px' }}>
-              {preview.sections.perjuryStatement}
-            </div>
-          )}
-          
-          {preview.sections?.signatureBlock && (
-            <div style={{ marginBottom: '30px' }}>
-              <div>{preview.sections.signatureBlock.line}</div>
-              <div>{preview.sections.signatureBlock.name}</div>
-              <div>{preview.sections.signatureBlock.title}</div>
-              {preview.sections.signatureBlock.date && (
-                <div style={{ marginTop: '10px' }}>{preview.sections.signatureBlock.date}</div>
-              )}
-            </div>
-          )}
-          
-          {preview.sections?.notaryBlock && (
-            <div style={{ 
-              border: '2px solid #000', 
-              padding: '20px', 
-              marginTop: '30px',
-              backgroundColor: '#f9f9f9'
-            }}>
-              <pre style={{ fontFamily: 'Times New Roman, serif', fontSize: '12pt', margin: 0 }}>
-                {preview.sections.notaryBlock}
-              </pre>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
+    };
+    
   // Show loading while auth is being checked
   if (isLoading) {
     return (

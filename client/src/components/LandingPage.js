@@ -4,7 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { ChevronRight, Zap, Shield, Scale } from 'lucide-react';
 
 const LandingPage = ({ onGetStarted }) => {
-  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
+  const { loginWithRedirect, isAuthenticated } = useAuth0();
 
   const handleGetStarted = () => {
     if (isAuthenticated) {

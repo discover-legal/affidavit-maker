@@ -1,57 +1,87 @@
-// middleware/securityMiddleware.js
+// middleware/securityMiddleware.js - Enhanced security middleware
 const helmet = require('helmet');
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const logger = require('../services/logger');
 const rateLimit = require('express-rate-limit');
 
-// CSRF Protection
-const csrfTokens = new Map();
+// CSRF Protection with Redis support (falls back to in-memory)
+class CSRFTokenManager {
+  constructor() {
+    this.tokens = new Map();
+    this.tokenTTL = 60 * 60 * 1000; // 1 hour
+    
+    // Cleanup expired tokens every 5 minutes
+    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+  }
+  
+  generate() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = Date.now() + this.tokenTTL;
+    this.tokens.set(token, expiry);
+    return token;
+  }
+  
+  validate(token) {
+    if (!token || !this.tokens.has(token)) {
+      return false;
+    }
+    
+    const expiry = this.tokens.get(token);
+    if (Date.now() > expiry) {
+      this.tokens.delete(token);
+      return false;
+    }
+    
+    // Token is valid, delete it (one-time use)
+    this.tokens.delete(token);
+    return true;
+  }
+  
+  cleanup() {
+    const now = Date.now();
+    for (const [token, expiry] of this.tokens) {
+      if (now > expiry) {
+        this.tokens.delete(token);
+      }
+    }
+  }
+}
 
-const generateCSRFToken = () => {
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiry = Date.now() + (60 * 60 * 1000); // 1 hour
-  csrfTokens.set(token, expiry);
-  return token;
-};
+const csrfManager = new CSRFTokenManager();
+
+const generateCSRFToken = () => csrfManager.generate();
 
 const validateCSRFToken = (req, res, next) => {
   // Skip CSRF for API endpoints that use JWT
   if (req.path.startsWith('/api/') && req.headers.authorization) {
     return next();
   }
-
+  
+  // Skip for webhooks
+  if (req.path.includes('/webhook')) {
+    return next();
+  }
+  
   const token = req.headers['x-csrf-token'] || req.body._csrf;
   
-  if (!token || !csrfTokens.has(token)) {
+  if (!csrfManager.validate(token)) {
+    logger.warn('Invalid CSRF token', {
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+      requestId: req.id
+    });
+    
     return res.status(403).json({
       success: false,
-      error: 'Invalid or missing CSRF token'
+      error: 'Invalid or missing CSRF token',
+      requestId: req.id
     });
   }
-
-  const expiry = csrfTokens.get(token);
-  if (Date.now() > expiry) {
-    csrfTokens.delete(token);
-    return res.status(403).json({
-      success: false,
-      error: 'CSRF token expired'
-    });
-  }
-
-  // Token is valid, continue
+  
   next();
 };
-
-// Clean expired tokens periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, expiry] of csrfTokens) {
-    if (now > expiry) {
-      csrfTokens.delete(token);
-    }
-  }
-}, 60 * 60 * 1000); // Every hour
 
 // Input validation rules
 const validationRules = {
@@ -60,42 +90,44 @@ const validationRules = {
     body('message')
       .trim()
       .isLength({ min: 1, max: 5000 })
-      .withMessage('Message must be between 1 and 5000 characters')
-      .escape(),
+      .withMessage('Message must be between 1 and 5000 characters'),
     body('conversationHistory')
       .isArray()
       .withMessage('Conversation history must be an array'),
+    body('conversationHistory')
+      .custom((value) => value.length <= 50)
+      .withMessage('Conversation history too long'),
     body('currentData.affiantName')
-      .optional()
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 255 })
-      .matches(/^[a-zA-Z\s\-'.]+$/)
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
       .withMessage('Invalid name format'),
     body('currentData.state')
       .optional()
-      .isIn(['TX', 'UT', 'AZ', ''])
+      .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Invalid state'),
     body('currentData.facts')
       .optional()
-      .isArray()
-      .withMessage('Facts must be an array'),
+      .isArray({ max: 100 })
+      .withMessage('Too many facts'),
     body('currentData.facts.*')
       .optional()
       .trim()
       .isLength({ max: 2000 })
-      .escape()
   ],
 
   // Preview validation
   preview: [
     body('affidavitData.affiantName')
+      .optional({ checkFalsy: true })
       .trim()
-      .notEmpty()
       .isLength({ max: 255 })
-      .matches(/^[a-zA-Z\s\-'.]+$/)
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
       .withMessage('Invalid name format'),
     body('affidavitData.state')
-      .isIn(['TX', 'UT', 'AZ'])
+      .optional()
+      .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Invalid state'),
     body('affidavitData.county')
       .optional()
@@ -110,6 +142,44 @@ const validationRules = {
       .withMessage('Invalid case number format')
   ],
 
+  // Save draft validation
+  saveDraft: [
+    body('documentId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Invalid document ID'),
+    body('affidavitData')
+      .isObject()
+      .withMessage('Affidavit data must be an object'),
+    body('affidavitData.state')
+      .optional()
+      .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
+      .withMessage('Invalid state')
+  ],
+
+  // Generate document validation
+  generateDocument: [
+    body('affidavitData')
+      .isObject()
+      .withMessage('Affidavit data must be an object'),
+    body('affidavitData.state')
+      .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
+      .withMessage('Valid state is required'),
+    body('affidavitData.affiantName')
+      .trim()
+      .notEmpty()
+      .isLength({ min: 2, max: 255 })
+      .withMessage('Valid affiant name is required'),
+    body('strategy')
+      .optional()
+      .isIn(['simple', 'detailed', 'persuasive', 'legal', 'template_only'])
+      .withMessage('Invalid generation strategy'),
+    body('format')
+      .optional()
+      .isIn(['pdf', 'html', 'text', 'json'])
+      .withMessage('Invalid format')
+  ],
+
   // Payment validation
   payment: [
     body('documentType')
@@ -117,8 +187,20 @@ const validationRules = {
       .withMessage('Invalid document type'),
     body('documentId')
       .optional()
-      .isInt()
+      .custom((value) => value === 'new' || /^\d+$/.test(value))
       .withMessage('Invalid document ID')
+  ],
+
+  // Rename document validation
+  renameDocument: [
+    body('newName')
+      .trim()
+      .notEmpty({ ignore_whitespace: true })
+      .withMessage('Name cannot be empty.')
+      .isLength({ min: 2, max: 255 })
+      .withMessage('Name must be between 2 and 255 characters.')
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+      .withMessage('Invalid name format. Only letters, numbers, and common punctuation (including #) are allowed.')
   ]
 };
 
@@ -129,16 +211,18 @@ const validate = (req, res, next) => {
     logger.warn('Validation failed', {
       endpoint: req.path,
       errors: errors.array(),
-      ip: req.ip
+      ip: req.ip,
+      requestId: req.id
     });
     
     return res.status(400).json({
       success: false,
       error: 'Validation failed',
       details: errors.array().map(err => ({
-        field: err.param,
+        field: err.path,
         message: err.msg
-      }))
+      })),
+      requestId: req.id
     });
   }
   next();
@@ -148,7 +232,6 @@ const validate = (req, res, next) => {
 const sanitizeSQL = (input) => {
   if (typeof input !== 'string') return input;
   
-  // Remove or escape potentially dangerous characters
   return input
     .replace(/'/g, "''")
     .replace(/;/g, '')
@@ -156,7 +239,13 @@ const sanitizeSQL = (input) => {
     .replace(/\/\*/g, '')
     .replace(/\*\//g, '')
     .replace(/xp_/gi, '')
-    .replace(/exec/gi, '');
+    .replace(/exec/gi, '')
+    .replace(/union/gi, '')
+    .replace(/select/gi, '')
+    .replace(/insert/gi, '')
+    .replace(/update/gi, '')
+    .replace(/delete/gi, '')
+    .replace(/drop/gi, '');
 };
 
 // XSS Prevention for output
@@ -167,7 +256,13 @@ const sanitizeOutput = (data) => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
+      .replace(/\//g, '&#x2F;')
+      .replace(/\\/g, '&#x5C;')
+      .replace(/`/g, '&#x60;');
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(sanitizeOutput);
   }
   
   if (typeof data === 'object' && data !== null) {
@@ -200,24 +295,50 @@ const helmetConfig = helmet({
     maxAge: 31536000,
     includeSubDomains: true,
     preload: true
-  }
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 });
 
-// Rate limiting for specific endpoints
-const authRateLimit = rateLimit({
+// Rate limiting configurations
+const createRateLimiter = (options) => {
+  return rateLimit({
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        requestId: req.id
+      });
+      
+      res.status(429).json({
+        success: false,
+        error: options.message || 'Too many requests, please try again later.',
+        retryAfter: Math.round(options.windowMs / 1000),
+        requestId: req.id
+      });
+    },
+    ...options
+  });
+};
+
+const authRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 requests per window
   message: 'Too many authentication attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
+  skipSuccessfulRequests: true
 });
 
-const apiRateLimit = rateLimit({
+const apiRateLimit = createRateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute
-  message: 'Too many API requests, please slow down.',
-  standardHeaders: true,
-  legacyHeaders: false,
+  max: 60, // 60 requests per minute
+  message: 'Too many API requests, please slow down.'
+});
+
+const strictRateLimit = createRateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute
+  message: 'Too many requests to this endpoint, please wait.'
 });
 
 module.exports = {
@@ -229,5 +350,6 @@ module.exports = {
   sanitizeOutput,
   helmetConfig,
   authRateLimit,
-  apiRateLimit
+  apiRateLimit,
+  strictRateLimit
 };

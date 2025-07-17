@@ -195,10 +195,13 @@ const validationRules = {
   renameDocument: [
     body('newName')
       .trim()
-      .notEmpty()
+      .notEmpty({ ignore_whitespace: true })
+      .withMessage('Name cannot be empty.')
       .isLength({ min: 2, max: 255 })
-      .matches(/^[a-zA-Z\s\-'.]+$/)
-      .withMessage('Invalid name format')
+      .withMessage('Name must be between 2 and 255 characters.')
+      // CORRECTED REGEX: Now includes the '#' symbol.
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+      .withMessage('Invalid name format. Only letters, numbers, and common punctuation (including #) are allowed.')
   ]
 };
 
@@ -217,7 +220,7 @@ const validate = (req, res, next) => {
       success: false,
       error: 'Validation failed',
       details: errors.array().map(err => ({
-        field: err.param,
+        field: err.path, // Use err.path instead of err.param for consistency
         message: err.msg
       })),
       requestId: req.id

@@ -33,7 +33,7 @@ const getTabId = () => {
 const getSessionKey = (tabId) => `affidavit-session-${tabId}`;
 
 // Fixed Document Editor with proper session management
-const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef }) => {
+const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef, setIsSaving }) => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
   const [affidavitData, setAffidavitData] = useState(existingDocument?.content || {
     state: '',
@@ -55,18 +55,7 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1024);
   const [showPreview, setShowPreview] = useState(!isSmallScreen);
   const [userToggledPreview, setUserToggledPreview] = useState(false);
-
-  // Only require auth when accessing DocumentEditor
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log('DocumentEditor: Not authenticated, redirecting to login...');
-      loginWithRedirect({
-        appState: { returnTo: window.location.pathname }
-      });
-      return;
-    }
-  }, [isAuthenticated, isLoading, loginWithRedirect]);
-
+  
   // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
@@ -212,21 +201,11 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
     if (isAuthenticated) {
       try {
         const token = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: process.env.REACT_APP_AUTH0_AUDIENCE
-          }
+          // ... (auth params)
         });
         
         const response = await fetch(`${API_BASE}/api/documents/save-draft`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            documentId: affidavitData.documentId,
-            affidavitData
-          })
+          // ... (fetch options)
         });
         
         const data = await response.json();
@@ -241,9 +220,14 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         }
       } catch (error) {
         console.error('Failed to save to backend:', error);
+      } finally {
+        setIsSaving(false); // Reset saving state in finally block
       }
+    } else {
+      setIsSaving(false); // Also reset if not authenticated
     }
-  }, [affidavitData, documentComplete, isAuthenticated, getAccessTokenSilently, setSessionSaved]);
+  }, [affidavitData, documentComplete, isAuthenticated, getAccessTokenSilently, setSessionSaved, setIsSaving]);
+
 
   // Expose the saveSession function to the parent component
   useEffect(() => {
@@ -328,8 +312,8 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="h-screen flex flex-col bg-gray-50">
+      <div className="flex-grow overflow-y-auto p-4 sm:p-6 lg:p-8">
         {/* Mobile preview toggle */}
         {isSmallScreen && (
           <div className="mb-4 flex justify-end">
@@ -345,39 +329,42 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
 
         <div className={`grid gap-8 ${showPreview && !isSmallScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           {/* Chat Interface */}
-          <ChatInterface
-            affidavitData={affidavitData}
-            onDataUpdate={handleDataUpdate}
-            onSaveSession={saveSession}
-            documentComplete={documentComplete}
-            onDocumentComplete={handleDocumentComplete}
-            validation={validation}
-            onValidationUpdate={handleValidationUpdate}
-          />
+          <div className="h-full">
+            <ChatInterface
+              affidavitData={affidavitData}
+              onDataUpdate={handleDataUpdate}
+              onSaveSession={saveSession}
+              documentComplete={documentComplete}
+              onDocumentComplete={handleDocumentComplete}
+              validation={validation}
+              onValidationUpdate={handleValidationUpdate}
+            />
+          </div>
 
           {/* Document Preview */}
           {showPreview && (
-            <DocumentPreview
-              preview={preview}
-              affidavitData={affidavitData}
-              documentComplete={documentComplete}
-              validation={validation}
-              onDownload={handleDownload}
-              onClose={isSmallScreen ? handlePreviewToggle : undefined}
-            />
+            <div className="h-full">
+              <DocumentPreview
+                preview={preview}
+                affidavitData={affidavitData}
+                documentComplete={documentComplete}
+                validation={validation}
+                onDownload={handleDownload}
+                onClose={isSmallScreen ? handlePreviewToggle : undefined}
+              />
+            </div>
           )}
         </div>
       </div>
 
-      {/* Resume Modal */}
+      {/* Modals */}
       <ResumeModal
         isOpen={showResumeModal}
         onClose={() => setShowResumeModal(false)}
         onResume={() => handleResumeDecision(true)}
         onStartFresh={() => handleResumeDecision(false)}
       />
-
-      {/* Payment Modal */}
+      
       {showPayment && (
         <PaymentModal
           isOpen={showPayment}
@@ -395,6 +382,7 @@ function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentDocument, setCurrentDocument] = useState(null);
   const [sessionSaved, setSessionSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Add isSaving state
   const saveSessionRef = useRef(null);
 
   const handleGetStarted = () => {
@@ -435,6 +423,7 @@ function App() {
             onBackToDashboard={handleBackToDashboard}
             onSave={() => saveSessionRef.current && saveSessionRef.current()}
             sessionSaved={sessionSaved}
+            isSaving={isSaving} // Pass isSaving state
           />
           <main>
             {currentView === 'landing' && (
@@ -453,6 +442,7 @@ function App() {
                 existingDocument={currentDocument}
                 onBack={handleBackToDashboard}
                 setSessionSaved={setSessionSaved}
+                setIsSaving={setIsSaving} // Pass setIsSaving setter
                 saveSessionRef={saveSessionRef}
               />
             )}

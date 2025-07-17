@@ -47,10 +47,11 @@ const DocumentPreview = ({
         )}
       </div>
       
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto bg-gray-100">
         <div className="bg-white shadow-lg mx-auto" style={{ 
-          width: '8.5in', 
-          minHeight: '11in',
+          width: '100%', 
+          maxWidth: '8.5in',
+          minHeight: '11in', // Keep minHeight for aspect ratio on empty docs
           padding: '1in',
           fontSize: '12pt',
           lineHeight: '1.5',
@@ -144,7 +145,13 @@ const DocumentPreview = ({
                 marginTop: '30px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <pre style={{ fontFamily: 'Times New Roman, serif', fontSize: '12pt', margin: 0 }}>
+                <pre style={{ 
+                  fontFamily: 'Times New Roman, serif', 
+                  fontSize: '12pt', 
+                  margin: 0, 
+                  whiteSpace: 'pre-wrap',   /* Ensures wrapping */
+                  wordBreak: 'break-word'   /* Breaks long words if necessary */
+                }}>
                   {preview.sections.notaryBlock}
                 </pre>
               </div>

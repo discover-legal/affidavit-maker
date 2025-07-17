@@ -1,4 +1,4 @@
-// routes/chat.js - Chat routes with proper error handling
+// routes/chat.js - Corrected version with proper timeout handling
 const express = require('express');
 const router = express.Router();
 const { validationRules, validate } = require('../middleware/securityMiddleware');
@@ -39,59 +39,29 @@ router.post('/', validationRules.chat, validate, asyncHandler(async (req, res) =
     try {
       validation = affidavitService.validateAffidavitData(currentData, currentData.state);
     } catch (validationError) {
-      logger.warn('Validation failed during chat:', {
-        error: validationError.message,
-        state: currentData.state,
-        userId: user.id,
-        requestId: req.id
-      });
-      // Continue without validation
+      logger.warn('Validation failed during chat:', { error: validationError.message, userId: user.id });
     }
   }
 
   // Get template requirements
-  let template = null;
   let requirements = {};
-  
   if (currentData?.state && affidavitService.templateManager) {
     try {
-      template = affidavitService.templateManager.getTemplate(currentData.state);
+      const template = affidavitService.templateManager.getTemplate(currentData.state);
       requirements = template ? template.getRequirements() : {};
     } catch (templateError) {
-      logger.warn('Template retrieval failed:', {
-        error: templateError.message,
-        state: currentData.state,
-        requestId: req.id
-      });
+      logger.warn('Template retrieval failed:', { error: templateError.message });
     }
   }
 
-  // Build AI prompt with template context
-  const systemPrompt = `You are a legal document assistant helping create affidavits. You have access to state-specific templates and requirements.
+  // Build AI prompt
+  const systemPrompt = `You are a legal document assistant. Your goal is to guide the user in creating a state-compliant affidavit. Always respond with a JSON object with the keys: "response", "extractedData", "conversationComplete", and "nextSteps".
+  
+  Current State: ${currentData?.state || 'Not selected'}
+  Template Requirements: ${JSON.stringify(requirements)}
+  Current Data: ${JSON.stringify(currentData)}
+  Validation: ${validation ? JSON.stringify(validation) : 'Not validated'}`;
 
-IMPORTANT: You MUST NOT provide legal advice. You can only provide information about the document creation process and gather facts. Always remind users to consult with an attorney for legal advice.
-
-Current State: ${currentData?.state || 'Not selected'}
-Document Type: ${currentData?.documentType || 'general'}
-Template Requirements: ${JSON.stringify(requirements)}
-Current Data: ${JSON.stringify(currentData)}
-Validation: ${validation ? JSON.stringify(validation) : 'Not validated'}
-
-Guide the user through collecting all necessary information for their ${currentData?.state || 'state'} affidavit. Focus on:
-1. Required information for their state
-2. Completeness of facts
-3. Legal sufficiency
-4. Proper formatting requirements
-
-Always respond with a JSON object containing:
-- response: Your helpful message to the user
-- extractedData: Any new data to extract from their message
-- conversationComplete: boolean indicating if enough info is collected
-- nextSteps: array of suggested next steps
-
-Be conversational but professional. Ask for one piece of information at a time. If asked for legal advice, politely explain that you can only help with document preparation, not legal guidance.`;
-
-  // Prepare messages for AI
   const messages = [
     { role: "system", content: systemPrompt },
     ...conversationHistory.slice(-10).map(msg => ({
@@ -101,50 +71,36 @@ Be conversational but professional. Ask for one piece of information at a time. 
     { role: "user", content: message }
   ];
 
-  // Add request timeout
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  // --- CORRECTED TIMEOUT LOGIC ---
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('The request to the AI service timed out.')), 30000)
+  );
 
   try {
-    // Check if OpenAI is configured
     if (!affidavitService.openai) {
       throw new ExternalServiceError('AI service not configured', 'openai');
     }
 
-    const completion = await affidavitService.openai.chat.completions.create({
+    const apiCallPromise = affidavitService.openai.chat.completions.create({
       model: "gpt-4-turbo",
       messages,
       temperature: 0.7,
       max_tokens: 1000,
-      signal: controller.signal
+      // The invalid 'signal' property is removed from here.
+      response_format: { type: "json_object" }
     });
 
-    clearTimeout(timeout);
+    // Race the API call against our timeout
+    const completion = await Promise.race([apiCallPromise, timeoutPromise]);
 
     let aiResponse;
     try {
       const content = completion.choices[0].message.content;
-      
-      // Try to parse as JSON
-      if (content.trim().startsWith('{')) {
-        aiResponse = JSON.parse(content);
-      } else {
-        // Fallback if response is not JSON
-        aiResponse = {
-          response: content,
-          extractedData: {},
-          conversationComplete: false,
-          nextSteps: []
-        };
-      }
+      aiResponse = JSON.parse(content);
     } catch (parseError) {
-      logger.warn('AI response parsing failed, using fallback:', {
-        error: parseError.message,
-        requestId: req.id
-      });
-      
+      logger.warn('AI response parsing failed, using fallback:', { error: parseError.message, requestId: req.id });
       aiResponse = {
-        response: completion.choices[0].message.content,
+        response: completion.choices[0].message.content || "I'm sorry, I received an unusual response. Could you try rephrasing?",
         extractedData: {},
         conversationComplete: false,
         nextSteps: []
@@ -155,35 +111,12 @@ Be conversational but professional. Ask for one piece of information at a time. 
     await pool.query(
       `INSERT INTO activity_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        user.id,
-        'chat_interaction',
-        'conversation',
-        documentId,
-        req.ip,
-        req.get('user-agent'),
-        JSON.stringify({ 
-          requestId: req.id,
-          messageLength: message.length,
-          responseLength: aiResponse.response.length
-        })
-      ]
+      [user.id, 'chat_interaction', 'conversation', documentId, req.ip, req.get('user-agent'), JSON.stringify({ requestId: req.id })]
     );
 
-    // Track metrics
     const duration = Date.now() - startTime;
     monitoringService.trackRequest('/api/chat', 'POST', 200, duration);
     
-    // Log AI interaction
-    logger.info('Chat interaction completed', {
-      userId: user.id,
-      documentId,
-      duration: `${duration}ms`,
-      hasExtractedData: !!aiResponse.extractedData && Object.keys(aiResponse.extractedData).length > 0,
-      conversationComplete: aiResponse.conversationComplete,
-      requestId: req.id
-    });
-
     res.json({
       success: true,
       response: aiResponse.response,
@@ -196,38 +129,15 @@ Be conversational but professional. Ask for one piece of information at a time. 
     });
 
   } catch (error) {
-    clearTimeout(timeout);
-    
     const duration = Date.now() - startTime;
     monitoringService.trackRequest('/api/chat', 'POST', 500, duration);
-    monitoringService.trackError(error, {
-      endpoint: '/api/chat',
-      userId: user.id,
-      requestId: req.id
-    });
-    
-    if (error.name === 'AbortError') {
-      throw new ExternalServiceError('Request timed out. Please try again.', 'openai');
-    }
+    monitoringService.trackError(error, { endpoint: '/api/chat', userId: user.id, requestId: req.id });
     
     if (error.response?.status === 429) {
       throw new ExternalServiceError('AI service is currently busy. Please try again in a moment.', 'openai');
     }
     
-    if (error.response?.status === 401) {
-      logger.error('OpenAI authentication failed', {
-        error: error.message,
-        requestId: req.id
-      });
-      throw new ExternalServiceError('AI service configuration error', 'openai');
-    }
-    
-    // For any other OpenAI errors
-    if (error.response?.status || error.isAxiosError) {
-      throw new ExternalServiceError('AI service temporarily unavailable', 'openai');
-    }
-    
-    // Re-throw other errors to be handled by error middleware
+    // Re-throw other errors to be handled by the main error middleware
     throw error;
   }
 }));

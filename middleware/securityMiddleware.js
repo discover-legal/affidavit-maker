@@ -98,10 +98,11 @@ const validationRules = {
       .custom((value) => value.length <= 50)
       .withMessage('Conversation history too long'),
     body('currentData.affiantName')
-      .optional()
+      // CORRECTED: .optional({ checkFalsy: true }) allows empty strings to pass validation.
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 255 })
-      .matches(/^[a-zA-Z\s\-'.]+$/)
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
       .withMessage('Invalid name format'),
     body('currentData.state')
       .optional()
@@ -120,10 +121,11 @@ const validationRules = {
   // Preview validation
   preview: [
     body('affidavitData.affiantName')
-      .optional()
+      // CORRECTED: Applying the same fix here for consistency.
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 255 })
-      .matches(/^[a-zA-Z\s\-'.]+$/)
+      .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
       .withMessage('Invalid name format'),
     body('affidavitData.state')
       .optional()
@@ -199,7 +201,6 @@ const validationRules = {
       .withMessage('Name cannot be empty.')
       .isLength({ min: 2, max: 255 })
       .withMessage('Name must be between 2 and 255 characters.')
-      // CORRECTED REGEX: Now includes the '#' symbol.
       .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
       .withMessage('Invalid name format. Only letters, numbers, and common punctuation (including #) are allowed.')
   ]
@@ -220,7 +221,7 @@ const validate = (req, res, next) => {
       success: false,
       error: 'Validation failed',
       details: errors.array().map(err => ({
-        field: err.path, // Use err.path instead of err.param for consistency
+        field: err.path,
         message: err.msg
       })),
       requestId: req.id
@@ -233,7 +234,6 @@ const validate = (req, res, next) => {
 const sanitizeSQL = (input) => {
   if (typeof input !== 'string') return input;
   
-  // Use parameterized queries instead of this function when possible
   return input
     .replace(/'/g, "''")
     .replace(/;/g, '')

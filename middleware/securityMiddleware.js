@@ -98,7 +98,6 @@ const validationRules = {
       .custom((value) => value.length <= 50)
       .withMessage('Conversation history too long'),
     body('currentData.affiantName')
-      // CORRECTED: .optional({ checkFalsy: true }) allows empty strings to pass validation.
       .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 255 })
@@ -106,7 +105,7 @@ const validationRules = {
       .withMessage('Invalid name format'),
     body('currentData.state')
       .optional()
-      .isIn(['TX', 'UT', 'AZ', ''])
+      .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Invalid state'),
     body('currentData.facts')
       .optional()
@@ -121,7 +120,6 @@ const validationRules = {
   // Preview validation
   preview: [
     body('affidavitData.affiantName')
-      // CORRECTED: Applying the same fix here for consistency.
       .optional({ checkFalsy: true })
       .trim()
       .isLength({ max: 255 })
@@ -129,7 +127,7 @@ const validationRules = {
       .withMessage('Invalid name format'),
     body('affidavitData.state')
       .optional()
-      .isIn(['TX', 'UT', 'AZ'])
+      .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Invalid state'),
     body('affidavitData.county')
       .optional()
@@ -155,7 +153,7 @@ const validationRules = {
       .withMessage('Affidavit data must be an object'),
     body('affidavitData.state')
       .optional()
-      .isIn(['TX', 'UT', 'AZ', ''])
+      .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Invalid state')
   ],
 
@@ -165,7 +163,7 @@ const validationRules = {
       .isObject()
       .withMessage('Affidavit data must be an object'),
     body('affidavitData.state')
-      .isIn(['TX', 'UT', 'AZ'])
+      .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
       .withMessage('Valid state is required'),
     body('affidavitData.affiantName')
       .trim()

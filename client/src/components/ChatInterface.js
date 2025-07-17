@@ -15,7 +15,7 @@ const ChatInterface = ({
   validation,
   onValidationUpdate
 }) => {
-  const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
+  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
   const [messages, setMessages] = useState([{
     id: 1,
     type: 'bot',
@@ -28,6 +28,7 @@ const ChatInterface = ({
   const [streamingMessage, setStreamingMessage] = useState('');
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,6 +40,15 @@ const ChatInterface = ({
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
   }, [input]);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const streamResponse = async (response) => {
     const words = response.split(' ');
@@ -57,6 +67,15 @@ const ChatInterface = ({
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Check authentication
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to login...');
+      loginWithRedirect({
+        appState: { returnTo: window.location.pathname }
+      });
+      return;
+    }
+
     const userMessage = {
       id: Date.now(),
       type: 'user',
@@ -66,6 +85,9 @@ const ChatInterface = ({
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       const token = await getAccessTokenSilently({
@@ -82,60 +104,130 @@ const ChatInterface = ({
         },
         body: JSON.stringify({
           message: userMessage.content,
-          conversationHistory: messages,
+          conversationHistory: messages.slice(-10), // Limit history to last 10 messages
           currentData: affidavitData,
           documentId: affidavitData.documentId
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        const streamedResponse = await streamResponse(data.response);
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Try to refresh token
+          try {
+            const freshToken = await getAccessTokenSilently({
+              authorizationParams: {
+                audience: process.env.REACT_APP_AUTH0_AUDIENCE
+              },
+              cacheMode: 'off'
+            });
+            
+            // Retry with fresh token
+            const retryResponse = await fetch(`${API_BASE}/api/chat`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${freshToken}`
+              },
+              body: JSON.stringify({
+                message: userMessage.content,
+                conversationHistory: messages.slice(-10),
+                currentData: affidavitData,
+                documentId: affidavitData.documentId
+              }),
+              signal: abortControllerRef.current.signal
+            });
+
+            if (retryResponse.ok) {
+              const retryData = await retryResponse.json();
+              await handleChatResponse(retryData);
+              return;
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+          }
+          
+          throw new Error('Authentication failed. Please try refreshing the page.');
+        }
         
-        const botMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: streamedResponse
-        };
-
-        setMessages(prev => [...prev, botMessage]);
-
-        if (data.extractedData) {
-          onDataUpdate(data.extractedData);
-        }
-
-        if (data.validation) {
-          onValidationUpdate(data.validation);
-        }
-
-        if (data.conversationComplete) {
-          onDocumentComplete(true);
-        }
-
-        await onSaveSession();
-      } else {
-        const errorMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: data.error || 'Sorry, I encountered an error. Please try again.'
-        };
-        setMessages(prev => [...prev, errorMessage]);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
+
+      const data = await response.json();
+      await handleChatResponse(data);
+
     } catch (error) {
-      if (error.error === 'login_required') {
-        loginWithRedirect();
+      if (error.name === 'AbortError') {
+        console.log('Request was cancelled');
+        return;
       }
+
       console.error('Chat error:', error);
+      
+      let errorMessage = 'Sorry, I encountered an error. ';
+      
+      if (error.message.includes('Authentication')) {
+        errorMessage += 'Your session may have expired. Please refresh the page.';
+      } else if (error.message.includes('Network')) {
+        errorMessage += 'Please check your internet connection and try again.';
+      } else {
+        errorMessage += 'Please try again or refresh the page if the problem persists.';
+      }
+      
+      const errorBotMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: errorMessage
+      };
+      setMessages(prev => [...prev, errorBotMessage]);
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleChatResponse = async (data) => {
+    if (data.success) {
+      const streamedResponse = await streamResponse(data.response);
+      
+      const botMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: streamedResponse
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+      if (data.extractedData) {
+        onDataUpdate(data.extractedData);
+      }
+
+      if (data.validation) {
+        onValidationUpdate(data.validation);
+      }
+
+      if (data.conversationComplete) {
+        onDocumentComplete(true);
+      }
+
+      // Save session after successful interaction
+      await onSaveSession();
+    } else {
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: data.error || 'Sorry, I encountered an error. Please try again.'
       };
       setMessages(prev => [...prev, errorMessage]);
     }
+  };
 
-    setIsLoading(false);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   return (
@@ -191,12 +283,7 @@ const ChatInterface = ({
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder="Type your response..."
             disabled={isLoading}
             className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"

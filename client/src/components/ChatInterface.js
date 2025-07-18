@@ -1,5 +1,4 @@
-// Updated ChatInterface component with county validation integration
-
+// client/src/components/ChatInterface.js - Exactly matched height
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -324,8 +323,9 @@ const ChatInterface = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col" style={{minHeight: '75vh', maxHeight: '85vh'}}>
-      <div className="p-6 border-b flex-shrink-0">
+    <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
+      {/* Compact Header */}
+      <div className="p-4 border-b flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
         <p className="text-sm text-gray-600">I'll guide you through creating your state-compliant affidavit.</p>
         
@@ -345,9 +345,10 @@ const ChatInterface = ({
         )}
       </div>
       
+      {/* Messages Area - Exactly matched height with other components */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-6 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4"
         style={{ minHeight: 0 }}
       >
         {messages.map((message) => (
@@ -426,8 +427,9 @@ const ChatInterface = ({
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="p-6 border-t bg-white flex-shrink-0">
-        <div className="flex space-x-4">
+      {/* Input Area - Compact design */}
+      <div className="p-4 border-t bg-white flex-shrink-0">
+        <div className="flex space-x-3">
           <textarea
             ref={textareaRef}
             value={input}

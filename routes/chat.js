@@ -1,4 +1,4 @@
-// routes/chat.js - Corrected version with proper timeout handling
+// routes/chat.js
 const express = require('express');
 const router = express.Router();
 const { validationRules, validate } = require('../middleware/securityMiddleware');
@@ -60,7 +60,9 @@ router.post('/', validationRules.chat, validate, asyncHandler(async (req, res) =
   Current State: ${currentData?.state || 'Not selected'}
   Template Requirements: ${JSON.stringify(requirements)}
   Current Data: ${JSON.stringify(currentData)}
-  Validation: ${validation ? JSON.stringify(validation) : 'Not validated'}`;
+  Validation: ${validation ? JSON.stringify(validation) : 'Not validated'}
+  
+  When all required information for the selected state is gathered and validation is successful, set "conversationComplete" to true in your JSON response and make your "response" text a clear call to action, guiding the user to the preview panel to download their completed document. For example: "Great, I have everything I need to prepare your affidavit! You can now review the final document in the preview panel and proceed to finalize and download the official PDF."`;
 
   const messages = [
     { role: "system", content: systemPrompt },
@@ -86,7 +88,6 @@ router.post('/', validationRules.chat, validate, asyncHandler(async (req, res) =
       messages,
       temperature: 0.7,
       max_tokens: 1000,
-      // The invalid 'signal' property is removed from here.
       response_format: { type: "json_object" }
     });
 

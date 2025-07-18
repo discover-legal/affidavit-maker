@@ -41,7 +41,6 @@ const ChatInterface = ({
     }
   }, [input]);
 
-  // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -67,44 +66,30 @@ const ChatInterface = ({
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    // Check authentication
     if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login...');
       loginWithRedirect({
         appState: { returnTo: window.location.pathname }
       });
       return;
     }
 
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: input.trim()
-    };
-
+    const userMessage = { id: Date.now(), type: 'user', content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-
-    // Create abort controller for this request
     abortControllerRef.current = new AbortController();
 
     try {
       const token = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE
-        }
+        authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
       });
       
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           message: userMessage.content,
-          conversationHistory: messages.slice(-10), // Limit history to last 10 messages
+          conversationHistory: messages.slice(-10),
           currentData: affidavitData,
           documentId: affidavitData.documentId
         }),
@@ -112,44 +97,6 @@ const ChatInterface = ({
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // Try to refresh token
-          try {
-            const freshToken = await getAccessTokenSilently({
-              authorizationParams: {
-                audience: process.env.REACT_APP_AUTH0_AUDIENCE
-              },
-              cacheMode: 'off'
-            });
-            
-            // Retry with fresh token
-            const retryResponse = await fetch(`${API_BASE}/api/chat`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${freshToken}`
-              },
-              body: JSON.stringify({
-                message: userMessage.content,
-                conversationHistory: messages.slice(-10),
-                currentData: affidavitData,
-                documentId: affidavitData.documentId
-              }),
-              signal: abortControllerRef.current.signal
-            });
-
-            if (retryResponse.ok) {
-              const retryData = await retryResponse.json();
-              await handleChatResponse(retryData);
-              return;
-            }
-          } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
-          }
-          
-          throw new Error('Authentication failed. Please try refreshing the page.');
-        }
-        
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Server error: ${response.status}`);
       }
@@ -158,27 +105,12 @@ const ChatInterface = ({
       await handleChatResponse(data);
 
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Request was cancelled');
-        return;
-      }
+      if (error.name === 'AbortError') return;
 
-      console.error('Chat error:', error);
-      
-      let errorMessage = 'Sorry, I encountered an error. ';
-      
-      if (error.message.includes('Authentication')) {
-        errorMessage += 'Your session may have expired. Please refresh the page.';
-      } else if (error.message.includes('Network')) {
-        errorMessage += 'Please check your internet connection and try again.';
-      } else {
-        errorMessage += 'Please try again or refresh the page if the problem persists.';
-      }
-      
       const errorBotMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: errorMessage
+        content: 'Sorry, I encountered an error. Please try again or refresh the page.'
       };
       setMessages(prev => [...prev, errorBotMessage]);
     } finally {
@@ -190,35 +122,16 @@ const ChatInterface = ({
   const handleChatResponse = async (data) => {
     if (data.success) {
       const streamedResponse = await streamResponse(data.response);
-      
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: streamedResponse
-      };
-
+      const botMessage = { id: Date.now() + 1, type: 'bot', content: streamedResponse };
       setMessages(prev => [...prev, botMessage]);
 
-      if (data.extractedData) {
-        onDataUpdate(data.extractedData);
-      }
-
-      if (data.validation) {
-        onValidationUpdate(data.validation);
-      }
-
-      if (data.conversationComplete) {
-        onDocumentComplete(true);
-      }
-
-      // Save session after successful interaction
+      if (data.extractedData) onDataUpdate(data.extractedData);
+      if (data.validation) onValidationUpdate(data.validation);
+      if (data.conversationComplete) onDocumentComplete(true);
+      
       await onSaveSession();
     } else {
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: data.error || 'Sorry, I encountered an error. Please try again.'
-      };
+      const errorMessage = { id: Date.now() + 1, type: 'bot', content: data.error || 'Sorry, I encountered an error.' };
       setMessages(prev => [...prev, errorMessage]);
     }
   };
@@ -231,7 +144,7 @@ const ChatInterface = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
+    <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col" style={{minHeight: '75vh'}}>
       <div className="p-6 border-b">
         <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
         <p className="text-sm text-gray-600">I'll guide you through creating your state-compliant affidavit.</p>
@@ -277,7 +190,7 @@ const ChatInterface = ({
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="p-6 border-t">
+      <div className="p-6 border-t bg-white">
         <div className="flex space-x-4">
           <textarea
             ref={textareaRef}

@@ -1,13 +1,13 @@
-// client/src/App.js
+// client/src/App.js - Balanced 3-column layout with fixed heights
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, BarChart3 } from 'lucide-react';
 
 // Import components
-import ValidationDisplay from './components/ValidationDisplay';
 import Header from './components/Header';
 import ChatInterface from './components/ChatInterface';
 import DocumentPreview from './components/DocumentPreview';
+import ValidationSidebar from './components/ValidationSidebar';
 import UserDashboard from './components/UserDashboard';
 import LandingPage from './components/LandingPage';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -49,12 +49,13 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [savedSessionData, setSavedSessionData] = useState(null);
   const [validation, setValidation] = useState(null);
+  const [countyValidation, setCountyValidation] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   
-  // Simplified mobile logic
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1024);
-  const [showPreview, setShowPreview] = useState(window.innerWidth >= 1024);
+  // Layout state for responsive design
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1280);
+  const [activePanel, setActivePanel] = useState('chat'); // chat, preview, validation
 
   // Add refs to track current requests and prevent race conditions
   const previewRequestRef = useRef(null);
@@ -68,26 +69,23 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
     }
   }, [isAuthenticated, isLoading, loginWithRedirect]);
 
-  // Simple screen size detection
+  // Responsive design detection
   useEffect(() => {
     const checkScreenSize = () => {
-      const isSmall = window.innerWidth < 1024;
+      const isSmall = window.innerWidth < 1280;
       setIsSmallScreen(isSmall);
+      if (!isSmall) {
+        setActivePanel('chat'); // Reset to chat on larger screens
+      }
     };
     
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Toggle preview manually
-  const togglePreview = () => {
-    setShowPreview(prev => !prev);
-  };
-
   // Cleanup function
   useEffect(() => {
     return () => {
-      // Cancel any pending requests on unmount
       if (previewRequestRef.current) {
         previewRequestRef.current.abort();
       }
@@ -118,7 +116,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
 
   // SINGLE generatePreview function with race condition protection
   const generatePreview = useCallback(async (currentAffidavitData) => {
-    // Cancel any existing preview request
     if (previewRequestRef.current) {
       previewRequestRef.current.abort();
     }
@@ -131,7 +128,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
 
     setIsPreviewLoading(true);
     
-    // Create new abort controller for this request
     const abortController = new AbortController();
     previewRequestRef.current = abortController;
 
@@ -151,17 +147,18 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         signal: abortController.signal
       });
 
-      // Check if this request was aborted
       if (abortController.signal.aborted) {
         return;
       }
 
       const data = await response.json();
       
-      // Only update state if this is still the current request
       if (previewRequestRef.current === abortController) {
         if (data.success) {
           setPreview(data.preview);
+          if (data.countyValidation) {
+            setCountyValidation(data.countyValidation);
+          }
         } else if (data.fallback) {
           setPreview(data.fallback);
         } else {
@@ -171,7 +168,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         previewRequestRef.current = null;
       }
     } catch (error) {
-      // Only handle errors if not aborted
       if (!abortController.signal.aborted) {
         console.error('Preview generation error:', error);
         if (previewRequestRef.current === abortController) {
@@ -184,7 +180,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   }, [isAuthenticated, getAccessTokenSilently]);
 
   const validateData = useCallback(async (currentAffidavitData) => {
-    // Cancel any existing validation request
     if (validationRequestRef.current) {
       validationRequestRef.current.abort();
     }
@@ -194,7 +189,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
       return;
     }
 
-    // Create new abort controller for this request
     const abortController = new AbortController();
     validationRequestRef.current = abortController;
 
@@ -209,7 +203,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         signal: abortController.signal
       });
 
-      // Check if this request was aborted
       if (abortController.signal.aborted) {
         return;
       }
@@ -217,7 +210,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
       if (response.ok) {
         const data = await response.json();
         
-        // Only update state if this is still the current request
         if (validationRequestRef.current === abortController) {
           if (data.success) {
             setValidation(data.validation);
@@ -226,7 +218,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         }
       }
     } catch (error) {
-      // Only handle errors if not aborted
       if (!abortController.signal.aborted) {
         console.error('Validation error:', error);
         if (validationRequestRef.current === abortController) {
@@ -238,16 +229,13 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
 
   // Debounced effect that prevents rapid-fire requests
   useEffect(() => {
-    // Clear any existing timeout
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
     }
 
-    // Set a new timeout
     previewTimeoutRef.current = setTimeout(() => {
       const currentData = affidavitData;
       
-      // Run validation and preview generation in parallel
       Promise.all([
         validateData(currentData),
         generatePreview(currentData)
@@ -256,7 +244,6 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
       });
     }, 500);
 
-    // Cleanup function
     return () => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
@@ -350,42 +337,103 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
     );
   }
 
+  // Mobile panel navigation
+  const PanelToggle = () => (
+    <div className="mb-4 flex bg-white rounded-lg shadow-sm border p-1">
+      <button
+        onClick={() => setActivePanel('chat')}
+        className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          activePanel === 'chat' 
+            ? 'bg-blue-600 text-white' 
+            : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        💬 Chat
+      </button>
+      <button
+        onClick={() => setActivePanel('preview')}
+        className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          activePanel === 'preview' 
+            ? 'bg-blue-600 text-white' 
+            : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        <FileText className="h-4 w-4 mr-1" />
+        Preview
+      </button>
+      <button
+        onClick={() => setActivePanel('validation')}
+        className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          activePanel === 'validation' 
+            ? 'bg-blue-600 text-white' 
+            : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        <BarChart3 className="h-4 w-4 mr-1" />
+        Status
+      </button>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Simplified mobile toggle */}
-        {isSmallScreen && (
-          <div className="mb-4 flex justify-end">
-            <button
-              onClick={togglePreview}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
-            </button>
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-50">
+      {/* Container with max height and use more screen space */}
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-4">
+        {/* Mobile panel toggle */}
+        {isSmallScreen && <PanelToggle />}
         
-        {/* Grid layout */}
-        <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-          <ChatInterface
-            affidavitData={affidavitData}
-            onDataUpdate={handleDataUpdate}
-            onSaveSession={saveSession}
-            documentComplete={documentComplete}
-            onDocumentComplete={handleDocumentComplete}
-            validation={validation}
-            onValidationUpdate={setValidation}
-          />
-          {showPreview && (
-            <DocumentPreview
-              preview={preview}
-              affidavitData={affidavitData}
-              documentComplete={documentComplete}
-              validation={validation}
-              onDownload={() => setShowPayment(true)}
-              isPreviewLoading={isPreviewLoading}
-            />
+        {/* Fixed Height Layout Grid - Use more vertical space */}
+        <div 
+          className={`grid gap-4 ${
+            isSmallScreen 
+              ? 'grid-cols-1' 
+              : 'grid-cols-12'
+          }`}
+          style={{ 
+            height: isSmallScreen 
+              ? 'calc(100vh - 140px)' 
+              : 'calc(100vh - 120px)' 
+          }}
+        >
+          
+          {/* Chat Interface - 45% width */}
+          {(!isSmallScreen || activePanel === 'chat') && (
+            <div className={isSmallScreen ? 'h-full' : 'col-span-5 h-full'}>
+              <ChatInterface
+                affidavitData={affidavitData}
+                onDataUpdate={handleDataUpdate}
+                onSaveSession={saveSession}
+                documentComplete={documentComplete}
+                onDocumentComplete={handleDocumentComplete}
+                validation={validation}
+                onValidationUpdate={setValidation}
+              />
+            </div>
+          )}
+          
+          {/* Document Preview - 40% width */}
+          {(!isSmallScreen || activePanel === 'preview') && (
+            <div className={isSmallScreen ? 'h-full' : 'col-span-4 h-full'}>
+              <DocumentPreview
+                preview={preview}
+                affidavitData={affidavitData}
+                documentComplete={documentComplete}
+                validation={validation}
+                onDownload={() => setShowPayment(true)}
+                isPreviewLoading={isPreviewLoading}
+              />
+            </div>
+          )}
+          
+          {/* Validation Sidebar - 15% width (compact) */}
+          {(!isSmallScreen || activePanel === 'validation') && (
+            <div className={isSmallScreen ? 'h-full' : 'col-span-3 h-full'}>
+              <ValidationSidebar
+                validation={validation}
+                countyValidation={countyValidation}
+                affidavitData={affidavitData}
+              />
+            </div>
           )}
         </div>
       </div>

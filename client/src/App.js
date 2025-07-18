@@ -1,9 +1,7 @@
+// client/src/App.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
-import { 
-  Send, FileText, Download, Loader2, CreditCard, X, Scale, Clock,
-  AlertTriangle, Shield, Zap, ChevronRight, Menu
-} from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 
 // Import components
 import ValidationDisplay from './components/ValidationDisplay';
@@ -32,8 +30,8 @@ const getTabId = () => {
 // Session storage keys
 const getSessionKey = (tabId) => `affidavit-session-${tabId}`;
 
-// Fixed Document Editor with proper session management
-const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef, setIsSaving }) => {
+// Document Editor Component
+const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef }) => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
   const [affidavitData, setAffidavitData] = useState(existingDocument?.content || {
     state: '',
@@ -52,273 +50,194 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   const [savedSessionData, setSavedSessionData] = useState(null);
   const [validation, setValidation] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false); // New state for preview loading
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1024);
   const [showPreview, setShowPreview] = useState(!isSmallScreen);
   const [userToggledPreview, setUserToggledPreview] = useState(false);
-  
-  // Check screen size
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      loginWithRedirect({ appState: { returnTo: window.location.pathname } });
+      return;
+    }
+  }, [isAuthenticated, isLoading, loginWithRedirect]);
+
   useEffect(() => {
     const checkScreenSize = () => {
       const isSmall = window.innerWidth < 1024;
       setIsSmallScreen(isSmall);
-      
-      if (isSmall && showPreview && !userToggledPreview) {
-        setShowPreview(false);
-      } else if (!isSmall && !userToggledPreview) {
-        setShowPreview(true);
-      }
+      if (isSmall && showPreview && !userToggledPreview) setShowPreview(false);
+      else if (!isSmall && !userToggledPreview) setShowPreview(true);
     };
-
-    checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, [showPreview, userToggledPreview]);
 
-  // Load saved session
   useEffect(() => {
     if (!existingDocument && isAuthenticated) {
-      const tabId = getTabId();
-      const sessionKey = getSessionKey(tabId);
-      const savedSession = localStorage.getItem(sessionKey);
-      
+      const savedSession = localStorage.getItem(getSessionKey(getTabId()));
       if (savedSession) {
-        try {
-          const sessionData = JSON.parse(savedSession);
-          const sessionAge = Date.now() - new Date(sessionData.timestamp);
-          if (sessionAge < 24 * 60 * 60 * 1000) { // 24 hours
-            setSavedSessionData(sessionData);
-            setShowResumeModal(true);
-          } else {
-            localStorage.removeItem(sessionKey);
-          }
-        } catch (e) {
-          console.error('Failed to load session:', e);
-          localStorage.removeItem(sessionKey);
+        const sessionData = JSON.parse(savedSession);
+        if (Date.now() - new Date(sessionData.timestamp) < 24 * 60 * 60 * 1000) {
+          setSavedSessionData(sessionData);
+          setShowResumeModal(true);
+        } else {
+          localStorage.removeItem(getSessionKey(getTabId()));
         }
       }
     }
     setSessionLoading(false);
   }, [existingDocument, isAuthenticated]);
 
-  // Generate preview when data changes
-  useEffect(() => {
-    if (affidavitData.state) {
-      generatePreview();
-    }
-  }, [affidavitData]);
-
-  // Validate data when it changes
-  useEffect(() => {
-    if (affidavitData.state) {
-      validateData();
-    }
-  }, [affidavitData]);
-
   const generatePreview = useCallback(async () => {
+    if (!affidavitData.state) {
+      setPreview(null);
+      return;
+    }
+    setIsPreviewLoading(true);
     try {
       let headers = { 'Content-Type': 'application/json' };
-      
       if (isAuthenticated) {
-        try {
-          const token = await getAccessTokenSilently({ 
-            authorizationParams: {
-              audience: process.env.REACT_APP_AUTH0_AUDIENCE
-            }
-          });
-          headers['Authorization'] = `Bearer ${token}`;
-        } catch (authError) {
-          console.warn('Could not get auth token for preview');
-        }
+        const token = await getAccessTokenSilently({
+          authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
+        });
+        headers['Authorization'] = `Bearer ${token}`;
       }
-      
       const response = await fetch(`${API_BASE}/api/preview`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ affidavitData })
       });
-      
       const data = await response.json();
-      if (data.success) {
-        setPreview(data.preview);
-      } else if (data.fallback) {
-        setPreview(data.fallback);
-      }
+      if (data.success) setPreview(data.preview);
+      else if (data.fallback) setPreview(data.fallback);
     } catch (error) {
       console.error('Preview generation error:', error);
+      setPreview(null);
+    } finally {
+      setIsPreviewLoading(false);
     }
   }, [affidavitData, isAuthenticated, getAccessTokenSilently]);
 
   const validateData = useCallback(async () => {
+    if (!affidavitData.state) return;
     try {
       const response = await fetch(`${API_BASE}/api/templates/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          affidavitData,
-          state: affidavitData.state
-        })
+        body: JSON.stringify({ affidavitData, state: affidavitData.state })
       });
-      
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setValidation(data.validation);
-        }
+        if (data.success) setValidation(data.validation);
       }
     } catch (error) {
       console.error('Validation error:', error);
     }
   }, [affidavitData]);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      validateData();
+      generatePreview();
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [affidavitData, generatePreview, validateData]);
+
 
   const handleResumeDecision = (resume) => {
     if (resume && savedSessionData) {
       setAffidavitData(savedSessionData.affidavitData);
       setDocumentComplete(savedSessionData.documentComplete);
+    } else {
+      localStorage.removeItem(getSessionKey(getTabId()));
     }
     setShowResumeModal(false);
     setSavedSessionData(null);
-    
-    if (!resume) {
-      const tabId = getTabId();
-      const sessionKey = getSessionKey(tabId);
-      localStorage.removeItem(sessionKey);
-    }
   };
 
   const saveSession = useCallback(async () => {
-    // Save to localStorage
-    const sessionData = {
-      affidavitData,
-      documentComplete,
-      timestamp: new Date().toISOString()
-    };
-    
-    const tabId = getTabId();
-    const sessionKey = getSessionKey(tabId);
-    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-    
-    // Save to backend
+    localStorage.setItem(getSessionKey(getTabId()), JSON.stringify({
+      affidavitData, documentComplete, timestamp: new Date().toISOString()
+    }));
+
     if (isAuthenticated) {
       try {
         const token = await getAccessTokenSilently({
-          // ... (auth params)
+          authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
         });
-        
         const response = await fetch(`${API_BASE}/api/documents/save-draft`, {
-          // ... (fetch options)
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ documentId: affidavitData.documentId, affidavitData })
         });
-        
         const data = await response.json();
-        if (data.success && data.documentId) {
-          setAffidavitData(prev => ({ ...prev, documentId: data.documentId }));
-          if (data.validation) {
-            setValidation(data.validation);
-          }
-          
+        if (data.success) {
+          if(data.documentId) setAffidavitData(prev => ({ ...prev, documentId: data.documentId }));
+          if(data.validation) setValidation(data.validation);
           setSessionSaved(true);
           setTimeout(() => setSessionSaved(false), 3000);
         }
       } catch (error) {
         console.error('Failed to save to backend:', error);
-      } finally {
-        setIsSaving(false); // Reset saving state in finally block
       }
-    } else {
-      setIsSaving(false); // Also reset if not authenticated
     }
-  }, [affidavitData, documentComplete, isAuthenticated, getAccessTokenSilently, setSessionSaved, setIsSaving]);
+  }, [affidavitData, documentComplete, isAuthenticated, getAccessTokenSilently, setSessionSaved]);
 
-
-  // Expose the saveSession function to the parent component
   useEffect(() => {
-    if (saveSessionRef) {
-      saveSessionRef.current = saveSession;
-    }
+    if (saveSessionRef) saveSessionRef.current = saveSession;
   }, [saveSession, saveSessionRef]);
 
   const handleDataUpdate = (newData) => {
     setAffidavitData(prev => ({ ...prev, ...newData }));
   };
 
-  const handleValidationUpdate = (newValidation) => {
-    setValidation(newValidation);
-  };
-
   const handleDocumentComplete = (complete) => {
     setDocumentComplete(complete);
-  };
-
-  const handleDownload = () => {
-    setShowPayment(true);
+    if (complete && validation?.isValid) {
+      setShowPayment(true);
+    }
   };
 
   const handlePaymentSuccess = async () => {
     setShowPayment(false);
-    
     try {
       const token = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE
-        }
+        authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
       });
-      
       const response = await fetch(`${API_BASE}/api/documents/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          affidavitData,
-          strategy: 'detailed',
-          format: 'pdf'
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ affidavitData, strategy: 'detailed', format: 'pdf' })
       });
-
       const data = await response.json();
-      if (data.success) {
-        // Clear session
-        const tabId = getTabId();
-        const sessionKey = getSessionKey(tabId);
-        localStorage.removeItem(sessionKey);
-        
-        if (data.downloadUrl) {
-          window.open(`${API_BASE}${data.downloadUrl}`, '_blank');
-        }
+      if (data.success && data.downloadUrl) {
+        localStorage.removeItem(getSessionKey(getTabId()));
+        window.open(`${API_BASE}${data.downloadUrl}`, '_blank');
+        onBack();
       } else {
         alert(`Generation failed: ${data.error}`);
       }
     } catch (error) {
-      console.error('Document generation error:', error);
       alert(`Generation failed: ${error.message}`);
     }
   };
 
-  const handlePreviewToggle = () => {
-    setShowPreview(!showPreview);
-    setUserToggledPreview(true);
-  };
-
-  // Show loading while auth is being checked
   if (isLoading || sessionLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <div className="flex-grow overflow-y-auto p-4 sm:p-6 lg:p-8">
-        {/* Mobile preview toggle */}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isSmallScreen && (
           <div className="mb-4 flex justify-end">
             <button
-              onClick={handlePreviewToggle}
+              onClick={() => { setShowPreview(!showPreview); setUserToggledPreview(true); }}
               className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -326,45 +245,34 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
             </button>
           </div>
         )}
-
-        <div className={`grid gap-8 ${showPreview && !isSmallScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-          {/* Chat Interface */}
-          <div className="h-full">
-            <ChatInterface
-              affidavitData={affidavitData}
-              onDataUpdate={handleDataUpdate}
-              onSaveSession={saveSession}
-              documentComplete={documentComplete}
-              onDocumentComplete={handleDocumentComplete}
-              validation={validation}
-              onValidationUpdate={handleValidationUpdate}
-            />
-          </div>
-
-          {/* Document Preview */}
+        <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+          <ChatInterface
+            affidavitData={affidavitData}
+            onDataUpdate={handleDataUpdate}
+            onSaveSession={saveSession}
+            documentComplete={documentComplete}
+            onDocumentComplete={handleDocumentComplete}
+            validation={validation}
+            onValidationUpdate={setValidation}
+          />
           {showPreview && (
-            <div className="h-full">
-              <DocumentPreview
-                preview={preview}
-                affidavitData={affidavitData}
-                documentComplete={documentComplete}
-                validation={validation}
-                onDownload={handleDownload}
-                onClose={isSmallScreen ? handlePreviewToggle : undefined}
-              />
-            </div>
+            <DocumentPreview
+              preview={preview}
+              affidavitData={affidavitData}
+              documentComplete={documentComplete}
+              validation={validation}
+              onDownload={() => setShowPayment(true)}
+              isPreviewLoading={isPreviewLoading}
+            />
           )}
         </div>
       </div>
-
-      {/* Modals */}
       <ResumeModal
         isOpen={showResumeModal}
         onClose={() => setShowResumeModal(false)}
         onResume={() => handleResumeDecision(true)}
         onStartFresh={() => handleResumeDecision(false)}
       />
-      
       {showPayment && (
         <PaymentModal
           isOpen={showPayment}
@@ -377,31 +285,25 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   );
 };
 
-// Main App Component
+// Main App Wrapper
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [currentDocument, setCurrentDocument] = useState(null);
   const [sessionSaved, setSessionSaved] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // Add isSaving state
+  const [isSaving, setIsSaving] = useState(false);
   const saveSessionRef = useRef(null);
 
-  const handleGetStarted = () => {
-    setCurrentView('dashboard');
-  };
+  const handleSave = useCallback(async () => {
+    if (saveSessionRef.current) {
+      setIsSaving(true);
+      await saveSessionRef.current();
+      setIsSaving(false);
+    }
+  }, []);
 
-  const handleNewDocument = () => {
-    setCurrentDocument(null);
-    setCurrentView('editor');
-  };
-
-  const handleContinueDocument = (doc) => {
+  const viewSwitch = (view, doc = null) => {
+    setCurrentView(view);
     setCurrentDocument(doc);
-    setCurrentView('editor');
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentView('dashboard');
-    setCurrentDocument(null);
   };
 
   return (
@@ -420,29 +322,24 @@ function App() {
         <div className="App">
           <Header
             currentView={currentView}
-            onBackToDashboard={handleBackToDashboard}
-            onSave={() => saveSessionRef.current && saveSessionRef.current()}
+            onBackToDashboard={() => viewSwitch('dashboard')}
+            onSave={handleSave}
             sessionSaved={sessionSaved}
-            isSaving={isSaving} // Pass isSaving state
+            isSaving={isSaving}
           />
           <main>
-            {currentView === 'landing' && (
-              <LandingPage onGetStarted={handleGetStarted} />
-            )}
-
+            {currentView === 'landing' && <LandingPage onGetStarted={() => viewSwitch('dashboard')} />}
             {currentView === 'dashboard' && (
               <UserDashboard
-                onNewDocument={handleNewDocument}
-                onContinueDocument={handleContinueDocument}
+                onNewDocument={() => viewSwitch('editor')}
+                onContinueDocument={(doc) => viewSwitch('editor', doc)}
               />
             )}
-            
             {currentView === 'editor' && (
               <DocumentEditor
                 existingDocument={currentDocument}
-                onBack={handleBackToDashboard}
+                onBack={() => viewSwitch('dashboard')}
                 setSessionSaved={setSessionSaved}
-                setIsSaving={setIsSaving} // Pass setIsSaving setter
                 saveSessionRef={saveSessionRef}
               />
             )}

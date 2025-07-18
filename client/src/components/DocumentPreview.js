@@ -109,24 +109,27 @@ const DocumentPreview = ({
         </div>
       </div>
       
-      {/* Document container with strict height control */}
+      {/* Document container with 8.5x11 proportions */}
       <div 
-        className="flex-1 overflow-y-auto bg-gray-100 p-3" 
+        className="flex-1 overflow-y-auto bg-gray-100 p-2" 
         style={{ 
-          minHeight: 0,
-          maxHeight: isFullscreen ? 'calc(100vh - 140px)' : 'calc(100vh - 200px)'
+          minHeight: 0
         }}
       >
         <div 
           className="bg-white shadow-lg mx-auto relative"
           style={{ 
-            width: `${Math.min(zoom, 100)}%`,
+            width: `${Math.min(zoom, 120)}%`, // Allow wider display
             maxWidth: '100%',
-            fontSize: `${zoom * 0.10}pt`,
-            lineHeight: 1.5,
+            // Proper 8.5x11 aspect ratio calculation: height = width * (11/8.5)
+            height: isFullscreen ? 'auto' : `${zoom * 1.29}%`, // 11/8.5 = 1.294
+            aspectRatio: isFullscreen ? 'auto' : '8.5 / 11',
+            fontSize: `${zoom * 0.12}pt`,
+            lineHeight: 1.4,
             fontFamily: 'Times New Roman, serif',
             transformOrigin: 'top center',
-            minHeight: isFullscreen ? '11in' : 'auto'
+            minHeight: isFullscreen ? '11in' : '400px', // Ensure minimum readable size
+            overflow: 'hidden' // Prevent content from breaking aspect ratio
           }}
         >
           {/* Subtle preview watermark */}

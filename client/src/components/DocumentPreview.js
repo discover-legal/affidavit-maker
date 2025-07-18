@@ -1,29 +1,43 @@
-// client/src/components/DocumentPreview.js - Fixed height with better controls
-import React, { useState } from 'react';
-import { FileText, Download, Loader2, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react';
 
-const DocumentPreview = ({ 
-  preview, 
-  affidavitData, 
-  documentComplete, 
-  validation,
-  onDownload,
-  isPreviewLoading
-}) => {
-  const [zoom, setZoom] = useState(85); // Start at 85% for better fit
-  const [isFullscreen, setIsFullscreen] = useState(false);
+// client/src/components/DocumentPreview.js 
+import React, { useState, useRef, useEffect } from 'react';
+import { ZoomIn, ZoomOut, RotateCcw, Loader, FileText, AlertTriangle } from 'lucide-react';
 
-  if (isPreviewLoading) {
+const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
+  const [zoom, setZoom] = useState(85);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const containerRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // Fixed height calculation to prevent scrolling issues
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const availableHeight = window.innerHeight - rect.top;
+        setContainerHeight(Math.max(400, availableHeight - 20)); // 20px buffer
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
+  const handleZoomIn = () => setZoom(prev => Math.min(150, prev + 10));
+  const handleZoomOut = () => setZoom(prev => Math.max(50, prev - 10));
+  const handleResetZoom = () => setZoom(85);
+
+  if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
-        <div className="p-4 border-b flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
-          <p className="text-sm text-gray-600">Live preview using {affidavitData.state || 'state'} template</p>
-        </div>
-        <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div 
+        className="bg-white flex flex-col"
+        style={{ height: containerHeight || '100vh' }}
+      >
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 mx-auto mb-4 text-blue-500 animate-spin" />
-            <p>Updating Preview...</p>
+            <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Generating preview...</p>
           </div>
         </div>
       </div>
@@ -32,275 +46,235 @@ const DocumentPreview = ({
 
   if (!preview) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
-        <div className="p-4 border-b flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
-          <p className="text-sm text-gray-600">Live preview using {affidavitData.state || 'state'} template</p>
-        </div>
-        
-        <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div 
+        className="bg-white flex flex-col"
+        style={{ height: containerHeight || '100vh' }}
+      >
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>Preview will appear here as you provide information.</p>
+            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Not Available</h3>
+            <p className="text-gray-600">
+              Start chatting to see your affidavit preview
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  const zoomIn = () => setZoom(prev => Math.min(prev + 15, 150));
-  const zoomOut = () => setZoom(prev => Math.max(prev - 15, 50));
-  const toggleFullscreen = () => setIsFullscreen(prev => !prev);
-
   return (
-    <div className={`bg-white rounded-lg shadow-sm border flex flex-col ${
-      isFullscreen ? 'fixed inset-4 z-50' : 'h-full'
-    }`}>
-      {/* Compact Header */}
-      <div className="px-4 py-3 border-b flex justify-between items-center flex-shrink-0">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Preview</h2>
-          <p className="text-xs text-gray-600">{affidavitData.state || 'Select state'} template</p>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {/* Compact Zoom controls */}
-          <div className="flex items-center bg-gray-100 rounded px-1">
+    <div 
+      ref={containerRef}
+      className="bg-white flex flex-col"
+      style={{ height: containerHeight || '100vh', overflow: 'hidden' }}
+    >
+      {/* Fixed Header */}
+      <div className="px-4 py-3 border-b bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Document Preview</h2>
+          <div className="flex items-center space-x-2">
             <button
-              onClick={zoomOut}
-              disabled={zoom <= 50}
-              className="p-1 hover:bg-white rounded disabled:opacity-50"
-              title="Zoom out"
+              onClick={handleZoomOut}
+              className="p-1 text-gray-600 hover:text-gray-900"
+              title="Zoom Out"
             >
-              <ZoomOut className="h-3 w-3" />
+              <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="text-xs px-2 min-w-10 text-center font-medium">
-              {zoom}%
-            </span>
+            <span className="text-sm text-gray-600 min-w-[50px] text-center">{zoom}%</span>
             <button
-              onClick={zoomIn}
-              disabled={zoom >= 150}
-              className="p-1 hover:bg-white rounded disabled:opacity-50"
-              title="Zoom in"
+              onClick={handleZoomIn}
+              className="p-1 text-gray-600 hover:text-gray-900"
+              title="Zoom In"
             >
-              <ZoomIn className="h-3 w-3" />
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="p-1 text-gray-600 hover:text-gray-900"
+              title="Reset Zoom"
+            >
+              <RotateCcw className="h-4 w-4" />
             </button>
           </div>
-          
-          {/* Fullscreen toggle */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-1.5 hover:bg-gray-100 rounded"
-            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        </div>
+      </div>
+
+      {/* Scrollable Content Area - Fixed overflow handling */}
+      <div className="flex-1 overflow-auto bg-gray-100 p-4" style={{ minHeight: 0 }}>
+        <div className="max-w-2xl mx-auto">
+          {/* Paper Container - Fixed dimensions */}
+          <div 
+            ref={contentRef}
+            className="bg-white shadow-lg mx-auto"
+            style={{
+              width: `${zoom * 8.5}px`, // 8.5 inches at current zoom
+              minHeight: `${zoom * 11}px`, // 11 inches minimum
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: 'top center',
+              marginBottom: '2rem'
+            }}
           >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-          
-          {/* Download button */}
-          {documentComplete && validation?.isValid && (
-            <button
-              onClick={onDownload}
-              className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm"
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Download
-            </button>
-          )}
-        </div>
-      </div>
-      
-      {/* Document container with 8.5x11 proportions */}
-      <div 
-        className="flex-1 overflow-y-auto bg-gray-100 p-2" 
-        style={{ 
-          minHeight: 0
-        }}
-      >
-        <div 
-          className="bg-white shadow-lg mx-auto relative"
-          style={{ 
-            width: `${Math.min(zoom, 120)}%`, // Allow wider display
-            maxWidth: '100%',
-            // Proper 8.5x11 aspect ratio calculation: height = width * (11/8.5)
-            height: isFullscreen ? 'auto' : `${zoom * 1.29}%`, // 11/8.5 = 1.294
-            aspectRatio: isFullscreen ? 'auto' : '8.5 / 11',
-            fontSize: `${zoom * 0.12}pt`,
-            lineHeight: 1.4,
-            fontFamily: 'Times New Roman, serif',
-            transformOrigin: 'top center',
-            minHeight: isFullscreen ? '11in' : '400px', // Ensure minimum readable size
-            overflow: 'hidden' // Prevent content from breaking aspect ratio
-          }}
-        >
-          {/* Subtle preview watermark */}
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%) rotate(-45deg)',
-            fontSize: `${Math.max(zoom * 0.5, 24)}px`,
-            color: 'rgba(0,0,0,0.04)',
-            fontWeight: 'bold',
-            zIndex: 0,
-            pointerEvents: 'none',
-            userSelect: 'none'
-          }}>
-            PREVIEW
-          </div>
-          
-          {/* Document content */}
-          <div style={{ 
-            position: 'relative', 
-            zIndex: 1, 
-            padding: isFullscreen ? '1in' : `${zoom * 0.4}px`
-          }}>
-            {preview.sections?.header && (
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                marginBottom: `${zoom * 0.2}px`,
-                fontSize: '1.1em'
-              }}>
-                {preview.sections.header}
-              </div>
-            )}
-            
-            {preview.sections?.venue && (
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                marginBottom: `${zoom * 0.2}px`
-              }}>
-                {preview.sections.venue}
-              </div>
-            )}
-            
-            {preview.sections?.caseCaption && (
-              <div style={{ 
-                textAlign: 'right', 
-                marginBottom: `${zoom * 0.2}px`,
-                borderBottom: '1px solid #000',
-                paddingBottom: `${zoom * 0.1}px`
-              }}>
-                <div dangerouslySetInnerHTML={{
-                  __html: preview.sections.caseCaption.formatted.replace(/\n/g, '<br />')
-                }} />
-              </div>
-            )}
-            
-            {preview.sections?.title && (
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                textDecoration: 'underline', 
-                fontSize: '1.1em', 
-                margin: `${zoom * 0.3}px 0`,
-                textTransform: 'uppercase'
-              }}>
-                {preview.sections.title}
-              </div>
-            )}
-            
-            {preview.sections?.introduction && (
-              <div style={{ 
-                textAlign: 'justify', 
-                textIndent: '0.4in', 
-                marginBottom: `${zoom * 0.2}px`
-              }}>
-                {preview.sections.introduction}
-              </div>
-            )}
-            
-            {preview.sections?.facts && preview.sections.facts.length > 0 && (
-              <div style={{ marginBottom: `${zoom * 0.2}px` }}>
-                {preview.sections.facts.map((fact, index) => (
-                  <div key={index} style={{ 
-                    display: 'flex', 
-                    marginBottom: `${zoom * 0.15}px`, 
-                    textAlign: 'justify',
-                    alignItems: 'flex-start'
-                  }}>
-                    <span style={{ 
-                      minWidth: `${zoom * 0.3}px`, 
-                      fontWeight: 'bold',
-                      marginRight: `${zoom * 0.1}px`
-                    }}>
-                      {fact.number}.
-                    </span>
-                    <span style={{ flex: 1 }}>{fact.content}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {preview.sections?.conclusion && (
-              <div style={{ 
-                textAlign: 'justify', 
-                textIndent: '0.4in', 
-                marginBottom: `${zoom * 0.2}px`
-              }}>
-                {preview.sections.conclusion}
-              </div>
-            )}
-            
-            {preview.sections?.perjuryStatement && (
-              <div style={{ 
-                textAlign: 'justify', 
-                textIndent: '0.4in', 
-                marginBottom: `${zoom * 0.3}px`,
-                fontWeight: 'bold'
-              }}>
-                {preview.sections.perjuryStatement}
-              </div>
-            )}
-            
-            {preview.sections?.signatureBlock && (
-              <div style={{ 
-                marginTop: `${zoom * 0.4}px`, 
-                marginBottom: `${zoom * 0.3}px`
-              }}>
+            {/* Document Content */}
+            <div style={{ 
+              padding: `${zoom * 0.75}px`, // 0.75 inch margins
+              fontFamily: 'Times New Roman, serif',
+              fontSize: `${zoom * 0.12}px`, // 12pt at 100% zoom
+              lineHeight: 1.5,
+              color: '#000'
+            }}>
+              
+              {/* Header */}
+              {preview.sections?.header && (
                 <div style={{ 
-                  marginBottom: `${zoom * 0.05}px`, 
-                  borderBottom: '1px solid #000', 
-                  width: `${zoom * 2.5}px`, 
-                  height: `${zoom * 0.15}px` 
-                }}></div>
-                <div style={{ fontWeight: 'bold' }}>{preview.sections.signatureBlock.name}</div>
-                <div style={{ fontStyle: 'italic' }}>{preview.sections.signatureBlock.title}</div>
-                {preview.sections.signatureBlock.date && (
-                  <div style={{ marginTop: `${zoom * 0.2}px` }}>{preview.sections.signatureBlock.date}</div>
-                )}
-              </div>
-            )}
-            
-            {preview.sections?.notaryBlock && (
-              <div style={{ 
-                border: '1px solid #000', 
-                padding: `${zoom * 0.2}px`, 
-                marginTop: `${zoom * 0.4}px`,
-                backgroundColor: '#f9f9f9',
-                fontSize: '0.9em'
-              }}>
-                <pre style={{ 
-                  fontFamily: 'Times New Roman, serif', 
-                  fontSize: 'inherit', 
-                  margin: 0, 
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word'
+                  textAlign: 'center', 
+                  fontWeight: 'bold', 
+                  fontSize: `${zoom * 0.16}px`,
+                  marginBottom: `${zoom * 0.1}px`
                 }}>
-                  {preview.sections.notaryBlock}
-                </pre>
-              </div>
-            )}
+                  {preview.sections.header}
+                </div>
+              )}
+              
+              {/* Venue */}
+              {preview.sections?.venue && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  fontWeight: 'bold',
+                  fontSize: `${zoom * 0.14}px`,
+                  marginBottom: `${zoom * 0.1}px`
+                }}>
+                  {preview.sections.venue}
+                </div>
+              )}
+
+              {/* Case Caption */}
+              {preview.sections?.caseCaption && (
+                <div style={{ 
+                  textAlign: 'right',
+                  marginBottom: `${zoom * 0.2}px`
+                }}>
+                  {preview.sections.caseCaption.formatted || preview.sections.caseCaption}
+                </div>
+              )}
+
+              {/* Title */}
+              {preview.sections?.title && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  fontWeight: 'bold',
+                  fontSize: `${zoom * 0.14}px`,
+                  marginBottom: `${zoom * 0.3}px`
+                }}>
+                  {preview.sections.title}
+                </div>
+              )}
+
+              {/* Introduction */}
+              {preview.sections?.introduction && (
+                <div style={{ 
+                  textAlign: 'justify', 
+                  textIndent: `${zoom * 0.4}px`,
+                  marginBottom: `${zoom * 0.2}px`
+                }}>
+                  {preview.sections.introduction}
+                </div>
+              )}
+
+              {/* Facts */}
+              {preview.sections?.facts && preview.sections.facts.length > 0 && (
+                <div style={{ marginBottom: `${zoom * 0.2}px` }}>
+                  {preview.sections.facts.map((fact, index) => (
+                    <div key={index} style={{ 
+                      marginBottom: `${zoom * 0.1}px`,
+                      display: 'flex',
+                      textAlign: 'justify'
+                    }}>
+                      <span style={{ 
+                        minWidth: `${zoom * 0.25}px`,
+                        fontWeight: 'normal'
+                      }}>
+                        {fact.number}.
+                      </span>
+                      <span style={{ flex: 1 }}>{fact.content}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Conclusion */}
+              {preview.sections?.conclusion && (
+                <div style={{ 
+                  textAlign: 'justify', 
+                  textIndent: `${zoom * 0.4}px`, 
+                  marginBottom: `${zoom * 0.2}px`
+                }}>
+                  {preview.sections.conclusion}
+                </div>
+              )}
+              
+              {/* Perjury Statement */}
+              {preview.sections?.perjuryStatement && (
+                <div style={{ 
+                  textAlign: 'justify', 
+                  textIndent: `${zoom * 0.4}px`, 
+                  marginBottom: `${zoom * 0.3}px`,
+                  fontWeight: 'bold'
+                }}>
+                  {preview.sections.perjuryStatement}
+                </div>
+              )}
+              
+              {/* Signature Block */}
+              {preview.sections?.signatureBlock && (
+                <div style={{ 
+                  marginTop: `${zoom * 0.4}px`, 
+                  marginBottom: `${zoom * 0.3}px`
+                }}>
+                  <div style={{ 
+                    marginBottom: `${zoom * 0.05}px`, 
+                    borderBottom: '1px solid #000', 
+                    width: `${zoom * 2.5}px`, 
+                    height: `${zoom * 0.15}px` 
+                  }}></div>
+                  <div style={{ fontWeight: 'bold' }}>{preview.sections.signatureBlock.name}</div>
+                  <div style={{ fontStyle: 'italic' }}>{preview.sections.signatureBlock.title}</div>
+                  {preview.sections.signatureBlock.date && (
+                    <div style={{ marginTop: `${zoom * 0.2}px` }}>{preview.sections.signatureBlock.date}</div>
+                  )}
+                </div>
+              )}
+              
+              {/* Notary Block */}
+              {preview.sections?.notaryBlock && (
+                <div style={{ 
+                  border: '1px solid #000', 
+                  padding: `${zoom * 0.2}px`, 
+                  marginTop: `${zoom * 0.4}px`,
+                  backgroundColor: '#f9f9f9',
+                  fontSize: '0.9em'
+                }}>
+                  <pre style={{ 
+                    fontFamily: 'Times New Roman, serif', 
+                    fontSize: 'inherit', 
+                    margin: 0, 
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}>
+                    {preview.sections.notaryBlock}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
       
-      {/* Minimal Footer */}
+      {/* Fixed Footer */}
       <div className="px-4 py-2 border-t bg-gray-50 text-xs text-gray-500 flex-shrink-0">
         <div className="flex justify-between items-center">
-          <span>ID: {affidavitData.documentId || 'Preview'}</span>
-          <span>{affidavitData.state || 'No state'} • {zoom}%</span>
+          <span>Discover.Legal • Professional Affidavit Creation</span>
+          <span>{affidavitData.state || 'No state'} • {zoom}% • Page 1</span>
         </div>
       </div>
     </div>

@@ -1,103 +1,172 @@
-// services/countyValidationService.js - LLM-based county validation
-
-const { OpenAI } = require('openai');
-const logger = require('./logger');
+// services/countyValidationService.js
+const { StateTemplateManager } = require('../templates/StateTemplateManager');
 
 class CountyValidationService {
   constructor(openaiApiKey) {
-    this.openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
-    this.cache = new Map(); // Cache results to avoid repeated API calls
-    this.cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
+    if (openaiApiKey) {
+      this.openai = require('openai');
+      this.client = new this.openai({ apiKey: openaiApiKey });
+    }
+    this.stateManager = new StateTemplateManager();
+    this.cache = new Map();
+    this.cacheTimeout = 24 * 60 * 60 * 1000; // 24 hours
   }
 
-  // Main validation function
-  async validateCounty(county, state) {
+  async validateCounty(county, state, useAI = true) {
     if (!county || !state) {
       return {
-        isValid: true, // Allow empty counties
-        county: county,
-        normalizedCounty: county,
-        confidence: 1.0,
-        source: 'empty_allowed'
+        isValid: false,
+        reasoning: 'County and state are required',
+        confidence: 0,
+        suggestions: []
       };
     }
 
-    // Check cache first
-    const cacheKey = `${state.toUpperCase()}_${county.toLowerCase().trim()}`;
-    const cached = this.getCachedResult(cacheKey);
-    if (cached) {
-      return cached;
+    // Get state-specific validation rules
+    const template = this.stateManager.getTemplate(state);
+    const validationRules = template.getCountyValidationRules();
+
+    // If state doesn't require county, skip validation
+    if (!validationRules.required) {
+      return {
+        isValid: true,
+        reasoning: `County not required for ${validationRules.stateName} affidavits`,
+        confidence: 1.0,
+        suggestions: []
+      };
     }
 
-    // Validate using LLM
-    const result = await this.validateWithLLM(county, state);
+    const cleanCounty = county.trim();
+    const cacheKey = `${state.toUpperCase()}-${cleanCounty.toUpperCase()}`;
     
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+        return cached.result;
+      }
+      this.cache.delete(cacheKey);
+    }
+
+    let result;
+
+    // Try basic validation first (fast)
+    const basicResult = this.basicValidation(cleanCounty, validationRules);
+    if (basicResult.confidence > 0.8) {
+      result = basicResult;
+    } else if (useAI && this.client) {
+      // Use AI for more complex validation
+      try {
+        result = await this.aiValidation(cleanCounty, validationRules);
+      } catch (error) {
+        console.error('AI validation failed, falling back to basic:', error);
+        result = basicResult;
+      }
+    } else {
+      result = basicResult;
+    }
+
     // Cache the result
-    this.setCachedResult(cacheKey, result);
-    
+    this.cache.set(cacheKey, {
+      result,
+      timestamp: Date.now()
+    });
+
     return result;
   }
 
-  async validateWithLLM(county, state) {
-    if (!this.openai) {
-      // Fallback validation without LLM
-      return this.fallbackValidation(county, state);
+  basicValidation(county, validationRules) {
+    const { commonCounties, stateName } = validationRules;
+    
+    // Basic format validation
+    if (!/^[a-zA-Z\s\-'.]+$/.test(county)) {
+      return {
+        isValid: false,
+        reasoning: 'County name contains invalid characters',
+        confidence: 0.9,
+        suggestions: []
+      };
     }
 
+    // Check exact match with common counties
+    const exactMatch = commonCounties.find(c => 
+      c.toLowerCase() === county.toLowerCase()
+    );
+    
+    if (exactMatch) {
+      return {
+        isValid: true,
+        correctName: exactMatch,
+        reasoning: `${exactMatch} County is valid in ${stateName}`,
+        confidence: 1.0,
+        suggestions: []
+      };
+    }
+
+    // Check for close matches
+    const closeMatches = commonCounties.filter(c => {
+      const distance = this.levenshteinDistance(
+        county.toLowerCase(), 
+        c.toLowerCase()
+      );
+      return distance <= 2 && distance > 0;
+    });
+
+    if (closeMatches.length > 0) {
+      return {
+        isValid: false,
+        correctName: closeMatches[0],
+        reasoning: `Possible misspelling of ${closeMatches[0]} County`,
+        confidence: 0.8,
+        suggestions: closeMatches
+      };
+    }
+
+    // No close matches found
+    return {
+      isValid: false,
+      reasoning: `County name not recognized in ${stateName}`,
+      confidence: 0.7,
+      suggestions: commonCounties.slice(0, 3) // Top 3 common counties
+    };
+  }
+
+  async aiValidation(county, validationRules) {
+    const { stateName, stateCode } = validationRules;
+    
+    const prompt = this.generateValidationPrompt(county, stateName);
+    
     try {
-      const prompt = this.buildValidationPrompt(county, state);
-      
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4-turbo",
+      const completion = await this.client.chat.completions.create({
+        model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.1, // Low temperature for factual accuracy
-        max_tokens: 200,
-        response_format: { type: "json_object" }
+        temperature: 0.1,
+        max_tokens: 200
       });
 
-      const response = JSON.parse(completion.choices[0].message.content);
-      
-      // Validate response structure
-      if (!this.isValidResponse(response)) {
-        logger.warn('Invalid LLM response for county validation', {
-          county,
-          state,
-          response
-        });
-        return this.fallbackValidation(county, state);
+      const responseText = completion.choices[0]?.message?.content;
+      if (!responseText) {
+        throw new Error('Empty AI response');
       }
 
-      return {
-        isValid: response.isValid,
-        county: county,
-        normalizedCounty: response.correctName || county,
-        confidence: response.confidence || 0.8,
-        suggestions: response.suggestions || [],
-        source: 'llm',
-        reasoning: response.reasoning
-      };
-
-    } catch (error) {
-      logger.error('LLM county validation failed:', {
-        error: error.message,
-        county,
-        state
-      });
+      // Parse JSON response
+      const result = JSON.parse(responseText);
       
-      return this.fallbackValidation(county, state);
+      if (!this.isValidResponse(result)) {
+        throw new Error('Invalid AI response format');
+      }
+
+      return result;
+      
+    } catch (error) {
+      console.error('AI validation error:', error);
+      // Fallback to basic validation
+      return this.fallbackValidation(county, validationRules);
     }
   }
 
-  buildValidationPrompt(county, state) {
-    const stateNames = {
-      'TX': 'Texas',
-      'UT': 'Utah', 
-      'AZ': 'Arizona'
-    };
-
-    const stateName = stateNames[state.toUpperCase()] || state;
-
-    return `You are a geography expert. Validate if "${county}" is a real county in ${stateName}, United States.
+  generateValidationPrompt(county, stateName) {
+    return `Validate if "${county}" is a real county in ${stateName}, United States.
 
 Instructions:
 1. Check if the county name is correct and exists in ${stateName}
@@ -133,123 +202,54 @@ Examples:
     );
   }
 
-  fallbackValidation(county, state) {
-    // Basic validation without LLM - just check format and common counties
+  fallbackValidation(county, validationRules) {
     const cleanCounty = county.trim();
     
     // Basic format validation
     if (!/^[a-zA-Z\s\-'.]+$/.test(cleanCounty)) {
       return {
         isValid: false,
-        county: county,
-        normalizedCounty: cleanCounty,
+        reasoning: 'County name contains invalid characters',
         confidence: 0.9,
-        suggestions: this.getCommonCounties(state),
-        source: 'fallback_format',
-        reasoning: 'Invalid characters in county name'
+        suggestions: []
       };
     }
 
-    // Check against common counties
-    const commonCounties = this.getCommonCounties(state);
-    const lowerCounty = cleanCounty.toLowerCase();
-    
-    // Exact match
-    if (commonCounties.some(c => c.toLowerCase() === lowerCounty)) {
-      return {
-        isValid: true,
-        county: county,
-        normalizedCounty: cleanCounty,
-        confidence: 0.8,
-        suggestions: [],
-        source: 'fallback_exact',
-        reasoning: 'Matches known county'
-      };
-    }
-
-    // Fuzzy match
-    const fuzzyMatch = this.findFuzzyMatch(cleanCounty, commonCounties);
-    if (fuzzyMatch) {
+    // Length validation
+    if (cleanCounty.length < 2 || cleanCounty.length > 50) {
       return {
         isValid: false,
-        county: county,
-        normalizedCounty: fuzzyMatch,
-        confidence: 0.7,
-        suggestions: [fuzzyMatch],
-        source: 'fallback_fuzzy',
-        reasoning: `Possible misspelling of ${fuzzyMatch}`
+        reasoning: 'County name length is invalid',
+        confidence: 0.8,
+        suggestions: []
       };
     }
 
-    // No match found
+    // Generic response for unrecognized counties
     return {
       isValid: false,
-      county: county,
-      normalizedCounty: cleanCounty,
+      reasoning: `Please verify "${cleanCounty}" is a valid county in ${validationRules.stateName}`,
       confidence: 0.6,
-      suggestions: commonCounties.slice(0, 3), // Top 3 suggestions
-      source: 'fallback_unknown',
-      reasoning: 'County not found in common list'
+      suggestions: validationRules.commonCounties?.slice(0, 3) || []
     };
   }
 
-  getCommonCounties(state) {
-    const counties = {
-      'TX': [
-        'Harris', 'Dallas', 'Tarrant', 'Bexar', 'Travis', 'Collin', 'Hidalgo',
-        'Fort Bend', 'Montgomery', 'Williamson', 'Cameron', 'Nueces', 'Brazoria',
-        'Galveston', 'Denton', 'Jefferson', 'McLennan', 'Bell', 'Brazos', 'Hays'
-      ],
-      'UT': [
-        'Salt Lake', 'Utah', 'Davis', 'Weber', 'Washington', 'Cache', 'Iron',
-        'Tooele', 'Box Elder', 'Sanpete', 'Carbon', 'Uintah', 'Sevier', 'Juab',
-        'Millard', 'Summit', 'Duchesne', 'Wasatch', 'Morgan', 'Kane'
-      ],
-      'AZ': [
-        'Maricopa', 'Pima', 'Pinal', 'Yuma', 'Mohave', 'Coconino', 'Yavapai',
-        'Cochise', 'Navajo', 'Apache', 'Gila', 'Santa Cruz', 'Graham', 'Greenlee',
-        'La Paz'
-      ]
-    };
-
-    return counties[state.toUpperCase()] || [];
-  }
-
-  findFuzzyMatch(input, candidates) {
-    const inputLower = input.toLowerCase();
-    
-    // Look for partial matches or common misspellings
-    for (const candidate of candidates) {
-      const candidateLower = candidate.toLowerCase();
-      
-      // Check if input starts with candidate or vice versa
-      if (inputLower.startsWith(candidateLower.substring(0, 3)) ||
-          candidateLower.startsWith(inputLower.substring(0, 3))) {
-        return candidate;
-      }
-      
-      // Check edit distance for short names
-      if (input.length <= 6 && this.editDistance(inputLower, candidateLower) <= 2) {
-        return candidate;
-      }
-    }
-    
-    return null;
-  }
-
-  editDistance(str1, str2) {
+  // Levenshtein distance for fuzzy matching
+  levenshteinDistance(str1, str2) {
     const matrix = [];
-    
-    for (let i = 0; i <= str2.length; i++) {
+    const len1 = str1.length;
+    const len2 = str2.length;
+
+    for (let i = 0; i <= len2; i++) {
       matrix[i] = [i];
     }
-    
-    for (let j = 0; j <= str1.length; j++) {
+
+    for (let j = 0; j <= len1; j++) {
       matrix[0][j] = j;
     }
-    
-    for (let i = 1; i <= str2.length; i++) {
-      for (let j = 1; j <= str1.length; j++) {
+
+    for (let i = 1; i <= len2; i++) {
+      for (let j = 1; j <= len1; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
           matrix[i][j] = matrix[i - 1][j - 1];
         } else {
@@ -261,59 +261,8 @@ Examples:
         }
       }
     }
-    
-    return matrix[str2.length][str1.length];
-  }
 
-  // Cache management
-  getCachedResult(key) {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
-      return cached.result;
-    }
-    return null;
-  }
-
-  setCachedResult(key, result) {
-    this.cache.set(key, {
-      result,
-      timestamp: Date.now()
-    });
-    
-    // Clean old cache entries periodically
-    if (this.cache.size > 1000) {
-      this.cleanCache();
-    }
-  }
-
-  cleanCache() {
-    const now = Date.now();
-    for (const [key, value] of this.cache.entries()) {
-      if (now - value.timestamp > this.cacheExpiry) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  // Batch validation for multiple counties
-  async validateMultipleCounties(counties, state) {
-    const results = [];
-    
-    for (const county of counties) {
-      try {
-        const result = await this.validateCounty(county, state);
-        results.push({ county, ...result });
-      } catch (error) {
-        results.push({
-          county,
-          isValid: false,
-          error: error.message,
-          source: 'error'
-        });
-      }
-    }
-    
-    return results;
+    return matrix[len2][len1];
   }
 }
 

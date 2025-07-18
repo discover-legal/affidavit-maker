@@ -1,4 +1,4 @@
-// routes/payments.js - Payment processing routes
+// routes/payments.js
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe');
@@ -16,7 +16,7 @@ const getStripe = (config) => {
   });
 };
 
-// Create payment intent
+// Create payment intent with updated pricing
 router.post('/create-intent', validationRules.payment, validate, asyncHandler(async (req, res) => {
   const { documentType, documentId } = req.body;
   const user = req.user;
@@ -24,11 +24,11 @@ router.post('/create-intent', validationRules.payment, validate, asyncHandler(as
   const config = req.app.locals.config;
   const stripeClient = getStripe(config);
   
-  // Payment amount logic
+  // Updated payment amounts - $39.99 per affidavit
   const paymentAmounts = {
-    'single_affidavit': 999, // $9.99
-    'family_law_package': 2999, // $29.99
-    'all_state_access': 4999 // $49.99
+    'single_affidavit': 3999, // $39.99 in cents
+    'family_law_package': 11999, // $119.99 for 5 documents
+    'all_state_access': 19999 // $199.99 for unlimited
   };
   
   const amount = paymentAmounts[documentType] || paymentAmounts['single_affidavit'];
@@ -45,7 +45,8 @@ router.post('/create-intent', validationRules.payment, validate, asyncHandler(as
         userEmail: user.email,
         documentId: documentId || 'new',
         type: documentType,
-        environment: config.nodeEnv
+        environment: config.nodeEnv,
+        brand: 'discover.legal'
       }
     });
     
@@ -63,7 +64,8 @@ router.post('/create-intent', validationRules.payment, validate, asyncHandler(as
         JSON.stringify({ 
           requestId: req.id,
           amount,
-          documentType
+          documentType,
+          brand: 'discover.legal'
         })
       ]
     );
@@ -73,7 +75,8 @@ router.post('/create-intent', validationRules.payment, validate, asyncHandler(as
       userId: user.id,
       amount: amount / 100,
       documentType,
-      requestId: req.id
+      requestId: req.id,
+      brand: 'discover.legal'
     });
     
     res.json({
@@ -102,6 +105,38 @@ router.post('/create-intent', validationRules.payment, validate, asyncHandler(as
     throw error;
   }
 }));
+
+// Get pricing information - updated
+router.get('/pricing', (req, res) => {
+  res.json({
+    success: true,
+    pricing: {
+      single_affidavit: {
+        name: 'Single Affidavit',
+        price: 39.99,
+        currency: 'USD',
+        description: 'Generate one professional affidavit document'
+      },
+      family_law_package: {
+        name: 'Family Law Package', 
+        price: 119.99,
+        currency: 'USD',
+        description: 'Generate up to 5 family law documents'
+      },
+      all_state_access: {
+        name: 'All State Access',
+        price: 199.99,
+        currency: 'USD',
+        description: 'Unlimited documents for all supported states for 30 days'
+      }
+    },
+    brand: {
+      name: 'Discover.Legal',
+      website: 'https://discover.legal',
+      tagline: 'Professional Legal Document Creation'
+    }
+  });
+});
 
 // Confirm payment
 router.post('/confirm', asyncHandler(async (req, res) => {
@@ -145,67 +180,42 @@ router.post('/confirm', asyncHandler(async (req, res) => {
     );
     
     if (existingPayment.rows.length > 0) {
-      logger.info('Payment already recorded', {
-        paymentIntentId,
-        paymentId: existingPayment.rows[0].id,
-        requestId: req.id
-      });
-      
       return res.json({
         success: true,
+        alreadyProcessed: true,
         paymentId: existingPayment.rows[0].id,
-        message: 'Payment already confirmed'
+        message: 'Payment already processed'
       });
     }
     
-    // Record payment in database
+    // Record the payment
     const payment = await pool.query(
-      `INSERT INTO payments (user_id, stripe_payment_intent_id, stripe_charge_id,
-                            amount_cents, currency, status, payment_type, product_details)
+      `INSERT INTO payments (user_id, stripe_payment_intent_id, amount_cents, currency, status, payment_type, billing_address, payment_method_details)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
+       RETURNING id`,
       [
         user.id,
         paymentIntentId,
-        paymentIntent.latest_charge,
         paymentIntent.amount,
         paymentIntent.currency,
         'succeeded',
-        paymentIntent.metadata.type,
-        JSON.stringify(paymentIntent.metadata)
+        paymentIntent.metadata.type || 'single_affidavit',
+        JSON.stringify(paymentIntent.charges?.data?.[0]?.billing_details || {}),
+        JSON.stringify(paymentIntent.charges?.data?.[0]?.payment_method_details || {})
       ]
     );
     
-    // Update document status if applicable
+    // Update document status if documentId exists
     if (paymentIntent.metadata.documentId && paymentIntent.metadata.documentId !== 'new') {
       await pool.query(
-        'UPDATE documents SET status = $1 WHERE id = $2 AND user_id = $3',
+        'UPDATE documents SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3',
         ['paid', paymentIntent.metadata.documentId, user.id]
       );
     }
     
-    // Log payment success
-    await pool.query(
-      `INSERT INTO activity_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        user.id,
-        'payment_completed',
-        'payment',
-        payment.rows[0].id,
-        req.ip,
-        req.get('user-agent'),
-        JSON.stringify({ 
-          requestId: req.id,
-          paymentIntentId,
-          amount: paymentIntent.amount
-        })
-      ]
-    );
-    
-    logger.info('Payment confirmed successfully', {
-      paymentId: payment.rows[0].id,
+    logger.info('Payment confirmed and recorded', {
       paymentIntentId,
+      paymentId: payment.rows[0].id,
       userId: user.id,
       amount: paymentIntent.amount / 100,
       requestId: req.id
@@ -236,62 +246,5 @@ router.post('/confirm', asyncHandler(async (req, res) => {
     throw error;
   }
 }));
-
-// Get payment history
-router.get('/history', asyncHandler(async (req, res) => {
-  const user = req.user;
-  const pool = req.app.locals.pool;
-  
-  const payments = await pool.query(
-    `SELECT id, stripe_payment_intent_id, amount_cents, currency, 
-            status, payment_type, created_at
-     FROM payments 
-     WHERE user_id = $1 
-     ORDER BY created_at DESC 
-     LIMIT 50`,
-    [user.id]
-  );
-  
-  res.json({
-    success: true,
-    payments: payments.rows.map(payment => ({
-      id: payment.id,
-      paymentIntentId: payment.stripe_payment_intent_id,
-      amount: payment.amount_cents / 100,
-      currency: payment.currency,
-      status: payment.status,
-      type: payment.payment_type,
-      date: payment.created_at
-    })),
-    count: payments.rows.length
-  });
-}));
-
-// Get pricing information
-router.get('/pricing', (req, res) => {
-  res.json({
-    success: true,
-    pricing: {
-      single_affidavit: {
-        name: 'Single Affidavit',
-        price: 9.99,
-        currency: 'USD',
-        description: 'Generate one professional affidavit document'
-      },
-      family_law_package: {
-        name: 'Family Law Package',
-        price: 29.99,
-        currency: 'USD',
-        description: 'Generate up to 5 family law documents'
-      },
-      all_state_access: {
-        name: 'All State Access',
-        price: 49.99,
-        currency: 'USD',
-        description: 'Unlimited documents for all supported states for 30 days'
-      }
-    }
-  });
-});
 
 module.exports = router;

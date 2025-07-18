@@ -1,11 +1,9 @@
-// server.js - Fixed version with proper Auth0 configuration and error handling
+// server.js - Complete drop-in replacement with county validation
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
 
 // Import configuration
 const config = require('./config');
@@ -28,9 +26,11 @@ const logger = require('./services/logger');
 const monitoringService = require('./services/monitoringService');
 const { enhancedPdfService } = require('./services/enhancedPdfService');
 const AffidavitService = require('./affidavitService');
+const CountyValidationService = require('./services/countyValidationService');
 
 // Initialize services
 const affidavitService = new AffidavitService(config.openaiApiKey);
+const countyValidator = new CountyValidationService(config.openaiApiKey);
 
 const app = express();
 const PORT = config.port || 3001;
@@ -44,9 +44,10 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// Make pool available to routes
+// Make services available to routes
 app.locals.pool = pool;
 app.locals.affidavitService = affidavitService;
+app.locals.countyValidator = countyValidator;
 app.locals.config = config;
 
 // Test database connection
@@ -82,6 +83,56 @@ app.use(performanceMonitor);
 app.use('/api/auth', authRateLimit);
 app.use('/api/payment', authRateLimit);
 app.use('/api', apiRateLimit);
+
+// Utility function for safe activity logging
+async function safeLogActivity(pool, userId, action, resourceType, resourceId, req) {
+  try {
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'activity_logs'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      logger.info('Activity (table missing):', {
+        userId,
+        action,
+        resourceType,
+        resourceId,
+        ip: req.ip,
+        requestId: req.id
+      });
+      return;
+    }
+
+    await pool.query(
+      `INSERT INTO activity_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        userId, 
+        action, 
+        resourceType, 
+        resourceId, 
+        req.ip, 
+        req.get('user-agent'),
+        JSON.stringify({ 
+          timestamp: new Date().toISOString(),
+          requestId: req.id 
+        })
+      ]
+    );
+  } catch (error) {
+    logger.error('Activity logging failed:', {
+      error: error.message,
+      code: error.code,
+      userId,
+      action,
+      requestId: req.id
+    });
+  }
+}
 
 // Health check endpoint (no auth required)
 app.get('/health', async (req, res) => {
@@ -135,6 +186,12 @@ app.get('/health', async (req, res) => {
       hasClientId: !!config.auth0.clientId
     };
 
+    // Check county validation
+    healthCheck.services.countyValidation = {
+      status: countyValidator ? 'configured' : 'not configured',
+      cacheSize: countyValidator?.cache?.size || 0
+    };
+
     res.status(healthCheck.status === 'OK' ? 200 : 503).json(healthCheck);
   } catch (error) {
     logger.error('Health check failed:', error);
@@ -152,15 +209,135 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ success: true, csrfToken: token });
 });
 
-// Mount routes
+// Mount basic routes first
 app.use('/api/templates', templateRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/documents', checkJwt, documentRoutes);
-app.use('/api/payment', checkJwt, paymentRoutes);
-app.use('/api/chat', checkJwt, chatRoutes);
 
-// Special routes that don't fit into categories
-app.post('/api/preview', optionalAuth, validationRules.preview, validate, async (req, res, next) => {
+// County validation endpoints
+app.post('/api/validate/county', optionalAuth, async (req, res, next) => {
+  try {
+    const { county, state } = req.body;
+    
+    if (!state) {
+      return res.status(400).json({
+        success: false,
+        error: 'State is required for county validation',
+        requestId: req.id
+      });
+    }
+
+    if (!county || county.trim() === '') {
+      return res.json({
+        success: true,
+        validation: {
+          isValid: true,
+          county: '',
+          normalizedCounty: '',
+          confidence: 1.0,
+          source: 'empty_allowed',
+          reasoning: 'Empty county is allowed'
+        },
+        requestId: req.id
+      });
+    }
+
+    const validation = await countyValidator.validateCounty(county, state);
+    
+    res.json({
+      success: true,
+      validation,
+      requestId: req.id
+    });
+
+  } catch (error) {
+    logger.error('County validation error:', {
+      error: error.message,
+      county: req.body.county,
+      state: req.body.state,
+      requestId: req.id
+    });
+    
+    next(error);
+  }
+});
+
+// Batch county validation endpoint
+app.post('/api/validate/counties/batch', optionalAuth, async (req, res, next) => {
+  try {
+    const { counties, state } = req.body;
+    
+    if (!state) {
+      return res.status(400).json({
+        success: false,
+        error: 'State is required for county validation',
+        requestId: req.id
+      });
+    }
+
+    if (!Array.isArray(counties)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Counties must be an array',
+        requestId: req.id
+      });
+    }
+
+    if (counties.length > 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Maximum 10 counties per batch request',
+        requestId: req.id
+      });
+    }
+
+    const validations = await countyValidator.validateMultipleCounties(counties, state);
+    
+    res.json({
+      success: true,
+      validations,
+      state,
+      count: validations.length,
+      requestId: req.id
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get common counties for a state (for autocomplete)
+app.get('/api/counties/:state', (req, res) => {
+  try {
+    const { state } = req.params;
+    
+    if (!['TX', 'UT', 'AZ'].includes(state.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid state. Must be TX, UT, or AZ',
+        requestId: req.id
+      });
+    }
+
+    const counties = countyValidator.getCommonCounties(state.toUpperCase());
+    
+    res.json({
+      success: true,
+      state: state.toUpperCase(),
+      counties,
+      count: counties.length,
+      requestId: req.id
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get counties',
+      requestId: req.id
+    });
+  }
+});
+
+// Enhanced preview endpoint with county validation
+app.post('/api/preview', optionalAuth, async (req, res, next) => {
   try {
     const { affidavitData } = req.body;
     const userId = req.userId;
@@ -168,30 +345,136 @@ app.post('/api/preview', optionalAuth, validationRules.preview, validate, async 
     if (!affidavitData) {
       return res.status(400).json({
         success: false,
-        error: 'Affidavit data is required'
+        error: 'Affidavit data is required',
+        requestId: req.id
       });
     }
 
     if (!affidavitData.state) {
       return res.status(400).json({
         success: false,
-        error: 'State is required for preview generation'
+        error: 'State is required for preview generation',
+        requestId: req.id
       });
+    }
+
+    // Validate county if provided
+    let countyValidation = null;
+    if (affidavitData.county && affidavitData.county.trim()) {
+      try {
+        countyValidation = await countyValidator.validateCounty(
+          affidavitData.county, 
+          affidavitData.state
+        );
+        
+        logger.info('County validation performed', {
+          county: affidavitData.county,
+          state: affidavitData.state,
+          isValid: countyValidation.isValid,
+          confidence: countyValidation.confidence,
+          source: countyValidation.source,
+          requestId: req.id
+        });
+      } catch (error) {
+        logger.warn('County validation failed, proceeding anyway:', {
+          error: error.message,
+          county: affidavitData.county,
+          state: affidavitData.state,
+          requestId: req.id
+        });
+      }
     }
 
     const preview = affidavitService.generatePreview(affidavitData, true);
     
-    // Log activity if user is logged in
+    // Add county validation to the response
+    const response = {
+      ...preview,
+      countyValidation,
+      requestId: req.id
+    };
+
+    // Safe activity logging
     if (userId && req.user) {
-      await logActivity(req.user.id, 'preview_generated', 'document', affidavitData.documentId, req);
+      await safeLogActivity(
+        pool, 
+        req.user.id, 
+        'preview_generated', 
+        'document', 
+        affidavitData.documentId, 
+        req
+      );
     }
     
-    res.json(preview);
+    res.json(response);
+
+  } catch (error) {
+    console.error('Preview generation error:', error);
+    next(error);
+  }
+});
+
+// GET /api/preview - Fallback for GET requests
+app.get('/api/preview', (req, res) => {
+  res.status(405).json({
+    success: false,
+    error: 'Method not allowed. Use POST with affidavit data.',
+    method: 'POST',
+    expectedBody: {
+      affidavitData: {
+        state: 'TX|UT|AZ',
+        affiantName: 'string (optional)',
+        facts: ['array of strings (optional)'],
+        county: 'string (optional)',
+        caseNumber: 'string (optional)'
+      }
+    },
+    requestId: req.id
+  });
+});
+
+// Sample preview endpoint
+app.get('/api/preview/sample/:state', async (req, res, next) => {
+  try {
+    const { state } = req.params;
+    
+    if (!['TX', 'UT', 'AZ'].includes(state.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid state. Must be TX, UT, or AZ',
+        requestId: req.id
+      });
+    }
+
+    const sampleData = {
+      state: state.toUpperCase(),
+      documentType: 'general',
+      affiantName: 'Sample User',
+      county: state === 'TX' ? 'Travis' : state === 'UT' ? 'Salt Lake' : undefined,
+      facts: [
+        'This is a sample fact for demonstration purposes.',
+        'The information provided here is for preview only.'
+      ]
+    };
+
+    const preview = affidavitService.generatePreview(sampleData, true);
+    
+    res.json({
+      ...preview,
+      sample: true,
+      note: 'This is a sample preview for demonstration purposes'
+    });
 
   } catch (error) {
     next(error);
   }
 });
+
+// Mount authenticated routes
+app.use('/api/auth', authRoutes);
+app.use('/api/documents', checkJwt, documentRoutes);
+app.use('/api/payment', checkJwt, paymentRoutes);
+app.use('/api/chat', checkJwt, chatRoutes);
 
 // Webhook endpoints (no auth)
 app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async (req, res) => {
@@ -206,7 +489,6 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object;
         logger.info('Payment succeeded:', { paymentIntentId: paymentIntent.id });
-        // Additional handling if needed
         break;
       case 'payment_intent.payment_failed':
         const failedPayment = event.data.object;
@@ -227,30 +509,6 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
 app.use(errorLogger);
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-// Utility function for activity logging
-async function logActivity(userId, action, resourceType, resourceId, req) {
-  try {
-    await pool.query(
-      `INSERT INTO activity_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        userId, 
-        action, 
-        resourceType, 
-        resourceId, 
-        req.ip, 
-        req.get('user-agent'),
-        JSON.stringify({ 
-          timestamp: new Date().toISOString(),
-          requestId: req.id 
-        })
-      ]
-    );
-  } catch (error) {
-    logger.error('Activity logging failed:', { error: error.message, userId, action });
-  }
-}
 
 // Graceful shutdown
 const gracefulShutdown = async (signal) => {
@@ -303,11 +561,13 @@ const server = app.listen(PORT, () => {
     const docTypes = affidavitService.getSupportedDocumentTypes();
     logger.info(`🗺️  Supported states: ${states.map(s => s.name).join(', ')}`);
     logger.info(`📄 Document types: ${docTypes.join(', ')}`);
+    logger.info(`🏛️  County validation: ${countyValidator ? 'enabled' : 'disabled'}`);
   } catch (e) {
     logger.warn('⚠️  Template system not fully configured');
   }
   
   logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
+  logger.info(`📍 County validation: http://localhost:${PORT}/api/validate/county`);
 });
 
 module.exports = app;

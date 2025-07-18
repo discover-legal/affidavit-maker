@@ -32,85 +32,329 @@ class AffidavitService {
     };
   }
 
-  // Create mock OpenAI client for fallback
-  createMockOpenAI() {
-    return {
-      chat: {
-        completions: {
-          create: async (params) => {
-            console.warn('Using mock OpenAI response - AI features limited');
-            
-            // Extract user message for basic parsing
-            const userMessage = params.messages?.[params.messages.length - 1]?.content || '';
-            
-            // Basic data extraction based on common patterns
-            const extractedData = this.extractBasicData(userMessage);
-            
-            const response = {
-              response: this.generateBasicResponse(userMessage, extractedData),
-              extractedData,
-              conversationComplete: this.isConversationComplete(extractedData),
-              nextSteps: this.getNextSteps(extractedData)
-            };
-            
-            return {
-              choices: [{
-                message: {
-                  content: JSON.stringify(response)
-                }
-              }]
-            };
+// Create improved mock OpenAI client for fallback
+createMockOpenAI() {
+  return {
+    chat: {
+      completions: {
+        create: async (params) => {
+          console.warn('Using mock OpenAI response - AI features limited');
+          
+          // Extract user message for context-aware parsing
+          const messages = params.messages || [];
+          const userMessage = messages[messages.length - 1]?.content || '';
+          const conversationHistory = messages.slice(0, -1);
+          
+          // Extract current data from system prompt if available
+          const systemPrompt = messages.find(m => m.role === 'system')?.content || '';
+          const currentDataMatch = systemPrompt.match(/Current Data: ({.*?})/);
+          let currentData = {};
+          try {
+            if (currentDataMatch) {
+              currentData = JSON.parse(currentDataMatch[1]);
+            }
+          } catch (e) {
+            // Ignore parsing errors
           }
+          
+          // Smart data extraction based on conversation context
+          const extractedData = this.extractContextualData(userMessage, currentData, conversationHistory);
+          
+          // Generate contextual response
+          const response = this.generateContextualResponse(userMessage, extractedData, currentData);
+          
+          // Determine if conversation is complete
+          const conversationComplete = this.determineCompleteness(extractedData, currentData);
+          
+          // Generate helpful next steps
+          const nextSteps = this.generateNextSteps(extractedData, currentData);
+          
+          const mockResponse = {
+            response,
+            extractedData,
+            conversationComplete,
+            nextSteps
+          };
+          
+          return {
+            choices: [{
+              message: {
+                content: JSON.stringify(mockResponse)
+              }
+            }]
+          };
         }
       }
-    };
-  }
+    }
+  };
+}
 
-  // Basic data extraction for mock mode
-  extractBasicData(message) {
-    const data = {};
-    const lowerMessage = message.toLowerCase();
-    
-    // Extract name patterns
+// Enhanced data extraction with context awareness
+extractContextualData(message, currentData, conversationHistory) {
+  const data = { ...currentData };
+  const lowerMessage = message.toLowerCase();
+  
+  // Extract name with various patterns
+  if (!data.affiantName) {
     const namePatterns = [
-      /my name is ([a-zA-Z\s]+)/i,
-      /i am ([a-zA-Z\s]+)/i,
-      /i'm ([a-zA-Z\s]+)/i
+      /(?:my name is|i am|i'm|call me)\s+([a-zA-Z\s]{2,50})/i,
+      /^([a-zA-Z]+\s+[a-zA-Z]+)/i, // First two words if they look like names
     ];
     
     for (const pattern of namePatterns) {
       const match = message.match(pattern);
-      if (match) {
-        data.affiantName = match[1].trim();
-        break;
+      if (match && match[1]) {
+        const name = match[1].trim();
+        // Basic validation - names should have at least first and last
+        if (name.split(' ').length >= 2 && name.length <= 50) {
+          data.affiantName = name;
+          break;
+        }
       }
     }
-    
-    // Extract state mentions
-    const states = ['texas', 'utah', 'arizona', 'tx', 'ut', 'az'];
-    for (const state of states) {
-      if (lowerMessage.includes(state)) {
-        data.state = state.toUpperCase().substring(0, 2);
-        break;
-      }
-    }
-    
-    // Extract case numbers
-    const caseMatch = message.match(/case\s*(?:number|#)?\s*:?\s*([a-zA-Z0-9\-]+)/i);
-    if (caseMatch) {
-      data.caseNumber = caseMatch[1];
-    }
-    
-    // Extract facts (simple approach)
-    if (lowerMessage.includes('fact') || lowerMessage.includes('happened') || lowerMessage.includes('occurred')) {
-      const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 10);
-      if (sentences.length > 0) {
-        data.facts = [sentences[sentences.length - 1].trim()];
-      }
-    }
-    
-    return data;
   }
+  
+  // Extract state with context
+  if (!data.state) {
+    const stateMap = {
+      'texas': 'TX', 'tx': 'TX', 'lone star': 'TX',
+      'utah': 'UT', 'ut': 'UT',
+      'arizona': 'AZ', 'az': 'AZ'
+    };
+    
+    for (const [keyword, stateCode] of Object.entries(stateMap)) {
+      if (lowerMessage.includes(keyword)) {
+        data.state = stateCode;
+        break;
+      }
+    }
+  }
+  
+  // Extract county information
+  if (!data.county && data.state) {
+    const countyPatterns = [
+      /in\s+([a-zA-Z\s]+)\s+county/i,
+      /([a-zA-Z\s]+)\s+county/i,
+      /county\s+of\s+([a-zA-Z\s]+)/i
+    ];
+    
+    for (const pattern of countyPatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        data.county = match[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // Extract case number
+  if (!data.caseNumber) {
+    const casePatterns = [
+      /case\s*(?:number|#|no\.?)\s*:?\s*([a-zA-Z0-9\-\/]+)/i,
+      /cause\s*(?:number|#|no\.?)\s*:?\s*([a-zA-Z0-9\-\/]+)/i,
+      /docket\s*(?:number|#|no\.?)\s*:?\s*([a-zA-Z0-9\-\/]+)/i
+    ];
+    
+    for (const pattern of casePatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        data.caseNumber = match[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // Extract document type based on keywords
+  if (!data.documentType || data.documentType === 'general') {
+    const typeKeywords = {
+      'divorce': ['divorce', 'dissolution', 'marriage', 'spouse'],
+      'custody': ['custody', 'child', 'children', 'visitation', 'parenting'],
+      'financial': ['income', 'support', 'money', 'financial', 'assets', 'debt']
+    };
+    
+    for (const [type, keywords] of Object.entries(typeKeywords)) {
+      if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+        data.documentType = type;
+        break;
+      }
+    }
+  }
+  
+  // Extract facts - look for factual statements
+  const factPatterns = [
+    /(?:fact|happened|occurred|situation|circumstances?)[:\s]+(.+)/i,
+    /(?:what happened|the situation|my situation)[:\s]+(.+)/i,
+    /(?:i need to state|i want to say|i declare)[:\s]+(.+)/i
+  ];
+  
+  for (const pattern of factPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1] && match[1].trim().length > 10) {
+      const fact = match[1].trim();
+      if (!data.facts) data.facts = [];
+      if (!data.facts.includes(fact)) {
+        data.facts.push(fact);
+      }
+      break;
+    }
+  }
+  
+  // If the entire message looks like a fact statement, add it
+  if (!lowerMessage.includes('?') && message.length > 15 && message.length < 500) {
+    const sentences = message.split(/[.!]+/).filter(s => s.trim().length > 10);
+    if (sentences.length === 1) {
+      if (!data.facts) data.facts = [];
+      const fact = sentences[0].trim();
+      if (!data.facts.includes(fact)) {
+        data.facts.push(fact);
+      }
+    }
+  }
+  
+  return data;
+}
+
+// Generate contextual responses based on current state
+generateContextualResponse(message, extractedData, currentData) {
+  const lowerMessage = message.toLowerCase();
+  
+  // Greeting responses
+  if (lowerMessage.match(/^(hi|hello|hey|good)/)) {
+    return "Hello! I'm here to help you create a professional affidavit. To get started, which state is your case in? I can help with Texas, Utah, or Arizona.";
+  }
+  
+  // Help or confused responses
+  if (lowerMessage.includes('help') || lowerMessage.includes('confused') || lowerMessage.includes('don\'t know')) {
+    if (!currentData.state) {
+      return "No problem! Let's start simple. Which state is your legal matter in? I can help with affidavits for Texas, Utah, or Arizona.";
+    } else {
+      return `I'm here to help! For your ${currentData.state} affidavit, I need some basic information. ${!currentData.affiantName ? 'What is your full legal name?' : !currentData.facts || currentData.facts.length === 0 ? 'Can you tell me what facts you need to include in your affidavit?' : 'What other information would you like to add?'}`;
+    }
+  }
+  
+  // State selection responses
+  if (extractedData.state && !currentData.state) {
+    const stateNames = { 'TX': 'Texas', 'UT': 'Utah', 'AZ': 'Arizona' };
+    return `Great! I'll help you create a ${stateNames[extractedData.state]} affidavit. What is your full legal name?`;
+  }
+  
+  // Name confirmation
+  if (extractedData.affiantName && !currentData.affiantName) {
+    return `Thank you, ${extractedData.affiantName}. Now, can you tell me what facts or information you need to include in your affidavit? For example, what happened or what do you need to declare under oath?`;
+  }
+  
+  // Facts acknowledgment
+  if (extractedData.facts && extractedData.facts.length > 0) {
+    const newFacts = extractedData.facts.filter(fact => 
+      !currentData.facts || !currentData.facts.includes(fact)
+    );
+    
+    if (newFacts.length > 0) {
+      return `I've noted that information. ${this.needsMoreInfo(extractedData, currentData) ? 'Is there anything else you need to include in your affidavit?' : 'Based on what you\'ve told me, I have enough information to prepare your affidavit. You can review it in the preview panel and proceed to download when ready.'}`;
+    }
+  }
+  
+  // County information for states that require it
+  if (currentData.state && ['TX', 'UT'].includes(currentData.state) && !currentData.county && !extractedData.county) {
+    return `For ${currentData.state === 'TX' ? 'Texas' : 'Utah'} affidavits, I also need to know which county your case is in. What county are you filing in?`;
+  }
+  
+  // General progress update
+  const progress = this.calculateProgress(extractedData, currentData);
+  if (progress < 70) {
+    return `I'm gathering the information for your affidavit. ${this.getNextPrompt(extractedData, currentData)}`;
+  } else {
+    return "Great! I have most of the information I need. You can review the document preview and let me know if you'd like to add anything else, or proceed to finalize your affidavit.";
+  }
+}
+
+// Determine if conversation is complete
+determineCompleteness(extractedData, currentData) {
+  const mergedData = { ...currentData, ...extractedData };
+  
+  // Required fields
+  const hasName = !!mergedData.affiantName;
+  const hasState = !!mergedData.state;
+  const hasFacts = mergedData.facts && mergedData.facts.length > 0;
+  
+  // State-specific requirements
+  let hasRequiredFields = hasName && hasState && hasFacts;
+  
+  if (mergedData.state === 'TX' || mergedData.state === 'UT') {
+    hasRequiredFields = hasRequiredFields && !!mergedData.county;
+  }
+  
+  return hasRequiredFields;
+}
+
+// Generate helpful next steps
+generateNextSteps(extractedData, currentData) {
+  const mergedData = { ...currentData, ...extractedData };
+  const steps = [];
+  
+  if (!mergedData.affiantName) {
+    steps.push("Provide your full legal name");
+  }
+  if (!mergedData.state) {
+    steps.push("Specify which state (Texas, Utah, or Arizona)");
+  }
+  if (!mergedData.county && (mergedData.state === 'TX' || mergedData.state === 'UT')) {
+    steps.push(`Specify the county in ${mergedData.state === 'TX' ? 'Texas' : 'Utah'}`);
+  }
+  if (!mergedData.facts || mergedData.facts.length === 0) {
+    steps.push("Describe the facts for your affidavit");
+  }
+  
+  if (steps.length === 0) {
+    steps.push("Review and finalize your affidavit");
+  }
+  
+  return steps;
+}
+
+// Helper methods
+needsMoreInfo(extractedData, currentData) {
+  return !this.determineCompleteness(extractedData, currentData);
+}
+
+calculateProgress(extractedData, currentData) {
+  const mergedData = { ...currentData, ...extractedData };
+  let completed = 0;
+  let total = 3; // name, state, facts
+  
+  if (mergedData.affiantName) completed++;
+  if (mergedData.state) completed++;
+  if (mergedData.facts && mergedData.facts.length > 0) completed++;
+  
+  // Add county requirement for TX/UT
+  if (mergedData.state === 'TX' || mergedData.state === 'UT') {
+    total++;
+    if (mergedData.county) completed++;
+  }
+  
+  return Math.round((completed / total) * 100);
+}
+
+getNextPrompt(extractedData, currentData) {
+  const mergedData = { ...currentData, ...extractedData };
+  
+  if (!mergedData.affiantName) {
+    return "What is your full legal name?";
+  }
+  if (!mergedData.state) {
+    return "Which state is your case in? (Texas, Utah, or Arizona)";
+  }
+  if (!mergedData.county && (mergedData.state === 'TX' || mergedData.state === 'UT')) {
+    return "Which county is your case in?";
+  }
+  if (!mergedData.facts || mergedData.facts.length === 0) {
+    return "What facts or information do you need to include in your affidavit?";
+  }
+  
+  return "Is there anything else you'd like to add to your affidavit?";
+}
+
+
 
   generateBasicResponse(message, extractedData) {
     if (!extractedData.affiantName) {

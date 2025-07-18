@@ -1,4 +1,4 @@
-// middleware/errorMiddleware.js - Centralized error handling
+// middleware/errorMiddleware.js - Complete error handler
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../services/logger');
 const monitoringService = require('../services/monitoringService');
@@ -94,19 +94,51 @@ const notFoundHandler = (req, res, next) => {
   next(error);
 };
 
+// Standardized error response helper
+const createErrorResponse = (err, requestId = null, statusCode = 500) => {
+  const response = {
+    success: false,
+    error: typeof err === 'string' ? err : err.message,
+    timestamp: new Date().toISOString()
+  };
+  
+  if (requestId) response.requestId = requestId;
+  
+  // Add details for validation errors
+  if (err.errors && Array.isArray(err.errors)) {
+    response.details = err.errors;
+  }
+  
+  // Add specific error codes for client handling
+  if (err.name === 'ValidationError') {
+    response.errorType = 'validation';
+  } else if (err.name === 'AuthenticationError') {
+    response.errorType = 'authentication';
+    response.requiresLogin = true;
+  } else if (err.name === 'AuthorizationError') {
+    response.errorType = 'authorization';
+  } else if (err.name === 'RateLimitError') {
+    response.errorType = 'rate_limit';
+    response.retryAfter = err.retryAfter || 60;
+  } else if (err.name === 'ExternalServiceError') {
+    response.errorType = 'external_service';
+    response.service = err.service;
+    response.retryAfter = 30;
+  } else if (statusCode >= 500) {
+    response.errorType = 'server_error';
+  } else {
+    response.errorType = 'client_error';
+  }
+  
+  return response;
+};
+
 // Main error handler
 const errorHandler = (err, req, res, next) => {
   // Default to 500 server error
   let statusCode = err.statusCode || 500;
-  let message = err.message || 'Internal server error';
-  let errorResponse = {
-    success: false,
-    error: message,
-    requestId: req.id,
-    timestamp: new Date().toISOString()
-  };
-
-  // Log the error
+  
+  // Log the error first
   if (statusCode >= 500) {
     logger.error('Server error:', {
       error: err,
@@ -139,44 +171,34 @@ const errorHandler = (err, req, res, next) => {
     statusCode
   });
 
-  // Handle specific error types
-  if (err.name === 'ValidationError') {
-    errorResponse.errors = err.errors;
-  }
-
-  if (err.name === 'AuthenticationError') {
-    errorResponse.requiresLogin = true;
-  }
-
-  if (err.name === 'ExternalServiceError') {
-    errorResponse.service = err.service;
-    errorResponse.retryAfter = 60; // seconds
-  }
-
-  // Handle Stripe errors
-  if (err.type === 'StripeCardError') {
+  // Handle specific error types and adjust status codes if needed
+  if (err.type?.startsWith('Stripe')) {
     statusCode = 400;
-    errorResponse.error = 'Payment failed: ' + err.message;
-    errorResponse.code = err.code;
+    err.message = 'Payment failed: ' + err.message;
+    err.name = 'PaymentError';
   }
 
-  // Handle OpenAI errors
   if (err.response?.status === 429) {
     statusCode = 503;
-    errorResponse.error = 'AI service is currently busy. Please try again in a moment.';
-    errorResponse.retryAfter = 30;
+    err.message = 'AI service is currently busy. Please try again in a moment.';
+    err.name = 'ExternalServiceError';
+    err.service = 'openai';
   }
 
-  // Handle database errors
   if (err.code === '23505') {
     statusCode = 409;
-    errorResponse.error = 'A record with this information already exists';
+    err.message = 'A record with this information already exists';
+    err.name = 'ConflictError';
   }
 
   if (err.code === 'ECONNREFUSED') {
     statusCode = 503;
-    errorResponse.error = 'Service temporarily unavailable';
+    err.message = 'Service temporarily unavailable';
+    err.name = 'ServiceUnavailableError';
   }
+
+  // Create standardized error response
+  let errorResponse = createErrorResponse(err, req.id, statusCode);
 
   // Don't expose internal error details in production
   if (process.env.NODE_ENV === 'production' && statusCode === 500) {
@@ -184,7 +206,12 @@ const errorHandler = (err, req, res, next) => {
     delete errorResponse.stack;
   } else if (process.env.NODE_ENV === 'development') {
     errorResponse.stack = err.stack;
-    errorResponse.details = err;
+    errorResponse.details = {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      type: err.type
+    };
   }
 
   res.status(statusCode).json(errorResponse);
@@ -246,5 +273,6 @@ module.exports = {
   notFoundHandler,
   errorHandler,
   withTransaction,
-  sanitizeErrorMessage
+  sanitizeErrorMessage,
+  createErrorResponse
 };

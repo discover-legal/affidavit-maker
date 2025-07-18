@@ -30,7 +30,7 @@ const getTabId = () => {
 // Session storage keys
 const getSessionKey = (tabId) => `affidavit-session-${tabId}`;
 
-// Document Editor Component
+// DocumentEditor component for App.js
 const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef }) => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
   const [affidavitData, setAffidavitData] = useState(existingDocument?.content || {
@@ -50,10 +50,16 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   const [savedSessionData, setSavedSessionData] = useState(null);
   const [validation, setValidation] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false); // New state for preview loading
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  
+  // Simplified mobile logic
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1024);
-  const [showPreview, setShowPreview] = useState(!isSmallScreen);
-  const [userToggledPreview, setUserToggledPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(window.innerWidth >= 1024);
+
+  // Add refs to track current requests and prevent race conditions
+  const previewRequestRef = useRef(null);
+  const validationRequestRef = useRef(null);
+  const previewTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -62,16 +68,37 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
     }
   }, [isAuthenticated, isLoading, loginWithRedirect]);
 
+  // Simple screen size detection
   useEffect(() => {
     const checkScreenSize = () => {
       const isSmall = window.innerWidth < 1024;
       setIsSmallScreen(isSmall);
-      if (isSmall && showPreview && !userToggledPreview) setShowPreview(false);
-      else if (!isSmall && !userToggledPreview) setShowPreview(true);
     };
+    
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
-  }, [showPreview, userToggledPreview]);
+  }, []);
+
+  // Toggle preview manually
+  const togglePreview = () => {
+    setShowPreview(prev => !prev);
+  };
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      // Cancel any pending requests on unmount
+      if (previewRequestRef.current) {
+        previewRequestRef.current.abort();
+      }
+      if (validationRequestRef.current) {
+        validationRequestRef.current.abort();
+      }
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!existingDocument && isAuthenticated) {
@@ -89,12 +116,25 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
     setSessionLoading(false);
   }, [existingDocument, isAuthenticated]);
 
-  const generatePreview = useCallback(async () => {
-    if (!affidavitData.state) {
+  // SINGLE generatePreview function with race condition protection
+  const generatePreview = useCallback(async (currentAffidavitData) => {
+    // Cancel any existing preview request
+    if (previewRequestRef.current) {
+      previewRequestRef.current.abort();
+    }
+    
+    if (!currentAffidavitData.state) {
       setPreview(null);
+      setIsPreviewLoading(false);
       return;
     }
+
     setIsPreviewLoading(true);
+    
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    previewRequestRef.current = abortController;
+
     try {
       let headers = { 'Content-Type': 'application/json' };
       if (isAuthenticated) {
@@ -103,47 +143,126 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
         });
         headers['Authorization'] = `Bearer ${token}`;
       }
+      
       const response = await fetch(`${API_BASE}/api/preview`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ affidavitData })
+        body: JSON.stringify({ affidavitData: currentAffidavitData }),
+        signal: abortController.signal
       });
-      const data = await response.json();
-      if (data.success) setPreview(data.preview);
-      else if (data.fallback) setPreview(data.fallback);
-    } catch (error) {
-      console.error('Preview generation error:', error);
-      setPreview(null);
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  }, [affidavitData, isAuthenticated, getAccessTokenSilently]);
 
-  const validateData = useCallback(async () => {
-    if (!affidavitData.state) return;
+      // Check if this request was aborted
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Only update state if this is still the current request
+      if (previewRequestRef.current === abortController) {
+        if (data.success) {
+          setPreview(data.preview);
+        } else if (data.fallback) {
+          setPreview(data.fallback);
+        } else {
+          setPreview(null);
+        }
+        setIsPreviewLoading(false);
+        previewRequestRef.current = null;
+      }
+    } catch (error) {
+      // Only handle errors if not aborted
+      if (!abortController.signal.aborted) {
+        console.error('Preview generation error:', error);
+        if (previewRequestRef.current === abortController) {
+          setPreview(null);
+          setIsPreviewLoading(false);
+          previewRequestRef.current = null;
+        }
+      }
+    }
+  }, [isAuthenticated, getAccessTokenSilently]);
+
+  const validateData = useCallback(async (currentAffidavitData) => {
+    // Cancel any existing validation request
+    if (validationRequestRef.current) {
+      validationRequestRef.current.abort();
+    }
+    
+    if (!currentAffidavitData.state) {
+      setValidation(null);
+      return;
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    validationRequestRef.current = abortController;
+
     try {
       const response = await fetch(`${API_BASE}/api/templates/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ affidavitData, state: affidavitData.state })
+        body: JSON.stringify({ 
+          affidavitData: currentAffidavitData, 
+          state: currentAffidavitData.state 
+        }),
+        signal: abortController.signal
       });
+
+      // Check if this request was aborted
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
-        if (data.success) setValidation(data.validation);
+        
+        // Only update state if this is still the current request
+        if (validationRequestRef.current === abortController) {
+          if (data.success) {
+            setValidation(data.validation);
+          }
+          validationRequestRef.current = null;
+        }
       }
     } catch (error) {
-      console.error('Validation error:', error);
+      // Only handle errors if not aborted
+      if (!abortController.signal.aborted) {
+        console.error('Validation error:', error);
+        if (validationRequestRef.current === abortController) {
+          validationRequestRef.current = null;
+        }
+      }
     }
-  }, [affidavitData]);
-  
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      validateData();
-      generatePreview();
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [affidavitData, generatePreview, validateData]);
+  }, []);
 
+  // Debounced effect that prevents rapid-fire requests
+  useEffect(() => {
+    // Clear any existing timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+
+    // Set a new timeout
+    previewTimeoutRef.current = setTimeout(() => {
+      const currentData = affidavitData;
+      
+      // Run validation and preview generation in parallel
+      Promise.all([
+        validateData(currentData),
+        generatePreview(currentData)
+      ]).catch(error => {
+        console.error('Error in validation/preview generation:', error);
+      });
+    }, 500);
+
+    // Cleanup function
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, [affidavitData, validateData, generatePreview]);
 
   const handleResumeDecision = (resume) => {
     if (resume && savedSessionData) {
@@ -234,17 +353,20 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Simplified mobile toggle */}
         {isSmallScreen && (
           <div className="mb-4 flex justify-end">
             <button
-              onClick={() => { setShowPreview(!showPreview); setUserToggledPreview(true); }}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              onClick={togglePreview}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <FileText className="h-4 w-4 mr-2" />
               {showPreview ? 'Hide Preview' : 'Show Preview'}
             </button>
           </div>
         )}
+        
+        {/* Grid layout */}
         <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           <ChatInterface
             affidavitData={affidavitData}
@@ -267,6 +389,7 @@ const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, save
           )}
         </div>
       </div>
+      
       <ResumeModal
         isOpen={showResumeModal}
         onClose={() => setShowResumeModal(false)}

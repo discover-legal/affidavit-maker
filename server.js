@@ -9,7 +9,7 @@ const { Pool } = require('pg');
 // Import services and middleware
 const logger = require('./services/logger');
 const AffidavitService = require('./services/affidavitService');
-const auth0Middleware = require('./middleware/auth0Middleware');
+const { auth0Middleware } = require('./middleware/auth0Middleware');
 const { asyncHandler, ValidationError } = require('./middleware/errorMiddleware');
 
 // Initialize Express app

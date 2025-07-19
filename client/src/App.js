@@ -1,4 +1,4 @@
-// client/src/App.js - Restored to original elegant design
+// client/src/App.js - Updated with all requested fixes
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { 
@@ -6,9 +6,12 @@ import {
   Trash2, Calendar, ChevronRight, Menu, X, Settings, 
   LogOut, Home, GripVertical, RotateCcw, Save, CheckCircle,
   AlertTriangle, Loader, Eye, CreditCard, Star, Trophy,
-  HelpCircle, Mail, User, Building, Gavel, Scale, PlusCircle,
-  Clock, Check, ExternalLink, Zap, Shield, ZoomIn, ZoomOut
+  HelpCircle, Mail, User, Building, Gavel
 } from 'lucide-react';
+import ErrorBoundary from './components/ErrorBoundary';
+import ChatInterface from './components/ChatInterface';
+import DocumentPreview from './components/DocumentPreview';
+import ValidationSidebar from './components/ValidationSidebar';
 
 // Auth0 Configuration
 const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
@@ -18,591 +21,7 @@ const AUTH0_AUDIENCE = process.env.REACT_APP_AUTH0_AUDIENCE;
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
-// Error Boundary Component
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('Error boundary caught an error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Reload Page
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// Import your existing LandingPage component
-import LandingPage from './components/LandingPage';
-
-// Original Document Preview with 8.5x11 paper
-const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
-  const [zoom, setZoom] = useState(85);
-  const [containerHeight, setContainerHeight] = useState(0);
-  const containerRef = useRef(null);
-  const contentRef = useRef(null);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const availableHeight = window.innerHeight - rect.top;
-        setContainerHeight(Math.max(400, availableHeight - 20));
-      }
-    };
-
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
-
-  const handleZoomIn = () => setZoom(prev => Math.min(150, prev + 10));
-  const handleZoomOut = () => setZoom(prev => Math.max(50, prev - 10));
-  const handleResetZoom = () => setZoom(85);
-
-  if (isLoading) {
-    return (
-      <div className="bg-white flex flex-col" style={{ height: containerHeight || '100vh' }}>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-gray-600">Generating preview...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="bg-white flex flex-col" style={{ height: containerHeight || '100vh' }}>
-      {/* Header with zoom controls */}
-      <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center flex-shrink-0">
-        <div className="flex items-center space-x-2">
-          <FileText className="h-5 w-5 text-gray-600" />
-          <span className="font-medium">Document Preview</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button onClick={handleZoomOut} className="p-1 hover:bg-gray-200 rounded">
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-mono min-w-[3rem] text-center">{zoom}%</span>
-          <button onClick={handleZoomIn} className="p-1 hover:bg-gray-200 rounded">
-            <ZoomIn className="h-4 w-4" />
-          </button>
-          <button onClick={handleResetZoom} className="p-1 hover:bg-gray-200 rounded" title="Reset zoom">
-            <RotateCcw className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* 8.5x11 Document */}
-      <div className="flex-1 overflow-auto bg-gray-100 p-4" style={{ minHeight: 0 }}>
-        <div className="max-w-2xl mx-auto">
-          <div 
-            ref={contentRef}
-            className="bg-white shadow-lg mx-auto"
-            style={{
-              width: `${zoom * 8.5}px`, // 8.5 inches
-              minHeight: `${zoom * 11}px`, // 11 inches
-              transform: `scale(${zoom / 100})`,
-              transformOrigin: 'top center',
-              marginBottom: '2rem'
-            }}
-          >
-            <div style={{ 
-              padding: `${zoom * 0.75}px`, // 0.75 inch margins
-              fontFamily: 'Times New Roman, serif',
-              fontSize: `${zoom * 0.12}px`, // 12pt
-              lineHeight: 1.5,
-              color: '#000'
-            }}>
-              
-              {/* Header */}
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                fontSize: `${zoom * 0.16}px`,
-                marginBottom: `${zoom * 0.2}px`
-              }}>
-                AFFIDAVIT
-              </div>
-              
-              {/* Venue */}
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold',
-                fontSize: `${zoom * 0.14}px`,
-                marginBottom: `${zoom * 0.3}px`
-              }}>
-                {affidavitData.state ? `State of ${affidavitData.state === 'TX' ? 'Texas' : affidavitData.state === 'UT' ? 'Utah' : affidavitData.state === 'AZ' ? 'Arizona' : affidavitData.state}` : 'State of [STATE]'}
-                <br />
-                {affidavitData.county ? `County of ${affidavitData.county}` : 'County of [COUNTY]'}
-              </div>
-              
-              {/* Introduction */}
-              <div style={{ marginBottom: `${zoom * 0.3}px` }}>
-                I, <strong>{affidavitData.affiantName || '[AFFIANT NAME]'}</strong>, being of legal age and competent to testify, do hereby swear and affirm under penalty of perjury that the following statements are true and correct to the best of my knowledge:
-              </div>
-              
-              {/* Facts */}
-              <div style={{ marginBottom: `${zoom * 0.3}px` }}>
-                {affidavitData.facts && affidavitData.facts.length > 0 ? (
-                  <ol style={{ paddingLeft: `${zoom * 0.3}px` }}>
-                    {affidavitData.facts.map((fact, index) => (
-                      <li key={index} style={{ marginBottom: `${zoom * 0.15}px` }}>
-                        {fact}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <div style={{ fontStyle: 'italic', color: '#666' }}>
-                    [Facts will be listed here as you provide them in the chat]
-                  </div>
-                )}
-              </div>
-              
-              {/* Signature Block */}
-              <div style={{ marginTop: `${zoom * 0.4}px` }}>
-                <div>I declare under penalty of perjury that the foregoing is true and correct.</div>
-                <div style={{ marginTop: `${zoom * 0.3}px` }}>
-                  <div style={{ 
-                    borderBottom: '1px solid #000', 
-                    width: `${zoom * 3}px`, 
-                    marginBottom: `${zoom * 0.1}px`
-                  }}></div>
-                  <div>{affidavitData.affiantName || '[AFFIANT NAME]'}</div>
-                  <div style={{ marginTop: `${zoom * 0.2}px` }}>
-                    Date: _______________
-                  </div>
-                </div>
-              </div>
-              
-              {/* Notary Block */}
-              <div style={{ 
-                border: '1px solid #000', 
-                padding: `${zoom * 0.2}px`, 
-                marginTop: `${zoom * 0.4}px`,
-                backgroundColor: '#f9f9f9',
-                fontSize: '0.9em'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: `${zoom * 0.1}px` }}>
-                  NOTARIZATION
-                </div>
-                <div>
-                  Subscribed and sworn to before me this _____ day of _________, 20___.
-                </div>
-                <div style={{ marginTop: `${zoom * 0.2}px` }}>
-                  <div style={{ 
-                    borderBottom: '1px solid #000', 
-                    width: `${zoom * 2.5}px`, 
-                    marginBottom: `${zoom * 0.1}px`
-                  }}></div>
-                  <div>Notary Public</div>
-                  <div>My commission expires: _______________</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Footer */}
-      <div className="px-4 py-2 border-t bg-gray-50 text-xs text-gray-500 flex-shrink-0">
-        <div className="flex justify-between items-center">
-          <span>Discover.Legal • Professional Affidavit Creation</span>
-          <span>{affidavitData.state || 'No state'} • {zoom}% • Page 1</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Simple Chat Interface
-const ChatInterface = ({ affidavitData, onDataUpdate }) => {
-  const { getAccessTokenSilently } = useAuth0();
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
-    }
-  ]);
-  
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSendMessage = async () => {
-    if (!currentMessage.trim() || isLoading) return;
-
-    const userMessage = {
-      id: messages.length + 1,
-      type: 'user',
-      content: currentMessage
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setCurrentMessage('');
-    setIsLoading(true);
-
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          message: currentMessage,
-          conversationHistory: messages,
-          currentData: affidavitData,
-          documentId: affidavitData.documentId
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        const botMessage = {
-          id: messages.length + 2,
-          type: 'bot',
-          content: result.response
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-        
-        // Update affidavit data in real-time
-        if (result.affidavitData) {
-          onDataUpdate(result.affidavitData);
-        }
-      } else {
-        const errorMessage = {
-          id: messages.length + 2,
-          type: 'bot',
-          content: "I apologize, but I encountered an error. Please try rephrasing your message."
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = {
-        id: messages.length + 2,
-        type: 'bot',
-        content: "I'm having trouble connecting right now. Please try again."
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-              message.type === 'user'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900'
-            }`}>
-              {message.content}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
-              <Loader className="h-4 w-4 animate-spin" />
-            </div>
-          </div>
-        )}
-      </div>
-      
-      <div className="border-t p-4">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Type your message..."
-            className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !currentMessage.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            Send
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Validation Sidebar
-const ValidationSidebar = ({ affidavitData }) => {
-  const getCompletionPercentage = () => {
-    const requiredFields = ['affiantName', 'state', 'facts'];
-    const completedFields = requiredFields.filter(field => {
-      const value = affidavitData[field];
-      return value && (Array.isArray(value) ? value.length > 0 : true);
-    });
-    return Math.round((completedFields.length / requiredFields.length) * 100);
-  };
-
-  const completionPercentage = getCompletionPercentage();
-
-  return (
-    <div className="w-80 bg-gray-50 border-l p-6 overflow-y-auto">
-      <h3 className="text-lg font-semibold mb-4">Document Status</h3>
-      
-      {/* Completion Progress */}
-      <div className="mb-6">
-        <div className="flex justify-between text-sm mb-2">
-          <span>Completion</span>
-          <span>{completionPercentage}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${completionPercentage}%` }}
-          />
-        </div>
-      </div>
-      
-      {/* Required Fields */}
-      <div className="mb-6">
-        <h4 className="font-medium mb-3">Required Information</h4>
-        <div className="space-y-2">
-          <div className="flex items-center">
-            {affidavitData.affiantName ? 
-              <CheckCircle className="h-4 w-4 text-green-600 mr-2" /> : 
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-            }
-            <span className={affidavitData.affiantName ? 'text-green-700' : 'text-gray-600'}>
-              Affiant Name
-            </span>
-          </div>
-          <div className="flex items-center">
-            {affidavitData.state ? 
-              <CheckCircle className="h-4 w-4 text-green-600 mr-2" /> : 
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-            }
-            <span className={affidavitData.state ? 'text-green-700' : 'text-gray-600'}>
-              State
-            </span>
-          </div>
-          <div className="flex items-center">
-            {affidavitData.facts && affidavitData.facts.length > 0 ? 
-              <CheckCircle className="h-4 w-4 text-green-600 mr-2" /> : 
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-            }
-            <span className={affidavitData.facts && affidavitData.facts.length > 0 ? 'text-green-700' : 'text-gray-600'}>
-              Facts/Statements
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Actions */}
-      <div className="space-y-3">
-        <button className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-          Save Draft
-        </button>
-        <button 
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          disabled={!affidavitData.affiantName || !affidavitData.state}
-        >
-          Generate PDF ($9.99)
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Dashboard Component
-const Dashboard = ({ onCreateNew, onOpenDocument }) => {
-  const { getAccessTokenSilently, logout, user, isLoading: authLoading } = useAuth0();
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!authLoading) {
-      loadDocuments();
-    }
-  }, [authLoading]);
-
-  const loadDocuments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE_URL}/api/documents`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setDocuments(result.documents || []);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to load documents');
-      }
-    } catch (err) {
-      setError('Failed to load documents');
-      console.error('Load documents error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-4" />
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Gavel className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Discover.Legal</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome, {user?.name}</span>
-              <button
-                onClick={() => logout({ returnTo: window.location.origin })}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-          <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
-        </div>
-
-        {/* Create New Button */}
-        <div className="mb-8">
-          <button 
-            onClick={onCreateNew}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <PlusCircle className="h-5 w-5 mr-2" />
-            Create New Affidavit
-          </button>
-        </div>
-
-        {/* Documents List */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Your Documents</h3>
-          </div>
-          
-          {error && (
-            <div className="px-6 py-4 bg-red-50 border-b">
-              <p className="text-red-600">{error}</p>
-              <button 
-                onClick={loadDocuments}
-                className="mt-2 text-red-600 hover:text-red-800 underline"
-              >
-                Try Again
-              </button>
-            </div>
-          )}
-
-          <div className="p-6">
-            {documents.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">No documents yet</p>
-                <button 
-                  onClick={onCreateNew}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create Your First Affidavit
-                </button>
-              </div>
-            ) : (
-              <ul className="space-y-4">
-                {documents.map((doc) => (
-                  <li key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-blue-700">
-                          {doc.content?.affiantName ? `${doc.content.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                          <span>State: <span className="font-medium">{doc.content?.state || 'N/A'}</span></span>
-                          <span>Status: <span className="font-medium">{doc.status}</span></span>
-                          <span>Updated: {new Date(doc.updated_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => onOpenDocument(doc)}
-                          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                        >
-                          {doc.status === 'completed' ? 'View' : 'Continue'}
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-// Resizer Component
+// Resizer component for the split panel
 const Resizer = ({ onResize, isResizing, setIsResizing }) => {
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(0);
@@ -649,22 +68,42 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
       onMouseDown={handleMouseDown}
       style={{ minWidth: '8px' }}
     >
+      {/* Visual indicator */}
       <div className={`flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity ${
         isResizing ? 'opacity-100' : ''
       }`}>
         <GripVertical className="h-4 w-4 text-gray-400" />
       </div>
+      
+      {/* Invisible larger hit area */}
+      <div className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
     </div>
   );
 };
 
-// Main Document Editor
-const DocumentEditor = ({ existingDocument = null, onBack }) => {
-  const { getAccessTokenSilently } = useAuth0();
-  const [chatWidth, setChatWidth] = useState(42);
+// Generate unique tab identifier for session management
+const getTabId = () => {
+  let tabId = sessionStorage.getItem('tabId');
+  if (!tabId) {
+    tabId = Date.now().toString();
+    sessionStorage.setItem('tabId', tabId);
+  }
+  return tabId;
+};
+
+const getSessionKey = (tabId) => `affidavit-session-${tabId}`;
+
+// DocumentEditor component with resizable layout
+const DocumentEditor = ({ existingDocument = null, onBack, setSessionSaved, saveSessionRef }) => {
+  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
+  
+  // Layout state
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1280);
+  const [activePanel, setActivePanel] = useState('chat');
+  const [chatWidth, setChatWidth] = useState(42); // Default 42% for chat
   const [isResizing, setIsResizing] = useState(false);
   
-  // Document state that updates in real-time
+  // Document state - ALWAYS START FRESH when clicking "Get Started"
   const [affidavitData, setAffidavitData] = useState(() => {
     if (existingDocument) {
       return {
@@ -672,6 +111,7 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
         documentId: existingDocument.id
       };
     }
+    // Always start fresh for new documents
     return {
       state: '',
       affiantName: '',
@@ -683,151 +123,830 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
       documentId: null
     };
   });
-
+  
+  const [documentComplete, setDocumentComplete] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [savedSessionData, setSavedSessionData] = useState(null);
+  const [validation, setValidation] = useState(null);
+  const [countyValidation, setCountyValidation] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
+  
+  // Refs for API calls
+  const previewRequestRef = useRef(null);
+  const validationRequestRef = useRef(null);
+  const previewTimeoutRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Update preview when affidavit data changes
   useEffect(() => {
-    if (affidavitData.state || affidavitData.affiantName || (affidavitData.facts && affidavitData.facts.length > 0)) {
-      generatePreview();
+    if (!isLoading && !isAuthenticated) {
+      loginWithRedirect({ appState: { returnTo: window.location.pathname } });
+      return;
     }
-  }, [affidavitData]);
+  }, [isLoading, isAuthenticated, loginWithRedirect]);
 
-  const generatePreview = async () => {
-    setIsPreviewLoading(true);
+  // Handle responsive layout
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 1280);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Session management - only for existing documents or resume
+  useEffect(() => {
+    let mounted = true;
+
+    const loadSession = async () => {
+      if (!isAuthenticated || existingDocument) {
+        setSessionLoading(false);
+        return;
+      }
+
+      try {
+        const tabId = getTabId();
+        const sessionKey = getSessionKey(tabId);
+        const savedSession = localStorage.getItem(sessionKey);
+
+        if (savedSession && mounted) {
+          const sessionData = JSON.parse(savedSession);
+          if (sessionData.timestamp && Date.now() - sessionData.timestamp < 24 * 60 * 60 * 1000) {
+            setSavedSessionData(sessionData);
+            setShowResumeModal(true);
+          } else {
+            localStorage.removeItem(sessionKey);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading session:', error);
+      } finally {
+        if (mounted) {
+          setSessionLoading(false);
+        }
+      }
+    };
+
+    loadSession();
+    return () => { mounted = false; };
+  }, [isAuthenticated, existingDocument]);
+
+  // Auto-save functionality with improved status
+  const saveSession = useCallback(async (data = affidavitData, force = false) => {
+    if (!isAuthenticated || existingDocument) return;
+
+    const hasContent = data.affiantName || data.state || (data.facts && data.facts.length > 0);
+    if (!hasContent && !force) return;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/preview`, {
+      setSaveStatus('saving');
+      const tabId = getTabId();
+      const sessionKey = getSessionKey(tabId);
+      
+      const sessionData = {
+        affidavitData: data,
+        timestamp: Date.now(),
+        lastSaved: new Date().toISOString()
+      };
+
+      localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+      
+      if (setSessionSaved) {
+        setSessionSaved(true);
+      }
+      
+      setSaveStatus('saved');
+      
+      // Reset to idle after showing saved status
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      
+    } catch (error) {
+      console.error('Error saving session:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  }, [affidavitData, isAuthenticated, existingDocument, setSessionSaved]);
+
+  // Expose save function through ref
+  useEffect(() => {
+    if (saveSessionRef) {
+      saveSessionRef.current = saveSession;
+    }
+  }, [saveSession, saveSessionRef]);
+
+  // Auto-save on data changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveSession();
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [affidavitData, saveSession]);
+
+  // County validation with state-specific logic
+  const validateCounty = useCallback(async (county, state) => {
+    if (!county || !state) {
+      setCountyValidation(null);
+      return;
+    }
+
+    // Only validate for states that require counties
+    const statesRequiringCounty = ['TX', 'UT', 'Texas', 'Utah'];
+    if (!statesRequiringCounty.includes(state)) {
+      setCountyValidation(null);
+      return;
+    }
+
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${API_BASE_URL}/api/validate-county`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ affidavitData })
+        body: JSON.stringify({ county, state })
       });
 
       if (response.ok) {
         const result = await response.json();
-        setPreview(result.preview);
+        setCountyValidation(result);
+      } else {
+        console.error('County validation failed:', response.statusText);
+        setCountyValidation(null);
       }
     } catch (error) {
-      console.error('Preview error:', error);
+      console.error('County validation error:', error);
+      setCountyValidation(null);
+    }
+  }, [getAccessTokenSilently]);
+
+  // Trigger county validation when county or state changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validateCounty(affidavitData.county, affidavitData.state);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [affidavitData.county, affidavitData.state, validateCounty]);
+
+  // Generate preview with debouncing
+  const generatePreview = useCallback(async (data = affidavitData) => {
+    if (previewRequestRef.current) {
+      previewRequestRef.current.abort();
+    }
+
+    if (!data.affiantName && !data.state && (!data.facts || data.facts.length === 0)) {
+      setPreview(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    previewRequestRef.current = controller;
+
+    try {
+      setIsPreviewLoading(true);
+      
+      const response = await fetch(`${API_BASE_URL}/api/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isAuthenticated ? { 'Authorization': `Bearer ${await getAccessTokenSilently()}` } : {})
+        },
+        body: JSON.stringify({ affidavitData: data }),
+        signal: controller.signal
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (!controller.signal.aborted) {
+          setPreview(result.preview);
+        }
+      } else {
+        console.error('Preview generation failed:', response.statusText);
+        if (!controller.signal.aborted) {
+          setPreview(null);
+        }
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Preview generation error:', error);
+        setPreview(null);
+      }
     } finally {
-      setIsPreviewLoading(false);
+      if (!controller.signal.aborted) {
+        setIsPreviewLoading(false);
+      }
+    }
+  }, [affidavitData, isAuthenticated, getAccessTokenSilently]);
+
+  // Debounced preview generation
+  useEffect(() => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+
+    previewTimeoutRef.current = setTimeout(() => {
+      generatePreview();
+    }, 1000);
+
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, [generatePreview]);
+
+  // Handle data updates from chat
+  const handleDataUpdate = useCallback((updates) => {
+    setAffidavitData(prevData => {
+      const newData = { ...prevData, ...updates };
+      
+      // Auto-save when document becomes complete
+      const isComplete = newData.affiantName && newData.state && newData.facts && newData.facts.length > 0;
+      if (isComplete && !documentComplete) {
+        setDocumentComplete(true);
+      }
+      
+      return newData;
+    });
+  }, [documentComplete]);
+
+  // Resume session handler
+  const handleResumeSession = () => {
+    if (savedSessionData) {
+      setAffidavitData(savedSessionData.affidavitData);
+      setShowResumeModal(false);
+      setSavedSessionData(null);
     }
   };
 
-  // Handle real-time data updates from chat
-  const handleDataUpdate = (newData) => {
-    setAffidavitData(prev => ({ ...prev, ...newData }));
+  // Start fresh handler
+  const handleStartFresh = () => {
+    try {
+      const tabId = getTabId();
+      const sessionKey = getSessionKey(tabId);
+      localStorage.removeItem(sessionKey);
+    } catch (error) {
+      console.error('Error clearing session:', error);
+    }
+    
+    setShowResumeModal(false);
+    setSavedSessionData(null);
+    // Data is already fresh from initial state
   };
 
+  // Payment handler with updated pricing
+  const handlePayment = async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          documentType: 'single_affidavit',
+          documentId: affidavitData.documentId || 'new'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Handle payment with Stripe - implementation depends on your payment component
+        setShowPayment(true);
+      } else {
+        console.error('Payment creation failed:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+    }
+  };
+
+  // Loading states
+  if (isLoading || sessionLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading Discover.Legal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Gavel className="h-16 w-16 mx-auto mb-4 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Discover.Legal</h1>
+          <p className="text-gray-600 mb-4">Professional Affidavit Creation</p>
+          <Loader className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              onClick={onBack}
-              className="mr-4 p-2 text-gray-500 hover:text-gray-700"
-            >
-              ← Back
-            </button>
-            <div className="flex items-center">
-              <Gavel className="h-6 w-6 text-blue-600 mr-2" />
-              <h1 className="text-xl font-semibold">
-                {existingDocument ? 'Edit Affidavit' : 'Create New Affidavit'}
-              </h1>
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      {/* Resume Session Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Resume Previous Session?</h3>
+            <p className="text-gray-600 mb-6">
+              We found a saved session from {new Date(savedSessionData?.timestamp).toLocaleDateString()}. 
+              Would you like to continue where you left off?
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleResumeSession}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Resume
+              </button>
+              <button
+                onClick={handleStartFresh}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Start Fresh
+              </button>
             </div>
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Main Content - Chat | Preview | Validation */}
-      <div className="flex-1 flex min-h-0">
-        {/* Chat Panel */}
-        <div 
-          className="bg-white border-r flex flex-col"
-          style={{ width: `${chatWidth}%` }}
-        >
-          <ChatInterface
-            affidavitData={affidavitData}
-            onDataUpdate={handleDataUpdate}
-          />
+      {/* Header with save status */}
+      <div className="bg-white border-b px-4 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onBack}
+              className="text-gray-600 hover:text-gray-900 flex items-center space-x-1"
+            >
+              <Home className="h-5 w-5" />
+              <span>Dashboard</span>
+            </button>
+            <div className="text-gray-300">|</div>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {existingDocument ? `Edit: ${existingDocument.title}` : 'New Affidavit'}
+            </h1>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Save Status Indicator */}
+            <div className="flex items-center space-x-2 text-sm">
+              {saveStatus === 'saving' && (
+                <>
+                  <Loader className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-gray-600">Saving...</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-green-600">Saved</span>
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <span className="text-red-600">Save failed</span>
+                </>
+              )}
+            </div>
+
+            {/* Mobile panel switcher */}
+            {isSmallScreen && (
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setActivePanel('chat')}
+                  className={`px-3 py-1 rounded text-sm ${
+                    activePanel === 'chat' ? 'bg-white shadow-sm' : 'text-gray-600'
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActivePanel('preview')}
+                  className={`px-3 py-1 rounded text-sm ${
+                    activePanel === 'preview' ? 'bg-white shadow-sm' : 'text-gray-600'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center space-x-2">
+              {documentComplete && (
+                <button
+                  onClick={handlePayment}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-1"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>Complete - $39.99</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area - Fixed height calculation */}
+      <div 
+        ref={containerRef}
+        className="flex-1 flex overflow-hidden"
+        style={{ height: 'calc(100vh - 73px)' }} // Fixed header height
+      >
+        {isSmallScreen ? (
+          // Mobile layout
+          <div className="w-full">
+            {activePanel === 'chat' && (
+              <div className="h-full flex">
+                <div className="flex-1">
+                  <ChatInterface
+                    affidavitData={affidavitData}
+                    onDataUpdate={handleDataUpdate}
+                    isComplete={documentComplete}
+                    onComplete={() => setDocumentComplete(true)}
+                  />
+                </div>
+                <ValidationSidebar
+                  validation={validation}
+                  countyValidation={countyValidation}
+                  affidavitData={affidavitData}
+                />
+              </div>
+            )}
+            {activePanel === 'preview' && (
+              <DocumentPreview
+                affidavitData={affidavitData}
+                preview={preview}
+                isLoading={isPreviewLoading}
+              />
+            )}
+          </div>
+        ) : (
+          // Desktop layout with resizable panels
+          <>
+            {/* Chat Panel */}
+            <div 
+              className="bg-white border-r flex flex-col"
+              style={{ width: `${chatWidth}%` }}
+            >
+              <div className="flex-1 flex">
+                <div className="flex-1">
+                  <ChatInterface
+                    affidavitData={affidavitData}
+                    onDataUpdate={handleDataUpdate}
+                    isComplete={documentComplete}
+                    onComplete={() => setDocumentComplete(true)}
+                  />
+                </div>
+                <ValidationSidebar
+                  validation={validation}
+                  countyValidation={countyValidation}
+                  affidavitData={affidavitData}
+                />
+              </div>
+            </div>
+
+            {/* Resizer */}
+            <Resizer
+              onResize={setChatWidth}
+              isResizing={isResizing}
+              setIsResizing={setIsResizing}
+            />
+
+            {/* Preview Panel */}
+            <div 
+              className="bg-gray-50 flex flex-col"
+              style={{ width: `${100 - chatWidth}%` }}
+            >
+              <DocumentPreview
+                affidavitData={affidavitData}
+                preview={preview}
+                isLoading={isPreviewLoading}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Dashboard component with brand updates
+const Dashboard = ({ onCreateNew, onOpenDocument }) => {
+  const { getAccessTokenSilently, logout, user } = useAuth0();
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${API_BASE_URL}/api/documents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setDocuments(result.documents || []);
+      } else {
+        setError('Failed to load documents');
+      }
+    } catch (err) {
+      setError('Failed to load documents');
+      console.error('Load documents error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteDocument = async (documentId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      } else {
+        console.error('Delete failed:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading your documents...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-3">
+              <Gavel className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Discover.Legal</h1>
+                <p className="text-sm text-gray-600">Professional Affidavit Creation</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Welcome, {user?.name || user?.email}
+              </div>
+              <button
+                onClick={() => logout({ returnTo: window.location.origin })}
+                className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Get Started Section */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Create New Affidavit</h2>
+                <p className="text-blue-100 mb-4">
+                  Generate professional affidavits for Texas, Utah, and Arizona. $39.99 per document.
+                </p>
+                <button
+                  onClick={onCreateNew}
+                  className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-gray-50 flex items-center space-x-2 font-medium"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Get Started</span>
+                </button>
+              </div>
+              <div className="hidden md:block">
+                <FileText className="h-24 w-24 text-blue-300" />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Resizer */}
-        <Resizer
-          onResize={setChatWidth}
-          isResizing={isResizing}
-          setIsResizing={setIsResizing}
-        />
+        {/* Documents List */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Your Documents</h3>
+            <div className="text-sm text-gray-600">
+              {documents.length} document{documents.length !== 1 ? 's' : ''}
+            </div>
+          </div>
 
-        {/* Preview Panel */}
-        <div 
-          className="bg-gray-50 flex flex-col min-h-0"
-          style={{ width: `${100 - chatWidth - 20}%` }} // Reserve space for validation
-        >
-          <DocumentPreview
-            affidavitData={affidavitData}
-            preview={preview}
-            isLoading={isPreviewLoading}
-          />
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <span className="text-red-800">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {documents.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents yet</h3>
+              <p className="text-gray-600 mb-6">
+                Create your first affidavit to get started with Discover.Legal
+              </p>
+              <button
+                onClick={onCreateNew}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 mx-auto"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Create First Affidavit</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {documents.map((doc) => (
+                <div key={doc.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        doc.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        doc.status === 'paid' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {doc.status === 'paid' ? 'Ready to Download' : 
+                         doc.status === 'completed' ? 'Completed' : 'Draft'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <h4 className="font-medium text-gray-900 mb-2 truncate">
+                    {doc.title || `${doc.content?.state || 'Unknown'} Affidavit`}
+                  </h4>
+                  
+                  <div className="text-sm text-gray-600 space-y-1 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <User className="h-3 w-3" />
+                      <span>{doc.content?.affiantName || 'No name set'}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(doc.updated_at).toLocaleDateString()}</span>
+                    </div>
+                    {doc.content?.state && (
+                      <div className="flex items-center space-x-1">
+                        <Building className="h-3 w-3" />
+                        <span>{doc.content.state}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onOpenDocument(doc)}
+                      className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded text-sm hover:bg-blue-100 flex items-center justify-center space-x-1"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      <span>Edit</span>
+                    </button>
+                    {doc.status === 'paid' && (
+                      <button
+                        onClick={() => window.open(`${API_BASE_URL}/api/download/${doc.id}`, '_blank')}
+                        className="flex-1 bg-green-50 text-green-600 px-3 py-2 rounded text-sm hover:bg-green-100 flex items-center justify-center space-x-1"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Validation Sidebar - On the far right */}
-        <div className="w-80 bg-gray-50 border-l">
-          <ValidationSidebar affidavitData={affidavitData} />
+        {/* Footer */}
+        <div className="mt-16 pt-8 border-t border-gray-200">
+          <div className="text-center text-sm text-gray-600">
+            <div className="flex items-center justify-center space-x-4 mb-4">
+              <a href="https://discover.legal" className="hover:text-blue-600">Visit Discover.Legal</a>
+              <span>•</span>
+              <a href="mailto:support@discover.legal" className="hover:text-blue-600 flex items-center space-x-1">
+                <Mail className="h-4 w-4" />
+                <span>Support</span>
+              </a>
+              <span>•</span>
+              <a href="#" className="hover:text-blue-600 flex items-center space-x-1">
+                <HelpCircle className="h-4 w-4" />
+                <span>Help</span>
+              </a>
+            </div>
+            <p>© 2025 Discover.Legal. Professional legal document creation.</p>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// Main App Component
+// Main App component
 const App = () => {
-  const [currentView, setCurrentView] = useState('landing');
+  const [currentView, setCurrentView] = useState('dashboard');
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [sessionSaved, setSessionSaved] = useState(false);
+  const saveSessionRef = useRef();
 
-  const handleGetStarted = () => {
-    setCurrentView('dashboard');
-  };
-
+  // Handle creating new document - always start fresh
   const handleCreateNew = () => {
-    setSelectedDocument(null);
+    setSelectedDocument(null); // Ensure we start fresh
     setCurrentView('editor');
   };
 
+  // Handle opening existing document
   const handleOpenDocument = (document) => {
     setSelectedDocument(document);
     setCurrentView('editor');
   };
 
+  // Handle returning to dashboard
   const handleBackToDashboard = () => {
+    // Save current session before going back
+    if (saveSessionRef.current && currentView === 'editor' && !selectedDocument) {
+      saveSessionRef.current(undefined, true);
+    }
+    
     setCurrentView('dashboard');
     setSelectedDocument(null);
+    setSessionSaved(false);
   };
 
+  // Render current view
   const renderCurrentView = () => {
     switch (currentView) {
-      case 'landing':
-        return <LandingPage onGetStarted={handleGetStarted} />;
+      case 'editor':
+        return (
+          <DocumentEditor
+            existingDocument={selectedDocument}
+            onBack={handleBackToDashboard}
+            setSessionSaved={setSessionSaved}
+            saveSessionRef={saveSessionRef}
+          />
+        );
       case 'dashboard':
+      default:
         return (
           <Dashboard
             onCreateNew={handleCreateNew}
             onOpenDocument={handleOpenDocument}
           />
         );
-      case 'editor':
-        return (
-          <DocumentEditor
-            existingDocument={selectedDocument}
-            onBack={handleBackToDashboard}
-          />
-        );
-      default:
-        return <LandingPage onGetStarted={handleGetStarted} />;
     }
   };
 
@@ -850,3 +969,4 @@ const App = () => {
 };
 
 export default App;
+                

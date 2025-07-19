@@ -1,4 +1,4 @@
--- database-schema-clean.sql - Clean working database schema
+-- database-schema.sql - Complete database schema for Affidavit Maker
 -- Run this file to set up all necessary tables and indexes
 
 -- Enable UUID extension if needed
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified BOOLEAN DEFAULT false,
     
     -- Subscription info
-    subscription_tier VARCHAR(50) DEFAULT 'free',
+    subscription_tier VARCHAR(50) DEFAULT 'free', -- free, pro, enterprise
     subscription_status VARCHAR(50) DEFAULT 'active',
     documents_remaining INTEGER,
     
@@ -48,20 +48,20 @@ CREATE TABLE IF NOT EXISTS documents (
     
     -- Document metadata
     title VARCHAR(255),
-    document_type VARCHAR(100) DEFAULT 'affidavit',
-    template_state VARCHAR(2),
+    document_type VARCHAR(100) DEFAULT 'affidavit', -- affidavit, motion, contract, etc.
+    template_state VARCHAR(2), -- TX, UT, AZ, etc.
     
     -- Document content (stored as JSONB for flexibility)
     content JSONB NOT NULL,
     
     -- AI processing metadata
-    conversation_history JSONB,
-    extraction_metadata JSONB,
-    validation_results JSONB,
-    generation_metadata JSONB,
+    conversation_history JSONB, -- Chat messages and AI responses
+    extraction_metadata JSONB, -- How facts were extracted
+    validation_results JSONB, -- Template validation results
+    generation_metadata JSONB, -- AI generation metadata
     
     -- Document status and workflow
-    status VARCHAR(50) DEFAULT 'draft',
+    status VARCHAR(50) DEFAULT 'draft', -- draft, completed, paid, downloaded
     completion_percentage INTEGER DEFAULT 0,
     
     -- Legal requirements tracking
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS documents (
     -- Payment tracking
     payment_required BOOLEAN DEFAULT true,
     payment_completed BOOLEAN DEFAULT false,
-    payment_id INTEGER,
+    payment_id INTEGER, -- References payments table
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -100,13 +100,13 @@ CREATE TABLE IF NOT EXISTS payments (
     stripe_customer_id VARCHAR(255),
     
     -- Payment details
-    amount_cents INTEGER NOT NULL,
+    amount_cents INTEGER NOT NULL, -- Amount in cents (e.g., 999 = $9.99)
     currency VARCHAR(3) DEFAULT 'usd',
-    status VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL, -- pending, succeeded, failed, refunded, canceled
     
     -- Payment method
-    payment_method_type VARCHAR(50),
-    payment_method_details JSONB,
+    payment_method_type VARCHAR(50), -- card, ach, etc.
+    payment_method_details JSONB, -- Last 4 digits, brand, etc.
     
     -- Transaction metadata
     description TEXT,
@@ -132,8 +132,8 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     
     -- Action details
-    action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(50),
+    action VARCHAR(100) NOT NULL, -- login, create_document, generate_pdf, etc.
+    resource_type VARCHAR(50), -- document, payment, user, etc.
     resource_id INTEGER,
     
     -- Request context
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS email_notifications (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     
     -- Email details
-    email_type VARCHAR(100) NOT NULL,
+    email_type VARCHAR(100) NOT NULL, -- welcome, document_ready, payment_failed, etc.
     recipient_email VARCHAR(255) NOT NULL,
     subject VARCHAR(500),
     
@@ -182,20 +182,20 @@ CREATE TABLE IF NOT EXISTS email_notifications (
     template_variables JSONB,
     
     -- Delivery status
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'pending', -- pending, sent, failed, bounced
     sent_at TIMESTAMP,
     opened_at TIMESTAMP,
     clicked_at TIMESTAMP,
     
     -- External service tracking
-    external_id VARCHAR(255),
+    external_id VARCHAR(255), -- Sendgrid/SES message ID
     error_message TEXT,
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Document templates table - for custom templates
+-- Document templates table - for custom templates (future feature)
 CREATE TABLE IF NOT EXISTS document_templates (
     id SERIAL PRIMARY KEY,
     created_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS document_templates (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     document_type VARCHAR(100) NOT NULL,
-    applicable_states VARCHAR(100)[],
+    applicable_states VARCHAR(100)[], -- Array of state codes
     
     -- Template structure
     template_structure JSONB NOT NULL,
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS document_templates (
     usage_count INTEGER DEFAULT 0,
     
     -- Status
-    status VARCHAR(50) DEFAULT 'draft',
+    status VARCHAR(50) DEFAULT 'draft', -- draft, active, deprecated
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -235,10 +235,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
     -- Key details
     key_name VARCHAR(255) NOT NULL,
     api_key VARCHAR(255) UNIQUE NOT NULL,
-    key_hash VARCHAR(255) NOT NULL,
+    key_hash VARCHAR(255) NOT NULL, -- Hashed version for security
     
     -- Permissions
-    scopes VARCHAR(100)[],
+    scopes VARCHAR(100)[], -- Array of allowed scopes
     rate_limit_per_hour INTEGER DEFAULT 100,
     
     -- Usage tracking
@@ -259,12 +259,12 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     id SERIAL PRIMARY KEY,
     
     -- Event details
-    external_id VARCHAR(255) UNIQUE NOT NULL,
+    external_id VARCHAR(255) UNIQUE NOT NULL, -- Stripe event ID, etc.
     event_type VARCHAR(100) NOT NULL,
-    source VARCHAR(50) NOT NULL,
+    source VARCHAR(50) NOT NULL, -- stripe, auth0, etc.
     
     -- Processing status
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'pending', -- pending, processed, failed, ignored
     processed_at TIMESTAMP,
     retry_count INTEGER DEFAULT 0,
     
@@ -324,7 +324,108 @@ CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(status);
 CREATE INDEX IF NOT EXISTS idx_webhook_events_created_at ON webhook_events(created_at);
 
 -- ============================================
--- SIMPLE VIEWS (no complex functions for now)
+-- TRIGGERS FOR AUTOMATIC TIMESTAMPS
+-- ============================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$ language 'plpgsql';
+
+-- Apply trigger to tables with updated_at column
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_documents_updated_at BEFORE UPDATE ON documents 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_document_templates_updated_at BEFORE UPDATE ON document_templates 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- FUNCTIONS FOR COMMON OPERATIONS
+-- ============================================
+
+-- Function to get user document count
+CREATE OR REPLACE FUNCTION get_user_document_count(user_id_param INTEGER)
+RETURNS INTEGER AS $
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM documents 
+        WHERE user_id = user_id_param 
+        AND deleted_at IS NULL
+    );
+END;
+$ LANGUAGE plpgsql;
+
+-- Function to update user document count
+CREATE OR REPLACE FUNCTION update_user_document_count()
+RETURNS TRIGGER AS $
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE users 
+        SET total_documents_created = total_documents_created + 1
+        WHERE id = NEW.user_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE users 
+        SET total_documents_created = total_documents_created - 1
+        WHERE id = OLD.user_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$ LANGUAGE plpgsql;
+
+-- Apply trigger to update document count
+CREATE TRIGGER trigger_update_user_document_count
+    AFTER INSERT OR DELETE ON documents
+    FOR EACH ROW EXECUTE FUNCTION update_user_document_count();
+
+-- ============================================
+-- INITIAL DATA / SEED DATA
+-- ============================================
+
+-- Insert default document templates (after creating a default user first)
+-- First create a system user for the templates
+INSERT INTO users (auth0_id, email, name, is_admin, created_at)
+VALUES ('system|templates', 'system@affidavit-maker.com', 'System Templates', true, CURRENT_TIMESTAMP)
+ON CONFLICT (auth0_id) DO NOTHING;
+
+-- Now insert templates with the system user ID
+INSERT INTO document_templates (name, description, document_type, applicable_states, template_structure, required_fields, is_public, created_by)
+SELECT 
+    template_name,
+    template_desc,
+    template_type,
+    template_states,
+    template_struct,
+    template_required,
+    true,
+    (SELECT id FROM users WHERE auth0_id = 'system|templates')
+FROM (VALUES
+    ('General Affidavit - Texas', 'Standard affidavit template for Texas state', 'affidavit', 
+     ARRAY['TX'], '{"sections": ["header", "statement", "signature", "notary"]}', 
+     '{"required": ["affiant_name", "county", "facts"]}'),
+    ('General Affidavit - Utah', 'Standard affidavit template for Utah state', 'affidavit', 
+     ARRAY['UT'], '{"sections": ["header", "statement", "signature", "notary"]}', 
+     '{"required": ["affiant_name", "county", "facts"]}'),
+    ('General Affidavit - Arizona', 'Standard affidavit template for Arizona state', 'affidavit', 
+     ARRAY['AZ'], '{"sections": ["header", "statement", "signature", "notary"]}', 
+     '{"required": ["affiant_name", "county", "facts"]}')
+) AS templates(template_name, template_desc, template_type, template_states, template_struct, template_required)
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- VIEWS FOR COMMON QUERIES
 -- ============================================
 
 -- View for user dashboard data
@@ -358,50 +459,54 @@ LEFT JOIN users u ON al.user_id = u.id
 ORDER BY al.created_at DESC;
 
 -- ============================================
--- SEED DATA
+-- CLEANUP PROCEDURES
 -- ============================================
 
--- Create a system user for templates
-INSERT INTO users (auth0_id, email, name, is_admin, created_at)
-VALUES ('system|templates', 'system@affidavit-maker.com', 'System Templates', true, CURRENT_TIMESTAMP)
-ON CONFLICT (auth0_id) DO NOTHING;
+-- Function to clean up old sessions
+CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
+RETURNS INTEGER AS $
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP;
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$ LANGUAGE plpgsql;
 
--- Insert default document templates
-INSERT INTO document_templates (name, description, document_type, applicable_states, template_structure, required_fields, is_public, created_by)
-SELECT 
-    'General Affidavit - Texas',
-    'Standard affidavit template for Texas state',
-    'affidavit',
-    ARRAY['TX'],
-    '{"sections": ["header", "statement", "signature", "notary"]}'::jsonb,
-    '{"required": ["affiant_name", "county", "facts"]}'::jsonb,
-    true,
-    (SELECT id FROM users WHERE auth0_id = 'system|templates')
-WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE name = 'General Affidavit - Texas');
+-- Function to clean up old activity logs (keep last 90 days)
+CREATE OR REPLACE FUNCTION cleanup_old_activity_logs()
+RETURNS INTEGER AS $
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM activity_logs 
+    WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days';
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$ LANGUAGE plpgsql;
 
-INSERT INTO document_templates (name, description, document_type, applicable_states, template_structure, required_fields, is_public, created_by)
-SELECT 
-    'General Affidavit - Utah',
-    'Standard affidavit template for Utah state',
-    'affidavit',
-    ARRAY['UT'],
-    '{"sections": ["header", "statement", "signature", "notary"]}'::jsonb,
-    '{"required": ["affiant_name", "county", "facts"]}'::jsonb,
-    true,
-    (SELECT id FROM users WHERE auth0_id = 'system|templates')
-WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE name = 'General Affidavit - Utah');
+-- ============================================
+-- GRANTS AND PERMISSIONS
+-- ============================================
 
-INSERT INTO document_templates (name, description, document_type, applicable_states, template_structure, required_fields, is_public, created_by)
-SELECT 
-    'General Affidavit - Arizona',
-    'Standard affidavit template for Arizona state',
-    'affidavit',
-    ARRAY['AZ'],
-    '{"sections": ["header", "statement", "signature", "notary"]}'::jsonb,
-    '{"required": ["affiant_name", "county", "facts"]}'::jsonb,
-    true,
-    (SELECT id FROM users WHERE auth0_id = 'system|templates')
-WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE name = 'General Affidavit - Arizona');
+-- Create application user if needed (adjust as needed for your setup)
+-- CREATE USER affidavit_app WITH PASSWORD 'your_secure_password';
+-- GRANT CONNECT ON DATABASE affidavit_db TO affidavit_app;
+-- GRANT USAGE ON SCHEMA public TO affidavit_app;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO affidavit_app;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO affidavit_app;
 
--- Success message
-SELECT 'Database schema created successfully!' as message;
+-- ============================================
+-- COMPLETION MESSAGE
+-- ============================================
+
+-- Log schema creation
+DO $
+BEGIN
+    RAISE NOTICE 'Affidavit Maker database schema created successfully!';
+    RAISE NOTICE 'Tables created: users, documents, payments, activity_logs, sessions, email_notifications, document_templates, api_keys, webhook_events';
+    RAISE NOTICE 'Indexes, triggers, and views have been set up for optimal performance.';
+    RAISE NOTICE 'Run SELECT * FROM user_dashboard_stats; to test the setup.';
+END $;

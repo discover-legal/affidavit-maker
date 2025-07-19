@@ -10,6 +10,7 @@ import {
   Clock, Check, ExternalLink, Zap, Shield, ZoomIn, ZoomOut
 } from 'lucide-react';
 
+
 // Auth0 Configuration
 const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
 const AUTH0_CLIENT_ID = process.env.REACT_APP_AUTH0_CLIENT_ID;
@@ -117,11 +118,11 @@ const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
       </div>
 
       {/* 8.5x11 Document */}
-      <div className="flex-1 overflow-auto bg-gray-100 p-4" style={{ minHeight: 0 }}>
-        <div className="max-w-2xl mx-auto">
+      <div className="flex-1 overflow-auto bg-gray-100 p-2" style={{ minHeight: 0 }}>
+        <div className="w-full flex justify-center">
           <div 
             ref={contentRef}
-            className="bg-white shadow-lg mx-auto"
+            className="bg-white shadow-lg"
             style={{
               width: `${zoom * 8.5}px`, // 8.5 inches
               minHeight: `${zoom * 11}px`, // 11 inches
@@ -171,7 +172,7 @@ const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
                   <ol style={{ paddingLeft: `${zoom * 0.3}px` }}>
                     {affidavitData.facts.map((fact, index) => (
                       <li key={index} style={{ marginBottom: `${zoom * 0.15}px` }}>
-                        {fact}
+                        {typeof fact === 'object' ? fact.content : fact}
                       </li>
                     ))}
                   </ol>
@@ -238,7 +239,7 @@ const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
   );
 };
 
-// Simple Chat Interface
+// Simple Chat Interface with Streaming
 const ChatInterface = ({ affidavitData, onDataUpdate }) => {
   const { getAccessTokenSilently } = useAuth0();
   const [messages, setMessages] = useState([
@@ -251,6 +252,17 @@ const ChatInterface = ({ affidavitData, onDataUpdate }) => {
   
   const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, streamingMessage]);
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;
@@ -262,8 +274,10 @@ const ChatInterface = ({ affidavitData, onDataUpdate }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageToSend = currentMessage;
     setCurrentMessage('');
     setIsLoading(true);
+    setStreamingMessage('');
 
     try {
       const token = await getAccessTokenSilently();
@@ -274,38 +288,64 @@ const ChatInterface = ({ affidavitData, onDataUpdate }) => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          message: currentMessage,
+          message: messageToSend,
           conversationHistory: messages,
           currentData: affidavitData,
           documentId: affidavitData.documentId
         })
       });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        const botMessage = {
-          id: messages.length + 2,
-          type: 'bot',
-          content: result.response
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-        
-        // Update affidavit data in real-time
-        if (result.affidavitData) {
-          onDataUpdate(result.affidavitData);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedResponse = '';
+      let extractedData = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'token') {
+                accumulatedResponse += data.content;
+                setStreamingMessage(accumulatedResponse);
+              } else if (data.type === 'data') {
+                extractedData = data.affidavitData;
+              } else if (data.type === 'done') {
+                // Streaming complete
+                const botMessage = {
+                  id: messages.length + 2,
+                  type: 'bot',
+                  content: accumulatedResponse
+                };
+                
+                setMessages(prev => [...prev, botMessage]);
+                setStreamingMessage('');
+                
+                // Update affidavit data
+                if (extractedData) {
+                  onDataUpdate(extractedData);
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing streaming data:', e);
+            }
+          }
         }
-      } else {
-        const errorMessage = {
-          id: messages.length + 2,
-          type: 'bot',
-          content: "I apologize, but I encountered an error. Please try rephrasing your message."
-        };
-        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error('Chat error:', error);
+      setStreamingMessage('');
       const errorMessage = {
         id: messages.length + 2,
         type: 'bot',
@@ -331,13 +371,25 @@ const ChatInterface = ({ affidavitData, onDataUpdate }) => {
             </div>
           </div>
         ))}
-        {isLoading && (
+        
+        {/* Streaming message */}
+        {streamingMessage && (
+          <div className="flex justify-start">
+            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
+              {streamingMessage}
+              <span className="animate-pulse">|</span>
+            </div>
+          </div>
+        )}
+        
+        {isLoading && !streamingMessage && (
           <div className="flex justify-start">
             <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
               <Loader className="h-4 w-4 animate-spin" />
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
       
       <div className="border-t p-4">
@@ -364,8 +416,13 @@ const ChatInterface = ({ affidavitData, onDataUpdate }) => {
   );
 };
 
-// Validation Sidebar
-const ValidationSidebar = ({ affidavitData }) => {
+// Enhanced Validation Sidebar with Fact Management
+const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editingFactId, setEditingFactId] = useState(null);
+  const [editedFactContent, setEditedFactContent] = useState('');
+
   const getCompletionPercentage = () => {
     const requiredFields = ['affiantName', 'state', 'facts'];
     const completedFields = requiredFields.filter(field => {
@@ -376,6 +433,84 @@ const ValidationSidebar = ({ affidavitData }) => {
   };
 
   const completionPercentage = getCompletionPercentage();
+
+  // Name editing functions
+  const handleEditName = () => {
+    setEditedName(affidavitData.affiantName || '');
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = () => {
+    if (editedName.trim()) {
+      onDataUpdate({ affiantName: editedName.trim() });
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setEditedName('');
+  };
+
+  // Fact editing functions
+  const handleEditFact = (index, content) => {
+    setEditingFactId(index);
+    setEditedFactContent(content);
+  };
+
+  const handleSaveFact = (index) => {
+    const updatedFacts = [...(affidavitData.facts || [])];
+    updatedFacts[index] = {
+      ...updatedFacts[index],
+      content: editedFactContent.trim()
+    };
+    onDataUpdate({ facts: updatedFacts });
+    setEditingFactId(null);
+    setEditedFactContent('');
+  };
+
+  const handleDeleteFact = (index) => {
+    if (window.confirm('Are you sure you want to delete this fact?')) {
+      const updatedFacts = [...(affidavitData.facts || [])];
+      updatedFacts.splice(index, 1);
+      onDataUpdate({ facts: updatedFacts });
+    }
+  };
+
+  const handleCancelFactEdit = () => {
+    setEditingFactId(null);
+    setEditedFactContent('');
+  };
+
+  // Category colors for visual organization
+  const getCategoryColor = (category) => {
+    const colors = {
+      financial: 'bg-green-100 text-green-800',
+      behavioral: 'bg-blue-100 text-blue-800',
+      temporal: 'bg-purple-100 text-purple-800',
+      relational: 'bg-pink-100 text-pink-800',
+      property: 'bg-yellow-100 text-yellow-800',
+      communication: 'bg-indigo-100 text-indigo-800',
+      witness: 'bg-red-100 text-red-800',
+      general: 'bg-gray-100 text-gray-800'
+    };
+    return colors[category] || colors.general;
+  };
+
+  // Get fact categories summary
+  const getFactsSummary = () => {
+    if (!affidavitData.facts || affidavitData.facts.length === 0) return null;
+    
+    const categoryCounts = {};
+    affidavitData.facts.forEach(fact => {
+      const category = fact.category || 'general';
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
+    
+    return categoryCounts;
+  };
+
+  const factsSummary = getFactsSummary();
 
   return (
     <div className="w-80 bg-gray-50 border-l p-6 overflow-y-auto">
@@ -395,7 +530,165 @@ const ValidationSidebar = ({ affidavitData }) => {
         </div>
       </div>
       
-      {/* Required Fields */}
+      {/* Editable Fields */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Document Information</h4>
+        
+        {/* Editable Name */}
+        <div className="mb-4 p-3 bg-white rounded-lg border">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Affiant Name</label>
+            {!isEditingName && (
+              <button
+                onClick={handleEditName}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+          
+          {isEditingName ? (
+            <div>
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter full legal name"
+                autoFocus
+              />
+              <div className="flex space-x-1 mt-2">
+                <button
+                  onClick={handleSaveName}
+                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-900">
+              {affidavitData.affiantName || (
+                <span className="text-gray-400 italic">Click "Edit" to add name</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* State (read-only for now) */}
+        <div className="mb-4 p-3 bg-white rounded-lg border">
+          <label className="text-sm font-medium text-gray-700 block mb-1">State</label>
+          <div className="text-sm text-gray-900">
+            {affidavitData.state ? (
+              `${affidavitData.state} (${affidavitData.state === 'TX' ? 'Texas' : affidavitData.state === 'UT' ? 'Utah' : 'Arizona'})`
+            ) : (
+              <span className="text-gray-400 italic">Not specified</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Facts Management */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-medium">Facts & Statements</h4>
+          {factsSummary && (
+            <span className="text-xs text-gray-500">
+              {Object.values(factsSummary).reduce((a, b) => a + b, 0)} total
+            </span>
+          )}
+        </div>
+
+        {/* Facts Summary */}
+        {factsSummary && (
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(factsSummary).map(([category, count]) => (
+                <span
+                  key={category}
+                  className={`px-2 py-1 text-xs rounded-full ${getCategoryColor(category)}`}
+                >
+                  {category}: {count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Facts List */}
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {affidavitData.facts && affidavitData.facts.length > 0 ? (
+            affidavitData.facts.map((fact, index) => (
+              <div key={index} className="p-2 bg-white rounded border text-xs">
+                <div className="flex items-start justify-between mb-1">
+                  <span className={`px-1.5 py-0.5 text-xs rounded ${getCategoryColor(fact.category || 'general')}`}>
+                    {fact.category || 'general'}
+                  </span>
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleEditFact(index, fact.content)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Edit fact"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFact(index)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete fact"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                
+                {editingFactId === index ? (
+                  <div>
+                    <textarea
+                      value={editedFactContent}
+                      onChange={(e) => setEditedFactContent(e.target.value)}
+                      className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      rows="3"
+                      autoFocus
+                    />
+                    <div className="flex space-x-1 mt-1">
+                      <button
+                        onClick={() => handleSaveFact(index)}
+                        className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelFactEdit}
+                        className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-800 text-xs leading-tight">
+                    {fact.content || fact}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-400 italic text-xs">
+              No facts added yet. Start chatting to add facts automatically.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Required Fields Status */}
       <div className="mb-6">
         <h4 className="font-medium mb-3">Required Information</h4>
         <div className="space-y-2">
@@ -429,6 +722,20 @@ const ValidationSidebar = ({ affidavitData }) => {
         </div>
       </div>
       
+      {/* Coming Soon Section */}
+      <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-800 mb-2 text-sm">Coming Soon</h4>
+        <div className="text-xs text-blue-600 space-y-1">
+          <div className="flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>Fact Validation</span>
+          </div>
+          <div className="text-blue-500">
+            AI-powered relevance checking and legal adequacy validation
+          </div>
+        </div>
+      </div>
+      
       {/* Actions */}
       <div className="space-y-3">
         <button className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
@@ -438,7 +745,7 @@ const ValidationSidebar = ({ affidavitData }) => {
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           disabled={!affidavitData.affiantName || !affidavitData.state}
         >
-          Generate PDF ($9.99)
+          Generate PDF ($39.99)
         </button>
       </div>
     </div>
@@ -777,7 +1084,10 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
         {/* Validation Sidebar - On the far right */}
         <div className="w-80 bg-gray-50 border-l">
-          <ValidationSidebar affidavitData={affidavitData} />
+          <ValidationSidebar 
+            affidavitData={affidavitData} 
+            onDataUpdate={handleDataUpdate}
+          />
         </div>
       </div>
     </div>

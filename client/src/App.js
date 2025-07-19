@@ -1,4 +1,4 @@
-// client/src/App.js - Restored to original elegant design
+// client/src/App.js - Complete drop-in file with fixed home buttons and saving
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { 
@@ -7,9 +7,9 @@ import {
   LogOut, Home, GripVertical, RotateCcw, Save, CheckCircle,
   AlertTriangle, Loader, Eye, CreditCard, Star, Trophy,
   HelpCircle, Mail, User, Building, Gavel, Scale, PlusCircle,
-  Clock, Check, ExternalLink, Zap, Shield, ZoomIn, ZoomOut
+  Clock, Check, ExternalLink, Zap, Shield, ZoomIn, ZoomOut,
+  Loader2, Edit
 } from 'lucide-react';
-
 
 // Auth0 Configuration
 const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
@@ -54,15 +54,673 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Import your existing LandingPage component
-import LandingPage from './components/LandingPage';
+// Header Component with Fixed Home Button
+const Header = ({ currentView, onBackToDashboard, onSave, sessionSaved, isSaving }) => {
+  const { isAuthenticated, user, logout, loginWithRedirect, isLoading } = useAuth0();
 
-// Original Document Preview with 8.5x11 paper
+  const handleHomeClick = () => {
+    // Always go to dashboard when home is clicked, regardless of current view
+    if (onBackToDashboard) {
+      onBackToDashboard();
+    }
+  };
+
+  const handleLogin = () => {
+    loginWithRedirect({
+      appState: { returnTo: window.location.pathname }
+    });
+  };
+
+  const handleLogout = () => {
+    logout({ 
+      logoutParams: { returnTo: window.location.origin }
+    });
+  };
+
+  return (
+    <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and Title - Always clickable home button */}
+          <button
+            onClick={handleHomeClick}
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+          >
+            <Scale className="h-8 w-8 text-blue-600" />
+            <div className="text-left">
+              <h1 className="text-xl font-bold text-gray-900">Affidavit Maker</h1>
+              <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
+            </div>
+          </button>
+
+          {/* Right side actions */}
+          <div className="flex items-center space-x-4">
+            {/* Save button (only on editor view) */}
+            {currentView === 'editor' && isAuthenticated && (
+              <button
+                onClick={onSave}
+                disabled={sessionSaved || isSaving}
+                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 w-28 justify-center transition-colors"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : sessionSaved ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
+                    Saved
+                  </>
+                ) : (
+                  'Save Progress'
+                )}
+              </button>
+            )}
+
+            {/* Navigation for authenticated users */}
+            {isAuthenticated && currentView !== 'dashboard' && (
+              <button
+                onClick={onBackToDashboard}
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <Home className="h-4 w-4 mr-1" />
+                Dashboard
+              </button>
+            )}
+
+            {/* Authentication section */}
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
+            ) : isAuthenticated ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                    {user?.name || user?.email}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center px-3 py-2 text-sm text-gray-700 hover:text-red-600 transition-colors"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:block">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+// Dashboard Component with Fixed Document Actions
+const Dashboard = ({ onCreateNew, onOpenDocument }) => {
+  const { getAccessTokenSilently, logout, user, isLoading: authLoading } = useAuth0();
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [renamingDocId, setRenamingDocId] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [isSubmittingRename, setIsSubmittingRename] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadDocuments();
+    }
+  }, [authLoading]);
+
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = await getAccessTokenSilently({
+        audience: AUTH0_AUDIENCE,
+        scope: 'openid profile email'
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/documents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setDocuments(result.documents || []);
+      } else {
+        throw new Error('Failed to load documents');
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      setError('Failed to load your documents. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (documentId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      const token = await getAccessTokenSilently({
+        audience: AUTH0_AUDIENCE,
+        scope: 'openid profile email'
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setDocuments(documents.filter(doc => doc.id !== documentId));
+      } else {
+        throw new Error('Failed to delete document');
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document. Please try again.');
+    }
+  };
+
+  const startRename = (doc) => {
+    setRenamingDocId(doc.id);
+    setNewName(doc.affiantName || '');
+  };
+
+  const cancelRename = () => {
+    setRenamingDocId(null);
+    setNewName('');
+    setIsSubmittingRename(false);
+  };
+
+  const submitRename = async (documentId) => {
+    if (!newName.trim()) {
+      cancelRename();
+      return;
+    }
+
+    setIsSubmittingRename(true);
+
+    try {
+      const token = await getAccessTokenSilently({
+        audience: AUTH0_AUDIENCE,
+        scope: 'openid profile email'
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/rename`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newName: newName.trim() })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setDocuments(documents.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, affiantName: newName.trim() }
+            : doc
+        ));
+        cancelRename();
+      } else {
+        throw new Error('Failed to rename document');
+      }
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      alert('Failed to rename document. Please try again.');
+    } finally {
+      setIsSubmittingRename(false);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === 'landing') {
+    return <LandingPage onGetStarted={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'dashboard') {
+    return (
+      <div>
+        <Header currentView="dashboard" onBackToDashboard={handleBackToDashboard} />
+        <Dashboard 
+          onCreateNew={handleCreateNew}
+          onOpenDocument={handleOpenDocument}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === 'editor') {
+    return (
+      <DocumentEditor 
+        existingDocument={selectedDocument}
+        onBack={handleBackToDashboard}
+      />
+    );
+  }
+
+  return null;
+};
+
+// Main App with Auth0 Provider
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <Auth0Provider
+        domain={AUTH0_DOMAIN}
+        clientId={AUTH0_CLIENT_ID}
+        authorizationParams={{
+          redirect_uri: window.location.origin,
+          audience: AUTH0_AUDIENCE,
+          scope: 'openid profile email'
+        }}
+        cacheLocation="localstorage"
+        useRefreshTokens={true}
+      >
+        <AppContent />
+      </Auth0Provider>
+    </ErrorBoundary>
+  );
+};
+
+export default App;-600" />
+          <p className="text-gray-600">Loading your documents...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+            <p className="text-lg font-semibold">Error</p>
+          </div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={loadDocuments}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.name?.split(' ')[0] || 'User'}!
+          </h1>
+          <p className="text-gray-600">
+            Create professional affidavits with AI assistance
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <button
+            onClick={onCreateNew}
+            className="bg-white rounded-lg shadow-sm border border-dashed border-gray-300 p-6 hover:border-blue-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <PlusCircle className="h-12 w-12 text-blue-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Create New Affidavit</h3>
+            <p className="text-sm text-gray-600">
+              Start fresh with our AI-powered document builder
+            </p>
+          </button>
+          
+          <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
+            <div className="flex items-center justify-between mb-4">
+              <Zap className="h-8 w-8 text-gray-400" />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+            </div>
+            <h3 className="font-semibold text-gray-600 mb-2">Quick Templates</h3>
+            <p className="text-sm text-gray-500">
+              Pre-built templates for common affidavit matters to save even more time.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
+            <div className="flex items-center justify-between mb-4">
+              <FileText className="h-8 w-8 text-gray-400" />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+            </div>
+            <h3 className="font-semibold text-gray-600 mb-2">Smart Forms</h3>
+            <p className="text-sm text-gray-500">
+              Automatically fill information from previous documents and track cases.
+            </p>
+          </div>
+        </div>
+
+        {/* Document List */}
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Documents</h2>
+        <div className="bg-white shadow-sm border rounded-lg">
+          {documents.length === 0 ? (
+            <div className="p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
+              <p className="text-gray-600 mb-4">Get started by creating your first affidavit</p>
+              <button
+                onClick={onCreateNew}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Create Your First Affidavit
+              </button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {documents.map((doc) => (
+                <li key={doc.id} className="p-4 sm:p-6">
+                  <div className="flex items-center justify-between space-x-4">
+                    <div className="flex-grow min-w-0">
+                      {renamingDocId === doc.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && submitRename(doc.id)}
+                            className="block w-full max-w-xs px-3 py-1.5 text-base font-semibold text-gray-900 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            autoFocus
+                            disabled={isSubmittingRename}
+                          />
+                          <button 
+                            onClick={() => submitRename(doc.id)} 
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-full disabled:opacity-50" 
+                            disabled={isSubmittingRename}
+                          >
+                            {isSubmittingRename ? <Loader2 className="h-5 w-5 animate-spin"/> : <Check className="h-5 w-5"/>}
+                          </button>
+                          <button 
+                            onClick={cancelRename} 
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-full" 
+                            disabled={isSubmittingRename}
+                          >
+                            <X className="h-5 w-5"/>
+                          </button>
+                        </div>
+                      ) : (
+                        <h4 
+                          className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline" 
+                          title="Click to edit" 
+                          onClick={() => startRename(doc)}
+                        >
+                          {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
+                        </h4>
+                      )}
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                        <span>State: <span className='font-medium'>{doc.state || 'N/A'}</span></span>
+                        <span>Status: <span className='font-medium'>{doc.status || 'Draft'}</span></span>
+                        <span>Updated: {new Date(doc.updated_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+                      <button 
+                        onClick={() => startRename(doc)} 
+                        className="p-2 text-gray-500 hover:text-blue-600" 
+                        title="Rename"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(doc.id)} 
+                        className="p-2 text-gray-500 hover:text-red-600" 
+                        title="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => onOpenDocument(doc)}
+                        className="px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
+                      >
+                        {doc.status === 'completed' ? 'View' : 'Continue'}
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Chat Interface Component
+const ChatInterface = ({ affidavitData, onDataUpdate }) => {
+  const { getAccessTokenSilently } = useAuth0();
+  const [messages, setMessages] = useState([
+    {
+      type: 'bot',
+      content: "Hello! I'm here to help you create your affidavit. To get started, could you please tell me your full name and which state this affidavit is for?",
+      timestamp: new Date()
+    }
+  ]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, streamingMessage]);
+
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || isLoading) return;
+
+    const userMessage = {
+      type: 'user',
+      content: currentMessage.trim(),
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setCurrentMessage('');
+    setIsLoading(true);
+    setStreamingMessage('');
+
+    try {
+      const token = await getAccessTokenSilently({
+        audience: AUTH0_AUDIENCE,
+        scope: 'openid profile email'
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          affidavitData: affidavitData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let botResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'token') {
+                botResponse += data.content;
+                setStreamingMessage(botResponse);
+              } else if (data.type === 'data' && data.affidavitData) {
+                onDataUpdate(data.affidavitData);
+              } else if (data.type === 'done') {
+                setMessages(prev => [...prev, {
+                  type: 'bot',
+                  content: botResponse,
+                  timestamp: new Date()
+                }]);
+                setStreamingMessage('');
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              console.error('Error parsing streaming data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      }]);
+      setStreamingMessage('');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[80%] p-3 rounded-lg ${
+                message.type === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-900'
+              }`}
+            >
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-xs opacity-70 mt-1">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        ))}
+        
+        {/* Streaming message */}
+        {streamingMessage && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] p-3 rounded-lg bg-gray-100 text-gray-900">
+              <p className="text-sm whitespace-pre-wrap">{streamingMessage}</p>
+              <div className="flex items-center mt-1">
+                <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
+                <span className="text-xs text-gray-500 ml-1">AI is typing...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t p-4">
+        <div className="flex space-x-2">
+          <textarea
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message here..."
+            className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows="2"
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!currentMessage.trim() || isLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MessageCircle className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Document Preview Component
 const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
   const [zoom, setZoom] = useState(85);
   const [containerHeight, setContainerHeight] = useState(0);
   const containerRef = useRef(null);
-  const contentRef = useRef(null);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -84,11 +742,30 @@ const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
 
   if (isLoading) {
     return (
-      <div className="bg-white flex flex-col" style={{ height: containerHeight || '100vh' }}>
+      <div 
+        className="bg-white flex flex-col"
+        style={{ height: containerHeight || '100vh' }}
+      >
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
             <p className="text-gray-600">Generating preview...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!preview) {
+    return (
+      <div 
+        className="bg-white flex flex-col"
+        style={{ height: containerHeight || '100vh' }}
+      >
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">Start chatting to see your document preview</p>
           </div>
         </div>
       </div>
@@ -107,317 +784,148 @@ const DocumentPreview = ({ affidavitData, preview, isLoading }) => {
           <button onClick={handleZoomOut} className="p-1 hover:bg-gray-200 rounded">
             <ZoomOut className="h-4 w-4" />
           </button>
-          <span className="text-sm font-mono min-w-[3rem] text-center">{zoom}%</span>
+          <span className="text-sm font-medium min-w-[3rem] text-center">{zoom}%</span>
           <button onClick={handleZoomIn} className="p-1 hover:bg-gray-200 rounded">
             <ZoomIn className="h-4 w-4" />
           </button>
-          <button onClick={handleResetZoom} className="p-1 hover:bg-gray-200 rounded" title="Reset zoom">
+          <button onClick={handleResetZoom} className="p-1 hover:bg-gray-200 rounded">
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* 8.5x11 Document */}
-      <div className="flex-1 overflow-auto bg-gray-100 p-2" style={{ minHeight: 0 }}>
-        <div className="w-full flex justify-center">
-          <div 
-            ref={contentRef}
-            className="bg-white shadow-lg"
-            style={{
-              width: `${zoom * 8.5}px`, // 8.5 inches
-              minHeight: `${zoom * 11}px`, // 11 inches
-              transform: `scale(${zoom / 100})`,
-              transformOrigin: 'top center',
-              marginBottom: '2rem'
-            }}
-          >
+      {/* Document content */}
+      <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div 
+          className="mx-auto bg-white shadow-lg"
+          style={{
+            width: `${zoom * 8.5}px`,
+            minHeight: `${zoom * 11}px`,
+            padding: `${zoom * 0.6}px`,
+            fontFamily: 'Times, serif',
+            fontSize: `${zoom * 0.12}px`,
+            lineHeight: 1.5
+          }}
+        >
+          {/* Header */}
+          {preview.sections?.header && (
             <div style={{ 
-              padding: `${zoom * 0.75}px`, // 0.75 inch margins
-              fontFamily: 'Times New Roman, serif',
-              fontSize: `${zoom * 0.12}px`, // 12pt
-              lineHeight: 1.5,
-              color: '#000'
+              textAlign: 'center', 
+              marginBottom: `${zoom * 0.3}px`,
+              fontWeight: 'bold',
+              fontSize: `${zoom * 0.16}px`
             }}>
-              
-              {/* Header */}
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                fontSize: `${zoom * 0.16}px`,
-                marginBottom: `${zoom * 0.2}px`
-              }}>
-                AFFIDAVIT
-              </div>
-              
-              {/* Venue */}
-              <div style={{ 
-                textAlign: 'center', 
-                fontWeight: 'bold',
-                fontSize: `${zoom * 0.14}px`,
-                marginBottom: `${zoom * 0.3}px`
-              }}>
-                {affidavitData.state ? `State of ${affidavitData.state === 'TX' ? 'Texas' : affidavitData.state === 'UT' ? 'Utah' : affidavitData.state === 'AZ' ? 'Arizona' : affidavitData.state}` : 'State of [STATE]'}
-                <br />
-                {affidavitData.county ? `County of ${affidavitData.county}` : 'County of [COUNTY]'}
-              </div>
-              
-              {/* Introduction */}
-              <div style={{ marginBottom: `${zoom * 0.3}px` }}>
-                I, <strong>{affidavitData.affiantName || '[AFFIANT NAME]'}</strong>, being of legal age and competent to testify, do hereby swear and affirm under penalty of perjury that the following statements are true and correct to the best of my knowledge:
-              </div>
-              
-              {/* Facts */}
-              <div style={{ marginBottom: `${zoom * 0.3}px` }}>
-                {affidavitData.facts && affidavitData.facts.length > 0 ? (
-                  <ol style={{ paddingLeft: `${zoom * 0.3}px` }}>
-                    {affidavitData.facts.map((fact, index) => (
-                      <li key={index} style={{ marginBottom: `${zoom * 0.15}px` }}>
-                        {typeof fact === 'object' ? fact.content : fact}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <div style={{ fontStyle: 'italic', color: '#666' }}>
-                    [Facts will be listed here as you provide them in the chat]
-                  </div>
-                )}
-              </div>
-              
-              {/* Signature Block */}
-              <div style={{ marginTop: `${zoom * 0.4}px` }}>
-                <div>I declare under penalty of perjury that the foregoing is true and correct.</div>
-                <div style={{ marginTop: `${zoom * 0.3}px` }}>
-                  <div style={{ 
-                    borderBottom: '1px solid #000', 
-                    width: `${zoom * 3}px`, 
-                    marginBottom: `${zoom * 0.1}px`
-                  }}></div>
-                  <div>{affidavitData.affiantName || '[AFFIANT NAME]'}</div>
-                  <div style={{ marginTop: `${zoom * 0.2}px` }}>
-                    Date: _______________
-                  </div>
+              {preview.sections.header.title}
+              <br />
+              <span style={{ fontSize: `${zoom * 0.12}px`, fontWeight: 'normal' }}>
+                {preview.sections.header.content}
+              </span>
+            </div>
+          )}
+
+          {/* Title */}
+          {preview.sections?.title && (
+            <div style={{ 
+              textAlign: 'center', 
+              fontWeight: 'bold',
+              fontSize: `${zoom * 0.14}px`,
+              marginBottom: `${zoom * 0.3}px`
+            }}>
+              {preview.sections.title}
+            </div>
+          )}
+
+          {/* Introduction */}
+          {preview.sections?.introduction && (
+            <div style={{ 
+              textAlign: 'justify', 
+              textIndent: `${zoom * 0.4}px`,
+              marginBottom: `${zoom * 0.2}px`
+            }}>
+              {preview.sections.introduction}
+            </div>
+          )}
+
+          {/* Facts */}
+          {preview.sections?.facts && preview.sections.facts.length > 0 && (
+            <div style={{ marginBottom: `${zoom * 0.2}px` }}>
+              {preview.sections.facts.map((fact, index) => (
+                <div key={index} style={{ 
+                  marginBottom: `${zoom * 0.1}px`,
+                  display: 'flex',
+                  textAlign: 'justify'
+                }}>
+                  <span style={{ 
+                    minWidth: `${zoom * 0.25}px`,
+                    fontWeight: 'normal'
+                  }}>
+                    {fact.number}.
+                  </span>
+                  <span style={{ flex: 1 }}>{fact.content}</span>
                 </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Conclusion */}
+          {preview.sections?.conclusion && (
+            <div style={{ 
+              textAlign: 'justify', 
+              textIndent: `${zoom * 0.4}px`, 
+              marginBottom: `${zoom * 0.2}px`
+            }}>
+              {preview.sections.conclusion}
+            </div>
+          )}
+          
+          {/* Perjury Statement */}
+          {preview.sections?.perjuryStatement && (
+            <div style={{ 
+              textAlign: 'justify', 
+              textIndent: `${zoom * 0.4}px`, 
+              marginBottom: `${zoom * 0.3}px`,
+              fontWeight: 'bold'
+            }}>
+              {preview.sections.perjuryStatement}
+            </div>
+          )}
+          
+          {/* Signature Block */}
+          {preview.sections?.signature && (
+            <div style={{ 
+              marginTop: `${zoom * 0.4}px`,
+              marginBottom: `${zoom * 0.3}px`
+            }}>
+              <div style={{ marginBottom: `${zoom * 0.2}px` }}>
+                _____________________________
               </div>
-              
-              {/* Notary Block */}
-              <div style={{ 
-                border: '1px solid #000', 
-                padding: `${zoom * 0.2}px`, 
-                marginTop: `${zoom * 0.4}px`,
-                backgroundColor: '#f9f9f9',
-                fontSize: '0.9em'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: `${zoom * 0.1}px` }}>
-                  NOTARIZATION
-                </div>
-                <div>
-                  Subscribed and sworn to before me this _____ day of _________, 20___.
-                </div>
-                <div style={{ marginTop: `${zoom * 0.2}px` }}>
-                  <div style={{ 
-                    borderBottom: '1px solid #000', 
-                    width: `${zoom * 2.5}px`, 
-                    marginBottom: `${zoom * 0.1}px`
-                  }}></div>
-                  <div>Notary Public</div>
-                  <div>My commission expires: _______________</div>
-                </div>
+              <div style={{ fontSize: `${zoom * 0.1}px` }}>
+                {preview.sections.signature.affiantName}
+              </div>
+              <div style={{ fontSize: `${zoom * 0.1}px` }}>
+                Date: {preview.sections.signature.date}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Footer */}
-      <div className="px-4 py-2 border-t bg-gray-50 text-xs text-gray-500 flex-shrink-0">
-        <div className="flex justify-between items-center">
-          <span>Discover.Legal • Professional Affidavit Creation</span>
-          <span>{affidavitData.state || 'No state'} • {zoom}% • Page 1</span>
-        </div>
-      </div>
-    </div>
-  );
-};
+          )}
 
-// Simple Chat Interface with Streaming
-const ChatInterface = ({ affidavitData, onDataUpdate }) => {
-  const { getAccessTokenSilently } = useAuth0();
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
-    }
-  ]);
-  
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessage, setStreamingMessage] = useState('');
-  const messagesEndRef = useRef(null);
-
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingMessage]);
-
-  const handleSendMessage = async () => {
-    if (!currentMessage.trim() || isLoading) return;
-
-    const userMessage = {
-      id: messages.length + 1,
-      type: 'user',
-      content: currentMessage
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    const messageToSend = currentMessage;
-    setCurrentMessage('');
-    setIsLoading(true);
-    setStreamingMessage('');
-
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          message: messageToSend,
-          conversationHistory: messages,
-          currentData: affidavitData,
-          documentId: affidavitData.documentId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedResponse = '';
-      let extractedData = null;
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.type === 'token') {
-                accumulatedResponse += data.content;
-                setStreamingMessage(accumulatedResponse);
-              } else if (data.type === 'data') {
-                extractedData = data.affidavitData;
-              } else if (data.type === 'done') {
-                // Streaming complete
-                const botMessage = {
-                  id: messages.length + 2,
-                  type: 'bot',
-                  content: accumulatedResponse
-                };
-                
-                setMessages(prev => [...prev, botMessage]);
-                setStreamingMessage('');
-                
-                // Update affidavit data
-                if (extractedData) {
-                  onDataUpdate(extractedData);
-                }
-              }
-            } catch (e) {
-              console.error('Error parsing streaming data:', e);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setStreamingMessage('');
-      const errorMessage = {
-        id: messages.length + 2,
-        type: 'bot',
-        content: "I'm having trouble connecting right now. Please try again."
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-              message.type === 'user'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900'
-            }`}>
-              {message.content}
+          {/* Notary */}
+          {preview.sections?.notary && (
+            <div style={{ 
+              marginTop: `${zoom * 0.4}px`,
+              fontSize: `${zoom * 0.1}px`,
+              fontStyle: 'italic'
+            }}>
+              {preview.sections.notary.content}
             </div>
-          </div>
-        ))}
-        
-        {/* Streaming message */}
-        {streamingMessage && (
-          <div className="flex justify-start">
-            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
-              {streamingMessage}
-              <span className="animate-pulse">|</span>
-            </div>
-          </div>
-        )}
-        
-        {isLoading && !streamingMessage && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
-              <Loader className="h-4 w-4 animate-spin" />
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      <div className="border-t p-4">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Type your message..."
-            className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !currentMessage.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            Send
-          </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Enhanced Validation Sidebar with Fact Management
-const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
+// Sidebar Component
+const DocumentSidebar = ({ affidavitData, onDataUpdate }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editingFactId, setEditingFactId] = useState(null);
@@ -482,36 +990,6 @@ const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
     setEditedFactContent('');
   };
 
-  // Category colors for visual organization
-  const getCategoryColor = (category) => {
-    const colors = {
-      financial: 'bg-green-100 text-green-800',
-      behavioral: 'bg-blue-100 text-blue-800',
-      temporal: 'bg-purple-100 text-purple-800',
-      relational: 'bg-pink-100 text-pink-800',
-      property: 'bg-yellow-100 text-yellow-800',
-      communication: 'bg-indigo-100 text-indigo-800',
-      witness: 'bg-red-100 text-red-800',
-      general: 'bg-gray-100 text-gray-800'
-    };
-    return colors[category] || colors.general;
-  };
-
-  // Get fact categories summary
-  const getFactsSummary = () => {
-    if (!affidavitData.facts || affidavitData.facts.length === 0) return null;
-    
-    const categoryCounts = {};
-    affidavitData.facts.forEach(fact => {
-      const category = fact.category || 'general';
-      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-    });
-    
-    return categoryCounts;
-  };
-
-  const factsSummary = getFactsSummary();
-
   return (
     <div className="w-80 bg-gray-50 border-l p-6 overflow-y-auto">
       <h3 className="text-lg font-semibold mb-4">Document Status</h3>
@@ -549,148 +1027,117 @@ const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
           </div>
           
           {isEditingName ? (
-            <div>
+            <div className="space-y-2">
               <input
                 type="text"
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
-                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Enter full legal name"
+                className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter full name"
                 autoFocus
               />
-              <div className="flex space-x-1 mt-2">
+              <div className="flex space-x-2">
                 <button
                   onClick={handleSaveName}
-                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   Save
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                  className="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-gray-900">
-              {affidavitData.affiantName || (
-                <span className="text-gray-400 italic">Click "Edit" to add name</span>
-              )}
-            </div>
+            <p className="text-sm text-gray-900">
+              {affidavitData.affiantName || 'Not provided'}
+            </p>
           )}
         </div>
 
-        {/* State (read-only for now) */}
+        {/* State */}
         <div className="mb-4 p-3 bg-white rounded-lg border">
           <label className="text-sm font-medium text-gray-700 block mb-1">State</label>
-          <div className="text-sm text-gray-900">
-            {affidavitData.state ? (
-              `${affidavitData.state} (${affidavitData.state === 'TX' ? 'Texas' : affidavitData.state === 'UT' ? 'Utah' : 'Arizona'})`
-            ) : (
-              <span className="text-gray-400 italic">Not specified</span>
-            )}
-          </div>
+          <p className="text-sm text-gray-900">
+            {affidavitData.state || 'Not selected'}
+          </p>
         </div>
       </div>
 
-      {/* Facts Management */}
+      {/* Facts Section */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-medium">Facts & Statements</h4>
-          {factsSummary && (
-            <span className="text-xs text-gray-500">
-              {Object.values(factsSummary).reduce((a, b) => a + b, 0)} total
-            </span>
-          )}
-        </div>
-
-        {/* Facts Summary */}
-        {factsSummary && (
-          <div className="mb-3">
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(factsSummary).map(([category, count]) => (
-                <span
-                  key={category}
-                  className={`px-2 py-1 text-xs rounded-full ${getCategoryColor(category)}`}
-                >
-                  {category}: {count}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Facts List */}
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {affidavitData.facts && affidavitData.facts.length > 0 ? (
-            affidavitData.facts.map((fact, index) => (
-              <div key={index} className="p-2 bg-white rounded border text-xs">
-                <div className="flex items-start justify-between mb-1">
-                  <span className={`px-1.5 py-0.5 text-xs rounded ${getCategoryColor(fact.category || 'general')}`}>
-                    {fact.category || 'general'}
-                  </span>
+        <h4 className="font-medium mb-3">Facts & Statements</h4>
+        {affidavitData.facts && affidavitData.facts.length > 0 ? (
+          <div className="space-y-3">
+            {affidavitData.facts.map((fact, index) => (
+              <div key={index} className="p-3 bg-white rounded-lg border">
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-500">Fact {index + 1}</span>
                   <div className="flex space-x-1">
-                    <button
-                      onClick={() => handleEditFact(index, fact.content)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Edit fact"
-                    >
-                      <Edit3 className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFact(index)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete fact"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    {editingFactId !== index && (
+                      <>
+                        <button
+                          onClick={() => handleEditFact(index, fact.content || fact)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFact(index)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
                 {editingFactId === index ? (
-                  <div>
+                  <div className="space-y-2">
                     <textarea
                       value={editedFactContent}
                       onChange={(e) => setEditedFactContent(e.target.value)}
-                      className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                       rows="3"
                       autoFocus
                     />
-                    <div className="flex space-x-1 mt-1">
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => handleSaveFact(index)}
-                        className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                        className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                       >
                         Save
                       </button>
                       <button
                         onClick={handleCancelFactEdit}
-                        className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                        className="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                       >
                         Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-gray-800 text-xs leading-tight">
+                  <p className="text-sm text-gray-900">
                     {fact.content || fact}
-                  </div>
+                  </p>
                 )}
               </div>
-            ))
-          ) : (
-            <div className="text-center py-4 text-gray-400 italic text-xs">
-              No facts added yet. Start chatting to add facts automatically.
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 italic">
+            No facts added yet. Start chatting to add facts to your affidavit.
+          </p>
+        )}
       </div>
-      
-      {/* Required Fields Status */}
+
+      {/* Quick Status */}
       <div className="mb-6">
-        <h4 className="font-medium mb-3">Required Information</h4>
+        <h4 className="font-medium mb-3">Quick Status</h4>
         <div className="space-y-2">
           <div className="flex items-center">
             {affidavitData.affiantName ? 
@@ -698,7 +1145,7 @@ const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
               <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
             }
             <span className={affidavitData.affiantName ? 'text-green-700' : 'text-gray-600'}>
-              Affiant Name
+              Name
             </span>
           </div>
           <div className="flex items-center">
@@ -721,236 +1168,37 @@ const ValidationSidebar = ({ affidavitData, onDataUpdate }) => {
           </div>
         </div>
       </div>
-      
-      {/* Coming Soon Section */}
-      <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-medium text-blue-800 mb-2 text-sm">Coming Soon</h4>
-        <div className="text-xs text-blue-600 space-y-1">
-          <div className="flex items-center">
-            <Clock className="h-3 w-3 mr-1" />
-            <span>Fact Validation</span>
-          </div>
-          <div className="text-blue-500">
-            AI-powered relevance checking and legal adequacy validation
-          </div>
-        </div>
-      </div>
-      
-      {/* Actions */}
-      <div className="space-y-3">
-        <button className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-          Save Draft
-        </button>
-        <button 
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          disabled={!affidavitData.affiantName || !affidavitData.state}
-        >
-          Generate PDF ($39.99)
-        </button>
-      </div>
     </div>
   );
 };
 
-// Dashboard Component
-const Dashboard = ({ onCreateNew, onOpenDocument }) => {
-  const { getAccessTokenSilently, logout, user, isLoading: authLoading } = useAuth0();
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!authLoading) {
-      loadDocuments();
-    }
-  }, [authLoading]);
-
-  const loadDocuments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE_URL}/api/documents`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setDocuments(result.documents || []);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to load documents');
-      }
-    } catch (err) {
-      setError('Failed to load documents');
-      console.error('Load documents error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-4" />
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Gavel className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Discover.Legal</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome, {user?.name}</span>
-              <button
-                onClick={() => logout({ returnTo: window.location.origin })}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-          <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
-        </div>
-
-        {/* Create New Button */}
-        <div className="mb-8">
-          <button 
-            onClick={onCreateNew}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <PlusCircle className="h-5 w-5 mr-2" />
-            Create New Affidavit
-          </button>
-        </div>
-
-        {/* Documents List */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Your Documents</h3>
-          </div>
-          
-          {error && (
-            <div className="px-6 py-4 bg-red-50 border-b">
-              <p className="text-red-600">{error}</p>
-              <button 
-                onClick={loadDocuments}
-                className="mt-2 text-red-600 hover:text-red-800 underline"
-              >
-                Try Again
-              </button>
-            </div>
-          )}
-
-          <div className="p-6">
-            {documents.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">No documents yet</p>
-                <button 
-                  onClick={onCreateNew}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create Your First Affidavit
-                </button>
-              </div>
-            ) : (
-              <ul className="space-y-4">
-                {documents.map((doc) => (
-                  <li key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-blue-700">
-                          {doc.content?.affiantName ? `${doc.content.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                          <span>State: <span className="font-medium">{doc.content?.state || 'N/A'}</span></span>
-                          <span>Status: <span className="font-medium">{doc.status}</span></span>
-                          <span>Updated: {new Date(doc.updated_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => onOpenDocument(doc)}
-                          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                        >
-                          {doc.status === 'completed' ? 'View' : 'Continue'}
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-// Resizer Component
-const Resizer = ({ onResize, isResizing, setIsResizing }) => {
-  const [startX, setStartX] = useState(0);
-  const [startWidth, setStartWidth] = useState(0);
-
-  const handleMouseDown = useCallback((e) => {
+// Resize Handle Component
+const ResizeHandle = ({ onResize, isResizing }) => {
+  const handleMouseDown = (e) => {
     e.preventDefault();
-    setIsResizing(true);
-    setStartX(e.clientX);
-    setStartWidth(42); // Starting width percentage
-  }, [setIsResizing]);
+    const startX = e.clientX;
+    const startWidth = parseInt(document.defaultView.getComputedStyle(e.target.parentElement.previousElementSibling).width, 10);
 
-  useEffect(() => {
     const handleMouseMove = (e) => {
-      if (!isResizing) return;
-      
-      const deltaX = e.clientX - startX;
-      const containerWidth = window.innerWidth;
-      const deltaPercent = (deltaX / containerWidth) * 100;
-      const newWidth = Math.max(25, Math.min(65, startWidth + deltaPercent));
-      
-      onResize(newWidth);
+      const newWidth = ((startX - e.clientX + startWidth) / window.innerWidth) * 100;
+      const clampedWidth = Math.max(25, Math.min(75, newWidth));
+      onResize(clampedWidth);
     };
 
     const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      onResize(null); // Signal resize end
     };
-  }, [isResizing, startX, startWidth, onResize]);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    onResize(true); // Signal resize start
+  };
 
   return (
     <div
-      className={`group w-2 bg-gray-200 hover:bg-blue-200 cursor-col-resize transition-colors ${
+      className={`w-2 bg-gray-200 hover:bg-blue-300 cursor-col-resize flex items-center justify-center group ${
         isResizing ? 'bg-blue-200' : ''
       }`}
       onMouseDown={handleMouseDown}
@@ -970,6 +1218,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const { getAccessTokenSilently } = useAuth0();
   const [chatWidth, setChatWidth] = useState(42);
   const [isResizing, setIsResizing] = useState(false);
+  const [sessionSaved, setSessionSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Document state that updates in real-time
   const [affidavitData, setAffidavitData] = useState(() => {
@@ -996,7 +1246,15 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
   // Update preview when affidavit data changes
   useEffect(() => {
-    if (affidavitData.state || affidavitData.affiantName || (affidavitData.facts && affidavitData.facts.length > 0)) {
+    const hasBasicData = affidavitData.state || affidavitData.affiantName;
+    const hasFacts = affidavitData.facts && affidavitData.facts.length > 0;
+    
+    if (hasBasicData || hasFacts) {
+      console.log('Triggering preview generation due to data change:', {
+        state: affidavitData.state,
+        name: affidavitData.affiantName,
+        factsCount: affidavitData.facts?.length || 0
+      });
       generatePreview();
     }
   }, [affidavitData]);
@@ -1004,6 +1262,8 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   const generatePreview = async () => {
     setIsPreviewLoading(true);
     try {
+      console.log('Generating preview with data:', affidavitData);
+      
       const response = await fetch(`${API_BASE_URL}/api/preview`, {
         method: 'POST',
         headers: {
@@ -1014,10 +1274,22 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 
       if (response.ok) {
         const result = await response.json();
-        setPreview(result.preview);
+        console.log('Preview result:', result);
+        
+        if (result.success && result.preview) {
+          setPreview(result.preview);
+          console.log('Preview updated successfully');
+        } else {
+          console.error('Preview generation failed:', result.error);
+          setPreview(null);
+        }
+      } else {
+        console.error('Preview request failed:', response.status, response.statusText);
+        setPreview(null);
       }
     } catch (error) {
       console.error('Preview error:', error);
+      setPreview(null);
     } finally {
       setIsPreviewLoading(false);
     }
@@ -1026,68 +1298,162 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
   // Handle real-time data updates from chat
   const handleDataUpdate = (newData) => {
     setAffidavitData(prev => ({ ...prev, ...newData }));
+    setSessionSaved(false); // Mark as unsaved when data changes
+  };
+
+  // Save function
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      const token = await getAccessTokenSilently({
+        audience: AUTH0_AUDIENCE,
+        scope: 'openid profile email'
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/save-draft`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          affidavitData: affidavitData,
+          documentId: affidavitData.documentId
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setSessionSaved(true);
+          // Update document ID if it's a new document
+          if (!affidavitData.documentId && result.documentId) {
+            setAffidavitData(prev => ({ ...prev, documentId: result.documentId }));
+          }
+          console.log('Document saved successfully');
+        }
+      } else {
+        throw new Error('Failed to save document');
+      }
+    } catch (error) {
+      console.error('Error saving document:', error);
+      alert('Failed to save document. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle resize
+  const handleResize = (value) => {
+    if (value === true) {
+      setIsResizing(true);
+    } else if (value === null) {
+      setIsResizing(false);
+    } else {
+      setChatWidth(value);
+    }
   };
 
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              onClick={onBack}
-              className="mr-4 p-2 text-gray-500 hover:text-gray-700"
-            >
-              ← Back
-            </button>
-            <div className="flex items-center">
-              <Gavel className="h-6 w-6 text-blue-600 mr-2" />
-              <h1 className="text-xl font-semibold">
-                {existingDocument ? 'Edit Affidavit' : 'Create New Affidavit'}
-              </h1>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header 
+        currentView="editor"
+        onBackToDashboard={onBack}
+        onSave={handleSave}
+        sessionSaved={sessionSaved}
+        isSaving={isSaving}
+      />
 
-      {/* Main Content - Chat | Preview | Validation */}
-      <div className="flex-1 flex min-h-0">
-        {/* Chat Panel */}
-        <div 
-          className="bg-white border-r flex flex-col"
-          style={{ width: `${chatWidth}%` }}
-        >
-          <ChatInterface
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Chat Interface */}
+        <div style={{ width: `${chatWidth}%` }}>
+          <ChatInterface 
             affidavitData={affidavitData}
             onDataUpdate={handleDataUpdate}
           />
         </div>
 
-        {/* Resizer */}
-        <Resizer
-          onResize={setChatWidth}
-          isResizing={isResizing}
-          setIsResizing={setIsResizing}
-        />
+        {/* Resize Handle */}
+        <ResizeHandle onResize={handleResize} isResizing={isResizing} />
 
-        {/* Preview Panel */}
-        <div 
-          className="bg-gray-50 flex flex-col min-h-0"
-          style={{ width: `${100 - chatWidth - 20}%` }} // Reserve space for validation
-        >
-          <DocumentPreview
+        {/* Preview */}
+        <div style={{ width: `${100 - chatWidth - 20}%` }}>
+          <DocumentPreview 
             affidavitData={affidavitData}
             preview={preview}
             isLoading={isPreviewLoading}
           />
         </div>
 
-        {/* Validation Sidebar - On the far right */}
-        <div className="w-80 bg-gray-50 border-l">
-          <ValidationSidebar 
-            affidavitData={affidavitData} 
-            onDataUpdate={handleDataUpdate}
-          />
+        {/* Sidebar */}
+        <DocumentSidebar 
+          affidavitData={affidavitData}
+          onDataUpdate={handleDataUpdate}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Landing Page Component (Import your existing one)
+const LandingPage = ({ onGetStarted }) => {
+  const { loginWithRedirect, isAuthenticated } = useAuth0();
+
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      onGetStarted();
+    } else {
+      loginWithRedirect({
+        appState: { returnTo: '/dashboard' }
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Header currentView="landing" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-6">
+            Create Professional Affidavits with AI
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Generate legally compliant affidavits for Texas, Utah, and Arizona using our AI-powered platform. 
+            Simply chat with our assistant to build your document.
+          </p>
+          
+          <button
+            onClick={handleGetStarted}
+            className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Get Started
+          </button>
+        </div>
+
+        {/* Feature Section */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center">
+            <MessageCircle className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">AI-Powered Chat</h3>
+            <p className="text-gray-600">Simply describe your situation and our AI will guide you through creating your affidavit</p>
+          </div>
+          
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Legally Compliant</h3>
+            <p className="text-gray-600">Generated documents meet state-specific legal requirements for Texas, Utah, and Arizona</p>
+          </div>
+          
+          <div className="text-center">
+            <Zap className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Fast & Easy</h3>
+            <p className="text-gray-600">Create professional affidavits in minutes, not hours</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1095,13 +1461,16 @@ const DocumentEditor = ({ existingDocument = null, onBack }) => {
 };
 
 // Main App Component
-const App = () => {
+const AppContent = () => {
+  const { isLoading, isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState('landing');
   const [selectedDocument, setSelectedDocument] = useState(null);
 
-  const handleGetStarted = () => {
-    setCurrentView('dashboard');
-  };
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      setCurrentView('dashboard');
+    }
+  }, [isLoading, isAuthenticated]);
 
   const handleCreateNew = () => {
     setSelectedDocument(null);
@@ -1114,49 +1483,12 @@ const App = () => {
   };
 
   const handleBackToDashboard = () => {
-    setCurrentView('dashboard');
     setSelectedDocument(null);
+    setCurrentView('dashboard');
   };
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'landing':
-        return <LandingPage onGetStarted={handleGetStarted} />;
-      case 'dashboard':
-        return (
-          <Dashboard
-            onCreateNew={handleCreateNew}
-            onOpenDocument={handleOpenDocument}
-          />
-        );
-      case 'editor':
-        return (
-          <DocumentEditor
-            existingDocument={selectedDocument}
-            onBack={handleBackToDashboard}
-          />
-        );
-      default:
-        return <LandingPage onGetStarted={handleGetStarted} />;
-    }
-  };
-
-  return (
-    <ErrorBoundary>
-      <Auth0Provider
-        domain={AUTH0_DOMAIN}
-        clientId={AUTH0_CLIENT_ID}
-        authorizationParams={{
-          redirect_uri: window.location.origin,
-          audience: AUTH0_AUDIENCE,
-        }}
-      >
-        <div className="App">
-          {renderCurrentView()}
-        </div>
-      </Auth0Provider>
-    </ErrorBoundary>
-  );
-};
-
-export default App;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue

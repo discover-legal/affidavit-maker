@@ -1,4 +1,3 @@
-// server.js - Complete fixed version with all critical functionality
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -198,7 +197,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 
-// Chat endpoint
+// Chat endpoint with streaming support
 app.post('/api/chat', auth0Middleware, validationRules.chat, validate, asyncHandler(async (req, res) => {
   const { message, conversationHistory = [], affidavitData = {} } = req.body;
   const userId = req.user.id;
@@ -210,26 +209,214 @@ app.post('/api/chat', auth0Middleware, validationRules.chat, validate, asyncHand
   });
 
   try {
-    const result = await affidavitService.processMessage({
-      message,
-      conversationHistory,
-      affidavitData,
-      userId
+    // Set headers for streaming
+    res.writeHead(200, {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
     });
 
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        error: result.error
+    // Try streaming first
+    try {
+      const stream = await affidavitService.processMessageStream({
+        message,
+        conversationHistory,
+        affidavitData,
+        userId
       });
+
+      let fullResponse = '';
+      const updatedAffidavitData = { ...affidavitData };
+
+      // Process stream and extract data
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          fullResponse += content;
+          res.write(`data: ${JSON.stringify({ type: 'token', content })}\n\n`);
+        }
+      }
+
+      // Extract data from the message after streaming
+      const lowerMessage = message.toLowerCase();
+      
+      // Enhanced name extraction
+      if (!updatedAffidavitData.affiantName || updatedAffidavitData.affiantName === 'thats all') {
+        const namePatterns = [
+          /(?:my name is|i am|i'm)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)+)/i,
+          /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/,
+          /(?:name|called)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i
+        ];
+        
+        for (const pattern of namePatterns) {
+          const nameMatch = message.match(pattern);
+          if (nameMatch && nameMatch[1] && nameMatch[1].length > 3) {
+            const extractedName = nameMatch[1].trim();
+            if (!['thats all', 'that is', 'yes', 'no', 'ok', 'okay'].includes(extractedName.toLowerCase())) {
+              updatedAffidavitData.affiantName = extractedName;
+              break;
+            }
+          }
+        }
+      }
+
+      // Extract state
+      if (!updatedAffidavitData.state) {
+        if (lowerMessage.includes('texas') || lowerMessage.includes(' tx ') || lowerMessage.includes('tx,')) {
+          updatedAffidavitData.state = 'TX';
+        } else if (lowerMessage.includes('utah') || lowerMessage.includes(' ut ') || lowerMessage.includes('ut,')) {
+          updatedAffidavitData.state = 'UT';
+        } else if (lowerMessage.includes('arizona') || lowerMessage.includes(' az ') || lowerMessage.includes('az,')) {
+          updatedAffidavitData.state = 'AZ';
+        }
+      }
+
+      // Extract case number
+      if (!updatedAffidavitData.caseNumber) {
+        const caseNumberMatch = message.match(/case\s*(?:number|file|#)?\s*:?\s*([a-z0-9\-]+)/i);
+        if (caseNumberMatch && caseNumberMatch[1]) {
+          updatedAffidavitData.caseNumber = caseNumberMatch[1];
+        }
+      }
+
+// Chat endpoint with streaming support
+app.post('/api/chat', auth0Middleware, validationRules.chat, validate, asyncHandler(async (req, res) => {
+  const { message, conversationHistory = [], affidavitData = {} } = req.body;
+  const userId = req.user.id;
+
+  logger.info('Chat request received', {
+    userId,
+    messageLength: message.length,
+    requestId: req.id
+  });
+
+  try {
+    // Set headers for streaming
+    res.writeHead(200, {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    });
+
+    // Try streaming first
+    try {
+      const stream = await affidavitService.processMessageStream({
+        message,
+        conversationHistory,
+        affidavitData,
+        userId
+      });
+
+      let fullResponse = '';
+      const updatedAffidavitData = { ...affidavitData };
+
+      // Process stream and extract data
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          fullResponse += content;
+          res.write(`data: ${JSON.stringify({ type: 'token', content })}\n\n`);
+        }
+      }
+
+      // Extract data from the message after streaming
+      const lowerMessage = message.toLowerCase();
+      
+      // Enhanced name extraction
+      if (!updatedAffidavitData.affiantName || updatedAffidavitData.affiantName === 'thats all') {
+        const namePatterns = [
+          /(?:my name is|i am|i'm)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)+)/i,
+          /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/,
+          /(?:name|called)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i
+        ];
+        
+        for (const pattern of namePatterns) {
+          const nameMatch = message.match(pattern);
+          if (nameMatch && nameMatch[1] && nameMatch[1].length > 3) {
+            const extractedName = nameMatch[1].trim();
+            if (!['thats all', 'that is', 'yes', 'no', 'ok', 'okay'].includes(extractedName.toLowerCase())) {
+              updatedAffidavitData.affiantName = extractedName;
+              break;
+            }
+          }
+        }
+      }
+
+      // Extract state
+      if (!updatedAffidavitData.state) {
+        if (lowerMessage.includes('texas') || lowerMessage.includes(' tx ') || lowerMessage.includes('tx,')) {
+          updatedAffidavitData.state = 'TX';
+        } else if (lowerMessage.includes('utah') || lowerMessage.includes(' ut ') || lowerMessage.includes('ut,')) {
+          updatedAffidavitData.state = 'UT';
+        } else if (lowerMessage.includes('arizona') || lowerMessage.includes(' az ') || lowerMessage.includes('az,')) {
+          updatedAffidavitData.state = 'AZ';
+        }
+      }
+
+      // Extract case number
+      if (!updatedAffidavitData.caseNumber) {
+        const caseNumberMatch = message.match(/case\s*(?:number|file|#)?\s*:?\s*([a-z0-9\-]+)/i);
+        if (caseNumberMatch && caseNumberMatch[1]) {
+          updatedAffidavitData.caseNumber = caseNumberMatch[1];
+        }
+      }
+
+      // Extract facts using enhanced LLM system
+      if (message.length > 15) {
+        try {
+          const factResult = await affidavitService.extractAndCategorizeFacts(
+            message, 
+            updatedAffidavitData.facts || []
+          );
+          
+          if (factResult.newFacts.length > 0) {
+            updatedAffidavitData.facts = factResult.facts;
+            logger.info('New facts extracted via streaming', {
+              userId,
+              newFactsCount: factResult.newFacts.length,
+              categories: factResult.newFacts.map(f => f.category)
+            });
+          }
+        } catch (factError) {
+          logger.warn('Fact extraction failed, skipping:', factError.message);
+        }
+      }
+
+      // Send extracted data
+      res.write(`data: ${JSON.stringify({ type: 'data', affidavitData: updatedAffidavitData })}\n\n`);
+
+      // Send completion signal
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+
+    } catch (streamError) {
+      logger.error('Streaming error, falling back to non-streaming:', streamError);
+      
+      // Fallback to non-streaming
+      const result = await affidavitService.processMessage({
+        message,
+        conversationHistory,
+        affidavitData,
+        userId
+      });
+
+      if (result.success) {
+        res.write(`data: ${JSON.stringify({ type: 'token', content: result.response })}\n\n`);
+        
+        if (result.affidavitData) {
+          res.write(`data: ${JSON.stringify({ type: 'data', affidavitData: result.affidavitData })}\n\n`);
+        }
+        
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      } else {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: result.error })}\n\n`);
+      }
     }
 
-    res.json({
-      success: true,
-      response: result.response,
-      affidavitData: result.affidavitData,
-      suggestions: result.suggestions
-    });
+    res.end();
 
   } catch (error) {
     logger.error('Chat processing error:', {
@@ -239,14 +426,75 @@ app.post('/api/chat', auth0Middleware, validationRules.chat, validate, asyncHand
     });
 
     if (error.message.includes('rate limit')) {
-      return res.status(429).json({
-        success: false,
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
         error: 'AI service is busy. Please try again in a moment.',
-        retryAfter: 30
-      });
+        retryAfter: 30 
+      })}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        error: 'An error occurred. Please try again.' 
+      })}\n\n`);
     }
 
-    throw error;
+    res.end();
+  }
+}));
+
+      // Send extracted data
+      res.write(`data: ${JSON.stringify({ type: 'data', affidavitData: updatedAffidavitData })}\n\n`);
+
+      // Send completion signal
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+
+    } catch (streamError) {
+      logger.error('Streaming error, falling back to non-streaming:', streamError);
+      
+      // Fallback to non-streaming
+      const result = await affidavitService.processMessage({
+        message,
+        conversationHistory,
+        affidavitData,
+        userId
+      });
+
+      if (result.success) {
+        res.write(`data: ${JSON.stringify({ type: 'token', content: result.response })}\n\n`);
+        
+        if (result.affidavitData) {
+          res.write(`data: ${JSON.stringify({ type: 'data', affidavitData: result.affidavitData })}\n\n`);
+        }
+        
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      } else {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: result.error })}\n\n`);
+      }
+    }
+
+    res.end();
+
+  } catch (error) {
+    logger.error('Chat processing error:', {
+      error: error.message,
+      userId,
+      requestId: req.id
+    });
+
+    if (error.message.includes('rate limit')) {
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        error: 'AI service is busy. Please try again in a moment.',
+        retryAfter: 30 
+      })}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        error: 'An error occurred. Please try again.' 
+      })}\n\n`);
+    }
+
+    res.end();
   }
 }));
 

@@ -1,25 +1,12 @@
-// routes/chat.js
+// routes/chat.js - Fixed streaming chat endpoint
 const express = require('express');
 const router = express.Router();
 const { validationRules, validate } = require('../middleware/securityMiddleware');
 const { asyncHandler, ExternalServiceError } = require('../middleware/errorMiddleware');
 const logger = require('../services/logger');
-const monitoringService = require('../services/monitoringService');
 
-// Rate limiting specific to chat
-const chatRateLimit = require('express-rate-limit')({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 20, // 20 requests per minute
-  message: 'Too many chat requests, please slow down.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-router.use(chatRateLimit);
-
-// Chat endpoint with OpenAI integration
+// Chat endpoint with proper SSE streaming
 router.post('/', validationRules.chat, validate, asyncHandler(async (req, res) => {
-  const startTime = Date.now();
   const { message, conversationHistory, currentData, documentId } = req.body;
   const user = req.user;
   const pool = req.app.locals.pool;
@@ -33,114 +20,206 @@ router.post('/', validationRules.chat, validate, asyncHandler(async (req, res) =
     });
   }
 
-  // Validate current data if state is selected
-  let validation = null;
-  if (currentData?.state) {
-    try {
-      validation = affidavitService.validateAffidavitData(currentData, currentData.state);
-    } catch (validationError) {
-      logger.warn('Validation failed during chat:', { error: validationError.message, userId: user.id });
-    }
-  }
+  // Set proper SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
 
-  // Get template requirements
-  let requirements = {};
-  if (currentData?.state && affidavitService.templateManager) {
-    try {
-      const template = affidavitService.templateManager.getTemplate(currentData.state);
-      requirements = template ? template.getRequirements() : {};
-    } catch (templateError) {
-      logger.warn('Template retrieval failed:', { error: templateError.message });
-    }
-  }
-
-  // Build AI prompt
-  const systemPrompt = `You are a legal document assistant. Your goal is to guide the user in creating a state-compliant affidavit. Always respond with a JSON object with the keys: "response", "extractedData", "conversationComplete", and "nextSteps".
-  
-  Current State: ${currentData?.state || 'Not selected'}
-  Template Requirements: ${JSON.stringify(requirements)}
-  Current Data: ${JSON.stringify(currentData)}
-  Validation: ${validation ? JSON.stringify(validation) : 'Not validated'}
-  
-  When all required information for the selected state is gathered and validation is successful, set "conversationComplete" to true in your JSON response and make your "response" text a clear call to action, guiding the user to the preview panel to download their completed document. For example: "Great, I have everything I need to prepare your affidavit! You can now review the final document in the preview panel and proceed to finalize and download the official PDF."`;
-
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...conversationHistory.slice(-10).map(msg => ({
-      role: msg.type === 'user' ? 'user' : 'assistant',
-      content: msg.content
-    })),
-    { role: "user", content: message }
-  ];
-
-  // --- CORRECTED TIMEOUT LOGIC ---
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('The request to the AI service timed out.')), 30000)
-  );
+  // Send initial connection confirmation
+  res.write('data: {"type":"connected"}\n\n');
 
   try {
-    if (!affidavitService.openai) {
-      throw new ExternalServiceError('AI service not configured', 'openai');
-    }
-
-    const apiCallPromise = affidavitService.openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-      response_format: { type: "json_object" }
+    // Process with streaming
+    const result = await affidavitService.processMessageStream({
+      message,
+      conversationHistory,
+      affidavitData: currentData,
+      userId: user.id
     });
 
-    // Race the API call against our timeout
-    const completion = await Promise.race([apiCallPromise, timeoutPromise]);
-
-    let aiResponse;
-    try {
-      const content = completion.choices[0].message.content;
-      aiResponse = JSON.parse(content);
-    } catch (parseError) {
-      logger.warn('AI response parsing failed, using fallback:', { error: parseError.message, requestId: req.id });
-      aiResponse = {
-        response: completion.choices[0].message.content || "I'm sorry, I received an unusual response. Could you try rephrasing?",
-        extractedData: {},
-        conversationComplete: false,
-        nextSteps: []
-      };
+    if (!result) {
+      // Fallback to non-streaming
+      const fallbackResult = await affidavitService.processMessage({
+        message,
+        conversationHistory,
+        affidavitData: currentData,
+        userId: user.id
+      });
+      
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        content: fallbackResult.response,
+        affidavitData: fallbackResult.affidavitData 
+      })}\n\n`);
+      res.end();
+      return;
     }
 
+    let fullResponse = '';
+    const updatedAffidavitData = { ...currentData };
+
+    // Process OpenAI stream
+    for await (const chunk of result) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        fullResponse += content;
+        // Send each token as SSE
+        res.write(`data: ${JSON.stringify({ type: 'token', content })}\n\n`);
+      }
+    }
+
+    // Extract data from the full message
+    const extractedData = await extractDataFromMessage(message, updatedAffidavitData, affidavitService);
+    
+    // Send extracted data
+    if (extractedData && Object.keys(extractedData).length > 0) {
+      Object.assign(updatedAffidavitData, extractedData);
+      res.write(`data: ${JSON.stringify({ 
+        type: 'data', 
+        affidavitData: updatedAffidavitData 
+      })}\n\n`);
+    }
+
+    // Send completion
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    
     // Log activity
     await pool.query(
       `INSERT INTO activity_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [user.id, 'chat_interaction', 'conversation', documentId, req.ip, req.get('user-agent'), JSON.stringify({ requestId: req.id })]
+      [user.id, 'chat_interaction', 'conversation', documentId, req.ip, req.get('user-agent'), 
+       JSON.stringify({ requestId: req.id, messageLength: message.length })]
     );
 
-    const duration = Date.now() - startTime;
-    monitoringService.trackRequest('/api/chat', 'POST', 200, duration);
-    
-    res.json({
-      success: true,
-      response: aiResponse.response,
-      extractedData: aiResponse.extractedData || {},
-      conversationComplete: aiResponse.conversationComplete || false,
-      nextSteps: aiResponse.nextSteps || [],
-      validation: validation,
-      stateRequirements: requirements,
+  } catch (error) {
+    logger.error('Chat streaming error:', {
+      error: error.message,
+      userId: user.id,
       requestId: req.id
     });
 
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    monitoringService.trackRequest('/api/chat', 'POST', 500, duration);
-    monitoringService.trackError(error, { endpoint: '/api/chat', userId: user.id, requestId: req.id });
-    
-    if (error.response?.status === 429) {
-      throw new ExternalServiceError('AI service is currently busy. Please try again in a moment.', 'openai');
-    }
-    
-    // Re-throw other errors to be handled by the main error middleware
-    throw error;
+    // Send error via SSE
+    res.write(`data: ${JSON.stringify({ 
+      type: 'error', 
+      error: error.message.includes('rate limit') ? 
+        'AI service is busy. Please try again in a moment.' : 
+        'An error occurred. Please try again.'
+    })}\n\n`);
   }
+
+  res.end();
 }));
+
+// Enhanced data extraction function
+async function extractDataFromMessage(message, currentData, affidavitService) {
+  const extractedData = {};
+  const lowerMessage = message.toLowerCase();
+
+  // Enhanced name extraction
+  if (!currentData.affiantName && !['thats all', 'that is all', 'yes', 'no', 'ok', 'okay'].includes(lowerMessage)) {
+    const namePatterns = [
+      /(?:my name is|i am|i'm|name is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+      /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?:\s|\.|\,|$)/,
+      /(?:call me|known as)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = message.match(pattern);
+      if (match && match[1] && match[1].trim().length > 3) {
+        const name = match[1].trim();
+        if (name.split(' ').length >= 2) { // Ensure at least first and last name
+          extractedData.affiantName = name;
+          break;
+        }
+      }
+    }
+  }
+
+  // State extraction
+  if (!currentData.state) {
+    const stateMap = {
+      'texas': 'TX', 'tx': 'TX',
+      'utah': 'UT', 'ut': 'UT', 
+      'arizona': 'AZ', 'az': 'AZ'
+    };
+    
+    for (const [key, value] of Object.entries(stateMap)) {
+      if (lowerMessage.includes(key)) {
+        extractedData.state = value;
+        break;
+      }
+    }
+  }
+
+  // County extraction (improved)
+  if (!currentData.county && extractedData.state) {
+    const countyPatterns = [
+      /(?:in|from|live in)\s+([A-Z][a-z]+)\s+county/i,
+      /([A-Z][a-z]+)\s+county/i,
+      /county\s+(?:of\s+)?([A-Z][a-z]+)/i
+    ];
+    
+    for (const pattern of countyPatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        extractedData.county = match[1];
+        break;
+      }
+    }
+  }
+
+  // Case number extraction
+  if (!currentData.caseNumber) {
+    const casePatterns = [
+      /case\s*(?:number|#)?\s*:?\s*([A-Z0-9\-]+)/i,
+      /file\s*(?:number|#)?\s*:?\s*([A-Z0-9\-]+)/i,
+      /cause\s*(?:number|#)?\s*:?\s*([A-Z0-9\-]+)/i
+    ];
+    
+    for (const pattern of casePatterns) {
+      const match = message.match(pattern);
+      if (match && match[1] && match[1].length > 2) {
+        extractedData.caseNumber = match[1].toUpperCase();
+        break;
+      }
+    }
+  }
+
+  // Enhanced fact extraction using AI
+  if (message.length > 20 && affidavitService.openaiAvailable) {
+    try {
+      const factResult = await affidavitService.extractAndCategorizeFacts(
+        message, 
+        currentData.facts || []
+      );
+      
+      if (factResult.newFacts.length > 0) {
+        extractedData.facts = factResult.facts;
+      }
+    } catch (error) {
+      logger.warn('AI fact extraction failed, using fallback:', error.message);
+      // Fallback fact extraction
+      const factKeywords = ['because', 'happened', 'witnessed', 'saw', 'incident', 'divorce', 'custody', 'support'];
+      if (factKeywords.some(keyword => lowerMessage.includes(keyword)) && 
+          !lowerMessage.includes('my name') && 
+          !lowerMessage.includes('case number')) {
+        
+        const facts = currentData.facts || [];
+        facts.push({
+          content: message.trim(),
+          category: 'general',
+          relevance: 'medium'
+        });
+        extractedData.facts = facts;
+      }
+    }
+  }
+
+  return extractedData;
+}
 
 module.exports = router;

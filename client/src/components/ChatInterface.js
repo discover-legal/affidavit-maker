@@ -1,8 +1,7 @@
-// client/src/components/ChatInterface.js - Clean without validation header
+// client/src/components/ChatInterface.js - Fixed streaming implementation
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { Send, Loader2, AlertCircle, RefreshCw, Download, CheckCircle, Save } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useCountyValidation } from '../hooks/useCountyValidation';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -13,40 +12,33 @@ const ChatInterface = ({
   documentComplete,
   onDocumentComplete,
   validation,
-  onValidationUpdate,
-  onDownload // Add download prop
+  onValidationUpdate
 }) => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
-  const { validateCounty } = useCountyValidation();
   
   const [messages, setMessages] = useState([{
     id: 1,
     type: 'bot',
     content: affidavitData.affiantName 
       ? "Welcome back! I see you were working on an affidavit. Let's continue where you left off."
-      : "Hi! I'm here to help you create a professional family law affidavit. I can help with divorce, custody, child support, and other family law matters in Texas, Utah, or Arizona. To get started, which state is your case in?"
+      : "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
   }]);
+  
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [countyValidation, setCountyValidation] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
   
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
-  const abortControllerRef = useRef(null);
-  const streamingTimeoutsRef = useRef([]);
-  const chatContainerRef = useRef(null);
+  const eventSourceRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
@@ -61,290 +53,272 @@ const ChatInterface = ({
     }
   }, [input]);
 
-  // Validate county when county or state changes
+  // Auto-save functionality
   useEffect(() => {
-    if (affidavitData.county && affidavitData.state) {
-      const timeoutId = setTimeout(async () => {
-        try {
-          const result = await validateCounty(affidavitData.county, affidavitData.state);
-          setCountyValidation(result);
-        } catch (error) {
-          console.error('County validation failed:', error);
-          setCountyValidation({
-            isValid: false,
-            reasoning: 'County validation service unavailable',
-            confidence: 0.5,
-            source: 'error'
-          });
-        }
-      }, 1000);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setCountyValidation(null);
+    if (affidavitData.affiantName || affidavitData.state || (affidavitData.facts && affidavitData.facts.length > 0)) {
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Set new timeout for auto-save (2 seconds after last change)
+      saveTimeoutRef.current = setTimeout(() => {
+        handleAutoSave();
+      }, 2000);
     }
-  }, [affidavitData.county, affidavitData.state, validateCounty]);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [affidavitData]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
       }
-      streamingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
     };
   }, []);
 
-  const clearStreamingTimeouts = useCallback(() => {
-    streamingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
-    streamingTimeoutsRef.current = [];
-  }, []);
+  const handleAutoSave = async () => {
+    if (!isAuthenticated || isSaving) return;
+    
+    try {
+      setIsSaving(true);
+      await onSaveSession();
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const streamResponse = useCallback(async (response) => {
-    clearStreamingTimeouts();
-    const words = response.split(' ');
-    let currentText = '';
-    
-    return new Promise((resolve) => {
-      let index = 0;
-      
-      const streamNextWord = () => {
-        if (index >= words.length) {
-          setStreamingMessage('');
-          resolve(currentText);
-          return;
-        }
-        
-        currentText += (index > 0 ? ' ' : '') + words[index];
-        setStreamingMessage(currentText);
-        index++;
-        
-        const timeoutId = setTimeout(streamNextWord, 50);
-        streamingTimeoutsRef.current.push(timeoutId);
-      };
-      
-      streamNextWord();
-    });
-  }, [clearStreamingTimeouts]);
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
 
-  const handleAuthRequired = useCallback(() => {
-    const userMessage = { 
-      id: Date.now(), 
-      type: 'user', 
-      content: input.trim() 
-    };
-    
-    const authPrompt = {
-      id: Date.now() + 1,
-      type: 'bot',
-      content: "I'd love to help you create your affidavit! To save your progress and generate the final document, please sign in. You can continue our conversation after signing in.",
-      action: 'auth_required'
-    };
-    
-    setMessages(prev => [...prev, userMessage, authPrompt]);
-    setInput('');
-    
-    setTimeout(() => {
-      loginWithRedirect({
-        appState: { returnTo: window.location.pathname }
-      });
-    }, 2000);
-  }, [input, loginWithRedirect]);
-
-  const sendMessage = async (retryMessage = null) => {
-    const messageToSend = retryMessage || input.trim();
-    if (!messageToSend || isLoading) return;
-
-    setError(null);
-    
     if (!isAuthenticated) {
-      handleAuthRequired();
+      const authPrompt = {
+        id: Date.now(),
+        type: 'bot',
+        content: "Please sign in to continue our conversation and save your progress.",
+        action: 'auth_required'
+      };
+      setMessages(prev => [...prev, authPrompt]);
+      setTimeout(() => {
+        loginWithRedirect({ appState: { returnTo: window.location.pathname } });
+      }, 1500);
       return;
     }
 
     const userMessage = { 
       id: Date.now(), 
       type: 'user', 
-      content: messageToSend 
+      content: input.trim() 
     };
     
-    if (!retryMessage) {
-      setMessages(prev => [...prev, userMessage]);
-      setInput('');
-    }
-    
+    setMessages(prev => [...prev, userMessage]);
+    const messageToSend = input.trim();
+    setInput('');
     setIsLoading(true);
-    abortControllerRef.current = new AbortController();
+    setError(null);
+    setStreamingMessage('');
 
     try {
       const token = await getAccessTokenSilently({
         authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
       });
       
+      // Create proper fetch request for SSE
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({
           message: messageToSend,
           conversationHistory: messages.slice(-10),
-          currentData: {
-            ...affidavitData,
-            countyValidation
-          },
+          currentData: affidavitData,
           documentId: affidavitData.documentId
-        }),
-        signal: abortControllerRef.current.signal
+        })
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        if (response.status === 429) {
-          throw new Error('AI service is busy. Please wait a moment and try again.');
-        } else if (response.status === 401) {
-          throw new Error('Authentication expired. Please refresh the page.');
-        } else if (response.status >= 500) {
-          throw new Error('Server error. Please try again in a moment.');
-        } else {
-          throw new Error(errorData.error || `Error: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Process SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedResponse = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'connected') {
+                // Connection established
+                continue;
+              } else if (data.type === 'token') {
+                accumulatedResponse += data.content;
+                setStreamingMessage(accumulatedResponse);
+              } else if (data.type === 'data') {
+                // Update affidavit data
+                if (data.affidavitData) {
+                  onDataUpdate(data.affidavitData);
+                }
+              } else if (data.type === 'complete') {
+                // Streaming complete
+                const botMessage = {
+                  id: Date.now() + 1,
+                  type: 'bot',
+                  content: data.content || accumulatedResponse
+                };
+                
+                setMessages(prev => [...prev, botMessage]);
+                setStreamingMessage('');
+                
+                // Update data if provided
+                if (data.affidavitData) {
+                  onDataUpdate(data.affidavitData);
+                }
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
         }
       }
 
-      const data = await response.json();
-      await handleChatResponse(data);
-      setRetryCount(0);
+      // If we have accumulated response but no complete message, add it
+      if (accumulatedResponse && !messages.find(m => m.content === accumulatedResponse)) {
+        const botMessage = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: accumulatedResponse
+        };
+        setMessages(prev => [...prev, botMessage]);
+      }
+
+      setStreamingMessage('');
 
     } catch (error) {
-      if (error.name === 'AbortError') return;
-      
       console.error('Chat error:', error);
+      setStreamingMessage('');
       setError(error.message);
       
-      const errorBotMessage = {
+      const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
         content: `I'm sorry, there was an error: ${error.message}`,
         error: true,
         retryMessage: messageToSend
       };
-      setMessages(prev => [...prev, errorBotMessage]);
-      
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
-  const handleChatResponse = async (data) => {
-    if (data.success) {
-      const streamedResponse = await streamResponse(data.response);
-      const botMessage = { 
-        id: Date.now() + 1, 
-        type: 'bot', 
-        content: streamedResponse 
-      };
-      setMessages(prev => [...prev, botMessage]);
-
-      if (data.extractedData) {
-        const newData = { ...data.extractedData };
-        
-        if (newData.county && affidavitData.state) {
-          try {
-            const countyResult = await validateCounty(newData.county, affidavitData.state);
-            setCountyValidation(countyResult);
-            
-            if (!countyResult.isValid && countyResult.normalizedCounty && countyResult.confidence > 0.7) {
-              const suggestionMessage = {
-                id: Date.now() + 2,
-                type: 'bot',
-                content: `I noticed you mentioned "${newData.county}" county. Did you mean "${countyResult.normalizedCounty}" county? I can update that for you.`,
-                suggestion: {
-                  type: 'county_correction',
-                  original: newData.county,
-                  suggested: countyResult.normalizedCounty
-                }
-              };
-              setMessages(prev => [...prev, suggestionMessage]);
-            }
-          } catch (error) {
-            console.error('County validation error:', error);
-          }
-        }
-        
-        onDataUpdate(newData);
-      }
-      
-      if (data.validation) onValidationUpdate(data.validation);
-      if (data.conversationComplete) onDocumentComplete(true);
-      
-      await onSaveSession();
-    } else {
-      const errorMessage = { 
-        id: Date.now() + 1, 
-        type: 'bot', 
-        content: data.error || 'Sorry, I encountered an error.',
-        error: true
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    }
+  const handleRetry = (retryMessage) => {
+    setInput(retryMessage);
+    setError(null);
+    // Message will be sent when user clicks send again
   };
-
-  const handleRetry = useCallback((retryMessage) => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      sendMessage(retryMessage);
-    } else {
-      setError('Too many retries. Please refresh the page and try again.');
-    }
-  }, [retryCount, sendMessage]);
-
-  const handleCountyCorrection = useCallback((original, suggested) => {
-    onDataUpdate({ county: suggested });
-    
-    const confirmationMessage = {
-      id: Date.now(),
-      type: 'bot',
-      content: `Perfect! I've updated your county to "${suggested}".`
-    };
-    setMessages(prev => [...prev, confirmationMessage]);
-  }, [onDataUpdate]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSendMessage();
     }
   };
 
-  // Check if ready to generate
-  const isReadyToGenerate = documentComplete && validation?.isValid && (!countyValidation || countyValidation.isValid);
+  // Calculate readiness for document generation
+  const isDocumentReady = () => {
+    return affidavitData.affiantName && 
+           affidavitData.state && 
+           affidavitData.facts && 
+           affidavitData.facts.length > 0;
+  };
+
+  const getCompletionPercentage = () => {
+    const fields = ['affiantName', 'state', 'facts'];
+    const completed = fields.filter(field => {
+      const value = affidavitData[field];
+      return value && (Array.isArray(value) ? value.length > 0 : true);
+    });
+    return Math.round((completed.length / fields.length) * 100);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
-      {/* Clean Header - No validation display */}
+      {/* Header */}
       <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
-            <p className="text-sm text-gray-600">I'll guide you through creating your affidavit</p>
+            <p className="text-sm text-gray-600">
+              Creating your {affidavitData.state || '[State]'} affidavit • {getCompletionPercentage()}% complete
+            </p>
           </div>
           
-          {/* Download button when ready */}
-          {isReadyToGenerate && (
-            <button
-              onClick={onDownload}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-lg"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </button>
-          )}
+          {/* Status indicators */}
+          <div className="flex items-center space-x-2">
+            {/* Save status */}
+            {isSaving ? (
+              <div className="flex items-center text-xs text-blue-600">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                Saving...
+              </div>
+            ) : lastSaved ? (
+              <div className="flex items-center text-xs text-green-600">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Saved {lastSaved.toLocaleTimeString()}
+              </div>
+            ) : null}
+            
+            {/* Document ready indicator */}
+            {isDocumentReady() && (
+              <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Ready to generate
+              </div>
+            )}
+          </div>
         </div>
         
-        {/* Only show critical errors */}
+        {/* Progress bar */}
+        <div className="mt-3">
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div 
+              className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${getCompletionPercentage()}%` }}
+            />
+          </div>
+        </div>
+        
+        {/* Error display */}
         {error && (
           <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
@@ -355,12 +329,8 @@ const ChatInterface = ({
         )}
       </div>
       
-      {/* Messages Area - Fixed height with scroll */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-        style={{ minHeight: 0 }}
-      >
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
         {messages.map((message) => (
           <div
             key={message.id}
@@ -379,21 +349,8 @@ const ChatInterface = ({
                 {message.content}
               </div>
               
-              {/* County correction suggestion */}
-              {message.suggestion?.type === 'county_correction' && (
-                <button
-                  onClick={() => handleCountyCorrection(
-                    message.suggestion.original, 
-                    message.suggestion.suggested
-                  )}
-                  className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Yes, use "{message.suggestion.suggested}"
-                </button>
-              )}
-              
-              {/* Retry button for error messages */}
-              {message.error && message.retryMessage && retryCount < 3 && (
+              {/* Retry button for errors */}
+              {message.error && message.retryMessage && (
                 <button
                   onClick={() => handleRetry(message.retryMessage)}
                   className="mt-2 flex items-center text-sm text-red-600 hover:text-red-800"
@@ -403,7 +360,7 @@ const ChatInterface = ({
                 </button>
               )}
               
-              {/* Login prompt for auth required */}
+              {/* Auth prompt */}
               {message.action === 'auth_required' && (
                 <button
                   onClick={() => loginWithRedirect()}
@@ -416,6 +373,7 @@ const ChatInterface = ({
           </div>
         ))}
         
+        {/* Streaming message */}
         {streamingMessage && (
           <div className="flex justify-start">
             <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
@@ -425,6 +383,7 @@ const ChatInterface = ({
           </div>
         )}
         
+        {/* Loading indicator */}
         {isLoading && !streamingMessage && (
           <div className="flex justify-start">
             <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900 flex items-center">
@@ -437,7 +396,7 @@ const ChatInterface = ({
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input Area - Fixed at bottom */}
+      {/* Input Area */}
       <div className="p-4 border-t bg-white flex-shrink-0">
         <div className="flex space-x-3">
           <textarea
@@ -445,14 +404,14 @@ const ChatInterface = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isAuthenticated ? "Type your response..." : "Sign in to continue chatting..."}
-            disabled={isLoading}
+            placeholder={isAuthenticated ? "Type your response..." : "Sign in to continue..."}
+            disabled={isLoading || !isAuthenticated}
             className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
             rows="1"
           />
           <button
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isLoading}
+            onClick={handleSendMessage}
+            disabled={!input.trim() || isLoading || !isAuthenticated}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             <Send className="h-4 w-4" />
@@ -461,7 +420,7 @@ const ChatInterface = ({
         
         {!isAuthenticated && (
           <p className="mt-2 text-xs text-gray-500 text-center">
-            Sign in to save your progress and generate your document
+            Sign in to save your progress and generate documents
           </p>
         )}
       </div>

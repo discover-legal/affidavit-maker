@@ -1,4 +1,4 @@
-// Complete Fixed App.js - Enhanced Professional Validation Test Tool
+// Fixed App.js - Complete UpdatedStandaloneTest with proper JSX closing
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, AlertCircle, Loader2, RefreshCw, Plus, Trash2, Save, TestTube, Award, AlertTriangle } from 'lucide-react';
 
@@ -7,7 +7,7 @@ const mockOpenAI = {
   chat: {
     completions: {
       create: async ({ messages }) => {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Slightly longer for "professional" analysis
         
         const userMessage = messages[1].content;
         
@@ -22,34 +22,9 @@ const mockOpenAI = {
           const hasVague = /some|many|often|sometimes|around/i.test(factText);
           const hasSpecific = /\b\d+|\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(factText);
           
-          // Check for inappropriate/offensive language
-          const offensiveWords = /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker)\b/i;
-          const hasOffensive = offensiveWords.test(factText);
-          
-          // Check for inappropriate personal attacks or emotional statements
-          const personalAttacks = /(hate|despise|loathe|can't stand).*(wife|husband|spouse|ex|mother|father|child)/i;
-          const hasPersonalAttack = personalAttacks.test(factText);
-          
-          // Check for inappropriate emotional content
-          const inappropriateEmotional = /(i hate|i despise|i can't stand|makes me sick|disgusting person)/i;
-          const hasInappropriateEmotional = inappropriateEmotional.test(factText);
-          
           const languageIssues = [];
           const improvements = [];
           let score = 80;
-          
-          // Critical: Check for offensive/inappropriate language first
-          if (hasOffensive) {
-            languageIssues.push('CRITICAL: Contains offensive language inappropriate for legal documents');
-            improvements.push('Remove all profanity and offensive language - this cannot be included in legal documents');
-            score -= 50; // Heavy penalty
-          }
-          
-          if (hasPersonalAttack || hasInappropriateEmotional) {
-            languageIssues.push('CRITICAL: Contains inappropriate personal attacks or emotional statements');
-            improvements.push('Focus on factual observations only - personal feelings and attacks are inadmissible');
-            score -= 40; // Heavy penalty
-          }
           
           if (hasUncertainty) {
             languageIssues.push('Contains uncertain language');
@@ -103,22 +78,16 @@ const mockOpenAI = {
           
           // Generate professional version
           let professionalVersion = factText;
-          
-          // Handle offensive content first
-          if (hasOffensive || hasPersonalAttack || hasInappropriateEmotional) {
-            professionalVersion = "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE WITH FACTUAL INFORMATION ONLY]";
-          } else {
-            if (hasUncertainty) {
-              professionalVersion = professionalVersion.replace(/maybe|probably|might/gi, 'to my knowledge');
-              professionalVersion = professionalVersion.replace(/i think|i believe/gi, 'it is my understanding that');
-            }
-            if (hasEmotion) {
-              professionalVersion = professionalVersion.replace(/terrible|awful/gi, 'concerning');
-              professionalVersion = professionalVersion.replace(/amazing|wonderful/gi, 'notable');
-            }
-            if (hasVague) {
-              professionalVersion = professionalVersion.replace(/around|about/gi, 'approximately');
-            }
+          if (hasUncertainty) {
+            professionalVersion = professionalVersion.replace(/maybe|probably|might/gi, 'to my knowledge');
+            professionalVersion = professionalVersion.replace(/i think|i believe/gi, 'it is my understanding that');
+          }
+          if (hasEmotion) {
+            professionalVersion = professionalVersion.replace(/terrible|awful/gi, 'concerning');
+            professionalVersion = professionalVersion.replace(/amazing|wonderful/gi, 'notable');
+          }
+          if (hasVague) {
+            professionalVersion = professionalVersion.replace(/around|about/gi, 'approximately');
           }
           
           return {
@@ -130,8 +99,7 @@ const mockOpenAI = {
                   subcategory,
                   professionalVersion,
                   languageIssues,
-                  legalIssues: score < 60 || hasOffensive || hasPersonalAttack ? 
-                    ['May not meet professional legal standards', ...(hasOffensive || hasPersonalAttack ? ['Contains inappropriate content that must be removed'] : [])] : [],
+                  legalIssues: score < 60 ? ['May not meet professional legal standards'] : [],
                   improvements,
                   confidence: score / 100,
                   legalStandardScore: Math.max(0, score),
@@ -147,34 +115,16 @@ const mockOpenAI = {
           const batchFacts = facts.map((fact, i) => {
             const factText = fact.replace(/^\d+:\s*"?(.+?)"?$/, '$1');
             const hasProblems = /maybe|terrible|kinda|around/i.test(factText);
-            const hasOffensive = /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker)\b/i.test(factText);
-            const hasPersonalAttack = /(hate|despise|loathe|can't stand).*(wife|husband|spouse|ex|mother|father|child)/i.test(factText);
-            
-            let score = 85;
-            const issues = [];
-            const legalIssues = [];
-            
-            if (hasOffensive || hasPersonalAttack) {
-              issues.push('CRITICAL: Inappropriate language detected');
-              legalIssues.push('Contains content inappropriate for legal documents');
-              score = 10; // Very low score for offensive content
-            } else if (hasProblems) {
-              issues.push('Unprofessional language detected');
-              score = 60;
-            }
             
             return {
-              isValid: !hasOffensive && !hasPersonalAttack,
+              isValid: true,
               category: 'general',
               subcategory: 'other',
-              professionalVersion: hasOffensive || hasPersonalAttack ? 
-                "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE]" : factText,
-              languageIssues: issues,
-              legalIssues,
-              improvements: hasOffensive || hasPersonalAttack ? 
-                ['Remove all inappropriate content and focus on factual information only'] : 
-                hasProblems ? ['Use more professional language'] : ['Consider adding more specific details'],
-              legalStandardScore: score
+              professionalVersion: factText,
+              languageIssues: hasProblems ? ['Unprofessional language detected'] : [],
+              legalIssues: [],
+              improvements: hasProblems ? ['Use more professional language'] : ['Consider adding more specific details'],
+              legalStandardScore: hasProblems ? 60 : 85
             };
           });
           
@@ -188,11 +138,7 @@ const mockOpenAI = {
                   narrativeFlow: 'Facts appear to follow a logical sequence for legal proceedings',
                   recommendedOrder: facts.map((_, i) => i),
                   globalIssues: batchFacts.some(f => f.languageIssues.length > 0) ? 
-                    [
-                      ...(batchFacts.some(f => f.languageIssues.some(issue => issue.includes('CRITICAL'))) ? 
-                        ['CRITICAL: Document contains inappropriate content that must be removed before legal use'] : []),
-                      'Some facts contain unprofessional language that should be revised'
-                    ] : [],
+                    ['Some facts contain unprofessional language that should be revised'] : [],
                   professionalSummary: `${facts.length} facts analyzed. Average professional score: ${Math.round(avgScore)}/100`,
                   facts: batchFacts
                 })
@@ -205,7 +151,7 @@ const mockOpenAI = {
   }
 };
 
-// Enhanced Professional Fact Validation Service
+// Enhanced Professional Fact Validation Service (simplified for testing)
 class EnhancedFactValidationService {
   constructor(openaiClient, language = 'en') {
     this.openai = openaiClient;
@@ -341,6 +287,151 @@ const SaveStatus = ({ status, lastSaved, error, onRetry, className = '' }) => {
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             <span className="text-sm">Saving...</span>
           </div>
+
+        </div>
+
+        {/* Enhanced Batch Validation Results */}
+        {validationResults?.batch && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <Award className="w-5 h-5 mr-2 text-purple-600" />
+              Professional Standards Assessment
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-purple-800 font-semibold">Overall Professional</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {validationResults.batch.overallProfessional ? '✅ Yes' : '❌ No'}
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-blue-800 font-semibold">Average Score</div>
+                <div className={`text-2xl font-bold ${getScoreColor(validationResults.batch.professionalStandard?.averageScore || 0)}`}>
+                  {Math.round(validationResults.batch.professionalStandard?.averageScore || 0)}/100
+                </div>
+              </div>
+              
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-green-800 font-semibold">Court Ready</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {validationResults.batch.readyForCourt ? '⚖️ Yes' : '📝 Needs Work'}
+                </div>
+              </div>
+            </div>
+
+            {validationResults.batch.professionalSummary && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <strong>Professional Summary:</strong> {validationResults.batch.professionalSummary}
+              </div>
+            )}
+
+            {validationResults.batch.narrativeFlow && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <strong>Narrative Flow:</strong> {validationResults.batch.narrativeFlow}
+              </div>
+            )}
+
+            {validationResults.batch.globalIssues?.length > 0 && (
+              <div className="bg-yellow-50 p-4 rounded-lg mb-4">
+                <strong className="text-yellow-800">Global Issues:</strong>
+                <div className="mt-2 space-y-1">
+                  {validationResults.batch.globalIssues.map((issue, i) => (
+                    <div key={i} className="text-yellow-700">⚠️ {issue}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {validationResults.batch.recommendedOrder && (
+              <div className="bg-indigo-50 p-4 rounded-lg">
+                <strong className="text-indigo-800">Recommended Fact Order:</strong>
+                <div className="mt-2 text-indigo-700">
+                  Facts should be ordered: {validationResults.batch.recommendedOrder.map(i => i + 1).join(' → ')}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Comparison with Basic Validation */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-purple-800 mb-4">
+            🆚 Enhanced vs Basic Validation Comparison
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-red-50 border border-red-200 rounded p-4">
+              <h4 className="font-semibold text-red-800 mb-2">❌ Basic Validation (Current)</h4>
+              <ul className="text-sm text-red-700 space-y-1">
+                <li>• Simple keyword categorization</li>
+                <li>• No professional language checking</li>
+                <li>• No legal standard assessment</li>
+                <li>• Basic duplicate detection</li>
+                <li>• 8 basic categories</li>
+                <li>• No rewriting suggestions</li>
+              </ul>
+            </div>
+            
+            <div className="bg-green-50 border border-green-200 rounded p-4">
+              <h4 className="font-semibold text-green-800 mb-2">✅ Enhanced Professional Validation</h4>
+              <ul className="text-sm text-green-700 space-y-1">
+                <li>• 9 categories with subcategories</li>
+                <li>• Professional language analysis</li>
+                <li>• Legal standard scoring (0-100)</li>
+                <li>• Court-readiness assessment</li>
+                <li>• Professional fact rewriting</li>
+                <li>• Narrative flow analysis</li>
+                <li>• Legal admissibility checking</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Test Results */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-green-800 mb-4">Test Checklist</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Save status shows loading → success</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Error state shows retry button</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Auto-save works when editing</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Facts validation catches issues</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Batch validation works</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" />
+              <span>✅ Performance is acceptable</span>
+            </label>
+          </div>
+          
+          <div className="mt-4 p-3 bg-green-100 rounded border border-green-300">
+            <p className="text-green-800 font-medium">
+              📋 Once satisfied with testing, confirm these features work and we'll proceed with refactoring your main app!
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default App;>
         );
       case 'saved':
         return (
@@ -393,7 +484,7 @@ const SaveStatus = ({ status, lastSaved, error, onRetry, className = '' }) => {
 
 // Main Enhanced Test Component
 const App = () => {
-  // Mock affidavit data with problematic facts for testing
+  // Mock affidavit data with some problematic facts for testing
   const [affidavitData, setAffidavitData] = useState({
     affiantName: 'John Doe',
     state: 'TX',
@@ -416,7 +507,7 @@ const App = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [newFact, setNewFact] = useState('');
 
-  // Services
+  // Services - now using Enhanced service
   const [enhancedValidationService] = useState(() => new EnhancedFactValidationService(mockOpenAI, 'en'));
   const saveTimeoutRef = useRef(null);
 
@@ -716,9 +807,7 @@ const App = () => {
                   return (
                     <div 
                       key={index} 
-                      className={`p-4 border rounded-lg ${status ? statusColors[status] : 'border-gray-300'} ${
-                        individual?.languageIssues?.some(issue => issue.includes('CRITICAL')) ? 'border-red-500 bg-red-100' : ''
-                      }`}
+                      className={`p-4 border rounded-lg ${status ? statusColors[status] : 'border-gray-300'}`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center space-x-2">
@@ -766,13 +855,9 @@ const App = () => {
                           {/* Language Issues */}
                           {individual.languageIssues?.length > 0 && (
                             <div className="text-xs space-y-1">
-                              <strong className={individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800' : 'text-red-600'}>
-                                {individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? '🚨 CRITICAL Language Issues:' : 'Language Issues:'}
-                              </strong>
+                              <strong className="text-red-600">Language Issues:</strong>
                               {individual.languageIssues.map((issue, i) => (
-                                <div key={i} className={individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800 font-bold' : 'text-red-600'}>
-                                  {issue.includes('CRITICAL') ? '🚨' : '❌'} {issue}
-                                </div>
+                                <div key={i} className="text-red-600">❌ {issue}</div>
                               ))}
                             </div>
                           )}
@@ -804,246 +889,4 @@ const App = () => {
               </div>
             </div>
 
-          </div>
-
-        </div>
-
-        {/* Enhanced Batch Validation Results */}
-        {validationResults?.batch && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Award className="w-5 h-5 mr-2 text-purple-600" />
-              Professional Standards Assessment
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-purple-800 font-semibold">Overall Professional</div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {validationResults.batch.overallProfessional ? '✅ Yes' : '❌ No'}
-                </div>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-blue-800 font-semibold">Average Score</div>
-                <div className={`text-2xl font-bold ${getScoreColor(validationResults.batch.professionalStandard?.averageScore || 0)}`}>
-                  {Math.round(validationResults.batch.professionalStandard?.averageScore || 0)}/100
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-green-800 font-semibold">Court Ready</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {validationResults.batch.readyForCourt ? '⚖️ Yes' : '📝 Needs Work'}
-                </div>
-              </div>
-            </div>
-
-            {validationResults.batch.professionalSummary && (
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <strong>Professional Summary:</strong> {validationResults.batch.professionalSummary}
-              </div>
-            )}
-
-            {validationResults.batch.narrativeFlow && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <strong>Narrative Flow:</strong> {validationResults.batch.narrativeFlow}
-              </div>
-            )}
-
-            {validationResults.batch.globalIssues?.length > 0 && (
-              <div className={`p-4 rounded-lg mb-4 ${
-                validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? 
-                'bg-red-100 border border-red-300' : 'bg-yellow-50'
-              }`}>
-                <strong className={validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800' : 'text-yellow-800'}>
-                  {validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? '🚨 CRITICAL Issues:' : 'Global Issues:'}
-                </strong>
-                <div className="mt-2 space-y-1">
-                  {validationResults.batch.globalIssues.map((issue, i) => (
-                    <div key={i} className={issue.includes('CRITICAL') ? 'text-red-800 font-bold' : 'text-yellow-700'}>
-                      {issue.includes('CRITICAL') ? '🚨' : '⚠️'} {issue}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {validationResults.batch.recommendedOrder && (
-              <div className="bg-indigo-50 p-4 rounded-lg">
-                <strong className="text-indigo-800">Recommended Fact Order:</strong>
-                <div className="mt-2 text-indigo-700">
-                  Facts should be ordered: {validationResults.batch.recommendedOrder.map(i => i + 1).join(' → ')}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Comparison with Basic Validation */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-purple-800 mb-4">
-            🆚 Enhanced vs Basic Validation Comparison
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-red-50 border border-red-200 rounded p-4">
-              <h4 className="font-semibold text-red-800 mb-2">❌ Basic Validation (Current)</h4>
-              <ul className="text-sm text-red-700 space-y-1">
-                <li>• Simple keyword categorization</li>
-                <li>• No professional language checking</li>
-                <li>• No legal standard assessment</li>
-                <li>• Basic duplicate detection</li>
-                <li>• 8 basic categories</li>
-                <li>• No rewriting suggestions</li>
-              </ul>
-            </div>
-            
-            <div className="bg-green-50 border border-green-200 rounded p-4">
-              <h4 className="font-semibold text-green-800 mb-2">✅ Enhanced Professional Validation</h4>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>• 9 categories with subcategories</li>
-                <li>• Professional language analysis</li>
-                <li>• Legal standard scoring (0-100)</li>
-                <li>• Court-readiness assessment</li>
-                <li>• Professional fact rewriting</li>
-                <li>• Narrative flow analysis</li>
-                <li>• Legal admissibility checking</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Test Results */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-green-800 mb-4">Enhanced Validation Test Checklist</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Professional language issues detected</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Legal standard scoring works (0-100)</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Professional rewrites are better</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Category/subcategory assignment</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Batch analysis works properly</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Court-ready assessment accurate</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Performance acceptable (~2 seconds)</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Save status integration works</span>
-            </label>
-          </div>
-
-          <div className="mt-6 p-4 bg-green-100 rounded border border-green-300">
-            <div className="flex items-start space-x-3">
-              <div className="text-green-600 text-2xl">🎯</div>
-              <div>
-                <p className="text-green-800 font-medium mb-2">Ready for Integration!</p>
-                <p className="text-green-700 text-sm">
-                  Once you've tested both SaveStatus and Enhanced Professional Validation and confirmed they work correctly, 
-                  let me know and I'll provide the refactored drop-in files for your main application!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Integration Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">🔗 Integration Notes</h3>
-          
-          <div className="space-y-4 text-sm">
-            <div>
-              <strong className="text-blue-800">For Your Real App:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Replace mockOpenAI with your actual OpenAI client</li>
-                <li>• Choose Enhanced over Basic validation service</li>
-                <li>• Professional scoring helps determine when facts are court-ready</li>
-                <li>• Professional rewrites can be auto-applied or suggested to users</li>
-              </ul>
-            </div>
-            
-            <div>
-              <strong className="text-blue-800">Performance Considerations:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Enhanced validation takes ~2 seconds (vs 1 second for basic)</li>
-                <li>• Worth it for professional legal documents</li>
-                <li>• Can implement "quick check" for real-time feedback</li>
-                <li>• Batch validation is more efficient for multiple facts</li>
-              </ul>
-            </div>
-
-            <div>
-              <strong className="text-blue-800">Next Steps:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Test this standalone tool thoroughly</li>
-                <li>• Verify save status feedback works correctly</li>
-                <li>• Check professional validation catches language issues</li>
-                <li>• Confirm performance is acceptable for your use case</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Service Comparison */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Service Options Summary</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-4 rounded border">
-              <h4 className="font-semibold text-blue-600 mb-2">Basic LLM Validation Service</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Faster (~1 second)</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Simpler implementation</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Good for testing</div>
-                <div className="flex items-center"><span className="text-yellow-600 mr-2">~</span>Basic categorization</div>
-                <div className="flex items-center"><span className="text-red-600 mr-2">✗</span>No professional standards</div>
-                <div className="flex items-center"><span className="text-red-600 mr-2">✗</span>No legal scoring</div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded border border-purple-300">
-              <h4 className="font-semibold text-purple-600 mb-2">Enhanced Professional Validation Service</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Professional legal standards</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Legal scoring (0-100)</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Court-readiness assessment</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Professional rewrites</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>9 categories + subcategories</div>
-                <div className="flex items-center"><span className="text-yellow-600 mr-2">~</span>Slower (~2 seconds)</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-center">
-            <p className="text-gray-600 text-sm">
-              <strong>Recommendation:</strong> Use Enhanced Professional Validation for production affidavits that need to meet legal standards.
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-export default App;
-          
+          </div

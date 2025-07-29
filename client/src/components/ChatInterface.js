@@ -1,6 +1,6 @@
-// client/src/components/ChatInterface.js - Fixed streaming implementation
+// client/src/components/ChatInterface.js - Complete Fixed Implementation
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, AlertCircle, RefreshCw, Download, CheckCircle, Save } from 'lucide-react';
+import { Send, Loader2, AlertCircle, RefreshCw, CheckCircle, Save, Clock } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -14,12 +14,13 @@ const ChatInterface = ({
   validation,
   onValidationUpdate
 }) => {
-  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, user } = useAuth0();
   
+  // Initialize messages based on whether user has existing data
   const [messages, setMessages] = useState([{
     id: 1,
     type: 'bot',
-    content: affidavitData.affiantName 
+    content: affidavitData?.affiantName 
       ? "Welcome back! I see you were working on an affidavit. Let's continue where you left off."
       : "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
   }]);
@@ -33,7 +34,6 @@ const ChatInterface = ({
   
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
-  const eventSourceRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
   // Auto-scroll to bottom
@@ -55,16 +55,16 @@ const ChatInterface = ({
 
   // Auto-save functionality
   useEffect(() => {
-    if (affidavitData.affiantName || affidavitData.state || (affidavitData.facts && affidavitData.facts.length > 0)) {
+    if (isAuthenticated && (affidavitData?.affiantName || affidavitData?.state || (affidavitData?.facts && affidavitData.facts.length > 0))) {
       // Clear existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
       
-      // Set new timeout for auto-save (2 seconds after last change)
+      // Set new timeout for auto-save (3 seconds after last change)
       saveTimeoutRef.current = setTimeout(() => {
         handleAutoSave();
-      }, 2000);
+      }, 3000);
     }
     
     return () => {
@@ -72,14 +72,11 @@ const ChatInterface = ({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [affidavitData]);
+  }, [affidavitData, isAuthenticated]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -87,7 +84,7 @@ const ChatInterface = ({
   }, []);
 
   const handleAutoSave = async () => {
-    if (!isAuthenticated || isSaving) return;
+    if (!isAuthenticated || isSaving || !onSaveSession) return;
     
     try {
       setIsSaving(true);
@@ -131,8 +128,14 @@ const ChatInterface = ({
     setStreamingMessage('');
 
     try {
+      // Fixed token request with proper configuration
       const token = await getAccessTokenSilently({
-        authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+          scope: "openid profile email"
+        },
+        cacheMode: 'on',
+        timeoutInSeconds: 30
       });
       
       // Create proper fetch request for SSE
@@ -148,11 +151,14 @@ const ChatInterface = ({
           message: messageToSend,
           conversationHistory: messages.slice(-10),
           currentData: affidavitData,
-          documentId: affidavitData.documentId
+          documentId: affidavitData?.documentId
         })
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication expired. Please sign in again.');
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -168,7 +174,7 @@ const ChatInterface = ({
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -176,18 +182,15 @@ const ChatInterface = ({
               const data = JSON.parse(line.slice(6));
               
               if (data.type === 'connected') {
-                // Connection established
                 continue;
               } else if (data.type === 'token') {
                 accumulatedResponse += data.content;
                 setStreamingMessage(accumulatedResponse);
               } else if (data.type === 'data') {
-                // Update affidavit data
-                if (data.affidavitData) {
+                if (data.affidavitData && onDataUpdate) {
                   onDataUpdate(data.affidavitData);
                 }
-              } else if (data.type === 'complete') {
-                // Streaming complete
+              } else if (data.type === 'complete' || data.type === 'done') {
                 const botMessage = {
                   id: Date.now() + 1,
                   type: 'bot',
@@ -197,54 +200,57 @@ const ChatInterface = ({
                 setMessages(prev => [...prev, botMessage]);
                 setStreamingMessage('');
                 
-                // Update data if provided
-                if (data.affidavitData) {
+                if (data.affidavitData && onDataUpdate) {
                   onDataUpdate(data.affidavitData);
                 }
               } else if (data.type === 'error') {
-                throw new Error(data.error);
+                throw new Error(data.error || 'An error occurred');
               }
             } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError);
+              console.error('Error parsing SSE data:', parseError, 'Line:', line);
             }
           }
         }
       }
-
-      // If we have accumulated response but no complete message, add it
-      if (accumulatedResponse && !messages.find(m => m.content === accumulatedResponse)) {
-        const botMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: accumulatedResponse
-        };
-        setMessages(prev => [...prev, botMessage]);
-      }
-
-      setStreamingMessage('');
 
     } catch (error) {
       console.error('Chat error:', error);
       setStreamingMessage('');
       setError(error.message);
       
-      const errorMessage = {
+      let errorMessage = "I'm having trouble connecting right now. Please try again.";
+      let shouldRetry = true;
+      
+      if (error.message.includes('Authentication') || error.message.includes('401')) {
+        errorMessage = "Your session has expired. Please sign in again.";
+        shouldRetry = false;
+        setTimeout(() => {
+          loginWithRedirect({ appState: { returnTo: window.location.pathname } });
+        }, 2000);
+      } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+        errorMessage = "Network connection issue. Please check your internet and try again.";
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = "AI service is busy. Please try again in a moment.";
+      }
+      
+      const errorBotMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: `I'm sorry, there was an error: ${error.message}`,
+        content: errorMessage,
         error: true,
-        retryMessage: messageToSend
+        retryMessage: shouldRetry ? messageToSend : null
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorBotMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRetry = (retryMessage) => {
+  const handleRetry = async (retryMessage) => {
     setInput(retryMessage);
-    setError(null);
-    // Message will be sent when user clicks send again
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
   };
 
   const handleKeyDown = (e) => {
@@ -254,53 +260,51 @@ const ChatInterface = ({
     }
   };
 
-  // Calculate readiness for document generation
-  const isDocumentReady = () => {
-    return affidavitData.affiantName && 
-           affidavitData.state && 
-           affidavitData.facts && 
-           affidavitData.facts.length > 0;
+  const getCompletionPercentage = () => {
+    if (!affidavitData) return 0;
+    
+    const requiredFields = ['affiantName', 'state', 'facts'];
+    const completedFields = requiredFields.filter(field => {
+      const value = affidavitData[field];
+      return value && (Array.isArray(value) ? value.length > 0 : value.trim && value.trim().length > 0);
+    });
+    
+    return Math.round((completedFields.length / requiredFields.length) * 100);
   };
 
-  const getCompletionPercentage = () => {
-    const fields = ['affiantName', 'state', 'facts'];
-    const completed = fields.filter(field => {
-      const value = affidavitData[field];
-      return value && (Array.isArray(value) ? value.length > 0 : true);
-    });
-    return Math.round((completed.length / fields.length) * 100);
+  const isDocumentReady = () => {
+    return !!(
+      affidavitData?.affiantName &&
+      affidavitData?.state &&
+      affidavitData?.facts &&
+      affidavitData.facts.length > 0
+    );
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b flex-shrink-0">
+    <div className="h-full flex flex-col bg-white">
+      {/* Header with Status */}
+      <div className="px-4 py-3 border-b bg-gray-50 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
-            <p className="text-sm text-gray-600">
-              Creating your {affidavitData.state || '[State]'} affidavit • {getCompletionPercentage()}% complete
-            </p>
-          </div>
+          <h3 className="text-sm font-medium text-gray-900">AI Assistant</h3>
           
-          {/* Status indicators */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 text-xs">
             {/* Save status */}
-            {isSaving ? (
-              <div className="flex items-center text-xs text-blue-600">
+            {isAuthenticated && (isSaving ? (
+              <div className="flex items-center text-blue-600">
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
                 Saving...
               </div>
             ) : lastSaved ? (
-              <div className="flex items-center text-xs text-green-600">
+              <div className="flex items-center text-green-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Saved {lastSaved.toLocaleTimeString()}
               </div>
-            ) : null}
+            ) : null)}
             
             {/* Document ready indicator */}
             {isDocumentReady() && (
-              <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Ready to generate
               </div>
@@ -309,14 +313,16 @@ const ChatInterface = ({
         </div>
         
         {/* Progress bar */}
-        <div className="mt-3">
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div 
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${getCompletionPercentage()}%` }}
-            />
+        {affidavitData && (
+          <div className="mt-3">
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${getCompletionPercentage()}%` }}
+              />
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Error display */}
         {error && (
@@ -404,7 +410,8 @@ const ChatInterface = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isAuthenticated ? "Type your response..." : "Sign in to continue..."}
+            placeholder={isAuthenticated ? 
+              "Type your response..." : "Sign in to continue..."}
             disabled={isLoading || !isAuthenticated}
             className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
             rows="1"

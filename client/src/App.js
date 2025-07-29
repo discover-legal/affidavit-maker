@@ -1,1049 +1,220 @@
-// Complete Fixed App.js - Enhanced Professional Validation Test Tool
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, AlertCircle, Loader2, RefreshCw, Plus, Trash2, Save, TestTube, Award, AlertTriangle } from 'lucide-react';
+// App.js - Refactored Application Architecture
+import React, { useState, useMemo } from 'react';
+import { Auth0Provider } from '@auth0/auth0-react';
+import { DocumentProvider } from './contexts/DocumentContext';
+import LandingPage from './components/LandingPage';
+import UserDashboard from './components/UserDashboard';  
+import EditorView from './views/EditorView'; 
+import ErrorBoundary from './components/ErrorBoundary';
 
-// Mock OpenAI for testing Enhanced Professional Validation
-const mockOpenAI = {
-  chat: {
-    completions: {
-      create: async ({ messages }) => {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const userMessage = messages[1].content;
-        
-        if (userMessage.includes('ANALYZE THIS FACT FOR LEGAL AFFIDAVIT')) {
-          const factMatch = userMessage.match(/"([^"]+)"/);
-          const factText = factMatch ? factMatch[1] : 'Test fact';
-          
-          // Analyze the fact for professional issues
-          const hasUncertainty = /maybe|probably|might|could be|i think/i.test(factText);
-          const hasEmotion = /terrible|horrible|amazing|awful|wonderful/i.test(factText);
-          const hasInformal = /kinda|sorta|like totally|whatever/i.test(factText);
-          const hasVague = /some|many|often|sometimes|around/i.test(factText);
-          const hasSpecific = /\b\d+|\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(factText);
-          
-          // Check for inappropriate/offensive language
-          const offensiveWords = /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker)\b/i;
-          const hasOffensive = offensiveWords.test(factText);
-          
-          // Check for inappropriate personal attacks or emotional statements
-          const personalAttacks = /(hate|despise|loathe|can't stand).*(wife|husband|spouse|ex|mother|father|child)/i;
-          const hasPersonalAttack = personalAttacks.test(factText);
-          
-          // Check for inappropriate emotional content
-          const inappropriateEmotional = /(i hate|i despise|i can't stand|makes me sick|disgusting person)/i;
-          const hasInappropriateEmotional = inappropriateEmotional.test(factText);
-          
-          const languageIssues = [];
-          const improvements = [];
-          let score = 80;
-          
-          // Critical: Check for offensive/inappropriate language first
-          if (hasOffensive) {
-            languageIssues.push('CRITICAL: Contains offensive language inappropriate for legal documents');
-            improvements.push('Remove all profanity and offensive language - this cannot be included in legal documents');
-            score -= 50; // Heavy penalty
-          }
-          
-          if (hasPersonalAttack || hasInappropriateEmotional) {
-            languageIssues.push('CRITICAL: Contains inappropriate personal attacks or emotional statements');
-            improvements.push('Focus on factual observations only - personal feelings and attacks are inadmissible');
-            score -= 40; // Heavy penalty
-          }
-          
-          if (hasUncertainty) {
-            languageIssues.push('Contains uncertain language');
-            improvements.push('Replace uncertain terms with "to my knowledge" or "it is my understanding"');
-            score -= 15;
-          }
-          
-          if (hasEmotion) {
-            languageIssues.push('Contains emotional/subjective language');
-            improvements.push('Use objective, factual descriptions instead of emotional terms');
-            score -= 20;
-          }
-          
-          if (hasInformal) {
-            languageIssues.push('Contains informal language');
-            improvements.push('Use formal, professional language appropriate for legal documents');
-            score -= 15;
-          }
-          
-          if (hasVague) {
-            languageIssues.push('Contains vague quantifiers');
-            improvements.push('Provide specific numbers, dates, or timeframes instead of vague terms');
-            score -= 10;
-          }
-          
-          if (!hasSpecific) {
-            improvements.push('Add specific dates, amounts, or names for clarity');
-            score -= 5;
-          }
-          
-          // Determine category based on keywords
-          let category = 'general';
-          let subcategory = 'other';
-          
-          if (/money|paid|cost|income|debt|asset|financial|support|payment/i.test(factText)) {
-            category = 'financial';
-            subcategory = /support|alimony/i.test(factText) ? 'support' : 'payments';
-          } else if (/house|property|car|vehicle|owned|residence|address/i.test(factText)) {
-            category = 'property';
-            subcategory = /house|residence|address/i.test(factText) ? 'real_estate' : 'personal_property';
-          } else if (/saw|observed|witnessed|heard|present/i.test(factText)) {
-            category = 'witness';
-            subcategory = 'observations';
-          } else if (/spouse|child|parent|family|married|divorce|custody/i.test(factText)) {
-            category = 'relational';
-            subcategory = /custody|visitation/i.test(factText) ? 'custody' : 'family';
-          } else if (/date|time|when|during|before|after|on/i.test(factText)) {
-            category = 'temporal';
-            subcategory = 'dates';
-          }
-          
-          // Generate professional version
-          let professionalVersion = factText;
-          
-          // Handle offensive content first
-          if (hasOffensive || hasPersonalAttack || hasInappropriateEmotional) {
-            professionalVersion = "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE WITH FACTUAL INFORMATION ONLY]";
-          } else {
-            if (hasUncertainty) {
-              professionalVersion = professionalVersion.replace(/maybe|probably|might/gi, 'to my knowledge');
-              professionalVersion = professionalVersion.replace(/i think|i believe/gi, 'it is my understanding that');
-            }
-            if (hasEmotion) {
-              professionalVersion = professionalVersion.replace(/terrible|awful/gi, 'concerning');
-              professionalVersion = professionalVersion.replace(/amazing|wonderful/gi, 'notable');
-            }
-            if (hasVague) {
-              professionalVersion = professionalVersion.replace(/around|about/gi, 'approximately');
-            }
-          }
-          
-          return {
-            choices: [{
-              message: {
-                content: JSON.stringify({
-                  isValid: score >= 50,
-                  category,
-                  subcategory,
-                  professionalVersion,
-                  languageIssues,
-                  legalIssues: score < 60 || hasOffensive || hasPersonalAttack ? 
-                    ['May not meet professional legal standards', ...(hasOffensive || hasPersonalAttack ? ['Contains inappropriate content that must be removed'] : [])] : [],
-                  improvements,
-                  confidence: score / 100,
-                  legalStandardScore: Math.max(0, score),
-                  duplicateIndex: null
-                })
-              }
-            }]
-          };
-        } else {
-          // Batch analysis
-          const facts = userMessage.split('\n').filter(line => line.match(/^\d+:/));
-          
-          const batchFacts = facts.map((fact, i) => {
-            const factText = fact.replace(/^\d+:\s*"?(.+?)"?$/, '$1');
-            const hasProblems = /maybe|terrible|kinda|around/i.test(factText);
-            const hasOffensive = /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker)\b/i.test(factText);
-            const hasPersonalAttack = /(hate|despise|loathe|can't stand).*(wife|husband|spouse|ex|mother|father|child)/i.test(factText);
-            
-            let score = 85;
-            const issues = [];
-            const legalIssues = [];
-            
-            if (hasOffensive || hasPersonalAttack) {
-              issues.push('CRITICAL: Inappropriate language detected');
-              legalIssues.push('Contains content inappropriate for legal documents');
-              score = 10; // Very low score for offensive content
-            } else if (hasProblems) {
-              issues.push('Unprofessional language detected');
-              score = 60;
-            }
-            
-            return {
-              isValid: !hasOffensive && !hasPersonalAttack,
-              category: 'general',
-              subcategory: 'other',
-              professionalVersion: hasOffensive || hasPersonalAttack ? 
-                "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE]" : factText,
-              languageIssues: issues,
-              legalIssues,
-              improvements: hasOffensive || hasPersonalAttack ? 
-                ['Remove all inappropriate content and focus on factual information only'] : 
-                hasProblems ? ['Use more professional language'] : ['Consider adding more specific details'],
-              legalStandardScore: score
-            };
-          });
-          
-          const avgScore = batchFacts.reduce((sum, f) => sum + f.legalStandardScore, 0) / batchFacts.length;
-          
-          return {
-            choices: [{
-              message: {
-                content: JSON.stringify({
-                  overallProfessional: avgScore >= 70,
-                  narrativeFlow: 'Facts appear to follow a logical sequence for legal proceedings',
-                  recommendedOrder: facts.map((_, i) => i),
-                  globalIssues: batchFacts.some(f => f.languageIssues.length > 0) ? 
-                    [
-                      ...(batchFacts.some(f => f.languageIssues.some(issue => issue.includes('CRITICAL'))) ? 
-                        ['CRITICAL: Document contains inappropriate content that must be removed before legal use'] : []),
-                      'Some facts contain unprofessional language that should be revised'
-                    ] : [],
-                  professionalSummary: `${facts.length} facts analyzed. Average professional score: ${Math.round(avgScore)}/100`,
-                  facts: batchFacts
-                })
-              }
-            }]
-          };
-        }
-      }
-    }
-  }
+// Environment configuration
+const AUTH0_CONFIG = {
+  domain: process.env.REACT_APP_AUTH0_DOMAIN,
+  clientId: process.env.REACT_APP_AUTH0_CLIENT_ID,
+  authorizationParams: {
+    redirect_uri: window.location.origin,
+    audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+    scope: "openid profile email"
+  },
+  cacheLocation: 'memory',
+  useRefreshTokens: false 
 };
 
-// Enhanced Professional Fact Validation Service
-class EnhancedFactValidationService {
-  constructor(openaiClient, language = 'en') {
-    this.openai = openaiClient;
-    this.language = language;
-  }
-
-  async validateFactProfessional(fact, existingFacts = [], context = {}) {
-    try {
-      const prompt = this.buildProfessionalValidationPrompt(fact, existingFacts, context);
-      
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          { role: "system", content: this.getProfessionalSystemPrompt() },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.1,
-        max_tokens: 800
-      });
-
-      const result = JSON.parse(response.choices[0].message.content);
-      
-      return {
-        ...result,
-        enhancedCategory: this.enhanceCategory(result.category, result.subcategory),
-        professionalRewrite: result.professionalVersion,
-        legalStandard: { overallScore: result.legalStandardScore }
-      };
-      
-    } catch (error) {
-      console.error('Professional fact validation failed:', error);
-      return this.fallbackValidation(fact);
-    }
-  }
-
-  async validateFactsBatchProfessional(facts, context = {}) {
-    try {
-      const prompt = this.buildBatchPrompt(facts, context);
-      
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          { role: "system", content: this.getBatchSystemPrompt() },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.1,
-        max_tokens: 3000
-      });
-
-      const batchResult = JSON.parse(response.choices[0].message.content);
-      
-      return {
-        ...batchResult,
-        readyForCourt: batchResult.facts?.every(f => f.legalStandardScore >= 70) || false,
-        professionalStandard: {
-          averageScore: batchResult.facts?.reduce((sum, f) => sum + (f.legalStandardScore || 50), 0) / (batchResult.facts?.length || 1) || 50,
-          meetsProfessionalStandard: true
-        }
-      };
-      
-    } catch (error) {
-      console.error('Batch validation failed:', error);
-      return { overallProfessional: false, facts: [] };
-    }
-  }
-
-  enhanceCategory(category, subcategory) {
-    const categories = {
-      financial: { name: 'Financial', description: 'Money, assets, income, debts' },
-      property: { name: 'Property', description: 'Real estate, personal property, vehicles' },
-      witness: { name: 'Witness Testimony', description: 'Direct observations, witnessed events' },
-      relational: { name: 'Relationships', description: 'Family, custody, marriage, divorce' },
-      temporal: { name: 'Chronological', description: 'Dates, times, sequences' },
-      general: { name: 'General', description: 'General factual statement' }
-    };
-
-    return {
-      category,
-      subcategory: subcategory || 'general',
-      name: categories[category]?.name || 'General',
-      description: categories[category]?.description || 'General factual statement'
-    };
-  }
-
-  getProfessionalSystemPrompt() {
-    return `You are a legal document expert. Analyze facts for professional legal standards and proper categorization.`;
-  }
-
-  buildProfessionalValidationPrompt(fact, existingFacts, context) {
-    const factText = fact.content || fact;
-    return `ANALYZE THIS FACT FOR LEGAL AFFIDAVIT: "${factText}"
-    
-CONTEXT: ${context.state || 'General'} affidavit for ${context.affiantName || 'client'}
-
-Analyze for professional language, legal standards, and proper categorization. Respond in JSON format.`;
-  }
-
-  buildBatchPrompt(facts, context) {
-    let prompt = `ANALYZE THESE FACTS FOR PROFESSIONAL LEGAL AFFIDAVIT:\n`;
-    facts.forEach((fact, index) => {
-      prompt += `${index}: "${fact.content || fact}"\n`;
-    });
-    prompt += `\nAnalyze for professional standards and respond in JSON format.`;
-    return prompt;
-  }
-
-  getBatchSystemPrompt() {
-    return `Analyze multiple facts for professional legal standards, categorization, and narrative flow.`;
-  }
-
-  fallbackValidation(fact) {
-    return {
-      isValid: true,
-      category: 'general',
-      subcategory: 'other',
-      professionalVersion: fact.content || fact,
-      languageIssues: [],
-      legalIssues: [],
-      improvements: ['Consider professional review'],
-      legalStandardScore: 60,
-      enhancedCategory: this.enhanceCategory('general', 'other')
-    };
-  }
-}
-
-// SaveStatus Component
-const SaveStatus = ({ status, lastSaved, error, onRetry, className = '' }) => {
-  const getStatusDisplay = () => {
-    switch (status) {
-      case 'saving':
-        return (
-          <div className="flex items-center text-blue-600">
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            <span className="text-sm">Saving...</span>
-          </div>
-        );
-      case 'saved':
-        return (
-          <div className="flex items-center text-green-600">
-            <Check className="w-4 h-4 mr-2" />
-            <span className="text-sm">Saved</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center text-red-600">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              <span className="text-sm">Save failed</span>
-            </div>
-            {onRetry && (
-              <button
-                onClick={onRetry}
-                className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Retry
-              </button>
-            )}
-          </div>
-        );
-      default:
-        if (lastSaved) {
-          return (
-            <div className="text-gray-500">
-              <span className="text-sm">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            </div>
-          );
-        }
-        return null;
-    }
-  };
-
-  return (
-    <div className={`transition-all duration-300 ${className}`}>
-      {getStatusDisplay()}
-      {error && status === 'error' && (
-        <div className="mt-1 text-xs text-red-500">{error}</div>
-      )}
-    </div>
-  );
+// Application views/routes
+const APP_VIEWS = {
+  LANDING: 'landing',
+  DASHBOARD: 'dashboard', 
+  EDITOR: 'editor'
 };
 
-// Main Enhanced Test Component
+/**
+ * Main Application Component
+ * 
+ * Provides a clean, elegant architecture with:
+ * - Centralized state management via contexts
+ * - Clear separation of concerns
+ * - Proper error boundaries
+ * - Authentication integration
+ * - Responsive routing system
+ * 
+ * @returns {JSX.Element} Main application
+ */
 const App = () => {
-  // Mock affidavit data with problematic facts for testing
-  const [affidavitData, setAffidavitData] = useState({
-    affiantName: 'John Doe',
-    state: 'TX',
-    caseType: 'Family Law',
-    facts: [
-      { content: 'I live at 123 Main Street, Austin, Texas', category: 'property' },
-      { content: 'I maybe saw the defendant do something terrible to my car', category: 'witness' },
-      { content: 'I paid around $500 for the amazing repair work', category: 'financial' },
-      { content: 'My spouse kinda acted weird during the incident', category: 'relational' }
-    ]
-  });
+  // Application state
+  const [currentView, setCurrentView] = useState(APP_VIEWS.LANDING);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
-  // Save status state
-  const [saveStatus, setSaveStatus] = useState(null);
-  const [lastSaved, setLastSaved] = useState(null);
-  const [saveError, setSaveError] = useState(null);
+  /**
+   * Navigation handlers
+   * Provides clean, predictable navigation between views
+   */
+  const navigationHandlers = useMemo(() => ({
+    /**
+     * Navigate to landing page
+     */
+    goToLanding: () => {
+      setCurrentView(APP_VIEWS.LANDING);
+      setSelectedDocument(null);
+    },
 
-  // Enhanced validation state
-  const [validationResults, setValidationResults] = useState(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [newFact, setNewFact] = useState('');
+    /**
+     * Navigate to dashboard
+     */
+    goToDashboard: () => {
+      setCurrentView(APP_VIEWS.DASHBOARD);
+      setSelectedDocument(null);
+    },
 
-  // Services
-  const [enhancedValidationService] = useState(() => new EnhancedFactValidationService(mockOpenAI, 'en'));
-  const saveTimeoutRef = useRef(null);
+    /**
+     * Navigate to document editor
+     * 
+     * @param {Object|null} document - Document to edit (null for new document)
+     */
+    goToEditor: (document = null) => {
+      setSelectedDocument(document);
+      setCurrentView(APP_VIEWS.EDITOR);
+    },
 
-  // Mock save function
-  const mockSave = async (data) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    if (Math.random() > 0.2) {
-      return { success: true, documentId: 'doc_123' };
-    } else {
-      throw new Error('Network timeout - please check your connection');
-    }
-  };
-
-  // Enhanced save with status
-  const handleSaveWithStatus = async (dataToSave = affidavitData) => {
-    if (saveStatus === 'saving') return;
-
-    setSaveStatus('saving');
-    setSaveError(null);
-
-    try {
-      const result = await mockSave(dataToSave);
-      
-      if (result.success) {
-        setSaveStatus('saved');
-        setLastSaved(new Date());
-        setTimeout(() => setSaveStatus(null), 3000);
-        return result;
-      } else {
-        throw new Error('Save failed');
+    /**
+     * Navigate back from current view
+     */
+    goBack: () => {
+      switch (currentView) {
+        case APP_VIEWS.EDITOR:
+          setCurrentView(APP_VIEWS.DASHBOARD);
+          setSelectedDocument(null);
+          break;
+        case APP_VIEWS.DASHBOARD:
+          setCurrentView(APP_VIEWS.LANDING);
+          break;
+        default:
+          // Already at landing, no action needed
+          break;
       }
-    } catch (error) {
-      setSaveStatus('error');
-      setSaveError(error.message);
-      console.error('Save failed:', error);
     }
-  };
+  }), [currentView]);
 
-  // Auto-save when data changes
-  useEffect(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+  /**
+   * Enhanced OpenAI client configuration
+   * In production, you would initialize your actual OpenAI client here
+   */
+  const openaiClient = useMemo(() => {
+    // For development/testing, we'll use a mock client
+    // In production, replace this with your actual OpenAI client initialization
+    if (process.env.NODE_ENV === 'development') {
+      return {
+        chat: {
+          completions: {
+            create: async ({ messages }) => {
+              // Mock implementation for development
+              console.log('Mock OpenAI call:', messages);
+              
+              // Simulate API delay
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Return mock response based on the enhanced validation logic
+              return {
+                choices: [{
+                  message: {
+                    content: JSON.stringify({
+                      isValid: true,
+                      category: 'general',
+                      subcategory: 'other',
+                      professionalVersion: 'Mock professional version of the fact',
+                      languageIssues: [],
+                      legalIssues: [],
+                      improvements: ['Mock improvement suggestion'],
+                      confidence: 0.85,
+                      legalStandardScore: 75,
+                      duplicateIndex: null
+                    })
+                  }
+                }]
+              };
+            }
+          }
+        }
+      };
     }
 
-    saveTimeoutRef.current = setTimeout(() => {
-      handleSaveWithStatus();
-    }, 2000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [affidavitData]);
-
-  // Data update handler
-  const handleDataUpdate = (updates) => {
-    setAffidavitData(prev => ({ ...prev, ...updates }));
-  };
-
-  // Add fact
-  const addFact = () => {
-    if (newFact.trim()) {
-      const newFacts = [...affidavitData.facts, { content: newFact.trim(), category: 'general' }];
-      handleDataUpdate({ facts: newFacts });
-      setNewFact('');
-    }
-  };
-
-  // Remove fact
-  const removeFact = (index) => {
-    const newFacts = affidavitData.facts.filter((_, i) => i !== index);
-    handleDataUpdate({ facts: newFacts });
-  };
-
-  // Enhanced single fact validation
-  const validateSingleFact = async (fact, index) => {
-    try {
-      setIsValidating(true);
-      const result = await enhancedValidationService.validateFactProfessional(fact, affidavitData.facts, {
-        state: affidavitData.state,
-        affiantName: affidavitData.affiantName,
-        caseType: affidavitData.caseType
-      });
-      
-      setValidationResults(prev => ({
-        ...prev,
-        individual: { ...prev?.individual, [index]: result }
-      }));
-    } catch (error) {
-      console.error('Enhanced validation failed:', error);
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  // Enhanced batch validation
-  const validateAllFacts = async () => {
-    try {
-      setIsValidating(true);
-      const result = await enhancedValidationService.validateFactsBatchProfessional(affidavitData.facts, {
-        state: affidavitData.state,
-        documentType: 'affidavit',
-        affiantName: affidavitData.affiantName,
-        caseType: affidavitData.caseType
-      });
-      
-      setValidationResults({ batch: result, individual: validationResults?.individual || {} });
-    } catch (error) {
-      console.error('Enhanced batch validation failed:', error);
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const getFactValidationStatus = (index) => {
-    const individual = validationResults?.individual?.[index];
-    if (!individual) return null;
+    // Production OpenAI client initialization
+    // Uncomment and configure for production use:
+    /*
+    return new OpenAI({
+      apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true // Only for client-side usage
+    });
+    */
     
-    if (!individual.isValid || individual.legalStandardScore < 50) return 'error';
-    if (individual.languageIssues?.length > 0 || individual.legalStandardScore < 80) return 'warning';
-    return 'success';
-  };
+    return null; // No client in production until properly configured
+  }, []);
 
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  /**
+   * Document validation options
+   */
+  const validationOptions = useMemo(() => ({
+    openaiClient,
+    language: 'en', // Could be dynamic based on user preference
+    enableProfessionalValidation: true,
+    enableInappropriateContentDetection: true
+  }), [openaiClient]);
 
+  /**
+   * Document save options
+   */
+  const saveOptions = useMemo(() => ({
+    autoSaveDelay: 2000, // 2 seconds
+    enableAutoSave: true,
+    maxRetries: 3,
+    retryDelay: 1000
+  }), []);
+
+  /**
+   * Render the appropriate view based on current application state
+   * 
+   * @returns {JSX.Element} Current view component
+   */
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case APP_VIEWS.LANDING:
+        return (
+          <LandingPage 
+            onGetStarted={navigationHandlers.goToDashboard}
+          />
+        );
+
+      case APP_VIEWS.DASHBOARD:
+        return (
+          <UserDashboard
+            onNewDocument={navigationHandlers.goToEditor}
+            onContinueDocument={navigationHandlers.goToEditor}
+          />
+        );
+
+      case APP_VIEWS.EDITOR:
+        return (
+          <DocumentProvider
+            initialDocument={selectedDocument}
+            validationOptions={validationOptions}
+            saveOptions={saveOptions}
+          >
+            <EditorView  // Using the refactored version
+              existingDocument={selectedDocument}
+              onNavigate={navigationHandlers}
+            />
+          </DocumentProvider>
+        );
+    }
+  };
+      
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Award className="w-8 h-8 mr-3 text-purple-600" />
-                Enhanced Professional Validation Test
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Test Enhanced Professional Fact Validation with legal language standards
-              </p>
-            </div>
-            
-            {/* Save Status Display */}
-            <div className="text-right">
-              <SaveStatus 
-                status={saveStatus}
-                lastSaved={lastSaved}
-                error={saveError}
-                onRetry={() => handleSaveWithStatus()}
-              />
-            </div>
-          </div>
+    <ErrorBoundary>
+      <Auth0Provider {...AUTH0_CONFIG}>
+        <div className="App min-h-screen bg-gray-50">
+          {renderCurrentView()}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Left Column - Document Data */}
-          <div className="space-y-6">
-            
-            {/* Affidavit Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Mock Affidavit Data</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Affiant Name</label>
-                  <input
-                    type="text"
-                    value={affidavitData.affiantName}
-                    onChange={(e) => handleDataUpdate({ affiantName: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                  <select
-                    value={affidavitData.state}
-                    onChange={(e) => handleDataUpdate({ state: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="TX">Texas</option>
-                    <option value="UT">Utah</option>
-                    <option value="AZ">Arizona</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Case Type</label>
-                  <select
-                    value={affidavitData.caseType}
-                    onChange={(e) => handleDataUpdate({ caseType: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="Family Law">Family Law</option>
-                    <option value="Civil">Civil</option>
-                    <option value="Criminal">Criminal</option>
-                    <option value="Probate">Probate</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Save Controls */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Save Status Testing</h2>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleSaveWithStatus()}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-                  disabled={saveStatus === 'saving'}
-                >
-                  <Save className="w-4 h-4 inline mr-2" />
-                  Manual Save Test
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setSaveStatus('error');
-                    setSaveError('Mock error for testing - database connection failed');
-                  }}
-                  className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                  Simulate Save Error
-                </button>
-
-                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                  <strong>Auto-save:</strong> Changes are automatically saved 2 seconds after editing.
-                  Watch the save status in the header!
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column - Enhanced Facts Management */}
-          <div className="space-y-6">
-            
-            {/* Add New Fact */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Professional Facts Testing</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add Test Fact</label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={newFact}
-                      onChange={(e) => setNewFact(e.target.value)}
-                      className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Try: 'I maybe think the defendant acted terrible'"
-                      onKeyPress={(e) => e.key === 'Enter' && addFact()}
-                    />
-                    <button
-                      onClick={addFact}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Try problematic language: "maybe", "terrible", "kinda", "around $500", "amazing"
-                  </p>
-                </div>
-
-                <button
-                  onClick={validateAllFacts}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-                  disabled={isValidating || affidavitData.facts.length === 0}
-                >
-                  {isValidating ? 'Analyzing Professional Standards...' : 'Professional Validation (Enhanced LLM)'}
-                </button>
-              </div>
-            </div>
-
-            {/* Enhanced Facts List */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Facts with Professional Analysis</h3>
-              
-              <div className="space-y-4">
-                {affidavitData.facts.map((fact, index) => {
-                  const status = getFactValidationStatus(index);
-                  const individual = validationResults?.individual?.[index];
-                  const statusColors = {
-                    error: 'border-red-300 bg-red-50',
-                    warning: 'border-yellow-300 bg-yellow-50',
-                    success: 'border-green-300 bg-green-50'
-                  };
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`p-4 border rounded-lg ${status ? statusColors[status] : 'border-gray-300'} ${
-                        individual?.languageIssues?.some(issue => issue.includes('CRITICAL')) ? 'border-red-500 bg-red-100' : ''
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded">
-                            {individual?.enhancedCategory?.name || fact.category || 'General'}
-                          </span>
-                          {individual?.legalStandardScore && (
-                            <span className={`text-xs font-bold ${getScoreColor(individual.legalStandardScore)}`}>
-                              {individual.legalStandardScore}/100
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => validateSingleFact(fact, index)}
-                            className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
-                            disabled={isValidating}
-                          >
-                            Analyze
-                          </button>
-                          <button
-                            onClick={() => removeFact(index)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm text-gray-800 mb-3 p-2 bg-gray-50 rounded">
-                        <strong>Original:</strong> "{fact.content}"
-                      </div>
-
-                      {/* Professional Analysis Results */}
-                      {individual && (
-                        <div className="space-y-3">
-                          {/* Professional Rewrite */}
-                          {individual.professionalRewrite && individual.professionalRewrite !== fact.content && (
-                            <div className="text-sm p-2 bg-green-50 border border-green-200 rounded">
-                              <strong className="text-green-800">Professional Version:</strong>
-                              <div className="mt-1 text-green-700">"{individual.professionalRewrite}"</div>
-                            </div>
-                          )}
-
-                          {/* Language Issues */}
-                          {individual.languageIssues?.length > 0 && (
-                            <div className="text-xs space-y-1">
-                              <strong className={individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800' : 'text-red-600'}>
-                                {individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? '🚨 CRITICAL Language Issues:' : 'Language Issues:'}
-                              </strong>
-                              {individual.languageIssues.map((issue, i) => (
-                                <div key={i} className={individual.languageIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800 font-bold' : 'text-red-600'}>
-                                  {issue.includes('CRITICAL') ? '🚨' : '❌'} {issue}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Legal Issues */}
-                          {individual.legalIssues?.length > 0 && (
-                            <div className="text-xs space-y-1">
-                              <strong className="text-orange-600">Legal Concerns:</strong>
-                              {individual.legalIssues.map((issue, i) => (
-                                <div key={i} className="text-orange-600">⚖️ {issue}</div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Improvements */}
-                          {individual.improvements?.length > 0 && (
-                            <div className="text-xs space-y-1">
-                              <strong className="text-blue-600">Suggestions:</strong>
-                              {individual.improvements.map((improvement, i) => (
-                                <div key={i} className="text-blue-600">💡 {improvement}</div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Enhanced Batch Validation Results */}
-        {validationResults?.batch && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Award className="w-5 h-5 mr-2 text-purple-600" />
-              Professional Standards Assessment
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-purple-800 font-semibold">Overall Professional</div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {validationResults.batch.overallProfessional ? '✅ Yes' : '❌ No'}
-                </div>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-blue-800 font-semibold">Average Score</div>
-                <div className={`text-2xl font-bold ${getScoreColor(validationResults.batch.professionalStandard?.averageScore || 0)}`}>
-                  {Math.round(validationResults.batch.professionalStandard?.averageScore || 0)}/100
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-green-800 font-semibold">Court Ready</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {validationResults.batch.readyForCourt ? '⚖️ Yes' : '📝 Needs Work'}
-                </div>
-              </div>
-            </div>
-
-            {validationResults.batch.professionalSummary && (
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <strong>Professional Summary:</strong> {validationResults.batch.professionalSummary}
-              </div>
-            )}
-
-            {validationResults.batch.narrativeFlow && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <strong>Narrative Flow:</strong> {validationResults.batch.narrativeFlow}
-              </div>
-            )}
-
-            {validationResults.batch.globalIssues?.length > 0 && (
-              <div className={`p-4 rounded-lg mb-4 ${
-                validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? 
-                'bg-red-100 border border-red-300' : 'bg-yellow-50'
-              }`}>
-                <strong className={validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? 'text-red-800' : 'text-yellow-800'}>
-                  {validationResults.batch.globalIssues.some(issue => issue.includes('CRITICAL')) ? '🚨 CRITICAL Issues:' : 'Global Issues:'}
-                </strong>
-                <div className="mt-2 space-y-1">
-                  {validationResults.batch.globalIssues.map((issue, i) => (
-                    <div key={i} className={issue.includes('CRITICAL') ? 'text-red-800 font-bold' : 'text-yellow-700'}>
-                      {issue.includes('CRITICAL') ? '🚨' : '⚠️'} {issue}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {validationResults.batch.recommendedOrder && (
-              <div className="bg-indigo-50 p-4 rounded-lg">
-                <strong className="text-indigo-800">Recommended Fact Order:</strong>
-                <div className="mt-2 text-indigo-700">
-                  Facts should be ordered: {validationResults.batch.recommendedOrder.map(i => i + 1).join(' → ')}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Comparison with Basic Validation */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-purple-800 mb-4">
-            🆚 Enhanced vs Basic Validation Comparison
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-red-50 border border-red-200 rounded p-4">
-              <h4 className="font-semibold text-red-800 mb-2">❌ Basic Validation (Current)</h4>
-              <ul className="text-sm text-red-700 space-y-1">
-                <li>• Simple keyword categorization</li>
-                <li>• No professional language checking</li>
-                <li>• No legal standard assessment</li>
-                <li>• Basic duplicate detection</li>
-                <li>• 8 basic categories</li>
-                <li>• No rewriting suggestions</li>
-              </ul>
-            </div>
-            
-            <div className="bg-green-50 border border-green-200 rounded p-4">
-              <h4 className="font-semibold text-green-800 mb-2">✅ Enhanced Professional Validation</h4>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>• 9 categories with subcategories</li>
-                <li>• Professional language analysis</li>
-                <li>• Legal standard scoring (0-100)</li>
-                <li>• Court-readiness assessment</li>
-                <li>• Professional fact rewriting</li>
-                <li>• Narrative flow analysis</li>
-                <li>• Legal admissibility checking</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Test Results */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-green-800 mb-4">Enhanced Validation Test Checklist</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Professional language issues detected</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Legal standard scoring works (0-100)</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Professional rewrites are better</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Category/subcategory assignment</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Batch analysis works properly</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Court-ready assessment accurate</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Performance acceptable (~2 seconds)</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input type="checkbox" />
-              <span>✅ Save status integration works</span>
-            </label>
-          </div>
-
-          <div className="mt-6 p-4 bg-green-100 rounded border border-green-300">
-            <div className="flex items-start space-x-3">
-              <div className="text-green-600 text-2xl">🎯</div>
-              <div>
-                <p className="text-green-800 font-medium mb-2">Ready for Integration!</p>
-                <p className="text-green-700 text-sm">
-                  Once you've tested both SaveStatus and Enhanced Professional Validation and confirmed they work correctly, 
-                  let me know and I'll provide the refactored drop-in files for your main application!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Integration Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">🔗 Integration Notes</h3>
-          
-          <div className="space-y-4 text-sm">
-            <div>
-              <strong className="text-blue-800">For Your Real App:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Replace mockOpenAI with your actual OpenAI client</li>
-                <li>• Choose Enhanced over Basic validation service</li>
-                <li>• Professional scoring helps determine when facts are court-ready</li>
-                <li>• Professional rewrites can be auto-applied or suggested to users</li>
-              </ul>
-            </div>
-            
-            <div>
-              <strong className="text-blue-800">Performance Considerations:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Enhanced validation takes ~2 seconds (vs 1 second for basic)</li>
-                <li>• Worth it for professional legal documents</li>
-                <li>• Can implement "quick check" for real-time feedback</li>
-                <li>• Batch validation is more efficient for multiple facts</li>
-              </ul>
-            </div>
-
-            <div>
-              <strong className="text-blue-800">Next Steps:</strong>
-              <ul className="mt-2 space-y-1 text-blue-700 ml-4">
-                <li>• Test this standalone tool thoroughly</li>
-                <li>• Verify save status feedback works correctly</li>
-                <li>• Check professional validation catches language issues</li>
-                <li>• Confirm performance is acceptable for your use case</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Service Comparison */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Service Options Summary</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-4 rounded border">
-              <h4 className="font-semibold text-blue-600 mb-2">Basic LLM Validation Service</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Faster (~1 second)</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Simpler implementation</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Good for testing</div>
-                <div className="flex items-center"><span className="text-yellow-600 mr-2">~</span>Basic categorization</div>
-                <div className="flex items-center"><span className="text-red-600 mr-2">✗</span>No professional standards</div>
-                <div className="flex items-center"><span className="text-red-600 mr-2">✗</span>No legal scoring</div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded border border-purple-300">
-              <h4 className="font-semibold text-purple-600 mb-2">Enhanced Professional Validation Service</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Professional legal standards</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Legal scoring (0-100)</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Court-readiness assessment</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>Professional rewrites</div>
-                <div className="flex items-center"><span className="text-green-600 mr-2">✓</span>9 categories + subcategories</div>
-                <div className="flex items-center"><span className="text-yellow-600 mr-2">~</span>Slower (~2 seconds)</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-center">
-            <p className="text-gray-600 text-sm">
-              <strong>Recommendation:</strong> Use Enhanced Professional Validation for production affidavits that need to meet legal standards.
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </div>
+      </Auth0Provider>
+    </ErrorBoundary>
   );
 };
-
 export default App;
-          

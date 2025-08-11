@@ -1,436 +1,305 @@
-// client/src/components/ChatInterface.js - Complete Fixed Implementation
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, AlertCircle, RefreshCw, CheckCircle, Save, Clock } from 'lucide-react';
+// client/src/components/ChatInterface.js - Debug Version with Logging
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-
-const ChatInterface = ({ 
-  affidavitData, 
-  onDataUpdate, 
-  onSaveSession, 
-  documentComplete,
-  onDocumentComplete,
-  validation,
-  onValidationUpdate
-}) => {
-  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, user } = useAuth0();
-  
-  // Initialize messages based on whether user has existing data
-  const [messages, setMessages] = useState([{
-    id: 1,
-    type: 'bot',
-    content: affidavitData?.affiantName 
-      ? "Welcome back! I see you were working on an affidavit. Let's continue where you left off."
-      : "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
-  }]);
-  
-  const [input, setInput] = useState('');
+const ChatInterface = ({ affidavitData, onDataUpdate }) => {
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      content: "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessage, setStreamingMessage] = useState('');
   const [error, setError] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null);
-  
   const messagesEndRef = useRef(null);
-  const textareaRef = useRef(null);
-  const saveTimeoutRef = useRef(null);
+  const { getAccessTokenSilently } = useAuth0();
 
-  // Auto-scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
+  // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingMessage, scrollToBottom]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // Auto-resize textarea
+  // Debug logging for props
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
-    }
-  }, [input]);
-
-  // Auto-save functionality
-  useEffect(() => {
-    if (isAuthenticated && (affidavitData?.affiantName || affidavitData?.state || (affidavitData?.facts && affidavitData.facts.length > 0))) {
-      // Clear existing timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      
-      // Set new timeout for auto-save (3 seconds after last change)
-      saveTimeoutRef.current = setTimeout(() => {
-        handleAutoSave();
-      }, 3000);
-    }
-    
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [affidavitData, isAuthenticated]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleAutoSave = async () => {
-    if (!isAuthenticated || isSaving || !onSaveSession) return;
-    
-    try {
-      setIsSaving(true);
-      await onSaveSession();
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    console.log('🔍 ChatInterface: Props received:', {
+      affidavitData,
+      onDataUpdateExists: !!onDataUpdate
+    });
+  }, [affidavitData, onDataUpdate]);
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    if (!isAuthenticated) {
-      const authPrompt = {
-        id: Date.now(),
-        type: 'bot',
-        content: "Please sign in to continue our conversation and save your progress.",
-        action: 'auth_required'
-      };
-      setMessages(prev => [...prev, authPrompt]);
-      setTimeout(() => {
-        loginWithRedirect({ appState: { returnTo: window.location.pathname } });
-      }, 1500);
+    if (!inputMessage.trim() || isLoading) {
+      console.log('🔍 ChatInterface: Message send blocked:', {
+        messageEmpty: !inputMessage.trim(),
+        isLoading
+      });
       return;
     }
 
-    const userMessage = { 
-      id: Date.now(), 
-      type: 'user', 
-      content: input.trim() 
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    const messageToSend = input.trim();
-    setInput('');
-    setIsLoading(true);
+    const messageToSend = inputMessage.trim();
     setError(null);
-    setStreamingMessage('');
+    setIsLoading(true);
+
+    console.log('🔍 ChatInterface: Starting to send message:', messageToSend);
+
+    // Add user message to chat immediately
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: messageToSend
+    };
+
+    console.log('🔍 ChatInterface: Adding user message to chat');
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      console.log('🔍 ChatInterface: Messages after adding user message:', updated);
+      return updated;
+    });
+
+    setInputMessage('');
 
     try {
-      // Fixed token request with proper configuration
-      const token = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: "openid profile email"
-        },
-        cacheMode: 'on',
-        timeoutInSeconds: 30
+      console.log('🔍 ChatInterface: Getting auth token...');
+      const token = await getAccessTokenSilently();
+      console.log('🔍 ChatInterface: Auth token obtained');
+
+      const requestData = {
+        message: messageToSend,
+        conversationHistory: messages,
+        currentData: affidavitData || {}
+      };
+
+      console.log('🔍 ChatInterface: Sending request:', {
+        url: '/api/chat',
+        messageLength: messageToSend.length,
+        historyLength: messages.length,
+        currentData: affidavitData,
+        requestData
       });
-      
-      // Create proper fetch request for SSE
-      const response = await fetch(`${API_BASE}/api/chat`, {
+
+      const response = await fetch('http://localhost:3001/api/chat', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
+        headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'Accept': 'text/event-stream',
           'Cache-Control': 'no-cache'
         },
-        body: JSON.stringify({
-          message: messageToSend,
-          conversationHistory: messages.slice(-10),
-          currentData: affidavitData,
-          documentId: affidavitData?.documentId
-        })
+        body: JSON.stringify(requestData)
+      });
+
+      console.log('🔍 ChatInterface: Raw response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication expired. Please sign in again.');
-        }
+        const errorText = await response.text();
+        console.error('🔍 ChatInterface: Response not ok:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Process SSE stream
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let accumulatedResponse = '';
+      const data = await response.json();
+      console.log('🔍 ChatInterface: Parsed response data:', data);
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      if (data.success && data.data) {
+        console.log('🔍 ChatInterface: Response successful, processing data:', {
+          hasResponse: !!data.data.response,
+          responseLength: data.data.response?.length || 0,
+          responsePreview: data.data.response?.substring(0, 100) + '...',
+          hasAffidavitData: !!data.data.affidavitData,
+          affidavitData: data.data.affidavitData,
+          hasNewFacts: !!(data.data.newFacts && data.data.newFacts.length > 0),
+          newFactsCount: data.data.newFacts?.length || 0,
+          hasSuggestions: !!(data.data.suggestions && data.data.suggestions.length > 0)
+        });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        // Add bot response to chat
+        if (data.data.response) {
+          const botMessage = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: data.data.response
+          };
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.type === 'connected') {
-                continue;
-              } else if (data.type === 'token') {
-                accumulatedResponse += data.content;
-                setStreamingMessage(accumulatedResponse);
-              } else if (data.type === 'data') {
-                if (data.affidavitData && onDataUpdate) {
-                  onDataUpdate(data.affidavitData);
-                }
-              } else if (data.type === 'complete' || data.type === 'done') {
-                const botMessage = {
-                  id: Date.now() + 1,
-                  type: 'bot',
-                  content: data.content || accumulatedResponse
-                };
-                
-                setMessages(prev => [...prev, botMessage]);
-                setStreamingMessage('');
-                
-                if (data.affidavitData && onDataUpdate) {
-                  onDataUpdate(data.affidavitData);
-                }
-              } else if (data.type === 'error') {
-                throw new Error(data.error || 'An error occurred');
-              }
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError, 'Line:', line);
-            }
-          }
+          console.log('🔍 ChatInterface: Adding bot message to chat:', botMessage);
+          setMessages(prev => {
+            const updated = [...prev, botMessage];
+            console.log('🔍 ChatInterface: Messages after adding bot message:', updated);
+            return updated;
+          });
+        } else {
+          console.warn('🔍 ChatInterface: No response content in data');
         }
+
+        // Update affidavit data if provided
+        if (data.data.affidavitData && Object.keys(data.data.affidavitData).length > 0) {
+          console.log('🔍 ChatInterface: Updating affidavit data:', {
+            oldData: affidavitData,
+            newData: data.data.affidavitData,
+            onDataUpdateExists: !!onDataUpdate
+          });
+
+          if (onDataUpdate) {
+            onDataUpdate(data.data.affidavitData);
+            console.log('🔍 ChatInterface: Called onDataUpdate with new data');
+          } else {
+            console.error('🔍 ChatInterface: onDataUpdate function not provided!');
+          }
+        } else {
+          console.log('🔍 ChatInterface: No affidavit data to update');
+        }
+
+        // Handle new facts
+        if (data.data.newFacts && data.data.newFacts.length > 0) {
+          console.log('🔍 ChatInterface: New facts received:', data.data.newFacts);
+        }
+
+        // Handle suggestions
+        if (data.data.suggestions && data.data.suggestions.length > 0) {
+          console.log('🔍 ChatInterface: Suggestions received:', data.data.suggestions);
+        }
+
+      } else {
+        console.error('🔍 ChatInterface: Response not successful:', data);
+        throw new Error(data.error || 'Unknown error occurred');
       }
 
     } catch (error) {
-      console.error('Chat error:', error);
-      setStreamingMessage('');
-      setError(error.message);
+      console.error('🔍 ChatInterface: Error in handleSendMessage:', {
+        error: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       
-      let errorMessage = "I'm having trouble connecting right now. Please try again.";
-      let shouldRetry = true;
+      setError(`Chat error: ${error.message}`);
       
-      if (error.message.includes('Authentication') || error.message.includes('401')) {
-        errorMessage = "Your session has expired. Please sign in again.";
-        shouldRetry = false;
-        setTimeout(() => {
-          loginWithRedirect({ appState: { returnTo: window.location.pathname } });
-        }, 2000);
-      } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-        errorMessage = "Network connection issue. Please check your internet and try again.";
-      } else if (error.message.includes('rate limit')) {
-        errorMessage = "AI service is busy. Please try again in a moment.";
-      }
-      
-      const errorBotMessage = {
-        id: Date.now() + 1,
+      // Add error message to chat
+      const errorMessage = {
+        id: Date.now() + 2,
         type: 'bot',
-        content: errorMessage,
-        error: true,
-        retryMessage: shouldRetry ? messageToSend : null
+        content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
+        isError: true
       };
-      setMessages(prev => [...prev, errorBotMessage]);
+      
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      console.log('🔍 ChatInterface: Message sending completed');
     }
   };
 
-  const handleRetry = async (retryMessage) => {
-    setInput(retryMessage);
-    setTimeout(() => {
-      handleSendMessage();
-    }, 100);
-  };
-
-  const handleKeyDown = (e) => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  const getCompletionPercentage = () => {
-    if (!affidavitData) return 0;
-    
-    const requiredFields = ['affiantName', 'state', 'facts'];
-    const completedFields = requiredFields.filter(field => {
-      const value = affidavitData[field];
-      return value && (Array.isArray(value) ? value.length > 0 : value.trim && value.trim().length > 0);
-    });
-    
-    return Math.round((completedFields.length / requiredFields.length) * 100);
-  };
-
-  const isDocumentReady = () => {
-    return !!(
-      affidavitData?.affiantName &&
-      affidavitData?.state &&
-      affidavitData?.facts &&
-      affidavitData.facts.length > 0
-    );
-  };
+  // Debug render logging
+  console.log('🔍 ChatInterface: Rendering with state:', {
+    messagesCount: messages.length,
+    isLoading,
+    hasError: !!error,
+    inputMessage: inputMessage.substring(0, 50),
+    affidavitDataKeys: Object.keys(affidavitData || {})
+  });
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header with Status */}
-      <div className="px-4 py-3 border-b bg-gray-50 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-900">AI Assistant</h3>
-          
-          <div className="flex items-center space-x-3 text-xs">
-            {/* Save status */}
-            {isAuthenticated && (isSaving ? (
-              <div className="flex items-center text-blue-600">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                Saving...
-              </div>
-            ) : lastSaved ? (
-              <div className="flex items-center text-green-600">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Saved {lastSaved.toLocaleTimeString()}
-              </div>
-            ) : null)}
-            
-            {/* Document ready indicator */}
-            {isDocumentReady() && (
-              <div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Ready to generate
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Progress bar */}
-        {affidavitData && (
-          <div className="mt-3">
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div 
-                className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${getCompletionPercentage()}%` }}
-              />
-            </div>
-          </div>
-        )}
-        
-        {/* Error display */}
+    <div className="flex flex-col h-full bg-white">
+      {/* Header */}
+      <div className="p-4 border-b bg-gray-50">
+        <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
+        <p className="text-sm text-gray-600">Ask questions to build your affidavit</p>
         {error && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-              <span className="text-sm text-red-700">{error}</span>
-            </div>
+          <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-red-700 text-sm">
+            {error}
           </div>
         )}
       </div>
-      
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className="max-w-xs lg:max-w-md">
-              <div
-                className={`px-4 py-2 rounded-lg ${
-                  message.type === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : message.error
-                    ? 'bg-red-50 text-red-900 border border-red-200'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                {message.content}
-              </div>
-              
-              {/* Retry button for errors */}
-              {message.error && message.retryMessage && (
-                <button
-                  onClick={() => handleRetry(message.retryMessage)}
-                  className="mt-2 flex items-center text-sm text-red-600 hover:text-red-800"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Try again
-                </button>
-              )}
-              
-              {/* Auth prompt */}
-              {message.action === 'auth_required' && (
-                <button
-                  onClick={() => loginWithRedirect()}
-                  className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Sign In to Continue
-                </button>
-              )}
+            <div
+              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                message.type === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : message.isError
+                  ? 'bg-red-100 text-red-800 border border-red-200'
+                  : 'bg-gray-100 text-gray-900'
+              }`}
+            >
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
             </div>
           </div>
         ))}
         
-        {/* Streaming message */}
-        {streamingMessage && (
+        {isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900">
-              {streamingMessage}
-              <span className="animate-pulse">|</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Loading indicator */}
-        {isLoading && !streamingMessage && (
-          <div className="flex justify-start">
-            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100 text-gray-900 flex items-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Thinking...
+            <div className="bg-gray-100 rounded-lg px-4 py-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
             </div>
           </div>
         )}
         
         <div ref={messagesEndRef} />
       </div>
-      
-      {/* Input Area */}
-      <div className="p-4 border-t bg-white flex-shrink-0">
-        <div className="flex space-x-3">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isAuthenticated ? 
-              "Type your response..." : "Sign in to continue..."}
-            disabled={isLoading || !isAuthenticated}
-            className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-            rows="1"
+
+      {/* Input */}
+      <div className="p-4 border-t bg-gray-50">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            disabled={isLoading}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
           />
           <button
             onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading || !isAuthenticated}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            disabled={isLoading || !inputMessage.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? 'Sending...' : 'Send'}
           </button>
         </div>
-        
-        {!isAuthenticated && (
-          <p className="mt-2 text-xs text-gray-500 text-center">
-            Sign in to save your progress and generate documents
-          </p>
-        )}
       </div>
+
+      {/* Debug Info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="p-2 bg-yellow-50 border-t text-xs text-gray-600">
+          <details>
+            <summary>Debug Info (click to expand)</summary>
+            <pre className="mt-2 whitespace-pre-wrap">
+              {JSON.stringify({
+                messagesCount: messages.length,
+                lastMessage: messages[messages.length - 1],
+                affidavitData,
+                isLoading,
+                error
+              }, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
     </div>
   );
 };

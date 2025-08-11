@@ -136,3 +136,4 @@ dist
 .pnp.*
 repomix-output.xml
 repomix-output.xml
+auto-fix.sh

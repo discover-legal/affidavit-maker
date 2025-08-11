@@ -507,4 +507,4 @@ Format response as JSON with keys: professionalRewrite, legalIssues, languageIss
   }
 }
 
-module.exports = EnhancedFactValidationService;
+export default EnhancedFactValidationService;

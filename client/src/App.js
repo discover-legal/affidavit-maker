@@ -6,6 +6,7 @@ import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';  
 import EditorView from './views/EditorView'; 
 import ErrorBoundary from './components/ErrorBoundary';
+import AffidavitForm from '/components/AffidavitForm'
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -16,7 +17,7 @@ const AUTH0_CONFIG = {
     audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     scope: "openid profile email"
   },
-  cacheLocation: 'memory',
+  cacheLocation: 'memory',  
   useRefreshTokens: false 
 };
 

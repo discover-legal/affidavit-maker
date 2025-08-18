@@ -1,4 +1,4 @@
-// server.js - Fixed version
+// server.js - Fixed version with proper imports
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,11 +10,11 @@ const compression = require('compression');
 // Load environment variables
 require('dotenv').config();
 
-// Import services
+// Import services - FIXED: Added missing imports
 const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
+const AffidavitService = require('./affidavitService'); // FIXED: Added this line
 const logger = require('./services/logger');
-
 
 // Import middleware
 const { errorMiddleware } = require('./middleware/errorMiddleware');
@@ -79,14 +79,27 @@ app.use(morgan('combined', {
   skip: (req, res) => res.statusCode < 400
 }));
 
-// Create singleton instances of services
+// Create singleton instances of services - FIXED: Proper service initialization
 const { StateTemplateManager } = require('./templates/StateTemplateManager');
+const OpenAI = require('openai'); // Import OpenAI client
+
+// Create services in correct order to avoid dependency issues
+// First create OpenAI client
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Then create services that depend on it
+const openAIService = new ResilientOpenAIService(openaiClient); // FIXED: Pass OpenAI client
 const templateManager = new StateTemplateManager();
-const affidavitService = new AffidavitService();
+const affidavitService = new AffidavitService(); // Now this will work
+
+// Make openAIService available globally for services that need it
+global.openAIService = openAIService;
 
 // Add services to app locals for easy access in routes
 app.locals.dbService = dbService;
-app.locals.openAIService = openAIService;
+app.locals.openAIService = openAIService; // FIXED: Now properly defined
 app.locals.affidavitService = affidavitService;
 app.locals.templateManager = templateManager;
 app.locals.logger = logger;
@@ -100,7 +113,7 @@ app.get('/health', (req, res) => {
       database: dbService ? 'OK' : 'Not Connected',
       templates: templateManager ? 'OK' : 'Not Initialized',
       auth: process.env.AUTH0_DOMAIN ? 'OK' : 'Not Configured',
-      stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Configured'
+      stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Connected'
     }
   });
 });
@@ -133,6 +146,13 @@ try {
   app.use('/api/payment', paymentRouter);
 } catch (err) {
   logger.warn('Payment routes not loaded', { error: err.message });
+}
+
+try {
+  const templatesRouter = require('./routes/templates');
+  app.use('/api/templates', templatesRouter);
+} catch (err) {
+  logger.warn('Templates routes not loaded', { error: err.message });
 }
 
 // Serve static files in production

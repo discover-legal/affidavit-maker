@@ -6,7 +6,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 class AffidavitService {
-  constructor() {
+  constructor(templateManager) {
     // Constants for stability
     this.constants = {
       MAX_TOKENS: 4000,
@@ -22,7 +22,8 @@ class AffidavitService {
     this.initializeServices();
     this.conversationCache = new Map();
     this.processingQueue = new Map();
-    
+    this.templateManager = new StateTemplateManager();
+
     // Cleanup cache periodically
     setInterval(() => this.cleanupCache(), 5 * 60 * 1000); // Every 5 minutes
   }
@@ -32,10 +33,7 @@ class AffidavitService {
     try {
       // Instead of creating a new instance, get it from server.js
       this.openAIService = global.openAIService || new ResilientOpenAIService();
-      
-      // Do NOT create a new template manager
-      // this.templateManager = new StateTemplateManager();
-      
+           
       // Ensure documents directory exists
       this.ensureDirectoryExists('./documents').catch(err => {
         logger.error('Failed to create documents directory', { error: err.message });

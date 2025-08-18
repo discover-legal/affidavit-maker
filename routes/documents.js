@@ -1,361 +1,267 @@
-// routes/documents.js - Document Routes with SQL Protection
+// routes/documents.js - Complete drop-in with LLM validation
 const express = require('express');
 const router = express.Router();
-
-const logger = require('../utils/logger');
-const { asyncHandler, NotFoundError, AuthorizationError } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
-const { 
-  validateDocumentSave, 
-  validateAffidavitData, 
-  validateId, 
-  validatePagination 
-} = require('../middleware/validation');
-const { strictLimiter, pdfLimiter } = require('../middleware/rateLimiting');
-const { escapeIdentifier, escapeLike } = require('../config/database');
+const { asyncHandler } = require('../middleware/errorMiddleware');
+const { createRouteRateLimiter } = require('../middleware/rateLimitingMiddleware');
+const logger = require('../services/logger');
 
-/**
- * Helper function to safely build ORDER BY clause
- */
-const buildOrderByClause = (sort = 'created_at', order = 'DESC') => {
-  const allowedSortFields = ['created_at', 'updated_at', 'title', 'status'];
-  const allowedOrders = ['ASC', 'DESC'];
+// Rate limiters
+const strictLimiter = createRouteRateLimiter({ 
+  windowMs: 15 * 60 * 1000, 
+  max: 20,
+  message: 'Too many document operations. Please try again later.'
+});
+
+const pdfLimiter = createRouteRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'PDF generation limit reached. Please try again later.'
+});
+
+// Validation middleware
+const validateAffidavitData = (req, res, next) => {
+  const { affidavitData } = req.body;
   
-  const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
-  const safeOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'DESC';
+  if (!affidavitData) {
+    return res.status(400).json({
+      success: false,
+      error: 'Affidavit data is required'
+    });
+  }
   
-  return `${safeSort} ${safeOrder}`;
+  next();
 };
 
 /**
- * Helper function to verify document ownership
- */
-const verifyDocumentOwnership = async (pool, documentId, userId) => {
-  const result = await pool.query(
-    'SELECT id, user_id, title, status FROM documents WHERE id = $1',
-    [documentId]
-  );
-  
-  if (result.rows.length === 0) {
-    throw new NotFoundError('Document not found');
-  }
-  
-  const document = result.rows[0];
-  if (document.user_id !== userId) {
-    throw new AuthorizationError('You do not have permission to access this document');
-  }
-  
-  return document;
-};
-
-/**
- * Generate document preview
- */
-router.post('/preview', 
-  auth0Middleware,
-  validateAffidavitData,
-  asyncHandler(async (req, res) => {
-    const { affidavitData } = req.body;
-    const userId = req.user.id;
-
-    logger.logBusinessEvent('preview_requested', userId, {
-      state: affidavitData.state,
-      hasName: !!affidavitData.affiantName,
-      factCount: affidavitData.facts?.length || 0
-    });
-
-    // Check if affidavit service is available
-    if (!req.app.locals.affidavitService) {
-      throw new Error('Preview service is not available. Please try again later.');
-    }
-
-    const result = await req.app.locals.affidavitService.generatePreview(affidavitData);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Preview generation failed');
-    }
-
-    res.sendSuccess({
-      preview: result.preview,
-      validation: result.validation,
-      metadata: result.metadata
-    });
-  })
-);
-
-/**
- * Save document draft
- */
-router.post('/save-draft',
-  auth0Middleware,
-  validateDocumentSave,
-  asyncHandler(async (req, res) => {
-    const { title, content, status = 'draft' } = req.body;
-    const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
-    logger.logBusinessEvent('draft_saved', userId, {
-      title: title.substring(0, 50),
-      status,
-      contentSize: JSON.stringify(content).length
-    });
-
-    const result = await pool.query(
-      `INSERT INTO documents (user_id, title, content, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING id, title, status, created_at`,
-      [userId, title, JSON.stringify(content), status]
-    );
-
-    res.sendSuccess({
-      document: result.rows[0],
-      message: 'Draft saved successfully'
-    });
-  })
-);
-
-/**
- * Update existing document
- */
-router.put('/:id',
-  auth0Middleware,
-  validateId,
-  validateDocumentSave,
-  asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { title, content, status } = req.body;
-    const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
-    // Verify ownership first
-    await verifyDocumentOwnership(pool, id, userId);
-
-    logger.logBusinessEvent('document_updated', userId, {
-      documentId: id,
-      title: title.substring(0, 50),
-      status,
-      contentSize: JSON.stringify(content).length
-    });
-
-    const result = await pool.query(
-      `UPDATE documents 
-       SET title = $1, content = $2, status = $3, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4 AND user_id = $5
-       RETURNING id, title, status, updated_at`,
-      [title, JSON.stringify(content), status, id, userId]
-    );
-
-    if (result.rows.length === 0) {
-      throw new NotFoundError('Document not found or you do not have permission to update it');
-    }
-
-    res.sendSuccess({
-      document: result.rows[0],
-      message: 'Document updated successfully'
-    });
-  })
-);
-
-/**
- * Get user's documents with pagination and filtering
+ * Get user documents
  */
 router.get('/',
   auth0Middleware,
-  validatePagination,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const { dbService } = req.app.locals;
     
-    // Safely handle query parameters
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-    const offset = (page - 1) * limit;
-    const status = req.query.status;
-    const search = req.query.search;
-    const sort = req.query.sort || 'created_at';
-    const order = req.query.order || 'DESC';
-
-    // Build WHERE clause safely
-    let whereClause = 'WHERE user_id = $1';
-    const queryParams = [userId];
-    let paramIndex = 2;
-
-    // Add status filter if provided
-    if (status && ['draft', 'completed', 'archived'].includes(status)) {
-      whereClause += ` AND status = $${paramIndex}`;
-      queryParams.push(status);
-      paramIndex++;
-    }
-
-    // Add search filter if provided (safe LIKE query)
-    if (search && search.trim().length > 0) {
-      const searchTerm = `%${escapeLike(search.trim())}%`;
-      whereClause += ` AND (title ILIKE $${paramIndex} OR content::text ILIKE $${paramIndex})`;
-      queryParams.push(searchTerm);
-      paramIndex++;
-    }
-
-    // Build ORDER BY clause safely
-    const orderByClause = buildOrderByClause(sort, order);
-
-    // Get total count for pagination
-    const countQuery = `
-      SELECT COUNT(*) as total 
-      FROM documents 
-      ${whereClause}
-    `;
-    const countResult = await pool.query(countQuery, queryParams);
-    const total = parseInt(countResult.rows[0].total);
-
-    // Get documents with pagination
-    const documentsQuery = `
-      SELECT 
-        id, 
-        title, 
-        status, 
-        created_at, 
-        updated_at,
-        CASE 
-          WHEN LENGTH(content::text) > 500 
-          THEN LEFT(content::text, 500) || '...' 
-          ELSE content::text 
-        END as content_preview
-      FROM documents 
-      ${whereClause}
-      ORDER BY ${orderByClause}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    
-    queryParams.push(limit, offset);
-    const documentsResult = await pool.query(documentsQuery, queryParams);
-
-    logger.logBusinessEvent('documents_listed', userId, {
-      page,
-      limit,
-      total,
-      status,
-      hasSearch: !!search,
-      resultCount: documentsResult.rows.length
-    });
-
-    res.sendPaginated(
-      documentsResult.rows,
-      page,
-      limit,
-      total,
-      {
-        filters: { status, search },
-        sort: { field: sort, order }
-      }
+    const result = await dbService.query(
+      `SELECT id, title, document_type, template_state, status, 
+       completion_percentage, created_at, updated_at
+       FROM documents
+       WHERE user_id = $1 AND deleted_at IS NULL
+       ORDER BY updated_at DESC`,
+      [userId]
     );
+    
+    logger.info('Documents retrieved', {
+      userId,
+      count: result.rows.length
+    });
+    
+    res.json({
+      success: true,
+      documents: result.rows
+    });
   })
 );
 
 /**
- * Get specific document by ID
+ * Get document by ID
  */
 router.get('/:id',
   auth0Middleware,
-  validateId,
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
-    const result = await pool.query(
-      `SELECT id, title, content, status, created_at, updated_at
-       FROM documents 
-       WHERE id = $1 AND user_id = $2`,
-      [id, userId]
+    const documentId = req.params.id;
+    const { dbService } = req.app.locals;
+    
+    const result = await dbService.query(
+      `SELECT * FROM documents
+       WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+      [documentId, userId]
     );
-
+    
     if (result.rows.length === 0) {
-      throw new NotFoundError('Document not found');
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
     }
-
+    
     const document = result.rows[0];
     
-    // Parse content if it's JSON string
-    if (typeof document.content === 'string') {
-      try {
-        document.content = JSON.parse(document.content);
-      } catch (error) {
-        logger.warn('Failed to parse document content as JSON', {
-          documentId: id,
-          userId,
-          error: error.message
+    logger.info('Document retrieved', {
+      userId,
+      documentId
+    });
+    
+    res.json({
+      success: true,
+      document
+    });
+  })
+);
+
+/**
+ * Save document
+ */
+router.post('/save',
+  strictLimiter,
+  auth0Middleware,
+  validateAffidavitData,
+  asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { documentId, affidavitData } = req.body;
+    const { dbService, templateManager } = req.app.locals;
+    
+    // Validate affidavit data
+    const validation = templateManager.validateDocument(affidavitData);
+    
+    // Convert to JSON for storage
+    const contentJson = JSON.stringify(affidavitData);
+    
+    let document;
+    
+    if (documentId) {
+      // Update existing document
+      // First verify ownership
+      const ownerCheck = await dbService.query(
+        'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
+        [documentId, userId]
+      );
+      
+      if (ownerCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'You do not have permission to update this document'
         });
       }
+      
+      const result = await dbService.query(
+        `UPDATE documents SET
+         content = $1,
+         template_state = $2,
+         title = $3,
+         completion_percentage = $4,
+         validation_results = $5,
+         updated_at = NOW()
+         WHERE id = $6 AND user_id = $7
+         RETURNING *`,
+        [
+          contentJson,
+          affidavitData.state || 'TX',
+          `Affidavit of ${affidavitData.affiantName || 'Unnamed'}`,
+          validation.isValid ? 100 : 50,
+          JSON.stringify(validation),
+          documentId,
+          userId
+        ]
+      );
+      
+      document = result.rows[0];
+      
+      logger.info('Document updated', {
+        userId,
+        documentId,
+        isValid: validation.isValid
+      });
+    } else {
+      // Create new document
+      const result = await dbService.query(
+        `INSERT INTO documents
+         (user_id, content, template_state, title, document_type, status, completion_percentage, validation_results)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          userId,
+          contentJson,
+          affidavitData.state || 'TX',
+          `Affidavit of ${affidavitData.affiantName || 'Unnamed'}`,
+          affidavitData.documentType || 'general',
+          'draft',
+          validation.isValid ? 100 : 50,
+          JSON.stringify(validation)
+        ]
+      );
+      
+      document = result.rows[0];
+      
+      // Update user stats
+      await dbService.query(
+        'UPDATE users SET total_documents_created = total_documents_created + 1 WHERE id = $1',
+        [userId]
+      );
+      
+      logger.info('New document created', {
+        userId,
+        documentId: document.id,
+        isValid: validation.isValid
+      });
     }
-
-    logger.logBusinessEvent('document_viewed', userId, {
-      documentId: id,
-      title: document.title.substring(0, 50)
+    
+    res.json({
+      success: true,
+      document,
+      validation
     });
-
-    res.sendSuccess({ document });
   })
 );
 
 /**
- * Delete document
+ * Preview document
  */
-router.delete('/:id',
-  auth0Middleware,
-  validateId,
+router.post('/preview',
+  validateAffidavitData,
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
-    // Verify ownership first
-    const document = await verifyDocumentOwnership(pool, id, userId);
-
-    const result = await pool.query(
-      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
-      [id, userId]
-    );
-
-    if (result.rows.length === 0) {
-      throw new NotFoundError('Document not found');
-    }
-
-    logger.logBusinessEvent('document_deleted', userId, {
-      documentId: id,
-      title: document.title.substring(0, 50)
+    const { affidavitData } = req.body;
+    const userId = req.user?.id;
+    const { templateManager } = req.app.locals;
+    
+    // Generate preview
+    const preview = templateManager.generatePreview(affidavitData);
+    
+    // Run basic validation
+    const validation = templateManager.validateDocument(affidavitData);
+    
+    logger.info('Preview generated', {
+      userId: userId || 'anonymous',
+      state: affidavitData.state,
+      isValid: validation.isValid
     });
-
-    res.sendSuccess({
-      message: 'Document deleted successfully',
-      documentId: id
+    
+    res.json({
+      success: true,
+      preview,
+      validation
     });
   })
 );
 
 /**
- * Validate affidavit data
+ * Validate document with LLM
  */
 router.post('/validate',
+  strictLimiter,
   auth0Middleware,
   validateAffidavitData,
   asyncHandler(async (req, res) => {
     const { affidavitData } = req.body;
     const userId = req.user.id;
-
-    if (!req.app.locals.affidavitService) {
-      throw new Error('Validation service is not available. Please try again later.');
-    }
-
-    const validation = await req.app.locals.affidavitService.validateAffidavit(affidavitData);
-
-    logger.logBusinessEvent('validation_requested', userId, {
+    const { llmValidationService } = req.app.locals;
+    
+    // Perform enhanced validation with LLM
+    const validation = await llmValidationService.validateAffidavit(affidavitData);
+    
+    logger.info('LLM validation performed', {
+      userId,
       state: affidavitData.state,
       isValid: validation.isValid,
       errorCount: validation.errors?.length || 0,
       warningCount: validation.warnings?.length || 0
     });
-
-    res.sendSuccess({ validation });
+    
+    res.json({
+      success: true,
+      validation
+    });
   })
 );
 
@@ -363,59 +269,174 @@ router.post('/validate',
  * Generate final affidavit (after payment verification)
  */
 router.post('/generate',
-  strictLimiter, // More restrictive rate limiting for PDF generation
+  strictLimiter,
   pdfLimiter,
   auth0Middleware,
   validateAffidavitData,
   asyncHandler(async (req, res) => {
     const { affidavitData, documentId, paymentIntentId } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
+    const { dbService, pdfService } = req.app.locals;
+    
     // Verify payment if provided
     if (paymentIntentId) {
-      const paymentResult = await pool.query(
+      const paymentResult = await dbService.query(
         'SELECT id, status FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
         [paymentIntentId, userId]
       );
-
+      
       if (paymentResult.rows.length === 0 || paymentResult.rows[0].status !== 'succeeded') {
-        throw new AuthorizationError('Valid payment required to generate final document');
+        return res.status(403).json({
+          success: false,
+          error: 'Valid payment required to generate final document'
+        });
       }
     }
-
-    logger.logBusinessEvent('final_generation_requested', userId, {
+    
+    logger.info('Final generation requested', {
+      userId,
       documentId,
       paymentIntentId,
       state: affidavitData.state,
       hasPayment: !!paymentIntentId
     });
-
-    if (!req.app.locals.affidavitService) {
-      throw new Error('Document generation service is not available. Please try again later.');
+    
+    try {
+      // Generate PDF
+      const pdfResult = await pdfService.generatePDF({
+        sections: req.app.locals.templateManager.generateDocumentSections(affidavitData),
+        metadata: {
+          documentId,
+          userId,
+          generatedAt: new Date().toISOString(),
+          hasWatermark: !paymentIntentId
+        }
+      }, {
+        documentId,
+        includeWatermark: !paymentIntentId
+      });
+      
+      if (!pdfResult.success) {
+        throw new Error(pdfResult.error || 'PDF generation failed');
+      }
+      
+      // Update document record
+      if (documentId) {
+        await dbService.query(
+          `UPDATE documents SET
+           pdf_generated = true,
+           pdf_file_path = $1,
+           pdf_generation_date = NOW(),
+           payment_completed = $2,
+           status = $3,
+           updated_at = NOW()
+           WHERE id = $4 AND user_id = $5`,
+          [
+            pdfResult.filepath,
+            !!paymentIntentId,
+            paymentIntentId ? 'completed' : 'preview',
+            documentId,
+            userId
+          ]
+        );
+      }
+      
+      // Generate a temporary download token
+      const downloadToken = require('crypto').randomBytes(16).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Store download token
+      await dbService.query(
+        `INSERT INTO sessions
+         (user_id, session_token, data, expires_at)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          userId,
+          downloadToken,
+          JSON.stringify({
+            type: 'download',
+            filePath: pdfResult.filepath,
+            documentId
+          }),
+          expiresAt
+        ]
+      );
+      
+      logger.info('Final generation completed', {
+        userId,
+        documentId,
+        hasWatermark: !paymentIntentId
+      });
+      
+      res.json({
+        success: true,
+        documentUrl: `/api/documents/download/${downloadToken}`,
+        downloadToken,
+        expiresAt
+      });
+    } catch (error) {
+      logger.error('PDF generation failed', {
+        error: error.message,
+        userId,
+        documentId
+      });
+      
+      throw error;
     }
+  })
+);
 
-    const result = await req.app.locals.affidavitService.generateFinalDocument(affidavitData, {
-      userId,
-      documentId,
-      includeWatermark: !paymentIntentId // Add watermark if no payment
-    });
-
-    if (!result.success) {
-      throw new Error(result.error || 'Document generation failed');
+/**
+ * Download document
+ */
+router.get('/download/:token',
+  asyncHandler(async (req, res) => {
+    const downloadToken = req.params.token;
+    const { dbService } = req.app.locals;
+    
+    // Verify download token
+    const sessionResult = await dbService.query(
+      `SELECT * FROM sessions
+       WHERE session_token = $1 AND expires_at > NOW()`,
+      [downloadToken]
+    );
+    
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Download link expired or invalid'
+      });
     }
-
-    logger.logBusinessEvent('final_generation_completed', userId, {
-      documentId,
-      downloadUrl: result.documentUrl,
-      hasWatermark: !paymentIntentId
+    
+    const session = sessionResult.rows[0];
+    const sessionData = session.data;
+    
+    if (sessionData.type !== 'download' || !sessionData.filePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid download token'
+      });
+    }
+    
+    // Update document if exists
+    if (sessionData.documentId) {
+      await dbService.query(
+        `UPDATE documents SET
+         downloaded_at = NOW(),
+         status = 'downloaded'
+         WHERE id = $1 AND user_id = $2`,
+        [sessionData.documentId, session.user_id]
+      );
+    }
+    
+    logger.info('Document downloaded', {
+      userId: session.user_id,
+      documentId: sessionData.documentId,
+      token: downloadToken
     });
-
-    res.sendSuccess({
-      documentUrl: result.documentUrl,
-      downloadToken: result.downloadToken,
-      expiresAt: result.expiresAt
-    });
+    
+    // Serve the file
+    res.download(sessionData.filePath);
   })
 );
 

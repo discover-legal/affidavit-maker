@@ -74,7 +74,7 @@ logger.stream = {
   write: (message) => logger.http(message.trim()),
 };
 
-// Helper functions for structured logging
+// EXISTING Helper functions for structured logging
 logger.logError = (error, context = {}) => {
   logger.error({
     message: error.message,
@@ -112,6 +112,47 @@ logger.logAIInteraction = (prompt, response, model, duration) => {
     promptLength: prompt.length,
     responseLength: response.length,
     duration: `${duration}ms`,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+// NEW Helper functions for the updated code
+logger.logBusinessEvent = (event, userId, metadata = {}) => {
+  logger.info({
+    type: 'business_event',
+    event,
+    userId,
+    ...metadata,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+logger.logSecurity = (event, metadata = {}) => {
+  logger.warn({
+    type: 'security_event',
+    event,
+    ...metadata,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+logger.logPerformance = (event, duration, metadata = {}) => {
+  logger.info({
+    type: 'performance_metric',
+    event,
+    duration,
+    ...metadata,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+logger.logChat = (event, sessionId, userId, metadata = {}) => {
+  logger.info({
+    type: 'chat_event',
+    event,
+    sessionId,
+    userId,
+    ...metadata,
     timestamp: new Date().toISOString(),
   });
 };

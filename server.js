@@ -13,8 +13,8 @@ require('dotenv').config();
 // Import services
 const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
-const AffidavitService = require('./affidavitService');
 const logger = require('./services/logger');
+
 
 // Import middleware
 const { errorMiddleware } = require('./middleware/errorMiddleware');
@@ -80,8 +80,8 @@ app.use(morgan('combined', {
 }));
 
 // Create singleton instances of services
-const templateManager = new (require('./templates/StateTemplateManager'))();
-const openAIService = new ResilientOpenAIService();
+const { StateTemplateManager } = require('./templates/StateTemplateManager');
+const templateManager = new StateTemplateManager();
 const affidavitService = new AffidavitService();
 
 // Add services to app locals for easy access in routes

@@ -1,22 +1,25 @@
-// affidavitService.js - Updated with Chat Stability
-const { OpenAI } = require('openai');
-const logger = require('./utils/logger');
+// affidavitService.js - Complete drop-in with resilient error handling
+const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
+const { StateTemplateManager } = require('./templates/StateTemplateManager');
+const logger = require('./services/logger');
+const fs = require('fs').promises;
+const path = require('path');
 
 class AffidavitService {
   constructor() {
-    // Constants for stability - define these FIRST
+    // Constants for stability
     this.constants = {
       MAX_TOKENS: 4000,
       MAX_COMPLETION_TOKENS: 1000,
-      MAX_MESSAGE_LENGTH: 25000, // 25k characters
+      MAX_MESSAGE_LENGTH: 25000,
       MAX_CONVERSATION_MESSAGES: 15,
       REQUEST_TIMEOUT: 45000, // 45 seconds
       RETRY_ATTEMPTS: 2,
       CACHE_TTL: 10 * 60 * 1000 // 10 minutes
     };
     
-    // Initialize services after constants are defined
-    this.initializeOpenAI();
+    // Initialize services
+    this.initializeServices();
     this.conversationCache = new Map();
     this.processingQueue = new Map();
     
@@ -24,23 +27,33 @@ class AffidavitService {
     setInterval(() => this.cleanupCache(), 5 * 60 * 1000); // Every 5 minutes
   }
 
-  initializeOpenAI() {
+// Modify line 20-21 in affidavitService.js
+  initializeServices() {
     try {
-      if (!process.env.OPENAI_API_KEY) {
-        logger.warn('OpenAI API key not found - AI features will be disabled');
-        this.openai = null;
-        return;
-      }
-
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-        timeout: this.constants.REQUEST_TIMEOUT // Set timeout on client, not per request
+      // Instead of creating a new instance, get it from server.js
+      this.openAIService = global.openAIService || new ResilientOpenAIService();
+      
+      // Do NOT create a new template manager
+      // this.templateManager = new StateTemplateManager();
+      
+      // Ensure documents directory exists
+      this.ensureDirectoryExists('./documents').catch(err => {
+        logger.error('Failed to create documents directory', { error: err.message });
       });
-
-      logger.info('✅ OpenAI client initialized successfully');
+      
+      logger.info('✅ AffidavitService initialized successfully');
     } catch (error) {
-      logger.logError(error, { type: 'openai_initialization_failed' });
-      this.openai = null;
+      logger.error('AffidavitService initialization failed', { error: error.message });
+      this.openAIService = null;
+    }
+  }
+  
+  async ensureDirectoryExists(directory) {
+    try {
+      await fs.mkdir(directory, { recursive: true });
+    } catch (error) {
+      logger.error('Error creating directory', { directory, error: error.message });
+      throw error;
     }
   }
 
@@ -55,10 +68,18 @@ class AffidavitService {
       }
     }
     
+    // Also clean up old processing queue entries
+    for (const [key, entry] of this.processingQueue.entries()) {
+      if (now - entry.timestamp > 2 * 60 * 1000) { // 2 minutes
+        this.processingQueue.delete(key);
+      }
+    }
+    
     // Log cache stats
-    if (this.conversationCache.size > 0) {
-      logger.logPerformance('conversation_cache_cleanup', this.conversationCache.size, {
-        type: 'cache_size_after_cleanup'
+    if (this.conversationCache.size > 0 || this.processingQueue.size > 0) {
+      logger.info('Cache cleanup stats', {
+        conversationCacheSize: this.conversationCache.size,
+        processingQueueSize: this.processingQueue.size
       });
     }
   }
@@ -69,6 +90,40 @@ class AffidavitService {
   estimateTokens(text) {
     if (!text || typeof text !== 'string') return 0;
     return Math.ceil(text.length / 4); // Rough approximation
+  }
+
+  /**
+   * Create system prompt for chat
+   */
+  createSystemPrompt() {
+    return `You are a legal assistant helping users create affidavits. Extract relevant information from their messages and provide guidance on writing clear, factual statements.
+
+Your task is to:
+1. Help the user provide all necessary information for their affidavit
+2. Extract information like their name, state, county, and factual statements
+3. Guide them to write statements based on personal knowledge
+4. Be conversational but professional
+
+Key information to collect:
+- Affiant's full name
+- State (Texas, Utah, or Arizona only)
+- County (required for Texas)
+- Factual statements (things the person knows firsthand)
+
+Affidavit Rules:
+- Statements should be factual, not opinions
+- Use clear, direct language
+- Avoid legal jargon
+- Include specific details when possible (dates, times, locations)
+- Each statement should be distinct and specific
+
+DO NOT:
+- Make up legal requirements
+- Provide legal advice beyond affidavit preparation
+- Include false or misleading information
+- Use overly emotional language
+
+Be helpful, accurate, and conversational. Ask clarifying questions if needed.`;
   }
 
   /**
@@ -97,306 +152,150 @@ class AffidavitService {
       // Fallback: assume it's a user message
       return {
         role: 'user',
-        content: typeof msg === 'string' ? msg : (msg.content || '')
+        content: typeof msg === 'string' ? msg : JSON.stringify(msg)
       };
-    }).filter(msg => msg.content.trim().length > 0); // Remove empty messages
+    });
   }
 
   /**
-   * Truncate conversation history to stay within token limits
+   * Truncate conversation to fit within token limits
    */
   truncateConversation(messages) {
-    if (!Array.isArray(messages)) return [];
-
-    let totalTokens = 0;
-    const truncatedMessages = [];
+    // Always keep system message and last user message
+    const systemMessage = messages.find(m => m.role === 'system') || null;
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop() || null;
     
-    // Always keep system message if present
-    const systemMessage = messages.find(msg => msg.role === 'system');
+    let availableTokens = this.constants.MAX_TOKENS - this.constants.MAX_COMPLETION_TOKENS;
+    let currentTokens = 0;
+    let truncatedMessages = [];
+    
+    // Calculate tokens for essential messages
     if (systemMessage) {
-      truncatedMessages.push(systemMessage);
-      totalTokens += this.estimateTokens(systemMessage.content);
+      const systemTokens = this.estimateTokens(systemMessage.content);
+      currentTokens += systemTokens;
+      availableTokens -= systemTokens;
     }
-
-    // Process user/assistant messages from most recent
-    const conversationMessages = messages
-      .filter(msg => msg.role !== 'system')
-      .reverse();
-
-    for (const message of conversationMessages) {
+    
+    if (lastUserMessage) {
+      const lastUserTokens = this.estimateTokens(lastUserMessage.content);
+      currentTokens += lastUserTokens;
+      availableTokens -= lastUserTokens;
+    }
+    
+    // Add other messages until limit
+    const otherMessages = messages.filter(m => 
+      (m.role !== 'system') && 
+      (m !== lastUserMessage)
+    ).reverse(); // Start from most recent
+    
+    for (const message of otherMessages) {
       const messageTokens = this.estimateTokens(message.content);
       
-      if (totalTokens + messageTokens > this.constants.MAX_TOKENS - this.constants.MAX_COMPLETION_TOKENS) {
-        break;
-      }
-      
-      truncatedMessages.unshift(message);
-      totalTokens += messageTokens;
-      
-      if (truncatedMessages.length >= this.constants.MAX_CONVERSATION_MESSAGES) {
+      if (currentTokens + messageTokens <= availableTokens) {
+        truncatedMessages.unshift(message); // Add to beginning
+        currentTokens += messageTokens;
+      } else {
+        // No more room for full messages
         break;
       }
     }
-
-    return truncatedMessages;
+    
+    // Reconstruct conversation with essential messages
+    const result = [];
+    if (systemMessage) result.push(systemMessage);
+    result.push(...truncatedMessages);
+    if (lastUserMessage) result.push(lastUserMessage);
+    
+    return result;
   }
 
   /**
-   * Create system prompt for conversational legal assistant (NOT document generator)
+   * Process chat message with resilient error handling
    */
-  createSystemPrompt() {
-    return `You are a helpful conversational assistant that helps people gather information for legal affidavits.
-
-Your role is to:
-1. Have natural conversations to gather facts and information
-2. Ask follow-up questions to get specific details
-3. Guide users through what information is needed
-4. Be supportive and understanding
-
-You are NOT responsible for:
-- Writing the actual affidavit (that's handled automatically)
-- Formatting legal documents
-- Providing legal advice
-
-Keep responses conversational, helpful, and focused on gathering information. Ask one question at a time. Be empathetic when users share difficult situations.
-
-For Texas, Utah, and Arizona affidavits, you typically need:
-- Full legal name
-- County (required for TX and UT, optional for AZ)  
-- Specific facts with dates/details when possible
-
-Keep responses under 3 sentences and always ask a follow-up question to gather more information.`;
-  }
-
-  /**
-   * Process user message with enhanced error handling and stability
-   */
-  async processMessage(data) {
-    console.log('🔍 AffidavitService.processMessage called');
-    const startTime = Date.now();
-    const { message, conversationHistory = [], affidavitData = {}, userId, sessionId } = data;
-
-    // Generate processing key for deduplication
-    const processingKey = `${userId || 'anon'}_${Date.now()}`;
+  async processMessage(message, conversationHistory = [], affidavitData = {}, { userId, sessionId }) {
+    // Generate a unique key for this processing request
+    const processingKey = `${userId || 'anonymous'}_${sessionId || Date.now()}`;
     
     try {
-      console.log('🔍 AffidavitService: Starting processing');
-      
-      // Check if OpenAI is available
-      if (!this.openai) {
-        console.log('🔍 AffidavitService: OpenAI not available');
-        return {
-          success: false,
-          response: "AI service is currently unavailable. Please check your configuration and try again.",
-          affidavitData,
-          suggestions: ['Verify OpenAI API key is configured', 'Check internet connection']
-        };
-      }
-
-      console.log('🔍 AffidavitService: OpenAI available, validating input');
-
-      // Validate input lengths
-      if (message.length > this.constants.MAX_MESSAGE_LENGTH) {
-        console.log('🔍 AffidavitService: Message too long');
-        return {
-          success: false,
-          response: `Message is too long (${message.length} characters). Please keep messages under ${this.constants.MAX_MESSAGE_LENGTH} characters.`,
-          affidavitData,
-          suggestions: ['Break your message into smaller parts', 'Focus on one topic at a time']
-        };
-      }
-
-      console.log('🔍 AffidavitService: Input validated, checking for duplicates');
-
-      // Check for duplicate processing
+      // Check if already processing
       if (this.processingQueue.has(processingKey)) {
-        console.log('🔍 AffidavitService: Duplicate processing detected');
-        logger.warn('Duplicate message processing attempt detected', {
-          processingKey,
-          userId,
-          sessionId
-        });
+        logger.warn('Duplicate processing request detected', { processingKey });
         return {
-          success: false,
-          response: "Your message is already being processed. Please wait a moment.",
+          success: false, 
+          error: "Your message is already being processed. Please wait a moment.",
           affidavitData
         };
       }
 
-      console.log('🔍 AffidavitService: Marking as processing');
+      // Check services availability
+      if (!this.openAIService) {
+        logger.error('OpenAI service not available');
+        return {
+          success: false,
+          error: "The AI service is currently unavailable. Please try again later.",
+          affidavitData
+        };
+      }
 
       // Mark as processing
       this.processingQueue.set(processingKey, { timestamp: Date.now(), userId, sessionId });
 
-      console.log('🔍 AffidavitService: Logging chat event');
-
-      logger.logChat('processing_started', sessionId, userId, {
+      logger.info('Chat processing started', {
+        sessionId,
+        userId,
         messageLength: message.length,
-        messageWords: message.trim().split(/\s+/).length,
         historyLength: conversationHistory.length,
         processingKey
       });
 
-      console.log('🔍 AffidavitService: Creating system prompt');
-
-      // Prepare conversation with truncation
+      // Prepare conversation with system prompt
       const systemPrompt = this.createSystemPrompt();
-      
-      console.log('🔍 AffidavitService: Converting conversation history format');
-      // Convert frontend format to OpenAI format
       const convertedHistory = this.convertConversationHistory(conversationHistory);
       
-      console.log('🔍 AffidavitService: Conversion stats:', {
-        originalLength: conversationHistory.length,
-        convertedLength: convertedHistory.length,
-        sampleOriginal: conversationHistory[0],
-        sampleConverted: convertedHistory[0]
-      });
-      
-      console.log('🔍 AffidavitService: Truncating conversation');
-      const truncatedHistory = this.truncateConversation([
+      // Combine messages with truncation if needed
+      const messages = this.truncateConversation([
         { role: 'system', content: systemPrompt },
         ...convertedHistory,
         { role: 'user', content: message }
       ]);
 
-      // Log if conversation was truncated
-      if (truncatedHistory.length !== convertedHistory.length + 2) {
-        console.log('🔍 AffidavitService: Conversation truncated');
-        logger.logChat('conversation_truncated', sessionId, userId, {
-          originalLength: convertedHistory.length + 2,
-          truncatedLength: truncatedHistory.length,
-          estimatedTokens: truncatedHistory.reduce((sum, msg) => sum + this.estimateTokens(msg.content), 0)
-        });
-      }
-
-      console.log('🔍 AffidavitService: Starting OpenAI request with retry logic');
-
-      // Make OpenAI request with retry logic
-      let completion;
-      let attempts = 0;
-
-      while (attempts < this.constants.RETRY_ATTEMPTS) {
-        attempts++;
-        
-        console.log(`🔍 AffidavitService: OpenAI attempt ${attempts}/${this.constants.RETRY_ATTEMPTS}`);
-        
-        try {
-          const requestStart = Date.now();
-          
-          console.log('🔍 AffidavitService: Making OpenAI API call');
-          console.log('🔍 AffidavitService: Messages to send:', JSON.stringify(truncatedHistory.map(m => ({role: m.role, contentLength: m.content.length})), null, 2));
-          
-          completion = await this.openai.chat.completions.create({
-            model: "gpt-4",
-            messages: truncatedHistory,
-            max_tokens: this.constants.MAX_COMPLETION_TOKENS,
-            temperature: 0.7
-            // Removed timeout - it's set on the client initialization
-          });
-
-          const requestTime = Date.now() - requestStart;
-          
-          console.log(`🔍 AffidavitService: OpenAI request completed in ${requestTime}ms`);
-          
-          logger.logAI('gpt-4', 
-            truncatedHistory.map(m => m.content).join(' '), 
-            completion.choices[0]?.message?.content || '',
-            requestTime,
-            {
-              sessionId,
-              userId,
-              attempt: attempts,
-              tokensUsed: completion.usage?.total_tokens || 0
-            }
-          );
-
-          break; // Success, exit retry loop
-
-        } catch (error) {
-          console.log(`🔍 AffidavitService: OpenAI attempt ${attempts} failed:`, error.message);
-          
-          logger.logError(error, {
-            type: 'openai_request_failed',
-            attempt: attempts,
-            sessionId,
-            userId,
-            messageLength: message.length,
-            errorCode: error.code,
-            errorType: error.type
-          });
-
-          // Handle specific error types
-          if (error.code === 'rate_limit_exceeded') {
-            if (attempts >= this.constants.RETRY_ATTEMPTS) {
-              console.log('🔍 AffidavitService: Rate limit exceeded, final attempt');
-              return {
-                success: false,
-                response: "The AI service is currently busy. Please wait a moment and try again.",
-                affidavitData,
-                suggestions: ['Wait 30 seconds before trying again', 'Try a shorter message']
-              };
-            }
-            // Wait before retry for rate limits
-            console.log(`🔍 AffidavitService: Waiting ${2000 * attempts}ms for rate limit`);
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
-          } else if (error.code === 'invalid_api_key' || error.code === 'insufficient_quota') {
-            console.log('🔍 AffidavitService: API key or quota error');
-            return {
-              success: false,
-              response: "AI service is temporarily unavailable. Please try again later.",
-              affidavitData,
-              suggestions: ['Try again in a few minutes', 'Contact support if issue persists']
-            };
-          } else if (attempts >= this.constants.RETRY_ATTEMPTS) {
-            console.log('🔍 AffidavitService: Final attempt failed, throwing error');
-            throw error; // Re-throw if final attempt
-          }
-        }
-      }
-
-      if (!completion || !completion.choices || !completion.choices[0]) {
-        throw new Error('No response received from AI service');
-      }
-
-      const aiResponse = completion.choices[0].message.content;
-
-      // Extract facts from the conversation
-      const extractedFacts = await this.extractFactsFromConversation(message, affidavitData);
-      
-      const processingTime = Date.now() - startTime;
-
-      logger.logChat('processing_completed', sessionId, userId, {
-        processingTime,
-        attempts,
-        responseLength: aiResponse.length,
-        factsExtracted: extractedFacts.newFacts?.length || 0,
-        processingKey
+      // Use resilient service for chat completion
+      const completion = await this.openAIService.createChatCompletion(messages, {
+        max_tokens: this.constants.MAX_COMPLETION_TOKENS,
+        temperature: 0.7,
+        context: { userId, sessionId, processingKey }
       });
 
+      // Extract response
+      const aiResponse = completion.choices[0].message.content.trim();
+
+      // Extract structured data from response
+      const extractionResult = await this.extractFactsFromConversation(message, affidavitData);
+      
+      logger.info('Chat processing completed', {
+        sessionId,
+        userId,
+        processingKey,
+        newFactsCount: extractionResult.newFacts?.length || 0
+      });
+      
       return {
         success: true,
         response: aiResponse,
-        affidavitData: extractedFacts.affidavitData || affidavitData,
-        newFacts: extractedFacts.newFacts || [],
-        suggestions: this.generateSuggestions(affidavitData, message)
+        affidavitData: extractionResult.affidavitData,
+        newFacts: extractionResult.newFacts || []
       };
-
     } catch (error) {
-      const processingTime = Date.now() - startTime;
-      
-      logger.logError(error, {
-        type: 'message_processing_failed',
-        sessionId,
+      logger.error('Chat processing error', {
+        error: error.message,
         userId,
-        processingTime,
-        messageLength: message.length,
+        sessionId,
         processingKey
       });
-
+      
       return {
         success: false,
-        response: "I encountered an error processing your message. Please try rephrasing or contact support if the problem persists.",
+        error: "I'm having trouble processing your message. Please try again in a moment.",
         affidavitData,
         suggestions: [
           'Try rephrasing your message',
@@ -404,7 +303,6 @@ Keep responses under 3 sentences and always ask a follow-up question to gather m
           'Contact support if issue continues'
         ]
       };
-
     } finally {
       // Clean up processing queue
       this.processingQueue.delete(processingKey);
@@ -412,16 +310,11 @@ Keep responses under 3 sentences and always ask a follow-up question to gather m
   }
 
   /**
-   * Use AI to extract structured data from conversation - much better than regex!
+   * Extract facts using AI with resilient error handling
    */
   async extractFactsFromConversation(message, existingData) {
-    console.log('🔍 AffidavitService: Using AI to extract data from message:', message);
+    logger.info('Extracting data from message');
     
-    if (!this.openai) {
-      console.log('🔍 AffidavitService: OpenAI not available, skipping extraction');
-      return { affidavitData: existingData, newFacts: [] };
-    }
-
     try {
       const extractionPrompt = `
 Extract information from this message for a legal affidavit:
@@ -447,17 +340,16 @@ Rules:
 - Return null for fields not found
 `;
 
-      console.log('🔍 AffidavitService: Asking AI to extract structured data');
-      
-      const completion = await this.openai.chat.completions.create({
+      // Use resilient service for extraction
+      const completion = await this.openAIService.createChatCompletion([
+        { role: "user", content: extractionPrompt }
+      ], {
         model: "gpt-4",
-        messages: [{ role: "user", content: extractionPrompt }],
         max_tokens: 500,
-        temperature: 0.1 // Low temperature for consistent extraction
+        temperature: 0.1
       });
 
       const aiResponse = completion.choices[0].message.content.trim();
-      console.log('🔍 AffidavitService: AI extraction response:', aiResponse);
 
       // Parse the JSON response
       let extractedData;
@@ -465,9 +357,9 @@ Rules:
         // Remove any markdown code blocks if present
         const cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
         extractedData = JSON.parse(cleanResponse);
-        console.log('🔍 AffidavitService: Parsed extraction data:', extractedData);
+        logger.info('Extraction parsed successfully');
       } catch (parseError) {
-        console.error('🔍 AffidavitService: Failed to parse AI response as JSON:', parseError);
+        logger.error('Failed to parse AI response as JSON', { parseError: parseError.message });
         return { affidavitData: existingData, newFacts: [] };
       }
 
@@ -475,160 +367,46 @@ Rules:
       let affidavitData = { ...existingData };
       const newFacts = [];
 
-      // Update fields only if AI found something AND we don't already have it
-      if (extractedData.affiantName && !affidavitData.affiantName) {
+      // Update name
+      if (extractedData.affiantName && (!affidavitData.affiantName || affidavitData.affiantName.trim() === '')) {
         affidavitData.affiantName = extractedData.affiantName;
-        console.log('🔍 AffidavitService: AI extracted name:', extractedData.affiantName);
       }
 
-      if (extractedData.state && !affidavitData.state) {
+      // Update state
+      if (extractedData.state && (!affidavitData.state || affidavitData.state.trim() === '')) {
         affidavitData.state = extractedData.state;
-        console.log('🔍 AffidavitService: AI extracted state:', extractedData.state);
       }
 
-      if (extractedData.county && !affidavitData.county) {
+      // Update county
+      if (extractedData.county && (!affidavitData.county || affidavitData.county.trim() === '')) {
         affidavitData.county = extractedData.county;
-        console.log('🔍 AffidavitService: AI extracted county:', extractedData.county);
       }
 
-      // Handle facts - add new ones that aren't duplicates
-      if (extractedData.facts && Array.isArray(extractedData.facts)) {
-        const existingFacts = affidavitData.facts || [];
-        
-        for (const newFactContent of extractedData.facts) {
-          if (newFactContent && newFactContent.length > 10) { // Substantial facts only
-            const isDuplicate = existingFacts.some(existingFact => 
-              (typeof existingFact === 'string' ? existingFact : existingFact.content)
-                .toLowerCase().includes(newFactContent.toLowerCase().substring(0, 50))
-            );
-            
-            if (!isDuplicate) {
-              const newFact = {
-                content: newFactContent,
-                category: 'general',
-                timestamp: new Date().toISOString()
-              };
-              newFacts.push(newFact);
-              affidavitData.facts = [...existingFacts, newFact];
-              console.log('🔍 AffidavitService: AI extracted new fact:', newFactContent.substring(0, 100) + '...');
+      // Process facts
+      if (Array.isArray(extractedData.facts) && extractedData.facts.length > 0) {
+        // Add new facts
+        extractedData.facts.forEach(fact => {
+          if (fact && fact.trim() !== '') {
+            newFacts.push(fact);
+            if (!affidavitData.facts) {
+              affidavitData.facts = [];
             }
+            affidavitData.facts.push(fact);
           }
-        }
+        });
       }
 
-      console.log('🔍 AffidavitService: AI extraction reasoning:', extractedData.reasoning);
-
-      const result = { affidavitData, newFacts };
-      console.log('🔍 AffidavitService: Final AI extraction result:', {
-        ...result,
-        affidavitData: {
-          ...result.affidavitData,
-          facts: result.affidavitData.facts?.map(f => ({ ...f, content: f.content?.substring(0, 100) + '...' }))
-        }
+      logger.info('Data extraction completed', {
+        extractedName: !!extractedData.affiantName,
+        extractedState: !!extractedData.state,
+        extractedCounty: !!extractedData.county,
+        extractedFactsCount: newFacts.length
       });
 
-      return result;
-
+      return { affidavitData, newFacts };
     } catch (error) {
-      console.error('🔍 AffidavitService: AI extraction failed:', error);
-      // Fallback to existing data
+      logger.error('Fact extraction error', { error: error.message });
       return { affidavitData: existingData, newFacts: [] };
-    }
-  }
-
-  /**
-   * Generate contextual suggestions
-   */
-  generateSuggestions(affidavitData, message) {
-    const suggestions = [];
-
-    if (!affidavitData.affiantName) {
-      suggestions.push("Tell me your full legal name");
-    }
-
-    if (!affidavitData.state) {
-      suggestions.push("Which state is this affidavit for? (Texas, Utah, or Arizona)");
-    }
-
-    if (affidavitData.state && ['TX', 'UT'].includes(affidavitData.state) && !affidavitData.county) {
-      suggestions.push(`Which county in ${this.getStateName(affidavitData.state)}?`);
-    }
-
-    if (!affidavitData.facts || affidavitData.facts.length === 0) {
-      suggestions.push("Start by telling me about the facts you need to swear to");
-    }
-
-    if (suggestions.length === 0) {
-      suggestions.push("What other facts would you like to include?");
-    }
-
-    return suggestions;
-  }
-
-  /**
-   * Generate document preview
-   */
-  async generatePreview(affidavitData) {
-    logger.info('Generating preview', { 
-      state: affidavitData.state,
-      hasName: !!affidavitData.affiantName,
-      factCount: affidavitData.facts?.length || 0
-    });
-
-    try {
-      const preview = {
-        sections: [
-          {
-            type: 'header',
-            title: 'AFFIDAVIT',
-            content: `State of ${this.getStateName(affidavitData.state)}`
-          },
-          {
-            type: 'introduction',
-            title: 'Introduction',
-            content: `I, ${affidavitData.affiantName || '[Name]'}, being of legal age and competent to testify, do hereby swear and affirm under penalty of perjury that the following statements are true and correct to the best of my knowledge:`
-          },
-          {
-            type: 'facts',
-            title: 'Statement of Facts',
-            content: affidavitData.facts && affidavitData.facts.length > 0 
-              ? affidavitData.facts.map(fact => 
-                  typeof fact === 'string' ? fact : fact.content
-                ).filter(Boolean)
-              : ['[Facts will be listed here]']
-          },
-          {
-            type: 'signature',
-            title: 'Signature',
-            content: 'Signed under penalty of perjury.'
-          },
-          {
-            type: 'notary',
-            title: 'Notarization',
-            content: 'Notary acknowledgment section'
-          }
-        ]
-      };
-
-      const validation = this.validateAffidavit(affidavitData);
-
-      return {
-        success: true,
-        preview: preview,
-        validation: validation,
-        metadata: {
-          state: affidavitData.state,
-          stateName: this.getStateName(affidavitData.state),
-          estimatedPages: Math.max(1, Math.ceil((affidavitData.facts?.length || 0) / 10))
-        }
-      };
-
-    } catch (error) {
-      logger.logError(error, { type: 'preview_generation_failed' });
-      return {
-        success: false,
-        error: 'Preview generation failed'
-      };
     }
   }
 
@@ -636,87 +414,197 @@ Rules:
    * Validate affidavit data
    */
   validateAffidavit(affidavitData) {
-    const errors = [];
-    const warnings = [];
-
-    if (!affidavitData.affiantName) {
-      errors.push('Affiant name is required');
+    try {
+      if (!this.templateManager) {
+        logger.error('Template manager not available');
+        return {
+          isValid: false,
+          errors: ['Validation service is currently unavailable'],
+          warnings: []
+        };
+      }
+      
+      return this.templateManager.validateDocument(affidavitData);
+    } catch (error) {
+      logger.error('Validation error', { error: error.message });
+      return {
+        isValid: false,
+        errors: ['An error occurred during validation'],
+        warnings: []
+      };
     }
-
-    if (!affidavitData.state) {
-      errors.push('State is required');
-    } else if (!['TX', 'UT', 'AZ'].includes(affidavitData.state)) {
-      errors.push('Invalid state. Must be TX, UT, or AZ');
-    }
-
-    // State-specific validations
-    if (['TX', 'UT'].includes(affidavitData.state) && !affidavitData.county) {
-      errors.push(`County is required for ${this.getStateName(affidavitData.state)} affidavits`);
-    }
-
-    if (!affidavitData.facts || affidavitData.facts.length === 0) {
-      warnings.push('No facts have been provided yet');
-    } else if (affidavitData.facts.length > 25) {
-      warnings.push('Consider consolidating facts for better readability');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors: errors,
-      warnings: warnings,
-      completionPercentage: this.calculateCompletionPercentage(affidavitData)
-    };
   }
 
   /**
-   * Calculate completion percentage
+   * Generate document preview
    */
-  calculateCompletionPercentage(affidavitData) {
-    const requiredFields = ['affiantName', 'state', 'facts'];
-    
-    // Add county as required for TX and UT
-    if (['TX', 'UT'].includes(affidavitData.state)) {
-      requiredFields.push('county');
+  generatePreview(affidavitData) {
+    try {
+      if (!this.templateManager) {
+        logger.error('Template manager not available');
+        return {
+          success: false,
+          error: 'Preview service is currently unavailable'
+        };
+      }
+      
+      const preview = this.templateManager.generatePreview(affidavitData);
+      const validation = this.validateAffidavit(affidavitData);
+      
+      return {
+        success: true,
+        preview,
+        validation
+      };
+    } catch (error) {
+      logger.error('Preview generation error', { error: error.message });
+      return {
+        success: false,
+        error: 'Failed to generate preview'
+      };
     }
-
-    const completedFields = requiredFields.filter(field => {
-      const value = affidavitData[field];
-      return value && (Array.isArray(value) ? value.length > 0 : true);
-    });
-    
-    return Math.round((completedFields.length / requiredFields.length) * 100);
   }
 
   /**
-   * Get state name from code
-   */
-  getStateName(stateCode) {
-    const stateNames = {
-      'TX': 'Texas',
-      'UT': 'Utah',
-      'AZ': 'Arizona'
-    };
-    return stateNames[stateCode] || stateCode;
-  }
-
-  /**
-   * Generate final document (mock implementation)
+   * Generate final document
    */
   async generateFinalDocument(affidavitData, options = {}) {
-    logger.info('Generating final document', { 
-      userId: options.userId,
-      documentId: options.documentId,
-      includeWatermark: options.includeWatermark 
-    });
+    try {
+      if (!this.templateManager) {
+        logger.error('Template manager not available');
+        return {
+          success: false,
+          error: 'Document generation service is currently unavailable'
+        };
+      }
+      
+      // First validate
+      const validation = this.validateAffidavit(affidavitData);
+      
+      if (!validation.isValid && !options.ignoreValidation) {
+        return {
+          success: false,
+          error: 'Document validation failed',
+          validation
+        };
+      }
+      
+      // Generate document sections
+      const sections = this.templateManager.generateDocumentSections(affidavitData);
+      
+      // Generate unique filename
+      const userId = options.userId || 'anonymous';
+      const documentId = options.documentId || Date.now();
+      const filename = `affidavit_${userId}_${documentId}.pdf`;
+      const outputPath = path.join('./documents', filename);
+      
+      // Generate PDF (assuming we have a PDF service available)
+      const pdfResult = await this.generatePDF(sections, {
+        outputPath,
+        includeWatermark: options.includeWatermark,
+        metadata: {
+          documentId,
+          userId,
+          generatedAt: new Date().toISOString()
+        }
+      });
+      
+      if (!pdfResult.success) {
+        throw new Error(pdfResult.error || 'PDF generation failed');
+      }
+      
+      // Generate download token
+      const downloadToken = require('crypto').randomBytes(16).toString('hex');
+      
+      return {
+        success: true,
+        documentPath: pdfResult.filepath,
+        documentUrl: `/api/documents/download/${downloadToken}`,
+        downloadToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      };
+    } catch (error) {
+      logger.error('Document generation error', { error: error.message });
+      return {
+        success: false,
+        error: 'Failed to generate document: ' + error.message
+      };
+    }
+  }
 
-    // This would integrate with your PDF service
-    // For now, return a mock response
-    return {
-      success: true,
-      documentUrl: `/api/download/affidavit-${Date.now()}.pdf`,
-      downloadToken: `token-${Date.now()}`,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-    };
+  /**
+   * Generate PDF (placeholder - would normally use a PDF service)
+   */
+  async generatePDF(sections, options = {}) {
+    try {
+      // This is a placeholder - in real implementation, this would call PDF service
+      logger.info('PDF generation requested', { options });
+      
+      // For testing purposes
+      const outputPath = options.outputPath || path.join('./documents', `document_${Date.now()}.pdf`);
+      
+      // Ensure directory exists
+      await this.ensureDirectoryExists(path.dirname(outputPath));
+      
+      // Write a placeholder file
+      await fs.writeFile(outputPath, 'PDF content would go here');
+      
+      return {
+        success: true,
+        filepath: outputPath,
+        filename: path.basename(outputPath)
+      };
+    } catch (error) {
+      logger.error('PDF generation error', { error: error.message });
+      return {
+        success: false,
+        error: 'Failed to generate PDF: ' + error.message
+      };
+    }
+  }
+  
+  /**
+   * Save session data
+   */
+  async saveSession(sessionData, userId) {
+    try {
+      logger.info('Saving session', { userId });
+      
+      // In a real implementation, this would save to database
+      // For now, just return success
+      return {
+        success: true,
+        sessionId: `session_${Date.now()}`
+      };
+    } catch (error) {
+      logger.error('Session save error', { error: error.message, userId });
+      return {
+        success: false,
+        error: 'Failed to save session'
+      };
+    }
+  }
+  
+  /**
+   * Load session data
+   */
+  async loadSession(sessionId, userId) {
+    try {
+      logger.info('Loading session', { sessionId, userId });
+      
+      // In a real implementation, this would load from database
+      // For now, just return not found
+      return {
+        success: false,
+        error: 'Session not found'
+      };
+    } catch (error) {
+      logger.error('Session load error', { error: error.message, sessionId, userId });
+      return {
+        success: false,
+        error: 'Failed to load session'
+      };
+    }
   }
 }
 

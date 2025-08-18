@@ -1,305 +1,254 @@
-// client/src/components/ChatInterface.js - Debug Version with Logging
+// client/src/components/ChatInterface.js - Complete drop-in with improved error handling
 import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Send, 
+  Bot, 
+  User, 
+  ArrowDown, 
+  Check, 
+  AlertCircle,
+  Loader 
+} from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 
-const ChatInterface = ({ affidavitData, onDataUpdate }) => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: "Hi! I'm here to help you create a professional affidavit. I can help with Texas, Utah, or Arizona. To get started, which state is your case in?"
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
+const ChatInterface = () => {
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const messagesEndRef = useRef(null);
-  const { getAccessTokenSilently } = useAuth0();
+  const chatContainerRef = useRef(null);
+  
+  const { currentDocument } = useDocumentState();
+  const { updateDocumentData } = useDocumentActions();
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when new messages come in
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isAtBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isAtBottom]);
+
+  // Check if scroll position is at bottom
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isBottom = scrollHeight - scrollTop - clientHeight < 10;
+      setIsAtBottom(isBottom);
+    }
+  };
+
+  // Scroll to the bottom of the chat
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Handle welcome message on first load
+  useEffect(() => {
+    // Add welcome message if there are no messages
+    if (messages.length === 0) {
+      setMessages([
+        {
+          type: 'bot',
+          content: `Welcome to the Affidavit Maker! I'll help you create a legally valid affidavit. Let's get started! Please tell me your full name and what state you're in (Texas, Utah, or Arizona).`
+        }
+      ]);
+    }
   }, [messages]);
 
-  // Debug logging for props
-  useEffect(() => {
-    console.log('🔍 ChatInterface: Props received:', {
-      affidavitData,
-      onDataUpdateExists: !!onDataUpdate
-    });
-  }, [affidavitData, onDataUpdate]);
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) {
-      console.log('🔍 ChatInterface: Message send blocked:', {
-        messageEmpty: !inputMessage.trim(),
-        isLoading
-      });
-      return;
-    }
-
-    const messageToSend = inputMessage.trim();
-    setError(null);
+  // Send message to AI
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!message.trim()) return;
+    
+    const userMessage = message.trim();
+    setMessage('');
+    
+    // Add user message to chat
+    setMessages(prevMessages => [
+      ...prevMessages,
+      { type: 'user', content: userMessage }
+    ]);
+    
     setIsLoading(true);
-
-    console.log('🔍 ChatInterface: Starting to send message:', messageToSend);
-
-    // Add user message to chat immediately
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: messageToSend
-    };
-
-    console.log('🔍 ChatInterface: Adding user message to chat');
-    setMessages(prev => {
-      const updated = [...prev, userMessage];
-      console.log('🔍 ChatInterface: Messages after adding user message:', updated);
-      return updated;
-    });
-
-    setInputMessage('');
-
+    setError(null);
+    
     try {
-      console.log('🔍 ChatInterface: Getting auth token...');
-      const token = await getAccessTokenSilently();
-      console.log('🔍 ChatInterface: Auth token obtained');
-
-      const requestData = {
-        message: messageToSend,
-        conversationHistory: messages,
-        currentData: affidavitData || {}
+      let headers = {
+        'Content-Type': 'application/json',
       };
-
-      console.log('🔍 ChatInterface: Sending request:', {
-        url: '/api/chat',
-        messageLength: messageToSend.length,
-        historyLength: messages.length,
-        currentData: affidavitData,
-        requestData
-      });
-
-      const response = await fetch('http://localhost:3001/api/chat', {
+      
+      // Add auth token if authenticated
+      if (isAuthenticated) {
+        const token = await getAccessTokenSilently();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      console.log('🔍 ChatInterface: Raw response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🔍 ChatInterface: Response not ok:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('🔍 ChatInterface: Parsed response data:', data);
-
-      if (data.success && data.data) {
-        console.log('🔍 ChatInterface: Response successful, processing data:', {
-          hasResponse: !!data.data.response,
-          responseLength: data.data.response?.length || 0,
-          responsePreview: data.data.response?.substring(0, 100) + '...',
-          hasAffidavitData: !!data.data.affidavitData,
-          affidavitData: data.data.affidavitData,
-          hasNewFacts: !!(data.data.newFacts && data.data.newFacts.length > 0),
-          newFactsCount: data.data.newFacts?.length || 0,
-          hasSuggestions: !!(data.data.suggestions && data.data.suggestions.length > 0)
-        });
-
-        // Add bot response to chat
-        if (data.data.response) {
-          const botMessage = {
-            id: Date.now() + 1,
-            type: 'bot',
-            content: data.data.response
-          };
-
-          console.log('🔍 ChatInterface: Adding bot message to chat:', botMessage);
-          setMessages(prev => {
-            const updated = [...prev, botMessage];
-            console.log('🔍 ChatInterface: Messages after adding bot message:', updated);
-            return updated;
-          });
-        } else {
-          console.warn('🔍 ChatInterface: No response content in data');
-        }
-
-        // Update affidavit data if provided
-        if (data.data.affidavitData && Object.keys(data.data.affidavitData).length > 0) {
-          console.log('🔍 ChatInterface: Updating affidavit data:', {
-            oldData: affidavitData,
-            newData: data.data.affidavitData,
-            onDataUpdateExists: !!onDataUpdate
-          });
-
-          if (onDataUpdate) {
-            onDataUpdate(data.data.affidavitData);
-            console.log('🔍 ChatInterface: Called onDataUpdate with new data');
-          } else {
-            console.error('🔍 ChatInterface: onDataUpdate function not provided!');
-          }
-        } else {
-          console.log('🔍 ChatInterface: No affidavit data to update');
-        }
-
-        // Handle new facts
-        if (data.data.newFacts && data.data.newFacts.length > 0) {
-          console.log('🔍 ChatInterface: New facts received:', data.data.newFacts);
-        }
-
-        // Handle suggestions
-        if (data.data.suggestions && data.data.suggestions.length > 0) {
-          console.log('🔍 ChatInterface: Suggestions received:', data.data.suggestions);
-        }
-
-      } else {
-        console.error('🔍 ChatInterface: Response not successful:', data);
-        throw new Error(data.error || 'Unknown error occurred');
-      }
-
-    } catch (error) {
-      console.error('🔍 ChatInterface: Error in handleSendMessage:', {
-        error: error.message,
-        stack: error.stack,
-        name: error.name
+        headers,
+        body: JSON.stringify({
+          message: userMessage,
+          conversationHistory: messages,
+          affidavitData: currentDocument
+        })
       });
       
-      setError(`Chat error: ${error.message}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      }
+      
+      if (data.success) {
+        // Add bot response to chat
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { type: 'bot', content: data.response }
+        ]);
+        
+        // Update document data if AI extracted new information
+        if (data.affidavitData) {
+          updateDocumentData(data.affidavitData);
+        }
+      } else {
+        throw new Error(data.error || 'Failed to get a response.');
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setError(error.message);
       
       // Add error message to chat
-      const errorMessage = {
-        id: Date.now() + 2,
-        type: 'bot',
-        content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
-        isError: true
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { 
+          type: 'bot', 
+          content: `I'm having trouble processing your message. ${error.message}`,
+          isError: true
+        }
+      ]);
     } finally {
       setIsLoading(false);
-      console.log('🔍 ChatInterface: Message sending completed');
+      setIsAtBottom(true); // Force scroll to bottom after new message
     }
   };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // Debug render logging
-  console.log('🔍 ChatInterface: Rendering with state:', {
-    messagesCount: messages.length,
-    isLoading,
-    hasError: !!error,
-    inputMessage: inputMessage.substring(0, 50),
-    affidavitDataKeys: Object.keys(affidavitData || {})
-  });
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="p-4 border-b bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-900">AI Assistant</h2>
-        <p className="text-sm text-gray-600">Ask questions to build your affidavit</p>
-        {error && (
-          <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+    <div className="flex flex-col h-full bg-white rounded-lg shadow-sm">
+      <div className="px-4 py-3 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+          <Bot className="h-5 w-5 mr-2 text-blue-500" />
+          Affidavit Assistant
+        </h3>
+        <p className="text-sm text-gray-500">
+          I'll help you create a legally valid affidavit
+        </p>
       </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+      
+      <div 
+        className="flex-1 overflow-y-auto px-4 py-3"
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+      >
+        {messages.map((msg, index) => (
+          <div 
+            key={index} 
+            className={`mb-4 flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                message.type === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : message.isError
-                  ? 'bg-red-100 text-red-800 border border-red-200'
-                  : 'bg-gray-100 text-gray-900'
+            <div 
+              className={`p-3 rounded-lg max-w-[85%] ${
+                msg.type === 'user' 
+                  ? 'bg-blue-50 text-blue-900' 
+                  : msg.isError 
+                  ? 'bg-red-50 text-red-900' 
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {msg.type === 'user' ? (
+                <div className="flex items-start">
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                  <User className="h-4 w-4 ml-2 mt-1 text-blue-600 shrink-0" />
+                </div>
+              ) : (
+                <div className="flex items-start">
+                  {msg.isError ? (
+                    <AlertCircle className="h-4 w-4 mr-2 mt-1 text-red-600 shrink-0" />
+                  ) : (
+                    <Bot className="h-4 w-4 mr-2 mt-1 text-gray-600 shrink-0" />
+                  )}
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                </div>
+              )}
             </div>
           </div>
         ))}
         
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
+          <div className="mb-4 flex justify-start">
+            <div className="p-3 rounded-lg bg-gray-100 text-gray-800 flex items-center">
+              <Loader className="h-4 w-4 mr-2 animate-spin text-blue-600" />
+              <span>Thinking...</span>
             </div>
           </div>
         )}
         
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Input */}
-      <div className="p-4 border-t bg-gray-50">
-        <div className="flex space-x-2">
+      
+      {!isAtBottom && (
+        <button 
+          className="absolute bottom-20 right-6 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-colors"
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          <ArrowDown className="h-5 w-5" />
+        </button>
+      )}
+      
+      <div className="px-4 py-3 border-t border-gray-200">
+        <form onSubmit={sendMessage} className="flex">
           <input
             type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message..."
-            disabled={isLoading}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            className="flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputMessage.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={isLoading || !message.trim()}
+            className={`p-2 rounded-r-lg ${
+              isLoading || !message.trim()
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            } transition-colors`}
           >
-            {isLoading ? 'Sending...' : 'Send'}
+            <Send className="h-5 w-5" />
           </button>
-        </div>
+        </form>
+        
+        {currentDocument.affiantName && (
+          <div className="mt-3 flex items-center text-xs text-green-600">
+            <Check className="h-3 w-3 mr-1" />
+            <span>Name recorded: {currentDocument.affiantName}</span>
+          </div>
+        )}
+        
+        {currentDocument.state && (
+          <div className="mt-1 flex items-center text-xs text-green-600">
+            <Check className="h-3 w-3 mr-1" />
+            <span>State recorded: {currentDocument.state}</span>
+          </div>
+        )}
       </div>
-
-      {/* Debug Info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="p-2 bg-yellow-50 border-t text-xs text-gray-600">
-          <details>
-            <summary>Debug Info (click to expand)</summary>
-            <pre className="mt-2 whitespace-pre-wrap">
-              {JSON.stringify({
-                messagesCount: messages.length,
-                lastMessage: messages[messages.length - 1],
-                affidavitData,
-                isLoading,
-                error
-              }, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
     </div>
   );
 };

@@ -15,6 +15,8 @@ const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
 const AffidavitService = require('./affidavitService');
 const logger = require('./services/logger');
+const { EnhancedFactValidationService } = require('./services/enhancedFactValidationService');
+
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -91,7 +93,9 @@ const openaiClient = new OpenAI({
 // Create services - pass templateManager to AffidavitService to prevent double init
 const openAIService = new ResilientOpenAIService(openaiClient);
 const templateManager = new StateTemplateManager();
-const affidavitService = new AffidavitService(templateManager); // FIXED: Pass template manager
+const affidavitService = new AffidavitService(templateManager);
+const enhancedFactValidationService = new EnhancedFactValidationService(openaiClient, 'en', 100);
+
 
 // Make openAIService available globally for services that need it
 global.openAIService = openAIService;
@@ -102,6 +106,8 @@ app.locals.openAIService = openAIService;
 app.locals.affidavitService = affidavitService;
 app.locals.templateManager = templateManager;
 app.locals.logger = logger;
+app.locals.enhancedFactValidationService = enhancedFactValidationService;
+
 
 // Define routes
 app.get('/health', (req, res) => {
@@ -117,7 +123,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// FIXED: Safer route imports with validation
+// afer route imports with validation
 const safeImportRouter = (routePath, routeName) => {
   try {
     const router = require(routePath);
@@ -165,6 +171,11 @@ if (paymentRouter) {
 const templatesRouter = safeImportRouter('./routes/templates', 'Templates');
 if (templatesRouter) {
   app.use('/api/templates', templatesRouter);
+}
+
+const validationRouter = safeImportRouter('./routes/validation', 'Validation');
+if (validationRouter) {
+  app.use('/api/validate', validationRouter);
 }
 
 // Basic fallback routes for critical endpoints if files are missing

@@ -1,10 +1,12 @@
-// services/EnhancedFactValidationService.js
+// services/EnhancedFactValidationService.js - CommonJS Version
 /**
  * Enhanced Professional Fact Validation Service with LRU Cache
- * Fixes memory leak and adds performance improvements
+ * Memory leak fixes and performance improvements
  * 
- * @version 3.0.0
+ * @version 3.0.0 (CommonJS)
  */
+
+const logger = require('./logger');
 
 class LRUCache {
   constructor(maxSize = 100) {
@@ -45,14 +47,14 @@ class LRUCache {
   }
 }
 
-export const VALIDATION_SEVERITY = {
+const VALIDATION_SEVERITY = {
   CRITICAL: 'critical',
   WARNING: 'warning',
   INFO: 'info',
   SUCCESS: 'success'
 };
 
-export const LEGAL_CATEGORIES = {
+const LEGAL_CATEGORIES = {
   financial: {
     name: 'Financial',
     subcategories: ['income', 'assets', 'debts', 'payments', 'support', 'expenses'],
@@ -115,6 +117,12 @@ class EnhancedFactValidationService {
     this.cacheCleanupInterval = setInterval(() => {
       this.cleanupCache();
     }, 300000); // 5 minutes
+    
+    logger.info('✅ EnhancedFactValidationService initialized', {
+      cacheSize,
+      language,
+      hasOpenAI: !!openaiClient
+    });
   }
   
   destroy() {
@@ -122,6 +130,7 @@ class EnhancedFactValidationService {
       clearInterval(this.cacheCleanupInterval);
     }
     this.validationCache.clear();
+    logger.info('EnhancedFactValidationService destroyed');
   }
   
   cleanupCache() {
@@ -130,6 +139,7 @@ class EnhancedFactValidationService {
     if (cacheAge > 3600000) { // 1 hour
       this.validationCache.clear();
       this.cacheCreatedAt = Date.now();
+      logger.debug('Validation cache cleared due to age');
     }
   }
   
@@ -150,6 +160,7 @@ class EnhancedFactValidationService {
     
     if (this.rateLimit.calls >= this.rateLimit.maxCalls) {
       const waitTime = this.rateLimit.resetTime - Date.now();
+      logger.warn('Rate limit reached, waiting', { waitTime });
       await new Promise(resolve => setTimeout(resolve, waitTime));
       this.rateLimit.calls = 0;
       this.rateLimit.resetTime = Date.now() + 60000;
@@ -465,7 +476,10 @@ Format response as JSON with keys: professionalRewrite, legalIssues, languageIss
       return fallbackResult;
       
     } catch (error) {
-      console.error('Professional fact validation failed:', error);
+      logger.error('Professional fact validation failed', { 
+        error: error.message,
+        factText: factText.substring(0, 50) + '...'
+      });
       const fallbackResult = this.buildFallbackResult(fact, factText);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
@@ -507,4 +521,8 @@ Format response as JSON with keys: professionalRewrite, legalIssues, languageIss
   }
 }
 
-export default EnhancedFactValidationService;
+module.exports = {
+  EnhancedFactValidationService,
+  VALIDATION_SEVERITY,
+  LEGAL_CATEGORIES
+};

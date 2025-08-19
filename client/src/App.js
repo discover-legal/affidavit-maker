@@ -5,7 +5,7 @@ import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';  
 import EditorView from './views/EditorView'; 
 import ErrorBoundary from './components/ErrorBoundary';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -18,6 +18,55 @@ const AUTH0_CONFIG = {
   },
   cacheLocation: 'memory',  
   useRefreshTokens: false 
+};
+
+// Wrapper component to handle navigation
+const AppContent = () => {
+  const navigate = useNavigate();
+
+  // Navigation handlers
+  const handleGetStarted = () => {
+    navigate('/dashboard');
+  };
+
+  const handleNewDocument = () => {
+    navigate('/create');
+  };
+
+  const handleContinueDocument = (document) => {
+    navigate(`/editor/${document.id}`);
+  };
+
+  const handleBackToDashboard = () => {
+    navigate('/dashboard');
+  };
+
+  return (
+    <Routes>
+      <Route 
+        path="/" 
+        element={<LandingPage onGetStarted={handleGetStarted} />} 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <UserDashboard 
+            onNewDocument={handleNewDocument}
+            onContinueDocument={handleContinueDocument}
+          />
+        } 
+      />
+      <Route 
+        path="/editor/:documentId?" 
+        element={<EditorView onBack={handleBackToDashboard} />} 
+      />
+      <Route 
+        path="/create" 
+        element={<EditorView isNew={true} onBack={handleBackToDashboard} />} 
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 /**
@@ -38,13 +87,7 @@ const App = () => {
       <ErrorBoundary>
         <DocumentProvider>
           <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/dashboard" element={<UserDashboard />} />
-              <Route path="/editor/:documentId?" element={<EditorView />} />
-              <Route path="/create" element={<EditorView isNew={true} />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <AppContent />
           </Router>
         </DocumentProvider>
       </ErrorBoundary>

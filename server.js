@@ -1,4 +1,4 @@
-// server.js - Fixed version
+// server.js - Final Fixed Version - All Issues Resolved
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -13,11 +13,13 @@ require('dotenv').config();
 // Import services
 const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
+const AffidavitService = require('./affidavitService');
 const logger = require('./services/logger');
+const { EnhancedFactValidationService } = require('./services/enhancedFactValidationService');
 
 
 // Import middleware
-const { errorMiddleware } = require('./middleware/errorMiddleware');
+const { errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize Express app
 const app = express();
@@ -79,10 +81,24 @@ app.use(morgan('combined', {
   skip: (req, res) => res.statusCode < 400
 }));
 
-// Create singleton instances of services
+// Create services in correct order - FIXED: No double initialization
 const { StateTemplateManager } = require('./templates/StateTemplateManager');
+const OpenAI = require('openai');
+
+// Create OpenAI client first
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Create services - pass templateManager to AffidavitService to prevent double init
+const openAIService = new ResilientOpenAIService(openaiClient);
 const templateManager = new StateTemplateManager();
-const affidavitService = new AffidavitService();
+const affidavitService = new AffidavitService(templateManager);
+const enhancedFactValidationService = new EnhancedFactValidationService(openaiClient, 'en', 100);
+
+
+// Make openAIService available globally for services that need it
+global.openAIService = openAIService;
 
 // Add services to app locals for easy access in routes
 app.locals.dbService = dbService;
@@ -90,6 +106,8 @@ app.locals.openAIService = openAIService;
 app.locals.affidavitService = affidavitService;
 app.locals.templateManager = templateManager;
 app.locals.logger = logger;
+app.locals.enhancedFactValidationService = enhancedFactValidationService;
+
 
 // Define routes
 app.get('/health', (req, res) => {
@@ -100,39 +118,83 @@ app.get('/health', (req, res) => {
       database: dbService ? 'OK' : 'Not Connected',
       templates: templateManager ? 'OK' : 'Not Initialized',
       auth: process.env.AUTH0_DOMAIN ? 'OK' : 'Not Configured',
-      stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Configured'
+      stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Connected'
     }
   });
 });
 
-// Import routes AFTER creating the services they depend on
-const auth0WebhooksRouter = require('./routes/auth0-webhooks');
-const documentsRouter = require('./routes/documents');
+// afer route imports with validation
+const safeImportRouter = (routePath, routeName) => {
+  try {
+    const router = require(routePath);
+    // Validate that it's actually a router/middleware function
+    if (typeof router === 'function' || (router && typeof router.use === 'function')) {
+      logger.info(`✅ ${routeName} routes loaded successfully`);
+      return router;
+    } else {
+      logger.error(`❌ ${routeName} routes: exported value is not a valid router/middleware`);
+      return null;
+    }
+  } catch (err) {
+    logger.error(`❌ Failed to load ${routeName} routes:`, { error: err.message });
+    return null;
+  }
+};
 
-// API routes - only include routes that exist and are properly exported
-app.use('/api/webhooks/auth0', auth0WebhooksRouter);
-app.use('/api/documents', documentsRouter);
+// Import and use routes with safety checks
+const auth0WebhooksRouter = safeImportRouter('./routes/auth0-webhooks', 'Auth0 Webhooks');
+if (auth0WebhooksRouter) {
+  app.use('/api/webhooks/auth0', auth0WebhooksRouter);
+}
 
-// Optional routes - only include if they exist
-try {
-  const authRouter = require('./routes/auth');
+const documentsRouter = safeImportRouter('./routes/documents', 'Documents');
+if (documentsRouter) {
+  app.use('/api/documents', documentsRouter);
+}
+
+// Optional routes with enhanced error handling
+const authRouter = safeImportRouter('./routes/auth', 'Auth');
+if (authRouter) {
   app.use('/api/auth', authRouter);
-} catch (err) {
-  logger.warn('Auth routes not loaded', { error: err.message });
 }
 
-try {
-  const chatRouter = require('./routes/chat');
+const chatRouter = safeImportRouter('./routes/chat', 'Chat');
+if (chatRouter) {
   app.use('/api/chat', chatRouter);
-} catch (err) {
-  logger.warn('Chat routes not loaded', { error: err.message });
 }
 
-try {
-  const paymentRouter = require('./routes/payment');
+const paymentRouter = safeImportRouter('./routes/payment', 'Payment');
+if (paymentRouter) {
   app.use('/api/payment', paymentRouter);
-} catch (err) {
-  logger.warn('Payment routes not loaded', { error: err.message });
+}
+
+const templatesRouter = safeImportRouter('./routes/templates', 'Templates');
+if (templatesRouter) {
+  app.use('/api/templates', templatesRouter);
+}
+
+const validationRouter = safeImportRouter('./routes/validation', 'Validation');
+if (validationRouter) {
+  app.use('/api/validate', validationRouter);
+}
+
+// Basic fallback routes for critical endpoints if files are missing
+if (!documentsRouter) {
+  app.get('/api/documents', (req, res) => {
+    res.status(503).json({ 
+      success: false, 
+      error: 'Documents service temporarily unavailable' 
+    });
+  });
+}
+
+if (!chatRouter) {
+  app.post('/api/chat', (req, res) => {
+    res.status(503).json({ 
+      success: false, 
+      error: 'Chat service temporarily unavailable' 
+    });
+  });
 }
 
 // Serve static files in production
@@ -146,12 +208,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Error handling middleware
-app.use(errorMiddleware);
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Health check: http://localhost:${PORT}/health`);
   logger.info(`Server started on port ${PORT}`);
 });
 

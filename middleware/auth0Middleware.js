@@ -9,8 +9,14 @@ const checkJwt = jwt({
   secret: jwksRsa.expressJwtSecret({
     cache: true,
     rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
+    jwksRequestsPerMinute: 2,  // ← Reduce from 5 to 2
+    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+    handleSigningKeyError: (err, cb) => {
+      if (err instanceof jwksRsa.JwksRateLimitError) {
+        return cb(new Error('Too many requests to Auth0'));
+      }
+      return cb(err);
+    }
   }),
   audience: process.env.AUTH0_AUDIENCE,
   issuer: `https://${process.env.AUTH0_DOMAIN}/`,

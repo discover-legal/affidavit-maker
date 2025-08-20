@@ -184,7 +184,7 @@ Keep responses concise and helpful.`;
       ]);
 
       // Use resilient service for chat completion
-      const completion = await this.openAIService.createChatCompletion(messages, {
+      const completion = await this.openAIService.chat(messages, {
         max_tokens: this.constants.MAX_COMPLETION_TOKENS,
         temperature: 0.7,
         context: { userId, sessionId, processingKey }

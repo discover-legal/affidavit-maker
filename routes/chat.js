@@ -196,13 +196,13 @@ router.post('/',
           
           console.log('🔍 15. About to call affidavitService.processMessage');
           
-          result = await req.app.locals.affidavitService.processMessage({
+          result = await req.app.locals.affidavitService.processMessage(
             message,
-            conversationHistory: chunkedHistory,
+            chunkedHistory,
             affidavitData,
-            userId: req.user.id,
-            sessionId: req.sessionId
-          });
+            req.user.id,
+            req.sessionId
+          );
           
           console.log('🔍 16. Received result from affidavitService:', {
             success: result?.success,

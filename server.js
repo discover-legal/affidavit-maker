@@ -20,6 +20,8 @@ const { EnhancedFactValidationService } = require('./services/enhancedFactValida
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
+const { responseMiddleware } = require('./utils/responseHelpers');
+
 
 // Initialize Express app
 const app = express();
@@ -29,6 +31,9 @@ app.use((req, res, next) => {
   req.id = uuidv4();
   next();
 });
+
+// Response Helder middleware
+app.use(responseMiddleware);
 
 // Security middleware
 app.use(helmet());

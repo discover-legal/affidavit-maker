@@ -297,7 +297,15 @@ router.post('/',
         });
       }
 
-      res.sendSuccess(responseData);
+      res.json({
+              success: true,
+              response: result.response,
+              affidavitData: result.affidavitData || affidavitData,
+              newFacts: result.newFacts || [],
+              processingTime,
+              sessionId: req.sessionId,
+              timestamp: new Date().toISOString()
+            });
 
       console.log('🔍 23. Response sent successfully');
 

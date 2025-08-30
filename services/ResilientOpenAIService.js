@@ -1,11 +1,4 @@
-// services/ResilientOpenAIService.js
-/**
- * Resilient OpenAI Service with Circuit Breaker Pattern
- * Provides fault tolerance and automatic recovery for AI operations
- * 
- * @version 1.0.0
- */
-
+// services/ResilientOpenAIService.js - FIXED VERSION
 const winston = require('winston');
 
 // Configure logger if not already available
@@ -24,8 +17,8 @@ const logger = winston.createLogger({
 class CircuitBreaker {
   constructor(options = {}) {
     this.threshold = options.threshold || 5;
-    this.timeout = options.timeout || 60000; // 1 minute
-    this.resetTimeout = options.resetTimeout || 120000; // 2 minutes
+    this.timeout = options.timeout || 60000;
+    this.resetTimeout = options.resetTimeout || 120000;
     this.name = options.name || 'CircuitBreaker';
     
     this.state = 'CLOSED';
@@ -44,7 +37,6 @@ class CircuitBreaker {
   async execute(operation, fallback = null) {
     this.metrics.totalCalls++;
     
-    // Check if circuit is open
     if (this.state === 'OPEN') {
       if (Date.now() < this.nextAttempt) {
         logger.warn(`Circuit breaker ${this.name} is OPEN, using fallback`);
@@ -53,7 +45,6 @@ class CircuitBreaker {
         }
         throw new Error(`Circuit breaker ${this.name} is OPEN. Service temporarily unavailable.`);
       }
-      // Try to recover
       this.state = 'HALF_OPEN';
       logger.info(`Circuit breaker ${this.name} attempting recovery (HALF_OPEN)`);
     }
@@ -222,7 +213,6 @@ class ResilientOpenAIService {
   }
   
   setCache(key, data) {
-    // Implement LRU eviction if cache is full
     if (this.responseCache.size >= this.cacheMaxSize) {
       const firstKey = this.responseCache.keys().next().value;
       this.responseCache.delete(firstKey);
@@ -232,6 +222,25 @@ class ResilientOpenAIService {
       data,
       timestamp: Date.now()
     });
+  }
+
+  // ✅ FIXED: Filter out invalid OpenAI API parameters
+  filterOpenAIOptions(options) {
+    // List of valid OpenAI chat completion parameters
+    const validParams = [
+      'model', 'messages', 'temperature', 'max_tokens', 'top_p', 'n', 
+      'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
+      'user', 'response_format', 'seed', 'tools', 'tool_choice'
+    ];
+    
+    const filtered = {};
+    for (const [key, value] of Object.entries(options)) {
+      if (validParams.includes(key)) {
+        filtered[key] = value;
+      }
+    }
+    
+    return filtered;
   }
   
   async chat(messages, options = {}) {
@@ -250,10 +259,8 @@ class ResilientOpenAIService {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback response for chat');
       
-      // Try to provide a helpful fallback based on context
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.content) {
-        // Simple keyword-based fallback
         const content = lastMessage.content.toLowerCase();
         
         if (content.includes('help') || content.includes('how')) {
@@ -290,13 +297,16 @@ class ResilientOpenAIService {
     // Execute with circuit breaker and retry policy
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
-        const response = await this.openai.chat.completions.create({
+        // ✅ FIXED: Filter options before passing to OpenAI API
+        const apiOptions = this.filterOpenAIOptions({
           model: options.model || "gpt-4",
           messages,
           temperature: options.temperature || 0.7,
           max_tokens: options.max_tokens || 1000,
-          ...options
+          ...options // This now won't include invalid params like timeout
         });
+        
+        const response = await this.openai.chat.completions.create(apiOptions);
         
         // Cache successful response
         this.setCache(cacheKey, response);
@@ -310,7 +320,6 @@ class ResilientOpenAIService {
   async createEmbedding(input, options = {}) {
     this.metrics.totalRequests++;
     
-    // Check cache
     const cacheKey = this.getCacheKey('embedding', { input, options });
     const cached = this.getFromCache(cacheKey);
     if (cached) {
@@ -318,12 +327,10 @@ class ResilientOpenAIService {
       return cached;
     }
     
-    // Fallback for embeddings
     const fallback = async () => {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback for embedding');
       
-      // Return a simple hash-based pseudo-embedding as fallback
       const hash = input.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const embedding = new Array(1536).fill(0).map((_, i) => 
         Math.sin(hash * (i + 1)) * 0.1
@@ -337,16 +344,16 @@ class ResilientOpenAIService {
       };
     };
     
-    // Execute with circuit breaker and retry
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
-        const response = await this.openai.embeddings.create({
+        // ✅ FIXED: Filter embedding options too
+        const apiOptions = {
           model: options.model || "text-embedding-ada-002",
           input,
-          ...options
-        });
+          // Don't spread options to avoid invalid params
+        };
         
-        // Cache successful response
+        const response = await this.openai.embeddings.create(apiOptions);
         this.setCache(cacheKey, response);
         return response;
       });
@@ -372,6 +379,7 @@ class ResilientOpenAIService {
       const response = await this.chat(messages, {
         temperature: 0.7,
         max_tokens: 1000
+        // ✅ REMOVED: timeout and other invalid params
       });
       
       return {

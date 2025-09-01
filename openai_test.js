@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+
  * OpenAI Failure Diagnostic Script
  * Replicates your exact setup to find why OpenAI calls are failing
  */
@@ -14,6 +15,7 @@ async function diagnosticOpenAIFailures() {
   const fixes = [];
 
   try {
+
     // Step 1: Environment Check
     console.log('📋 Step 1: Environment Variables');
     const apiKey = process.env.OPENAI_API_KEY;
@@ -62,12 +64,14 @@ async function diagnosticOpenAIFailures() {
     } catch (error) {
       issues.push(`Network/Connection Error: ${error.message}`);
       return { issues, fixes };
+
     }
 
     // Step 3: Test Your OpenAI Client Setup
     console.log('\n🤖 Step 3: Your OpenAI Client Configuration');
     const OpenAI = require('openai');
     
+
     // EXACT setup from your server.js
     const openaiClient = new OpenAI({
       apiKey: apiKey,
@@ -96,16 +100,18 @@ async function diagnosticOpenAIFailures() {
       } else if (error.message.includes('timeout')) {
         issues.push('Timeout error - Network or server issue');
       }
+
     }
 
     // Step 4: Test ResilientService (your wrapper)
     console.log('\n🛡️ Step 4: ResilientOpenAIService Test');
     const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
-    
+
     const resilientService = new ResilientOpenAIService(openaiClient, {
       maxRetries: 3,
       initialRetryDelay: 1000,
       chatTimeout: 45000,
+
       chatThreshold: 5
     });
 
@@ -133,11 +139,13 @@ async function diagnosticOpenAIFailures() {
     } catch (error) {
       console.log('❌ ResilientService failed:', error.message);
       issues.push(`ResilientService Error: ${error.message}`);
+
     }
 
     // Step 5: Test State Extraction (the failing part)
     console.log('\n🏛️ Step 5: State Extraction Service Test');
     
+
     // This is where your logs show JSON parsing errors
     try {
       const testStateMessage = 'texas, my name my jones';

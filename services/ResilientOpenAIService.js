@@ -1,4 +1,6 @@
+
 // services/ResilientOpenAIService.js 
+
 const winston = require('winston');
 
 // Configure logger if not already available
@@ -224,6 +226,7 @@ class ResilientOpenAIService {
     });
   }
 
+  
   // ✅ FIXED: Complete list of valid OpenAI parameters
   filterOpenAIOptions(options) {
     // Complete list of valid OpenAI Chat Completion parameters
@@ -231,15 +234,17 @@ class ResilientOpenAIService {
       'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n', 
       'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
       'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
-    ];
+
     
     const filtered = {};
     for (const [key, value] of Object.entries(options)) {
+
       if (validParams.includes(key) && value !== undefined) {
         filtered[key] = value;
       } else if (!validParams.includes(key)) {
         // Log filtered params for debugging
         logger.debug(`Filtered invalid OpenAI param: ${key}=${value}`);
+
       }
     }
     
@@ -265,6 +270,7 @@ class ResilientOpenAIService {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback response for chat');
       
+
       return {
         choices: [{
           message: {
@@ -292,6 +298,7 @@ class ResilientOpenAIService {
           messages,
           temperature: options.temperature || 0.7,
           max_tokens: options.max_tokens || 1000,
+
           stream: options.stream || false,
           response_format: options.response_format,
           user: options.user,
@@ -315,7 +322,6 @@ class ResilientOpenAIService {
         if (!options.stream) {
           this.setCache(this.getCacheKey('chat', { messages, options }), response);
         }
-        
         return response;
       });
     };
@@ -413,12 +419,14 @@ class ResilientOpenAIService {
     
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
+
         const cleanOptions = {
           model: options.model || "text-embedding-ada-002",
           input
         };
         
         const response = await this.openai.embeddings.create(cleanOptions);
+
         this.setCache(cacheKey, response);
         return response;
       });
@@ -444,6 +452,7 @@ class ResilientOpenAIService {
       const response = await this.chat(messages, {
         temperature: 0.7,
         max_tokens: 1000
+        // ✅ REMOVED: timeout and other invalid params
       });
       
       return {

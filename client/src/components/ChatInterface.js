@@ -57,7 +57,8 @@ const ChatInterface = () => {
       setMessages([
         {
           type: 'bot',
-          content: `Welcome to the Affidavit Maker! I'll help you create a legally valid affidavit. Let's get started! Please tell me your full name and what state you're in (Texas, Utah, or Arizona).`
+          content: `I specialize in helping people create affidavits for family court in Texas, Utah, and Arizona. I'll ask you specific questions to gather the facts you need for court. \n
+Let's get started: Tell me your name and what type of family law case this is for - custody, child support, divorce, protective order, or another family law matter.`
         }
       ]);
     }

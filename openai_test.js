@@ -1,305 +1,258 @@
 #!/usr/bin/env node
-
 /**
-
- * Enhanced OpenAI Chain Debug Script
- * Follows the exact same path as your running application
- * to pinpoint where the OpenAI connection fails
+ * OpenAI Failure Diagnostic Script
+ * Replicates your exact setup to find why OpenAI calls are failing
  */
 
 require('dotenv').config();
 
+async function diagnosticOpenAIFailures() {
+  console.log('🔍 OpenAI Failure Diagnostic\n');
+  console.log('Replicating your exact application setup...\n');
+  
+  const issues = [];
+  const fixes = [];
 
-async function debugOpenAIChain() {
-  console.log('🔍 Enhanced OpenAI Chain Debug\n');
-  console.log('Following the exact same path as your running application...\n');
-  
-  const results = {
-    apiKey: false,
-    directAPI: false,
-    openaiClient: false,
-    resilientService: false,
-    circuitBreaker: false,
-    affidavitService: false,
-    fullChain: false
-  };
-  
   try {
-    // Step 1: Check API Key
-    console.log('📋 Step 1: Environment Check');
+    // Step 1: Environment Check
+    console.log('📋 Step 1: Environment Variables');
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.log('❌ OPENAI_API_KEY missing');
-      return results;
+      issues.push('Missing OPENAI_API_KEY');
+      return { issues, fixes };
     }
-    console.log('✅ API key present:', apiKey.substring(0, 20) + '...');
-    results.apiKey = true;
-    
-    // Step 2: Direct OpenAI API Test (raw fetch)
-    console.log('\n🌐 Step 2: Direct OpenAI API Test');
+    if (!apiKey.startsWith('sk-')) {
+      issues.push('Invalid OPENAI_API_KEY format');
+      return { issues, fixes };
+    }
+    console.log('✅ API key format valid');
+
+    // Step 2: Test Raw OpenAI API
+    console.log('\n🌐 Step 2: Raw OpenAI API Test');
     try {
-      const response = await fetch('https://api.openai.com/v1/models', {
+      const rawResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
-          'User-Agent': 'AffidavitMaker/1.0'
+          'Content-Type': 'application/json'
         },
-        timeout: 10000
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 10
+        })
       });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('❌ Direct API failed:', response.status, errorText);
+
+      if (!rawResponse.ok) {
+        const errorText = await rawResponse.text();
+        console.log('❌ Raw API Failed:', rawResponse.status);
+        console.log('Error:', errorText);
         
-        // Detailed error analysis
-        if (response.status === 401) {
-          console.log('   🔍 Authentication failed - check your API key');
-        } else if (response.status === 429) {
-          console.log('   🔍 Rate limited - check your usage/billing');
-        } else if (response.status === 403) {
-          console.log('   🔍 Forbidden - check API key permissions');
+        if (rawResponse.status === 401) {
+          issues.push('API Authentication Failed - Check API key');
+        } else if (rawResponse.status === 429) {
+          issues.push('Rate Limited - Check usage/billing');
+        } else if (rawResponse.status === 400) {
+          issues.push('Bad Request - Invalid parameters sent to API');
         }
-        return results;
+        return { issues, fixes };
       }
       
-      const data = await response.json();
-      console.log('✅ Direct API working - found', data.data.length, 'models');
-      results.directAPI = true;
+      console.log('✅ Raw OpenAI API working');
     } catch (error) {
-      console.log('❌ Direct API failed:', error.message);
-      if (error.code === 'ENOTFOUND') {
-        console.log('   🔍 DNS resolution failed - check internet connection');
-      } else if (error.code === 'ETIMEDOUT') {
-        console.log('   🔍 Request timeout - check firewall/proxy');
-      }
-      return results;
+      issues.push(`Network/Connection Error: ${error.message}`);
+      return { issues, fixes };
     }
-    
-    // Step 3: OpenAI Client Creation (same as your app)
-    console.log('\n🤖 Step 3: OpenAI Client Creation');
+
+    // Step 3: Test Your OpenAI Client Setup
+    console.log('\n🤖 Step 3: Your OpenAI Client Configuration');
     const OpenAI = require('openai');
+    
+    // EXACT setup from your server.js
     const openaiClient = new OpenAI({
       apiKey: apiKey,
       timeout: 45000,
-      maxRetries: 0 // We'll handle retries in ResilientService
+      maxRetries: 0
     });
-    console.log('✅ OpenAI client created');
-    results.openaiClient = true;
-    
-    // Step 4: Test Client with Simple Request
-    console.log('\n💬 Step 4: Testing OpenAI Client');
+    console.log('✅ OpenAI client created with your exact config');
+
+    // Test basic chat
     try {
-      const completion = await openaiClient.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "Test connection - respond with just 'OK'" }],
+      const simpleTest = await openaiClient.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'respond with just OK' }],
         max_tokens: 5
-        // ✅ REMOVED: timeout - not a valid API parameter
       });
-      console.log('✅ OpenAI client working:', completion.choices[0].message.content.trim());
-      results.openaiClient = true;
+      console.log('✅ OpenAI client basic test:', simpleTest.choices[0].message.content);
     } catch (error) {
       console.log('❌ OpenAI client failed:', error.message);
-      console.log('   🔍 Error code:', error.code);
-      console.log('   🔍 Error type:', error.type);
-      return results;
+      issues.push(`OpenAI Client Error: ${error.message}`);
+      
+      // Check specific error types
+      if (error.code === 'insufficient_quota') {
+        issues.push('Insufficient quota - Check billing');
+      } else if (error.code === 'rate_limit_exceeded') {
+        issues.push('Rate limit exceeded');
+      } else if (error.message.includes('timeout')) {
+        issues.push('Timeout error - Network or server issue');
+      }
     }
-    
-    // Step 5: ResilientOpenAIService (your wrapper)
-    console.log('\n🛡️  Step 5: ResilientOpenAIService Creation');
+
+    // Step 4: Test ResilientService (your wrapper)
+    console.log('\n🛡️ Step 4: ResilientOpenAIService Test');
     const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
+    
     const resilientService = new ResilientOpenAIService(openaiClient, {
       maxRetries: 3,
       initialRetryDelay: 1000,
       chatTimeout: 45000,
-      chatThreshold: 5, // Same as your logs show
-      resetTimeout: 120000
+      chatThreshold: 5
     });
-    console.log('✅ ResilientOpenAIService created');
-    results.resilientService = true;
-    
-    // Step 6: Check Circuit Breaker State
-    console.log('\n⚡ Step 6: Circuit Breaker Status');
+
+    // Check circuit breaker status
     const status = resilientService.getStatus();
-    console.log('   📊 Chat Circuit Breaker:');
-    console.log('     - State:', status.circuitBreakers.chat.state);
-    console.log('     - Failure Count:', status.circuitBreakers.chat.failureCount);
-    console.log('     - Success Count:', status.circuitBreakers.chat.successCount);
-    console.log('     - Total Calls:', status.circuitBreakers.chat.metrics.totalCalls);
-    console.log('     - Last Failure:', status.circuitBreakers.chat.lastFailureTime ? new Date(status.circuitBreakers.chat.lastFailureTime) : 'None');
-    
+    console.log('Circuit Breaker Status:', {
+      chatState: status.circuitBreakers.chat.state,
+      failures: status.circuitBreakers.chat.failureCount,
+      lastFailure: status.circuitBreakers.chat.lastFailureTime
+    });
+
     if (status.circuitBreakers.chat.state === 'OPEN') {
-      console.log('❌ Circuit breaker is OPEN - this is why your app uses fallbacks!');
-      console.log('🔧 Resetting circuit breaker for test...');
+      console.log('⚠️ Circuit breaker is OPEN - resetting for test');
       resilientService.resetCircuitBreakers();
     }
-    results.circuitBreaker = true;
-    
-    // Step 7: Test ResilientService Chat
-    console.log('\n💬 Step 7: Testing ResilientService Chat Method');
+
+    // Test resilient service chat
     try {
-      const testMessages = [
-        { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: "texas" }
-      ];
-      
-      console.log('   📤 Calling resilientService.chat()...');
-      const chatResult = await resilientService.chat(testMessages, {
-        model: "gpt-4",
-        max_tokens: 100,
-        temperature: 0.7
+      const resilientTest = await resilientService.chat([
+        { role: 'user', content: 'test resilient service' }
+      ], {
+        max_tokens: 10
       });
-      
-      console.log('✅ ResilientService chat working');
-      console.log('   📝 Response:', chatResult.choices[0].message.content.substring(0, 100) + '...');
-      results.resilientService = true;
+      console.log('✅ ResilientService working:', resilientTest.choices[0].message.content);
     } catch (error) {
-      console.log('❌ ResilientService chat failed:', error.message);
-      console.log('   🔍 This is likely where your app starts failing');
-      
-      // Check if it's a circuit breaker issue
-      const newStatus = resilientService.getStatus();
-      if (newStatus.circuitBreakers.chat.state === 'OPEN') {
-        console.log('   ⚡ Circuit breaker opened during test');
-      }
-      return results;
+      console.log('❌ ResilientService failed:', error.message);
+      issues.push(`ResilientService Error: ${error.message}`);
     }
+
+    // Step 5: Test State Extraction (the failing part)
+    console.log('\n🏛️ Step 5: State Extraction Service Test');
     
-    // Step 8: AffidavitService Integration (your exact setup)
-    console.log('\n📄 Step 8: AffidavitService Integration');
-    const { StateTemplateManager } = require('./templates/StateTemplateManager');
-    const AffidavitService = require('./affidavitService');
-    
-    const templateManager = new StateTemplateManager();
-    global.openAIService = resilientService; // Same as your server.js
-    
-    const affidavitService = new AffidavitService(templateManager);
-    console.log('✅ AffidavitService created');
-    console.log('   🔍 Has openAIService:', !!affidavitService.openAIService);
-    console.log('   🔍 Has templateManager:', !!affidavitService.templateManager);
-    results.affidavitService = true;
-    
-    // Step 9: Full Chain Test (exact same call as your routes/chat.js)
-    console.log('\n🔗 Step 9: Full Chain Test - Exact Route Replication');
+    // This is where your logs show JSON parsing errors
     try {
-      const testMessage = 'texas';
-      const testHistory = [
+      const testStateMessage = 'texas, my name my jones';
+      
+      // Test what your current state extractor is sending to OpenAI
+      const stateExtractionMessages = [
         {
-          type: 'bot',
-          content: "Welcome to the Affidavit Maker! I'll help you create a legally valid affidavit. Let's get started! Please tell me your full name and what state you're in (Texas, Utah, or Arizona)."
+          role: 'system',
+          content: `Extract state from user message. Return JSON with keys: state, confidence, status.`
+        },
+        {
+          role: 'user',
+          content: `Message: "${testStateMessage}"`
         }
       ];
-      const testAffidavitData = {
-        state: '',
-        affiantName: '',
-        caseNumber: '',
-        caseType: '',
-        county: '',
-        documentType: 'general',
-        facts: [],
-        documentId: null
-      };
-      
-      console.log('   📤 Calling affidavitService.processMessage() with exact route parameters...');
-      
-      // This is the EXACT call from routes/chat.js line ~150
-      const result = await affidavitService.processMessage(
-        testMessage,
-        testHistory,
-        testAffidavitData,
-        4, // userId from your logs
-        'debug_session_test'
-      );
-      
-      console.log('   📥 Result received:', {
-        success: result?.success,
-        hasResponse: !!result?.response,
-        responseLength: result?.response?.length || 0,
-        hasError: !!result?.error
+
+      console.log('Testing extraction with these messages:', stateExtractionMessages);
+
+      const extractionTest = await resilientService.chat(stateExtractionMessages, {
+        max_tokens: 200,
+        temperature: 0.1,
+        response_format: { type: "json_object" }
       });
-      
-      if (result?.success && result?.response) {
-        console.log('🎉 SUCCESS! Full chain working!');
-        console.log('   📝 AI Response:', result.response.substring(0, 150) + '...');
-        results.fullChain = true;
-      } else {
-        console.log('❌ Full chain failed');
-        console.log('   🔍 Error:', result?.error || 'No response generated');
-        console.log('   🔍 This is the exact issue your app is experiencing');
+
+      console.log('✅ State extraction API call succeeded');
+      console.log('Response:', extractionTest.choices[0].message.content);
+
+      // Test JSON parsing
+      try {
+        const parsed = JSON.parse(extractionTest.choices[0].message.content);
+        console.log('✅ JSON parsing successful:', parsed);
+      } catch (jsonError) {
+        console.log('❌ JSON parsing failed:', jsonError.message);
+        console.log('Raw response:', extractionTest.choices[0].message.content);
+        issues.push('LLM not returning valid JSON despite format specification');
       }
+
     } catch (error) {
-      console.log('❌ Full chain test failed:', error.message);
-      console.log('   📚 Stack trace:', error.stack);
+      console.log('❌ State extraction test failed:', error.message);
+      issues.push(`State Extraction Error: ${error.message}`);
     }
+
+    // Step 6: Test Parameter Filtering
+    console.log('\n⚙️ Step 6: Parameter Filtering Test');
     
+    // Test what happens when invalid params are passed
+    const invalidParams = {
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'test' }],
+      max_tokens: 10,
+      timeout: 30000,        // INVALID PARAM
+      context: { test: true }, // INVALID PARAM
+      retryPolicy: {}         // INVALID PARAM
+    };
+
+    console.log('Testing with invalid parameters:', Object.keys(invalidParams));
+
+    try {
+      // This should fail if parameter filtering isn't working
+      const invalidTest = await openaiClient.chat.completions.create(invalidParams);
+      console.log('⚠️ OpenAI accepted invalid parameters (should not happen)');
+    } catch (error) {
+      if (error.message.includes('Unknown parameter') || error.message.includes('invalid parameter')) {
+        console.log('❌ OpenAI rejecting invalid parameters:', error.message);
+        issues.push('Invalid parameters being sent to OpenAI API');
+        fixes.push('Need to filter parameters before sending to OpenAI');
+      } else {
+        console.log('❌ Different error with invalid params:', error.message);
+      }
+    }
+
   } catch (error) {
-    console.error('\n💥 Unexpected error:', error.message);
-    console.error('📚 Stack:', error.stack);
+    console.error('❌ Diagnostic failed:', error);
+    issues.push(`Diagnostic Error: ${error.message}`);
   }
+
+  // Summary
+  console.log('\n📊 DIAGNOSTIC SUMMARY');
+  console.log('='.repeat(50));
   
-  // Final Results Summary
-  console.log('\n' + '='.repeat(60));
-  console.log('📊 DEBUG RESULTS SUMMARY');
-  console.log('='.repeat(60));
-  
-  const steps = [
-    ['API Key Present', results.apiKey],
-    ['Direct API Working', results.directAPI], 
-    ['OpenAI Client OK', results.openaiClient],
-    ['ResilientService OK', results.resilientService],
-    ['Circuit Breaker OK', results.circuitBreaker],
-    ['AffidavitService OK', results.affidavitService],
-    ['Full Chain Working', results.fullChain]
-  ];
-  
-  steps.forEach(([step, passed]) => {
-    console.log(`${passed ? '✅' : '❌'} ${step}`);
-  });
-  
-  // Determine where the issue is
-  const lastWorking = steps.findLastIndex(([_, passed]) => passed);
-  const firstFailing = steps.findIndex(([_, passed]) => !passed);
-  
-  if (results.fullChain) {
-    console.log('\n🎉 All tests passed! Your OpenAI integration is working correctly.');
-    console.log('💡 If your app still fails, the issue might be:');
-    console.log('   - Environment differences between test and runtime');
-    console.log('   - Different error handling in actual app flow');
-    console.log('   - Circuit breaker stuck in OPEN state (reset it)');
-  } else if (firstFailing !== -1) {
-    console.log(`\n🎯 Issue found at step: ${steps[firstFailing][0]}`);
-    console.log('💡 Focus on fixing this step to resolve your app issues.');
+  if (issues.length === 0) {
+    console.log('✅ No issues found - OpenAI should be working!');
+    console.log('💡 If you still see failures, the issue might be:');
+    console.log('   - Race conditions in concurrent requests');
+    console.log('   - Memory pressure causing timeouts');
+    console.log('   - Network instability');
+  } else {
+    console.log('❌ ISSUES FOUND:');
+    issues.forEach((issue, i) => console.log(`   ${i + 1}. ${issue}`));
     
-    if (firstFailing <= 1) {
-      console.log('🔧 API/Auth issue - check key, billing, permissions');
-    } else if (firstFailing <= 3) {
-      console.log('🔧 Client configuration issue - check timeouts, network');
-    } else {
-      console.log('🔧 Service integration issue - check constructor, dependencies');
-    }
+    console.log('\n🔧 FIXES NEEDED:');
+    fixes.forEach((fix, i) => console.log(`   ${i + 1}. ${fix}`));
   }
-  
-  console.log('\n🔄 To reset circuit breaker in your running app, visit:');
-  console.log('   http://localhost:3001/api/debug/reset-openai');
-  
-  return results;
+
+  console.log('\n🚀 NEXT STEPS:');
+  console.log('1. Run: node openai_diagnostic.js');
+  console.log('2. If issues found, apply the drop-in fixes');
+  console.log('3. Reset circuit breaker: GET /api/debug/reset-openai');
+  console.log('4. Test with: "texas, my name my jones"');
+
+  return { issues, fixes };
 }
 
-// Run with Node version check
-if (parseInt(process.version.slice(1).split('.')[0]) < 18) {
-  console.error('❌ This script requires Node.js 18+ for fetch support');
-  console.log('💡 Install node-fetch: npm install node-fetch');
-  process.exit(1);
+// Run diagnostic
+if (require.main === module) {
+  diagnosticOpenAIFailures()
+    .then(result => {
+      if (result.issues.length > 0) {
+        process.exit(1);
+      }
+    })
+    .catch(error => {
+      console.error('Diagnostic script failed:', error);
+      process.exit(1);
+    });
 }
 
-// Handle fetch for older Node versions
-if (typeof fetch === 'undefined') {
-  try {
-    const nodeFetch = require('node-fetch');
-    global.fetch = nodeFetch;
-  } catch (e) {
-    console.error('❌ fetch not available and node-fetch not installed');
-    console.log('💡 Install: npm install node-fetch');
-    process.exit(1);
-  }
-}
-
-debugOpenAIChain().catch(console.error);
+module.exports = { diagnosticOpenAIFailures };

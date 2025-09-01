@@ -37,6 +37,7 @@
     "morgan": "^1.10.1",
     "node-cache": "^5.1.2",
     "openai": "^4.104.0",
+    "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
     "puppeteer": "^21.11.0",
     "rate-limit-redis": "^4.2.1",

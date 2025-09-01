@@ -1,5 +1,5 @@
-// client/src/contexts/DocumentContext.js
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+// client/src/contexts/DocumentContext.js - COMPLETE DROP-IN REPLACEMENT
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -31,7 +31,8 @@ const initialState = {
   // Metadata
   lastSaved: null,
   error: null,
-  validation: null
+  validation: null,
+  hasUnsavedChanges: false
 };
 
 // Action types
@@ -47,6 +48,7 @@ const ActionTypes = {
   SET_LAST_SAVED: 'SET_LAST_SAVED',
   SET_ERROR: 'SET_ERROR',
   SET_VALIDATION: 'SET_VALIDATION',
+  SET_UNSAVED_CHANGES: 'SET_UNSAVED_CHANGES',
   RESET_DOCUMENT: 'RESET_DOCUMENT',
   SELECT_DOCUMENT: 'SELECT_DOCUMENT'
 };
@@ -68,7 +70,8 @@ const documentReducer = (state, action) => {
           ...state.currentDocument,
           ...action.payload
         },
-        error: null
+        error: null,
+        hasUnsavedChanges: true
       };
     
     case ActionTypes.SET_DOCUMENTS:
@@ -114,7 +117,8 @@ const documentReducer = (state, action) => {
       return {
         ...state,
         lastSaved: action.payload,
-        isSaving: false
+        isSaving: false,
+        hasUnsavedChanges: false
       };
     
     case ActionTypes.SET_ERROR:
@@ -133,13 +137,20 @@ const documentReducer = (state, action) => {
         validation: action.payload
       };
     
+    case ActionTypes.SET_UNSAVED_CHANGES:
+      return {
+        ...state,
+        hasUnsavedChanges: action.payload
+      };
+    
     case ActionTypes.RESET_DOCUMENT:
       return {
         ...state,
         currentDocument: { ...initialState.currentDocument },
         preview: null,
         validation: null,
-        error: null
+        error: null,
+        hasUnsavedChanges: false
       };
     
     case ActionTypes.SELECT_DOCUMENT:
@@ -148,7 +159,8 @@ const documentReducer = (state, action) => {
         currentDocument: action.payload,
         preview: null,
         validation: null,
-        error: null
+        error: null,
+        hasUnsavedChanges: false
       };
     
     default:
@@ -161,68 +173,53 @@ const DocumentContext = createContext();
 const DocumentDispatchContext = createContext();
 
 /**
- * Document Provider Component
- * 
- * Wraps the application or parts of it to provide document state management.
- * Handles document loading, saving, and real-time updates.
+ * ✅ Document Provider Component - FIXED with save functionality
  */
 export const DocumentProvider = ({ children }) => {
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const [state, dispatch] = useReducer(documentReducer, initialState);
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const [autoSaveTimer, setAutoSaveTimer] = useState(null);
 
-  // Fetch documents on auth state change
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadDocuments();
-    }
-  }, [isAuthenticated]);
-
-  // API request wrapper with auth token
+  // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+
       if (isAuthenticated) {
         const token = await getAccessTokenSilently();
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${token}`
-        };
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
+        headers
       });
-
-      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      return data;
+      return await response.json();
     } catch (error) {
       console.error('API request failed:', error);
-      dispatch({ 
-        type: ActionTypes.SET_ERROR, 
-        payload: error.message 
-      });
       throw error;
     }
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // Load all documents for user
+  // Load documents list
   const loadDocuments = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       dispatch({ type: ActionTypes.SET_DOCUMENTS_LOADING, payload: true });
       
       const data = await authFetch('/api/documents');
       
-      if (data.success && Array.isArray(data.documents)) {
+      if (data.success && data.documents) {
         dispatch({ 
           type: ActionTypes.SET_DOCUMENTS, 
           payload: data.documents 
@@ -230,6 +227,10 @@ export const DocumentProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to load documents:', error);
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Failed to load documents' 
+      });
     }
   }, [authFetch, isAuthenticated]);
 
@@ -243,23 +244,31 @@ export const DocumentProvider = ({ children }) => {
       if (data.success && data.document) {
         dispatch({ 
           type: ActionTypes.SET_DOCUMENT_DATA, 
-          payload: data.document.content 
+          payload: {
+            ...data.document.content,
+            documentId: data.document.id
+          }
         });
-        
-        // Trigger preview generation
-        generatePreview(data.document.content);
         
         return data.document;
       }
     } catch (error) {
       console.error('Failed to load document:', error);
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Failed to load document' 
+      });
     } finally {
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
   }, [authFetch]);
 
-  // Save document
-  const saveDocument = useCallback(async (documentData) => {
+  // ✅ FIXED: Save document functionality
+  const saveDocument = useCallback(async (documentData = null) => {
+    if (!isAuthenticated) {
+      throw new Error('Authentication required to save documents');
+    }
+
     try {
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
       
@@ -267,14 +276,18 @@ export const DocumentProvider = ({ children }) => {
         documentId: state.currentDocument.documentId,
         affidavitData: {
           ...state.currentDocument,
-          ...documentData
+          ...(documentData || {})
         }
       };
+      
+      console.log('💾 Saving document:', payload);
       
       const data = await authFetch('/api/documents/save', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
+      
+      console.log('💾 Save response:', data);
       
       if (data.success && data.document) {
         // Update document ID if it's a new document
@@ -290,20 +303,61 @@ export const DocumentProvider = ({ children }) => {
           payload: new Date() 
         });
         
+        // Update validation if included in response
+        if (data.validation) {
+          dispatch({
+            type: ActionTypes.SET_VALIDATION,
+            payload: data.validation
+          });
+        }
+        
         // Reload documents list
         loadDocuments();
         
         return data.document;
+      } else {
+        throw new Error(data.error || 'Save failed');
       }
     } catch (error) {
       console.error('Failed to save document:', error);
+      
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Failed to save document: ' + error.message 
+      });
+      
+      throw error;
     } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
-  }, [authFetch, state.currentDocument, loadDocuments]);
+  }, [authFetch, state.currentDocument, loadDocuments, isAuthenticated]);
+
+  // ✅ Auto-save functionality
+  const scheduleAutoSave = useCallback(() => {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+    }
+    
+    const timer = setTimeout(() => {
+      if (isAuthenticated && 
+          state.hasUnsavedChanges &&
+          (state.currentDocument.affiantName || 
+           state.currentDocument.state || 
+           (state.currentDocument.facts && state.currentDocument.facts.length > 0))) {
+        
+        console.log('⏰ Auto-saving document...');
+        saveDocument().catch(error => {
+          console.log('⏰ Auto-save failed:', error.message);
+          // Don't show error to user for auto-save failures
+        });
+      }
+    }, 30000); // Auto-save after 30 seconds of inactivity
+    
+    setAutoSaveTimer(timer);
+  }, [isAuthenticated, state.hasUnsavedChanges, state.currentDocument, saveDocument, autoSaveTimer]);
 
   // Generate preview
-  const generatePreview = useCallback(async (documentData) => {
+  const generatePreview = useCallback(async (documentData = null) => {
     try {
       dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: true });
       
@@ -337,13 +391,17 @@ export const DocumentProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to generate preview:', error);
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Failed to generate preview' 
+      });
     } finally {
       dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: false });
     }
   }, [authFetch, state.currentDocument]);
 
   // Validate document
-  const validateDocument = useCallback(async (documentData) => {
+  const validateDocument = useCallback(async (documentData = null) => {
     try {
       const payload = {
         affidavitData: {
@@ -380,13 +438,10 @@ export const DocumentProvider = ({ children }) => {
     if (document && document.content) {
       dispatch({ 
         type: ActionTypes.SELECT_DOCUMENT, 
-        payload: document.content 
-      });
-      
-      // Set document ID
-      dispatch({
-        type: ActionTypes.UPDATE_DOCUMENT_DATA,
-        payload: { documentId: document.id }
+        payload: {
+          ...document.content,
+          documentId: document.id
+        }
       });
       
       // Generate preview
@@ -394,12 +449,15 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [generatePreview]);
 
-  // Update document data
+  // ✅ Update document data with auto-save scheduling
   const updateDocumentData = useCallback((data) => {
     dispatch({ 
       type: ActionTypes.UPDATE_DOCUMENT_DATA, 
       payload: data 
     });
+    
+    // Schedule auto-save
+    scheduleAutoSave();
     
     // Generate preview after a short delay for better UX
     const debounceTimer = setTimeout(() => {
@@ -407,7 +465,23 @@ export const DocumentProvider = ({ children }) => {
     }, 500);
     
     return () => clearTimeout(debounceTimer);
-  }, [generatePreview]);
+  }, [generatePreview, scheduleAutoSave]);
+
+  // Load documents on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadDocuments();
+    }
+  }, [isAuthenticated, loadDocuments]);
+
+  // Clean up auto-save timer
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [autoSaveTimer]);
 
   return (
     <DocumentContext.Provider value={state}>

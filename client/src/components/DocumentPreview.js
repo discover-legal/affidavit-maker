@@ -31,12 +31,10 @@ const DocumentPreview = ({ affidavitData }) => {
     try {
       console.log('🔍 DocumentPreview: Calling preview API with:', affidavitData);
       
-      const token = await getAccessTokenSilently();
-      const response = await fetch('http://localhost:3001/api/documents/preview', {
+      const response = await fetch('http://localhost:3001/api/preview', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ affidavitData })
       });
@@ -48,8 +46,8 @@ const DocumentPreview = ({ affidavitData }) => {
       const data = await response.json();
       console.log('🔍 DocumentPreview: Preview API response:', data);
 
-      if (data.success && data.data.preview) {
-        setPreview(data.data.preview);
+      if (data.success && data.preview) {
+        setPreview(data.preview);
       } else {
         throw new Error(data.error || 'Preview generation failed');
       }
@@ -60,67 +58,95 @@ const DocumentPreview = ({ affidavitData }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const renderSection = (section) => {
+    };
+  const renderSection = (section, index) => {
     if (!section) return null;
 
-    switch (section.type) {
+    // Handle both object and array section formats
+    const sectionData = typeof section === 'string' ? { type: 'text', content: section } : section;
+    
+    switch (sectionData.type) {
       case 'header':
         return (
-          <div key={section.type} className="text-center mb-6">
-            <h1 className="text-2xl font-bold mb-2">{section.title}</h1>
-            <p className="text-lg">{section.content}</p>
+          <div key={index} className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2">{sectionData.title || 'AFFIDAVIT'}</h1>
+            {sectionData.content && <p className="text-lg">{sectionData.content}</p>}
+          </div>
+        );
+
+      case 'venue':
+        return (
+          <div key={index} className="mb-6">
+            <div className="text-right">
+              <p className="font-semibold">{sectionData.content || 'STATE OF [STATE]'}</p>
+              <p className="font-semibold">COUNTY OF [COUNTY]</p>
+            </div>
           </div>
         );
 
       case 'introduction':
         return (
-          <div key={section.type} className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">{section.title}</h2>
-            <p className="leading-relaxed">{section.content}</p>
+          <div key={index} className="mb-6">
+            <p className="leading-relaxed">{sectionData.content}</p>
           </div>
         );
 
       case 'facts':
         return (
-          <div key={section.type} className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
-            {Array.isArray(section.content) ? (
+          <div key={index} className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">STATEMENT OF FACTS</h2>
+            {Array.isArray(sectionData.content) ? (
               <ol className="space-y-2">
-                {section.content.map((fact, index) => (
-                  <li key={index} className="flex">
-                    <span className="mr-3 text-gray-600">{index + 1}.</span>
+                {sectionData.content.map((fact, factIndex) => (
+                  <li key={factIndex} className="flex">
+                    <span className="mr-3 text-gray-600">{factIndex + 1}.</span>
                     <span className="leading-relaxed">{fact}</span>
                   </li>
                 ))}
               </ol>
             ) : (
-              <p className="text-gray-500 italic">{section.content}</p>
+              <p className="text-gray-500 italic">No facts provided yet</p>
             )}
           </div>
         );
 
       case 'signature':
-      case 'notary':
+      case 'signatureBlock':
         return (
-          <div key={section.type} className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">{section.title}</h2>
+          <div key={index} className="mt-8 mb-6">
             <div className="bg-gray-50 p-4 rounded border-2 border-dashed border-gray-300">
-              <p className="text-gray-600">{section.content}</p>
+              <p className="text-gray-600">[Signature will appear here when document is finalized]</p>
+              <div className="mt-4">
+                <p>_________________________________</p>
+                <p className="text-sm text-gray-600">
+                  {affidavitData.affiantName || '[Affiant Name]'}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'notary':
+      case 'notaryBlock':
+        return (
+          <div key={index} className="mb-6">
+            <h2 className="text-lg font-semibold mb-2">NOTARIZATION</h2>
+            <div className="bg-gray-50 p-4 rounded border-2 border-dashed border-gray-300">
+              <p className="text-gray-600">Notary acknowledgment will appear here</p>
             </div>
           </div>
         );
 
       default:
         return (
-          <div key={section.type} className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">{section.title}</h2>
-            <p className="leading-relaxed">{section.content}</p>
+          <div key={index} className="mb-6">
+            {sectionData.title && <h2 className="text-lg font-semibold mb-2">{sectionData.title}</h2>}
+            <p className="leading-relaxed">{sectionData.content || sectionData}</p>
           </div>
         );
     }
   };
+
 
   if (isLoading) {
     return (
@@ -186,7 +212,25 @@ const DocumentPreview = ({ affidavitData }) => {
       {/* Preview Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto bg-white shadow-sm border rounded-lg p-8">
-          {preview.sections && preview.sections.map(section => renderSection(section))}
+          {/* ✅ FIXED: Handle both sections object and array */}
+          {preview?.sections ? (
+            typeof preview.sections === 'object' ? (
+              // Handle sections as object (from StateTemplateManager)
+              Object.entries(preview.sections).map(([key, section], index) => 
+                renderSection({ ...section, type: key }, `${key}-${index}`)
+              )
+            ) : Array.isArray(preview.sections) ? (
+              // Handle sections as array
+              preview.sections.map((section, index) => renderSection(section, index))
+            ) : (
+              <p className="text-gray-500">Preview format not recognized</p>
+            )
+          ) : (
+            <div className="text-center text-gray-500">
+              <p>Start chatting to see your affidavit preview</p>
+              <p className="text-sm mt-1">Tell the assistant your name and state</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 /**
+
  * Enhanced OpenAI Chain Debug Script
  * Follows the exact same path as your running application
  * to pinpoint where the OpenAI connection fails
  */
 
 require('dotenv').config();
+
 
 async function debugOpenAIChain() {
   console.log('🔍 Enhanced OpenAI Chain Debug\n');

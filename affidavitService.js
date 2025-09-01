@@ -422,6 +422,7 @@ If no facts found, respond with: NO_FACTS`;
   Instead of asking generic "purpose of affidavit" questions, immediately focus on their specific family law needs.
 
   Remember: You're helping someone build a case for family court. The affidavit needs facts that will help the judge understand their situation.`;
+
   }
 
   convertConversationHistory(history) {

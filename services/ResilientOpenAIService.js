@@ -236,6 +236,7 @@ class ResilientOpenAIService {
       'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
     ];
 
+
     
     const filtered = {};
     for (const [key, value] of Object.entries(options)) {

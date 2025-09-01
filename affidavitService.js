@@ -1,125 +1,26 @@
-// affidavitService.js - Fixed version with no double initialization
-const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
-const { StateTemplateManager } = require('./templates/StateTemplateManager');
+// affidavitService.js - COMPLETE REPLACEMENT FILE
+const { StateExtractionService, UnsupportedStateError } = require('./services/stateExtractionService');
 const logger = require('./services/logger');
-const fs = require('fs').promises;
-const path = require('path');
 
 class AffidavitService {
-  constructor(templateManager = null) {
-    // Constants for stability
-    this.constants = {
-      MAX_TOKENS: 4000,
-      MAX_COMPLETION_TOKENS: 1000,
-      MAX_MESSAGE_LENGTH: 25000,
-      MAX_CONVERSATION_MESSAGES: 15,
-      REQUEST_TIMEOUT: 45000, // 45 seconds
-      RETRY_ATTEMPTS: 2,
-      CACHE_TTL: 10 * 60 * 1000 // 10 minutes
-    };
-    
-    // FIXED: Use passed templateManager or create new one only if none provided
-    this.templateManager = templateManager || new StateTemplateManager();
-    
-    // Initialize services
-    this.initializeServices();
-    this.conversationCache = new Map();
+  constructor(templateManager) {
+    this.templateManager = templateManager;
+    this.openAIService = global.openAIService;
     this.processingQueue = new Map();
-
-    // Cleanup cache periodically
-    setInterval(() => this.cleanupCache(), 5 * 60 * 1000); // Every 5 minutes
-  }
-
-  initializeServices() {
-    try {
-      // Get OpenAI service from global or create new instance
-      this.openAIService = global.openAIService || new ResilientOpenAIService();
-           
-      // Ensure documents directory exists
-      this.ensureDirectoryExists('./documents').catch(err => {
-        logger.error('Failed to create documents directory', { error: err.message });
-      });
-      
-      logger.info('✅ AffidavitService initialized successfully');
-    } catch (error) {
-      logger.error('AffidavitService initialization failed', { error: error.message });
-      this.openAIService = null;
-    }
-  }
-  
-  async ensureDirectoryExists(directory) {
-    try {
-      await fs.mkdir(directory, { recursive: true });
-    } catch (error) {
-      logger.error('Error creating directory', { directory, error: error.message });
-      throw error;
-    }
-  }
-
-  /**
-   * Clean up old conversation cache entries
-   */
-  cleanupCache() {
-    const now = Date.now();
-    for (const [key, entry] of this.conversationCache.entries()) {
-      if (now - entry.timestamp > this.constants.CACHE_TTL) {
-        this.conversationCache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Create a system prompt for the AI
-   */
-  createSystemPrompt() {
-    return `You are a helpful legal assistant that helps users create affidavits. You should:
-
-1. Ask clear, specific questions to gather the necessary information
-2. Explain legal concepts in simple terms
-3. Help organize facts in a logical order
-4. Ensure all required information is collected
-5. Be professional but approachable
-6. Never provide legal advice - only help with document preparation
-
-Focus on gathering:
-- The affiant's full name and address
-- The specific facts they want to swear to
-- Relevant dates, times, and locations
-- Whether they have personal knowledge of the facts
-- The state where the affidavit will be used
-
-Keep responses concise and helpful.`;
-  }
-
-  /**
-   * Convert conversation history to OpenAI format
-   */
-  convertConversationHistory(history) {
-    if (!Array.isArray(history)) return [];
     
-    return history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content || msg.message || ''
-    })).filter(msg => msg.content.trim().length > 0);
-  }
-
-  /**
-   * Truncate conversation if it gets too long
-   */
-  truncateConversation(messages) {
-    if (messages.length <= this.constants.MAX_CONVERSATION_MESSAGES) {
-      return messages;
-    }
-
-    // Keep system message and recent messages
-    const systemMessage = messages.find(msg => msg.role === 'system');
-    const recentMessages = messages.slice(-this.constants.MAX_CONVERSATION_MESSAGES + 1);
+    // Initialize state extraction service
+    this.stateExtractor = new StateExtractionService(this.openAIService);
     
-    return systemMessage ? [systemMessage, ...recentMessages] : recentMessages;
+    this.constants = {
+      MAX_MESSAGE_LENGTH: 5000,
+      MAX_COMPLETION_TOKENS: 1500,
+      MAX_CONVERSATION_MESSAGES: 20,
+      CHAT_TIMEOUT: 30000
+    };
   }
 
   /**
-   * Process chat message with the AI
+   * ✅ MAIN: Process chat message with early state validation and streaming support
    */
   async processMessage(message, conversationHistory = [], affidavitData = {}, userId = null, sessionId = null) {
     const processingKey = `${userId || 'anonymous'}_${sessionId || 'session'}_${Date.now()}`;
@@ -172,7 +73,43 @@ Keep responses concise and helpful.`;
         processingKey
       });
 
-      // Prepare conversation with system prompt
+      // ✅ CRITICAL: Early state validation - fail fast for unsupported states
+      try {
+        const stateCheckResult = await this.checkUserState(message, conversationHistory, affidavitData);
+        if (!stateCheckResult.canProceed) {
+          return {
+            success: false,
+            error: stateCheckResult.message,
+            affidavitData,
+            unsupportedState: true,
+            detectedState: stateCheckResult.detectedState
+          };
+        }
+        
+        // Update affidavit data if state was extracted
+        if (stateCheckResult.extractedState) {
+          affidavitData.state = stateCheckResult.extractedState.state;
+          logger.info('State extracted early', {
+            state: stateCheckResult.extractedState.state,
+            confidence: stateCheckResult.extractedState.confidence,
+            sessionId
+          });
+        }
+      } catch (error) {
+        if (error instanceof UnsupportedStateError) {
+          return {
+            success: false,
+            error: error.message,
+            affidavitData,
+            unsupportedState: true,
+            detectedState: error.detectedState
+          };
+        }
+        // Continue processing if state extraction fails (don't block user)
+        logger.warn('State extraction failed, continuing', { error: error.message });
+      }
+
+      // Continue with normal chat processing
       const systemPrompt = this.createSystemPrompt();
       const convertedHistory = this.convertConversationHistory(conversationHistory);
       
@@ -187,20 +124,21 @@ Keep responses concise and helpful.`;
       const completion = await this.openAIService.chat(messages, {
         max_tokens: this.constants.MAX_COMPLETION_TOKENS,
         temperature: 0.7,
-        context: { userId, sessionId, processingKey }
+        user: userId?.toString()
       });
 
       // Extract response
       const aiResponse = completion.choices[0].message.content.trim();
 
-      // Extract structured data from response
-      const extractionResult = await this.extractFactsFromConversation(message, affidavitData);
+      // Extract structured data from response (now using robust extraction)
+      const extractionResult = await this.extractFactsFromConversation(message, affidavitData, conversationHistory);
       
       logger.info('Chat processing completed', {
         sessionId,
         userId,
         processingKey,
-        newFactsCount: extractionResult.newFacts?.length || 0
+        newFactsCount: extractionResult.newFacts?.length || 0,
+        hasState: !!extractionResult.affidavitData.state
       });
       
       return {
@@ -209,6 +147,7 @@ Keep responses concise and helpful.`;
         affidavitData: extractionResult.affidavitData,
         newFacts: extractionResult.newFacts || []
       };
+      
     } catch (error) {
       logger.error('Chat processing error', {
         error: error.message,
@@ -229,53 +168,101 @@ Keep responses concise and helpful.`;
   }
 
   /**
-   * Extract facts from conversation
+   * ✅ NEW: Check user state early and fail fast if unsupported
    */
-  async extractFactsFromConversation(message, existingData = {}) {
+  async checkUserState(message, conversationHistory, currentAffidavitData) {
+    // If we already have a valid state, no need to check again
+    if (currentAffidavitData.state && ['TX', 'UT', 'AZ'].includes(currentAffidavitData.state)) {
+      return { canProceed: true };
+    }
+
+    // Only run extraction if message likely contains location info
+    if (!this.stateExtractor.shouldExtract(message)) {
+      return { canProceed: true };
+    }
+
     try {
-      // Simple extraction logic for now
-      const affidavitData = { ...existingData };
-      const newFacts = [];
+      const stateResult = await this.stateExtractor.extractFromMessage(message, conversationHistory);
       
-      // Extract basic information using patterns
-      const nameMatch = message.match(/my name is ([A-Za-z\s]+)/i);
-      if (nameMatch && !affidavitData.affiantName) {
-        affidavitData.affiantName = nameMatch[1].trim();
+      if (stateResult && stateResult.state) {
+        // State successfully extracted and it's supported
+        return {
+          canProceed: true,
+          extractedState: stateResult
+        };
       }
       
-      const stateMatch = message.match(/in ([A-Z]{2}|Texas|Utah|Arizona)/i);
-      if (stateMatch && !affidavitData.state) {
-        const state = stateMatch[1].toUpperCase();
-        if (state.length === 2) {
-          affidavitData.state = state;
-        } else {
-          // Convert full state names to abbreviations
-          const stateMap = { 'TEXAS': 'TX', 'UTAH': 'UT', 'ARIZONA': 'AZ' };
-          affidavitData.state = stateMap[state] || state;
+      // No state extracted, continue normally
+      return { canProceed: true };
+      
+    } catch (error) {
+      if (error instanceof UnsupportedStateError) {
+        // This is the key part - reject unsupported states early
+        return {
+          canProceed: false,
+          message: error.message,
+          detectedState: error.detectedState
+        };
+      }
+      
+      // Other extraction errors - continue processing
+      logger.warn('State check failed', { error: error.message });
+      return { canProceed: true };
+    }
+  }
+
+  /**
+   * ✅ ROBUST: Extract facts using multi-strategy approach
+   * Continues chat even if extraction fails
+   */
+  async extractFactsFromConversation(message, existingData = {}, conversationHistory = []) {
+    const affidavitData = { ...existingData };
+    const newFacts = [];
+    
+    try {
+      console.log('🔍 Starting comprehensive extraction for:', message.substring(0, 50) + '...');
+      
+      // Strategy 1: Use StateExtractionService for name extraction
+      try {
+        if (this.stateExtractor.shouldExtract(message)) {
+          const extractionResult = await this.stateExtractor.extractFromMessage(message, conversationHistory);
+          
+          if (extractionResult.name && !affidavitData.affiantName) {
+            affidavitData.affiantName = extractionResult.name;
+            console.log('✅ Extracted name via StateExtractor:', extractionResult.name);
+          }
+          
+          if (extractionResult.state && !affidavitData.state) {
+            affidavitData.state = extractionResult.state;
+            console.log('✅ Extracted state via StateExtractor:', extractionResult.state);
+          }
+        }
+      } catch (error) {
+        if (error instanceof UnsupportedStateError) {
+          throw error; // Re-throw unsupported state errors
+        }
+        console.log('⚠️ StateExtractor failed, trying LLM extraction:', error.message);
+      }
+
+      // Strategy 2: LLM-based fact extraction
+      try {
+        const llmFacts = await this.performLLMFactExtraction(message, conversationHistory, affidavitData);
+        if (llmFacts && llmFacts.length > 0) {
+          newFacts.push(...llmFacts);
+          console.log('✅ LLM extracted facts:', llmFacts.length);
+        }
+      } catch (error) {
+        console.log('⚠️ LLM fact extraction failed, trying regex fallback:', error.message);
+        
+        // Strategy 3: Enhanced regex fallback
+        const regexFacts = this.performRegexFactExtraction(message);
+        if (regexFacts && regexFacts.length > 0) {
+          newFacts.push(...regexFacts);
+          console.log('✅ Regex extracted facts:', regexFacts.length);
         }
       }
 
-      // Look for factual statements
-      const factPatterns = [
-        /I (saw|witnessed|observed|heard) (.+)/i,
-        /On (.+) I (.+)/i,
-        /The fact is (.+)/i,
-        /It is true that (.+)/i
-      ];
-
-      for (const pattern of factPatterns) {
-        const match = message.match(pattern);
-        if (match) {
-          newFacts.push({
-            id: Date.now() + Math.random(),
-            text: match[0],
-            extracted: true,
-            timestamp: new Date().toISOString()
-          });
-        }
-      }
-
-      // Initialize facts array if it doesn't exist
+      // Initialize facts array if needed
       if (!affidavitData.facts) {
         affidavitData.facts = [];
       }
@@ -284,193 +271,201 @@ Keep responses concise and helpful.`;
       affidavitData.facts = [...affidavitData.facts, ...newFacts];
 
       logger.info('Fact extraction completed', {
-        extractedName: !!nameMatch,
-        extractedState: !!stateMatch,
+        extractedName: !!affidavitData.affiantName,
+        extractedState: !!affidavitData.state,
         extractedFactsCount: newFacts.length
       });
-
-      return { affidavitData, newFacts };
+      
+      return {
+        affidavitData,
+        newFacts,
+        extractionMethod: newFacts.length > 0 ? 'llm' : 'regex'
+      };
+      
     } catch (error) {
-      logger.error('Fact extraction error', { error: error.message });
-      return { affidavitData: existingData, newFacts: [] };
-    }
-  }
-
-  /**
-   * Validate affidavit data
-   */
-  validateAffidavit(affidavitData) {
-    try {
-      if (!this.templateManager) {
-        logger.error('Template manager not available');
-        return {
-          isValid: false,
-          errors: ['Validation service is currently unavailable'],
-          warnings: []
-        };
+      if (error instanceof UnsupportedStateError) {
+        throw error; // Re-throw unsupported state errors
       }
       
-      return this.templateManager.validateDocument(affidavitData);
-    } catch (error) {
-      logger.error('Validation error', { error: error.message });
+      console.error('❌ All extraction strategies failed:', error.message);
+      
+      // ✅ CRITICAL: Continue chat even if extraction completely fails
+      logger.warn('Fact extraction failed completely, continuing chat', { 
+        error: error.message,
+        message: message.substring(0, 100)
+      });
+      
       return {
-        isValid: false,
-        errors: ['An error occurred during validation'],
-        warnings: []
+        affidavitData,
+        newFacts: [],
+        extractionMethod: 'failed'
       };
     }
   }
 
   /**
-   * Generate document preview
+   * ✅ NEW: LLM-based fact extraction with proper error handling
    */
-  generatePreview(affidavitData) {
+  async performLLMFactExtraction(message, conversationHistory, currentData) {
+    const prompt = `Extract factual statements from this message that would be appropriate for a legal affidavit:
+"${message}"
+
+RULES:
+- Only extract clear, factual statements
+- Each fact should be a complete sentence
+- Suitable for legal document
+- Handle informal language
+
+RESPOND WITH FACTS (one per line):
+- [fact 1]
+- [fact 2]
+- [fact 3]
+
+If no facts found, respond with: NO_FACTS`;
+
     try {
-      if (!this.templateManager) {
-        logger.error('Template manager not available');
-        return {
-          success: false,
-          error: 'Preview service is currently unavailable'
-        };
+      const completion = await this.openAIService.chat([
+        {
+          role: 'system',
+          content: 'You are an expert at extracting factual statements from informal text for legal documents.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
+        max_tokens: 300,
+        temperature: 0.1
+      });
+
+      const response = completion.choices[0].message.content.trim();
+      
+      if (response === 'NO_FACTS' || !response.includes('-')) {
+        return [];
       }
       
-      const preview = this.templateManager.generatePreview(affidavitData);
-      const validation = this.validateAffidavit(affidavitData);
+      // Parse facts from response
+      const facts = response
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.startsWith('-'))
+        .map(line => line.substring(1).trim())
+        .filter(fact => fact.length > 10) // Filter out tiny facts
+        .map(factText => ({
+          id: Date.now() + Math.random(),
+          text: factText,
+          extracted: true,
+          timestamp: new Date().toISOString()
+        }));
+
+      return facts;
       
-      return {
-        success: true,
-        preview,
-        validation
-      };
     } catch (error) {
-      logger.error('Preview generation error', { error: error.message });
-      return {
-        success: false,
-        error: 'Failed to generate preview'
-      };
+      console.warn('LLM fact extraction failed:', error.message);
+      throw error;
     }
   }
 
   /**
-   * Generate final document
+   * ✅ ENHANCED: Regex fact extraction for obvious factual statements
    */
-  async generateFinalDocument(affidavitData, options = {}) {
-    try {
-      if (!this.templateManager) {
-        logger.error('Template manager not available');
-        return {
-          success: false,
-          error: 'Document generation service is currently unavailable'
-        };
+  performRegexFactExtraction(message) {
+    const facts = [];
+    
+    // Extract obvious factual statements
+    const factPatterns = [
+      /I (saw|witnessed|observed|heard|know that) (.+)/i,
+      /On (.+) I (.+)/i,
+      /The fact is (.+)/i,
+      /It is true that (.+)/i,
+      /I can testify that (.+)/i,
+      /I swear that (.+)/i,
+      /I affirm that (.+)/i
+    ];
+
+    for (const pattern of factPatterns) {
+      const match = message.match(pattern);
+      if (match && match[0].length > 15) { // Avoid tiny matches
+        facts.push({
+          id: Date.now() + Math.random(),
+          text: match[0],
+          extracted: true,
+          timestamp: new Date().toISOString()
+        });
       }
-      
-      const validation = this.validateAffidavit(affidavitData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: 'Document validation failed',
-          validation
-        };
-      }
-      
-      const finalDocument = this.templateManager.generateFinalDocument(affidavitData);
-      
-      // Generate PDF if requested
-      if (options.generatePdf) {
-        const pdfResult = await this.generatePDF(finalDocument, options);
-        return {
-          success: true,
-          document: finalDocument,
-          pdf: pdfResult,
-          validation
-        };
-      }
-      
-      return {
-        success: true,
-        document: finalDocument,
-        validation
-      };
-    } catch (error) {
-      logger.error('Document generation error', { error: error.message });
-      return {
-        success: false,
-        error: 'Failed to generate document'
-      };
     }
+
+    return facts;
   }
 
   /**
-   * Generate PDF (placeholder implementation)
+   * ✅ UPDATED: System prompt optimized for natural conversation
    */
-  async generatePDF(documentContent, options = {}) {
-    try {
-      // This is a placeholder - in real implementation, this would call PDF service
-      logger.info('PDF generation requested', { options });
-      
-      // For testing purposes
-      const outputPath = options.outputPath || path.join('./documents', `document_${Date.now()}.pdf`);
-      
-      // Ensure directory exists
-      await this.ensureDirectoryExists(path.dirname(outputPath));
-      
-      // Write a placeholder file
-      await fs.writeFile(outputPath, 'PDF content would go here');
-      
-      return {
-        success: true,
-        filepath: outputPath,
-        filename: path.basename(outputPath)
-      };
-    } catch (error) {
-      logger.error('PDF generation error', { error: error.message });
-      return {
-        success: false,
-        error: 'Failed to generate PDF: ' + error.message
-      };
-    }
+  createSystemPrompt() {
+    return `You are a professional legal document assistant helping users create affidavits for Texas, Utah, and Arizona.
+
+Your role:
+1. Gather information conversationally and naturally
+2. Ask follow-up questions to clarify details  
+3. Explain legal requirements simply
+4. Help organize information clearly
+5. Be warm but professional
+
+IMPORTANT NOTES:
+- Information extraction happens automatically in the background
+- Focus on natural conversation flow
+- If someone mentions being from another state, explain you only serve TX/UT/AZ
+- Keep responses concise but helpful
+- Ask one clear question at a time
+
+You're helping someone create a legal document, so accuracy and completeness matter.`;
   }
-  
-  /**
-   * Save session data
-   */
-  async saveSession(sessionData, userId) {
-    try {
-      logger.info('Saving session', { userId });
-      
-      // In a real implementation, this would save to database
-      // For now, just return success
-      return {
-        success: true,
-        sessionId: `session_${Date.now()}`
-      };
-    } catch (error) {
-      logger.error('Session save error', { error: error.message, userId });
-      return {
-        success: false,
-        error: 'Failed to save session'
-      };
-    }
+
+  convertConversationHistory(history) {
+    if (!Array.isArray(history)) return [];
+    
+    return history.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content || msg.message || ''
+    })).filter(msg => msg.content.trim().length > 0);
   }
-  
+
+  truncateConversation(messages) {
+    if (messages.length <= this.constants.MAX_CONVERSATION_MESSAGES) {
+      return messages;
+    }
+
+    // Keep system message and recent messages
+    const systemMessage = messages.find(msg => msg.role === 'system');
+    const recentMessages = messages.slice(-this.constants.MAX_CONVERSATION_MESSAGES + 1);
+    
+    return systemMessage ? [systemMessage, ...recentMessages] : recentMessages;
+  }
+
   /**
-   * Load session data
+   * ✅ NEW: Background extraction for streaming (non-blocking)
    */
-  async loadSession(sessionId, userId) {
+  async performBackgroundExtraction(message, conversationHistory, affidavitData, userId, sessionId) {
     try {
-      logger.info('Loading session', { sessionId, userId });
+      console.log('🔍 Background extraction starting...');
       
-      // In a real implementation, this would load from database
-      // For now, just return not found
-      return {
-        success: false,
-        error: 'Session not found'
-      };
+      const result = await this.extractFactsFromConversation(message, affidavitData, conversationHistory);
+      
+      console.log('✅ Background extraction completed:', {
+        hasState: !!result.affidavitData.state,
+        hasName: !!result.affidavitData.affiantName,
+        newFactsCount: result.newFacts?.length || 0
+      });
+      
+      return result;
+      
     } catch (error) {
-      logger.error('Session load error', { error: error.message, sessionId, userId });
+      console.log('⚠️ Background extraction failed, continuing with original data:', error.message);
+      
       return {
-        success: false,
-        error: 'Failed to load session'
+        affidavitData,
+        newFacts: [],
+        extractionMethod: 'failed'
       };
     }
   }

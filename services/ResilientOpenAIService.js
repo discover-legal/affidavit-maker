@@ -1,4 +1,6 @@
-// services/ResilientOpenAIService.js - FIXED VERSION
+
+// services/ResilientOpenAIService.js 
+
 const winston = require('winston');
 
 // Configure logger if not already available
@@ -183,10 +185,10 @@ class ResilientOpenAIService {
     this.cacheMaxSize = options.cacheMaxSize || 100;
     this.cacheTTL = options.cacheTTL || 300000; // 5 minutes
     
-    // Fallback responses
+    // ✅ FIXED: Fallback responses return proper structure
     this.fallbackResponses = {
-      chat: options.fallbackChatResponse || "I apologize, but I'm temporarily unable to process your request. Please try again in a moment.",
-      embedding: options.fallbackEmbedding || null
+      chat: "I apologize, but I'm temporarily unable to process your request. Please try again in a moment.",
+      embedding: null
     };
     
     // Metrics
@@ -224,97 +226,167 @@ class ResilientOpenAIService {
     });
   }
 
-  // ✅ FIXED: Filter out invalid OpenAI API parameters
+  
+  // ✅ FIXED: Complete list of valid OpenAI parameters
   filterOpenAIOptions(options) {
-    // List of valid OpenAI chat completion parameters
+    // Complete list of valid OpenAI Chat Completion parameters
     const validParams = [
-      'model', 'messages', 'temperature', 'max_tokens', 'top_p', 'n', 
+      'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n', 
       'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
-      'user', 'response_format', 'seed', 'tools', 'tool_choice'
-    ];
+      'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
+
     
     const filtered = {};
     for (const [key, value] of Object.entries(options)) {
-      if (validParams.includes(key)) {
+
+      if (validParams.includes(key) && value !== undefined) {
         filtered[key] = value;
+      } else if (!validParams.includes(key)) {
+        // Log filtered params for debugging
+        logger.debug(`Filtered invalid OpenAI param: ${key}=${value}`);
+
       }
     }
     
     return filtered;
   }
   
+  // ✅ FIXED: Chat method with proper error handling and streaming support
   async chat(messages, options = {}) {
     this.metrics.totalRequests++;
     
-    // Check cache first
-    const cacheKey = this.getCacheKey('chat', { messages, options });
-    const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      logger.info('Returning cached chat response');
-      return cached;
+    // Check cache first (only for non-streaming)
+    if (!options.stream) {
+      const cacheKey = this.getCacheKey('chat', { messages, options });
+      const cached = this.getFromCache(cacheKey);
+      if (cached) {
+        logger.info('Returning cached chat response');
+        return cached;
+      }
     }
     
-    // Fallback function
+    // ✅ FIXED: Fallback returns proper OpenAI-compatible structure
     const fallback = async () => {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback response for chat');
       
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.content) {
-        const content = lastMessage.content.toLowerCase();
-        
-        if (content.includes('help') || content.includes('how')) {
-          return {
-            choices: [{
-              message: {
-                role: 'assistant',
-                content: "I understand you need assistance. While I'm experiencing temporary difficulties, here's what you can do: Please ensure all your information is accurate and complete. For legal documents, include specific dates, names, and relevant details. If you continue to experience issues, please try again in a few moments."
-              }
-            }]
-          };
-        } else if (content.includes('fact') || content.includes('statement')) {
-          return {
-            choices: [{
-              message: {
-                role: 'assistant',
-                content: "For legal facts and statements: Be specific and factual, avoid emotional language, include dates and times when relevant, and state only what you personally know or witnessed. Each fact should be clear and concise."
-              }
-            }]
-          };
-        }
-      }
-      
+
       return {
         choices: [{
           message: {
             role: 'assistant',
             content: this.fallbackResponses.chat
-          }
-        }]
+          },
+          finish_reason: 'stop'
+        }],
+        usage: { 
+          prompt_tokens: 0, 
+          completion_tokens: 0, 
+          total_tokens: 0 
+        },
+        model: options.model || 'gpt-4',
+        object: 'chat.completion'
       };
     };
     
-    // Execute with circuit breaker and retry policy
+    // ✅ FIXED: Operation with proper parameter filtering
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
-        // ✅ FIXED: Filter options before passing to OpenAI API
-        const apiOptions = this.filterOpenAIOptions({
+        // Filter out ALL invalid parameters before sending to OpenAI
+        const cleanOptions = this.filterOpenAIOptions({
           model: options.model || "gpt-4",
           messages,
           temperature: options.temperature || 0.7,
           max_tokens: options.max_tokens || 1000,
-          ...options // This now won't include invalid params like timeout
+
+          stream: options.stream || false,
+          response_format: options.response_format,
+          user: options.user,
+          top_p: options.top_p,
+          presence_penalty: options.presence_penalty,
+          frequency_penalty: options.frequency_penalty,
+          stop: options.stop
         });
         
-        const response = await this.openai.chat.completions.create(apiOptions);
+        logger.debug('Sending to OpenAI:', {
+          model: cleanOptions.model,
+          messageCount: cleanOptions.messages.length,
+          maxTokens: cleanOptions.max_tokens,
+          stream: cleanOptions.stream,
+          filteredParams: Object.keys(cleanOptions)
+        });
         
-        // Cache successful response
-        this.setCache(cacheKey, response);
+        const response = await this.openai.chat.completions.create(cleanOptions);
+        
+        // Cache successful response (only non-streaming)
+        if (!options.stream) {
+          this.setCache(this.getCacheKey('chat', { messages, options }), response);
+        }
         return response;
       });
     };
     
     return await this.circuitBreakers.chat.execute(operation, fallback);
+  }
+
+  // ✅ NEW: Streaming method
+  async chatStream(messages, options = {}) {
+    this.metrics.totalRequests++;
+    
+    const operation = async () => {
+      const cleanOptions = this.filterOpenAIOptions({
+        model: options.model || "gpt-4",
+        messages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 1000,
+        stream: true, // Force streaming
+        user: options.user,
+        top_p: options.top_p,
+        presence_penalty: options.presence_penalty,
+        frequency_penalty: options.frequency_penalty,
+        stop: options.stop
+      });
+      
+      logger.debug('Starting OpenAI stream with params:', Object.keys(cleanOptions));
+      
+      return await this.openai.chat.completions.create(cleanOptions);
+    };
+    
+    try {
+      return await operation();
+    } catch (error) {
+      logger.error('Streaming failed:', error.message);
+      return this.createFallbackStream();
+    }
+  }
+
+  // ✅ NEW: Create fallback stream when streaming fails
+  createFallbackStream() {
+    const fallbackContent = this.fallbackResponses.chat;
+    
+    return {
+      [Symbol.asyncIterator]: async function* () {
+        const words = fallbackContent.split(' ');
+        for (let i = 0; i < words.length; i += 2) {
+          const chunk = words.slice(i, i + 2).join(' ') + ' ';
+          yield {
+            choices: [{
+              delta: {
+                content: chunk
+              }
+            }]
+          };
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        yield {
+          choices: [{
+            delta: {},
+            finish_reason: 'stop'
+          }]
+        };
+      }
+    };
   }
   
   async createEmbedding(input, options = {}) {
@@ -340,20 +412,21 @@ class ResilientOpenAIService {
         data: [{
           embedding,
           index: 0
-        }]
+        }],
+        usage: { prompt_tokens: 0, total_tokens: 0 }
       };
     };
     
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
-        // ✅ FIXED: Filter embedding options too
-        const apiOptions = {
+
+        const cleanOptions = {
           model: options.model || "text-embedding-ada-002",
-          input,
-          // Don't spread options to avoid invalid params
+          input
         };
         
-        const response = await this.openai.embeddings.create(apiOptions);
+        const response = await this.openai.embeddings.create(cleanOptions);
+
         this.setCache(cacheKey, response);
         return response;
       });

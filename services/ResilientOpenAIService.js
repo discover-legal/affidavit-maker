@@ -234,6 +234,8 @@ class ResilientOpenAIService {
       'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n', 
       'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
       'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
+    ];
+
 
     
     const filtered = {};

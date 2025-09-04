@@ -57,8 +57,9 @@ const ChatInterface = () => {
       setMessages([
         {
           type: 'bot',
-          content: `I specialize in helping people create affidavits for family court in Texas, Utah, and Arizona. I'll ask you specific questions to gather the facts you need for court. \n
-Let's get started: Tell me your name and what type of family law case this is for - custody, child support, divorce, protective order, or another family law matter.`
+          content: `Hi! I'm here to help write your affidavit for family court. I currently support Texas, Arizona, and Utah, but I'm adding new states often! \n
+I'll ask you specific questions to gather the facts and outline your side of the story. \n
+Please provide your full name and the state to start.`
         }
       ]);
     }

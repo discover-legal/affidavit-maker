@@ -1,480 +1,619 @@
-// routes/documents.js - COMPLETE DROP-IN REPLACEMENT (Save & Generate)
+// routes/documents.js - Enhanced with Preview Fix and Consolidated Data Support
 const express = require('express');
 const router = express.Router();
-const PDFDocument = require('pdfkit');
-const { PassThrough } = require('stream');
-
+const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
-const logger = require('../services/logger');
-
-// Validation middleware
-const validateAffidavitData = (req, res, next) => {
-  const { affidavitData } = req.body;
-  
-  if (!affidavitData || typeof affidavitData !== 'object') {
-    return res.status(400).json({
-      success: false,
-      error: 'Valid affidavitData is required'
-    });
-  }
-  
-  next();
-};
+const { standardLimiter } = require('../middleware/rateLimiting');
 
 /**
- * Get user's documents
+ * ✅ ENHANCED: Preview generation with fallback and caching
  */
-router.get('/',
-  auth0Middleware,
+router.post('/preview', 
+  standardLimiter,
   asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-    const { dbService } = req.app.locals;
+    const { affidavitData } = req.body;
     
-    const result = await dbService.query(
-      'SELECT id, content, status, created_at, updated_at FROM documents WHERE user_id = $1 ORDER BY updated_at DESC',
-      [userId]
-    );
-    
-    const documents = result.rows.map(doc => ({
-      id: doc.id,
-      content: JSON.parse(doc.content),
-      status: doc.status,
-      createdAt: doc.created_at,
-      updatedAt: doc.updated_at
-    }));
-    
-    logger.info('Documents retrieved', {
-      userId,
-      count: documents.length
-    });
-    
-    res.json({
-      success: true,
-      documents,
-      count: documents.length
-    });
+    // Input validation
+    if (!affidavitData || typeof affidavitData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'affidavitData is required'
+      });
+    }
+
+    try {
+      const templateManager = req.app.locals.templateManager;
+      
+      if (!templateManager) {
+        // ✅ FALLBACK: Create basic preview without template manager
+        return res.json({
+          success: true,
+          preview: createFallbackPreview(affidavitData),
+          fallback: true
+        });
+      }
+
+      // ✅ Check for cached preview first
+      const pool = req.app.locals.pool;
+      const userId = req.user?.id;
+      
+      if (pool && userId && affidavitData.documentId) {
+        const cachedResult = await pool.query(
+          'SELECT preview_data, last_preview_generated FROM documents WHERE id = $1 AND user_id = $2',
+          [affidavitData.documentId, userId]
+        );
+        
+        if (cachedResult.rows.length > 0) {
+          const cached = cachedResult.rows[0];
+          // Use cache if less than 5 minutes old
+          if (cached.last_preview_generated && 
+              Date.now() - new Date(cached.last_preview_generated).getTime() < 5 * 60 * 1000) {
+            
+            logger.info('Using cached preview', { documentId: affidavitData.documentId });
+            return res.json({
+              success: true,
+              preview: cached.preview_data,
+              fromCache: true
+            });
+          }
+        }
+      }
+
+      // ✅ Generate new preview with enhanced error handling
+      let preview;
+      try {
+        preview = await templateManager.generatePreview(affidavitData);
+      } catch (templateError) {
+        logger.warn('Template manager preview failed, using fallback', { 
+          error: templateError.message 
+        });
+        preview = createFallbackPreview(affidavitData);
+      }
+
+      // ✅ Enhance preview with consolidated data
+      const enhancedPreview = enhancePreviewWithCategories(preview, affidavitData);
+      
+      // ✅ Cache the preview if we have database access
+      if (pool && userId && affidavitData.documentId) {
+        try {
+          await pool.query(
+            `UPDATE documents 
+             SET preview_data = $1, last_preview_generated = CURRENT_TIMESTAMP 
+             WHERE id = $2 AND user_id = $3`,
+            [JSON.stringify(enhancedPreview), affidavitData.documentId, userId]
+          );
+        } catch (cacheError) {
+          logger.warn('Preview cache update failed', { error: cacheError.message });
+          // Don't fail the request if caching fails
+        }
+      }
+
+      logger.info('Preview generated successfully', {
+        hasTemplate: !!templateManager,
+        documentId: affidavitData.documentId,
+        factCount: affidavitData.facts?.length || 0
+      });
+
+      res.json({
+        success: true,
+        preview: enhancedPreview,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          factCount: affidavitData.facts?.length || 0,
+          categories: getCategorySummary(affidavitData.facts),
+          completionScore: calculateCompletionScore(enhancedPreview)
+        }
+      });
+
+    } catch (error) {
+      logger.error('Preview generation failed', { error: error.message });
+      
+      // ✅ Always return a preview, even if basic
+      res.json({
+        success: true,
+        preview: createFallbackPreview(affidavitData),
+        fallback: true,
+        error: error.message
+      });
+    }
   })
 );
 
 /**
- * Get specific document
+ * ✅ Save document with enhanced validation and preview caching
+ */
+router.post('/save', 
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const { affidavitData, validation, categories } = req.body;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    try {
+      // ✅ Enhanced save with new schema columns
+      const result = await pool.query(
+        `INSERT INTO documents (
+          user_id, content, status, title, document_type,
+          validation_result, fact_categories, processing_metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        RETURNING id, created_at`,
+        [
+          userId,
+          JSON.stringify(affidavitData),
+          'draft',
+          `Affidavit - ${affidavitData.affiantName || 'Draft'}`,
+          affidavitData.documentType || 'general',
+          JSON.stringify(validation || {}),
+          JSON.stringify(categories || {}),
+          JSON.stringify({
+            savedAt: new Date().toISOString(),
+            factCount: affidavitData.facts?.length || 0,
+            processingMethod: 'consolidated_llm',
+            version: '3.0.0'
+          })
+        ]
+      );
+
+      const documentId = result.rows[0].id;
+
+      logger.logBusinessEvent('document_saved', userId, {
+        documentId,
+        factCount: affidavitData.facts?.length || 0,
+        categories: Object.keys(categories || {}),
+        hasValidation: !!validation
+      });
+
+      res.json({
+        success: true,
+        message: 'Document saved successfully',
+        documentId,
+        createdAt: result.rows[0].created_at
+      });
+
+    } catch (error) {
+      logger.error('Save document failed', { 
+        error: error.message,
+        userId,
+        factCount: affidavitData.facts?.length || 0
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to save document. Please try again.'
+      });
+    }
+  })
+);
+
+/**
+ * ✅ Get user's documents with enhanced metadata
+ */
+router.get('/', 
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+    const { page = 1, limit = 10, status } = req.query;
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    try {
+      let query = `
+        SELECT 
+          id, title, status, document_type, created_at, updated_at,
+          (content->>'affiantName') as affiant_name,
+          (content->>'state') as state,
+          (content->>'facts') as facts_json,
+          validation_result,
+          fact_categories,
+          processing_metadata
+        FROM documents 
+        WHERE user_id = $1
+      `;
+      
+      const params = [userId];
+      
+      if (status) {
+        query += ` AND status = $${params.length + 1}`;
+        params.push(status);
+      }
+      
+      query += ` ORDER BY updated_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+
+      const result = await pool.query(query, params);
+      
+      // Enhanced document list with metadata
+      const documents = result.rows.map(row => {
+        const facts = row.facts_json ? JSON.parse(row.facts_json) : [];
+        const validation = row.validation_result || {};
+        const categories = row.fact_categories || {};
+        
+        return {
+          id: row.id,
+          title: row.title,
+          status: row.status,
+          documentType: row.document_type,
+          affiantName: row.affiant_name,
+          state: row.state,
+          factCount: facts.length,
+          categories: Object.keys(categories),
+          qualityScore: validation.overall_quality_score || 0,
+          hasIssues: (validation.critical_issues || 0) > 0,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        };
+      });
+
+      // Get total count for pagination
+      const countResult = await pool.query(
+        'SELECT COUNT(*) FROM documents WHERE user_id = $1' + (status ? ' AND status = $2' : ''),
+        status ? [userId, status] : [userId]
+      );
+      
+      const total = parseInt(countResult.rows[0].count);
+
+      res.json({
+        success: true,
+        documents,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get documents failed', { error: error.message, userId });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve documents'
+      });
+    }
+  })
+);
+
+/**
+ * ✅ Helper: Create fallback preview when template manager fails
+ */
+function createFallbackPreview(affidavitData) {
+  const facts = affidavitData.facts || [];
+  
+  return {
+    sections: {
+      header: {
+        type: 'header',
+        title: 'AFFIDAVIT',
+        content: `STATE OF ${affidavitData.state || '[STATE]'}
+COUNTY OF ${affidavitData.county || '[COUNTY]'}
+
+BEFORE ME, the undersigned notary public, personally appeared ${affidavitData.affiantName || '[NAME]'}, who proved to me on the basis of satisfactory evidence to be the person whose name is subscribed to the within instrument and acknowledged to me that he/she executed the same in his/her authorized capacity, and that by his/her signature on the instrument the person, or the entity upon behalf of which the person acted, executed the instrument.`
+      },
+      facts: {
+        type: 'facts',
+        title: 'FACTS',
+        content: facts.length > 0 
+          ? facts.map((fact, index) => {
+              const content = fact.professionalRewrite || fact.content || fact;
+              return `${index + 1}. ${content}`;
+            }).join('\n\n')
+          : 'No facts have been added yet.'
+      },
+      signature: {
+        type: 'signature',
+        title: 'SIGNATURE',
+        content: `I declare under penalty of perjury that the foregoing is true and correct.
+
+Executed on _____________, 2025.
+
+_________________________________
+${affidavitData.affiantName || '[NAME]'}
+
+NOTARY ACKNOWLEDGMENT
+[Notary section will be completed at signing]`
+      }
+    },
+    metadata: {
+      stateName: getStateName(affidavitData.state),
+      estimatedPages: Math.max(1, Math.ceil((facts.length * 2 + 4) / 25)),
+      wordCount: estimateWordCount(facts),
+      factCount: facts.length,
+      isComplete: !!(affidavitData.affiantName && affidavitData.state && facts.length > 0),
+      isFallback: true
+    }
+  };
+}
+
+/**
+ * ✅ Enhance preview with category information
+ */
+function enhancePreviewWithCategories(preview, affidavitData) {
+  if (!preview || !affidavitData.facts) return preview;
+  
+  const enhanced = { ...preview };
+  
+  // Add category breakdown to metadata
+  if (!enhanced.metadata) enhanced.metadata = {};
+  
+  enhanced.metadata.categories = getCategorySummary(affidavitData.facts);
+  enhanced.metadata.qualityMetrics = calculateQualityMetrics(affidavitData.facts);
+  
+  // Enhance facts section with category information
+  if (enhanced.sections?.facts && Array.isArray(affidavitData.facts)) {
+    enhanced.sections.facts = affidavitData.facts.map(fact => ({
+      ...fact,
+      category: fact.category || 'general',
+      displayContent: fact.professionalRewrite || fact.content,
+      hasIssues: (fact.validationIssues || []).length > 0,
+      severity: fact.severity || 'success'
+    }));
+  }
+  
+  return enhanced;
+}
+
+/**
+ * ✅ Get category summary for metadata
+ */
+function getCategorySummary(facts) {
+  if (!Array.isArray(facts)) return {};
+  
+  const summary = {};
+  facts.forEach(fact => {
+    const category = fact.category || 'general';
+    if (!summary[category]) {
+      summary[category] = { count: 0, issues: 0 };
+    }
+    summary[category].count++;
+    if (fact.severity === 'critical' || fact.severity === 'warning') {
+      summary[category].issues++;
+    }
+  });
+  
+  return summary;
+}
+
+/**
+ * ✅ Calculate quality metrics
+ */
+function calculateQualityMetrics(facts) {
+  if (!Array.isArray(facts) || facts.length === 0) {
+    return { score: 0, issues: 0, completeness: 0 };
+  }
+  
+  const totalFacts = facts.length;
+  const criticalIssues = facts.filter(f => f.severity === 'critical').length;
+  const warnings = facts.filter(f => f.severity === 'warning').length;
+  const avgConfidence = facts.reduce((sum, f) => sum + (f.confidence || 0.8), 0) / totalFacts;
+  
+  const score = Math.max(0, Math.min(10, 
+    (avgConfidence * 10) - (criticalIssues * 3) - (warnings * 1)
+  ));
+  
+  return {
+    score: Math.round(score * 10) / 10,
+    avgConfidence: Math.round(avgConfidence * 100) / 100,
+    criticalIssues,
+    warnings,
+    completeness: totalFacts >= 3 ? 100 : Math.round((totalFacts / 3) * 100)
+  };
+}
+
+/**
+ * ✅ Helper functions
+ */
+function getStateName(stateCode) {
+  const stateMap = {
+    'TX': 'Texas',
+    'UT': 'Utah', 
+    'AZ': 'Arizona'
+  };
+  return stateMap[stateCode] || stateCode || 'Unknown';
+}
+
+function estimateWordCount(facts) {
+  if (!Array.isArray(facts)) return 0;
+  return facts.reduce((count, fact) => {
+    const content = fact.professionalRewrite || fact.content || '';
+    return count + (content.split(/\s+/).length || 0);
+  }, 0);
+}
+
+function calculateCompletionScore(preview) {
+  let score = 0;
+  const maxScore = 100;
+  
+  // Name (25 points)
+  if (preview.sections?.header?.content?.includes('[NAME]') === false) score += 25;
+  
+  // State (15 points)
+  if (preview.sections?.header?.content?.includes('[STATE]') === false) score += 15;
+  
+  // Facts (50 points)
+  const factContent = preview.sections?.facts?.content || '';
+  if (factContent && !factContent.includes('No facts')) {
+    const factCount = (factContent.match(/\d+\./g) || []).length;
+    score += Math.min(50, factCount * 8);
+  }
+  
+  // County (10 points)
+  if (preview.sections?.header?.content?.includes('[COUNTY]') === false) score += 10;
+  
+  return Math.round((score / maxScore) * 100);
+}
+
+/**
+ * ✅ Update existing document with enhanced support
+ */
+router.put('/:id',
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const documentId = req.params.id;
+    const userId = req.user.id;
+    const { affidavitData, validation, categories } = req.body;
+    const pool = req.app.locals.pool;
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    try {
+      // ✅ Enhanced update with all new columns
+      const result = await pool.query(
+        `UPDATE documents 
+         SET 
+           content = $1, 
+           title = $2,
+           updated_at = CURRENT_TIMESTAMP,
+           validation_result = $3,
+           fact_categories = $4,
+           processing_metadata = $5,
+           preview_data = NULL,
+           last_preview_generated = NULL
+         WHERE id = $6 AND user_id = $7 
+         RETURNING id, updated_at`,
+        [
+          JSON.stringify(affidavitData),
+          `Affidavit - ${affidavitData.affiantName || 'Draft'}`,
+          JSON.stringify(validation || {}),
+          JSON.stringify(categories || {}),
+          JSON.stringify({
+            lastUpdate: new Date().toISOString(),
+            factCount: affidavitData.facts?.length || 0,
+            updateMethod: 'consolidated_llm',
+            version: '3.0.0'
+          }),
+          documentId,
+          userId
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found'
+        });
+      }
+
+      logger.logBusinessEvent('document_updated', userId, {
+        documentId,
+        factCount: affidavitData.facts?.length || 0,
+        categories: Object.keys(categories || {})
+      });
+
+      res.json({
+        success: true,
+        message: 'Document updated successfully',
+        documentId,
+        updatedAt: result.rows[0].updated_at
+      });
+
+    } catch (error) {
+      logger.error('Update document failed', { 
+        error: error.message, 
+        documentId, 
+        userId 
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update document'
+      });
+    }
+  })
+);
+
+/**
+ * ✅ Get specific document with enhanced data
  */
 router.get('/:id',
   auth0Middleware,
+  standardLimiter,
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const documentId = req.params.id;
     const userId = req.user.id;
-    const { dbService } = req.app.locals;
-    
-    const result = await dbService.query(
-      'SELECT * FROM documents WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({
+    const pool = req.app.locals.pool;
+
+    if (!pool) {
+      return res.status(503).json({
         success: false,
-        error: 'Document not found'
+        error: 'Database service unavailable'
       });
     }
-    
-    const document = result.rows[0];
-    
-    res.json({
-      success: true,
-      document: {
-        id: document.id,
-        content: JSON.parse(document.content),
-        status: document.status,
-        createdAt: document.created_at,
-        updatedAt: document.updated_at
-      }
-    });
-  })
-);
 
-/**
- * ✅ NEW: Save document draft
- */
-router.post('/save',
-  auth0Middleware,
-  validateAffidavitData,
-  asyncHandler(async (req, res) => {
-    const { affidavitData, documentId } = req.body;
-    const userId = req.user.id;
-    const { dbService, templateManager } = req.app.locals;
-    
     try {
-      // Run validation
-      const validation = templateManager.validateDocument(affidavitData);
-      
-      let document;
-      
-      if (documentId) {
-        // Update existing document
-        const result = await dbService.query(
-          `UPDATE documents 
-           SET content = $1, validation_result = $2, updated_at = NOW()
-           WHERE id = $3 AND user_id = $4 
-           RETURNING *`,
-          [
-            JSON.stringify(affidavitData),
-            JSON.stringify(validation),
-            documentId,
-            userId
-          ]
-        );
-        
-        if (result.rows.length === 0) {
-          return res.status(404).json({
-            success: false,
-            error: 'Document not found or access denied'
-          });
-        }
-        
-        document = result.rows[0];
-        
-        logger.info('Document updated', {
-          userId,
-          documentId,
-          isValid: validation.isValid
-        });
-        
-      } else {
-        // Create new document
-        const result = await dbService.query(
-          `INSERT INTO documents (user_id, content, status, validation_result, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, NOW(), NOW())
-           RETURNING *`,
-          [
-            userId,
-            JSON.stringify(affidavitData),
-            validation.isValid ? 'valid' : 'draft',
-            JSON.stringify(validation)
-          ]
-        );
-        
-        document = result.rows[0];
-        
-        logger.info('New document created', {
-          userId,
-          documentId: document.id,
-          isValid: validation.isValid
+      const result = await pool.query(
+        `SELECT 
+          id, title, status, content, document_type,
+          validation_result, fact_categories, processing_metadata,
+          preview_data, last_preview_generated,
+          created_at, updated_at
+         FROM documents 
+         WHERE id = $1 AND user_id = $2`,
+        [documentId, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found'
         });
       }
-      
-      // Return consistent response
+
+      const doc = result.rows[0];
+      const content = typeof doc.content === 'string' ? JSON.parse(doc.content) : doc.content;
+
       res.json({
         success: true,
         document: {
-          id: document.id,
-          content: JSON.parse(document.content),
-          status: document.status,
-          createdAt: document.created_at,
-          updatedAt: document.updated_at
-        },
-        validation,
-        message: documentId ? 'Document updated successfully' : 'Document saved successfully',
-        timestamp: new Date().toISOString()
+          id: doc.id,
+          title: doc.title,
+          status: doc.status,
+          documentType: doc.document_type,
+          affidavitData: content,
+          validation: doc.validation_result || {},
+          categories: doc.fact_categories || {},
+          metadata: doc.processing_metadata || {},
+          previewCache: doc.preview_data,
+          lastPreviewGenerated: doc.last_preview_generated,
+          createdAt: doc.created_at,
+          updatedAt: doc.updated_at
+        }
       });
-      
+
     } catch (error) {
-      logger.error('Save document failed:', error);
-      
+      logger.error('Get document failed', { 
+        error: error.message, 
+        documentId, 
+        userId 
+      });
+
       res.status(500).json({
         success: false,
-        error: 'Failed to save document',
-        timestamp: new Date().toISOString()
+        error: 'Failed to retrieve document'
       });
     }
   })
 );
-
-/**
- * Preview document
- */
-router.post('/preview',
-  validateAffidavitData,
-  asyncHandler(async (req, res) => {
-    const { affidavitData } = req.body;
-    const userId = req.user?.id;
-    const { templateManager } = req.app.locals;
-    
-    try {
-      // Generate preview using templateManager
-      const previewResult = templateManager.generatePreview(affidavitData);
-      
-      // Run validation
-      const validation = templateManager.validateDocument(affidavitData);
-      
-      logger.info('Preview generated', {
-        userId: userId || 'anonymous',
-        state: affidavitData.state,
-        isValid: validation.isValid,
-        hasPreview: !!previewResult
-      });
-      
-      // Consistent response structure
-      res.json({
-        success: true,
-        preview: previewResult,
-        validation,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      logger.error('Preview generation failed:', error);
-      
-      res.status(500).json({
-        success: false,
-        error: 'Preview generation failed',
-        timestamp: new Date().toISOString()
-      });
-    }
-  })
-);
-
-/**
- * ✅ FIXED: Generate final affidavit with PDF generation
- */
-router.post('/generate',
-  auth0Middleware,
-  validateAffidavitData,
-  asyncHandler(async (req, res) => {
-    const { affidavitData, documentId, skipPayment = false } = req.body;
-    const userId = req.user.id;
-    const { dbService, templateManager } = req.app.locals;
-    
-    try {
-      // Validate document first
-      const validation = templateManager.validateDocument(affidavitData);
-      
-      if (!validation.isValid) {
-        return res.status(400).json({
-          success: false,
-          error: 'Document validation failed',
-          validation,
-          timestamp: new Date().toISOString()
-        });
-      }
-      
-      // ✅ Skip payment verification in development
-      if (!skipPayment && process.env.NODE_ENV !== 'development') {
-        const { paymentIntentId } = req.body;
-        
-        if (!paymentIntentId) {
-          return res.status(402).json({
-            success: false,
-            error: 'Payment required for document generation',
-            requiresPayment: true,
-            timestamp: new Date().toISOString()
-          });
-        }
-        
-        // Verify payment status
-        const paymentResult = await dbService.query(
-          'SELECT id, status FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
-          [paymentIntentId, userId]
-        );
-        
-        if (paymentResult.rows.length === 0 || paymentResult.rows[0].status !== 'succeeded') {
-          return res.status(403).json({
-            success: false,
-            error: 'Valid payment required for document generation',
-            timestamp: new Date().toISOString()
-          });
-        }
-      }
-      
-      // ✅ Generate PDF document
-      const pdfBuffer = await generatePDF(affidavitData, templateManager);
-      
-      // Save generation record
-      if (documentId) {
-        await dbService.query(
-          'UPDATE documents SET status = $1, generated_at = NOW() WHERE id = $2 AND user_id = $3',
-          ['generated', documentId, userId]
-        );
-      }
-      
-      // Log generation
-      logger.info('Document generated', {
-        userId,
-        documentId,
-        state: affidavitData.state,
-        paymentSkipped: skipPayment
-      });
-      
-      // Set response headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 
-        `attachment; filename="affidavit-${affidavitData.affiantName?.replace(/[^a-zA-Z0-9]/g, '_') || 'document'}.pdf"`
-      );
-      res.setHeader('Content-Length', pdfBuffer.length);
-      
-      // Send PDF
-      res.send(pdfBuffer);
-      
-    } catch (error) {
-      logger.error('Document generation failed:', error);
-      
-      res.status(500).json({
-        success: false,
-        error: 'Document generation failed',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        timestamp: new Date().toISOString()
-      });
-    }
-  })
-);
-
-/**
- * Delete document
- */
-router.delete('/:id',
-  auth0Middleware,
-  asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const { dbService } = req.app.locals;
-    
-    const result = await dbService.query(
-      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
-      [id, userId]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      });
-    }
-    
-    logger.info('Document deleted', { userId, documentId: id });
-    
-    res.json({
-      success: true,
-      message: 'Document deleted successfully'
-    });
-  })
-);
-
-/**
- * ✅ PDF Generation Function
- */
-const generatePDF = async (affidavitData, templateManager) => {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      margins: { top: 72, bottom: 72, left: 72, right: 72 }
-    });
-    const stream = new PassThrough();
-    const chunks = [];
-    
-    stream.on('data', chunk => chunks.push(chunk));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
-    stream.on('error', reject);
-    
-    doc.pipe(stream);
-    
-    try {
-      // Add header
-      doc.fontSize(16).font('Helvetica-Bold')
-         .text('AFFIDAVIT', { align: 'center' });
-      
-      doc.moveDown();
-      
-      // Add state and county venue
-      if (affidavitData.state) {
-        doc.fontSize(12).font('Helvetica')
-           .text(`STATE OF ${affidavitData.state.toUpperCase()}`, { align: 'right' });
-        
-        if (affidavitData.county) {
-          doc.text(`COUNTY OF ${affidavitData.county.toUpperCase()}`, { align: 'right' });
-        }
-        
-        doc.moveDown();
-      }
-      
-      // Add introduction
-      if (affidavitData.affiantName) {
-        doc.fontSize(12).font('Helvetica')
-           .text(`I, ${affidavitData.affiantName}, being of sound mind and over the age of 18, hereby state under oath as follows:`, {
-             align: 'justify'
-           });
-      } else {
-        doc.text('I, __________________, being of sound mind and over the age of 18, hereby state under oath as follows:', {
-          align: 'justify'
-        });
-      }
-      
-      doc.moveDown();
-      
-      // Add facts section
-      if (affidavitData.facts && affidavitData.facts.length > 0) {
-        doc.fontSize(14).font('Helvetica-Bold')
-           .text('STATEMENT OF FACTS');
-        
-        doc.fontSize(12).font('Helvetica').moveDown(0.5);
-        
-        affidavitData.facts.forEach((fact, index) => {
-          const factText = `${index + 1}. ${fact}`;
-          doc.text(factText, {
-            align: 'justify',
-            indent: 20,
-            paragraphGap: 8
-          });
-        });
-      } else {
-        doc.fontSize(14).font('Helvetica-Bold')
-           .text('STATEMENT OF FACTS');
-        doc.fontSize(12).font('Helvetica')
-           .text('(No facts provided)', { align: 'center', style: 'italic' });
-      }
-      
-      doc.moveDown(2);
-      
-      // Add conclusion
-      doc.fontSize(12).font('Helvetica')
-         .text('I declare under penalty of perjury that the foregoing is true and correct to the best of my knowledge.');
-      
-      doc.moveDown(2);
-      
-      // Add signature block
-      doc.text('_'.repeat(40));
-      doc.text(affidavitData.affiantName || '[Affiant Name]', { indent: 0 });
-      doc.moveDown();
-      doc.text(`Date: _________________`);
-      
-      doc.moveDown(2);
-      
-      // Add notary section
-      doc.fontSize(14).font('Helvetica-Bold')
-         .text('NOTARY ACKNOWLEDGMENT');
-      
-      doc.fontSize(12).font('Helvetica').moveDown(0.5);
-      
-      const stateDisplay = affidavitData.state ? affidavitData.state.toUpperCase() : '_______';
-      const countyDisplay = affidavitData.county ? affidavitData.county.toUpperCase() : '_______';
-      
-      doc.text(`STATE OF ${stateDisplay}`);
-      doc.text(`COUNTY OF ${countyDisplay}`);
-      doc.moveDown();
-      
-      doc.text('SUBSCRIBED AND SWORN TO BEFORE ME on the _____ day of _______________, 20_____.');
-      doc.moveDown(2);
-      
-      doc.text('_'.repeat(40));
-      doc.text('Notary Public');
-      doc.text('My Commission Expires: __________');
-      
-      // Finalize PDF
-      doc.end();
-      
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
 module.exports = router;

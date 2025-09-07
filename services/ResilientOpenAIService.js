@@ -346,7 +346,10 @@ class ResilientOpenAIService {
         top_p: options.top_p,
         presence_penalty: options.presence_penalty,
         frequency_penalty: options.frequency_penalty,
-        stop: options.stop
+        stop: options.stop,
+        tools: options.tools,
+        tool_choice: options.tool_choice,
+        parallel_tool_calls: options.parallel_tool_calls
       });
       
       logger.debug('Starting OpenAI stream with params:', Object.keys(cleanOptions));

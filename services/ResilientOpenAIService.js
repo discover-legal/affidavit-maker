@@ -286,7 +286,7 @@ class ResilientOpenAIService {
           completion_tokens: 0, 
           total_tokens: 0 
         },
-        model: options.model || 'gpt-4',
+        model: options.model || 'gpt-4o-mini',
         object: 'chat.completion'
       };
     };
@@ -296,7 +296,7 @@ class ResilientOpenAIService {
       return await this.retryPolicy.execute(async () => {
         // Filter out ALL invalid parameters before sending to OpenAI
         const cleanOptions = this.filterOpenAIOptions({
-          model: options.model || "gpt-4",
+          model: options.model || "gpt-4o-mini",
           messages,
           temperature: options.temperature || 0.7,
           max_tokens: options.max_tokens || 1000,
@@ -307,7 +307,10 @@ class ResilientOpenAIService {
           top_p: options.top_p,
           presence_penalty: options.presence_penalty,
           frequency_penalty: options.frequency_penalty,
-          stop: options.stop
+          stop: options.stop,
+          tools: options.tools,
+          tool_choice: options.tool_choice,
+          parallel_tool_calls: options.parallel_tool_calls
         });
         
         logger.debug('Sending to OpenAI:', {
@@ -337,7 +340,7 @@ class ResilientOpenAIService {
     
     const operation = async () => {
       const cleanOptions = this.filterOpenAIOptions({
-        model: options.model || "gpt-4",
+        model: options.model || "gpt-4o-mini",
         messages,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || 1000,

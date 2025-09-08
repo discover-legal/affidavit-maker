@@ -183,7 +183,7 @@ router.post('/save',
       logger.error('Save document failed', { 
         error: error.message,
         userId,
-        factCount: affidavitData.facts?.length || 0
+        factCount: (affidavitData?.facts || req.body.content?.facts || []).length
       });
 
       res.status(500).json({
@@ -286,6 +286,30 @@ router.get('/',
         error: 'Failed to retrieve documents'
       });
     }
+  })
+);
+
+router.delete('/:id', 
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const documentId = req.params.id;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+
+    const result = await pool.query(
+      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
+      [documentId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
+    }
+
+    res.json({ success: true });
   })
 );
 
@@ -542,6 +566,24 @@ router.put('/:id',
     }
   })
 );
+
+/** Rename endpoint */
+router.put('/:id/rename', auth0Middleware, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  const userId = req.user.id;
+  
+  const result = await req.app.locals.pool.query(
+    'UPDATE documents SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING title',
+    [title, id, userId]
+  );
+  
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Document not found' });
+  }
+  
+  res.json({ success: true, title: result.rows[0].title });
+}));
 
 /**
  * ✅ Get specific document with enhanced data

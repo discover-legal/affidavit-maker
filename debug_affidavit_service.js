@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Debug Affidavit Service Initialization
- * This will test your exact service setup and find where it's failing
+ * Fixed Debug Script - Correct Parameter Signature
  */
 
 require('dotenv').config();
 
 async function debugAffidavitService() {
-  console.log('🔍 Debugging Affidavit Service...\n');
+  console.log('🔍 Debugging Affidavit Service (FIXED VERSION)...\n');
   
   try {
     // Test 1: Check environment
@@ -64,10 +63,10 @@ async function debugAffidavitService() {
       return;
     }
     
-    // Test 5: Test the exact method that's failing
-    console.log('\n🧪 Test 5: Test processMessage Method');
+    // Test 5: Test the exact method that's failing (FIXED VERSION)
+    console.log('\n🧪 Test 5: Test processMessage Method (CORRECTED PARAMETERS)');
     
-    const testMessage = 'texas';
+    const testMessage = 'My name is John Smith and I live in Texas. I need help with a custody affidavit.';
     const testHistory = [
       {
         type: 'bot',
@@ -85,35 +84,66 @@ async function debugAffidavitService() {
       documentId: null
     };
     
-    console.log('   📤 Calling processMessage with:', {
-      message: testMessage,
-      historyLength: testHistory.length,
-      hasAffidavitData: !!testAffidavitData
-    });
+    console.log('   📤 Calling processMessage with CORRECT parameters:');
+    console.log('   • message:', `"${testMessage}"`);
+    console.log('   • historyLength:', testHistory.length);
+    console.log('   • affidavitData keys:', Object.keys(testAffidavitData));
+    console.log('   • userId:', 4);
+    console.log('   • sessionId:', 'test_session');
     
-    // Use the exact method signature from routes/chat.js
-    const result = await affidavitService.processMessage({
-      message: testMessage,
-      conversationHistory: testHistory,
-      affidavitData: testAffidavitData,
-      userId: 4,
-      sessionId: 'test_session'
-    });
+    // ✅ FIXED: Use correct parameter signature
+    const result = await affidavitService.processMessage(
+      testMessage,        // ✅ Just the string message
+      testHistory,        // ✅ Just the history array  
+      testAffidavitData,  // ✅ Just the affidavit object
+      4,                  // ✅ Just the user ID
+      'test_session'      // ✅ Just the session ID
+    );
     
-    console.log('   📥 Result received:', {
+    console.log('\n   📥 Result received:', {
       success: result?.success,
       hasResponse: !!result?.response,
       responseLength: result?.response?.length || 0,
+      hasExtractedName: !!result?.extractedName,
+      hasExtractedState: !!result?.extractedState,
+      factsCount: result?.extractedFacts?.length || 0,
       error: result?.error
     });
     
-    if (result?.success && result?.response) {
-      console.log('   🎉 SUCCESS! processMessage is working');
-      console.log('   📝 AI Response:', result.response.substring(0, 100) + '...');
+    if (result?.success !== false) {
+      console.log('\n   🎉 SUCCESS! processMessage is working correctly!');
+      if (result?.response) {
+        console.log('   📝 AI Response:', result.response.substring(0, 150) + '...');
+      }
+      if (result?.extractedName) {
+        console.log('   👤 Extracted Name:', result.extractedName);
+      }
+      if (result?.extractedState) {
+        console.log('   📍 Extracted State:', result.extractedState);
+      }
+      if (result?.extractedFacts?.length > 0) {
+        console.log('   📋 Extracted Facts:', result.extractedFacts.length);
+      }
     } else {
-      console.log('   ❌ FAILED! This is the exact issue in your app');
+      console.log('\n   ❌ STILL FAILING!');
       console.log('   🔍 Error details:', result?.error || 'No error message');
     }
+    
+    // Test 6: Test with minimal message
+    console.log('\n🧪 Test 6: Minimal Message Test');
+    const minimalResult = await affidavitService.processMessage(
+      'texas',
+      [],
+      {},
+      4,
+      'test_minimal'
+    );
+    
+    console.log('   📥 Minimal test result:', {
+      success: minimalResult?.success !== false,
+      hasResponse: !!minimalResult?.response,
+      error: minimalResult?.error
+    });
     
   } catch (error) {
     console.error('\n❌ Debug failed:', error.message);
@@ -126,6 +156,8 @@ async function debugAffidavitService() {
       console.log('\n💡 Check if ./services/ResilientOpenAIService.js exists');
     } else if (error.message.includes('processMessage')) {
       console.log('\n💡 Method signature mismatch in processMessage');
+    } else if (error.message.includes('OpenAI')) {
+      console.log('\n💡 OpenAI API issue. Check your API key and internet connection');
     }
   }
 }
@@ -136,4 +168,5 @@ if (parseInt(process.version.slice(1).split('.')[0]) < 16) {
   process.exit(1);
 }
 
+console.log('🚀 Starting fixed debug script...\n');
 debugAffidavitService();

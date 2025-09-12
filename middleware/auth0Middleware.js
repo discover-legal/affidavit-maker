@@ -1,111 +1,339 @@
-// middleware/auth0Middleware.js - Updated import
-const { expressjwt: jwt } = require('express-jwt');  // Note the change here
-const jwksRsa = require('jwks-rsa');
-const { dbService } = require('../services/DatabaseService');
-const logger = require('../services/logger');
+// middleware/auth0Middleware.js - CORRECTED VERSION
+const jwt = require('jsonwebtoken');  // ✅ FIXED: Use correct JWT library
+const jwks = require('jwks-rsa');
+const logger = require('../utils/logger');
 
-// Configure Auth0 JWT validation
-const checkJwt = jwt({
-  secret: jwksRsa.expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 2,  // ← Reduce from 5 to 2
-    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-    handleSigningKeyError: (err, cb) => {
-      if (err instanceof jwksRsa.JwksRateLimitError) {
-        return cb(new Error('Too many requests to Auth0'));
-      }
-      return cb(err);
-    }
-  }),
-  audience: process.env.AUTH0_AUDIENCE,
-  issuer: `https://${process.env.AUTH0_DOMAIN}/`,
-  algorithms: ['RS256']
-});
-
-// Middleware to load user from database based on Auth0 ID
-const loadUser = async (req, res, next) => {
-  try {
-    // Skip if no auth user
-    if (!req.auth || !req.auth.sub) {
-      return next();
-    }
-    
-    const auth0Id = req.auth.sub;
-    const userResult = await dbService.query(
-      'SELECT * FROM users WHERE auth0_id = $1 AND is_active = true AND deleted_at IS NULL',
-      [auth0Id]
-    );
-    
-    if (userResult.rows.length === 0) {
-      // Create new user if not found
-      try {
-        // Extract info from token
-        const email = req.auth.email || '';
-        const name = req.auth.name || req.auth.nickname || email;
-        
-        const newUserResult = await dbService.query(
-          `INSERT INTO users (
-            auth0_id, email, name, email_verified, 
-            created_at, updated_at, last_login
-          ) VALUES ($1, $2, $3, $4, $5, $5, $5)
-          RETURNING *`,
-          [
-            auth0Id,
-            email,
-            name,
-            req.auth.email_verified || false,
-            new Date()
-          ]
-        );
-        
-        req.user = newUserResult.rows[0];
-        logger.info('Created new user from token', {
-          auth0Id,
-          userId: req.user.id
-        });
-      } catch (err) {
-        // Check if user was created by another request
-        const retryResult = await dbService.query(
-          'SELECT * FROM users WHERE auth0_id = $1',
-          [auth0Id]
-        );
-        
-        if (retryResult.rows.length > 0) {
-          req.user = retryResult.rows[0];
-        } else {
-          logger.error('Failed to create user from token', {
-            error: err.message,
-            auth0Id
-          });
-          return next(err);
-        }
-      }
-    } else {
-      req.user = userResult.rows[0];
-      
-      // Update last login time
-      await dbService.query(
-        'UPDATE users SET last_login = NOW() WHERE id = $1',
-        [req.user.id]
-      );
-    }
-    
-    next();
-  } catch (error) {
-    logger.error('Error loading user from database', {
-      error: error.message,
-      auth0Id: req.auth?.sub
-    });
-    next(error);
+const config = {
+  auth0: {
+    domain: process.env.AUTH0_DOMAIN,
+    audience: process.env.AUTH0_AUDIENCE,
+    issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+    algorithms: ['RS256']
   }
 };
 
-// Combined middleware for auth
+// JWKS client for Auth0 token verification
+const jwksClient = jwks({
+  jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+  cache: true,
+  cacheMaxEntries: 5,
+  cacheMaxAge: 600000 // 10 minutes
+});
+
+const getKey = (header, callback) => {
+  jwksClient.getSigningKey(header.kid, (err, key) => {
+    if (err) {
+      return callback(err);
+    }
+    const signingKey = key.publicKey || key.rsaPublicKey;
+    callback(null, signingKey);
+  });
+};
+
+// ✅ FIXED: Proper JWT verification with correct library
+const checkJwt = (req, res, next) => {
+  // Check for authorization header first and return proper 401
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authorization header required',
+      errorType: 'authentication_error',
+      requiresLogin: true,
+      timestamp: new Date().toISOString(),
+      requestId: req.id
+    });
+  }
+
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Bearer token required',
+      errorType: 'authentication_error', 
+      requiresLogin: true,
+      timestamp: new Date().toISOString(),
+      requestId: req.id
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: 'Token required',
+      errorType: 'authentication_error',
+      requiresLogin: true,
+      timestamp: new Date().toISOString(),
+      requestId: req.id
+    });
+  }
+
+  // Proper token format validation
+  if (token.split('.').length !== 3) {
+    logger.warn('Invalid token format', { 
+      path: req.path,
+      requestId: req.id 
+    });
+    
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Invalid token format',
+      errorType: 'authentication_error',
+      requiresLogin: true,
+      timestamp: new Date().toISOString(),
+      requestId: req.id
+    });
+  }
+  
+  // ✅ FIXED: Use correct JWT verify method
+  jwt.verify(token, getKey, {
+    audience: config.auth0.audience,
+    issuer: config.auth0.issuer,
+    algorithms: config.auth0.algorithms
+  }, async (err, decoded) => {
+    if (err) {
+      logger.warn('JWT verification failed', {
+        error: err.message,
+        path: req.path,
+        requestId: req.id
+      });
+      
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid or expired token',
+        errorType: 'authentication_error',
+        requiresLogin: true,
+        timestamp: new Date().toISOString(),
+        requestId: req.id
+      });
+    }
+    
+    try {
+      req.auth = decoded;
+      req.userId = decoded.sub;
+      
+      logger.debug('JWT verification successful', {
+        userId: decoded.sub,
+        path: req.path,
+        requestId: req.id
+      });
+      
+      next();
+    } catch (error) {
+      logger.error('Auth processing error', {
+        error: error.message,
+        authId: decoded?.sub,
+        requestId: req.id
+      });
+      
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Authentication processing failed',
+        errorType: 'authentication_error',
+        requiresLogin: true,
+        timestamp: new Date().toISOString(),
+        requestId: req.id
+      });
+    }
+  });
+};
+
+// Load user with proper error handling
+const loadUser = async (req, res, next) => {
+  try {
+    if (!req.auth?.sub) {
+      return res.status(401).json({
+        success: false,
+        error: 'Valid authentication required',
+        errorType: 'authentication_error',
+        requiresLogin: true,
+        timestamp: new Date().toISOString(),
+        requestId: req.id
+      });
+    }
+
+    const pool = req.app.locals.pool;
+    
+    if (!pool) {
+      logger.error('Database pool not available');
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable',
+        errorType: 'server_error',
+        timestamp: new Date().toISOString(),
+        requestId: req.id
+      });
+    }
+
+    const auth0Id = req.auth.sub;
+    
+    try {
+      const userResult = await pool.query(
+        'SELECT * FROM users WHERE auth0_id = $1',
+        [auth0Id]
+      );
+
+      if (userResult.rows.length === 0) {
+        // Create user if not exists
+        try {
+          const email = req.auth.email || req.auth[`${config.auth0.audience}/email`] || null;
+          const name = req.auth.name || req.auth.nickname || 'User';
+          
+          const createResult = await pool.query(
+            `INSERT INTO users (auth0_id, email, name, created_at, updated_at) 
+             VALUES ($1, $2, $3, NOW(), NOW()) 
+             RETURNING *`,
+            [auth0Id, email, name]
+          );
+          
+          req.user = createResult.rows[0];
+          
+          logger.info('New user created', {
+            userId: req.user.id,
+            auth0Id: auth0Id,
+            email: email
+          });
+        } catch (createError) {
+          logger.error('Failed to create user', {
+            error: createError.message,
+            auth0Id: auth0Id
+          });
+          
+          return res.status(500).json({
+            success: false,
+            error: 'User account setup failed',
+            errorType: 'server_error',
+            timestamp: new Date().toISOString(),
+            requestId: req.id
+          });
+        }
+      } else {
+        req.user = userResult.rows[0];
+        
+        // Update last login
+        try {
+          await pool.query(
+            'UPDATE users SET last_login = NOW() WHERE id = $1',
+            [req.user.id]
+          );
+        } catch (updateError) {
+          // Don't fail the request if last login update fails
+          logger.warn('Failed to update last login', {
+            error: updateError.message,
+            userId: req.user.id
+          });
+        }
+      }
+      
+      logger.debug('User loaded successfully', {
+        userId: req.user.id,
+        email: req.user.email,
+        path: req.path
+      });
+      
+      next();
+    } catch (dbError) {
+      logger.error('Database error during user lookup', {
+        error: dbError.message,
+        auth0Id: auth0Id,
+        requestId: req.id
+      });
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Database error during authentication',
+        errorType: 'server_error',
+        timestamp: new Date().toISOString(),
+        requestId: req.id
+      });
+    }
+  } catch (error) {
+    logger.error('Auth middleware error', {
+      error: error.message,
+      path: req.path,
+      requestId: req.id
+    });
+    
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication failed',
+      errorType: 'authentication_error',
+      requiresLogin: true,
+      timestamp: new Date().toISOString(),
+      requestId: req.id
+    });
+  }
+};
+
+// Optional auth for public endpoints
+const optionalAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.auth = null;
+    req.userId = null;
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  if (!token || token.split('.').length !== 3) {
+    req.auth = null;
+    req.userId = null;
+    req.user = null;
+    return next();
+  }
+
+  // Try to verify token, but don't fail if it's invalid
+  try {
+    jwt.verify(token, getKey, {
+      audience: config.auth0.audience,
+      issuer: config.auth0.issuer,
+      algorithms: config.auth0.algorithms
+    }, async (err, decoded) => {
+      if (err) {
+        req.auth = null;
+        req.userId = null;
+        req.user = null;
+        return next();
+      }
+      
+      req.auth = decoded;
+      req.userId = decoded.sub;
+      
+      // Try to load user, but don't fail if it doesn't work
+      try {
+        const pool = req.app.locals.pool;
+        if (pool) {
+          const userResult = await pool.query(
+            'SELECT * FROM users WHERE auth0_id = $1',
+            [decoded.sub]
+          );
+          req.user = userResult.rows[0] || null;
+        }
+      } catch (error) {
+        req.user = null;
+      }
+      
+      next();
+    });
+  } catch (error) {
+    req.auth = null;
+    req.userId = null;
+    req.user = null;
+    next();
+  }
+};
+
+// Combined middleware
 const auth0Middleware = [checkJwt, loadUser];
 
 module.exports = {
   checkJwt,
   loadUser,
-  auth0Middleware
+  auth0Middleware,
+  optionalAuth
 };

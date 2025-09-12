@@ -1,4 +1,4 @@
-// routes/documents.js - Enhanced with Preview Fix and Consolidated Data Support
+// routes/documents.js - Enhanced with Preview Fix and Consolidated Data Support - FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
@@ -121,7 +121,7 @@ router.post('/preview',
 );
 
 /**
- * ✅ Save document with enhanced validation and preview caching
+ * ✅ FIXED: Save document with enhanced validation and preview caching
  */
 router.post('/save', 
   auth0Middleware,
@@ -131,6 +131,14 @@ router.post('/save',
     const userId = req.user.id;
     const pool = req.app.locals.pool;
 
+    // ✅ CRITICAL FIX: Validate affidavitData exists before accessing properties
+    if (!affidavitData || typeof affidavitData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid affidavit data is required to save the document'
+      });
+    }
+
     if (!pool) {
       return res.status(503).json({
         success: false,
@@ -139,6 +147,11 @@ router.post('/save',
     }
 
     try {
+      // ✅ FIXED: Safe title generation with proper null checking
+      const documentTitle = affidavitData.affiantName 
+        ? `Affidavit - ${affidavitData.affiantName}`
+        : 'Draft Affidavit';
+
       // ✅ Enhanced save with new schema columns
       const result = await pool.query(
         `INSERT INTO documents (
@@ -150,7 +163,7 @@ router.post('/save',
           userId,
           JSON.stringify(affidavitData),
           'draft',
-          `Affidavit - ${affidavitData.affiantName || 'Draft'}`,
+          documentTitle,  // ✅ FIXED: Safe title generation
           affidavitData.documentType || 'general',
           JSON.stringify(validation || {}),
           JSON.stringify(categories || {}),
@@ -183,7 +196,8 @@ router.post('/save',
       logger.error('Save document failed', { 
         error: error.message,
         userId,
-        factCount: affidavitData.facts?.length || 0
+        factCount: affidavitData?.facts?.length || 0,  // ✅ FIXED: Safe access
+        hasAffidavitData: !!affidavitData  // ✅ NEW: Debug flag
       });
 
       res.status(500).json({
@@ -204,7 +218,6 @@ router.get('/',
     const userId = req.user.id;
     const pool = req.app.locals.pool;
     const { page = 1, limit = 10, status } = req.query;
-
     if (!pool) {
       return res.status(503).json({
         success: false,
@@ -284,6 +297,218 @@ router.get('/',
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve documents'
+      });
+    }
+  })
+);
+
+router.delete('/:id', 
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const documentId = req.params.id;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+    const result = await pool.query(
+      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
+      [documentId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+    res.json({ success: true });
+  })
+);
+
+/**
+ * ✅ FIXED: Update existing document with enhanced support
+ */
+router.put('/:id',
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const documentId = req.params.id;
+    const userId = req.user.id;
+    const { affidavitData, validation, categories } = req.body;
+    const pool = req.app.locals.pool;
+
+    // ✅ CRITICAL FIX: Validate affidavitData exists before accessing properties
+    if (!affidavitData || typeof affidavitData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid affidavit data is required to update the document'
+      });
+    }
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    try {
+      // ✅ FIXED: Safe title generation with proper null checking
+      const documentTitle = affidavitData.affiantName 
+        ? `Affidavit - ${affidavitData.affiantName}`
+        : 'Draft Affidavit';
+
+      // ✅ Enhanced update with all new columns
+      const result = await pool.query(
+        `UPDATE documents 
+         SET 
+           content = $1, 
+           title = $2,
+           updated_at = CURRENT_TIMESTAMP,
+           validation_result = $3,
+           fact_categories = $4,
+           processing_metadata = $5,
+           preview_data = NULL,
+           last_preview_generated = NULL
+         WHERE id = $6 AND user_id = $7 
+         RETURNING id, updated_at`,
+        [
+          JSON.stringify(affidavitData),
+          documentTitle,  // ✅ FIXED: Safe title generation
+          JSON.stringify(validation || {}),
+          JSON.stringify(categories || {}),
+          JSON.stringify({
+            lastUpdate: new Date().toISOString(),
+            factCount: affidavitData.facts?.length || 0,
+            updateMethod: 'consolidated_llm',
+            version: '3.0.0'
+          }),
+          documentId,
+          userId
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found'
+        });
+      }
+
+      logger.logBusinessEvent('document_updated', userId, {
+        documentId,
+        factCount: affidavitData.facts?.length || 0,
+        categories: Object.keys(categories || {})
+      });
+
+      res.json({
+        success: true,
+        message: 'Document updated successfully',
+        documentId,
+        updatedAt: result.rows[0].updated_at
+      });
+
+    } catch (error) {
+      logger.error('Update document failed', { 
+        error: error.message, 
+        documentId, 
+        userId,
+        hasAffidavitData: !!affidavitData  // ✅ NEW: Debug flag
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update document'
+      });
+    }
+  })
+);
+
+/** Rename endpoint */
+router.put('/:id/rename', auth0Middleware, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  const userId = req.user.id;
+  
+  const result = await req.app.locals.pool.query(
+    'UPDATE documents SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING title',
+    [title, id, userId]
+  );
+  
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Document not found' });
+  }
+  
+  res.json({ success: true, title: result.rows[0].title });
+}));
+
+/**
+ * ✅ Get specific document with enhanced data
+ */
+router.get('/:id',
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const documentId = req.params.id;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT 
+          id, title, status, content, document_type,
+          validation_result, fact_categories, processing_metadata,
+          preview_data, last_preview_generated,
+          created_at, updated_at
+         FROM documents 
+         WHERE id = $1 AND user_id = $2`,
+        [documentId, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found'
+        });
+      }
+
+      const doc = result.rows[0];
+      const content = typeof doc.content === 'string' ? JSON.parse(doc.content) : doc.content;
+
+      res.json({
+        success: true,
+        document: {
+          id: doc.id,
+          title: doc.title,
+          status: doc.status,
+          documentType: doc.document_type,
+          affidavitData: content,
+          validation: doc.validation_result || {},
+          categories: doc.fact_categories || {},
+          metadata: doc.processing_metadata || {},
+          previewCache: doc.preview_data,
+          lastPreviewGenerated: doc.last_preview_generated,
+          createdAt: doc.created_at,
+          updatedAt: doc.updated_at
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get document failed', { 
+        error: error.message, 
+        documentId, 
+        userId 
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve document'
       });
     }
   })
@@ -457,163 +682,5 @@ function calculateCompletionScore(preview) {
   
   return Math.round((score / maxScore) * 100);
 }
-
-/**
- * ✅ Update existing document with enhanced support
- */
-router.put('/:id',
-  auth0Middleware,
-  standardLimiter,
-  asyncHandler(async (req, res) => {
-    const documentId = req.params.id;
-    const userId = req.user.id;
-    const { affidavitData, validation, categories } = req.body;
-    const pool = req.app.locals.pool;
-
-    if (!pool) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database service unavailable'
-      });
-    }
-
-    try {
-      // ✅ Enhanced update with all new columns
-      const result = await pool.query(
-        `UPDATE documents 
-         SET 
-           content = $1, 
-           title = $2,
-           updated_at = CURRENT_TIMESTAMP,
-           validation_result = $3,
-           fact_categories = $4,
-           processing_metadata = $5,
-           preview_data = NULL,
-           last_preview_generated = NULL
-         WHERE id = $6 AND user_id = $7 
-         RETURNING id, updated_at`,
-        [
-          JSON.stringify(affidavitData),
-          `Affidavit - ${affidavitData.affiantName || 'Draft'}`,
-          JSON.stringify(validation || {}),
-          JSON.stringify(categories || {}),
-          JSON.stringify({
-            lastUpdate: new Date().toISOString(),
-            factCount: affidavitData.facts?.length || 0,
-            updateMethod: 'consolidated_llm',
-            version: '3.0.0'
-          }),
-          documentId,
-          userId
-        ]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Document not found'
-        });
-      }
-
-      logger.logBusinessEvent('document_updated', userId, {
-        documentId,
-        factCount: affidavitData.facts?.length || 0,
-        categories: Object.keys(categories || {})
-      });
-
-      res.json({
-        success: true,
-        message: 'Document updated successfully',
-        documentId,
-        updatedAt: result.rows[0].updated_at
-      });
-
-    } catch (error) {
-      logger.error('Update document failed', { 
-        error: error.message, 
-        documentId, 
-        userId 
-      });
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update document'
-      });
-    }
-  })
-);
-
-/**
- * ✅ Get specific document with enhanced data
- */
-router.get('/:id',
-  auth0Middleware,
-  standardLimiter,
-  asyncHandler(async (req, res) => {
-    const documentId = req.params.id;
-    const userId = req.user.id;
-    const pool = req.app.locals.pool;
-
-    if (!pool) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database service unavailable'
-      });
-    }
-
-    try {
-      const result = await pool.query(
-        `SELECT 
-          id, title, status, content, document_type,
-          validation_result, fact_categories, processing_metadata,
-          preview_data, last_preview_generated,
-          created_at, updated_at
-         FROM documents 
-         WHERE id = $1 AND user_id = $2`,
-        [documentId, userId]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Document not found'
-        });
-      }
-
-      const doc = result.rows[0];
-      const content = typeof doc.content === 'string' ? JSON.parse(doc.content) : doc.content;
-
-      res.json({
-        success: true,
-        document: {
-          id: doc.id,
-          title: doc.title,
-          status: doc.status,
-          documentType: doc.document_type,
-          affidavitData: content,
-          validation: doc.validation_result || {},
-          categories: doc.fact_categories || {},
-          metadata: doc.processing_metadata || {},
-          previewCache: doc.preview_data,
-          lastPreviewGenerated: doc.last_preview_generated,
-          createdAt: doc.created_at,
-          updatedAt: doc.updated_at
-        }
-      });
-
-    } catch (error) {
-      logger.error('Get document failed', { 
-        error: error.message, 
-        documentId, 
-        userId 
-      });
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to retrieve document'
-      });
-    }
-  })
-);
 
 module.exports = router;

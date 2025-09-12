@@ -188,21 +188,21 @@ async function initializeServices() {
     global.openAIService = openAIService;
 
     // Initialize validation service
-    const validationService = new EnhancedFactValidationService({
-      openaiApiKey: process.env.OPENAI_API_KEY,
-      cacheSize: 100,
-      language: 'en'
-    });
+    const validationService = new EnhancedFactValidationService(
+      openaiClient,
+      'en',
+      100
+    );
 
     // Initialize affidavit service with dependencies
     affidavitService = new AffidavitService(templateManager);
 
     // Add services to app locals
-    app.locals.dbService = dbService;
+    app.locals.pool = dbService;
     app.locals.openAIService = openAIService;
     app.locals.affidavitService = affidavitService;
     app.locals.templateManager = templateManager;
-    app.locals.validationService = validationService;
+    app.locals.enhancedFactValidationService  = validationService;
     app.locals.logger = logger;
 
     logger.info('✅ All services initialized successfully');
@@ -211,7 +211,7 @@ async function initializeServices() {
     console.error('❌ Service initialization failed:', error.message);
   }
 }
-
+ 
 // Initialize services immediately
 initializeServices();
 

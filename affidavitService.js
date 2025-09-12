@@ -1,5 +1,7 @@
+
 // affidavitService.js - CONSOLIDATED LLM APPROACH WITH FORCED FUNCTION CALLING
 // Replaces multiple LLM calls with single smart function calling - DEBUGGED VERSION
+
 const logger = require('./services/logger');
 
 // Legal categories for LLM function calling
@@ -156,7 +158,9 @@ class AffidavitService {
   }
 
   /**
+
    * ✅ CONSOLIDATED: Single smart LLM call with FORCED function calling - DEBUGGED VERSION
+
    */
   async processWithConsolidatedLLM(message, conversationHistory, affidavitData, userId, sessionId) {
     // Build conversation context
@@ -189,6 +193,7 @@ class AffidavitService {
       messageContent: completion.choices[0].message.content?.substring(0, 100) || 'none',
       finishReason: completion.choices[0].finish_reason,
       sessionId
+
     });
 
     // Extract function call result
@@ -368,6 +373,7 @@ IMPORTANT: You must ALWAYS use the function, even if you don't find much to extr
                   category: {
                     type: "string",
                     enum: Object.keys(LEGAL_CATEGORIES),
+
                     description: "Legal category that best fits this fact"
                   },
                   subcategory: {
@@ -659,6 +665,7 @@ IMPORTANT: You must ALWAYS use the function, even if you don't find much to extr
       return count + content.split(/\s+/).length;
     }, 0);
   }
+
 
   /**
    * ✅ Create story collection focused system prompt (backup method)

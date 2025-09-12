@@ -211,7 +211,7 @@ async function initializeServices() {
     console.error('❌ Service initialization failed:', error.message);
   }
 }
-
+ 
 // Initialize services immediately
 initializeServices();
 

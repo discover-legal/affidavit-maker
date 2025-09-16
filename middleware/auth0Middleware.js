@@ -1,5 +1,5 @@
-// middleware/auth0Middleware.js - CORRECTED VERSION
-const jwt = require('jsonwebtoken');  // ✅ FIXED: Use correct JWT library
+// middleware/auth0Middleware.js - FIXED VERSION
+const jwt = require('jsonwebtoken');
 const jwks = require('jwks-rsa');
 const logger = require('../utils/logger');
 
@@ -30,9 +30,7 @@ const getKey = (header, callback) => {
   });
 };
 
-// ✅ FIXED: Proper JWT verification with correct library
 const checkJwt = (req, res, next) => {
-  // Check for authorization header first and return proper 401
   const authHeader = req.headers.authorization;
   
   if (!authHeader) {
@@ -70,7 +68,6 @@ const checkJwt = (req, res, next) => {
     });
   }
 
-  // Proper token format validation
   if (token.split('.').length !== 3) {
     logger.warn('Invalid token format', { 
       path: req.path,
@@ -87,7 +84,6 @@ const checkJwt = (req, res, next) => {
     });
   }
   
-  // ✅ FIXED: Use correct JWT verify method
   jwt.verify(token, getKey, {
     audience: config.auth0.audience,
     issuer: config.auth0.issuer,
@@ -140,7 +136,6 @@ const checkJwt = (req, res, next) => {
   });
 };
 
-// Load user with proper error handling
 const loadUser = async (req, res, next) => {
   try {
     if (!req.auth?.sub) {
@@ -219,7 +214,6 @@ const loadUser = async (req, res, next) => {
             [req.user.id]
           );
         } catch (updateError) {
-          // Don't fail the request if last login update fails
           logger.warn('Failed to update last login', {
             error: updateError.message,
             userId: req.user.id
@@ -287,7 +281,6 @@ const optionalAuth = async (req, res, next) => {
     return next();
   }
 
-  // Try to verify token, but don't fail if it's invalid
   try {
     jwt.verify(token, getKey, {
       audience: config.auth0.audience,
@@ -304,7 +297,6 @@ const optionalAuth = async (req, res, next) => {
       req.auth = decoded;
       req.userId = decoded.sub;
       
-      // Try to load user, but don't fail if it doesn't work
       try {
         const pool = req.app.locals.pool;
         if (pool) {
@@ -328,12 +320,17 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-// Combined middleware
-const auth0Middleware = [checkJwt, loadUser];
+// ✅ FIXED: Combined middleware as a single function, not an array
+const auth0Middleware = (req, res, next) => {
+  checkJwt(req, res, (err) => {
+    if (err) return next(err);
+    loadUser(req, res, next);
+  });
+};
 
 module.exports = {
   checkJwt,
   loadUser,
-  auth0Middleware,
+  auth0Middleware,  // ✅ Now exports as a single function
   optionalAuth
 };

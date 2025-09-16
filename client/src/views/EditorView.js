@@ -1,10 +1,9 @@
-// client/src/views/EditorView.js
+// client/src/views/EditorView.js - ORIGINAL LAYOUT + DocumentContext Fix
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { 
   Gavel, 
   GripVertical, 
-  FileText, 
   MessageSquare, 
   Eye, 
   Settings,
@@ -13,12 +12,12 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-// Import your existing components
+// Import DocumentContext
+import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+
 import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Resizer Component
 const Resizer = ({ onResize, isResizing, setIsResizing }) => {
@@ -78,7 +77,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
 
 // Main Editor View Component
 const EditorView = ({ existingDocument = null, onBack }) => {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   
   // Layout state
   const [chatWidth, setChatWidth] = useState(42);
@@ -86,30 +85,32 @@ const EditorView = ({ existingDocument = null, onBack }) => {
   const [activePanel, setActivePanel] = useState('chat'); // 'chat', 'preview', 'validation'
   const [isMobileView, setIsMobileView] = useState(false);
   
-  // Document state
-  const [affidavitData, setAffidavitData] = useState(() => {
-    if (existingDocument) {
-      return {
-        ...existingDocument.content,
-        documentId: existingDocument.id
-      };
-    }
-    return {
-      state: '',
-      affiantName: '',
-      caseNumber: '',
-      caseType: '',
-      county: '',
-      documentType: 'general',
-      facts: [],
-      documentId: null
-    };
-  });
-
-  // Preview state
-  const [preview, setPreview] = useState(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // CORE FIX: Replace local state with DocumentContext
+  const { 
+    currentDocument, 
+    preview, 
+    isPreviewLoading, 
+    isSaving 
+  } = useDocumentState();
+  
+  const { 
+    saveDocument, 
+    updateDocumentData,
+    selectDocument,
+    createNewDocument
+  } = useDocumentActions();
+  
+  // Use currentDocument as affidavitData for compatibility with existing components
+  const affidavitData = currentDocument || {
+    state: '',
+    affiantName: '',
+    caseNumber: '',
+    caseType: '',
+    county: '',
+    documentType: 'general',
+    facts: [],
+    documentId: null
+  };
 
   // Check for mobile view
   useEffect(() => {
@@ -122,70 +123,19 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Update preview when affidavit data changes
-  useEffect(() => {
-    if (affidavitData.state || affidavitData.affiantName || (affidavitData.facts && affidavitData.facts.length > 0)) {
-      generatePreview();
-    }
-  }, [affidavitData]);
-
-  const generatePreview = async () => {
-    setIsPreviewLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/preview`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ affidavitData })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setPreview(result.preview);
-      }
-    } catch (error) {
-      console.error('Preview error:', error);
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  };
-
   // Handle real-time data updates from chat
   const handleDataUpdate = (newData) => {
-    setAffidavitData(prev => ({ ...prev, ...newData }));
+    updateDocumentData(newData);
   };
 
-  // Save document progress
+  // CORE FIX: Use DocumentContext saveDocument method
   const handleSaveProgress = async () => {
     if (!isAuthenticated) return;
     
-    setIsSaving(true);
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE_URL}/api/documents/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          documentId: affidavitData.documentId,
-          content: affidavitData
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setAffidavitData(prev => ({
-          ...prev,
-          documentId: result.documentId
-        }));
-      }
+      await saveDocument();
     } catch (error) {
       console.error('Save error:', error);
-    } finally {
-      setIsSaving(false);
     }
   };
 

@@ -289,12 +289,12 @@ export const DocumentProvider = ({ children }) => {
       
       console.log('💾 Save response:', data);
       
-      if (data.success && data.document) {
+      if (data.success && data.documentId) {
         // Update document ID if it's a new document
         if (!state.currentDocument.documentId) {
           dispatch({
             type: ActionTypes.UPDATE_DOCUMENT_DATA,
-            payload: { documentId: data.document.id }
+            payload: { documentId: data.documentId }
           });
         }
         
@@ -314,7 +314,7 @@ export const DocumentProvider = ({ children }) => {
         // Reload documents list
         loadDocuments();
         
-        return data.document;
+        return data.documentId;
       } else {
         throw new Error(data.error || 'Save failed');
       }

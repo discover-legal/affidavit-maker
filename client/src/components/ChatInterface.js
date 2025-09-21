@@ -1,4 +1,4 @@
-// client/src/components/ChatInterface.js - Complete drop-in with improved error handling
+// client/src/components/ChatInterface.js - FIXED VERSION
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, 
@@ -20,21 +20,23 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   
+  // Use DocumentContext
   const { currentDocument } = useDocumentState();
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Scroll to bottom when new messages come in
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (isAtBottom) {
       scrollToBottom();
     }
   }, [messages, isAtBottom]);
 
-  // Check if scroll position is at bottom
+  // Check scroll position
   const handleScroll = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
@@ -43,161 +45,143 @@ const ChatInterface = () => {
     }
   };
 
-  // Scroll to the bottom of the chat
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Handle welcome message on first load
+  // Initial welcome message
   useEffect(() => {
-    // Add welcome message if there are no messages
     if (messages.length === 0) {
-      setMessages([
-        {
-          type: 'bot',
-          content: `Hi! I'm here to help write your affidavit for family court. I currently support Texas, Arizona, and Utah, but I'm adding new states often! \n
-I'll ask you specific questions to gather the facts and outline your side of the story. \n
-Please provide your full name and the state to start.`
-        }
-      ]);
+      setMessages([{
+        type: 'bot',
+        content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+        
+Let's start with your name and which state you're in.`
+      }]);
     }
-  }, [messages]);
+  }, []);
 
-  // Send message to AI
+  // Send message to API
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    if (!message.trim()) return;
-    
+    if (!message.trim() || isLoading) return;
+
     const userMessage = message.trim();
     setMessage('');
-    
-    // Add user message to chat
-    setMessages(prevMessages => [
-      ...prevMessages,
-      { type: 'user', content: userMessage }
-    ]);
-    
-    setIsLoading(true);
     setError(null);
     
+    // Add user message to chat
+    setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
+    setIsLoading(true);
+
     try {
-      let headers = {
-        'Content-Type': 'application/json',
-      };
+      const headers = { 'Content-Type': 'application/json' };
       
-      // Add auth token if authenticated
       if (isAuthenticated) {
         const token = await getAccessTokenSilently();
-        headers['Authorization'] = `Bearer ${token}`;
+        headers.Authorization = `Bearer ${token}`;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: messages,
+          conversationHistory: messages.slice(-10), // Last 10 messages for context
           affidavitData: currentDocument
         })
       });
-      
+
+      if (!response.ok) {
+        throw new Error(`Chat API error: ${response.status}`);
+      }
+
       const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong. Please try again.');
-      }
-      
       if (data.success) {
-        // Add bot response to chat
-        setMessages(prevMessages => [
-          ...prevMessages,
-          { type: 'bot', content: data.response }
-        ]);
+        // Add bot response
+        setMessages(prev => [...prev, { 
+          type: 'bot', 
+          content: data.response 
+        }]);
         
-        // Update document data if AI extracted new information
+        // Update document if data changed
         if (data.affidavitData) {
+          console.log('📝 Chat updated document:', {
+            hasName: !!data.affidavitData.affiantName,
+            hasState: !!data.affidavitData.state,
+            factCount: data.affidavitData.facts?.length || 0
+          });
+          
           updateDocumentData(data.affidavitData);
         }
-      } else {
-        throw new Error(data.error || 'Failed to get a response.');
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setError(error.message);
-      
-      // Add error message to chat
-      setMessages(prevMessages => [
-        ...prevMessages,
-        { 
-          type: 'bot', 
-          content: `I'm having trouble processing your message. ${error.message}`,
-          isError: true
+        
+        // Handle any additional actions
+        if (data.action === 'validate') {
+          // Validation will be triggered by ValidationSidebar
         }
-      ]);
+      } else {
+        throw new Error(data.error || 'Chat processing failed');
+      }
+    } catch (err) {
+      console.error('Chat error:', err);
+      setError(err.message);
+      
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        content: `I'm sorry, I encountered an error: ${err.message}. Please try again.`,
+        isError: true
+      }]);
     } finally {
       setIsLoading(false);
-      setIsAtBottom(true); // Force scroll to bottom after new message
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-sm">
-      <div className="px-4 py-3 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-          <Bot className="h-5 w-5 mr-2 text-blue-500" />
-          Affidavit Assistant
-        </h3>
-        <p className="text-sm text-gray-500">
-          I'll help you create a legally valid affidavit
-        </p>
-      </div>
-      
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Chat Messages */}
       <div 
-        className="flex-1 overflow-y-auto px-4 py-3"
         ref={chatContainerRef}
         onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
       >
         {messages.map((msg, index) => (
-          <div 
-            key={index} 
-            className={`mb-4 flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+          <div
+            key={index}
+            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div 
-              className={`p-3 rounded-lg max-w-[85%] ${
-                msg.type === 'user' 
-                  ? 'bg-blue-50 text-blue-900' 
-                  : msg.isError 
-                  ? 'bg-red-50 text-red-900' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              {msg.type === 'user' ? (
-                <div className="flex items-start">
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                  <User className="h-4 w-4 ml-2 mt-1 text-blue-600 shrink-0" />
-                </div>
-              ) : (
-                <div className="flex items-start">
-                  {msg.isError ? (
-                    <AlertCircle className="h-4 w-4 mr-2 mt-1 text-red-600 shrink-0" />
-                  ) : (
-                    <Bot className="h-4 w-4 mr-2 mt-1 text-gray-600 shrink-0" />
-                  )}
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                </div>
-              )}
+            <div className={`max-w-[80%] p-3 rounded-lg ${
+              msg.type === 'user' 
+                ? 'bg-blue-600 text-white' 
+                : msg.isError 
+                ? 'bg-red-50 text-red-900 border border-red-200' 
+                : 'bg-white text-gray-800 shadow-sm'
+            }`}>
+              <div className="flex items-start">
+                {msg.type === 'bot' && (
+                  <div className="mr-2 mt-0.5">
+                    {msg.isError ? (
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                    ) : (
+                      <Bot className="h-4 w-4 text-gray-600" />
+                    )}
+                  </div>
+                )}
+                <div className="whitespace-pre-wrap flex-1">{msg.content}</div>
+                {msg.type === 'user' && (
+                  <User className="h-4 w-4 ml-2 mt-0.5" />
+                )}
+              </div>
             </div>
           </div>
         ))}
         
         {isLoading && (
-          <div className="mb-4 flex justify-start">
-            <div className="p-3 rounded-lg bg-gray-100 text-gray-800 flex items-center">
+          <div className="flex justify-start">
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-center">
               <Loader className="h-4 w-4 mr-2 animate-spin text-blue-600" />
-              <span>Thinking...</span>
+              <span className="text-gray-600">Thinking...</span>
             </div>
           </div>
         )}
@@ -205,51 +189,64 @@ Please provide your full name and the state to start.`
         <div ref={messagesEndRef} />
       </div>
       
+      {/* Scroll to bottom button */}
       {!isAtBottom && (
         <button 
-          className="absolute bottom-20 right-6 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-colors"
           onClick={scrollToBottom}
-          aria-label="Scroll to bottom"
+          className="absolute bottom-20 right-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
         >
-          <ArrowDown className="h-5 w-5" />
+          <ArrowDown className="h-5 w-5 text-gray-600" />
         </button>
       )}
       
-      <div className="px-4 py-3 border-t border-gray-200">
-        <form onSubmit={sendMessage} className="flex">
+      {/* Input Area */}
+      <div className="border-t bg-white p-4">
+        {/* Document Status */}
+        {(currentDocument.affiantName || currentDocument.state) && (
+          <div className="mb-3 flex items-center gap-4 text-sm">
+            {currentDocument.affiantName && (
+              <div className="flex items-center text-green-600">
+                <Check className="h-3 w-3 mr-1" />
+                <span>Name: {currentDocument.affiantName}</span>
+              </div>
+            )}
+            {currentDocument.state && (
+              <div className="flex items-center text-green-600">
+                <Check className="h-3 w-3 mr-1" />
+                <span>State: {currentDocument.state}</span>
+              </div>
+            )}
+            {currentDocument.facts?.length > 0 && (
+              <div className="flex items-center text-blue-600">
+                <Check className="h-3 w-3 mr-1" />
+                <span>{currentDocument.facts.length} fact{currentDocument.facts.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Message Input */}
+        <form onSubmit={sendMessage} className="flex gap-2">
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !message.trim()}
-            className={`p-2 rounded-r-lg ${
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               isLoading || !message.trim()
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            } transition-colors`}
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
             <Send className="h-5 w-5" />
           </button>
         </form>
-        
-        {currentDocument.affiantName && (
-          <div className="mt-3 flex items-center text-xs text-green-600">
-            <Check className="h-3 w-3 mr-1" />
-            <span>Name recorded: {currentDocument.affiantName}</span>
-          </div>
-        )}
-        
-        {currentDocument.state && (
-          <div className="mt-1 flex items-center text-xs text-green-600">
-            <Check className="h-3 w-3 mr-1" />
-            <span>State recorded: {currentDocument.state}</span>
-          </div>
-        )}
       </div>
     </div>
   );

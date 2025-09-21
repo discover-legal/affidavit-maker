@@ -1,4 +1,4 @@
-// client/src/views/EditorView.js - ORIGINAL LAYOUT + DocumentContext Fix
+// client/src/views/EditorView.js - FIXED VERSION WITHOUT DUPLICATION
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { 
@@ -9,17 +9,18 @@ import {
   Settings,
   Save,
   Download,
-  ArrowLeft
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 
-// Import DocumentContext
+// Import DocumentContext hooks
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 
 import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 
-// Resizer Component
+// Resizer Component (unchanged)
 const Resizer = ({ onResize, isResizing, setIsResizing }) => {
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(0);
@@ -28,7 +29,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
     e.preventDefault();
     setIsResizing(true);
     setStartX(e.clientX);
-    setStartWidth(42); // Starting width percentage
+    setStartWidth(42);
   }, [setIsResizing]);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
       onMouseDown={handleMouseDown}
       style={{ minWidth: '8px' }}
     >
-      <div className={`flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+      <div className={`flex flex-col justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity ${
         isResizing ? 'opacity-100' : ''
       }`}>
         <GripVertical className="h-4 w-4 text-gray-400" />
@@ -75,42 +76,34 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
   );
 };
 
-// Main Editor View Component
+// Main Editor View Component - FIXED
 const EditorView = ({ existingDocument = null, onBack }) => {
   const { isAuthenticated } = useAuth0();
   
-  // Layout state
+  // Layout state (UI only)
   const [chatWidth, setChatWidth] = useState(42);
   const [isResizing, setIsResizing] = useState(false);
-  const [activePanel, setActivePanel] = useState('chat'); // 'chat', 'preview', 'validation'
+  const [activePanel, setActivePanel] = useState('chat');
   const [isMobileView, setIsMobileView] = useState(false);
   
-  // CORE FIX: Replace local state with DocumentContext
+  // Use DocumentContext for all document-related state
   const { 
     currentDocument, 
     preview, 
     isPreviewLoading, 
-    isSaving 
+    isSaving,
+    lastSaved,
+    hasUnsavedChanges,
+    isValidating,
+    validation
   } = useDocumentState();
   
   const { 
     saveDocument, 
-    updateDocumentData,
+    loadDocument,
     selectDocument,
     createNewDocument
   } = useDocumentActions();
-  
-  // Use currentDocument as affidavitData for compatibility with existing components
-  const affidavitData = currentDocument || {
-    state: '',
-    affiantName: '',
-    caseNumber: '',
-    caseType: '',
-    county: '',
-    documentType: 'general',
-    facts: [],
-    documentId: null
-  };
 
   // Check for mobile view
   useEffect(() => {
@@ -123,20 +116,41 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Handle real-time data updates from chat
-  const handleDataUpdate = (newData) => {
-    updateDocumentData(newData);
-  };
+  // Load existing document if provided
+  useEffect(() => {
+    if (existingDocument?.id) {
+      loadDocument(existingDocument.id);
+    } else if (existingDocument) {
+      selectDocument(existingDocument);
+    }
+  }, [existingDocument, loadDocument, selectDocument]);
 
-  // CORE FIX: Use DocumentContext saveDocument method
+  // Handle manual save
   const handleSaveProgress = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      console.warn('Cannot save: User not authenticated');
+      return;
+    }
     
     try {
-      await saveDocument();
+      const documentId = await saveDocument();
+      if (documentId) {
+        console.log('Document saved with ID:', documentId);
+      }
     } catch (error) {
       console.error('Save error:', error);
     }
+  };
+
+  // Handle PDF download
+  const handleDownload = async () => {
+    if (!currentDocument.documentId) {
+      alert('Please save the document first');
+      return;
+    }
+    
+    // TODO: Implement PDF download
+    console.log('Download PDF for document:', currentDocument.documentId);
   };
 
   // Mobile panel navigation
@@ -186,10 +200,7 @@ const EditorView = ({ existingDocument = null, onBack }) => {
         className="bg-white border-r flex flex-col"
         style={{ width: `${chatWidth}%` }}
       >
-        <ChatInterface
-          affidavitData={affidavitData}
-          onDataUpdate={handleDataUpdate}
-        />
+        <ChatInterface />
       </div>
 
       {/* Resizer */}
@@ -202,21 +213,14 @@ const EditorView = ({ existingDocument = null, onBack }) => {
       {/* Preview Panel */}
       <div 
         className="bg-gray-50 flex flex-col min-h-0"
-        style={{ width: `${100 - chatWidth - 20}%` }} // Reserve space for validation
+        style={{ width: `${100 - chatWidth - 20}%` }}
       >
-        <DocumentPreview
-          affidavitData={affidavitData}
-          preview={preview}
-          isLoading={isPreviewLoading}
-        />
+        <DocumentPreview />
       </div>
 
-      {/* Validation Sidebar */}
-      <div className="w-80 bg-gray-50 border-l">
-        <ValidationSidebar 
-          affidavitData={affidavitData} 
-          onDataUpdate={handleDataUpdate}
-        />
+      {/* Validation Sidebar - No props needed! */}
+      <div className="w-80 bg-white border-l">
+        <ValidationSidebar />
       </div>
     </div>
   );
@@ -226,28 +230,10 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     <div className="flex-1 flex flex-col min-h-0">
       {renderMobileNavigation()}
       
-      <div className="flex-1 min-h-0">
-        {activePanel === 'chat' && (
-          <ChatInterface
-            affidavitData={affidavitData}
-            onDataUpdate={handleDataUpdate}
-          />
-        )}
-        
-        {activePanel === 'preview' && (
-          <DocumentPreview
-            affidavitData={affidavitData}
-            preview={preview}
-            isLoading={isPreviewLoading}
-          />
-        )}
-        
-        {activePanel === 'validation' && (
-          <ValidationSidebar 
-            affidavitData={affidavitData} 
-            onDataUpdate={handleDataUpdate}
-          />
-        )}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activePanel === 'chat' && <ChatInterface />}
+        {activePanel === 'preview' && <DocumentPreview />}
+        {activePanel === 'validation' && <ValidationSidebar />}
       </div>
     </div>
   );
@@ -261,36 +247,57 @@ const EditorView = ({ existingDocument = null, onBack }) => {
             <button
               onClick={onBack}
               className="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+              aria-label="Back to dashboard"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center">
               <Gavel className="h-6 w-6 text-blue-600 mr-2" />
               <h1 className="text-xl font-semibold">
-                {existingDocument ? 'Edit Affidavit' : 'Create New Affidavit'}
+                {existingDocument ? 'Edit Affidavit' : 'Create Affidavit'}
               </h1>
             </div>
           </div>
           
-          {/* Header Actions */}
-          <div className="flex items-center space-x-2">
-            {isAuthenticated && (
-              <button
-                onClick={handleSaveProgress}
-                disabled={isSaving}
-                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-              >
-                <Save className="h-4 w-4 mr-1" />
-                {isSaving ? 'Saving...' : 'Save Progress'}
-              </button>
+          <div className="flex items-center space-x-4">
+            {/* Save Status Indicator */}
+            {lastSaved && (
+              <div className="flex items-center text-sm text-green-600">
+                <Check className="h-4 w-4 mr-1" />
+                <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
+              </div>
             )}
             
+            {hasUnsavedChanges && !isSaving && (
+              <span className="text-sm text-yellow-600">Unsaved changes</span>
+            )}
+            
+            {/* Save Button */}
             <button
-              className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              disabled={!affidavitData.affiantName || !affidavitData.state}
+              onClick={handleSaveProgress}
+              disabled={isSaving || !hasUnsavedChanges}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
+                isSaving || !hasUnsavedChanges
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              <Download className="h-4 w-4 mr-1" />
-              Generate
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+            
+            {/* Download Button */}
+            <button
+              onClick={handleDownload}
+              disabled={!currentDocument.documentId}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
+                !currentDocument.documentId
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
             </button>
           </div>
         </div>

@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe');
-const { validationRules, validate } = require('../middleware/securityMiddleware');
+const { validatePayment } = require('../middleware/validation');
 const { asyncHandler, ValidationError, ExternalServiceError } = require('../middleware/errorMiddleware');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 // Initialize Stripe
 const getStripe = (config) => {
@@ -17,7 +17,7 @@ const getStripe = (config) => {
 };
 
 // Create payment intent with updated pricing
-router.post('/create-intent', validationRules.payment, validate, asyncHandler(async (req, res) => {
+router.post('/create-intent', validatePayment, asyncHandler(async (req, res) => {
   const { documentType, documentId } = req.body;
   const user = req.user;
   const pool = req.app.locals.pool;

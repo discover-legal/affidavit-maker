@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { checkJwt } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorMiddleware');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 // Get current user profile
 router.get('/me', checkJwt, asyncHandler(async (req, res) => {

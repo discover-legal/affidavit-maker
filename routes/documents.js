@@ -7,11 +7,14 @@ const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
+const { validatePreview, validateDocumentSave } = require('../middleware/validation');
+
 
 /**
  * ✅ FIXED: Preview generation with proper facts processing
  */
 router.post('/preview', 
+  validatePreview,
   optionalAuth, // Allow both authenticated and anonymous preview generation
   standardLimiter,
   asyncHandler(async (req, res) => {
@@ -133,6 +136,7 @@ router.post('/preview',
  * ✅ FIXED: Save document with enhanced validation and preview caching
  */
 router.post('/save', 
+  validateDocumentSave,
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {

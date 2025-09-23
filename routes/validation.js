@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 router.post('/', 
   auth0Middleware,

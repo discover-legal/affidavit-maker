@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../middleware/errorMiddleware');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 // Get supported states (public endpoint)
 router.get('/states', asyncHandler(async (req, res) => {

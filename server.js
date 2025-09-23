@@ -14,7 +14,7 @@ require('dotenv').config();
 const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
 const AffidavitService = require('./affidavitService');
-const logger = require('./services/logger');
+const logger = require('./utils/logger');
 const { EnhancedFactValidationService } = require('./services/enhancedFactValidationService');
 
 // Import middleware

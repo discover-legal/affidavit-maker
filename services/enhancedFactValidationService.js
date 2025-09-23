@@ -6,7 +6,7 @@
  * @version 3.0.0 (CommonJS)
  */
 
-const logger = require('./logger');
+const logger = require('../utils/logger');
 
 class LRUCache {
   constructor(maxSize = 100) {

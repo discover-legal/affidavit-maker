@@ -1,33 +1,77 @@
-// middleware/validation.js - Input Validation Middleware
+// middleware/validation.js - CONSOLIDATED Validation Middleware
+// Drop-in replacement combining security + business validation
 const { body, param, query, validationResult } = require('express-validator');
+const helmet = require('helmet');
 const logger = require('../utils/logger');
-const { createError } = require('../utils/responseHelpers');
 
 /**
- * Constants for validation limits
+ * Comprehensive validation limits and constants
  */
 const LIMITS = {
+  // Message and content limits
   MESSAGE_MAX_WORDS: 5000,
-  MESSAGE_MAX_CHARS: 25000, // ~5k words
+  MESSAGE_MAX_CHARS: 25000, // ~5k words, more generous than securityMiddleware
+  CONVERSATION_MAX_MESSAGES: 50,
+  CONVERSATION_MAX_SIZE: 2 * 1024 * 1024, // 2MB
+  
+  // Document limits  
   DOCUMENT_MAX_SIZE: 25 * 1024 * 1024, // 25MB
+  TITLE_MAX_LENGTH: 500,
+  
+  // Personal information limits
   NAME_MAX_LENGTH: 255,
   COUNTY_MAX_LENGTH: 100,
+  
+  // Facts and content limits
   FACTS_MAX_COUNT: 50,
   FACT_MAX_WORDS: 500,
-  TITLE_MAX_LENGTH: 500
+  FACT_CONTENT_MAX_CHARS: 2000,
+  
+  // Payment limits
+  PAYMENT_MIN_CENTS: 999, // $9.99
+  PAYMENT_MAX_CENTS: 99999, // $999.99
+  
+  // Pagination limits
+  PAGE_MAX: 1000,
+  LIMIT_MAX: 100
 };
 
 /**
- * Helper function to count words
+ * Security configuration - Helmet setup with CSP
  */
+const helmetConfig = helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://*.auth0.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://*.auth0.com", "https://api.stripe.com", "wss://localhost:*"],
+      frameSrc: ["https://js.stripe.com", "https://*.auth0.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+});
+
+/**
+ * Utility functions for validation and sanitization
+ */
+
+// Count words in text
 const countWords = (text) => {
   if (!text || typeof text !== 'string') return 0;
   return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 };
 
-/**
- * Helper function to sanitize text input
- */
+// Basic text sanitization (remove HTML, trim)
 const sanitizeText = (text) => {
   if (!text) return text;
   return text
@@ -36,27 +80,59 @@ const sanitizeText = (text) => {
     .trim();
 };
 
-/**
- * Custom validation middleware to check for validation errors
- */
-const checkValidationResult = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.logSecurity('validation_failed', {
-      requestId: req.id,
-      userId: req.user?.id,
-      path: req.path,
-      errors: errors.array()
-    });
-    
-    return res.sendValidationError(errors.array());
+// SQL Injection prevention for raw queries
+const sanitizeSQL = (input) => {
+  if (typeof input !== 'string') return input;
+  
+  return input
+    .replace(/'/g, "''")
+    .replace(/;/g, '')
+    .replace(/--/g, '')
+    .replace(/\/\*/g, '')
+    .replace(/\*\//g, '')
+    .replace(/xp_/gi, '')
+    .replace(/exec/gi, '')
+    .replace(/union/gi, '')
+    .replace(/select/gi, '')
+    .replace(/insert/gi, '')
+    .replace(/update/gi, '')
+    .replace(/delete/gi, '')
+    .replace(/drop/gi, '');
+};
+
+// XSS Prevention for output sanitization
+const sanitizeOutput = (data) => {
+  if (typeof data === 'string') {
+    return data
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;')
+      .replace(/\\/g, '&#x5C;')
+      .replace(/`/g, '&#x60;');
   }
-  next();
+  
+  if (Array.isArray(data)) {
+    return data.map(sanitizeOutput);
+  }
+  
+  if (typeof data === 'object' && data !== null) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeOutput(value);
+    }
+    return sanitized;
+  }
+  
+  return data;
 };
 
 /**
- * Custom validator for word count
+ * Custom validators
  */
+
+// Word count validator
 const wordCountValidator = (maxWords, fieldName = 'field') => {
   return (value) => {
     if (!value) return true; // Allow empty values, let required() handle it
@@ -68,9 +144,7 @@ const wordCountValidator = (maxWords, fieldName = 'field') => {
   };
 };
 
-/**
- * Custom validator for JSON size
- */
+// JSON size validator
 const jsonSizeValidator = (maxBytes) => {
   return (value) => {
     if (!value) return true;
@@ -82,16 +156,53 @@ const jsonSizeValidator = (maxBytes) => {
   };
 };
 
+// Enhanced validation result checker with security logging
+const checkValidationResult = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    // Security logging for failed validation
+    logger.logSecurity('validation_failed', {
+      requestId: req.id,
+      userId: req.user?.id,
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+      errors: errors.array().map(err => ({
+        field: err.path,
+        message: err.msg,
+        value: typeof err.value === 'string' ? err.value.substring(0, 100) : '[non-string]'
+      }))
+    });
+    
+    // Send user-friendly error response
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array().map(err => ({
+        field: err.path,
+        message: err.msg
+      })),
+      requestId: req.id,
+      timestamp: new Date().toISOString()
+    });
+  }
+  next();
+};
+
 /**
- * Chat message validation
+ * CONSOLIDATED VALIDATION FUNCTIONS
+ */
+
+/**
+ * Chat message validation - combines both approaches
  */
 const validateChatMessage = [
   body('message')
     .trim()
     .notEmpty()
     .withMessage('Message is required')
-    .isLength({ max: LIMITS.MESSAGE_MAX_CHARS })
-    .withMessage(`Message exceeds maximum length of ${LIMITS.MESSAGE_MAX_CHARS} characters`)
+    .isLength({ min: 1, max: LIMITS.MESSAGE_MAX_CHARS })
+    .withMessage(`Message must be between 1 and ${LIMITS.MESSAGE_MAX_CHARS} characters`)
     .custom(wordCountValidator(LIMITS.MESSAGE_MAX_WORDS, 'Message'))
     .customSanitizer(sanitizeText),
   
@@ -99,7 +210,14 @@ const validateChatMessage = [
     .optional()
     .isArray()
     .withMessage('Conversation history must be an array')
-    .custom(jsonSizeValidator(2 * 1024 * 1024)) // 2MB limit for conversation history
+    .custom((value) => {
+      if (!Array.isArray(value)) return true;
+      if (value.length > LIMITS.CONVERSATION_MAX_MESSAGES) {
+        throw new Error(`Too many conversation messages (maximum ${LIMITS.CONVERSATION_MAX_MESSAGES})`);
+      }
+      return true;
+    })
+    .custom(jsonSizeValidator(LIMITS.CONVERSATION_MAX_SIZE))
     .customSanitizer((history) => {
       if (!Array.isArray(history)) return history;
       return history.slice(-20); // Keep only last 20 messages
@@ -110,6 +228,38 @@ const validateChatMessage = [
     .isObject()
     .withMessage('Affidavit data must be an object')
     .custom(jsonSizeValidator(1024 * 1024)), // 1MB limit for affidavit data
+  
+  // Legacy support for currentData from securityMiddleware
+  body('currentData.affiantName')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: LIMITS.NAME_MAX_LENGTH })
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+    .withMessage('Invalid name format')
+    .customSanitizer(sanitizeText),
+    
+  body('currentData.state')
+    .optional()
+    .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
+    .withMessage('Invalid state'),
+    
+  body('currentData.facts')
+    .optional()
+    .isArray({ max: LIMITS.FACTS_MAX_COUNT })
+    .withMessage(`Too many facts (maximum ${LIMITS.FACTS_MAX_COUNT})`)
+    .custom((facts) => {
+      if (!Array.isArray(facts)) return true;
+      
+      for (let i = 0; i < facts.length; i++) {
+        const fact = facts[i];
+        if (typeof fact === 'string') {
+          if (fact.length > LIMITS.FACT_CONTENT_MAX_CHARS) {
+            throw new Error(`Fact ${i + 1} exceeds maximum length`);
+          }
+        }
+      }
+      return true;
+    }),
   
   checkValidationResult
 ];
@@ -135,22 +285,32 @@ const validateDocumentSave = [
     .optional()
     .isIn(['draft', 'completed', 'archived'])
     .withMessage('Invalid status'),
+    
+  body('documentId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Invalid document ID'),
+  
+  body('affidavitData')
+    .optional()
+    .isObject()
+    .withMessage('Affidavit data must be an object'),
   
   checkValidationResult
 ];
 
 /**
- * Affidavit data validation
+ * Comprehensive affidavit data validation
  */
 const validateAffidavitData = [
   body('affiantName')
     .trim()
     .notEmpty()
     .withMessage('Affiant name is required')
-    .isLength({ max: LIMITS.NAME_MAX_LENGTH })
-    .withMessage(`Affiant name exceeds maximum length of ${LIMITS.NAME_MAX_LENGTH} characters`)
-    .matches(/^[a-zA-Z\s\-'.]+$/)
-    .withMessage('Affiant name contains invalid characters')
+    .isLength({ min: 2, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage(`Affiant name must be between 2 and ${LIMITS.NAME_MAX_LENGTH} characters`)
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u) // Allow # for case numbers in names
+    .withMessage('Invalid name format. Only letters, numbers, spaces, hyphens, apostrophes, periods, and # allowed')
     .customSanitizer(sanitizeText),
   
   body('state')
@@ -158,7 +318,7 @@ const validateAffidavitData = [
     .notEmpty()
     .withMessage('State is required')
     .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
-    .withMessage('Invalid state'),
+    .withMessage('Invalid state. Must be TX, UT, AZ, Texas, Utah, or Arizona'),
   
   body('county')
     .optional()
@@ -195,6 +355,130 @@ const validateAffidavitData = [
       return true;
     }),
   
+  body('caseNumber')
+    .optional()
+    .trim()
+    .matches(/^[a-zA-Z0-9\-\/]+$/)
+    .withMessage('Invalid case number format'),
+    
+  body('documentType')
+    .optional()
+    .isIn(['general', 'divorce', 'custody', 'financial', 'property', 'identity'])
+    .withMessage('Invalid document type'),
+  
+  checkValidationResult
+];
+
+/**
+ * Preview validation (from securityMiddleware)
+ */
+const validatePreview = [
+  body('affidavitData')
+    .isObject()
+    .withMessage('Affidavit data must be an object'),
+    
+  body('affidavitData.affiantName')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: LIMITS.NAME_MAX_LENGTH })
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+    .withMessage('Invalid name format')
+    .customSanitizer(sanitizeText),
+    
+  body('affidavitData.state')
+    .optional()
+    .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
+    .withMessage('Invalid state'),
+    
+  body('affidavitData.county')
+    .optional()
+    .trim()
+    .isLength({ max: LIMITS.COUNTY_MAX_LENGTH })
+    .matches(/^[a-zA-Z\s\-'.]+$/)
+    .withMessage('Invalid county format')
+    .customSanitizer(sanitizeText),
+    
+  body('affidavitData.caseNumber')
+    .optional()
+    .trim()
+    .matches(/^[a-zA-Z0-9\-\/]+$/)
+    .withMessage('Invalid case number format'),
+  
+  checkValidationResult
+];
+
+/**
+ * Document generation validation (from securityMiddleware)
+ */
+const validateDocumentGeneration = [
+  body('affidavitData')
+    .isObject()
+    .withMessage('Affidavit data must be an object'),
+    
+  body('affidavitData.state')
+    .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
+    .withMessage('Valid state is required'),
+    
+  body('affidavitData.affiantName')
+    .trim()
+    .notEmpty()
+    .isLength({ min: 2, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage('Valid affiant name is required')
+    .customSanitizer(sanitizeText),
+    
+  body('strategy')
+    .optional()
+    .isIn(['simple', 'detailed', 'persuasive', 'legal', 'template_only'])
+    .withMessage('Invalid generation strategy'),
+    
+  body('format')
+    .optional()
+    .isIn(['pdf', 'html', 'text', 'json'])
+    .withMessage('Invalid format'),
+    
+  body('documentId')
+    .optional()
+    .custom((value) => value === 'new' || /^\d+$/.test(value))
+    .withMessage('Invalid document ID'),
+  
+  checkValidationResult
+];
+
+/**
+ * Payment validation (from securityMiddleware)
+ */
+const validatePayment = [
+  body('documentType')
+    .isIn(['single_affidavit', 'family_law_package', 'all_state_access'])
+    .withMessage('Invalid document type'),
+    
+  body('documentId')
+    .optional()
+    .custom((value) => value === 'new' || /^\d+$/.test(value))
+    .withMessage('Invalid document ID'),
+    
+  body('amount')
+    .optional()
+    .isInt({ min: LIMITS.PAYMENT_MIN_CENTS, max: LIMITS.PAYMENT_MAX_CENTS })
+    .withMessage(`Invalid payment amount (must be between $${LIMITS.PAYMENT_MIN_CENTS/100} and $${LIMITS.PAYMENT_MAX_CENTS/100})`),
+  
+  checkValidationResult
+];
+
+/**
+ * Document rename validation (from securityMiddleware)
+ */
+const validateDocumentRename = [
+  body('newName')
+    .trim()
+    .notEmpty({ ignore_whitespace: true })
+    .withMessage('Name cannot be empty')
+    .isLength({ min: 2, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage(`Name must be between 2 and ${LIMITS.NAME_MAX_LENGTH} characters`)
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+    .withMessage('Invalid name format. Only letters, numbers, and common punctuation (including #) are allowed')
+    .customSanitizer(sanitizeText),
+  
   checkValidationResult
 ];
 
@@ -215,87 +499,153 @@ const validateId = [
 const validatePagination = [
   query('page')
     .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage('Page must be between 1 and 1000'),
+    .isInt({ min: 1, max: LIMITS.PAGE_MAX })
+    .withMessage(`Page must be between 1 and ${LIMITS.PAGE_MAX}`),
   
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
+    .isInt({ min: 1, max: LIMITS.LIMIT_MAX })
+    .withMessage(`Limit must be between 1 and ${LIMITS.LIMIT_MAX}`),
   
   checkValidationResult
 ];
 
 /**
- * Payment validation
- */
-const validatePayment = [
-  body('amount')
-    .optional()
-    .isInt({ min: 999, max: 99999 }) // $9.99 to $999.99
-    .withMessage('Invalid payment amount'),
-  
-  body('documentId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Invalid document ID'),
-  
-  checkValidationResult
-];
-
-/**
- * File upload validation middleware
+ * File upload validation
  */
 const validateFileUpload = (req, res, next) => {
   if (req.file) {
     // Check file size
     if (req.file.size > LIMITS.DOCUMENT_MAX_SIZE) {
-      return res.sendValidationError([{
-        field: 'file',
-        message: `File size exceeds maximum of ${LIMITS.DOCUMENT_MAX_SIZE / 1024 / 1024}MB`
-      }]);
+      logger.logSecurity('file_upload_size_exceeded', {
+        requestId: req.id,
+        userId: req.user?.id,
+        fileSize: req.file.size,
+        maxSize: LIMITS.DOCUMENT_MAX_SIZE
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'File size exceeds maximum allowed',
+        details: [{
+          field: 'file',
+          message: `File size exceeds maximum of ${LIMITS.DOCUMENT_MAX_SIZE / 1024 / 1024}MB`
+        }],
+        requestId: req.id
+      });
     }
     
     // Check file type
     const allowedTypes = ['application/pdf', 'application/json', 'text/plain'];
     if (!allowedTypes.includes(req.file.mimetype)) {
-      return res.sendValidationError([{
-        field: 'file',
-        message: 'Invalid file type'
-      }]);
+      logger.logSecurity('file_upload_invalid_type', {
+        requestId: req.id,
+        userId: req.user?.id,
+        mimeType: req.file.mimetype,
+        allowedTypes
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid file type',
+        details: [{
+          field: 'file',
+          message: 'Only PDF, JSON, and plain text files are allowed'
+        }],
+        requestId: req.id
+      });
     }
   }
   next();
 };
 
 /**
- * Rate limit validation - check if user is within limits
+ * Rate limit validation middleware
  */
 const validateRateLimit = (req, res, next) => {
   const userId = req.user?.id;
-  if (!userId) return next();
+  const ip = req.ip;
   
-  // This could be enhanced with Redis for distributed rate limiting
-  // For now, just log the attempt
-  logger.logBusinessEvent('rate_limit_check', userId, {
+  // Log rate limit check for monitoring
+  logger.logBusinessEvent('rate_limit_check', userId || 'anonymous', {
     endpoint: req.path,
-    ip: req.ip
+    method: req.method,
+    ip: ip,
+    userAgent: req.get('user-agent'),
+    requestId: req.id
   });
   
   next();
 };
 
+/**
+ * Security middleware to detect suspicious activity
+ */
+const detectSuspiciousActivity = (req, res, next) => {
+  const suspiciousPatterns = [
+    // SQL Injection patterns
+    /(\bunion\b|\bselect\b|\binsert\b|\bupdate\b|\bdelete\b|\bdrop\b)/gi,
+    // Script injection patterns  
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    // Command injection patterns
+    /(\b(ls|cat|pwd|whoami|id|uname|ps|netstat|ifconfig|rm|mv|cp|mkdir|chmod|chown|kill|wget|curl|nc|nmap|sqlmap)\b)/gi
+  ];
+  
+  const requestBody = JSON.stringify(req.body || {});
+  const queryString = JSON.stringify(req.query || {});
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(requestBody) || pattern.test(queryString)) {
+      logger.logSecurity('suspicious_activity_detected', {
+        requestId: req.id,
+        userId: req.user?.id,
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        userAgent: req.get('user-agent'),
+        pattern: pattern.source,
+        bodySnippet: requestBody.substring(0, 200)
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid input detected',
+        requestId: req.id,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+  
+  next();
+};
+
 module.exports = {
+  // Validation functions
   validateChatMessage,
   validateDocumentSave,
   validateAffidavitData,
+  validatePreview,
+  validateDocumentGeneration,
+  validatePayment,
+  validateDocumentRename,
   validateId,
   validatePagination,
-  validatePayment,
   validateFileUpload,
   validateRateLimit,
+  
+  // Security middleware
+  helmetConfig,
+  detectSuspiciousActivity,
+  
+  // Utility functions
   checkValidationResult,
-  LIMITS,
   countWords,
-  sanitizeText
+  sanitizeText,
+  sanitizeSQL,
+  sanitizeOutput,
+  wordCountValidator,
+  jsonSizeValidator,
+  
+  // Constants
+  LIMITS
 };

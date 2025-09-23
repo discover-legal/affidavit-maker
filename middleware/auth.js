@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const { Pool } = require('pg');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 const config = require('../config');
 
 // Create JWKS client

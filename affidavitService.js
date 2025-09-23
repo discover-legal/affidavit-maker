@@ -2,7 +2,7 @@
 // affidavitService.js - CONSOLIDATED LLM APPROACH WITH FORCED FUNCTION CALLING
 // Replaces multiple LLM calls with single smart function calling - DEBUGGED VERSION
 
-const logger = require('./services/logger');
+const logger = require('./utils/logger');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {

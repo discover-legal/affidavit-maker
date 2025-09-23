@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { dbService } = require('../services/DatabaseService');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 
 // Verify Auth0 webhook signature

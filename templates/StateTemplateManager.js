@@ -1,7 +1,7 @@
 // templates/StateTemplateManager.js - FINAL FIXED VERSION
 // Complete drop-in replacement with enhanced facts processing
 
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 /**
  * Base template class for all affidavit templates

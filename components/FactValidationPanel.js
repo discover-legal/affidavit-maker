@@ -355,19 +355,23 @@ const FactValidationPanel = ({
             )}
 
             {/* Improvements */}
-            {validation.improvements?.length > 0 && (
+
+            {/* Improvements - FIXED */}
+            {validation.improvements && (
+              <div className="space-y-1">
+                <span className="text-sm font-medium text-blue-600">Suggestions:</span>
+                {(() => {
+                  // Check if improvements is a string or array
+                  if (typeof validation.improvements             {validation.improvements?.length > 0 && (
               <div className="space-y-1">
                 <span className="text-sm font-medium text-blue-600">Suggestions:</span>
                 {validation.improvements.map((improvement, i) => (
                   <div key={i} className="text-sm text-blue-600">
                     💡 {improvement}
-                  </div>
-                ))}
               </div>
             )}
           </div>
         )}
-      </div>
     );
   };
 

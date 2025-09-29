@@ -1,4 +1,4 @@
-// server.js - Complete Drop-in Replacement - All Issues Fixed
+// server.js 
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -15,18 +15,17 @@ const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
 const AffidavitService = require('./affidavitService');
 const logger = require('./utils/logger');
-const { EnhancedFactValidationService } = require('./services/enhancedFactValidationService');
+const EnhancedFactValidationService = require('./services/enhancedFactValidationService').default;
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
 
-const { responseMiddleware } = require('./utils/responseHelpers'); // ✅ FIXED: Import responseMiddleware
+const { responseMiddleware } = require('./utils/responseHelpers'); 
 
 // Initialize Express app
 const app = express();
 
-// ✅ FIXED: Apply responseMiddleware EARLY - must be before routes
-// Request ID middleware (first)
+// Request ID middleware 
 app.use((req, res, next) => {
   req.id = uuidv4();
   res.setHeader('X-Request-ID', req.id);

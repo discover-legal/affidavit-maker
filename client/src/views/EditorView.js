@@ -1,67 +1,49 @@
-// client/src/views/EditorView.js - FIXED VERSION WITHOUT DUPLICATION
+// client/src/views/EditorView.js - Updated with 35/35/30 proportions
 import React, { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { 
-  Gavel, 
-  GripVertical, 
-  MessageSquare, 
-  Eye, 
-  Settings,
-  Save,
-  Download,
-  ArrowLeft,
-  Check
-} from 'lucide-react';
-
-// Import DocumentContext hooks
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
-
 import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 
-// Resizer Component (unchanged)
-const Resizer = ({ onResize, isResizing, setIsResizing }) => {
-  const [startX, setStartX] = useState(0);
-  const [startWidth, setStartWidth] = useState(0);
-
+// Resizer component for adjusting pane widths
+const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview' }) => {
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     setIsResizing(true);
-    setStartX(e.clientX);
-    setStartWidth(42);
-  }, [setIsResizing]);
 
-  useEffect(() => {
+    const startX = e.clientX;
+    const container = e.target.closest('.editor-layout');
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+
     const handleMouseMove = (e) => {
-      if (!isResizing) return;
-      
       const deltaX = e.clientX - startX;
-      const containerWidth = window.innerWidth;
-      const deltaPercent = (deltaX / containerWidth) * 100;
-      const newWidth = Math.max(25, Math.min(65, startWidth + deltaPercent));
+      const deltaPercentage = (deltaX / containerWidth) * 100;
       
-      onResize(newWidth);
+      if (position === 'between-chat-preview') {
+        // Resizing between chat and preview
+        onResize(deltaPercentage, 'chat-preview');
+      } else if (position === 'between-preview-validation') {
+        // Resizing between preview and validation
+        onResize(deltaPercentage, 'preview-validation');
+      }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, startX, startWidth, onResize]);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [onResize, setIsResizing, position]);
 
   return (
     <div
-      className={`group w-2 bg-gray-200 hover:bg-blue-200 cursor-col-resize transition-colors ${
+      className={`w-2 bg-gray-200 cursor-col-resize hover:bg-blue-300 transition-colors group flex items-center justify-center ${
         isResizing ? 'bg-blue-200' : ''
       }`}
       onMouseDown={handleMouseDown}
@@ -76,12 +58,14 @@ const Resizer = ({ onResize, isResizing, setIsResizing }) => {
   );
 };
 
-// Main Editor View Component - FIXED
+// Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ existingDocument = null, onBack }) => {
   const { isAuthenticated } = useAuth0();
   
-  // Layout state (UI only)
-  const [chatWidth, setChatWidth] = useState(42);
+  // Layout state with new proportions (35/35/30)
+  const [chatWidth, setChatWidth] = useState(35);
+  const [previewWidth, setPreviewWidth] = useState(35);
+  const [validationWidth, setValidationWidth] = useState(30);
   const [isResizing, setIsResizing] = useState(false);
   const [activePanel, setActivePanel] = useState('chat');
   const [isMobileView, setIsMobileView] = useState(false);
@@ -124,6 +108,37 @@ const EditorView = ({ existingDocument = null, onBack }) => {
       selectDocument(existingDocument);
     }
   }, [existingDocument, loadDocument, selectDocument]);
+
+  // Handle pane resizing with constraints
+  const handlePaneResize = useCallback((deltaPercentage, resizeType) => {
+    if (resizeType === 'chat-preview') {
+      // Resizing between chat and preview panels
+      const newChatWidth = Math.max(20, Math.min(50, chatWidth + deltaPercentage));
+      const newPreviewWidth = Math.max(20, Math.min(50, previewWidth - deltaPercentage));
+      
+      // Ensure total doesn't exceed available space (100 - validation width)
+      const availableSpace = 100 - validationWidth;
+      const totalNewWidth = newChatWidth + newPreviewWidth;
+      
+      if (totalNewWidth <= availableSpace) {
+        setChatWidth(newChatWidth);
+        setPreviewWidth(newPreviewWidth);
+      }
+    } else if (resizeType === 'preview-validation') {
+      // Resizing between preview and validation panels
+      const newPreviewWidth = Math.max(20, Math.min(50, previewWidth + deltaPercentage));
+      const newValidationWidth = Math.max(20, Math.min(50, validationWidth - deltaPercentage));
+      
+      // Ensure total doesn't exceed available space (100 - chat width)
+      const availableSpace = 100 - chatWidth;
+      const totalNewWidth = newPreviewWidth + newValidationWidth;
+      
+      if (totalNewWidth <= availableSpace) {
+        setPreviewWidth(newPreviewWidth);
+        setValidationWidth(newValidationWidth);
+      }
+    }
+  }, [chatWidth, previewWidth, validationWidth]);
 
   // Handle manual save
   const handleSaveProgress = async () => {
@@ -192,10 +207,10 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     </div>
   );
 
-  // Desktop layout
+  // Desktop layout with new proportions
   const renderDesktopLayout = () => (
-    <div className="flex-1 flex min-h-0">
-      {/* Chat Panel */}
+    <div className="flex-1 flex min-h-0 editor-layout">
+      {/* Chat Panel - 35% default */}
       <div 
         className="bg-white border-r flex flex-col"
         style={{ width: `${chatWidth}%` }}
@@ -203,23 +218,35 @@ const EditorView = ({ existingDocument = null, onBack }) => {
         <ChatInterface />
       </div>
 
-      {/* Resizer */}
+      {/* Resizer between Chat and Preview */}
       <Resizer
-        onResize={setChatWidth}
+        onResize={handlePaneResize}
         isResizing={isResizing}
         setIsResizing={setIsResizing}
+        position="between-chat-preview"
       />
 
-      {/* Preview Panel */}
+      {/* Preview Panel - 35% default */}
       <div 
         className="bg-gray-50 flex flex-col min-h-0"
-        style={{ width: `${100 - chatWidth - 20}%` }}
+        style={{ width: `${previewWidth}%` }}
       >
         <DocumentPreview />
       </div>
 
-      {/* Validation Sidebar - No props needed! */}
-      <div className="w-80 bg-white border-l">
+      {/* Resizer between Preview and Validation */}
+      <Resizer
+        onResize={handlePaneResize}
+        isResizing={isResizing}
+        setIsResizing={setIsResizing}
+        position="between-preview-validation"
+      />
+
+      {/* Validation Panel - 30% default */}
+      <div 
+        className="bg-white border-l flex flex-col"
+        style={{ width: `${validationWidth}%` }}
+      >
         <ValidationSidebar />
       </div>
     </div>
@@ -238,6 +265,19 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     </div>
   );
 
+  // Calculate save status text
+  const getSaveStatusText = () => {
+    if (isSaving) return 'Saving...';
+    if (hasUnsavedChanges) return 'Unsaved changes';
+    if (lastSaved) {
+      const timeAgo = Math.floor((Date.now() - new Date(lastSaved).getTime()) / 1000);
+      if (timeAgo < 60) return 'Saved just now';
+      if (timeAgo < 3600) return `Saved ${Math.floor(timeAgo / 60)}m ago`;
+      return `Saved ${Math.floor(timeAgo / 3600)}h ago`;
+    }
+    return '';
+  };
+
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
@@ -254,56 +294,73 @@ const EditorView = ({ existingDocument = null, onBack }) => {
             <div className="flex items-center">
               <Gavel className="h-6 w-6 text-blue-600 mr-2" />
               <h1 className="text-xl font-semibold">
-                {existingDocument ? 'Edit Affidavit' : 'Create Affidavit'}
+                {existingDocument ? 'Edit Affidavit' : 'New Affidavit'}
               </h1>
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {/* Save Status Indicator */}
-            {lastSaved && (
-              <div className="flex items-center text-sm text-green-600">
-                <Check className="h-4 w-4 mr-1" />
-                <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-4">
+            {/* Save status */}
+            <div className="text-sm text-gray-600">
+              {getSaveStatusText()}
+            </div>
             
-            {hasUnsavedChanges && !isSaving && (
-              <span className="text-sm text-yellow-600">Unsaved changes</span>
-            )}
-            
-            {/* Save Button */}
-            <button
-              onClick={handleSaveProgress}
-              disabled={isSaving || !hasUnsavedChanges}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
-                isSaving || !hasUnsavedChanges
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save'}
-            </button>
-            
-            {/* Download Button */}
-            <button
-              onClick={handleDownload}
-              disabled={!currentDocument.documentId}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
-                !currentDocument.documentId
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </button>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isSaving || !isAuthenticated}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              
+              <button
+                onClick={handleDownload}
+                disabled={!currentDocument.documentId}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </button>
+            </div>
           </div>
+        </div>
+        
+        {/* Document info bar */}
+        <div className="mt-3 flex items-center gap-6 text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <span>Document:</span>
+            <span className="font-medium">
+              {currentDocument.affiantName || 'Unnamed'} - {currentDocument.state || 'No state'}
+            </span>
+          </div>
+          
+          {currentDocument.facts?.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span>Facts:</span>
+              <span className="font-medium">{currentDocument.facts.length}</span>
+            </div>
+          )}
+          
+          {preview?.metadata?.estimatedPages && (
+            <div className="flex items-center gap-2">
+              <span>Est. Pages:</span>
+              <span className="font-medium">{preview.metadata.estimatedPages}</span>
+            </div>
+          )}
+          
+          {/* Current proportions indicator (for debugging) */}
+          {!isMobileView && (
+            <div className="text-xs text-gray-400 ml-auto">
+              Layout: {Math.round(chatWidth)}% | {Math.round(previewWidth)}% | {Math.round(validationWidth)}%
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main content area */}
       {isMobileView ? renderMobileLayout() : renderDesktopLayout()}
     </div>
   );

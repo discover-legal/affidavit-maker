@@ -378,30 +378,30 @@ const validatePreview = [
     .withMessage('Affidavit data must be an object'),
     
   body('affidavitData.affiantName')
-    .optional({ checkFalsy: true })
+    .optional({ checkFalsy: true })        // ✅ FIXED
     .trim()
     .isLength({ max: LIMITS.NAME_MAX_LENGTH })
-    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]+$/u)
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.#]*$/u) // ✅ * allows empty
     .withMessage('Invalid name format')
     .customSanitizer(sanitizeText),
     
   body('affidavitData.state')
-    .optional()
+    .optional({ checkFalsy: true })        // ✅ FIXED
     .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
     .withMessage('Invalid state'),
     
   body('affidavitData.county')
-    .optional()
+    .optional({ checkFalsy: true })        // ✅ KEY FIX
     .trim()
     .isLength({ max: LIMITS.COUNTY_MAX_LENGTH })
-    .matches(/^[a-zA-Z\s\-'.]+$/)
-    .withMessage('Invalid county format')
+    .matches(/^[a-zA-Z\s\-'.]*$/)          // ✅ * allows empty
+    .withMessage('County name contains invalid characters')
     .customSanitizer(sanitizeText),
-    
+
   body('affidavitData.caseNumber')
-    .optional()
+    .optional({ checkFalsy: true })        // ✅ KEY FIX
     .trim()
-    .matches(/^[a-zA-Z0-9\-\/]+$/)
+    .matches(/^[a-zA-Z0-9\-\/]*$/)         // ✅ * allows empty
     .withMessage('Invalid case number format'),
   
   checkValidationResult

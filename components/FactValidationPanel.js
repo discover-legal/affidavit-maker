@@ -398,7 +398,6 @@ const FactValidationPanel = ({
             )}
           </div>
         )}
-      </div>
     );
   };
 

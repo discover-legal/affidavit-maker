@@ -6,6 +6,7 @@
  * memory-safe caching, lifecycle management, and AI-driven duplicate detection.
  *
  * @version 5.0.0
+
  */
 
 import logger from '../utils/logger.js'; // Assuming ESM logger utility
@@ -31,6 +32,7 @@ class LRUCache {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
+
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);
     }
@@ -57,6 +59,10 @@ export const VALIDATION_SEVERITY = {
   SUCCESS: 'success'
 };
 
+
+/**
+ * Legal fact categories with subcategories
+ */
 export const LEGAL_CATEGORIES = {
   financial: { name: 'Financial', subcategories: ['income', 'assets', 'debts', 'payments', 'support', 'expenses'], description: 'Money, assets, income, debts, financial obligations' },
   property: { name: 'Property', subcategories: ['real_estate', 'personal_property', 'vehicles', 'intellectual_property'], description: 'Real estate, personal property, vehicles, ownership' },
@@ -69,6 +75,10 @@ export const LEGAL_CATEGORIES = {
   background: { name: 'Background Information', subcategories: ['identity', 'qualifications', 'context', 'relationships'], description: 'Identity, qualifications, background context' }
 };
 
+
+/**
+ * Professional language standards for local analysis
+ */
 const LANGUAGE_STANDARDS = {
   offensiveWords: /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker|nigger|faggot|retard)\b/i,
   personalAttacks: /(hate|despise|loathe|can't stand|makes me sick).*(wife|husband|spouse|ex|mother|father|child|person)/i,
@@ -105,7 +115,6 @@ class EnhancedFactValidationService {
     };
 
     this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 300000); // 5 minutes
-
     logger.info('✅ EnhancedFactValidationService initialized', {
       cacheSize,
       language,
@@ -113,6 +122,10 @@ class EnhancedFactValidationService {
     });
   }
 
+
+  /**
+   * Cleans up resources used by the service instance.
+   */
   destroy() {
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
@@ -121,6 +134,10 @@ class EnhancedFactValidationService {
     logger.info('EnhancedFactValidationService destroyed');
   }
 
+
+  /**
+   * Periodically clears the cache to prevent serving very stale data.
+   */
   cleanupCache() {
     const cacheAge = Date.now() - this.cacheCreatedAt;
     if (cacheAge > 3600000) { // 1 hour
@@ -130,15 +147,22 @@ class EnhancedFactValidationService {
     }
   }
 
+  /**
+   * Generates a consistent cache key from the fact and its context.
+   */
   generateCacheKey(factText, context = {}) {
     const contextString = JSON.stringify({
       state: context.state,
       caseType: context.caseType,
       language: this.language
     });
+    // Create a key from the text content and the context
     return `${factText.trim()}_${contextString}`;
   }
 
+  /**
+   * Pauses execution if the rate limit for the LLM API has been reached.
+   */
   async respectRateLimit() {
     const now = Date.now();
     if (now > this.rateLimit.resetTime) {
@@ -152,6 +176,7 @@ class EnhancedFactValidationService {
         logger.warn('Rate limit reached, waiting', { waitTime });
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
+      // Reset after waiting
       this.rateLimit.calls = 0;
       this.rateLimit.resetTime = Date.now() + 60000;
     }
@@ -159,6 +184,9 @@ class EnhancedFactValidationService {
     this.rateLimit.calls++;
   }
 
+  /**
+   * Validate a single fact with comprehensive professional standards.
+   */
   async validateFactProfessional(fact, existingFacts = [], context = {}) {
     const factText = fact.content || fact;
     const cacheKey = this.generateCacheKey(factText, context);
@@ -344,6 +372,7 @@ RESPONSE FORMAT (JSON):
     };
   }
 
+
   buildCriticalResult(fact, localAnalysis) {
     const factText = fact.content || fact;
     const categoryInfo = this.categorizeFact(factText);
@@ -390,6 +419,7 @@ RESPONSE FORMAT (JSON):
     });
     return rewritten;
   }
+
 
   buildBatchResult(results) {
     const totalFacts = results.length;

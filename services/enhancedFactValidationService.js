@@ -1,17 +1,12 @@
 // services/EnhancedFactValidationService.js
 /**
- * Hybrid Professional Fact Validation Service
+ * Final Hybrid Professional Fact Validation Service
  *
  * Combines a sophisticated, LLM-powered analysis engine with robust,
- * memory-safe caching and lifecycle management.
+ * memory-safe caching, lifecycle management, and AI-driven duplicate detection.
  *
- * - Modern ESM module structure
- * - Scored local analysis for fast feedback
- * - True batch processing for LLM calls (performance/cost efficiency)
- * - Memory-safe LRU Cache to prevent leaks
- * - Explicit destroy() method for resource cleanup
- *
- * @version 4.0.0
+ * @version 5.0.0
+
  */
 
 import logger from '../utils/logger.js'; // Assuming ESM logger utility
@@ -28,7 +23,6 @@ class LRUCache {
   get(key) {
     if (!this.cache.has(key)) return undefined;
     const value = this.cache.get(key);
-    // Move to end (most recently used)
     this.cache.delete(key);
     this.cache.set(key, value);
     return value;
@@ -38,7 +32,7 @@ class LRUCache {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
-      // Delete least recently used (first item in map's iteration)
+
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);
     }
@@ -58,15 +52,13 @@ class LRUCache {
   }
 }
 
-/**
- * Validation severity levels
- */
 export const VALIDATION_SEVERITY = {
   CRITICAL: 'critical',
   WARNING: 'warning',
   INFO: 'info',
   SUCCESS: 'success'
 };
+
 
 /**
  * Legal fact categories with subcategories
@@ -82,6 +74,7 @@ export const LEGAL_CATEGORIES = {
   procedural: { name: 'Legal Procedures', subcategories: ['service', 'notices', 'filings', 'hearings'], description: 'Legal process, service, court proceedings' },
   background: { name: 'Background Information', subcategories: ['identity', 'qualifications', 'context', 'relationships'], description: 'Identity, qualifications, background context' }
 };
+
 
 /**
  * Professional language standards for local analysis
@@ -121,17 +114,14 @@ class EnhancedFactValidationService {
       maxCalls: 50 // Max calls per minute
     };
 
-    // Periodic cache cleanup for very old entries
-    this.cacheCleanupInterval = setInterval(() => {
-      this.cleanupCache();
-    }, 300000); // 5 minutes
-
+    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 300000); // 5 minutes
     logger.info('✅ EnhancedFactValidationService initialized', {
       cacheSize,
       language,
       hasOpenAI: !!openaiClient
     });
   }
+
 
   /**
    * Cleans up resources used by the service instance.
@@ -143,6 +133,7 @@ class EnhancedFactValidationService {
     this.validationCache.clear();
     logger.info('EnhancedFactValidationService destroyed');
   }
+
 
   /**
    * Periodically clears the cache to prevent serving very stale data.
@@ -200,36 +191,30 @@ class EnhancedFactValidationService {
     const factText = fact.content || fact;
     const cacheKey = this.generateCacheKey(factText, context);
 
-    // Check cache first
     const cachedResult = this.validationCache.get(cacheKey);
     if (cachedResult) {
       return { ...cachedResult, fromCache: true };
     }
 
     try {
-      // 1. Perform fast local analysis
       const localAnalysis = this.analyzeLanguageLocally(factText);
 
-      // 2. If critical issues found, return immediately without calling LLM
       if (localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL) {
         const result = this.buildCriticalResult(fact, localAnalysis);
         this.validationCache.set(cacheKey, result);
         return result;
       }
 
-      // 3. If no OpenAI client or fact is too short, use fallback
       if (!this.openai || factText.length < 20) {
           const fallbackResult = this.buildFallbackResult(fact, factText);
           this.validationCache.set(cacheKey, fallbackResult);
           return fallbackResult;
       }
 
-      // 4. Call LLM for comprehensive analysis
       await this.respectRateLimit();
       const llmResult = await this.performLLMValidation(fact, existingFacts, context);
-
-      // 5. Combine local and LLM analysis
       const finalResult = this.combineAnalysisResults(localAnalysis, llmResult, fact);
+      
       this.validationCache.set(cacheKey, finalResult);
       return finalResult;
 
@@ -239,42 +224,28 @@ class EnhancedFactValidationService {
         factText: factText.substring(0, 50) + '...'
       });
 
-      // Fallback to local analysis only on error
       const fallbackResult = this.buildFallbackResult(fact, factText);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
     }
   }
 
-  /**
-   * Validate multiple facts in an efficient single-call batch operation.
-   */
   async validateFactsBatchProfessional(facts, context = {}) {
     if (!Array.isArray(facts) || facts.length === 0) {
       return this.buildEmptyBatchResult();
     }
-    // Note: This implementation assumes a batch LLM call is more efficient.
-    // For simplicity and re-using single-fact logic, we'll parallelize single calls.
-    // A true batch prompt (like in original v2) could be implemented if the LLM API supports it well.
     const results = await Promise.all(
       facts.map((fact, index) =>
         this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
       )
     );
-
-    return this.buildBatchResult(results, results.some(r => r.severity === VALIDATION_SEVERITY.CRITICAL));
+    return this.buildBatchResult(results);
   }
 
-
-  // --- Analysis & Categorization ---
-
   analyzeLanguageLocally(text) {
-    const issues = [];
-    const suggestions = [];
-    let score = 85;
-    let severity = VALIDATION_SEVERITY.SUCCESS;
+    const issues = [], suggestions = [];
+    let score = 85, severity = VALIDATION_SEVERITY.SUCCESS;
 
-    // Critical checks
     if (LANGUAGE_STANDARDS.offensiveWords.test(text)) {
       issues.push('CRITICAL: Contains offensive language inappropriate for legal documents');
       suggestions.push('Remove all profanity and offensive language.');
@@ -288,7 +259,6 @@ class EnhancedFactValidationService {
       severity = VALIDATION_SEVERITY.CRITICAL;
     }
 
-    // Warning level checks (only if not already critical)
     if (severity !== VALIDATION_SEVERITY.CRITICAL) {
       if (LANGUAGE_STANDARDS.uncertainLanguage.test(text)) {
         issues.push('Contains uncertain language');
@@ -308,25 +278,8 @@ class EnhancedFactValidationService {
         score -= 10;
         if (severity === VALIDATION_SEVERITY.SUCCESS) severity = VALIDATION_SEVERITY.WARNING;
       }
-      if (LANGUAGE_STANDARDS.vagueQuantifiers.test(text)) {
-        issues.push('Contains vague quantifiers');
-        suggestions.push('Provide specific numbers, dates, or timeframes.');
-        score -= 5;
-        if (severity === VALIDATION_SEVERITY.SUCCESS) severity = VALIDATION_SEVERITY.INFO;
-      }
     }
-
-    // Positive indicators
-    if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/.test(text) || /\$\d+(\.\d{2})?/.test(text)) {
-      score = Math.min(100, score + 5);
-    }
-
-    return {
-      issues,
-      suggestions,
-      score: Math.max(0, Math.min(100, score)),
-      severity
-    };
+    return { issues, suggestions, score: Math.max(0, Math.min(100, score)), severity };
   }
 
   categorizeFact(text) {
@@ -340,9 +293,6 @@ class EnhancedFactValidationService {
     if (/\b(did|action|behavior|acted|conduct)\b/.test(lowerText)) return { category: 'behavioral', subcategory: 'actions' };
     return { category: 'general', subcategory: 'other' };
   }
-
-
-  // --- LLM Interaction ---
 
   async performLLMValidation(fact, existingFacts, context) {
     const prompt = this.buildProfessionalValidationPrompt(fact, existingFacts, context);
@@ -361,36 +311,33 @@ class EnhancedFactValidationService {
 
   buildProfessionalValidationPrompt(fact, existingFacts, context) {
     const factText = fact.content || fact;
-    let prompt = `ANALYZE THIS FACT FOR A LEGAL AFFIDAVIT: "${factText}"\n
+    let prompt = `ANALYZE THIS FACT FOR A LEGAL AFFIDAVIT: "${factText}"
+
 CONTEXT:
 - Document type: ${context.documentType || 'affidavit'}
 - State: ${context.state || 'general'}
-- Case type: ${context.caseType || 'general'}\n
-ANALYZE FOR:
-1. Professional legal language standards
-2. Proper categorization and subcategory
-3. Legal admissibility concerns (e.g., hearsay)
-4. Specificity and clarity
-5. Rewrite in professional legal language\n
+- Case type: ${context.caseType || 'general'}`;
+
+    if (existingFacts.length > 0) {
+      prompt += `\n\nEXISTING FACTS (check for duplicates and return the index if found):`;
+      existingFacts.slice(0, 5).forEach((existing, index) => {
+        const existingText = existing.content || existing;
+        prompt += `\n${index}: "${existingText.substring(0, 100)}${existingText.length > 100 ? '...' : ''}"`;
+      });
+    }
+
+    prompt += `\n\nANALYZE FOR:
+1. Professional legal language standards and clarity.
+2. Legal admissibility concerns (e.g., hearsay).
+3. Duplicate detection (compare against EXISTING FACTS).
+4. A professional rewrite of the fact.
+
 Respond in JSON format only.`;
     return prompt;
   }
 
   getProfessionalSystemPrompt() {
     return `You are a meticulous legal document expert specializing in affidavit preparation. Analyze facts for professional legal standards. Adhere strictly to the requested JSON response format.
-
-LEGAL CATEGORIES & SUBCATEGORIES: financial, property, relational, temporal, witness, communication, behavioral, procedural, background.
-
-PROFESSIONAL LANGUAGE STANDARDS:
-1. OBJECTIVE: No emotions, opinions, or subjective language.
-2. SPECIFIC: Exact dates, amounts, names, locations.
-3. FACTUAL: Based on personal knowledge only.
-4. FORMAL: Professional legal language.
-
-PROHIBITED LANGUAGE:
-- Emotional: terrible, awful, amazing
-- Uncertain: maybe, probably, I think
-- Informal: kinda, sorta, like totally
 
 RESPONSE FORMAT (JSON):
 {
@@ -401,17 +348,14 @@ RESPONSE FORMAT (JSON):
   "languageIssues": ["List of language problems."],
   "legalIssues": ["Legal admissibility concerns."],
   "improvements": ["Specific suggestions."],
-  "legalStandardScore": 0-100
+  "legalStandardScore": 0-100,
+  "duplicateIndex": null
 }`;
   }
-
-
-  // --- Result Builders ---
 
   combineAnalysisResults(localAnalysis, llmResult, originalFact) {
     const factText = originalFact.content || originalFact;
     const categoryInfo = this.categorizeFact(factText);
-
     return {
       isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL && (llmResult.isValid ?? true),
       severity: localAnalysis.severity,
@@ -422,10 +366,12 @@ RESPONSE FORMAT (JSON):
       legalIssues: llmResult.legalIssues || [],
       improvements: [...localAnalysis.suggestions, ...(llmResult.improvements || [])],
       legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore || 85),
+      duplicateIndex: llmResult.duplicateIndex || null,
       fromCache: false,
       llmEnhanced: true
     };
   }
+
 
   buildCriticalResult(fact, localAnalysis) {
     const factText = fact.content || fact;
@@ -474,12 +420,13 @@ RESPONSE FORMAT (JSON):
     return rewritten;
   }
 
-  buildBatchResult(results, hasCriticalIssues) {
+
+  buildBatchResult(results) {
     const totalFacts = results.length;
     const validFacts = results.filter(r => r.isValid).length;
     const avgScore = totalFacts > 0 ? results.reduce((sum, r) => sum + r.legalStandardScore, 0) / totalFacts : 0;
     return {
-      overallProfessional: !hasCriticalIssues && avgScore >= 70,
+      overallProfessional: !results.some(r => r.severity === VALIDATION_SEVERITY.CRITICAL) && avgScore >= 70,
       summary: {
         totalFacts,
         validFacts,

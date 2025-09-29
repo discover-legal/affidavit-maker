@@ -15,7 +15,7 @@ const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
 const AffidavitService = require('./affidavitService');
 const logger = require('./utils/logger');
-const { EnhancedFactValidationService } = require('./services/enhancedFactValidationService');
+const EnhancedFactValidationService = require('./services/enhancedFactValidationService').default;
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');

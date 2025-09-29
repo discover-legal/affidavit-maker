@@ -362,12 +362,38 @@ const FactValidationPanel = ({
                 <span className="text-sm font-medium text-blue-600">Suggestions:</span>
                 {(() => {
                   // Check if improvements is a string or array
-                  if (typeof validation.improvements             {validation.improvements?.length > 0 && (
-              <div className="space-y-1">
-                <span className="text-sm font-medium text-blue-600">Suggestions:</span>
-                {validation.improvements.map((improvement, i) => (
-                  <div key={i} className="text-sm text-blue-600">
-                    💡 {improvement}
+                  if (typeof validation.improvements === 'string') {
+                    // Clean up if it has bullet points between characters
+                    let cleanText = validation.improvements;
+                    const bulletCount = (cleanText.match(/•/g) || []).length;
+                    if (bulletCount > cleanText.length * 0.3) {
+                      cleanText = cleanText.replace(/•\s*/g, '');
+                    }
+                    return (
+                      <div className="text-sm text-blue-600">
+                        💡 {cleanText}
+                      </div>
+                    );
+                  } else if (Array.isArray(validation.improvements)) {
+                    // If it's an array, map normally
+                    return validation.improvements.map((improvement, i) => {
+                      // Clean each item if needed
+                      let cleanImprovement = improvement;
+                      if (typeof improvement === 'string' && improvement.includes('•')) {
+                        const bullets = (improvement.match(/•/g) || []).length;
+                        if (bullets > improvement.length * 0.3) {
+                          cleanImprovement = improvement.replace(/•\s*/g, '');
+                        }
+                      }
+                      return (
+                        <div key={i} className="text-sm text-blue-600">
+                          💡 {cleanImprovement}
+                        </div>
+                      );
+                    });
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>

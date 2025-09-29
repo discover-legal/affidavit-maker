@@ -263,7 +263,7 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [authFetch]);
 
-  // ✅ FIXED: Save document functionality
+  // ✅ Save document functionality
   const saveDocument = useCallback(async (documentData = null) => {
     if (!isAuthenticated) {
       throw new Error('Authentication required to save documents');
@@ -272,15 +272,36 @@ export const DocumentProvider = ({ children }) => {
     try {
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
       
-      const payload = {
-        documentId: state.currentDocument.documentId,
-        affidavitData: {
-          ...state.currentDocument,
-          ...(documentData || {})
-        }
+      // Merge current document with any provided data
+      const fullDocumentData = {
+        ...state.currentDocument,
+        ...(documentData || {})
       };
       
-      console.log('💾 Saving document:', payload);
+      // ✅ FIX: Transform the payload to match backend expectations
+      const payload = {
+        // Extract document ID
+        documentId: fullDocumentData.documentId || null,
+        
+        // Create a title from available data
+        title: fullDocumentData.title || 
+              fullDocumentData.caseTitle ||
+              (fullDocumentData.affiantName ? `Affidavit of ${fullDocumentData.affiantName}` : null) ||
+              (fullDocumentData.caseNumber ? `Case ${fullDocumentData.caseNumber}` : null) ||
+              'Untitled Affidavit',
+        
+        // Serialize the full document data as content
+        content: JSON.stringify(fullDocumentData),
+        
+        // Include any additional fields the backend might expect
+        facts: fullDocumentData.facts || [],
+        state: fullDocumentData.state || '',
+        affiantName: fullDocumentData.affiantName || '',
+        caseNumber: fullDocumentData.caseNumber || '',
+        documentType: fullDocumentData.documentType || 'general'
+      };
+      
+      console.log('💾 Saving document with transformed payload:', payload);
       
       const data = await authFetch('/api/documents/save', {
         method: 'POST',

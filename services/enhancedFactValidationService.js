@@ -398,7 +398,7 @@ Provide:
 Format response as JSON with keys: professionalRewrite, legalIssues, languageIssues, improvements, category, isAdmissible`;
 
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4",
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
       messages: [
         {
           role: "system",

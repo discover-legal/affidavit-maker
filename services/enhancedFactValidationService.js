@@ -102,7 +102,20 @@ const LEGAL_CATEGORIES = {
   }
 };
 
+  /**
+ * Safe array converter - ensures value is always an array
+ */
+function ensureArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') return value.length > 0 ? [value] : [];
+  if (value === null || value === undefined) return [];
+  return [String(value)];
+}
+
 class EnhancedFactValidationService {
+
+
+
   constructor(openaiClient, language = 'en', cacheSize = 100) {
     this.openai = openaiClient;
     this.language = language;
@@ -172,6 +185,7 @@ class EnhancedFactValidationService {
   analyzeLanguageLocally(factText) {
     const issues = [];
     const suggestions = [];
+    let score = 85;
     let severity = VALIDATION_SEVERITY.SUCCESS;
     
     // Check for offensive language
@@ -221,9 +235,11 @@ class EnhancedFactValidationService {
     }
     
     return {
-      issues,
-      suggestions,
-      severity
+      issues: ensureArray(issues), // ✅ FIXED
+      suggestions: ensureArray(suggestions), // ✅ FIXED
+      score: Math.max(0, Math.min(100, score)),
+      severity,
+      hasProblematicContent: severity === VALIDATION_SEVERITY.CRITICAL
     };
   }
   
@@ -339,34 +355,53 @@ class EnhancedFactValidationService {
     return professional;
   }
   
+    /**
+   * ✅ FIXED: Build result for critical validation failures
+   */
   buildCriticalResult(fact, localAnalysis) {
+    const factText = fact.content || fact;
+    const categoryInfo = this.categorizeFact(factText);
+
     return {
       isValid: false,
-      severity: VALIDATION_SEVERITY.CRITICAL,
-      errors: localAnalysis.issues,
-      warnings: [],
-      suggestions: ['Remove inappropriate content and use professional language'],
-      professionalRewrite: '[Content requires complete rewrite due to inappropriate language]',
-      category: 'general',
-      confidence: 1.0,
-      requiresRewrite: true
+      category: categoryInfo.category,
+      subcategory: categoryInfo.subcategory,
+      enhancedCategory: this.enhanceCategory(categoryInfo.category, categoryInfo.subcategory),
+      professionalRewrite: "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE WITH FACTUAL INFORMATION ONLY]",
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: ['Contains inappropriate content that must be removed before legal use'],
+      improvements: ensureArray(localAnalysis.suggestions), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray(localAnalysis.suggestions), // ✅ FIXED - add for compatibility
+      legalStandardScore: localAnalysis.score,
+      confidence: 0.95,
+      duplicateIndex: null,
+      severity: VALIDATION_SEVERITY.CRITICAL
     };
   }
   
+  /**
+   * ✅ FIXED: Build fallback result when LLM fails
+   */
   buildFallbackResult(fact, factText) {
     const localAnalysis = this.analyzeLanguageLocally(factText);
-    const category = this.detectCategory(factText);
-    
+    const categoryInfo = this.categorizeFact(factText);
+
     return {
-      isValid: localAnalysis.issues.length === 0,
+      isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
+      category: categoryInfo.category,
+      subcategory: categoryInfo.subcategory,
+      enhancedCategory: this.enhanceCategory(categoryInfo.category, categoryInfo.subcategory),
+      professionalRewrite: this.generateProfessionalRewrite(factText, localAnalysis),
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL ? ['Contains inappropriate content'] : [],
+      improvements: ensureArray(localAnalysis.suggestions), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray(localAnalysis.suggestions), // ✅ FIXED - add for compatibility
+      legalStandardScore: localAnalysis.score,
+      confidence: 0.6,
+      duplicateIndex: null,
       severity: localAnalysis.severity,
-      errors: localAnalysis.issues.filter(i => i.includes('inappropriate')),
-      warnings: localAnalysis.issues.filter(i => !i.includes('inappropriate')),
-      suggestions: localAnalysis.suggestions,
-      professionalRewrite: this.generateProfessionalVersion(factText, category),
-      category: category.primary,
-      subcategory: category.secondary,
-      confidence: 0.7,
       fallbackUsed: true
     };
   }
@@ -417,28 +452,34 @@ Format response as JSON with keys: professionalRewrite, legalIssues, languageIss
     return JSON.parse(completion.choices[0].message.content);
   }
   
-  combineAnalysisResults(localAnalysis, llmResult, fact) {
+  /**
+   * ✅ FIXED: Combine local and LLM analysis results
+   */
+  combineAnalysisResults(localAnalysis, llmResult, originalFact) {
     return {
-      isValid: llmResult.isAdmissible && localAnalysis.issues.length === 0,
-      severity: localAnalysis.severity,
-      errors: [
-        ...localAnalysis.issues.filter(i => i.includes('inappropriate')),
-        ...(llmResult.legalIssues || [])
-      ],
-      warnings: [
-        ...localAnalysis.issues.filter(i => !i.includes('inappropriate')),
-        ...(llmResult.languageIssues || [])
-      ],
-      suggestions: [
+      isValid: llmResult.isValid && localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
+      category: llmResult.category || 'general',
+      subcategory: llmResult.subcategory || null,
+      enhancedCategory: llmResult.enhancedCategory || null,
+      professionalRewrite: llmResult.professionalRewrite || originalFact.content || originalFact,
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: ensureArray(llmResult.legalIssues || []), // ✅ FIXED
+      improvements: ensureArray([
         ...localAnalysis.suggestions,
         ...(llmResult.improvements || [])
-      ],
-      professionalRewrite: llmResult.professionalRewrite || this.generateProfessionalVersion(fact.content || fact, this.detectCategory(fact.content || fact)),
-      category: llmResult.category || this.detectCategory(fact.content || fact).primary,
-      confidence: 0.9,
-      llmEnhanced: true
+      ]), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray([
+        ...localAnalysis.suggestions,
+        ...(llmResult.improvements || [])
+      ]), // ✅ FIXED - add for compatibility
+      legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore || 85),
+      confidence: llmResult.confidence || 0.8,
+      duplicateIndex: llmResult.duplicateIndex || null,
+      severity: localAnalysis.severity
     };
   }
+
   
   async validateFactProfessional(fact, existingFacts = [], context = {}) {
     const factText = fact.content || fact;

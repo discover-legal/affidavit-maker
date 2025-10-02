@@ -1,106 +1,106 @@
-// services/EnhancedFactValidationService.js - CommonJS Version
+// services/EnhancedFactValidationService.js
 /**
- * Enhanced Professional Fact Validation Service with LRU Cache
- * Memory leak fixes and performance improvements
- * 
- * @version 3.0.0 (CommonJS)
+ * Final Hybrid Professional Fact Validation Service
+ *
+ * Combines a sophisticated, LLM-powered analysis engine with robust,
+ * memory-safe caching, lifecycle management, and AI-driven duplicate detection.
+ *
+ * @version 5.0.0
+
  */
 
-const logger = require('../utils/logger');
+import logger from '../utils/logger.js'; // Assuming ESM logger utility
 
+/**
+ * A memory-safe, size-limited cache that evicts the least recently used items.
+ */
 class LRUCache {
   constructor(maxSize = 100) {
     this.cache = new Map();
     this.maxSize = maxSize;
   }
-  
+
   get(key) {
     if (!this.cache.has(key)) return undefined;
     const value = this.cache.get(key);
-    // Move to end (most recently used)
     this.cache.delete(key);
     this.cache.set(key, value);
     return value;
   }
-  
+
   set(key, value) {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
-      // Delete least recently used (first item)
+
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);
     }
     this.cache.set(key, value);
   }
-  
+
   has(key) {
     return this.cache.has(key);
   }
-  
+
   clear() {
     this.cache.clear();
   }
-  
+
   get size() {
     return this.cache.size;
   }
 }
 
-const VALIDATION_SEVERITY = {
+export const VALIDATION_SEVERITY = {
   CRITICAL: 'critical',
   WARNING: 'warning',
   INFO: 'info',
   SUCCESS: 'success'
 };
 
-const LEGAL_CATEGORIES = {
-  financial: {
-    name: 'Financial',
-    subcategories: ['income', 'assets', 'debts', 'payments', 'support', 'expenses'],
-    description: 'Money, assets, income, debts, financial obligations'
-  },
-  property: {
-    name: 'Property',
-    subcategories: ['real_estate', 'personal_property', 'vehicles', 'intellectual_property'],
-    description: 'Real estate, personal property, vehicles, ownership'
-  },
-  relational: {
-    name: 'Relationships',
-    subcategories: ['family', 'custody', 'visitation', 'marriage', 'divorce'],
-    description: 'Family relationships, custody, marriage, divorce'
-  },
-  temporal: {
-    name: 'Chronological',
-    subcategories: ['dates', 'timelines', 'sequences', 'duration'],
-    description: 'Dates, times, chronological sequences'
-  },
-  witness: {
-    name: 'Witness Testimony',
-    subcategories: ['observations', 'conversations', 'events', 'actions'],
-    description: 'Direct observations, witnessed events'
-  },
-  communication: {
-    name: 'Communications',
-    subcategories: ['verbal', 'written', 'electronic', 'legal_notices'],
-    description: 'Conversations, emails, texts, legal notices'
-  },
-  behavioral: {
-    name: 'Conduct/Behavior',
-    subcategories: ['actions', 'patterns', 'violations', 'compliance'],
-    description: 'Actions, behavior patterns, compliance'
-  },
-  procedural: {
-    name: 'Legal Procedures',
-    subcategories: ['service', 'notices', 'filings', 'hearings'],
-    description: 'Legal process, service, court proceedings'
-  },
-  background: {
-    name: 'Background Information',
-    subcategories: ['identity', 'qualifications', 'context', 'relationships'],
-    description: 'Identity, qualifications, background context'
+
+/**
+ * Legal fact categories with subcategories
+ */
+export const LEGAL_CATEGORIES = {
+  financial: { name: 'Financial', subcategories: ['income', 'assets', 'debts', 'payments', 'support', 'expenses'], description: 'Money, assets, income, debts, financial obligations' },
+  property: { name: 'Property', subcategories: ['real_estate', 'personal_property', 'vehicles', 'intellectual_property'], description: 'Real estate, personal property, vehicles, ownership' },
+  relational: { name: 'Relationships', subcategories: ['family', 'custody', 'visitation', 'marriage', 'divorce'], description: 'Family relationships, custody, marriage, divorce' },
+  temporal: { name: 'Chronological', subcategories: ['dates', 'timelines', 'sequences', 'duration'], description: 'Dates, times, chronological sequences' },
+  witness: { name: 'Witness Testimony', subcategories: ['observations', 'conversations', 'events', 'actions'], description: 'Direct observations, witnessed events' },
+  communication: { name: 'Communications', subcategories: ['verbal', 'written', 'electronic', 'legal_notices'], description: 'Conversations, emails, texts, legal notices' },
+  behavioral: { name: 'Conduct/Behavior', subcategories: ['actions', 'patterns', 'violations', 'compliance'], description: 'Actions, behavior patterns, compliance' },
+  procedural: { name: 'Legal Procedures', subcategories: ['service', 'notices', 'filings', 'hearings'], description: 'Legal process, service, court proceedings' },
+  background: { name: 'Background Information', subcategories: ['identity', 'qualifications', 'context', 'relationships'], description: 'Identity, qualifications, background context' }
+};
+
+
+/**
+ * Professional language standards for local analysis
+ */
+const LANGUAGE_STANDARDS = {
+  offensiveWords: /\b(cunt|fuck|shit|bitch|asshole|damn|hell|piss|cock|dick|pussy|whore|slut|bastard|motherfucker|nigger|faggot|retard)\b/i,
+  personalAttacks: /(hate|despise|loathe|can't stand|makes me sick).*(wife|husband|spouse|ex|mother|father|child|person)/i,
+  inappropriateEmotional: /(i hate|i despise|i can't stand|makes me sick|disgusting person|piece of shit|worthless)/i,
+  uncertainLanguage: /\b(maybe|probably|might|could be|i think|i believe|possibly|perhaps)\b/i,
+  emotionalLanguage: /\b(terrible|horrible|awful|amazing|wonderful|devastating|fantastic|brilliant)\b/i,
+  informalLanguage: /\b(kinda|sorta|like totally|whatever|anyway|stuff|things|gonna|wanna)\b/i,
+  vagueQuantifiers: /\b(some|many|few|several|often|sometimes|around|about|approximately)\b/i,
+  replacements: {
+    'maybe': 'to my knowledge',
+    'probably': 'it appears that',
+    'i think': 'it is my understanding that',
+    'i believe': 'it is my understanding that',
+    'terrible': 'concerning',
+    'awful': 'problematic',
+    'amazing': 'notable',
+    'wonderful': 'positive',
+    'kinda': 'somewhat',
+    'sorta': 'somewhat'
   }
 };
+
 
   /**
  * Safe array converter - ensures value is always an array
@@ -112,6 +112,7 @@ function ensureArray(value) {
   return [String(value)];
 }
 
+
 class EnhancedFactValidationService {
 
 
@@ -120,24 +121,25 @@ class EnhancedFactValidationService {
     this.openai = openaiClient;
     this.language = language;
     this.validationCache = new LRUCache(cacheSize);
+    this.cacheCreatedAt = Date.now();
     this.rateLimit = {
       calls: 0,
       resetTime: Date.now() + 60000,
-      maxCalls: 50
+      maxCalls: 50 // Max calls per minute
     };
-    
-    // Periodic cache cleanup
-    this.cacheCleanupInterval = setInterval(() => {
-      this.cleanupCache();
-    }, 300000); // 5 minutes
-    
+
+    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 300000); // 5 minutes
     logger.info('✅ EnhancedFactValidationService initialized', {
       cacheSize,
       language,
       hasOpenAI: !!openaiClient
     });
   }
-  
+
+
+  /**
+   * Cleans up resources used by the service instance.
+   */
   destroy() {
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
@@ -145,42 +147,57 @@ class EnhancedFactValidationService {
     this.validationCache.clear();
     logger.info('EnhancedFactValidationService destroyed');
   }
-  
+
+
+  /**
+   * Periodically clears the cache to prevent serving very stale data.
+   */
   cleanupCache() {
-    // Clear cache if it's getting too old
-    const cacheAge = Date.now() - (this.cacheCreatedAt || Date.now());
+    const cacheAge = Date.now() - this.cacheCreatedAt;
     if (cacheAge > 3600000) { // 1 hour
       this.validationCache.clear();
       this.cacheCreatedAt = Date.now();
       logger.debug('Validation cache cleared due to age');
     }
   }
-  
+
+  /**
+   * Generates a consistent cache key from the fact and its context.
+   */
   generateCacheKey(factText, context = {}) {
     const contextString = JSON.stringify({
       state: context.state,
       caseType: context.caseType,
       language: this.language
     });
-    return `${factText.toLowerCase().trim()}_${contextString}`;
+    // Create a key from the text content and the context
+    return `${factText.trim()}_${contextString}`;
   }
-  
+
+  /**
+   * Pauses execution if the rate limit for the LLM API has been reached.
+   */
   async respectRateLimit() {
-    if (Date.now() > this.rateLimit.resetTime) {
+    const now = Date.now();
+    if (now > this.rateLimit.resetTime) {
       this.rateLimit.calls = 0;
-      this.rateLimit.resetTime = Date.now() + 60000;
+      this.rateLimit.resetTime = now + 60000;
     }
-    
+
     if (this.rateLimit.calls >= this.rateLimit.maxCalls) {
-      const waitTime = this.rateLimit.resetTime - Date.now();
-      logger.warn('Rate limit reached, waiting', { waitTime });
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      const waitTime = this.rateLimit.resetTime - now;
+      if (waitTime > 0) {
+        logger.warn('Rate limit reached, waiting', { waitTime });
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      // Reset after waiting
       this.rateLimit.calls = 0;
       this.rateLimit.resetTime = Date.now() + 60000;
     }
-    
+
     this.rateLimit.calls++;
   }
+
   
   analyzeLanguageLocally(factText) {
     const issues = [];
@@ -203,36 +220,48 @@ class EnhancedFactValidationService {
       if (severity === VALIDATION_SEVERITY.SUCCESS) {
         severity = VALIDATION_SEVERITY.WARNING;
       }
+
     }
-    
-    // Check for emotional language
-    const emotionalPattern = /\b(hate|despise|love|adore|terrible|awful|amazing|wonderful|horrible)\b/gi;
-    if (emotionalPattern.test(factText)) {
-      issues.push('Contains emotional language - use neutral, factual terms');
-      suggestions.push('Replace emotional descriptions with objective facts');
-      if (severity === VALIDATION_SEVERITY.SUCCESS) {
-        severity = VALIDATION_SEVERITY.WARNING;
+
+    try {
+      const localAnalysis = this.analyzeLanguageLocally(factText);
+
+      if (localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL) {
+        const result = this.buildCriticalResult(fact, localAnalysis);
+        this.validationCache.set(cacheKey, result);
+        return result;
       }
-    }
-    
-    // Check for hearsay
-    const hearsayPattern = /\b(heard|told me|said that|rumor|allegedly|supposedly)\b/gi;
-    if (hearsayPattern.test(factText)) {
-      issues.push('May contain hearsay - affidavits require first-hand knowledge');
-      suggestions.push('Only include facts you personally witnessed or know to be true');
-      if (severity === VALIDATION_SEVERITY.SUCCESS) {
-        severity = VALIDATION_SEVERITY.WARNING;
+
+      if (!this.openai || factText.length < 20) {
+          const fallbackResult = this.buildFallbackResult(fact, factText);
+          this.validationCache.set(cacheKey, fallbackResult);
+          return fallbackResult;
       }
+
+      await this.respectRateLimit();
+      const llmResult = await this.performLLMValidation(fact, existingFacts, context);
+      const finalResult = this.combineAnalysisResults(localAnalysis, llmResult, fact);
+      
+      this.validationCache.set(cacheKey, finalResult);
+      return finalResult;
+
+    } catch (error) {
+      logger.error('Professional fact validation failed', {
+        error: error.message,
+        factText: factText.substring(0, 50) + '...'
+      });
+
+      const fallbackResult = this.buildFallbackResult(fact, factText);
+      this.validationCache.set(cacheKey, fallbackResult);
+      return fallbackResult;
     }
-    
-    // Check minimum length
-    if (factText.trim().length < 10) {
-      issues.push('Statement is too brief');
-      suggestions.push('Provide more specific details');
-      if (severity === VALIDATION_SEVERITY.SUCCESS) {
-        severity = VALIDATION_SEVERITY.INFO;
-      }
+  }
+
+  async validateFactsBatchProfessional(facts, context = {}) {
+    if (!Array.isArray(facts) || facts.length === 0) {
+      return this.buildEmptyBatchResult();
     }
+
     
     return {
       issues: ensureArray(issues), // ✅ FIXED
@@ -242,117 +271,99 @@ class EnhancedFactValidationService {
       hasProblematicContent: severity === VALIDATION_SEVERITY.CRITICAL
     };
   }
-  
-  detectCategory(factText) {
-    const lowerText = factText.toLowerCase();
-    let primaryCategory = 'general';
-    let secondaryCategory = null;
-    let confidence = 0.5;
-    
-    // Financial patterns
-    if (/\b(money|dollar|payment|income|salary|wage|asset|debt|loan|mortgage|rent|cost|price|expense|financial|bank|account)\b/i.test(factText)) {
-      primaryCategory = 'financial';
-      confidence = 0.8;
-      
-      if (/\b(income|salary|wage|earn)\b/i.test(factText)) {
-        secondaryCategory = 'income';
-      } else if (/\b(debt|loan|mortgage|owe)\b/i.test(factText)) {
-        secondaryCategory = 'debts';
-      } else if (/\b(asset|property|own)\b/i.test(factText)) {
-        secondaryCategory = 'assets';
+
+  analyzeLanguageLocally(text) {
+    const issues = [], suggestions = [];
+    let score = 85, severity = VALIDATION_SEVERITY.SUCCESS;
+
+    if (LANGUAGE_STANDARDS.offensiveWords.test(text)) {
+      issues.push('CRITICAL: Contains offensive language inappropriate for legal documents');
+      suggestions.push('Remove all profanity and offensive language.');
+      score = 10;
+      severity = VALIDATION_SEVERITY.CRITICAL;
+    }
+    if (LANGUAGE_STANDARDS.personalAttacks.test(text) || LANGUAGE_STANDARDS.inappropriateEmotional.test(text)) {
+      issues.push('CRITICAL: Contains inappropriate personal attacks or emotional statements');
+      suggestions.push('Focus on factual observations only.');
+      score = Math.min(score, 15);
+      severity = VALIDATION_SEVERITY.CRITICAL;
+    }
+
+    if (severity !== VALIDATION_SEVERITY.CRITICAL) {
+      if (LANGUAGE_STANDARDS.uncertainLanguage.test(text)) {
+        issues.push('Contains uncertain language');
+        suggestions.push('Replace uncertain terms with "to my knowledge" or definitive statements.');
+        score -= 15;
+        severity = VALIDATION_SEVERITY.WARNING;
+      }
+      if (LANGUAGE_STANDARDS.emotionalLanguage.test(text)) {
+        issues.push('Contains emotional/subjective language');
+        suggestions.push('Use objective, factual descriptions instead of emotional terms.');
+        score -= 10;
+        severity = VALIDATION_SEVERITY.WARNING;
+      }
+      if (LANGUAGE_STANDARDS.informalLanguage.test(text)) {
+        issues.push('Contains informal language');
+        suggestions.push('Use formal, professional language.');
+        score -= 10;
+        if (severity === VALIDATION_SEVERITY.SUCCESS) severity = VALIDATION_SEVERITY.WARNING;
       }
     }
-    
-    // Property patterns
-    else if (/\b(property|house|home|land|real estate|vehicle|car|truck|apartment|condo)\b/i.test(factText)) {
-      primaryCategory = 'property';
-      confidence = 0.8;
-      
-      if (/\b(house|home|land|real estate|apartment|condo)\b/i.test(factText)) {
-        secondaryCategory = 'real_estate';
-      } else if (/\b(vehicle|car|truck|motorcycle)\b/i.test(factText)) {
-        secondaryCategory = 'vehicles';
-      }
-    }
-    
-    // Relational patterns
-    else if (/\b(spouse|husband|wife|child|children|kids|parent|mother|father|family|custody|visitation|marriage|divorce|separation)\b/i.test(factText)) {
-      primaryCategory = 'relational';
-      confidence = 0.85;
-      
-      if (/\b(custody|visitation|parenting)\b/i.test(factText)) {
-        secondaryCategory = 'custody';
-      } else if (/\b(marriage|wedding|married)\b/i.test(factText)) {
-        secondaryCategory = 'marriage';
-      } else if (/\b(divorce|separation|separated)\b/i.test(factText)) {
-        secondaryCategory = 'divorce';
-      }
-    }
-    
-    // Temporal patterns
-    else if (/\b(date|time|day|month|year|january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening|night)\b/i.test(factText)) {
-      primaryCategory = 'temporal';
-      confidence = 0.75;
-      secondaryCategory = 'dates';
-    }
-    
-    // Communication patterns
-    else if (/\b(email|text|message|call|phone|letter|told|said|wrote|communicated|contacted)\b/i.test(factText)) {
-      primaryCategory = 'communication';
-      confidence = 0.75;
-      
-      if (/\b(email|text|message|digital)\b/i.test(factText)) {
-        secondaryCategory = 'electronic';
-      } else if (/\b(letter|mail|written)\b/i.test(factText)) {
-        secondaryCategory = 'written';
-      } else if (/\b(call|phone|told|said|verbal)\b/i.test(factText)) {
-        secondaryCategory = 'verbal';
-      }
-    }
-    
-    return {
-      primary: primaryCategory,
-      secondary: secondaryCategory,
-      confidence
-    };
+    return { issues, suggestions, score: Math.max(0, Math.min(100, score)), severity };
   }
-  
-  generateProfessionalVersion(factText, category) {
-    // Remove inappropriate language
-    let professional = factText
-      .replace(/\b(fuck|shit|damn|hell|bitch|asshole|cunt|bastard)\b/gi, '[inappropriate]')
-      .replace(/\b(kinda|sorta|like totally|like)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    // Fix common grammar issues
-    professional = professional
-      .replace(/\bi\b/g, 'I')
-      .replace(/\bdont\b/gi, "don't")
-      .replace(/\bdidnt\b/gi, "didn't")
-      .replace(/\bwont\b/gi, "won't")
-      .replace(/\bcant\b/gi, "can't");
-    
-    // Improve uncertain language
-    professional = professional
-      .replace(/\b(i think|i believe)\b/gi, 'I state that')
-      .replace(/\b(maybe|probably|possibly)\b/gi, '')
-      .replace(/\b(might be|might have)\b/gi, 'was');
-    
-    // Add formal structure if needed
-    if (!/^I\b/i.test(professional)) {
-      professional = `I observed that ${professional}`;
+
+  categorizeFact(text) {
+    const lowerText = text.toLowerCase();
+    if (/\b(money|paid|cost|income|debt|asset|financial|support|payment)\b/.test(lowerText)) return { category: 'financial', subcategory: 'payments' };
+    if (/\b(house|property|car|vehicle|owned|residence|address)\b/.test(lowerText)) return { category: 'property', subcategory: 'real_estate' };
+    if (/\b(saw|observed|witnessed|heard|present|noticed)\b/.test(lowerText)) return { category: 'witness', subcategory: 'observations' };
+    if (/\b(spouse|child|parent|family|married|divorce|custody)\b/.test(lowerText)) return { category: 'relational', subcategory: 'family' };
+    if (/\b(date|time|when|during|on|at|occurred)\b/.test(lowerText)) return { category: 'temporal', subcategory: 'dates' };
+    if (/\b(said|told|email|called|message|text|phone)\b/.test(lowerText)) return { category: 'communication', subcategory: 'verbal' };
+    if (/\b(did|action|behavior|acted|conduct)\b/.test(lowerText)) return { category: 'behavioral', subcategory: 'actions' };
+    return { category: 'general', subcategory: 'other' };
+  }
+
+  async performLLMValidation(fact, existingFacts, context) {
+    const prompt = this.buildProfessionalValidationPrompt(fact, existingFacts, context);
+    const response = await this.openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4-turbo",
+      messages: [
+        { role: "system", content: this.getProfessionalSystemPrompt() },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+      response_format: { type: "json_object" }
+    });
+    return JSON.parse(response.choices[0].message.content);
+  }
+
+  buildProfessionalValidationPrompt(fact, existingFacts, context) {
+    const factText = fact.content || fact;
+    let prompt = `ANALYZE THIS FACT FOR A LEGAL AFFIDAVIT: "${factText}"
+
+CONTEXT:
+- Document type: ${context.documentType || 'affidavit'}
+- State: ${context.state || 'general'}
+- Case type: ${context.caseType || 'general'}`;
+
+    if (existingFacts.length > 0) {
+      prompt += `\n\nEXISTING FACTS (check for duplicates and return the index if found):`;
+      existingFacts.slice(0, 5).forEach((existing, index) => {
+        const existingText = existing.content || existing;
+        prompt += `\n${index}: "${existingText.substring(0, 100)}${existingText.length > 100 ? '...' : ''}"`;
+      });
     }
-    
-    // Ensure proper punctuation
-    if (!/[.!?]$/.test(professional)) {
-      professional += '.';
-    }
-    
-    // Capitalize first letter
-    professional = professional.charAt(0).toUpperCase() + professional.slice(1);
-    
-    return professional;
+
+    prompt += `\n\nANALYZE FOR:
+1. Professional legal language standards and clarity.
+2. Legal admissibility concerns (e.g., hearsay).
+3. Duplicate detection (compare against EXISTING FACTS).
+4. A professional rewrite of the fact.
+
+Respond in JSON format only.`;
+    return prompt;
   }
   
     /**
@@ -403,53 +414,20 @@ class EnhancedFactValidationService {
       duplicateIndex: null,
       severity: localAnalysis.severity,
       fallbackUsed: true
+
     };
   }
   
-  async performLLMValidation(fact, existingFacts, context) {
-    const prompt = `Analyze this legal fact for an affidavit in ${context.state || 'the US'}:
-
-Fact: "${fact.content || fact}"
-
-Context:
-- Document Type: ${context.documentType || 'General Affidavit'}
-- Case Type: ${context.caseType || 'General'}
-- Affiant: ${context.affiantName || 'Unknown'}
-
-Existing facts in document: ${existingFacts.length}
-
-Evaluate:
-1. Legal admissibility and relevance
-2. Language professionalism and clarity
-3. Potential legal issues or concerns
-4. Suggested improvements
-
-Provide:
-1. A professional rewrite of the fact
-2. Specific issues found
-3. Improvement suggestions
-4. Category classification
-
-Format response as JSON with keys: professionalRewrite, legalIssues, languageIssues, improvements, category, isAdmissible`;
-
-    const completion = await this.openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
-      messages: [
-        {
-          role: "system",
-          content: "You are a legal document specialist reviewing affidavit facts for admissibility and professionalism."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 500,
-      response_format: { type: "json_object" }
+  generateProfessionalRewrite(originalText, analysis) {
+    if (analysis.severity === VALIDATION_SEVERITY.CRITICAL) {
+      return "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE]";
+    }
+    let rewritten = originalText;
+    Object.entries(LANGUAGE_STANDARDS.replacements).forEach(([original, replacement]) => {
+      const regex = new RegExp(`\\b${original}\\b`, 'gi');
+      rewritten = rewritten.replace(regex, replacement);
     });
-    
-    return JSON.parse(completion.choices[0].message.content);
+    return rewritten;
   }
   
   /**
@@ -481,89 +459,13 @@ Format response as JSON with keys: professionalRewrite, legalIssues, languageIss
   }
 
   
-  async validateFactProfessional(fact, existingFacts = [], context = {}) {
-    const factText = fact.content || fact;
-    const cacheKey = this.generateCacheKey(factText, context);
-    
-    // Check cache first
-    if (this.validationCache.has(cacheKey)) {
-      const cached = this.validationCache.get(cacheKey);
-      return { ...cached, fromCache: true };
-    }
-    
-    try {
-      // Perform local language analysis first (fast)
-      const localAnalysis = this.analyzeLanguageLocally(factText);
-      
-      // If critical issues found, no need to call LLM
-      if (localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL) {
-        const result = this.buildCriticalResult(fact, localAnalysis);
-        this.validationCache.set(cacheKey, result);
-        return result;
-      }
-      
-      // Only call LLM if we have a client and it's worth it
-      if (this.openai && factText.length > 20) {
-        await this.respectRateLimit();
-        const llmResult = await this.performLLMValidation(fact, existingFacts, context);
-        const finalResult = this.combineAnalysisResults(localAnalysis, llmResult, fact);
-        this.validationCache.set(cacheKey, finalResult);
-        return finalResult;
-      }
-      
-      // Fallback to local analysis only
-      const fallbackResult = this.buildFallbackResult(fact, factText);
-      this.validationCache.set(cacheKey, fallbackResult);
-      return fallbackResult;
-      
-    } catch (error) {
-      logger.error('Professional fact validation failed', { 
-        error: error.message,
-        factText: factText.substring(0, 50) + '...'
-      });
-      const fallbackResult = this.buildFallbackResult(fact, factText);
-      this.validationCache.set(cacheKey, fallbackResult);
-      return fallbackResult;
-    }
-  }
-  
-  async validateFactsBatchProfessional(facts, context = {}) {
-    if (!Array.isArray(facts) || facts.length === 0) {
+  buildEmptyBatchResult() {
       return {
-        isValid: true,
-        facts: [],
-        summary: 'No facts to validate'
+          overallProfessional: true,
+          summary: { message: "No facts provided for validation." },
+          results: []
       };
-    }
-    
-    const results = await Promise.all(
-      facts.map((fact, index) => 
-        this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
-      )
-    );
-    
-    const hasErrors = results.some(r => !r.isValid);
-    const criticalCount = results.filter(r => r.severity === VALIDATION_SEVERITY.CRITICAL).length;
-    const warningCount = results.filter(r => r.severity === VALIDATION_SEVERITY.WARNING).length;
-    
-    return {
-      isValid: !hasErrors,
-      totalFacts: facts.length,
-      validFacts: results.filter(r => r.isValid).length,
-      criticalIssues: criticalCount,
-      warnings: warningCount,
-      results,
-      summary: {
-        criticalCount,
-        warningCount,
-        successCount: results.filter(r => r.severity === VALIDATION_SEVERITY.SUCCESS).length
-      }
-    };
   }
 }
 
-module.exports = {
-  EnhancedFactValidationService,
-  VALIDATION_SEVERITY,
-  LEGAL_CATEGORIES
-};
+export default EnhancedFactValidationService;

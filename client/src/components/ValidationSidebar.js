@@ -1,4 +1,4 @@
-// client/src/components/ValidationSidebar.js - ENHANCED VERSION WITH FACT MANAGEMENT
+// client/src/components/ValidationSidebar.js - COMPLETE FIXED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertTriangle, 
@@ -24,9 +24,9 @@ const ValidationSidebar = () => {
     isValidating 
   } = useDocumentState();
   
-  const { validateDocument, updateDocumentData } = useDocumentActions();
+  const { validateDocument, updateDocumentData, saveDocument } = useDocumentActions();
   
-  const [expandedSection, setExpandedSection] = useState('facts'); // Default to facts expanded
+  const [expandedSection, setExpandedSection] = useState('facts');
   const [editingFactIndex, setEditingFactIndex] = useState(null);
   const [editedFactContent, setEditedFactContent] = useState('');
 
@@ -41,7 +41,7 @@ const ValidationSidebar = () => {
       if (currentDocument.affiantName && currentDocument.state) {
         const timer = setTimeout(() => {
           runValidation();
-        }, 3000); // 3 seconds after changes
+        }, 3000);
         
         return () => clearTimeout(timer);
       }
@@ -53,25 +53,27 @@ const ValidationSidebar = () => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  // Extract fact content from various formats
+  // ✅ FIXED: Extract fact content safely handling all formats
   const getFactContent = (fact) => {
+    if (!fact) return '[Invalid fact]';
     if (typeof fact === 'string') return fact;
-    if (fact && typeof fact === 'object') {
-      // Priority: professionalRewrite > rewrite > content > text
-      return fact.professionalRewrite || fact.rewrite || fact.content || fact.text || '[Invalid fact]';
+    if (typeof fact === 'object') {
+      return fact.professionalRewrite || fact.content || fact.text || '[Invalid fact]';
     }
     return '[Invalid fact format]';
   };
 
-  // Get fact metadata
+  // ✅ FIXED: Get fact metadata safely
   const getFactMetadata = (fact) => {
     if (typeof fact === 'object' && fact !== null) {
       return {
         category: fact.category || null,
         confidence: fact.confidence || null,
         severity: fact.severity || null,
-        issues: fact.issues || [],
-        suggestions: fact.suggestions || [],
+        issues: Array.isArray(fact.issues) ? fact.issues : 
+                Array.isArray(fact.languageIssues) ? fact.languageIssues : [],
+        suggestions: Array.isArray(fact.suggestions) ? fact.suggestions :
+                     Array.isArray(fact.improvements) ? fact.improvements : [],
         hasRewrite: !!fact.professionalRewrite
       };
     }
@@ -92,33 +94,55 @@ const ValidationSidebar = () => {
     setEditedFactContent(factContent);
   };
 
-  // Save edited fact
-  const saveEditedFact = () => {
+  // ✅ FIXED: Save edited fact with immediate database save
+  const saveEditedFact = async () => {
     if (editingFactIndex === null) return;
     
     const updatedFacts = [...currentDocument.facts];
     const currentFact = updatedFacts[editingFactIndex];
+    const originalContent = getFactContent(currentFact);
     
     // Preserve object structure if it exists
     if (typeof currentFact === 'object' && currentFact !== null) {
       updatedFacts[editingFactIndex] = {
         ...currentFact,
         content: editedFactContent,
-        professionalRewrite: null, // Clear to trigger regeneration
-        needsReview: true,
-        lastEdited: new Date().toISOString()
+        // Only clear professionalRewrite if content actually changed
+        professionalRewrite: editedFactContent !== originalContent ? null : currentFact.professionalRewrite,
+        needsReview: editedFactContent !== originalContent,
+        lastEdited: new Date().toISOString(),
+        metadata: {
+          ...(currentFact.metadata || {}),
+          edited: true
+        }
       };
     } else {
       // Convert to object format
       updatedFacts[editingFactIndex] = {
         content: editedFactContent,
+        professionalRewrite: null,
         category: 'general',
+        subcategory: null,
+        confidence: 0.5,
+        severity: 'info',
+        issues: [],
+        suggestions: [],
         needsReview: true,
-        lastEdited: new Date().toISOString()
+        lastEdited: new Date().toISOString(),
+        metadata: { created: true }
       };
     }
     
+    // Update document data
     updateDocumentData({ facts: updatedFacts });
+    
+    // Trigger immediate save
+    try {
+      await saveDocument();
+    } catch (error) {
+      console.error('Failed to save edited fact:', error);
+    }
+    
     setEditingFactIndex(null);
     setEditedFactContent('');
   };
@@ -130,19 +154,18 @@ const ValidationSidebar = () => {
   };
 
   // Delete a fact
-  const deleteFact = (index) => {
+  const deleteFact = async (index) => {
     if (window.confirm('Are you sure you want to delete this fact?')) {
       const updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
       updateDocumentData({ facts: updatedFacts });
+      
+      // Trigger immediate save
+      try {
+        await saveDocument();
+      } catch (error) {
+        console.error('Failed to save after deleting fact:', error);
+      }
     }
-  };
-
-  // Regenerate professional version of a fact
-  const regenerateFact = async (index) => {
-    // This would trigger a call to regenerate the professional version
-    console.log('TODO: Implement regenerate for fact', index);
-    // You could call an API endpoint here to get a professional rewrite
-    alert('Professional rewrite feature coming soon!');
   };
 
   // Get validation status for a specific fact
@@ -219,28 +242,29 @@ const ValidationSidebar = () => {
             <div className="flex-1">
               <span className={`font-medium ${
                 summary.status === 'valid' ? 'text-green-700' : 
-                summary.status === 'error' ? 'text-red-700' : 
-                'text-yellow-700'
+                summary.status === 'error' ? 'text-red-700' : 'text-yellow-700'
               }`}>
-                {summary.errors} errors, {summary.warnings} warnings
+                {summary.status === 'valid' ? 'All Valid' : 
+                 summary.status === 'error' ? `${summary.errors} Error${summary.errors !== 1 ? 's' : ''}` :
+                 `${summary.warnings} Warning${summary.warnings !== 1 ? 's' : ''}`}
               </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Content */}
+      {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         
-        {/* Facts Section - PRIMARY FOCUS */}
+        {/* Facts Section */}
         <div className="bg-white rounded-lg overflow-hidden">
           <button
             onClick={() => toggleSection('facts')}
             className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
             <div className="flex items-center">
-              <FileText className="h-4 w-4 text-blue-600 mr-2" />
-              <span className="font-medium text-gray-800">
+              <Sparkles className="h-4 w-4 text-blue-600 mr-2" />
+              <span className="font-medium text-gray-700">
                 Facts ({currentDocument.facts?.length || 0})
               </span>
             </div>
@@ -259,61 +283,40 @@ const ValidationSidebar = () => {
                     const content = getFactContent(fact);
                     const metadata = getFactMetadata(fact);
                     const factValidation = getFactValidation(index);
-                    const isEditing = editingFactIndex === index;
                     
                     return (
-                      <div key={index} className={`border rounded-lg p-3 ${
-                        factValidation?.severity === 'critical' ? 'border-red-300 bg-red-50' :
-                        factValidation?.severity === 'warning' ? 'border-yellow-300 bg-yellow-50' :
-                        'border-gray-200 bg-white'
-                      }`}>
-                        {/* Fact Header */}
+                      <div
+                        key={index}
+                        className={`p-3 rounded-lg border ${
+                          metadata.severity === 'critical' || metadata.severity === 'error' ? 'border-red-200 bg-red-50' :
+                          metadata.severity === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+                          'border-gray-200 bg-gray-50'
+                        }`}
+                      >
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center">
-                            <span className="font-semibold text-sm text-gray-700">
-                              Fact {index + 1}
-                            </span>
-                            {metadata.category && (
-                              <span className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                                {metadata.category}
-                              </span>
-                            )}
-                            {metadata.hasRewrite && (
-                              <span className="ml-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
-                                ✓ Professional
-                              </span>
-                            )}
+                          <span className="text-xs font-medium text-gray-500">
+                            Fact #{index + 1}
+                            {metadata.category && ` · ${metadata.category}`}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => startEditingFact(index)}
+                              className="p-1 text-blue-600 hover:bg-blue-100 rounded transition"
+                              title="Edit fact"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => deleteFact(index)}
+                              className="p-1 text-red-600 hover:bg-red-100 rounded transition"
+                              title="Delete fact"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
-                          
-                          {!isEditing && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => startEditingFact(index)}
-                                className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
-                                title="Edit"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </button>
-                              <button
-                                onClick={() => regenerateFact(index)}
-                                className="p-1 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded transition"
-                                title="Regenerate professional version"
-                              >
-                                <Sparkles className="h-3 w-3" />
-                              </button>
-                              <button
-                                onClick={() => deleteFact(index)}
-                                className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          )}
                         </div>
                         
-                        {/* Fact Content */}
-                        {isEditing ? (
+                        {editingFactIndex === index ? (
                           <div>
                             <textarea
                               value={editedFactContent}
@@ -343,24 +346,24 @@ const ValidationSidebar = () => {
                               {content}
                             </p>
                             
-                            {/* Validation Issues */}
-                            {factValidation && (factValidation.issues?.length > 0 || factValidation.suggestions?.length > 0) && (
+                            {/* ✅ FIXED: Validation Issues - check if arrays exist */}
+                            {(metadata.issues.length > 0 || metadata.suggestions.length > 0) && (
                               <div className="mt-2 pt-2 border-t border-gray-100">
-                                {factValidation.issues?.length > 0 && (
+                                {metadata.issues.length > 0 && (
                                   <div className="mb-1">
                                     <span className="text-xs font-medium text-red-600">Issues:</span>
                                     <ul className="text-xs text-red-600 mt-1">
-                                      {factValidation.issues.map((issue, i) => (
+                                      {metadata.issues.map((issue, i) => (
                                         <li key={i}>• {issue}</li>
                                       ))}
                                     </ul>
                                   </div>
                                 )}
-                                {factValidation.suggestions?.length > 0 && (
+                                {metadata.suggestions.length > 0 && (
                                   <div>
                                     <span className="text-xs font-medium text-blue-600">Suggestions:</span>
                                     <ul className="text-xs text-blue-600 mt-1">
-                                      {factValidation.suggestions.map((suggestion, i) => (
+                                      {metadata.suggestions.map((suggestion, i) => (
                                         <li key={i}>• {suggestion}</li>
                                       ))}
                                     </ul>

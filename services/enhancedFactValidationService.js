@@ -102,7 +102,21 @@ const LANGUAGE_STANDARDS = {
 };
 
 
+  /**
+ * Safe array converter - ensures value is always an array
+ */
+function ensureArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') return value.length > 0 ? [value] : [];
+  if (value === null || value === undefined) return [];
+  return [String(value)];
+}
+
+
 class EnhancedFactValidationService {
+
+
+
   constructor(openaiClient, language = 'en', cacheSize = 100) {
     this.openai = openaiClient;
     this.language = language;
@@ -184,16 +198,29 @@ class EnhancedFactValidationService {
     this.rateLimit.calls++;
   }
 
-  /**
-   * Validate a single fact with comprehensive professional standards.
-   */
-  async validateFactProfessional(fact, existingFacts = [], context = {}) {
-    const factText = fact.content || fact;
-    const cacheKey = this.generateCacheKey(factText, context);
+  
+  analyzeLanguageLocally(factText) {
+    const issues = [];
+    const suggestions = [];
+    let score = 85;
+    let severity = VALIDATION_SEVERITY.SUCCESS;
+    
+    // Check for offensive language
+    const offensivePattern = /\b(fuck|shit|damn|hell|bitch|asshole|cunt|bastard|motherfucker|nigger|faggot|retard)\b/gi;
+    if (offensivePattern.test(factText)) {
+      issues.push('Contains inappropriate language for legal documents');
+      severity = VALIDATION_SEVERITY.CRITICAL;
+    }
+    
+    // Check for uncertain language
+    const uncertainPattern = /\b(maybe|probably|might|i think|i believe|possibly|perhaps)\b/gi;
+    if (uncertainPattern.test(factText)) {
+      issues.push('Contains uncertain language - affidavits require definitive statements');
+      suggestions.push('Replace uncertain phrases with definitive statements');
+      if (severity === VALIDATION_SEVERITY.SUCCESS) {
+        severity = VALIDATION_SEVERITY.WARNING;
+      }
 
-    const cachedResult = this.validationCache.get(cacheKey);
-    if (cachedResult) {
-      return { ...cachedResult, fromCache: true };
     }
 
     try {
@@ -234,12 +261,15 @@ class EnhancedFactValidationService {
     if (!Array.isArray(facts) || facts.length === 0) {
       return this.buildEmptyBatchResult();
     }
-    const results = await Promise.all(
-      facts.map((fact, index) =>
-        this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
-      )
-    );
-    return this.buildBatchResult(results);
+
+    
+    return {
+      issues: ensureArray(issues), // ✅ FIXED
+      suggestions: ensureArray(suggestions), // ✅ FIXED
+      score: Math.max(0, Math.min(100, score)),
+      severity,
+      hasProblematicContent: severity === VALIDATION_SEVERITY.CRITICAL
+    };
   }
 
   analyzeLanguageLocally(text) {
@@ -335,76 +365,56 @@ CONTEXT:
 Respond in JSON format only.`;
     return prompt;
   }
-
-  getProfessionalSystemPrompt() {
-    return `You are a meticulous legal document expert specializing in affidavit preparation. Analyze facts for professional legal standards. Adhere strictly to the requested JSON response format.
-
-RESPONSE FORMAT (JSON):
-{
-  "isValid": boolean,
-  "category": "primary_category",
-  "subcategory": "specific_subcategory",
-  "professionalRewrite": "Rewritten fact in professional legal language.",
-  "languageIssues": ["List of language problems."],
-  "legalIssues": ["Legal admissibility concerns."],
-  "improvements": ["Specific suggestions."],
-  "legalStandardScore": 0-100,
-  "duplicateIndex": null
-}`;
-  }
-
-  combineAnalysisResults(localAnalysis, llmResult, originalFact) {
-    const factText = originalFact.content || originalFact;
-    const categoryInfo = this.categorizeFact(factText);
-    return {
-      isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL && (llmResult.isValid ?? true),
-      severity: localAnalysis.severity,
-      category: llmResult.category || categoryInfo.category,
-      subcategory: llmResult.subcategory || categoryInfo.subcategory,
-      professionalRewrite: llmResult.professionalRewrite || this.generateProfessionalRewrite(factText, localAnalysis),
-      languageIssues: [...localAnalysis.issues, ...(llmResult.languageIssues || [])],
-      legalIssues: llmResult.legalIssues || [],
-      improvements: [...localAnalysis.suggestions, ...(llmResult.improvements || [])],
-      legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore || 85),
-      duplicateIndex: llmResult.duplicateIndex || null,
-      fromCache: false,
-      llmEnhanced: true
-    };
-  }
-
-
+  
+    /**
+   * ✅ FIXED: Build result for critical validation failures
+   */
   buildCriticalResult(fact, localAnalysis) {
     const factText = fact.content || fact;
     const categoryInfo = this.categorizeFact(factText);
+
     return {
       isValid: false,
-      severity: VALIDATION_SEVERITY.CRITICAL,
       category: categoryInfo.category,
       subcategory: categoryInfo.subcategory,
-      professionalRewrite: "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE]",
-      languageIssues: localAnalysis.issues,
-      legalIssues: ['Contains inappropriate content that must be removed.'],
-      improvements: localAnalysis.suggestions,
+      enhancedCategory: this.enhanceCategory(categoryInfo.category, categoryInfo.subcategory),
+      professionalRewrite: "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE WITH FACTUAL INFORMATION ONLY]",
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: ['Contains inappropriate content that must be removed before legal use'],
+      improvements: ensureArray(localAnalysis.suggestions), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray(localAnalysis.suggestions), // ✅ FIXED - add for compatibility
       legalStandardScore: localAnalysis.score,
-      fromCache: false
+      confidence: 0.95,
+      duplicateIndex: null,
+      severity: VALIDATION_SEVERITY.CRITICAL
     };
   }
-
+  
+  /**
+   * ✅ FIXED: Build fallback result when LLM fails
+   */
   buildFallbackResult(fact, factText) {
     const localAnalysis = this.analyzeLanguageLocally(factText);
     const categoryInfo = this.categorizeFact(factText);
+
     return {
       isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
-      severity: localAnalysis.severity,
       category: categoryInfo.category,
       subcategory: categoryInfo.subcategory,
+      enhancedCategory: this.enhanceCategory(categoryInfo.category, categoryInfo.subcategory),
       professionalRewrite: this.generateProfessionalRewrite(factText, localAnalysis),
-      languageIssues: localAnalysis.issues,
-      legalIssues: [],
-      improvements: localAnalysis.suggestions,
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL ? ['Contains inappropriate content'] : [],
+      improvements: ensureArray(localAnalysis.suggestions), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray(localAnalysis.suggestions), // ✅ FIXED - add for compatibility
       legalStandardScore: localAnalysis.score,
-      fallbackUsed: true,
-      fromCache: false
+      confidence: 0.6,
+      duplicateIndex: null,
+      severity: localAnalysis.severity,
+      fallbackUsed: true
+
     };
   }
   
@@ -419,24 +429,35 @@ RESPONSE FORMAT (JSON):
     });
     return rewritten;
   }
-
-
-  buildBatchResult(results) {
-    const totalFacts = results.length;
-    const validFacts = results.filter(r => r.isValid).length;
-    const avgScore = totalFacts > 0 ? results.reduce((sum, r) => sum + r.legalStandardScore, 0) / totalFacts : 0;
+  
+  /**
+   * ✅ FIXED: Combine local and LLM analysis results
+   */
+  combineAnalysisResults(localAnalysis, llmResult, originalFact) {
     return {
-      overallProfessional: !results.some(r => r.severity === VALIDATION_SEVERITY.CRITICAL) && avgScore >= 70,
-      summary: {
-        totalFacts,
-        validFacts,
-        criticalIssues: results.filter(r => r.severity === VALIDATION_SEVERITY.CRITICAL).length,
-        warnings: results.filter(r => r.severity === VALIDATION_SEVERITY.WARNING).length,
-        averageScore: Math.round(avgScore)
-      },
-      results
+      isValid: llmResult.isValid && localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
+      category: llmResult.category || 'general',
+      subcategory: llmResult.subcategory || null,
+      enhancedCategory: llmResult.enhancedCategory || null,
+      professionalRewrite: llmResult.professionalRewrite || originalFact.content || originalFact,
+      languageIssues: ensureArray(localAnalysis.issues), // ✅ FIXED
+      legalIssues: ensureArray(llmResult.legalIssues || []), // ✅ FIXED
+      improvements: ensureArray([
+        ...localAnalysis.suggestions,
+        ...(llmResult.improvements || [])
+      ]), // ✅ FIXED
+      issues: ensureArray(localAnalysis.issues), // ✅ FIXED - add for compatibility
+      suggestions: ensureArray([
+        ...localAnalysis.suggestions,
+        ...(llmResult.improvements || [])
+      ]), // ✅ FIXED - add for compatibility
+      legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore || 85),
+      confidence: llmResult.confidence || 0.8,
+      duplicateIndex: llmResult.duplicateIndex || null,
+      severity: localAnalysis.severity
     };
   }
+
   
   buildEmptyBatchResult() {
       return {

@@ -8,6 +8,7 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave } = require('../middleware/validation');
+const { prepareFactsForStorage } = require('../utils/factNormalizer');
 
 
 /**
@@ -160,13 +161,22 @@ router.post('/save',
     }
 
     try {
+      // ✅ FIXED: Normalize facts before saving to ensure consistent structure
+      const normalizedFacts = affidavitData.facts 
+        ? prepareFactsForStorage(affidavitData.facts)
+        : [];
+
       // ✅ FIXED: Safe title generation with proper null checking
       const documentTitle = affidavitData.affiantName 
         ? `Affidavit of ${affidavitData.affiantName}` 
         : 'Untitled Affidavit';
       
+      // Prepare document data with normalized facts
       const documentData = {
-        content: JSON.stringify(affidavitData),
+        content: JSON.stringify({
+          ...affidavitData,
+          facts: normalizedFacts // Use normalized facts
+        }),
         status: 'draft',
         template_state: affidavitData.state || 'TX',
         document_type: affidavitData.documentType || 'general',
@@ -174,8 +184,14 @@ router.post('/save',
         fact_categories: categories || null,
         processing_metadata: {
           lastModified: new Date().toISOString(),
-          factCount: affidavitData.facts?.length || 0,
-          completionScore: calculateCompletionScore({ sections: { facts: { content: affidavitData.facts } } })
+          factCount: normalizedFacts.length,
+          completionScore: calculateCompletionScore({ 
+            sections: { 
+              facts: { 
+                items: normalizedFacts 
+              } 
+            } 
+          })
         }
       };
 
@@ -227,23 +243,26 @@ router.post('/save',
       logger.info('Document saved successfully', {
         documentId: savedDocument.id,
         userId,
-        factCount: affidavitData.facts?.length || 0,
+        factCount: normalizedFacts.length,
         isUpdate: !!affidavitData.documentId
       });
 
       res.json({
         success: true,
-        documentId: savedDocument.id,
-        title: savedDocument.title,
-        status: savedDocument.status,
-        lastModified: savedDocument.updated_at
+        message: 'Document saved successfully',
+        document: {
+          id: savedDocument.id,
+          title: savedDocument.title,
+          status: savedDocument.status,
+          updatedAt: savedDocument.updated_at
+        }
       });
 
     } catch (error) {
-      logger.error('Document save failed', { 
+      logger.error('Save document failed', { 
         error: error.message, 
         userId,
-        hasAffidavitData: !!affidavitData
+        documentId: affidavitData?.documentId 
       });
 
       res.status(500).json({
@@ -471,85 +490,100 @@ router.delete('/:id',
 );
 
 /**
- * ✅ COMPLETELY FIXED: Enhance preview with category information WITHOUT overwriting processed facts
+ * ✅ COMPLETELY FIXED: Enhance preview with category information
+ * Keeps BOTH formatted string for PDF AND items array for UI
+ * Never overwrites processed facts from StateTemplateManager
  */
 function enhancePreviewWithCategories(preview, affidavitData) {
-  console.log('🔍 enhancePreviewWithCategories called with:', {
-    hasPreview: !!preview,
-    hasFacts: !!affidavitData.facts,
-    factsCount: affidavitData.facts?.length || 0,
-    previewStructure: preview ? Object.keys(preview) : 'no preview'
-  });
+  if (!preview || !preview.sections) {
+    return preview;
+  }
 
-  if (!preview || !affidavitData.facts) return preview;
-  
   const enhanced = { ...preview };
   
-  // Add category breakdown to metadata
-  if (!enhanced.metadata) enhanced.metadata = {};
-  
-  enhanced.metadata.categories = getCategorySummary(affidavitData.facts);
-  enhanced.metadata.qualityMetrics = calculateQualityMetrics(affidavitData.facts);
-  
-  // ✅ CRITICAL FIX: Check if StateTemplateManager already processed the facts
-  if (enhanced.sections?.facts) {
-    console.log('🔍 Facts section found:', {
-      factsType: typeof enhanced.sections.facts,
-      hasContent: !!enhanced.sections.facts.content,
-      contentType: typeof enhanced.sections.facts.content,
-      contentLength: enhanced.sections.facts.content?.length || 0,
-      isProcessedString: typeof enhanced.sections.facts.content === 'string' && 
-                       enhanced.sections.facts.content.length > 10 &&
-                       !enhanced.sections.facts.content.includes('No facts')
-    });
+  // Only enhance if we have facts
+  if (!affidavitData.facts || affidavitData.facts.length === 0) {
+    return enhanced;
+  }
 
-    // Check if facts section already has processed content (from StateTemplateManager)
-    if (typeof enhanced.sections.facts.content === 'string' && 
-        enhanced.sections.facts.content.length > 10 && 
-        !enhanced.sections.facts.content.includes('No facts')) {
-      
-      console.log('✅ enhancePreviewWithCategories: Keeping processed facts content from StateTemplateManager');
-      
-      // StateTemplateManager already processed the facts - just add metadata, don't overwrite
-      enhanced.sections.facts.metadata = {
+  // Check if StateTemplateManager already processed facts into a formatted string
+  const hasFormattedString = typeof enhanced.sections.facts?.content === 'string' && 
+                             enhanced.sections.facts.content.length > 10 && 
+                             !enhanced.sections.facts.content.includes('No facts');
+
+  if (hasFormattedString) {
+    // StateTemplateManager already formatted facts for PDF
+    // Keep the formatted string AND add items array for UI
+    enhanced.sections.facts = {
+      ...enhanced.sections.facts,
+      formatted: enhanced.sections.facts.content, // For PDF generation
+      items: prepareFactsForDisplay(affidavitData.facts), // For UI display
+      metadata: {
         totalFacts: affidavitData.facts.length,
         categories: getCategorySummary(affidavitData.facts),
         qualityMetrics: calculateQualityMetrics(affidavitData.facts)
-      };
-      
-    } else {
-      console.log('🔍 enhancePreviewWithCategories: Facts not processed by StateTemplateManager, creating enhanced structure');
-      
-      // Facts weren't properly processed by StateTemplateManager - create fallback structure
-      enhanced.sections.facts = {
-        type: 'facts',
-        title: 'STATEMENT OF FACTS',
-        content: affidavitData.facts.map((fact, index) => ({
-          ...fact,
-          index: index + 1,
-          category: fact.category || 'general',
-          displayContent: fact.professionalRewrite || fact.content,
-          hasIssues: (fact.validationIssues || []).length > 0,
-          severity: fact.severity || 'success'
-        })),
-        metadata: {
-          totalFacts: affidavitData.facts.length,
-          categories: getCategorySummary(affidavitData.facts),
-          qualityMetrics: calculateQualityMetrics(affidavitData.facts)
-        }
-      };
-    }
+      }
+    };
+  } else {
+    // StateTemplateManager didn't process facts - create both formats
+    const items = prepareFactsForDisplay(affidavitData.facts);
+    
+    // Create formatted string for PDF
+    const formatted = items.map((fact, index) => 
+      `${index + 1}. ${fact.displayContent}`
+    ).join('\n\n');
+    
+    enhanced.sections.facts = {
+      type: 'facts',
+      title: 'STATEMENT OF FACTS',
+      formatted: formatted, // For PDF
+      items: items, // For UI
+      metadata: {
+        totalFacts: affidavitData.facts.length,
+        categories: getCategorySummary(affidavitData.facts),
+        qualityMetrics: calculateQualityMetrics(affidavitData.facts)
+      }
+    };
   }
   
-  console.log('🔍 enhancePreviewWithCategories result:', {
-    factsSectionType: typeof enhanced.sections?.facts,
-    factsContentType: typeof enhanced.sections?.facts?.content,
-    factsContentPreview: typeof enhanced.sections?.facts?.content === 'string' 
-      ? enhanced.sections.facts.content.substring(0, 100) + '...'
-      : 'not string content'
+  return enhanced;
+}
+
+/**
+ * Helper: Get category summary
+ */
+function getCategorySummary(facts) {
+  const categories = {};
+  
+  facts.forEach(fact => {
+    const category = fact.category || 'general';
+    categories[category] = (categories[category] || 0) + 1;
   });
   
-  return enhanced;
+  return categories;
+}
+
+/**
+ * Helper: Calculate quality metrics
+ */
+function calculateQualityMetrics(facts) {
+  const total = facts.length;
+  if (total === 0) return { score: 0, hasIssues: 0, needsReview: 0 };
+  
+  const hasIssues = facts.filter(f => 
+    (Array.isArray(f.issues) && f.issues.length > 0) ||
+    (Array.isArray(f.languageIssues) && f.languageIssues.length > 0)
+  ).length;
+  
+  const needsReview = facts.filter(f => 
+    f.needsReview || 
+    f.severity === 'error' || 
+    f.severity === 'critical'
+  ).length;
+  
+  const score = Math.round(((total - hasIssues - needsReview) / total) * 100);
+  
+  return { score, hasIssues, needsReview };
 }
 
 /**
@@ -673,31 +707,30 @@ function estimateWordCount(facts) {
   }, 0);
 }
 
+/**
+ * Helper: Calculate completion score
+ */
 function calculateCompletionScore(preview) {
   let score = 0;
   const maxScore = 100;
   
-  // Name (25 points)
-  if (preview.sections?.header?.content?.includes('[NAME]') === false) score += 25;
+  if (!preview || !preview.sections) return 0;
   
-  // State (15 points)
-  if (preview.sections?.header?.content?.includes('[STATE]') === false) score += 15;
+  // Basic info (30 points)
+  if (preview.sections.header) score += 15;
+  if (preview.sections.introduction) score += 15;
   
   // Facts (50 points)
-  const factContent = preview.sections?.facts?.content || '';
-  if (factContent && !factContent.includes('No facts')) {
-    if (typeof factContent === 'string') {
-      const factCount = (factContent.match(/\d+\./g) || []).length;
-      score += Math.min(50, factCount * 8);
-    } else if (Array.isArray(factContent)) {
-      score += Math.min(50, factContent.length * 8);
-    }
+  if (preview.sections.facts?.items?.length > 0) {
+    const factScore = Math.min(50, preview.sections.facts.items.length * 10);
+    score += factScore;
   }
   
-  // County (10 points)
-  if (preview.sections?.venue?.content?.includes('[COUNTY]') === false) score += 10;
+  // Footer (20 points)
+  if (preview.sections.signature) score += 10;
+  if (preview.sections.notary) score += 10;
   
-  return Math.round((score / maxScore) * 100);
+  return Math.min(maxScore, score);
 }
 
 module.exports = router;

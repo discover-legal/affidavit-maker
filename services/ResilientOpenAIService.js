@@ -374,19 +374,23 @@ class ResilientOpenAIService {
     
     return {
       [Symbol.asyncIterator]: async function* () {
-        const words = fallbackContent.split(' ');
-        for (let i = 0; i < words.length; i += 2) {
-          const chunk = words.slice(i, i + 2).join(' ') + ' ';
+        // Split into sentences for natural streaming
+        // Match sentences ending with . ! ? or newlines
+        const sentences = fallbackContent.match(/[^.!?\n]+[.!?\n]+/g) || [fallbackContent];
+        
+        for (const sentence of sentences) {
           yield {
             choices: [{
               delta: {
-                content: chunk
+                content: sentence
               }
             }]
           };
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Slight delay between sentences for realistic streaming
+          await new Promise(resolve => setTimeout(resolve, 150));
         }
         
+        // Send finish signal
         yield {
           choices: [{
             delta: {},

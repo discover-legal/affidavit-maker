@@ -92,6 +92,9 @@ function ensureArray(value) {
 
 // Main class
 class EnhancedFactValidationService {
+
+
+
   constructor(openaiClient, language = 'en', cacheSize = 100) {
     this.openai = openaiClient;
     this.language = language;
@@ -481,6 +484,7 @@ class EnhancedFactValidationService {
       severity: localAnalysis.severity
     };
   }
+
   
   async validateFactProfessional(fact, existingFacts = [], context = {}) {
     const factText = fact.content || fact;

@@ -2,6 +2,8 @@
 // Complete drop-in replacement with enhanced facts processing
 
 const logger = require('../utils/logger');
+const { extractFactContent } = require('../utils/factNormalizer');
+
 
 /**
  * Base template class for all affidavit templates
@@ -79,98 +81,34 @@ class BaseAffidavitTemplate {
   /**
    * ✅ BULLETPROOF: Convert facts array to readable preview content with multiple fallbacks
    */
-  processFactsForPreview(facts) {
-    // Debug logging
-    console.log('🔍 processFactsForPreview called with:', {
-      factsType: typeof facts,
-      isArray: Array.isArray(facts),
-      factsLength: Array.isArray(facts) ? facts.length : 'not array',
-      facts: facts
-    });
-
-    // Handle empty/invalid facts
-    if (!facts || !Array.isArray(facts) || facts.length === 0) {
-      console.log('🔍 No valid facts array, returning default message');
-      return 'No facts have been added yet. Start chatting to add facts to your affidavit.';
+  processFactsSection(facts) {
+    if (!Array.isArray(facts) || facts.length === 0) {
+      return 'Start chatting to add facts to your affidavit.';
     }
     
     const processedFacts = [];
     
     facts.forEach((fact, index) => {
-      let content = '';
+      // Use the normalizer to extract content safely
+      const content = extractFactContent(fact);
       
-      console.log(`🔍 Processing fact ${index + 1}:`, {
-        type: typeof fact,
-        isObject: typeof fact === 'object',
-        isNull: fact === null,
-        keys: typeof fact === 'object' && fact !== null ? Object.keys(fact) : 'not object'
-      });
-      
-      // Strategy 1: Handle string facts
-      if (typeof fact === 'string' && fact.trim().length > 0) {
-        content = fact.trim();
-        console.log(`🔍 Fact ${index + 1}: Used string directly`);
-      }
-      // Strategy 2: Handle object facts with multiple content fields
-      else if (typeof fact === 'object' && fact !== null) {
-        // Try professional rewrite first
-        if (fact.professionalRewrite && typeof fact.professionalRewrite === 'string') {
-          content = fact.professionalRewrite;
-          console.log(`🔍 Fact ${index + 1}: Used professionalRewrite`);
-        }
-        // Try original content
-        else if (fact.content && typeof fact.content === 'string') {
-          content = fact.content;
-          console.log(`🔍 Fact ${index + 1}: Used content`);
-        }
-        // Try text field
-        else if (fact.text && typeof fact.text === 'string') {
-          content = fact.text;
-          console.log(`🔍 Fact ${index + 1}: Used text`);
-        }
-        // Try description field
-        else if (fact.description && typeof fact.description === 'string') {
-          content = fact.description;
-          console.log(`🔍 Fact ${index + 1}: Used description`);
-        }
-        // Last resort: stringify the object
-        else {
-          try {
-            content = JSON.stringify(fact);
-            console.log(`🔍 Fact ${index + 1}: Used JSON.stringify`);
-          } catch (e) {
-            content = `[Fact ${index + 1}: Unable to process]`;
-            console.log(`🔍 Fact ${index + 1}: Failed to stringify, used placeholder`);
-          }
-        }
-      }
-      // Strategy 3: Convert other types to string
-      else {
-        content = String(fact);
-        console.log(`🔍 Fact ${index + 1}: Used String() conversion`);
-      }
-      
-      // Ensure we have content
-      if (!content || content.trim().length === 0) {
-        content = `[Fact ${index + 1}: No content available]`;
-        console.log(`🔍 Fact ${index + 1}: No content found, used placeholder`);
+      // Skip invalid facts
+      if (!content || content.trim().length === 0 || content.includes('[Invalid fact')) {
+        logger.warn(`Skipping invalid fact at index ${index}`);
+        return;
       }
       
       // Add to processed facts with numbering
       const numberedFact = `${index + 1}. ${content.trim()}`;
       processedFacts.push(numberedFact);
-      
-      console.log(`🔍 Fact ${index + 1}: Final content: "${content.substring(0, 50)}..."`);
     });
     
-    const result = processedFacts.join('\n\n');
-    console.log('🔍 Final facts preview result:', {
-      totalFacts: processedFacts.length,
-      resultLength: result.length,
-      preview: result.substring(0, 200) + '...'
-    });
+    // Return formatted string for PDF
+    if (processedFacts.length === 0) {
+      return 'No valid facts to display.';
+    }
     
-    return result;
+    return processedFacts.join('\n\n');
   }
 
   /**

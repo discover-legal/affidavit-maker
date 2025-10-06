@@ -15,7 +15,7 @@ const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
 const AffidavitService = require('./affidavitService');
 const logger = require('./utils/logger');
-const EnhancedFactValidationService = require('./services/enhancedFactValidationService').default;
+const EnhancedFactValidationService = require('./services/enhancedFactValidationService');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -197,7 +197,7 @@ async function initializeServices() {
     affidavitService = new AffidavitService(templateManager);
 
     // Add services to app locals
-    app.locals.pool = dbService;
+    app.locals.pool = dbService.pool;
     app.locals.openAIService = openAIService;
     app.locals.affidavitService = affidavitService;
     app.locals.templateManager = templateManager;

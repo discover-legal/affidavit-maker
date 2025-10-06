@@ -167,15 +167,15 @@ async function initializeServices() {
     templateManager = new StateTemplateManager();
     app.locals.templateManager = templateManager;
 
-    // Initialize OpenAI services
-    const OpenAI = require('openai');
-    const openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 45000, // ✅ This is correct - timeout at client level
-      maxRetries: 0   // We handle retries in ResilientService
-    });
+    // ✅ NEW: Initialize Multi-Provider LLM Client
+    const MultiProviderLLM = require('./services/MultiProviderLLM');
+    const llmClient = new MultiProviderLLM();
 
-    openAIService = new ResilientOpenAIService(openaiClient, {
+    // Log provider info
+    const providerInfo = llmClient.getProviderInfo();
+    logger.info('✅ LLM Provider ready', providerInfo);
+
+    openAIService = new ResilientOpenAIService(llmClient, {
       maxRetries: 3,
       initialRetryDelay: 1000,
       chatTimeout: 45000,
@@ -186,9 +186,9 @@ async function initializeServices() {
     // Make OpenAI service globally available
     global.openAIService = openAIService;
 
-    // Initialize validation service
+    // Initialize validation service with multi-provider client
     const validationService = new EnhancedFactValidationService(
-      openaiClient,
+      llmClient,
       'en',
       100
     );

@@ -10,7 +10,6 @@ class LRUCache {
     this.maxSize = maxSize;
   }
   
-  
   get(key) {
     if (!this.cache.has(key)) return undefined;
     const value = this.cache.get(key);
@@ -18,7 +17,6 @@ class LRUCache {
     this.cache.set(key, value);
     return value;
   }
-  
   
   set(key, value) {
     if (this.cache.has(key)) {
@@ -30,24 +28,19 @@ class LRUCache {
     this.cache.set(key, value);
   }
   
-  
   has(key) {
     return this.cache.has(key);
   }
   
-  
   clear() {
     this.cache.clear();
   }
-  
   
   get size() {
     return this.cache.size;
   }
 }
 
-// Constants
-const VALIDATION_SEVERITY = {
 // Constants
 const VALIDATION_SEVERITY = {
   CRITICAL: 'critical',
@@ -90,40 +83,6 @@ const LEGAL_CATEGORIES = {
 };
 
 // Helper function - MUST be outside class
-const LEGAL_CATEGORIES = {
-  financial: {
-    name: 'Financial',
-    subcategories: ['income', 'assets', 'debts', 'payments', 'support', 'expenses'],
-    description: 'Money, assets, income, debts, financial obligations'
-  },
-  property: {
-    name: 'Property',
-    subcategories: ['real_estate', 'personal_property', 'vehicles', 'intellectual_property'],
-    description: 'Real estate, personal property, vehicles, ownership'
-  },
-  relational: {
-    name: 'Relationships',
-    subcategories: ['family', 'custody', 'visitation', 'marriage', 'divorce'],
-    description: 'Family relationships, custody, marriage, divorce'
-  },
-  temporal: {
-    name: 'Chronological',
-    subcategories: ['dates', 'timelines', 'sequences', 'duration'],
-    description: 'Dates, times, chronological sequences'
-  },
-  witness: {
-    name: 'Witness Testimony',
-    subcategories: ['observations', 'conversations', 'events', 'actions'],
-    description: 'Direct observations, witnessed events'
-  },
-  communication: {
-    name: 'Communications',
-    subcategories: ['verbal', 'written', 'electronic', 'legal_notices'],
-    description: 'Conversations, emails, texts, legal notices'
-  }
-};
-
-// Helper function - MUST be outside class
 function ensureArray(value) {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') return value.length > 0 ? [value] : [];
@@ -131,7 +90,6 @@ function ensureArray(value) {
   return [String(value)];
 }
 
-// Main class
 // Main class
 class EnhancedFactValidationService {
   constructor(openaiClient, language = 'en', cacheSize = 100) {
@@ -142,13 +100,7 @@ class EnhancedFactValidationService {
       calls: 0,
       resetTime: Date.now() + 60000,
       maxCalls: 50
-      maxCalls: 50
     };
-    
-    this.cacheCleanupInterval = setInterval(() => {
-      this.cleanupCache();
-    }, 300000);
-    
     
     this.cacheCleanupInterval = setInterval(() => {
       this.cleanupCache();
@@ -161,7 +113,6 @@ class EnhancedFactValidationService {
     });
   }
   
-  
   destroy() {
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
@@ -170,10 +121,7 @@ class EnhancedFactValidationService {
     logger.info('EnhancedFactValidationService destroyed');
   }
   
-  
   cleanupCache() {
-    const cacheAge = Date.now() - (this.cacheCreatedAt || Date.now());
-    if (cacheAge > 3600000) {
     const cacheAge = Date.now() - (this.cacheCreatedAt || Date.now());
     if (cacheAge > 3600000) {
       this.validationCache.clear();
@@ -182,7 +130,6 @@ class EnhancedFactValidationService {
     }
   }
   
-  
   generateCacheKey(factText, context = {}) {
     const contextString = JSON.stringify({
       state: context.state,
@@ -190,30 +137,21 @@ class EnhancedFactValidationService {
       language: this.language
     });
     return `${factText.toLowerCase().trim()}_${contextString}`;
-    return `${factText.toLowerCase().trim()}_${contextString}`;
   }
-  
   
   async respectRateLimit() {
     if (Date.now() > this.rateLimit.resetTime) {
-    if (Date.now() > this.rateLimit.resetTime) {
       this.rateLimit.calls = 0;
       this.rateLimit.resetTime = Date.now() + 60000;
-      this.rateLimit.resetTime = Date.now() + 60000;
     }
-    
     
     if (this.rateLimit.calls >= this.rateLimit.maxCalls) {
       const waitTime = this.rateLimit.resetTime - Date.now();
       logger.warn('Rate limit reached, waiting', { waitTime });
       await new Promise(resolve => setTimeout(resolve, waitTime));
-      const waitTime = this.rateLimit.resetTime - Date.now();
-      logger.warn('Rate limit reached, waiting', { waitTime });
-      await new Promise(resolve => setTimeout(resolve, waitTime));
       this.rateLimit.calls = 0;
       this.rateLimit.resetTime = Date.now() + 60000;
     }
-    
     
     this.rateLimit.calls++;
   }
@@ -333,8 +271,6 @@ class EnhancedFactValidationService {
     return {
       issues: ensureArray(issues),
       suggestions: ensureArray(suggestions),
-      issues: ensureArray(issues),
-      suggestions: ensureArray(suggestions),
       score: Math.max(0, Math.min(100, score)),
       severity,
       hasProblematicContent: severity === VALIDATION_SEVERITY.CRITICAL
@@ -373,57 +309,17 @@ class EnhancedFactValidationService {
     return professional;
   }
   
-  
-  generateProfessionalVersion(factText, category) {
-    let professional = factText
-      .replace(/\b(fuck|shit|damn|hell|bitch|asshole|cunt|bastard)\b/gi, '[inappropriate]')
-      .replace(/\b(kinda|sorta|like totally|like)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    professional = professional
-      .replace(/\bi\b/g, 'I')
-      .replace(/\bdont\b/gi, "don't")
-      .replace(/\bdidnt\b/gi, "didn't")
-      .replace(/\bwont\b/gi, "won't")
-      .replace(/\bcant\b/gi, "can't");
-    
-    professional = professional
-      .replace(/\b(i think|i believe)\b/gi, 'I state that')
-      .replace(/\b(maybe|probably|possibly)\b/gi, '')
-      .replace(/\b(might be|might have)\b/gi, 'was');
-    
-    if (!/^I\b/i.test(professional)) {
-      professional = `I observed that ${professional}`;
-    }
-    
-    if (!/[.!?]$/.test(professional)) {
-      professional += '.';
-    }
-    
-    professional = professional.charAt(0).toUpperCase() + professional.slice(1);
-    
-    return professional;
-  }
-  
   buildCriticalResult(fact, localAnalysis) {
     const factText = fact.content || fact;
-    const categoryInfo = this.detectCategory(factText);
     const categoryInfo = this.detectCategory(factText);
 
     return {
       isValid: false,
       category: categoryInfo.primary,
       subcategory: categoryInfo.secondary,
-      category: categoryInfo.primary,
-      subcategory: categoryInfo.secondary,
       professionalRewrite: "[INAPPROPRIATE CONTENT - REQUIRES COMPLETE REWRITE WITH FACTUAL INFORMATION ONLY]",
       languageIssues: ensureArray(localAnalysis.issues),
-      languageIssues: ensureArray(localAnalysis.issues),
       legalIssues: ['Contains inappropriate content that must be removed before legal use'],
-      improvements: ensureArray(localAnalysis.suggestions),
-      issues: ensureArray(localAnalysis.issues),
-      suggestions: ensureArray(localAnalysis.suggestions),
       improvements: ensureArray(localAnalysis.suggestions),
       issues: ensureArray(localAnalysis.issues),
       suggestions: ensureArray(localAnalysis.suggestions),
@@ -437,7 +333,6 @@ class EnhancedFactValidationService {
   buildFallbackResult(fact, factText) {
     const localAnalysis = this.analyzeLanguageLocally(factText);
     const categoryInfo = this.detectCategory(factText);
-    const categoryInfo = this.detectCategory(factText);
 
     return {
       isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
@@ -445,14 +340,7 @@ class EnhancedFactValidationService {
       subcategory: categoryInfo.secondary,
       professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo),
       languageIssues: ensureArray(localAnalysis.issues),
-      category: categoryInfo.primary,
-      subcategory: categoryInfo.secondary,
-      professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo),
-      languageIssues: ensureArray(localAnalysis.issues),
       legalIssues: localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL ? ['Contains inappropriate content'] : [],
-      improvements: ensureArray(localAnalysis.suggestions),
-      issues: ensureArray(localAnalysis.issues),
-      suggestions: ensureArray(localAnalysis.suggestions),
       improvements: ensureArray(localAnalysis.suggestions),
       issues: ensureArray(localAnalysis.issues),
       suggestions: ensureArray(localAnalysis.suggestions),
@@ -589,24 +477,6 @@ Provide a professional rewrite and specific feedback.`;
       legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore),
       confidence: llmResult.confidence,
       duplicateIndex: null,
-      isValid: llmResult.isAdmissible && localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
-      category: llmResult.category,
-      subcategory: llmResult.subcategory,
-      professionalRewrite: llmResult.professionalRewrite,
-      languageIssues: ensureArray(localAnalysis.issues), 
-      legalIssues: llmResult.legalIssues, 
-      improvements: [
-        ...ensureArray(localAnalysis.suggestions), 
-        ...llmResult.improvements
-      ],
-      issues: ensureArray(localAnalysis.issues),  
-      suggestions: [
-        ...ensureArray(localAnalysis.suggestions),  
-        ...llmResult.improvements  
-      ],
-      legalStandardScore: Math.min(localAnalysis.score, llmResult.legalStandardScore),
-      confidence: llmResult.confidence,
-      duplicateIndex: null,
       severity: localAnalysis.severity
     };
   }
@@ -656,35 +526,6 @@ Provide a professional rewrite and specific feedback.`;
   async validateFactsBatchProfessional(facts, context = {}) {
     if (!Array.isArray(facts) || facts.length === 0) {
       return {
-        isValid: true,
-        facts: [],
-        summary: 'No facts to validate'
-      };
-    }
-    
-    const results = await Promise.all(
-      facts.map((fact, index) => 
-        this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
-      )
-    );
-    
-    const hasErrors = results.some(r => !r.isValid);
-    const criticalCount = results.filter(r => r.severity === VALIDATION_SEVERITY.CRITICAL).length;
-    const warningCount = results.filter(r => r.severity === VALIDATION_SEVERITY.WARNING).length;
-    
-    return {
-      isValid: !hasErrors,
-      totalFacts: facts.length,
-      validFacts: results.filter(r => r.isValid).length,
-      criticalIssues: criticalCount,
-      warnings: warningCount,
-      results,
-      summary: {
-        criticalCount,
-        warningCount,
-        successCount: results.filter(r => r.severity === VALIDATION_SEVERITY.SUCCESS).length
-      }
-    };
         isValid: true,
         facts: [],
         summary: 'No facts to validate'

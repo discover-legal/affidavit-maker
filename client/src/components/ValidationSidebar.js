@@ -1,4 +1,4 @@
-// client/src/components/ValidationSidebar.js - COMPLETE FIXED VERSION
+// client/src/components/ValidationSidebar.js - COMPLETE VERSION WITH PROFESSIONAL REWRITE
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertTriangle, 
@@ -6,7 +6,6 @@ import {
   XCircle, 
   ChevronDown, 
   ChevronUp,
-  Info,
   RefreshCw,
   Sparkles,
   FileText,
@@ -30,7 +29,7 @@ const ValidationSidebar = () => {
   const [editingFactIndex, setEditingFactIndex] = useState(null);
   const [editedFactContent, setEditedFactContent] = useState('');
 
-  // Run validation with useCallback
+  // Run validation
   const runValidation = useCallback(async () => {
     await validateDocument();
   }, [validateDocument]);
@@ -53,17 +52,24 @@ const ValidationSidebar = () => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  // ✅ FIXED: Extract fact content safely handling all formats
+  // Extract fact content safely
   const getFactContent = (fact) => {
     if (!fact) return '[Invalid fact]';
     if (typeof fact === 'string') return fact;
     if (typeof fact === 'object') {
-      return fact.professionalRewrite || fact.content || fact.text || '[Invalid fact]';
+      return fact.content || fact.professionalRewrite || fact.text || '[Invalid fact]';
     }
     return '[Invalid fact format]';
   };
 
-  // ✅ FIXED: Get fact metadata safely
+  // Get fact validation result
+  const getFactValidation = (index) => {
+    if (!validation || !validation.factValidation) return null;
+    if (!validation.factValidation.results) return null;
+    return validation.factValidation.results[index] || null;
+  };
+
+  // Get fact metadata
   const getFactMetadata = (fact) => {
     if (typeof fact === 'object' && fact !== null) {
       return {
@@ -74,7 +80,8 @@ const ValidationSidebar = () => {
                 Array.isArray(fact.languageIssues) ? fact.languageIssues : [],
         suggestions: Array.isArray(fact.suggestions) ? fact.suggestions :
                      Array.isArray(fact.improvements) ? fact.improvements : [],
-        hasRewrite: !!fact.professionalRewrite
+        hasRewrite: !!fact.professionalRewrite,
+        professionalRewrite: fact.professionalRewrite || null
       };
     }
     return {
@@ -83,8 +90,49 @@ const ValidationSidebar = () => {
       severity: null,
       issues: [],
       suggestions: [],
-      hasRewrite: false
+      hasRewrite: false,
+      professionalRewrite: null
     };
+  };
+
+  // Apply professional rewrite to a fact
+  const applyProfessionalRewrite = async (index, rewrite) => {
+    const updatedFacts = [...currentDocument.facts];
+    const currentFact = updatedFacts[index];
+    
+    if (typeof currentFact === 'object' && currentFact !== null) {
+      updatedFacts[index] = {
+        ...currentFact,
+        content: rewrite,
+        professionalRewrite: rewrite,
+        lastEdited: new Date().toISOString(),
+        metadata: {
+          ...(currentFact.metadata || {}),
+          rewriteApplied: true
+        }
+      };
+    } else {
+      updatedFacts[index] = {
+        content: rewrite,
+        professionalRewrite: rewrite,
+        category: 'general',
+        subcategory: null,
+        confidence: 0.8,
+        severity: 'success',
+        issues: [],
+        suggestions: [],
+        lastEdited: new Date().toISOString(),
+        metadata: { rewriteApplied: true }
+      };
+    }
+    
+    updateDocumentData({ facts: updatedFacts });
+    
+    try {
+      await saveDocument();
+    } catch (error) {
+      console.error('Failed to save after applying rewrite:', error);
+    }
   };
 
   // Start editing a fact
@@ -94,7 +142,7 @@ const ValidationSidebar = () => {
     setEditedFactContent(factContent);
   };
 
-  // ✅ FIXED: Save edited fact with immediate database save
+  // Save edited fact
   const saveEditedFact = async () => {
     if (editingFactIndex === null) return;
     
@@ -102,12 +150,10 @@ const ValidationSidebar = () => {
     const currentFact = updatedFacts[editingFactIndex];
     const originalContent = getFactContent(currentFact);
     
-    // Preserve object structure if it exists
     if (typeof currentFact === 'object' && currentFact !== null) {
       updatedFacts[editingFactIndex] = {
         ...currentFact,
         content: editedFactContent,
-        // Only clear professionalRewrite if content actually changed
         professionalRewrite: editedFactContent !== originalContent ? null : currentFact.professionalRewrite,
         needsReview: editedFactContent !== originalContent,
         lastEdited: new Date().toISOString(),
@@ -117,7 +163,6 @@ const ValidationSidebar = () => {
         }
       };
     } else {
-      // Convert to object format
       updatedFacts[editingFactIndex] = {
         content: editedFactContent,
         professionalRewrite: null,
@@ -133,10 +178,8 @@ const ValidationSidebar = () => {
       };
     }
     
-    // Update document data
     updateDocumentData({ facts: updatedFacts });
     
-    // Trigger immediate save
     try {
       await saveDocument();
     } catch (error) {
@@ -159,7 +202,6 @@ const ValidationSidebar = () => {
       const updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
       updateDocumentData({ facts: updatedFacts });
       
-      // Trigger immediate save
       try {
         await saveDocument();
       } catch (error) {
@@ -168,51 +210,23 @@ const ValidationSidebar = () => {
     }
   };
 
-  // Get validation status for a specific fact
-  const getFactValidation = (index) => {
-    if (!validation || !validation.factValidation) return null;
-    return validation.factValidation.results?.[index] || null;
-  };
-
   // Calculate summary
-  const getValidationSummary = () => {
-    if (!validation) {
-      return { status: 'pending', errors: 0, warnings: 0 };
-    }
-    
-    const errors = validation.errors?.length || 0;
-    const warnings = validation.warnings?.length || 0;
-    
-    let status = 'valid';
-    if (errors > 0) status = 'error';
-    else if (warnings > 0) status = 'warning';
-    
-    return { status, errors, warnings };
+  const summary = {
+    total: currentDocument.facts?.length || 0,
+    errors: validation?.errors?.length || 0,
+    warnings: validation?.warnings?.length || 0,
+    status: validation?.isValid ? 'valid' : validation?.errors?.length > 0 ? 'error' : 'warning'
   };
-
-  const summary = getValidationSummary();
-
-  // Empty state
-  if (!currentDocument || (!currentDocument.affiantName && !currentDocument.state && (!currentDocument.facts || currentDocument.facts.length === 0))) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="p-4 border-b bg-white">
-          <h2 className="text-lg font-semibold text-gray-800">Document Validation</h2>
-        </div>
-        <div className="flex-1 p-6 flex flex-col items-center justify-center text-gray-500">
-          <FileText className="h-12 w-12 mb-4 text-gray-300" />
-          <p className="text-center">Start adding information to validate</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="p-4 bg-white border-b">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-800">Validation & Facts</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+            <FileText className="h-5 w-5 mr-2 text-blue-600" />
+            Validation
+          </h2>
           <button
             onClick={runValidation}
             disabled={isValidating}
@@ -257,7 +271,7 @@ const ValidationSidebar = () => {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         
         {/* Facts Section */}
-        <div className="bg-white rounded-lg overflow-hidden">
+        <div className="bg-white rounded-lg overflow-hidden shadow-sm">
           <button
             onClick={() => toggleSection('facts')}
             className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -278,97 +292,142 @@ const ValidationSidebar = () => {
           {expandedSection === 'facts' && (
             <div className="p-3 pt-0">
               {currentDocument.facts && currentDocument.facts.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {currentDocument.facts.map((fact, index) => {
                     const content = getFactContent(fact);
                     const metadata = getFactMetadata(fact);
                     const factValidation = getFactValidation(index);
+                    const isEditing = editingFactIndex === index;
                     
                     return (
                       <div
                         key={index}
-                        className={`p-3 rounded-lg border ${
-                          metadata.severity === 'critical' || metadata.severity === 'error' ? 'border-red-200 bg-red-50' :
-                          metadata.severity === 'warning' ? 'border-yellow-200 bg-yellow-50' :
-                          'border-gray-200 bg-gray-50'
+                        className={`p-3 rounded-lg border-2 ${
+                          metadata.severity === 'critical' || metadata.severity === 'error' 
+                            ? 'border-red-200 bg-red-50' 
+                            : metadata.severity === 'warning'
+                            ? 'border-yellow-200 bg-yellow-50'
+                            : 'border-gray-200 bg-white'
                         }`}
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-xs font-medium text-gray-500">
-                            Fact #{index + 1}
-                            {metadata.category && ` · ${metadata.category}`}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => startEditingFact(index)}
-                              className="p-1 text-blue-600 hover:bg-blue-100 rounded transition"
-                              title="Edit fact"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => deleteFact(index)}
-                              className="p-1 text-red-600 hover:bg-red-100 rounded transition"
-                              title="Delete fact"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {editingFactIndex === index ? (
-                          <div>
+                        {isEditing ? (
+                          <>
                             <textarea
                               value={editedFactContent}
                               onChange={(e) => setEditedFactContent(e.target.value)}
-                              className="w-full p-2 border rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              rows={3}
-                              autoFocus
+                              className="w-full p-2 border border-gray-300 rounded text-sm min-h-[80px]"
+                              rows="3"
                             />
-                            <div className="flex justify-end gap-2 mt-2">
-                              <button
-                                onClick={cancelEdit}
-                                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded transition"
-                              >
-                                Cancel
-                              </button>
+                            <div className="flex gap-2 mt-2">
                               <button
                                 onClick={saveEditedFact}
-                                className="px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition"
+                                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
                               >
+                                <CheckIcon className="h-3 w-3" />
                                 Save
                               </button>
+                              <button
+                                onClick={cancelEdit}
+                                className="flex items-center gap-1 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                              >
+                                <X className="h-3 w-3" />
+                                Cancel
+                              </button>
                             </div>
-                          </div>
+                          </>
                         ) : (
                           <>
-                            <p className="text-sm text-gray-700 leading-relaxed">
-                              {content}
-                            </p>
-                            
-                            {/* ✅ FIXED: Validation Issues - check if arrays exist */}
-                            {(metadata.issues.length > 0 || metadata.suggestions.length > 0) && (
-                              <div className="mt-2 pt-2 border-t border-gray-100">
-                                {metadata.issues.length > 0 && (
-                                  <div className="mb-1">
-                                    <span className="text-xs font-medium text-red-600">Issues:</span>
-                                    <ul className="text-xs text-red-600 mt-1">
-                                      {metadata.issues.map((issue, i) => (
-                                        <li key={i}>• {issue}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
+                            <div className="flex items-start justify-between mb-2">
+                              <p className="text-sm text-gray-800 flex-1">
+                                {content}
+                              </p>
+                              <div className="flex gap-1 ml-2">
+                                <button
+                                  onClick={() => startEditingFact(index)}
+                                  className="p-1 text-gray-500 hover:text-blue-600 rounded"
+                                  title="Edit fact"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => deleteFact(index)}
+                                  className="p-1 text-gray-500 hover:text-red-600 rounded"
+                                  title="Delete fact"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Professional Rewrite Section */}
+                            {factValidation?.fallbackUsed ? (
+                              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                <div className="flex items-center mb-1">
+                                  <AlertTriangle className="h-3 w-3 text-yellow-600 mr-1" />
+                                  <span className="text-xs font-medium text-yellow-800">
+                                    AI Validation Unavailable
+                                  </span>
+                                </div>
+                                <p className="text-xs text-yellow-700">
+                                  Professional rewrite suggestions are temporarily unavailable. Please check back later.
+                                </p>
+                              </div>
+                            ) : factValidation?.professionalRewrite && 
+                               factValidation.professionalRewrite !== content ? (
+                              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium text-blue-800 flex items-center">
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Suggested Rewrite:
+                                  </span>
+                                  <button
+                                    onClick={() => applyProfessionalRewrite(index, factValidation.professionalRewrite)}
+                                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                                  >
+                                    Apply
+                                  </button>
+                                </div>
+                                <p className="text-xs text-blue-700 italic">
+                                  "{factValidation.professionalRewrite}"
+                                </p>
+                              </div>
+                            ) : null}
+
+                            {/* Category and Confidence */}
+                            {metadata.category && (
+                              <div className="mt-2 flex gap-2 text-xs">
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                                  {metadata.category}
+                                </span>
+                                {metadata.confidence && (
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+                                    {Math.round(metadata.confidence * 100)}% confidence
+                                  </span>
                                 )}
-                                {metadata.suggestions.length > 0 && (
-                                  <div>
-                                    <span className="text-xs font-medium text-blue-600">Suggestions:</span>
-                                    <ul className="text-xs text-blue-600 mt-1">
-                                      {metadata.suggestions.map((suggestion, i) => (
-                                        <li key={i}>• {suggestion}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                              </div>
+                            )}
+
+                            {/* Issues */}
+                            {metadata.issues.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-red-700 mb-1">Issues:</div>
+                                <ul className="text-xs text-red-600 space-y-0.5">
+                                  {metadata.issues.map((issue, i) => (
+                                    <li key={i}>• {issue}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Suggestions */}
+                            {metadata.suggestions.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-blue-700 mb-1">Suggestions:</div>
+                                <ul className="text-xs text-blue-600 space-y-0.5">
+                                  {metadata.suggestions.map((suggestion, i) => (
+                                    <li key={i}>• {suggestion}</li>
+                                  ))}
+                                </ul>
                               </div>
                             )}
                           </>
@@ -386,7 +445,7 @@ const ValidationSidebar = () => {
 
         {/* Validation Errors */}
         {validation?.errors?.length > 0 && (
-          <div className="bg-white rounded-lg overflow-hidden">
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
             <button
               onClick={() => toggleSection('errors')}
               className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -419,7 +478,7 @@ const ValidationSidebar = () => {
         )}
 
         {/* Requirements Checklist */}
-        <div className="bg-white rounded-lg p-3">
+        <div className="bg-white rounded-lg p-3 shadow-sm">
           <h3 className="font-medium text-gray-700 mb-2 text-sm">Requirements</h3>
           <ul className="space-y-1">
             <li className="flex items-center text-sm">

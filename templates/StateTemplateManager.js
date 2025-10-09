@@ -1,12 +1,10 @@
-// templates/StateTemplateManager.js - FINAL FIXED VERSION
-// Complete drop-in replacement with enhanced facts processing
+// templates/StateTemplateManager.js - COMPLETE FIXED VERSION
+// Drop-in replacement - includes BaseAffidavitTemplate and all state templates
 
 const logger = require('../utils/logger');
-const { extractFactContent } = require('../utils/factNormalizer');
-
 
 /**
- * Base template class for all affidavit templates
+ * ✅ Base template class for all affidavit templates
  */
 class BaseAffidavitTemplate {
   constructor() {
@@ -27,19 +25,17 @@ class BaseAffidavitTemplate {
   }
 
   /**
-   * ✅ FULLY FIXED: Generate document preview with robust facts processing
+   * Generate document preview
    */
   generatePreview(affidavitData) {
     const sections = {};
     
-    // Header
     sections.header = {
       type: 'header',
       title: 'AFFIDAVIT',
       content: `STATE OF ${this.stateName.toUpperCase()}`
     };
     
-    // Venue
     if (this.sections.venue) {
       sections.venue = {
         type: 'venue',
@@ -47,28 +43,24 @@ class BaseAffidavitTemplate {
       };
     }
     
-    // Introduction
     sections.introduction = {
       type: 'introduction',
       title: 'INTRODUCTION',
       content: this.generateIntroduction(affidavitData)
     };
     
-    // ✅ CRITICAL FIX: Facts processing with multiple fallback strategies
     sections.facts = {
       type: 'facts',
       title: 'STATEMENT OF FACTS',
       content: this.processFactsForPreview(affidavitData.facts || [])
     };
     
-    // Signature block
     sections.signatureBlock = {
       type: 'signatureBlock',
       title: 'SIGNATURE',
       content: this.generateSignatureBlock(affidavitData)
     };
     
-    // Notary block
     sections.notaryBlock = {
       type: 'notaryBlock',
       title: 'NOTARIZATION',
@@ -79,9 +71,9 @@ class BaseAffidavitTemplate {
   }
 
   /**
-   * ✅ BULLETPROOF: Convert facts array to readable preview content with multiple fallbacks
+   * Process facts for preview display
    */
-  processFactsSection(facts) {
+  processFactsForPreview(facts) {
     if (!Array.isArray(facts) || facts.length === 0) {
       return 'Start chatting to add facts to your affidavit.';
     }
@@ -89,26 +81,34 @@ class BaseAffidavitTemplate {
     const processedFacts = [];
     
     facts.forEach((fact, index) => {
-      // Use the normalizer to extract content safely
-      const content = extractFactContent(fact);
+      const content = this.extractFactContent(fact);
       
-      // Skip invalid facts
-      if (!content || content.trim().length === 0 || content.includes('[Invalid fact')) {
-        logger.warn(`Skipping invalid fact at index ${index}`);
+      if (!content || content.trim().length === 0) {
         return;
       }
       
-      // Add to processed facts with numbering
       const numberedFact = `${index + 1}. ${content.trim()}`;
       processedFacts.push(numberedFact);
     });
     
-    // Return formatted string for PDF
     if (processedFacts.length === 0) {
       return 'No valid facts to display.';
     }
     
     return processedFacts.join('\n\n');
+  }
+
+  /**
+   * Extract content from fact (handles both string and object facts)
+   */
+  extractFactContent(fact) {
+    if (typeof fact === 'string') {
+      return fact;
+    } else if (typeof fact === 'object' && fact !== null) {
+      return fact.professionalRewrite || fact.content || fact.text || '';
+    } else {
+      return String(fact);
+    }
   }
 
   /**
@@ -136,7 +136,7 @@ ${name}`;
   }
 
   /**
-   * Generate notary block
+   * Generate notary block (override in subclasses)
    */
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
@@ -144,67 +144,13 @@ ${name}`;
 State of ${this.stateName}
 County of ${affidavitData.county || '_______'}
 
-On this _____ day of _________, 2025, before me personally appeared ${affidavitData.affiantName || '[NAME]'}, who proved to me on the basis of satisfactory evidence to be the person whose name is subscribed to the within instrument and acknowledged to me that he/she executed the same in his/her authorized capacity, and that by his/her signature on the instrument the person, or the entity upon behalf of which the person acted, executed the instrument.
-
-I certify under PENALTY OF PERJURY under the laws of the State of ${this.stateName} that the foregoing paragraph is true and correct.
-
-WITNESS my hand and official seal.
+On this _____ day of _________, 2025, before me personally appeared ${affidavitData.affiantName || '[NAME]'}, who proved to me on the basis of satisfactory evidence to be the person whose name is subscribed to the within instrument.
 
 
 _________________________________
-Signature of Notary Public`;
-  }
+Notary Public
 
-  /**
-   * Validate document for completeness and legal requirements
-   */
-  validateDocument(affidavitData) {
-    const errorSet = new Set();
-    const warningSet = new Set();
-    
-    // Required field validation
-    this.requiredFields.forEach(field => {
-      if (!affidavitData[field] || affidavitData[field].trim() === '') {
-        errorSet.add(`${field} is required`);
-      }
-    });
-    
-    // Facts validation
-    if (!affidavitData.facts || !Array.isArray(affidavitData.facts) || affidavitData.facts.length === 0) {
-      warningSet.add('No facts have been added to the affidavit');
-    } else {
-      // Check for fact quality issues
-      affidavitData.facts.forEach((fact, index) => {
-        const content = this.extractFactContent(fact);
-        if (content.length < 10) {
-          warningSet.add(`Fact ${index + 1} is very short and may need more detail`);
-        }
-      });
-    }
-    
-    // State-specific validation
-    const stateValidation = this.performStateSpecificValidation(affidavitData);
-    stateValidation.errors.forEach(error => errorSet.add(error));
-    stateValidation.warnings.forEach(warning => warningSet.add(warning));
-    
-    return {
-      isValid: errorSet.size === 0,
-      errors: Array.from(errorSet),
-      warnings: Array.from(warningSet)
-    };
-  }
-
-  /**
-   * ✅ NEW: Extract content from a fact object (used by validation and calculations)
-   */
-  extractFactContent(fact) {
-    if (typeof fact === 'string') {
-      return fact;
-    } else if (typeof fact === 'object' && fact !== null) {
-      return fact.professionalRewrite || fact.content || fact.text || JSON.stringify(fact);
-    } else {
-      return String(fact);
-    }
+My commission expires: ___________`;
   }
 
   /**
@@ -212,6 +158,18 @@ Signature of Notary Public`;
    */
   performStateSpecificValidation(affidavitData) {
     return { errors: [], warnings: [] };
+  }
+
+  /**
+   * Get county validation rules (override in subclasses)
+   */
+  getCountyValidationRules() {
+    return {
+      required: false,
+      stateName: this.stateName,
+      stateCode: this.state,
+      commonCounties: []
+    };
   }
 
   /**
@@ -228,7 +186,7 @@ Signature of Notary Public`;
   }
 
   /**
-   * ✅ FIXED: Calculate word count from facts
+   * Calculate word count from facts
    */
   calculateWordCount(facts) {
     if (!facts || !Array.isArray(facts)) return 0;
@@ -240,7 +198,7 @@ Signature of Notary Public`;
   }
 
   /**
-   * ✅ FIXED: Extract categories from facts
+   * Extract categories from facts
    */
   extractCategories(facts) {
     if (!facts || !Array.isArray(facts)) return [];
@@ -257,14 +215,14 @@ Signature of Notary Public`;
 }
 
 /**
- * Texas-specific affidavit template
+ * ✅ Texas-specific affidavit template
  */
 class TexasTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'TX';
     this.stateName = 'Texas';
-    this.requiredFields = ['affiantName', 'state', 'county'];
+    this.requiredFields = ['affiantName', 'state', 'county']; // ✅ County required
     this.sections = {
       venue: true,
       caseCaption: true,
@@ -276,17 +234,28 @@ class TexasTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // Texas requires county
+    // ✅ Texas requires county - ONLY validate here
     if (!affidavitData.county || affidavitData.county.trim() === '') {
       errors.push('County is required for Texas affidavits');
     }
     
-    // Texas prefers case information if available
     if (!affidavitData.caseNumber && !affidavitData.caseType) {
       warnings.push('Consider adding case number or case type if this relates to a legal proceeding');
     }
     
     return { errors, warnings };
+  }
+
+  getCountyValidationRules() {
+    return {
+      required: true, // ✅ County IS required in Texas
+      stateName: 'Texas',
+      stateCode: 'TX',
+      commonCounties: [
+        'Harris', 'Dallas', 'Tarrant', 'Bexar', 'Travis',
+        'Collin', 'Denton', 'Fort Bend', 'Hidalgo', 'El Paso'
+      ]
+    };
   }
 
   generateNotaryBlock(affidavitData) {
@@ -312,14 +281,14 @@ My commission expires: ___________`;
 }
 
 /**
- * Utah-specific affidavit template
+ * ✅ Utah-specific affidavit template
  */
 class UtahTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'UT';
     this.stateName = 'Utah';
-    this.requiredFields = ['affiantName', 'state'];
+    this.requiredFields = ['affiantName', 'state', 'county']; // ✅ County required
     this.sections = {
       venue: true,
       caseCaption: false,
@@ -331,12 +300,24 @@ class UtahTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // Utah recommendations
-    if (!affidavitData.county) {
-      warnings.push('County information is recommended for Utah affidavits');
+    // ✅ Utah requires county - ONLY validate here
+    if (!affidavitData.county || affidavitData.county.trim() === '') {
+      errors.push('County is required for Utah affidavits');
     }
     
     return { errors, warnings };
+  }
+
+  getCountyValidationRules() {
+    return {
+      required: true, // ✅ County IS required in Utah
+      stateName: 'Utah',
+      stateCode: 'UT',
+      commonCounties: [
+        'Salt Lake', 'Utah', 'Davis', 'Weber', 'Washington',
+        'Cache', 'Summit', 'Tooele', 'Iron', 'Sanpete'
+      ]
+    };
   }
 
   generateNotaryBlock(affidavitData) {
@@ -356,16 +337,16 @@ My commission expires: ___________`;
 }
 
 /**
- * Arizona-specific affidavit template
+ * ✅ Arizona-specific affidavit template
  */
 class ArizonaTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'AZ';
     this.stateName = 'Arizona';
-    this.requiredFields = ['affiantName', 'state'];
+    this.requiredFields = ['affiantName', 'state']; // ✅ County NOT required
     this.sections = {
-      venue: false, // Arizona doesn't require venue section
+      venue: false, // Arizona doesn't require venue
       caseCaption: false,
       notaryBlock: true
     };
@@ -375,12 +356,24 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // Arizona-specific recommendations
+    // ✅ Arizona does NOT require county - only optional warning
     if (!affidavitData.county) {
-      warnings.push('County information is helpful for Arizona affidavits');
+      warnings.push('County information is helpful for Arizona affidavits but not required');
     }
     
     return { errors, warnings };
+  }
+
+  getCountyValidationRules() {
+    return {
+      required: false, // ✅ County is NOT required in Arizona
+      stateName: 'Arizona',
+      stateCode: 'AZ',
+      commonCounties: [
+        'Maricopa', 'Pima', 'Pinal', 'Yavapai', 'Mohave',
+        'Coconino', 'Yuma', 'Navajo', 'Apache', 'Cochise'
+      ]
+    };
   }
 
   generateNotaryBlock(affidavitData) {
@@ -406,7 +399,7 @@ My commission expires: ___________`;
 }
 
 /**
- * Main StateTemplateManager class
+ * ✅ Main StateTemplateManager class
  */
 class StateTemplateManager {
   constructor() {
@@ -417,17 +410,11 @@ class StateTemplateManager {
     };
     this.defaultState = 'TX';
     
-    logger.info('StateTemplateManager initialized with states:', {
-      ...Object.keys(this.templates).reduce((acc, key, index) => ({
-        ...acc,
-        [index]: key
-      }), {})
+    logger.info('StateTemplateManager initialized', {
+      states: Object.keys(this.templates)
     });
   }
   
-  /**
-   * Get template for a specific state
-   */
   getTemplate(stateCode) {
     if (!stateCode) {
       logger.warn('No state code provided, using default:', this.defaultState);
@@ -444,9 +431,6 @@ class StateTemplateManager {
     return this.templates[normalizedCode];
   }
   
-  /**
-   * Get list of supported states
-   */
   getSupportedStates() {
     return Object.values(this.templates).map(template => ({
       code: template.state,
@@ -455,128 +439,68 @@ class StateTemplateManager {
     }));
   }
   
-  /**
-   * Validate document for a specific state
-   */
   validateDocument(affidavitData) {
     const stateCode = affidavitData.state || this.defaultState;
     const template = this.getTemplate(stateCode);
     
-    return template.validateDocument(affidavitData);
-  }
-  
-  /**
-   * ✅ COMPLETELY FIXED: Generate document preview with enhanced metadata and robust facts processing
-   */
-  generatePreview(affidavitData) {
-    const stateCode = affidavitData.state || this.defaultState;
-    const template = this.getTemplate(stateCode);
-    
-    console.log('🔍 StateTemplateManager.generatePreview called with:', {
-      stateCode,
-      factsCount: affidavitData.facts?.length || 0,
-      affiantName: affidavitData.affiantName
-    });
-    
-    const sections = template.generatePreview(affidavitData);
-    
-    const preview = {
-      sections,
-      formatting: template.formatting,
-      metadata: {
-        factCount: affidavitData.facts?.length || 0,
-        wordCount: template.calculateWordCount(affidavitData.facts || []),
-        stateName: template.stateName,
-        estimatedPages: Math.max(1, Math.ceil(((affidavitData.facts?.length || 0) * 50 + 200) / 250)),
-        categories: template.extractCategories(affidavitData.facts || []),
-        lastUpdated: new Date().toISOString(),
-        qualityMetrics: this.calculateQualityMetrics(affidavitData)
-      }
-    };
-    
-    console.log('🔍 StateTemplateManager.generatePreview result:', {
-      sectionsCount: Object.keys(sections).length,
-      factsContentLength: sections.facts?.content?.length || 0,
-      factsContentPreview: sections.facts?.content?.substring(0, 100) || 'no content'
-    });
-    
-    return preview;
-  }
-  
-  /**
-   * ✅ FIXED: Calculate quality metrics
-   */
-  calculateQualityMetrics(affidavitData) {
-    const validation = this.validateDocument(affidavitData);
-    
+    const errors = [];
+    const warnings = [];
+
+    // Basic validation
+    if (!affidavitData.affiantName || affidavitData.affiantName.trim().length < 2) {
+      errors.push('Affiant name is required');
+    }
+
+    if (!affidavitData.state) {
+      errors.push('State is required');
+    }
+
+    // State-specific validation (includes county check)
+    const stateValidation = template.performStateSpecificValidation(affidavitData);
+    errors.push(...stateValidation.errors);
+    warnings.push(...stateValidation.warnings);
+
     return {
-      completionScore: this.calculateCompletionScore(affidavitData),
-      criticalIssues: validation.errors.length,
-      warnings: validation.warnings.length,
-      factQuality: this.assessFactQuality(affidavitData.facts || [])
+      isValid: errors.length === 0,
+      errors,
+      warnings
     };
   }
   
-  /**
-   * ✅ FIXED: Calculate completion score
-   */
-  calculateCompletionScore(affidavitData) {
-    let score = 0;
-    let maxScore = 100;
-    
-    // Name (25 points)
-    if (affidavitData.affiantName) score += 25;
-    
-    // State (15 points)
-    if (affidavitData.state) score += 15;
-    
-    // Facts (50 points)
-    const factCount = affidavitData.facts?.length || 0;
-    score += Math.min(50, factCount * 10);
-    
-    // Additional details (10 points)
-    if (affidavitData.county) score += 5;
-    if (affidavitData.caseNumber || affidavitData.caseType) score += 5;
-    
-    return Math.round((score / maxScore) * 100);
-  }
-  
-  /**
-   * ✅ FIXED: Assess fact quality
-   */
-  assessFactQuality(facts) {
-    if (!facts || facts.length === 0) return 'none';
-    
-    let qualityScore = 0;
-    let totalFacts = facts.length;
-    
-    facts.forEach(fact => {
-      const template = this.getTemplate('TX'); // Use any template for content extraction
-      const content = template.extractFactContent(fact);
+  generatePreview(affidavitData) {
+    try {
+      const stateCode = affidavitData.state || this.defaultState;
+      const template = this.getTemplate(stateCode);
       
-      // Length check
-      if (content.length > 50) qualityScore += 1;
+      const sections = template.generatePreview(affidavitData);
+      const validation = this.validateDocument(affidavitData);
       
-      // Professional rewrite check
-      if (typeof fact === 'object' && fact !== null && fact.professionalRewrite) qualityScore += 1;
-      
-      // Category check
-      if (typeof fact === 'object' && fact !== null && fact.category) qualityScore += 1;
-    });
-    
-    const averageScore = qualityScore / (totalFacts * 3);
-    
-    if (averageScore > 0.8) return 'high';
-    if (averageScore > 0.5) return 'medium';
-    return 'low';
-  }
-  
-  /**
-   * Get template configuration for a state
-   */
-  getTemplateConfig(stateCode) {
-    const template = this.getTemplate(stateCode);
-    return template.getTemplateConfig();
+      return {
+        success: true,
+        sections,
+        validation,
+        metadata: {
+          state: stateCode,
+          stateName: template.stateName,
+          wordCount: template.calculateWordCount(affidavitData.facts),
+          factCount: affidavitData.facts?.length || 0,
+          categories: template.extractCategories(affidavitData.facts),
+          generatedAt: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      logger.error('Preview generation failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        sections: {},
+        validation: {
+          isValid: false,
+          errors: ['Preview generation failed'],
+          warnings: []
+        }
+      };
+    }
   }
 }
 

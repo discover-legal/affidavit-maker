@@ -1,0 +1,74 @@
+// routes/factRoutes.js - NEW: On-demand professional rewrite endpoint
+
+const express = require('express');
+const router = express.Router();
+const { authenticateOptional } = require('../middleware/auth');
+const { validateInput } = require('../middleware/validation');
+const logger = require('../utils/logger');
+
+/**
+ * POST /api/facts/rewrite
+ * Generate professional rewrite for a single fact on-demand
+ */
+router.post('/rewrite', authenticateOptional, async (req, res) => {
+  try {
+    const { fact, context } = req.body;
+
+    // Validate input
+    if (!fact || !fact.content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Fact content is required'
+      });
+    }
+
+    if (fact.content.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Fact is too long (maximum 1000 characters)'
+      });
+    }
+
+    // Get affidavit service
+    const affidavitService = global.affidavitService;
+    if (!affidavitService) {
+      return res.status(503).json({
+        success: false,
+        error: 'Rewrite service temporarily unavailable'
+      });
+    }
+
+    // Generate professional rewrite
+    const professionalRewrite = await affidavitService.generateProfessionalRewrite(
+      fact,
+      context || {}
+    );
+
+    logger.info('Professional rewrite generated', {
+      userId: req.user?.id || 'anonymous',
+      factLength: fact.content.length,
+      rewriteLength: professionalRewrite.length,
+      category: fact.category
+    });
+
+    return res.json({
+      success: true,
+      professionalRewrite,
+      original: fact.content,
+      category: fact.category
+    });
+
+  } catch (error) {
+    logger.error('Professional rewrite failed:', {
+      error: error.message,
+      userId: req.user?.id || 'anonymous'
+    });
+
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate professional rewrite'
+    });
+  }
+});
+
+module.exports = router;

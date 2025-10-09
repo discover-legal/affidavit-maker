@@ -1,5 +1,5 @@
-// services/previewService.js - Enhanced preview generation
-// FIXED: Removed duplicate county validation (now handled by templates)
+// services/previewService.js - FIXED: No duplicate county validation
+
 const { StateTemplateManager } = require('../templates/StateTemplateManager');
 
 class PreviewService {
@@ -11,7 +11,7 @@ class PreviewService {
     const errors = [];
     const warnings = [];
 
-    // Required field validation
+    // Required field validation (basic fields only)
     if (!affidavitData.affiantName || affidavitData.affiantName.trim().length < 2) {
       errors.push('Affiant name is required and must be at least 2 characters');
     }
@@ -20,7 +20,8 @@ class PreviewService {
       errors.push('State selection is required');
     }
 
-    // ✅ REMOVED: Duplicate county validation - now handled by state-specific templates
+    // ✅ REMOVED: Duplicate county validation
+    // County validation is ONLY done in state-specific templates via performStateSpecificValidation
 
     // Facts validation
     if (!affidavitData.facts || affidavitData.facts.length === 0) {
@@ -44,39 +45,121 @@ class PreviewService {
       }
     }
 
-    // County format validation (but not requirement check)
+    // County format validation (but not requirement check - that's in templates)
     if (affidavitData.county && affidavitData.county.length > 100) {
       errors.push('County name is too long (maximum 100 characters)');
     }
 
-    // ✅ ADD: State-specific validation from template
-    const stateValidation = template.performStateSpecificValidation(affidavitData);
-    if (stateValidation.errors) {
-      errors.push(...stateValidation.errors);
-    }
-    if (stateValidation.warnings) {
-      warnings.push(...stateValidation.warnings);
+    // ✅ State-specific validation from template (includes county requirement)
+    if (template) {
+      const stateValidation = template.performStateSpecificValidation(affidavitData);
+      if (stateValidation.errors) {
+        errors.push(...stateValidation.errors);
+      }
+      if (stateValidation.warnings) {
+        warnings.push(...stateValidation.warnings);
+      }
     }
 
     return {
       isValid: errors.length === 0,
       errors,
       warnings,
-      completion: this.calculateCompletion(affidavitData)
+      completion: this.calculateCompletion(affidavitData, template)
     };
   }
 
-  calculateCompletion(affidavitData) {
-    const requiredFields = ['affiantName', 'state', 'facts'];
-    const completedFields = requiredFields.filter(field => {
+  calculateCompletion(affidavitData, template) {
+    // Get required fields from template
+    const requiredFields = template ? template.requiredFields : ['affiantName', 'state', 'facts'];
+    
+    let completedCount = 0;
+    
+    // Check each required field
+    requiredFields.forEach(field => {
       const value = affidavitData[field];
-      return value && (Array.isArray(value) ? value.length > 0 : value.trim().length > 0);
+      if (value) {
+        if (Array.isArray(value)) {
+          if (value.length > 0) completedCount++;
+        } else if (typeof value === 'string') {
+          if (value.trim().length > 0) completedCount++;
+        } else {
+          completedCount++;
+        }
+      }
     });
 
-    return Math.round((completedFields.length / requiredFields.length) * 100);
+    return Math.round((completedCount / requiredFields.length) * 100);
   }
 
-  // ... rest of the PreviewService methods remain unchanged
+  async generatePreview(affidavitData) {
+    try {
+      // Get appropriate template
+      const template = this.templateManager.getTemplate(affidavitData.state);
+      
+      // Validate document
+      const validation = this.validateDocument(affidavitData, template);
+      
+      // Generate document sections
+      const document = template.generateDocument(affidavitData);
+      
+      return {
+        success: true,
+        htmlPreview: document.htmlContent,
+        validation: validation,
+        sections: document.sections,
+        wordCount: template.calculateWordCount(affidavitData.facts),
+        categories: template.extractCategories(affidavitData.facts)
+      };
+      
+    } catch (error) {
+      console.error('Preview generation failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        htmlPreview: '<p>Error generating preview</p>',
+        validation: {
+          isValid: false,
+          errors: ['Preview generation failed'],
+          warnings: [],
+          completion: 0
+        }
+      };
+    }
+  }
+
+  async generatePDF(affidavitData) {
+    try {
+      const template = this.templateManager.getTemplate(affidavitData.state);
+      const document = template.generateDocument(affidavitData);
+      
+      // Validate before PDF generation
+      const validation = this.validateDocument(affidavitData, template);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: 'Document validation failed',
+          errors: validation.errors
+        };
+      }
+      
+      // PDF generation logic here
+      // (Implementation depends on your PDF library)
+      
+      return {
+        success: true,
+        pdfBuffer: null, // Replace with actual PDF buffer
+        filename: `affidavit_${affidavitData.affiantName.replace(/\s+/g, '_')}.pdf`
+      };
+      
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = PreviewService;

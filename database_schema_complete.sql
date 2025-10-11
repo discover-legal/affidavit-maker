@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 -- Activity logs table - tracks user actions for analytics and debugging
+-- NOTE: Retention policy: 90 days. Run cleanup_old_activity_logs() regularly to prevent table bloat.
+-- Use 'npm run db:cleanup' or schedule as a cron job: 0 2 * * * cd /path/to/app && npm run db:cleanup
 CREATE TABLE IF NOT EXISTS activity_logs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -461,6 +463,11 @@ ORDER BY al.created_at DESC;
 -- ============================================
 -- CLEANUP PROCEDURES
 -- ============================================
+-- These functions should be called regularly to prevent database bloat.
+-- Recommended: Schedule via cron job daily at 2 AM:
+--   0 2 * * * cd /path/to/affidavit-maker && npm run db:cleanup
+-- Or use a database scheduler like pg_cron:
+--   SELECT cron.schedule('cleanup-logs', '0 2 * * *', 'SELECT cleanup_old_activity_logs(); SELECT cleanup_expired_sessions();');
 
 -- Function to clean up old sessions
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
@@ -475,6 +482,8 @@ END;
 $ LANGUAGE plpgsql;
 
 -- Function to clean up old activity logs (keep last 90 days)
+-- This prevents the activity_logs table from growing indefinitely
+-- IP addresses and user agents are stored here, so regular cleanup is critical
 CREATE OR REPLACE FUNCTION cleanup_old_activity_logs()
 RETURNS INTEGER AS $
 DECLARE

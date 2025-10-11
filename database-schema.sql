@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 -- Activity logs table - tracks user actions for analytics and debugging
+-- NOTE: Retention policy: 90 days. Run cleanup_old_activity_logs() regularly to prevent table bloat.
+-- Use 'npm run db:cleanup' or schedule as a cron job: 0 2 * * * cd /path/to/app && npm run db:cleanup
 CREATE TABLE IF NOT EXISTS activity_logs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,

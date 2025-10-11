@@ -16,6 +16,7 @@
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
+    "db:cleanup": "node scripts/cleanDatabase.js",
     "monitor": "node scripts/monitor.js",
     "analyze": "node scripts/analyze-bundle.js"
   },

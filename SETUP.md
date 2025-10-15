@@ -180,7 +180,16 @@ npm run test:e2e
    
    # Run migrations
    NODE_ENV=production node scripts/migrate.js
+   
+   # Set up automated database cleanup (IMPORTANT)
+   # Add to crontab to prevent activity_logs table from growing too large
+   sudo crontab -e
+   # Add this line:
+   # 0 2 * * * cd /var/www/affidavit-maker && npm run db:cleanup >> /var/log/affidavit-cleanup.log 2>&1
    ```
+   
+   > **Note**: The activity_logs table stores IP addresses and can grow large over time. 
+   > See [DATABASE_CLEANUP.md](./DATABASE_CLEANUP.md) for detailed cleanup configuration options.
 
 4. **Configure Nginx**
    ```bash
@@ -272,11 +281,20 @@ LIMIT 10;
 -- Monitor connections
 SELECT count(*) FROM pg_stat_activity;
 
--- Check table sizes
+-- Check table sizes (monitor activity_logs growth)
 SELECT relname, pg_size_pretty(pg_total_relation_size(relid))
 FROM pg_stat_user_tables
 ORDER BY pg_total_relation_size(relid) DESC;
+
+-- Check oldest activity log entry (should be ~90 days old if cleanup is working)
+SELECT MIN(created_at) as oldest_log, 
+       MAX(created_at) as newest_log,
+       COUNT(*) as total_logs 
+FROM activity_logs;
 ```
+
+**Important**: Monitor the `activity_logs` table size regularly. If it grows beyond expected 
+levels, verify that the automated cleanup is running correctly. See [DATABASE_CLEANUP.md](./DATABASE_CLEANUP.md).
 
 ### Health Checks
 

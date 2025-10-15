@@ -1,5 +1,6 @@
-// client/src/views/EditorView.js - Updated with 35/35/30 proportions
+// client/src/views/EditorView.js - FIXED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
@@ -23,10 +24,8 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
       const deltaPercentage = (deltaX / containerWidth) * 100;
       
       if (position === 'between-chat-preview') {
-        // Resizing between chat and preview
         onResize(deltaPercentage, 'chat-preview');
       } else if (position === 'between-preview-validation') {
-        // Resizing between preview and validation
         onResize(deltaPercentage, 'preview-validation');
       }
     };
@@ -59,8 +58,9 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 };
 
 // Main Editor View Component with 35/35/30 proportions
-const EditorView = ({ existingDocument = null, onBack }) => {
+const EditorView = ({ isNew = false, onBack }) => {
   const { isAuthenticated } = useAuth0();
+  const { documentId } = useParams(); // ✅ Get documentId from URL
   
   // Layout state with new proportions (35/35/30)
   const [chatWidth, setChatWidth] = useState(35);
@@ -69,6 +69,7 @@ const EditorView = ({ existingDocument = null, onBack }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [activePanel, setActivePanel] = useState('chat');
   const [isMobileView, setIsMobileView] = useState(false);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
   
   // Use DocumentContext for all document-related state
   const { 
@@ -77,15 +78,12 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     isPreviewLoading, 
     isSaving,
     lastSaved,
-    hasUnsavedChanges,
-    isValidating,
-    validation
+    hasUnsavedChanges
   } = useDocumentState();
   
   const { 
     saveDocument, 
     loadDocument,
-    selectDocument,
     createNewDocument
   } = useDocumentActions();
 
@@ -100,23 +98,58 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Load existing document if provided
+  // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
-    if (existingDocument?.id) {
-      loadDocument(existingDocument.id);
-    } else if (existingDocument) {
-      selectDocument(existingDocument);
+    console.log('📂 Loading document from URL:', documentId);
+    
+    // Reset session when documentId changes
+    if (sessionInitialized && documentId && currentDocument.documentId?.toString() !== documentId) {
+      console.log('🔄 Document ID changed, resetting session');
+      setSessionInitialized(false);
     }
-  }, [existingDocument, loadDocument, selectDocument]);
+    
+    // Initialize session based on route
+    const initializeSession = async () => {
+      if (sessionInitialized) {
+        console.log('✅ Session already initialized with document:', currentDocument.documentId);
+        return;
+      }
+
+      if (isNew) {
+        // Creating a new document
+        console.log('📝 Creating new document');
+        await createNewDocument();
+        setSessionInitialized(true);
+      } else if (documentId && isAuthenticated) {
+        // Loading existing document from URL
+        console.log('📂 Loading existing document:', documentId);
+        try {
+          await loadDocument(documentId);
+          setSessionInitialized(true);
+          console.log('✅ Document loaded:', documentId);
+        } catch (error) {
+          console.error('❌ Failed to load document:', error);
+        }
+      }
+    };
+
+    initializeSession();
+    
+    // ✅ CRITICAL: Cleanup when documentId changes
+    return () => {
+      if (documentId && currentDocument.documentId?.toString() !== documentId) {
+        console.log('🧹 Cleaning up old document session');
+        setSessionInitialized(false);
+      }
+    };
+  }, [documentId, isNew, isAuthenticated, loadDocument, createNewDocument, sessionInitialized, currentDocument.documentId]);
 
   // Handle pane resizing with constraints
   const handlePaneResize = useCallback((deltaPercentage, resizeType) => {
     if (resizeType === 'chat-preview') {
-      // Resizing between chat and preview panels
       const newChatWidth = Math.max(20, Math.min(50, chatWidth + deltaPercentage));
       const newPreviewWidth = Math.max(20, Math.min(50, previewWidth - deltaPercentage));
       
-      // Ensure total doesn't exceed available space (100 - validation width)
       const availableSpace = 100 - validationWidth;
       const totalNewWidth = newChatWidth + newPreviewWidth;
       
@@ -125,11 +158,9 @@ const EditorView = ({ existingDocument = null, onBack }) => {
         setPreviewWidth(newPreviewWidth);
       }
     } else if (resizeType === 'preview-validation') {
-      // Resizing between preview and validation panels
       const newPreviewWidth = Math.max(20, Math.min(50, previewWidth + deltaPercentage));
       const newValidationWidth = Math.max(20, Math.min(50, validationWidth - deltaPercentage));
       
-      // Ensure total doesn't exceed available space (100 - chat width)
       const availableSpace = 100 - chatWidth;
       const totalNewWidth = newPreviewWidth + newValidationWidth;
       
@@ -150,7 +181,7 @@ const EditorView = ({ existingDocument = null, onBack }) => {
     try {
       const documentId = await saveDocument();
       if (documentId) {
-        console.log('Document saved with ID:', documentId);
+        console.log('✅ Document saved:', documentId);
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -294,7 +325,7 @@ const EditorView = ({ existingDocument = null, onBack }) => {
             <div className="flex items-center">
               <Gavel className="h-6 w-6 text-blue-600 mr-2" />
               <h1 className="text-xl font-semibold">
-                {existingDocument ? 'Edit Affidavit' : 'New Affidavit'}
+                {isNew ? 'New Affidavit' : 'Edit Affidavit'}
               </h1>
             </div>
           </div>
@@ -351,10 +382,10 @@ const EditorView = ({ existingDocument = null, onBack }) => {
             </div>
           )}
           
-          {/* Current proportions indicator (for debugging) */}
-          {!isMobileView && (
+          {/* Current document ID (for debugging) */}
+          {!isMobileView && documentId && (
             <div className="text-xs text-gray-400 ml-auto">
-              Layout: {Math.round(chatWidth)}% | {Math.round(previewWidth)}% | {Math.round(validationWidth)}%
+              Doc ID: {documentId} | Layout: {Math.round(chatWidth)}% | {Math.round(previewWidth)}% | {Math.round(validationWidth)}%
             </div>
           )}
         </div>

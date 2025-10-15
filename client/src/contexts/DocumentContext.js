@@ -1,4 +1,4 @@
-// client/src/contexts/DocumentContext.js - COMPLETE DROP-IN REPLACEMENT
+// client/src/contexts/DocumentContext.js - CLEAN ARCHITECTURE
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -28,6 +28,9 @@ const initialState = {
   isPreviewLoading: false,
   isDocumentsLoading: false,
   
+  // Session state
+  sessionInitialized: false,
+  
   // Metadata
   lastSaved: null,
   error: null,
@@ -49,6 +52,7 @@ const ActionTypes = {
   SET_ERROR: 'SET_ERROR',
   SET_VALIDATION: 'SET_VALIDATION',
   SET_UNSAVED_CHANGES: 'SET_UNSAVED_CHANGES',
+  SET_SESSION_INITIALIZED: 'SET_SESSION_INITIALIZED',
   RESET_DOCUMENT: 'RESET_DOCUMENT',
   SELECT_DOCUMENT: 'SELECT_DOCUMENT'
 };
@@ -64,11 +68,21 @@ const documentReducer = (state, action) => {
       };
     
     case ActionTypes.UPDATE_DOCUMENT_DATA:
+      // ✅ CRITICAL: documentId is immutable - never allow it to be overwritten
+      const updates = { ...action.payload };
+      
+      // Remove documentId from updates if it's null/undefined
+      if (updates.documentId === null || updates.documentId === undefined) {
+        delete updates.documentId;
+      }
+      
       return {
         ...state,
         currentDocument: {
           ...state.currentDocument,
-          ...action.payload
+          ...updates,
+          // Preserve existing documentId
+          documentId: state.currentDocument.documentId
         },
         error: null,
         hasUnsavedChanges: true
@@ -143,6 +157,12 @@ const documentReducer = (state, action) => {
         hasUnsavedChanges: action.payload
       };
     
+    case ActionTypes.SET_SESSION_INITIALIZED:
+      return {
+        ...state,
+        sessionInitialized: action.payload
+      };
+    
     case ActionTypes.RESET_DOCUMENT:
       return {
         ...state,
@@ -150,7 +170,8 @@ const documentReducer = (state, action) => {
         preview: null,
         validation: null,
         error: null,
-        hasUnsavedChanges: false
+        hasUnsavedChanges: false,
+        sessionInitialized: false
       };
     
     case ActionTypes.SELECT_DOCUMENT:
@@ -160,7 +181,8 @@ const documentReducer = (state, action) => {
         preview: null,
         validation: null,
         error: null,
-        hasUnsavedChanges: false
+        hasUnsavedChanges: false,
+        sessionInitialized: true // Existing document = initialized
       };
     
     default:
@@ -173,7 +195,7 @@ const DocumentContext = createContext();
 const DocumentDispatchContext = createContext();
 
 /**
- * ✅ Document Provider Component - FIXED with save functionality
+ * ✅ Document Provider Component - CLEAN ARCHITECTURE
  */
 export const DocumentProvider = ({ children }) => {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -242,10 +264,26 @@ export const DocumentProvider = ({ children }) => {
       const data = await authFetch(`/api/documents/${documentId}`);
       
       if (data.success && data.document) {
+        console.log('📂 Document loaded:', documentId);
+        
+        // Parse the document content
+        let documentContent = {};
+        
+        if (data.document.content) {
+          try {
+            documentContent = typeof data.document.content === 'string' 
+              ? JSON.parse(data.document.content) 
+              : data.document.content;
+          } catch (e) {
+            console.error('Failed to parse document content:', e);
+            documentContent = data.document.content;
+          }
+        }
+        
         dispatch({ 
-          type: ActionTypes.SET_DOCUMENT_DATA, 
+          type: ActionTypes.SELECT_DOCUMENT, 
           payload: {
-            ...data.document.content,
+            ...documentContent,
             documentId: data.document.id
           }
         });
@@ -263,10 +301,96 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [authFetch]);
 
-  // ✅ Save document functionality
+  // ✅ NEW: Initialize a new document session
+  const initializeNewDocument = useCallback(async () => {
+    if (!isAuthenticated) {
+      console.warn('Cannot initialize document: User not authenticated');
+      return null;
+    }
+
+    // ✅ CRITICAL: Only initialize if truly new (no documentId exists)
+    if (state.currentDocument.documentId) {
+      console.log('📄 Document already exists:', state.currentDocument.documentId);
+      if (!state.sessionInitialized) {
+        dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });
+      }
+      return state.currentDocument.documentId;
+    }
+
+    try {
+      console.log('📄 Creating new document...');
+      dispatch({ type: ActionTypes.SET_SAVING, payload: true });
+      
+      // Create empty document
+      const payload = {
+        affidavitData: {
+          state: '',
+          affiantName: '',
+          caseNumber: '',
+          county: '',
+          caseType: '',
+          documentType: 'general',
+          facts: []
+        },
+        title: 'Untitled Affidavit',
+        content: JSON.stringify({
+          state: '',
+          affiantName: '',
+          facts: []
+        })
+      };
+      
+      const data = await authFetch('/api/documents/save', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      
+      if (data.success && data.document?.id) {
+        const documentId = data.document.id;
+        
+        console.log('📄 New document created:', documentId);
+        
+        // Set the document ID
+        dispatch({
+          type: ActionTypes.SET_DOCUMENT_DATA,
+          payload: {
+            ...data.document.affidavitData,
+            documentId
+          }
+        });
+        
+        dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });
+        dispatch({ type: ActionTypes.SET_LAST_SAVED, payload: new Date() });
+        
+        // Reload documents list
+        loadDocuments();
+        
+        return documentId;
+      } else {
+        throw new Error('Failed to create document');
+      }
+    } catch (error) {
+      console.error('Failed to initialize document:', error);
+      dispatch({ 
+        type: ActionTypes.SET_ERROR, 
+        payload: 'Failed to create document: ' + error.message 
+      });
+      throw error;
+    } finally {
+      dispatch({ type: ActionTypes.SET_SAVING, payload: false });
+    }
+  }, [authFetch, isAuthenticated, state.currentDocument, state.sessionInitialized, loadDocuments]);
+
+  // ✅ SIMPLIFIED: Save document (always updates existing)
   const saveDocument = useCallback(async (documentData = null) => {
     if (!isAuthenticated) {
       throw new Error('Authentication required to save documents');
+    }
+
+    const documentId = state.currentDocument.documentId;
+    
+    if (!documentId) {
+      throw new Error('No document ID - session not initialized');
     }
 
     try {
@@ -275,49 +399,37 @@ export const DocumentProvider = ({ children }) => {
       // Merge current document with any provided data
       const fullDocumentData = {
         ...state.currentDocument,
-        ...(documentData || {})
+        ...(documentData || {}),
+        documentId // Always include the ID
       };
       
-      // ✅ FIX: Transform the payload to match backend expectations
+      console.log('💾 Saving document:', documentId);
+      
+      // Build payload
       const payload = {
-        // Extract document ID
-        documentId: fullDocumentData.documentId || null,
-        
-        // Create a title from available data
-        title: fullDocumentData.title || 
-              fullDocumentData.caseTitle ||
-              (fullDocumentData.affiantName ? `Affidavit of ${fullDocumentData.affiantName}` : null) ||
-              (fullDocumentData.caseNumber ? `Case ${fullDocumentData.caseNumber}` : null) ||
-              'Untitled Affidavit',
-        
-        // Serialize the full document data as content
-        content: JSON.stringify(fullDocumentData),
-        
-        // Include any additional fields the backend might expect
-        facts: fullDocumentData.facts || [],
-        state: fullDocumentData.state || '',
-        affiantName: fullDocumentData.affiantName || '',
-        caseNumber: fullDocumentData.caseNumber || '',
-        documentType: fullDocumentData.documentType || 'general'
+        affidavitData: {
+          state: fullDocumentData.state || '',
+          affiantName: fullDocumentData.affiantName || '',
+          caseNumber: fullDocumentData.caseNumber || '',
+          county: fullDocumentData.county || '',
+          caseType: fullDocumentData.caseType || '',
+          documentType: fullDocumentData.documentType || 'general',
+          facts: fullDocumentData.facts || [],
+          documentId // Include for backend to know it's an update
+        },
+        title: fullDocumentData.affiantName 
+          ? `Affidavit of ${fullDocumentData.affiantName}` 
+          : 'Untitled Affidavit',
+        content: JSON.stringify(fullDocumentData)
       };
-      
-      console.log('💾 Saving document with transformed payload:', payload);
       
       const data = await authFetch('/api/documents/save', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       
-      console.log('💾 Save response:', data);
-      
-      if (data.success && data.documentId) {
-        // Update document ID if it's a new document
-        if (!state.currentDocument.documentId) {
-          dispatch({
-            type: ActionTypes.UPDATE_DOCUMENT_DATA,
-            payload: { documentId: data.documentId }
-          });
-        }
+      if (data.success) {
+        console.log('💾 Document saved successfully');
         
         dispatch({ 
           type: ActionTypes.SET_LAST_SAVED, 
@@ -335,7 +447,7 @@ export const DocumentProvider = ({ children }) => {
         // Reload documents list
         loadDocuments();
         
-        return data.documentId;
+        return documentId;
       } else {
         throw new Error(data.error || 'Save failed');
       }
@@ -362,6 +474,7 @@ export const DocumentProvider = ({ children }) => {
     const timer = setTimeout(() => {
       if (isAuthenticated && 
           state.hasUnsavedChanges &&
+          state.currentDocument.documentId &&
           (state.currentDocument.affiantName || 
            state.currentDocument.state || 
            (state.currentDocument.facts && state.currentDocument.facts.length > 0))) {
@@ -369,7 +482,6 @@ export const DocumentProvider = ({ children }) => {
         console.log('⏰ Auto-saving document...');
         saveDocument().catch(error => {
           console.log('⏰ Auto-save failed:', error.message);
-          // Don't show error to user for auto-save failures
         });
       }
     }, 30000); // Auto-save after 30 seconds of inactivity
@@ -400,7 +512,6 @@ export const DocumentProvider = ({ children }) => {
           payload: data.preview 
         });
         
-        // Update validation if available
         if (data.validation) {
           dispatch({ 
             type: ActionTypes.SET_VALIDATION, 
@@ -449,7 +560,7 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [authFetch, state.currentDocument]);
 
-  // Create new document
+  // Create new document (resets state)
   const createNewDocument = useCallback(() => {
     dispatch({ type: ActionTypes.RESET_DOCUMENT });
   }, []);
@@ -465,13 +576,14 @@ export const DocumentProvider = ({ children }) => {
         }
       });
       
-      // Generate preview
       generatePreview(document.content);
     }
   }, [generatePreview]);
 
-  // ✅ Update document data with auto-save scheduling
+  // ✅ SIMPLIFIED: Update document data (never touches documentId)
   const updateDocumentData = useCallback((data) => {
+    console.log('📝 Updating document data');
+    
     dispatch({ 
       type: ActionTypes.UPDATE_DOCUMENT_DATA, 
       payload: data 
@@ -480,7 +592,7 @@ export const DocumentProvider = ({ children }) => {
     // Schedule auto-save
     scheduleAutoSave();
     
-    // Generate preview after a short delay for better UX
+    // Generate preview after a short delay
     const debounceTimer = setTimeout(() => {
       generatePreview(data);
     }, 500);
@@ -515,7 +627,8 @@ export const DocumentProvider = ({ children }) => {
           validateDocument,
           createNewDocument,
           selectDocument,
-          updateDocumentData
+          updateDocumentData,
+          initializeNewDocument // ✅ NEW
         }}
       >
         {children}
@@ -527,3 +640,6 @@ export const DocumentProvider = ({ children }) => {
 // Custom hooks for using the context
 export const useDocumentState = () => useContext(DocumentContext);
 export const useDocumentActions = () => useContext(DocumentDispatchContext);
+
+// Export for testing
+export { ActionTypes };

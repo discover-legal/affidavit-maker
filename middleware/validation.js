@@ -457,10 +457,10 @@ const validatePayment = [
     .custom((value) => value === 'new' || /^\d+$/.test(value))
     .withMessage('Invalid document ID'),
     
+  // SECURITY: Do NOT accept amount from client - it is determined server-side
   body('amount')
-    .optional()
-    .isInt({ min: LIMITS.PAYMENT_MIN_CENTS, max: LIMITS.PAYMENT_MAX_CENTS })
-    .withMessage(`Invalid payment amount (must be between $${LIMITS.PAYMENT_MIN_CENTS/100} and $${LIMITS.PAYMENT_MAX_CENTS/100})`),
+    .not().exists()
+    .withMessage('Amount cannot be provided by client - it is determined server-side'),
   
   checkValidationResult
 ];

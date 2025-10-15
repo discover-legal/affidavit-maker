@@ -19,6 +19,13 @@ try {
   });
 }
 
+// Server-side pricing configuration - DO NOT expose to client or accept from client
+const PRICING_CONFIG = {
+  single_affidavit: 3999, // $39.99 in cents
+  family_law_package: 11999, // $119.99 for 5 documents
+  all_state_access: 19999 // $199.99 for unlimited
+};
+
 /**
  * Middleware to check if Stripe is configured
  */
@@ -42,14 +49,12 @@ router.post('/create-intent',
   auth0Middleware,
   validatePayment,
   asyncHandler(async (req, res) => {
-    const { documentId, amount = 999 } = req.body; // Default $9.99 in cents
+    const { documentId, documentType } = req.body;
     const userId = req.user.id;
     const pool = req.app.locals.pool;
 
-    // Validate amount is within acceptable range
-    if (amount < 999 || amount > 99999) { // $9.99 to $999.99
-      throw new ValidationError('Invalid payment amount');
-    }
+    // SECURITY: Determine amount server-side based on documentType - never trust client
+    const amount = PRICING_CONFIG[documentType] || PRICING_CONFIG.single_affidavit;
 
     // If documentId provided, verify ownership
     if (documentId) {
@@ -74,6 +79,7 @@ router.post('/create-intent',
         metadata: {
           userId: userId.toString(),
           documentId: documentId?.toString() || 'new',
+          documentType: documentType,
           userEmail: req.user.email || 'unknown'
         },
         // Add receipt email if available
@@ -94,6 +100,7 @@ router.post('/create-intent',
           'pending',
           JSON.stringify({
             documentId,
+            documentType,
             clientSecret: paymentIntent.client_secret.substring(0, 20) + '...' // Store partial for reference
           })
         ]
@@ -103,6 +110,7 @@ router.post('/create-intent',
         paymentIntentId: paymentIntent.id,
         amount,
         documentId,
+        documentType,
         currency: 'usd'
       });
 
@@ -118,7 +126,8 @@ router.post('/create-intent',
         type: 'stripe_payment_intent_creation_failed',
         userId,
         amount,
-        documentId
+        documentId,
+        documentType
       }, req.id);
 
       // Don't expose Stripe error details to client
@@ -413,5 +422,37 @@ router.post('/cancel/:paymentIntentId',
     }
   })
 );
+
+/**
+ * Get pricing information
+ */
+router.get('/pricing', (req, res) => {
+  res.json({
+    success: true,
+    pricing: {
+      single_affidavit: {
+        name: 'Single Affidavit',
+        price: PRICING_CONFIG.single_affidavit / 100,
+        priceCents: PRICING_CONFIG.single_affidavit,
+        currency: 'USD',
+        description: 'Generate one professional affidavit document'
+      },
+      family_law_package: {
+        name: 'Family Law Package',
+        price: PRICING_CONFIG.family_law_package / 100,
+        priceCents: PRICING_CONFIG.family_law_package,
+        currency: 'USD',
+        description: 'Generate up to 5 family law documents'
+      },
+      all_state_access: {
+        name: 'All State Access',
+        price: PRICING_CONFIG.all_state_access / 100,
+        priceCents: PRICING_CONFIG.all_state_access,
+        currency: 'USD',
+        description: 'Unlimited documents for all supported states for 30 days'
+      }
+    }
+  });
+});
 
 module.exports = router;

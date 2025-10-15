@@ -171,13 +171,13 @@ jest.mock('openai', () => {
   };
 });
 
-// Fix nodemailer mock
-jest.mock('nodemailer', () => ({
-  createTransport: jest.fn().mockReturnValue({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
-    verify: jest.fn().mockResolvedValue(true),
-  }),
-}));
+// Fix nodemailer mock - comment out if nodemailer is not installed
+// jest.mock('nodemailer', () => ({
+//   createTransport: jest.fn().mockReturnValue({
+//     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
+//     verify: jest.fn().mockResolvedValue(true),
+//   }),
+// }));
 
 // Suppress console logs during tests
 global.console = {

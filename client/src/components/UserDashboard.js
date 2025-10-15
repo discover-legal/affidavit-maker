@@ -1,32 +1,40 @@
+// client/src/components/UserDashboard.js - FIXED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { 
-    PlusCircle, Loader2, FileText, AlertTriangle, Trash2, Edit, Check, X,
-    AlertCircle, Scale 
-} from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Scale, Gavel, FolderOpen } from 'lucide-react';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
-  const { getAccessTokenSilently, isLoading, isAuthenticated, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently, loginWithRedirect, isLoading } = useAuth0();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // State for the new inline rename functionality
   const [renamingDocId, setRenamingDocId] = useState(null);
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
+  // Fetch documents
   const fetchDocuments = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      setLoading(true);
       const token = await getAccessTokenSilently();
       const response = await fetch(`${API_BASE}/api/documents`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!response.ok) throw new Error('Failed to fetch documents.');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          loginWithRedirect();
+          return;
+        }
+        throw new Error(`Failed to fetch documents: ${response.status}`);
+      }
+      
       const data = await response.json();
       setDocuments(data.documents || []);
     } catch (err) {
@@ -43,27 +51,36 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     }
   }, [isAuthenticated, isLoading, fetchDocuments]);
 
-  const handleDelete = async (docId) => {
+  // ✅ FIXED: Delete handler now properly uses the hook
+  const handleDeleteDocument = async (docId) => {
     if (!window.confirm('Are you sure you want to permanently delete this affidavit?')) return;
+    
+    console.log('🗑️ Attempting to delete document:', docId);
+    
     try {
+      // ✅ This is correct - calling the hook at component level, not inside nested function
       const token = await getAccessTokenSilently();
+      
       const response = await fetch(`${API_BASE}/api/documents/${docId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       if (response.ok) {
+        console.log('✅ Document deleted successfully:', docId);
         setDocuments(prev => prev.filter(doc => doc.id !== docId));
       } else {
         const errData = await response.json();
+        console.error('❌ Delete failed:', errData);
         alert(`Failed to delete document: ${errData.error}`);
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('❌ Delete failed:', error);
+      alert(`Error deleting document: ${error.message}`);
     }
   };
 
-  // --- Corrected Inline Rename Functions ---
-
+  // Rename handlers
   const startRename = (doc) => {
     setRenamingDocId(doc.id);
     setNewName(doc.affiantName || `Affidavit #${doc.id}`);
@@ -93,7 +110,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       } else {
         const errData = await response.json();
         alert(`Failed to rename document: ${errData.details ? errData.details[0].message : errData.error}`);
-        // Keep editing mode active on failure so user can correct the name
       }
     } catch (error) {
       console.error('Rename error:', error);
@@ -102,9 +118,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       setIsSubmittingRename(false);
     }
   };
-  
-  const getStatusColor = (status) => {
-    // ... (same as before)
+
+  const handleContinueDocument = (doc) => {
+    console.log('📂 Opening document:', doc.id);
+    onContinueDocument(doc);
   };
 
   if (loading || isLoading) {
@@ -116,100 +133,178 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     );
   }
 
-  // ... (rest of the component's JSX for loading and error states)
+  if (error) {
+    return (
+      <div className="text-center p-10">
+        <p className="text-red-600 mb-4">Error: {error}</p>
+        <button onClick={fetchDocuments} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-            <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
+        <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
+      </div>
+
+      {/* ✅ RESTORED: Three Feature Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Active: Create New Affidavit */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <FileText className="h-8 w-8 text-blue-600" />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Available Now</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Create New Affidavit</h3>
+            <p className="text-sm text-gray-600">Our AI assistant will guide you through the entire process, ensuring state-specific compliance.</p>
+          </div>
+          <button 
+            onClick={onNewDocument} 
+            className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-semibold"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Get Started
+          </button>
         </div>
 
-        {/* --- Feature Cards --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-sm border p-6 flex flex-col justify-between">
-                <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <FileText className="h-8 w-8 text-blue-600" />
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Start Here</span>
+        {/* Coming Soon: Document Templates */}
+        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
+          <div className="flex items-center justify-between mb-4">
+            <FolderOpen className="h-8 w-8 text-gray-400" />
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+          </div>
+          <h3 className="font-semibold text-gray-600 mb-2">Document Templates</h3>
+          <p className="text-sm text-gray-500">Access a library of pre-filled templates for common family law scenarios. Save time with ready-to-use formats.</p>
+          <button 
+            disabled 
+            className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
+          >
+            Coming Soon
+          </button>
+        </div>
+
+        {/* Coming Soon: Motion & Declaration Forms */}
+        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
+          <div className="flex items-center justify-between mb-4">
+            <Gavel className="h-8 w-8 text-gray-400" />
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+          </div>
+          <h3 className="font-semibold text-gray-600 mb-2">Motion & Declaration Forms</h3>
+          <p className="text-sm text-gray-500">Create court motions, declarations, and other legal documents with the same AI-powered assistance.</p>
+          <button 
+            disabled 
+            className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
+          >
+            Coming Soon
+          </button>
+        </div>
+      </div>
+
+      {/* Existing Documents List */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="px-6 py-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Your Documents</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {documents.length === 0 ? 'No documents yet' : `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
+
+        {documents.length === 0 ? (
+          <div className="p-12 text-center">
+            <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 mb-4">You haven't created any documents yet</p>
+            <button 
+              onClick={onNewDocument}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Your First Affidavit
+            </button>
+          </div>
+        ) : (
+          <ul className="divide-y">
+            {documents.map((doc) => (
+              <li key={doc.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    {renamingDocId === doc.id ? (
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') submitRename(doc.id);
+                            if (e.key === 'Escape') cancelRename();
+                          }}
+                          className="flex-1 px-3 py-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          disabled={isSubmittingRename}
+                        />
+                        <button 
+                          onClick={() => submitRename(doc.id)} 
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-full" 
+                          disabled={isSubmittingRename}
+                        >
+                          {isSubmittingRename ? <Loader2 className="h-5 w-5 animate-spin"/> : <Check className="h-5 w-5"/>}
+                        </button>
+                        <button 
+                          onClick={cancelRename} 
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-full" 
+                          disabled={isSubmittingRename}
+                        >
+                          <X className="h-5 w-5"/>
+                        </button>
+                      </div>
+                    ) : (
+                      <h4 
+                        className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline" 
+                        title="Click to edit" 
+                        onClick={() => startRename(doc)}
+                      >
+                        {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
+                      </h4>
+                    )}
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <span>State: <span className='font-medium'>{doc.state || 'N/A'}</span></span>
+                      <span>Facts: <span className='font-medium'>{doc.facts?.length || 0}</span></span>
+                      <span className="text-xs text-gray-400">
+                        Updated {new Date(doc.updated_at).toLocaleDateString()}
+                      </span>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Create New Affidavit</h3>
-                    <p className="text-sm text-gray-600">Our AI assistant will guide you through the entire process, ensuring state-specific compliance.</p>
+                  </div>
+                  <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+                    <button 
+                      onClick={() => startRename(doc)} 
+                      className="p-2 text-gray-500 hover:text-blue-600" 
+                      title="Rename"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteDocument(doc.id)} 
+                      className="p-2 text-gray-500 hover:text-red-600" 
+                      title="Delete"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleContinueDocument(doc)}
+                      className="px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
+                    >
+                      {doc.status === 'completed' ? 'View' : 'Continue'}
+                    </button>
+                  </div>
                 </div>
-                <button onClick={onNewDocument} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-semibold">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Get Started
-                </button>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
-                <div className="flex items-center justify-between mb-4">
-                    <Scale className="h-8 w-8 text-gray-400" />
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
-                </div>
-                <h3 className="font-semibold text-gray-600 mb-2">Document Templates</h3>
-                <p className="text-sm text-gray-500">Access a library of pre-filled forms for various family law matters to save even more time.</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
-                <div className="flex items-center justify-between mb-4">
-                    <FileText className="h-8 w-8 text-gray-400" />
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
-                </div>
-                <h3 className="font-semibold text-gray-600 mb-2">Smart Forms</h3>
-                <p className="text-sm text-gray-500">Automatically fill information from previous documents and track cases with multi-document suites.</p>
-            </div>
-        </div>
-
-        {/* --- Document List --- */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Documents</h2>
-        <div className="bg-white shadow-sm border rounded-lg">
-            <ul className="divide-y divide-gray-200">
-                {documents.map((doc) => (
-                    <li key={doc.id} className="p-4 sm:p-6">
-                        <div className="flex items-center justify-between space-x-4">
-                            <div className="flex-grow min-w-0">
-                                {renamingDocId === doc.id ? (
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={newName}
-                                            onChange={(e) => setNewName(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && submitRename(doc.id)}
-                                            className="block w-full max-w-xs px-3 py-1.5 text-base font-semibold text-gray-900 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                            autoFocus
-                                            disabled={isSubmittingRename}
-                                        />
-                                        <button onClick={() => submitRename(doc.id)} className="p-2 text-green-600 hover:bg-green-100 rounded-full disabled:opacity-50" disabled={isSubmittingRename}>
-                                            {isSubmittingRename ? <Loader2 className="h-5 w-5 animate-spin"/> : <Check className="h-5 w-5"/>}
-                                        </button>
-                                        <button onClick={cancelRename} className="p-2 text-red-600 hover:bg-red-100 rounded-full" disabled={isSubmittingRename}>
-                                            <X className="h-5 w-5"/>
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <h4 className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline" title="Click to edit" onClick={() => startRename(doc)}>
-                                        {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
-                                    </h4>
-                                )}
-                                <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                                    <span>State: <span className='font-medium'>{doc.state || 'N/A'}</span></span>
-                                    {/* Status and validation logic remains here */}
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-                                <button onClick={() => startRename(doc)} className="p-2 text-gray-500 hover:text-blue-600" title="Rename"><Edit className="h-5 w-5" /></button>
-                                <button onClick={() => handleDelete(doc.id)} className="p-2 text-gray-500 hover:text-red-600" title="Delete"><Trash2 className="h-5 w-5" /></button>
-                                <button
-                                    onClick={() => onContinueDocument(doc)}
-                                    className="px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
-                                >
-                                    {doc.status === 'completed' ? 'View' : 'Continue'}
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </main>
   );
 };

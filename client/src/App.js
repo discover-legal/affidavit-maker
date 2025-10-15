@@ -1,11 +1,12 @@
+// client/src/App.js - COMPLETE INTEGRATION
 import React from 'react';
 import { Auth0Provider } from '@auth0/auth0-react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { DocumentProvider } from './contexts/DocumentContext';
 import LandingPage from './components/LandingPage';
-import UserDashboard from './components/UserDashboard';  
-import EditorView from './views/EditorView'; 
+import UserDashboard from './components/UserDashboard';
+import EditorView from './views/EditorView';
 import ErrorBoundary from './components/ErrorBoundary';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -16,37 +17,45 @@ const AUTH0_CONFIG = {
     audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     scope: "openid profile email"
   },
-  cacheLocation: 'memory',  
-  useRefreshTokens: false 
+  cacheLocation: 'memory',
+  useRefreshTokens: false
 };
 
-// Wrapper component to handle navigation
-const AppContent = () => {
+// Main routing component
+const AppRoutes = () => {
   const navigate = useNavigate();
 
-  // Navigation handlers
+  // Navigate to dashboard
   const handleGetStarted = () => {
     navigate('/dashboard');
   };
 
+  // ✅ Start new document - Navigate to /editor/new
   const handleNewDocument = () => {
-    navigate('/create');
+    console.log('🚀 Navigating to new document');
+    navigate('/editor/new');
   };
 
+  // ✅ Open existing document
   const handleContinueDocument = (document) => {
+    console.log('📂 Navigating to document:', document.id);
     navigate(`/editor/${document.id}`);
   };
 
+  // Navigate back to dashboard
   const handleBackToDashboard = () => {
     navigate('/dashboard');
   };
 
   return (
     <Routes>
+      {/* Landing Page */}
       <Route 
         path="/" 
         element={<LandingPage onGetStarted={handleGetStarted} />} 
       />
+
+      {/* Dashboard */}
       <Route 
         path="/dashboard" 
         element={
@@ -56,42 +65,51 @@ const AppContent = () => {
           />
         } 
       />
+
+      {/* Editor - New Document */}
       <Route 
-        path="/editor/:documentId?" 
-        element={<EditorView onBack={handleBackToDashboard} />} 
+        path="/editor/new" 
+        element={
+          <EditorView 
+            isNew={true}
+            onBack={handleBackToDashboard} 
+          />
+        } 
       />
+
+      {/* Editor - Existing Document */}
       <Route 
-        path="/create" 
-        element={<EditorView isNew={true} onBack={handleBackToDashboard} />} 
+        path="/editor/:documentId" 
+        element={
+          <EditorView 
+            onBack={handleBackToDashboard} 
+          />
+        } 
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+      {/* Catch-all redirect */}
+      <Route 
+        path="*" 
+        element={<Navigate to="/" replace />} 
+      />
     </Routes>
   );
 };
 
 /**
  * Main Application Component
- * 
- * Provides a clean, elegant architecture with:
- * - Centralized state management via contexts
- * - Clear separation of concerns
- * - Proper error boundaries
- * - Authentication integration
- * - React Router for navigation
- * 
- * @returns {JSX.Element} Main application
  */
 const App = () => {
   return (
-    <Auth0Provider {...AUTH0_CONFIG}>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <Auth0Provider {...AUTH0_CONFIG}>
         <DocumentProvider>
           <Router>
-            <AppContent />
+            <AppRoutes />
           </Router>
         </DocumentProvider>
-      </ErrorBoundary>
-    </Auth0Provider>
+      </Auth0Provider>
+    </ErrorBoundary>
   );
 };
 

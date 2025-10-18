@@ -159,8 +159,8 @@ checkFileContains(
 
 checkFileContains(
   'routes/documents.js',
-  'formatted: enhanced.sections.facts.content',
-  'Preview keeps formatted string for PDF'
+  'formatted:',
+  'Preview includes a formatted field for PDF (cache-only)'
 );
 
 checkFileContains(

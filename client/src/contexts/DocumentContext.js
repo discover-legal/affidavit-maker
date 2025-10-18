@@ -267,21 +267,25 @@ export const DocumentProvider = ({ children }) => {
         console.log('📂 Document loaded:', documentId);
         
         // Parse the document content
+        // Server may return the parsed content under `affidavitData` or under `content`.
+        // Support both shapes and fall back safely.
         let documentContent = {};
-        
-        if (data.document.content) {
+
+        const rawContent = data.document.affidavitData ?? data.document.content;
+
+        if (rawContent) {
           try {
-            documentContent = typeof data.document.content === 'string' 
-              ? JSON.parse(data.document.content) 
-              : data.document.content;
+            documentContent = typeof rawContent === 'string' 
+              ? JSON.parse(rawContent)
+              : rawContent;
           } catch (e) {
             console.error('Failed to parse document content:', e);
-            documentContent = data.document.content;
+            documentContent = rawContent;
           }
         }
-        
-        dispatch({ 
-          type: ActionTypes.SELECT_DOCUMENT, 
+
+        dispatch({
+          type: ActionTypes.SELECT_DOCUMENT,
           payload: {
             ...documentContent,
             documentId: data.document.id
@@ -347,14 +351,27 @@ export const DocumentProvider = ({ children }) => {
       
       if (data.success && data.document?.id) {
         const documentId = data.document.id;
-        
+
         console.log('📄 New document created:', documentId);
-        
-        // Set the document ID
+
+        // Safely extract affidavit data from the response. The server may return
+        // parsed affidavit data under `document.affidavitData` or as `document.content`.
+        let createdContent = {};
+        const raw = data.document.affidavitData ?? data.document.content;
+        if (raw) {
+          try {
+            createdContent = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          } catch (e) {
+            console.warn('Failed to parse created document content, using raw value', e);
+            createdContent = raw;
+          }
+        }
+
+        // Set the document data (do not spread undefined)
         dispatch({
           type: ActionTypes.SET_DOCUMENT_DATA,
           payload: {
-            ...data.document.affidavitData,
+            ...createdContent,
             documentId
           }
         });
@@ -532,6 +549,29 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [authFetch, state.currentDocument]);
 
+  // Render formatted preview for a saved document by documentId (on-demand)
+  const renderFormattedPreview = useCallback(async (documentId) => {
+    if (!isAuthenticated) throw new Error('Authentication required');
+
+    try {
+      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: true });
+      const data = await authFetch(`/api/documents/${documentId}/render`, {
+        method: 'POST'
+      });
+
+      if (data.success) {
+        // data contains { formatted, items }
+        return { formatted: data.formatted, items: data.items, fromCache: data.fromCache };
+      }
+      throw new Error(data.error || 'Render failed');
+    } catch (err) {
+      console.error('Failed to render formatted preview:', err);
+      throw err;
+    } finally {
+      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: false });
+    }
+  }, [authFetch, isAuthenticated]);
+
   // Validate document
   const validateDocument = useCallback(async (documentData = null) => {
     try {
@@ -567,17 +607,27 @@ export const DocumentProvider = ({ children }) => {
 
   // Select an existing document
   const selectDocument = useCallback((document) => {
-    if (document && document.content) {
-      dispatch({ 
-        type: ActionTypes.SELECT_DOCUMENT, 
-        payload: {
-          ...document.content,
-          documentId: document.id
-        }
-      });
-      
-      generatePreview(document.content);
+    if (!document) return;
+
+    // Support both shapes: { content } or { affidavitData }
+    const raw = document.content ?? document.affidavitData ?? document;
+
+    let parsed = {};
+    try {
+      parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      parsed = raw;
     }
+
+    dispatch({
+      type: ActionTypes.SELECT_DOCUMENT,
+      payload: {
+        ...parsed,
+        documentId: document.id
+      }
+    });
+
+    generatePreview(parsed);
   }, [generatePreview]);
 
   // ✅ SIMPLIFIED: Update document data (never touches documentId)
@@ -628,7 +678,8 @@ export const DocumentProvider = ({ children }) => {
           createNewDocument,
           selectDocument,
           updateDocumentData,
-          initializeNewDocument // ✅ NEW
+          initializeNewDocument, // ✅ NEW
+          renderFormattedPreview
         }}
       >
         {children}

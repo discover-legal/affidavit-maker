@@ -82,7 +82,34 @@ class EnhancedPDFService {
 
   generateEnhancedHTML(document) {
     const { sections, metadata } = document;
-    
+    // Helper to derive formatted string or content for a section
+    const getFormatted = (section) => {
+      if (!section) return '';
+      if (typeof section === 'string') return section;
+      if (section.formatted) return String(section.formatted);
+      if (section.content) return String(section.content);
+      return '';
+    };
+
+    // Helper to get facts as array
+    const getFactsArray = (factsSection) => {
+      if (!factsSection) return [];
+      if (Array.isArray(factsSection) && factsSection.length > 0 && factsSection[0].content !== undefined) {
+        return factsSection.map((f, idx) => ({ number: f.number || f.index || idx + 1, content: f.content || f.displayContent || '' }));
+      }
+      if (factsSection.items && Array.isArray(factsSection.items)) {
+        return factsSection.items.map((it, idx) => ({ number: it.index || idx + 1, content: it.displayContent || it.content || '' }));
+      }
+      const formatted = getFormatted(factsSection);
+      if (formatted) {
+        const parts = formatted.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+        return parts.map((p, idx) => ({ number: idx + 1, content: p }));
+      }
+      return [];
+    };
+
+    const facts = getFactsArray(sections.facts);
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -95,8 +122,8 @@ class EnhancedPDFService {
 </head>
 <body>
     <div class="document">
-        ${this.renderHeader(sections)}
-        ${this.renderBody(sections)}
+        ${this.renderHeader(sections, getFormatted)}
+        ${this.renderBody(sections, facts, getFormatted)}
         ${this.renderSignatures(sections)}
         ${this.renderNotary(sections)}
         ${this.renderFooter(sections, metadata)}
@@ -286,7 +313,7 @@ class EnhancedPDFService {
     `;
   }
 
-  renderHeader(sections) {
+  renderHeader(sections, getFormatted) {
     let html = '';
     
     if (sections.header) {
@@ -298,28 +325,29 @@ class EnhancedPDFService {
     }
     
     if (sections.caseCaption) {
+      const caption = getFormatted ? getFormatted(sections.caseCaption) : (sections.caseCaption.formatted || sections.caseCaption);
       html += `<div class="case-caption">
-        ${sections.caseCaption.formatted.replace(/\n/g, '<br>')}
+        ${caption.replace(/\n/g, '<br>')}
       </div>`;
     }
     
     return html;
   }
 
-  renderBody(sections) {
+  renderBody(sections, facts, getFormatted) {
     let html = '';
-    
+
     if (sections.title) {
       html += `<div class="title">${sections.title}</div>`;
     }
-    
+
     if (sections.introduction) {
       html += `<div class="introduction">${sections.introduction}</div>`;
     }
-    
-    if (sections.facts && sections.facts.length > 0) {
+
+    if (facts && facts.length > 0) {
       html += '<div class="facts-section">';
-      sections.facts.forEach(fact => {
+      facts.forEach(fact => {
         html += `
           <div class="fact">
             <span class="fact-number">${fact.number}.</span>
@@ -329,15 +357,15 @@ class EnhancedPDFService {
       });
       html += '</div>';
     }
-    
+
     if (sections.conclusion) {
       html += `<div class="conclusion">${sections.conclusion}</div>`;
     }
-    
+
     if (sections.perjuryStatement) {
       html += `<div class="perjury">${sections.perjuryStatement}</div>`;
     }
-    
+
     return html;
   }
 

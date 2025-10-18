@@ -2,6 +2,8 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs').promises;
 const path = require('path');
+const previewRenderer = require('./previewRenderer');
+const { prepareFactsForDisplay } = require('../utils/factNormalizer');
 
 class PDFService {
   constructor() {
@@ -55,6 +57,7 @@ class PDFService {
 
   buildPDF(doc, document) {
     const { sections, metadata } = document;
+    // use class helpers getFormatted/getFactsArray
     let currentPage = 1;
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
@@ -81,7 +84,7 @@ class PDFService {
     if (sections.caseCaption) {
       this.checkPageBreak(doc, 80);
       doc.fontSize(12).font('Times-Roman');
-      doc.text(sections.caseCaption.formatted || sections.caseCaption, { align: 'right' });
+      doc.text(this.getFormatted(sections.caseCaption), { align: 'right' });
       doc.moveDown();
     }
 
@@ -104,16 +107,15 @@ class PDFService {
       doc.moveDown();
     }
 
-    // Facts Section with proper page breaks
-    if (sections.facts && sections.facts.length > 0) {
-      sections.facts.forEach((fact, index) => {
-        // Estimate space needed for this fact
+    // Facts Section with proper page breaks - support multiple preview shapes
+  const factsList = this.getFactsArray(sections.facts);
+    if (factsList.length > 0) {
+      factsList.forEach((fact) => {
         const estimatedHeight = this.estimateTextHeight(doc, fact.content, 12) + 20;
         this.checkPageBreak(doc, estimatedHeight);
 
         doc.fontSize(12).font('Times-Roman');
-        
-        // Number and content with proper spacing
+
         const numberWidth = doc.widthOfString(`${fact.number}. `);
         doc.text(`${fact.number}. `, { continued: true });
         doc.text(fact.content, {
@@ -245,16 +247,59 @@ class PDFService {
     // Header and venue: ~100px
     estimatedHeight += 100;
     
-    // Facts: ~40px per fact
-    if (sections.facts) {
-      estimatedHeight += sections.facts.length * 40;
-    }
+    // Facts: ~40px per fact (use helper to normalize different shapes)
+    const factsForCalc = (sections && sections.facts) ? this.getFactsArray(sections.facts) : [];
+    estimatedHeight += factsForCalc.length * 40;
     
     // Other sections: ~200px total
     estimatedHeight += 200;
     
     // Letter size page is ~720px usable height
     return Math.max(1, Math.ceil(estimatedHeight / 720));
+  }
+
+  // Helper to derive formatted strings from various preview shapes
+  getFormatted(section) {
+    if (!section) return '';
+    if (typeof section === 'string') return section;
+    if (section.formatted) return String(section.formatted);
+    if (section.content) return String(section.content);
+    // Fallback: if section looks like a preview object with items, join them
+    if (section.items && Array.isArray(section.items)) {
+      return section.items.map(it => it.displayContent || it.content || String(it)).join('\n\n');
+    }
+    return '';
+  }
+
+  // Normalize facts into array of { number, content }
+  getFactsArray(factsSection) {
+    if (!factsSection) return [];
+
+    if (Array.isArray(factsSection)) {
+      const prepared = prepareFactsForDisplay(factsSection);
+      return prepared.map(f => ({ number: f.index || f.number || 0, content: f.displayContent || f.content || '' }));
+    }
+
+    if (factsSection.items && Array.isArray(factsSection.items)) {
+      return factsSection.items.map((it, idx) => ({ number: it.index || idx + 1, content: it.displayContent || it.content || '' }));
+    }
+
+    const formatted = this.getFormatted(factsSection);
+    if (formatted && typeof formatted === 'string') {
+      const parts = formatted.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+      return parts.map((p, idx) => ({ number: idx + 1, content: p }));
+    }
+
+    if (factsSection && typeof factsSection === 'object') {
+      try {
+        const { items } = previewRenderer.generateBoth(factsSection);
+        return Array.isArray(items) ? items.map((it, idx) => ({ number: it.number || idx + 1, content: it.displayContent || it.text || it.content || '' })) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    return [];
   }
 
   estimateTextHeight(doc, text, fontSize) {

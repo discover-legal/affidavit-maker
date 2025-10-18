@@ -506,45 +506,37 @@ function enhancePreviewWithCategories(preview, affidavitData) {
     return enhanced;
   }
 
-  // Check if StateTemplateManager already processed facts into a formatted string
-  const hasFormattedString = typeof enhanced.sections.facts?.content === 'string' && 
-                             enhanced.sections.facts.content.length > 10 && 
-                             !enhanced.sections.facts.content.includes('No facts');
+  // Normalize facts into items for UI and compute a formatted string on-demand
+  const items = prepareFactsForDisplay(affidavitData.facts);
 
-  if (hasFormattedString) {
-    // StateTemplateManager already formatted facts for PDF
-    // Keep the formatted string AND add items array for UI
-    enhanced.sections.facts = {
-      ...enhanced.sections.facts,
-      formatted: enhanced.sections.facts.content, // For PDF generation
-      items: prepareFactsForDisplay(affidavitData.facts), // For UI display
-      metadata: {
-        totalFacts: affidavitData.facts.length,
-        categories: getCategorySummary(affidavitData.facts),
-        qualityMetrics: calculateQualityMetrics(affidavitData.facts)
-      }
-    };
+  // Always set items for UI. For formatted string, prefer any template-generated content if present
+  // but do NOT persist it into the canonical content. Use previewRenderer to construct a deterministic formatted string.
+  const previewRenderer = req.app.locals.previewRenderer || require('../services/previewRenderer');
+  let formattedString = '';
+
+  if (enhanced.sections.facts && typeof enhanced.sections.facts.content === 'string' && enhanced.sections.facts.content.length > 10 && !enhanced.sections.facts.content.includes('No facts')) {
+    // Use existing template manager output for display, but keep it cache-only
+    formattedString = enhanced.sections.facts.content;
   } else {
-    // StateTemplateManager didn't process facts - create both formats
-    const items = prepareFactsForDisplay(affidavitData.facts);
-    
-    // Create formatted string for PDF
-    const formatted = items.map((fact, index) => 
-      `${index + 1}. ${fact.displayContent}`
-    ).join('\n\n');
-    
-    enhanced.sections.facts = {
-      type: 'facts',
-      title: 'STATEMENT OF FACTS',
-      formatted: formatted, // For PDF
-      items: items, // For UI
-      metadata: {
-        totalFacts: affidavitData.facts.length,
-        categories: getCategorySummary(affidavitData.facts),
-        qualityMetrics: calculateQualityMetrics(affidavitData.facts)
-      }
-    };
+    // Build formatted from canonical items
+    try {
+      formattedString = previewRenderer.generateFormattedString({ facts: affidavitData.facts, affiantName: affidavitData.affiantName, state: affidavitData.state, county: affidavitData.county });
+    } catch (e) {
+      formattedString = items.map((f, idx) => `${idx + 1}. ${f.displayContent}`).join('\n\n');
+    }
   }
+
+  enhanced.sections.facts = {
+    type: 'facts',
+    title: enhanced.sections.facts?.title || 'STATEMENT OF FACTS',
+    formatted: formattedString, // For PDF generation (cache-only)
+    items: items, // For UI
+    metadata: {
+      totalFacts: affidavitData.facts.length,
+      categories: getCategorySummary(affidavitData.facts),
+      qualityMetrics: calculateQualityMetrics(affidavitData.facts)
+    }
+  };
   
   return enhanced;
 }
@@ -657,6 +649,66 @@ function getCategorySummary(facts) {
       summary[category].issues++;
     }
   });
+
+  /**
+   * POST /:id/render - generate formatted preview (on-demand) from canonical affidavit data
+   * Returns { success: true, formatted, items, fromCache }
+   */
+  router.post('/:id/render',
+    auth0Middleware,
+    standardLimiter,
+    asyncHandler(async (req, res) => {
+      const { id: documentId } = req.params;
+      const userId = req.user.id;
+      const pool = req.app.locals.pool;
+      const previewRenderer = require('../services/previewRenderer');
+
+      if (!pool) {
+        return res.status(503).json({ success: false, error: 'Database service unavailable' });
+      }
+
+      try {
+        const result = await pool.query('SELECT content, preview_data, last_preview_generated FROM documents WHERE id = $1 AND user_id = $2', [documentId, userId]);
+        if (result.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+
+        const row = result.rows[0];
+
+        // Parse canonical content
+        let content;
+        try {
+          content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content;
+        } catch (e) {
+          content = row.content;
+        }
+
+        // If cached preview exists and is fresh (5 minutes), return it
+        if (row.preview_data && row.last_preview_generated) {
+          const ageMs = Date.now() - new Date(row.last_preview_generated).getTime();
+          if (ageMs < 5 * 60 * 1000) {
+            logger.info('Returning cached rendered preview', { documentId });
+            return res.json({ success: true, fromCache: true, ...row.preview_data });
+          }
+        }
+
+        // Generate formatted output using previewRenderer
+        const rendered = previewRenderer.generateBoth(content || {});
+
+        // Attempt to cache the rendered object in preview_data column (non-blocking)
+        try {
+          await pool.query('UPDATE documents SET preview_data = $1, last_preview_generated = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3', [JSON.stringify(rendered), documentId, userId]);
+        } catch (cacheErr) {
+          logger.warn('Failed to cache rendered preview', { error: cacheErr.message, documentId });
+        }
+
+        res.json({ success: true, fromCache: false, ...rendered });
+      } catch (error) {
+        logger.error('Render preview failed', { error: error.message, documentId, userId });
+        res.status(500).json({ success: false, error: 'Failed to render preview' });
+      }
+    })
+  );
   
   return summary;
 }

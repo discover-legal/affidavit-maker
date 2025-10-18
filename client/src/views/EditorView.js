@@ -84,7 +84,8 @@ const EditorView = ({ isNew = false, onBack }) => {
   const { 
     saveDocument, 
     loadDocument,
-    createNewDocument
+    createNewDocument,
+    initializeNewDocument
   } = useDocumentActions();
 
   // Check for mobile view
@@ -116,10 +117,14 @@ const EditorView = ({ isNew = false, onBack }) => {
       }
 
       if (isNew) {
-        // Creating a new document
-        console.log('📝 Creating new document');
-        await createNewDocument();
-        setSessionInitialized(true);
+        // Creating a new document on the server and initialize session
+        console.log('📝 Creating new document (server)');
+        try {
+          await initializeNewDocument();
+          setSessionInitialized(true);
+        } catch (err) {
+          console.error('Failed to initialize new document on server:', err);
+        }
       } else if (documentId && isAuthenticated) {
         // Loading existing document from URL
         console.log('📂 Loading existing document:', documentId);

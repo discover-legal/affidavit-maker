@@ -284,13 +284,21 @@ export const DocumentProvider = ({ children }) => {
           }
         }
 
+        const documentWithId = {
+          ...documentContent,
+          documentId: data.document.id
+        };
+
         dispatch({
           type: ActionTypes.SELECT_DOCUMENT,
-          payload: {
-            ...documentContent,
-            documentId: data.document.id
-          }
+          payload: documentWithId
         });
+        
+        // ✅ Generate preview after loading document
+        setTimeout(() => {
+          console.log('📊 Generating preview after document load:', documentId);
+          generatePreview(documentWithId);
+        }, 100);
         
         return data.document;
       }
@@ -627,7 +635,10 @@ export const DocumentProvider = ({ children }) => {
       }
     });
 
-    generatePreview(parsed);
+    setTimeout(() => {
+      const documentWithId = { ...parsed, documentId: document.id };
+      generatePreview(documentWithId);
+    }, 100);
   }, [generatePreview]);
 
   // ✅ SIMPLIFIED: Update document data (never touches documentId)

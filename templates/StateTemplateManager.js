@@ -1,10 +1,12 @@
-// templates/StateTemplateManager.js - COMPLETE FIXED VERSION
-// Drop-in replacement - includes BaseAffidavitTemplate and all state templates
+// templates/StateTemplateManager.js - COMPLETE DROP-IN REPLACEMENT
+// ✅ NOW INCLUDES CALIFORNIA (CA) - Declaration format for family law
+// Court-compliant notary blocks (shortened to fit on page)
 
 const logger = require('../utils/logger');
+const { extractFactContent } = require('../utils/factNormalizer');
 
 /**
- * ✅ Base template class for all affidavit templates
+ * Base template class for all affidavit templates
  */
 class BaseAffidavitTemplate {
   constructor() {
@@ -24,25 +26,18 @@ class BaseAffidavitTemplate {
     };
   }
 
-  /**
-   * Validate affidavit data for this template instance
-   * Returns { isValid, errors, warnings }
-   */
   validateData(affidavitData = {}) {
     const errors = [];
     const warnings = [];
 
-    // Affiant name validation (tests expect this exact message)
     if (!affidavitData.affiantName || affidavitData.affiantName.trim().length < 2) {
       errors.push('Affiant name is required and must be at least 2 characters');
     }
 
-    // Facts warning
     if (!Array.isArray(affidavitData.facts) || affidavitData.facts.length === 0) {
       warnings.push('No facts provided - affidavit will be incomplete');
     }
 
-    // Delegate to state-specific validation
     const stateValidation = this.performStateSpecificValidation(affidavitData) || { errors: [], warnings: [] };
     errors.push(...(stateValidation.errors || []));
     warnings.push(...(stateValidation.warnings || []));
@@ -50,58 +45,28 @@ class BaseAffidavitTemplate {
     return { isValid: errors.length === 0, errors, warnings };
   }
 
-  /**
-   * Generate a full document object expected by tests
-   */
   generateDocument(affidavitData = {}) {
     const validation = this.validateData(affidavitData);
     if (!validation.isValid && this.state === 'TX') {
-      // Tests expect generateDocument to throw specifically for Texas invalid data
       throw new Error('Invalid data for Texas');
     }
 
     const id = require('uuid').v4();
-    // Header formatting
-    const header = this.state === 'TX'
-      ? `THE STATE OF ${this.stateName.toUpperCase()}`
-      : `STATE OF ${this.stateName.toUpperCase()}`;
-
-    // Venue formatting per-state
+    const header = this.state === 'TX' ? 'THE STATE OF TEXAS' : `STATE OF ${this.stateName.toUpperCase()}`;
+    
     let venue = null;
     if (this.sections.venue) {
-      if (this.state === 'TX') {
-        venue = `COUNTY OF ${(affidavitData.county || '_______').toUpperCase()}`;
-      } else if (this.state === 'UT') {
-        venue = `County of ${(affidavitData.county || '_______').toUpperCase()}`;
-      } else {
-        venue = `County of ${(affidavitData.county || '_______').toUpperCase()}`;
-      }
+      const countyUpper = (affidavitData.county || '[COUNTY]').toUpperCase();
+      venue = this.state === 'TX' 
+        ? `COUNTY OF ${countyUpper}`
+        : `County of ${countyUpper}`;
     }
 
-    // Title
-    const title = `AFFIDAVIT OF ${((affidavitData.affiantName || '[YOUR NAME]')).toUpperCase()}`;
-
-    // Build facts array: competency statement + type-specific facts + user facts
-    const facts = [];
-    let idx = 1;
-    // Competency
-    facts.push({ number: idx++, type: 'competency', content: 'I am competent to make this affidavit' });
-
-    // Type-specific
-    const typeSpecific = this.generateDocumentTypeSpecificFacts(affidavitData) || [];
-    for (const f of typeSpecific) {
-      facts.push({ number: idx++, type: f.type || 'type-specific', content: f.content });
-    }
-
-    // User facts
-    (affidavitData.facts || []).forEach(f => {
-      facts.push({ number: idx++, type: 'fact', content: this.extractFactContent(f) });
-    });
-
+    const title = `AFFIDAVIT OF ${(affidavitData.affiantName || '[NAME]').toUpperCase()}`;
+    const facts = this.processFactsForDocument(affidavitData.facts || []);
     const notaryBlock = this.generateNotaryBlock(affidavitData);
-
-    // Simple HTML representation
-    const htmlContent = `<!DOCTYPE html>\n<html><head><meta charset="utf-8"><title>Affidavit - ${affidavitData.affiantName || ''}</title><style>body{font-family: 'Times New Roman';} @media print{}</style></head><body><div class="header">${header}</div>${venue ? `<div class="venue">${venue}</div>` : ''}<div class="title">${title}</div><div class="facts">${facts.map(f=>`<p class="fact">${f.number}. ${f.content}</p>`).join('')}</div><div class="notary">${notaryBlock.replace(/\n/g,'<br/>')}</div></body></html>`;
+    
+    const htmlContent = `<html><head><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:2;margin:1in;}</style></head><body>${header}${venue ? `<div class="venue">${venue}</div>` : ''}<div class="title">${title}</div><div class="facts">${facts.map(f=>`<p class="fact">${f.number}. ${f.content}</p>`).join('')}</div><div class="notary">${notaryBlock.replace(/\n/g,'<br/>')}</div></body></html>`;
 
     return {
       id,
@@ -118,15 +83,11 @@ class BaseAffidavitTemplate {
     };
   }
 
-  /**
-   * Generate document preview
-   */
   generatePreview(affidavitData) {
     const sections = {};
     
     sections.header = {
       type: 'header',
-      title: 'AFFIDAVIT',
       content: `STATE OF ${this.stateName.toUpperCase()}`
     };
     
@@ -150,7 +111,7 @@ class BaseAffidavitTemplate {
     };
     
     sections.signatureBlock = {
-      type: 'signatureBlock',
+      type: 'signature',
       title: 'SIGNATURE',
       content: this.generateSignatureBlock(affidavitData)
     };
@@ -164,9 +125,6 @@ class BaseAffidavitTemplate {
     return sections;
   }
 
-  /**
-   * Process facts for preview display
-   */
   processFactsForPreview(facts) {
     if (!Array.isArray(facts) || facts.length === 0) {
       return 'Start chatting to add facts to your affidavit.';
@@ -175,7 +133,7 @@ class BaseAffidavitTemplate {
     const processedFacts = [];
     
     facts.forEach((fact, index) => {
-      const content = this.extractFactContent(fact);
+      const content = extractFactContent(fact);
       
       if (!content || content.trim().length === 0) {
         return;
@@ -192,33 +150,28 @@ class BaseAffidavitTemplate {
     return processedFacts.join('\n\n');
   }
 
-  /**
-   * Extract content from fact (handles both string and object facts)
-   */
-  extractFactContent(fact) {
-    if (typeof fact === 'string') {
-      return fact;
-    } else if (typeof fact === 'object' && fact !== null) {
-      return fact.professionalRewrite || fact.content || fact.text || '';
-    } else {
-      return String(fact);
-    }
+  processFactsForDocument(facts) {
+    if (!Array.isArray(facts)) return [];
+    
+    return facts.map((fact, index) => ({
+      number: index + 1,
+      content: extractFactContent(fact),
+      type: 'fact'
+    })).filter(f => f.content && f.content.trim().length > 0);
   }
 
-  /**
-   * Generate introduction paragraph
-   */
+  extractFactContent(fact) {
+    return extractFactContent(fact);
+  }
+
   generateIntroduction(affidavitData) {
     const name = affidavitData.affiantName || '[YOUR NAME]';
-    return `I, ${name}, being first duly sworn, depose and state as follows:`;
+    return `I, ${name}, being first duly sworn, depose and state that I am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct.`;
   }
 
-  /**
-   * Generate signature block
-   */
   generateSignatureBlock(affidavitData) {
     const name = affidavitData.affiantName || '[YOUR NAME]';
-    return `I declare under penalty of perjury that the foregoing is true and correct to the best of my knowledge and belief.
+    return `I declare under penalty of perjury that the foregoing is true and correct.
 
 FURTHER AFFIANT SAYETH NOT.
 
@@ -226,19 +179,14 @@ Executed on this _____ day of _________, 2025.
 
 
 _________________________________
-${name}`;
+${name}, Affiant`;
   }
 
-  /**
-   * Generate notary block (override in subclasses)
-   */
+  // ✅ SHORTENED NOTARY BLOCK - Court compliant but compact
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-State of ${this.stateName}
-County of ${affidavitData.county || '_______'}
-
-On this _____ day of _________, 2025, before me personally appeared ${affidavitData.affiantName || '[NAME]'}, who proved to me on the basis of satisfactory evidence to be the person whose name is subscribed to the within instrument.
+Sworn to and subscribed before me this _____ day of _________, 2025.
 
 
 _________________________________
@@ -247,16 +195,10 @@ Notary Public
 My commission expires: ___________`;
   }
 
-  /**
-   * State-specific validation (override in subclasses)
-   */
   performStateSpecificValidation(affidavitData) {
     return { errors: [], warnings: [] };
   }
 
-  /**
-   * Get county validation rules (override in subclasses)
-   */
   getCountyValidationRules() {
     return {
       required: false,
@@ -266,9 +208,6 @@ My commission expires: ___________`;
     };
   }
 
-  /**
-   * Get template configuration
-   */
   getTemplateConfig() {
     return {
       state: this.state,
@@ -279,9 +218,6 @@ My commission expires: ___________`;
     };
   }
 
-  /**
-   * Calculate word count from facts
-   */
   calculateWordCount(facts) {
     if (!facts || !Array.isArray(facts)) return 0;
     
@@ -291,9 +227,6 @@ My commission expires: ___________`;
     }, 0);
   }
 
-  /**
-   * Extract categories from facts
-   */
   extractCategories(facts) {
     if (!facts || !Array.isArray(facts)) return [];
     
@@ -307,24 +240,20 @@ My commission expires: ___________`;
     return Array.from(categories);
   }
 
-  /**
-   * Default type-specific facts generator (override in subclasses)
-   * Returns array of { type, content }
-   */
   generateDocumentTypeSpecificFacts(affidavitData = {}) {
     return [];
   }
 }
 
 /**
- * ✅ Texas-specific affidavit template
+ * Texas-specific template
  */
 class TexasTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'TX';
     this.stateName = 'Texas';
-    this.requiredFields = ['affiantName', 'state', 'county']; // ✅ County required
+    this.requiredFields = ['affiantName', 'state', 'county'];
     this.sections = {
       venue: true,
       caseCaption: true,
@@ -336,7 +265,6 @@ class TexasTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // ✅ Texas requires county - ONLY validate here
     if (!affidavitData.county || affidavitData.county.trim() === '') {
       errors.push('County is required for Texas affidavits');
     }
@@ -350,7 +278,7 @@ class TexasTemplate extends BaseAffidavitTemplate {
 
   getCountyValidationRules() {
     return {
-      required: true, // ✅ County IS required in Texas
+      required: true,
       stateName: 'Texas',
       stateCode: 'TX',
       commonCounties: [
@@ -360,25 +288,19 @@ class TexasTemplate extends BaseAffidavitTemplate {
     };
   }
 
+  // ✅ TEXAS: Shortened but court-compliant jurat
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-State of Texas
-County of ${affidavitData.county || '_______'}
+SWORN TO AND SUBSCRIBED before me on this _____ day of _________, 2025.
 
-On this _____ day of _________, 2025, before me, the undersigned notary public, personally appeared ${affidavitData.affiantName || '[NAME]'}, who proved to me on the basis of satisfactory evidence to be the person whose name is subscribed to the within instrument and acknowledged to me that he/she executed the same in his/her authorized capacity.
 
-SWORN TO AND SUBSCRIBED before me this day.
-
+_________________________________
 Notary Public, State of Texas
 
-My commission expires: ___________
-`;
+My commission expires: ___________`;
   }
 
-  /**
-   * Texas-specific type facts generator
-   */
   generateDocumentTypeSpecificFacts(affidavitData = {}) {
     const type = affidavitData.documentType || affidavitData.type || 'general';
     const facts = [];
@@ -404,14 +326,14 @@ My commission expires: ___________
 }
 
 /**
- * ✅ Utah-specific affidavit template
+ * Utah-specific template
  */
 class UtahTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'UT';
     this.stateName = 'Utah';
-    this.requiredFields = ['affiantName', 'state', 'county']; // ✅ County required
+    this.requiredFields = ['affiantName', 'state', 'county'];
     this.sections = {
       venue: true,
       caseCaption: false,
@@ -423,7 +345,6 @@ class UtahTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // ✅ Utah requires county - ONLY validate here
     if (!affidavitData.county || affidavitData.county.trim() === '') {
       errors.push('County is required for Utah affidavits');
     }
@@ -433,7 +354,7 @@ class UtahTemplate extends BaseAffidavitTemplate {
 
   getCountyValidationRules() {
     return {
-      required: true, // ✅ County IS required in Utah
+      required: true,
       stateName: 'Utah',
       stateCode: 'UT',
       commonCounties: [
@@ -443,34 +364,31 @@ class UtahTemplate extends BaseAffidavitTemplate {
     };
   }
 
+  // ✅ UTAH: Shortened verification format
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-State of Utah
-County of ${affidavitData.county || '_______'}
+Subscribed and sworn to before me this _____ day of _________, 2025.
 
-On the _____ day of _________, 2025, personally appeared before me ${affidavitData.affiantName || '[NAME]'}, who duly acknowledged that he/she executed the foregoing instrument.
-
-Residing at: ______________________
 
 _________________________________
-Notary Public
+Notary Public, State of Utah
 
 My commission expires: ___________`;
   }
 }
 
 /**
- * ✅ Arizona-specific affidavit template
+ * Arizona-specific template
  */
 class ArizonaTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'AZ';
     this.stateName = 'Arizona';
-    this.requiredFields = ['affiantName', 'state']; // ✅ County NOT required
+    this.requiredFields = ['affiantName', 'state'];
     this.sections = {
-      venue: false, // Arizona doesn't require venue
+      venue: false,
       caseCaption: false,
       notaryBlock: true
     };
@@ -480,7 +398,6 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
     const errors = [];
     const warnings = [];
     
-    // ✅ Arizona does NOT require county - only optional warning
     if (!affidavitData.county) {
       warnings.push('County information is helpful for Arizona affidavits but not required');
     }
@@ -490,7 +407,7 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
 
   getCountyValidationRules() {
     return {
-      required: false, // ✅ County is NOT required in Arizona
+      required: false,
       stateName: 'Arizona',
       stateCode: 'AZ',
       commonCounties: [
@@ -500,34 +417,200 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
     };
   }
 
+  // ✅ ARIZONA: Simplified verification
   generateNotaryBlock(affidavitData) {
     return `VERIFICATION
 
-State of Arizona
-County of ${affidavitData.county || '_______'}
-
-I, ${affidavitData.affiantName || '[NAME]'}, being duly sworn, depose and say that I have read the foregoing affidavit and that the facts stated therein are true and correct to the best of my knowledge and belief.
-
 Subscribed and sworn to before me this _____ day of _________, 2025.
 
+
 _________________________________
-Notary Public
+Notary Public, State of Arizona
 
 My commission expires: ___________`;
   }
 }
 
+/**
+ * ✅ NEW: California-specific template
+ * Uses DECLARATION format per CCP § 2015.5 - NO NOTARY REQUIRED
+ */
+class CaliforniaTemplate extends BaseAffidavitTemplate {
+  constructor() {
+    super();
+    this.state = 'CA';
+    this.stateName = 'California';
+    this.requiredFields = ['affiantName', 'state'];
+    this.sections = {
+      venue: false, // County optional in CA
+      caseCaption: false,
+      notaryBlock: false // ✅ NO NOTARY for declarations
+    };
+  }
 
+  performStateSpecificValidation(affidavitData) {
+    const errors = [];
+    const warnings = [];
+    
+    // County is helpful but not required
+    if (!affidavitData.county) {
+      warnings.push('County is optional but recommended for California declarations');
+    }
+    
+    // Check if execution location is specified
+    if (!affidavitData.executionCity && !affidavitData.executionLocation) {
+      warnings.push('Consider specifying execution location (city) for declarations executed in California');
+    }
+    
+    return { errors, warnings };
+  }
+
+  getCountyValidationRules() {
+    return {
+      required: false,
+      stateName: 'California',
+      stateCode: 'CA',
+      commonCounties: [
+        'Los Angeles', 'San Diego', 'Orange', 'Riverside', 'San Bernardino',
+        'Santa Clara', 'Alameda', 'Sacramento', 'Contra Costa', 'Fresno',
+        'Kern', 'San Francisco', 'Ventura', 'San Mateo', 'San Joaquin'
+      ]
+    };
+  }
+
+  // Override to change document title for CA
+  generateDocument(affidavitData = {}) {
+    const validation = this.validateData(affidavitData);
+    
+    const id = require('uuid').v4();
+    const header = 'STATE OF CALIFORNIA';
+    
+    // County is optional
+    let venue = null;
+    if (affidavitData.county) {
+      venue = `County of ${affidavitData.county}`;
+    }
+
+    // California uses "Declaration" not "Affidavit"
+    const title = `DECLARATION OF ${(affidavitData.affiantName || '[NAME]').toUpperCase()}`;
+    const facts = this.processFactsForDocument(affidavitData.facts || []);
+    const declarationBlock = this.generateNotaryBlock(affidavitData); // Actually generates declaration jurat
+    
+    const htmlContent = `<html><head><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:2;margin:1in;}</style></head><body>${header}${venue ? `<div class="venue">${venue}</div>` : ''}<div class="title">${title}</div><div class="facts">${facts.map(f=>`<p class="fact">${f.number}. ${f.content}</p>`).join('')}</div><div class="declaration">${declarationBlock.replace(/\n/g,'<br/>')}</div></body></html>`;
+
+    return {
+      id,
+      state: this.state,
+      sections: {
+        header,
+        venue: venue || null,
+        title,
+        facts,
+        notaryBlock: declarationBlock // Actually the declaration jurat
+      },
+      htmlContent,
+      validation
+    };
+  }
+
+  // Override preview generation
+  generatePreview(affidavitData) {
+    const sections = {};
+    
+    sections.header = {
+      type: 'header',
+      content: 'STATE OF CALIFORNIA'
+    };
+    
+    if (affidavitData.county) {
+      sections.venue = {
+        type: 'venue',
+        content: `STATE OF CALIFORNIA\nCounty of ${affidavitData.county}`
+      };
+    }
+    
+    sections.introduction = {
+      type: 'introduction',
+      title: 'DECLARATION',
+      content: this.generateIntroduction(affidavitData)
+    };
+    
+    sections.facts = {
+      type: 'facts',
+      title: 'STATEMENT OF FACTS',
+      content: this.processFactsForPreview(affidavitData.facts || [])
+    };
+    
+    sections.signatureBlock = {
+      type: 'signature',
+      title: 'DECLARATION UNDER PENALTY OF PERJURY',
+      content: this.generateSignatureBlock(affidavitData)
+    };
+    
+    // No notary block - just the penalty of perjury declaration
+    sections.notaryBlock = {
+      type: 'declarationBlock',
+      title: 'PENALTY OF PERJURY STATEMENT',
+      content: this.generateNotaryBlock(affidavitData)
+    };
+    
+    return sections;
+  }
+
+  generateIntroduction(affidavitData) {
+    const name = affidavitData.affiantName || '[YOUR NAME]';
+    return `I, ${name}, declare as follows:\n\nI am over the age of eighteen (18) years and am competent to testify to the matters stated herein. The facts stated herein are within my personal knowledge and are true and correct.`;
+  }
+
+  generateSignatureBlock(affidavitData) {
+    const name = affidavitData.affiantName || '[YOUR NAME]';
+    const executionCity = affidavitData.executionCity || affidavitData.executionLocation || '[CITY]';
+    
+    // Per CCP § 2015.5 - different formats for in-state vs out-of-state
+    return `I declare under penalty of perjury under the laws of the State of California that the foregoing is true and correct.
+
+Executed on _____________, 2025, at ${executionCity}, California.
+
+
+_________________________________
+${name}, Declarant`;
+  }
+
+  // ✅ CALIFORNIA: Declaration format per CCP § 2015.5 - NO NOTARY NEEDED
+  generateNotaryBlock(affidavitData) {
+    const executionCity = affidavitData.executionCity || affidavitData.executionLocation || '[CITY]';
+    
+    return `DECLARATION UNDER PENALTY OF PERJURY
+
+I declare under penalty of perjury under the laws of the State of California that the foregoing is true and correct.
+
+Executed on _____________, 2025
+
+At: ${executionCity}, California
+
+
+_________________________________
+Signature of Declarant
+
+_________________________________
+Printed Name
+
+NOTE: No notarization required for California family law declarations.
+This declaration has the same legal force and effect as a notarized affidavit
+per California Code of Civil Procedure § 2015.5.`;
+  }
+}
 
 /**
- * ✅ Main StateTemplateManager class
+ * Main StateTemplateManager class
  */
 class StateTemplateManager {
   constructor() {
     this.templates = {
       'TX': new TexasTemplate(),
       'UT': new UtahTemplate(),
-      'AZ': new ArizonaTemplate()
+      'AZ': new ArizonaTemplate(),
+      'CA': new CaliforniaTemplate() // ✅ NEW: California support
     };
     this.defaultState = 'TX';
     
@@ -567,7 +650,6 @@ class StateTemplateManager {
     const errors = [];
     const warnings = [];
 
-    // Basic validation
     if (!affidavitData.affiantName || affidavitData.affiantName.trim().length < 2) {
       errors.push('Affiant name is required');
     }
@@ -576,7 +658,6 @@ class StateTemplateManager {
       errors.push('State is required');
     }
 
-    // State-specific validation (includes county check)
     const stateValidation = template.performStateSpecificValidation(affidavitData);
     errors.push(...stateValidation.errors);
     warnings.push(...stateValidation.warnings);
@@ -588,7 +669,6 @@ class StateTemplateManager {
     };
   }
 
-  // Backwards-compatible test helper expected by tests
   validateAffidavitData(affidavitData = {}, stateCode) {
     const state = stateCode || affidavitData.state || this.defaultState;
     const template = this.getTemplate(state);
@@ -632,5 +712,12 @@ class StateTemplateManager {
   }
 }
 
-// Export classes used by tests
-module.exports = { StateTemplateManager, BaseAffidavitTemplate, TexasTemplate, UtahTemplate, ArizonaTemplate };
+// Export all classes
+module.exports = { 
+  StateTemplateManager, 
+  BaseAffidavitTemplate, 
+  TexasTemplate, 
+  UtahTemplate, 
+  ArizonaTemplate,
+  CaliforniaTemplate // ✅ NEW export
+};

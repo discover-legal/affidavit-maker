@@ -8,7 +8,7 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave } = require('../middleware/validation');
-const { prepareFactsForStorage } = require('../utils/factNormalizer');
+const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
 
 
 /**
@@ -511,7 +511,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 
   // Always set items for UI. For formatted string, prefer any template-generated content if present
   // but do NOT persist it into the canonical content. Use previewRenderer to construct a deterministic formatted string.
-  const previewRenderer = req.app.locals.previewRenderer || require('../services/previewRenderer');
+  const previewRenderer = require('../services/previewRenderer');
   let formattedString = '';
 
   if (enhanced.sections.facts && typeof enhanced.sections.facts.content === 'string' && enhanced.sections.facts.content.length > 10 && !enhanced.sections.facts.content.includes('No facts')) {

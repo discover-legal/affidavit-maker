@@ -59,7 +59,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
 // Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ isNew = false, onBack }) => {
-  const { isAuthenticated } = useAuth0();
+  const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
   
   // Layout state with new proportions (35/35/30)
@@ -199,11 +199,57 @@ const EditorView = ({ isNew = false, onBack }) => {
       alert('Please save the document first');
       return;
     }
-    
-    // TODO: Implement PDF download
-    console.log('Download PDF for document:', currentDocument.documentId);
-  };
 
+    if (!isAuthenticated) {
+      alert('Please log in to download your document');
+      return;
+    }
+
+    try {
+      console.log('📥 Starting PDF download...', {
+        documentId: currentDocument.documentId,
+        affiantName: currentDocument.affiantName
+      });
+
+      const token = await getAccessTokenSilently();
+      
+      const response = await fetch('http://localhost:3001/api/documents/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          affidavitData: currentDocument,
+          documentId: currentDocument.documentId,
+          skipPayment: true
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Download failed' }));
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      console.log('✅ PDF generated, size:', blob.size, 'bytes');
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `affidavit-${currentDocument.affiantName?.replace(/[^a-zA-Z0-9]/g, '_') || 'document'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ PDF download started');
+      
+    } catch (error) {
+      console.error('❌ PDF download failed:', error);
+      alert(`Failed to download PDF: ${error.message}`);
+    }
+  };
   // Mobile panel navigation
   const renderMobileNavigation = () => (
     <div className="flex border-b bg-white">

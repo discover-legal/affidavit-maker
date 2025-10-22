@@ -1,4 +1,4 @@
-// server.js 
+// server.js - COMPLETE DROP-IN REPLACEMENT with PDFService
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,7 +19,6 @@ const EnhancedFactValidationService = require('./services/enhancedFactValidation
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
-
 const { responseMiddleware } = require('./utils/responseHelpers'); 
 
 // Initialize Express app
@@ -32,9 +31,7 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // ✅ FIXED: Response helpers middleware (second, before any routes)
-
 app.use(responseMiddleware);
 
 // Security middleware
@@ -149,6 +146,7 @@ app.use(morgan((tokens, req, res) => {
 let affidavitService = null;
 let templateManager = null;
 let openAIService = null;
+let pdfService = null; // ✅ NEW
 
 async function initializeServices() {
   try {
@@ -166,8 +164,15 @@ async function initializeServices() {
     const { StateTemplateManager } = require('./templates/StateTemplateManager');
     templateManager = new StateTemplateManager();
     app.locals.templateManager = templateManager;
+    logger.info('✅ Template Manager initialized');
 
-    // ✅ NEW: Initialize Multi-Provider LLM Client
+    // ✅ NEW: Initialize PDF Service
+    const PDFService = require('./services/pdfService');
+    pdfService = new PDFService();
+    app.locals.pdfService = pdfService;
+    logger.info('✅ PDF Service initialized');
+
+    // Initialize Multi-Provider LLM Client
     const MultiProviderLLM = require('./services/MultiProviderLLM');
     const llmClient = new MultiProviderLLM();
 
@@ -201,6 +206,7 @@ async function initializeServices() {
     app.locals.openAIService = openAIService;
     app.locals.affidavitService = affidavitService;
     app.locals.templateManager = templateManager;
+    app.locals.pdfService = pdfService; // ✅ NEW
     app.locals.enhancedFactValidationService  = validationService;
     app.locals.logger = logger;
 
@@ -222,119 +228,20 @@ app.get('/health', (req, res) => {
     services: {
       database: dbService ? 'OK' : 'Not Connected',
       templates: templateManager ? 'OK' : 'Not Initialized',
+      pdfService: pdfService ? 'OK' : 'Not Initialized', // ✅ NEW
       auth: process.env.AUTH0_DOMAIN ? 'OK' : 'Not Configured',
       stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Connected',
       openai: openAIService ? 'OK' : 'Not Initialized'
-    },
-    memory: {
-      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-    },
-    uptime: Math.floor(process.uptime()) + ' seconds'
+    }
   });
 });
 
-// ✅ FIXED: Debug endpoints for development (circuit breaker management)
-if (process.env.NODE_ENV === 'development') {
-  
-  // Reset OpenAI circuit breaker
-  app.get('/api/debug/reset-openai', (req, res) => {
-    try {
-      if (!affidavitService?.openAIService) {
-        return res.json({
-          success: false,
-          error: 'OpenAI service not available'
-        });
-      }
-      
-      affidavitService.openAIService.resetCircuitBreakers();
-      const status = affidavitService.openAIService.getStatus();
-      
-      logger.info('Circuit breakers manually reset');
-      
-      res.json({
-        success: true,
-        message: 'Circuit breakers reset successfully',
-        status: {
-          chat: status.circuitBreakers.chat.state,
-          embedding: status.circuitBreakers.embedding.state,
-          cacheSize: status.cache.size
-        }
-      });
-    } catch (error) {
-      logger.error('Failed to reset circuit breakers:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-  
-  // Get OpenAI service status
-  app.get('/api/debug/openai-status', (req, res) => {
-    try {
-      if (!affidavitService?.openAIService) {
-        return res.json({
-          success: false,
-          error: 'OpenAI service not available'
-        });
-      }
-      
-      const status = affidavitService.openAIService.getStatus();
-      res.json({
-        success: true,
-        status,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-  
-  // Test OpenAI connection directly
-  app.post('/api/debug/test-openai', async (req, res) => {
-    try {
-      if (!affidavitService?.openAIService) {
-        return res.json({
-          success: false,
-          error: 'OpenAI service not available'
-        });
-      }
-      
-      const testResult = await affidavitService.openAIService.chat([
-        { role: 'user', content: 'Test connection - respond with just "Connection OK"' }
-      ], {
-        model: 'gpt-3.5-turbo',
-        max_tokens: 10
-        // ✅ REMOVED: timeout parameter
-      });
-      
-      res.json({
-        success: true,
-        message: 'OpenAI connection test successful',
-        response: testResult.choices[0].message.content,
-        usage: testResult.usage
-      });
-    } catch (error) {
-      logger.error('OpenAI test failed:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        type: error.constructor.name
-      });
-    }
-  });
-  
-}
-
-// Safe route import function
+// Safe router import utility
 const safeImportRouter = (routePath, routeName) => {
   try {
     const router = require(routePath);
-    if (typeof router === 'function' || (router && typeof router.use === 'function')) {
+    
+    if (typeof router === 'function' || (router && typeof router.handle === 'function')) {
       logger.info(`✅ ${routeName} routes loaded successfully`);
       return router;
     } else {
@@ -472,44 +379,31 @@ const gracefulShutdown = (signal) => {
     }
   });
   
-  // Force exit after 10 seconds
+  // Force shutdown after 10 seconds
   setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down');
+    console.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 };
 
-// Start server
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ Health check: http://localhost:${PORT}/health`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔧 Debug endpoints available:`);
-    console.log(`   - Circuit breaker status: http://localhost:${PORT}/api/debug/openai-status`);
-    console.log(`   - Reset circuit breaker: http://localhost:${PORT}/api/debug/reset-openai`);
-    console.log(`   - Test OpenAI: POST http://localhost:${PORT}/api/debug/test-openai`);
-  }
-  
-  logger.info(`Server started on port ${PORT}`);
-});
-
-// Handle shutdown signals
+// Listen for shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application specific logging, throwing an error, or other logic here
+// Start server
+const PORT = process.env.PORT || 3001;
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception thrown:', error);
-  // Application specific logging, throwing an error, or other logic here
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  } else {
+    console.error('❌ Server error:', error);
+  }
   process.exit(1);
 });
 

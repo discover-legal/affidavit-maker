@@ -1,6 +1,4 @@
-// routes/documents.js - COMPLETE FIXED VERSION (Drop-in Replacement)
-// This version fixes the enhancePreviewWithCategories function that was overwriting processed facts
-
+// routes/documents.js - COMPLETE DROP-IN REPLACEMENT with /generate endpoint
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
@@ -10,18 +8,16 @@ const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave } = require('../middleware/validation');
 const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
 
-
 /**
- * ✅ FIXED: Preview generation with proper facts processing
+ * ✅ Preview generation endpoint
  */
 router.post('/preview', 
   validatePreview,
-  optionalAuth, // Allow both authenticated and anonymous preview generation
+  optionalAuth,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { affidavitData } = req.body;
     
-    // Input validation
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
         success: false,
@@ -33,7 +29,6 @@ router.post('/preview',
       const templateManager = req.app.locals.templateManager;
       
       if (!templateManager) {
-        // ✅ FALLBACK: Create basic preview without template manager
         return res.json({
           success: true,
           preview: createFallbackPreview(affidavitData),
@@ -41,7 +36,7 @@ router.post('/preview',
         });
       }
 
-      // ✅ Check for cached preview first (only for authenticated users)
+      // Check for cached preview (authenticated users only)
       const pool = req.app.locals.pool;
       const userId = req.user?.id;
       
@@ -54,7 +49,6 @@ router.post('/preview',
           
           if (cachedResult.rows.length > 0) {
             const cached = cachedResult.rows[0];
-            // Use cache if less than 5 minutes old
             if (cached.last_preview_generated && 
                 Date.now() - new Date(cached.last_preview_generated).getTime() < 5 * 60 * 1000) {
               
@@ -68,11 +62,10 @@ router.post('/preview',
           }
         } catch (cacheError) {
           logger.warn('Preview cache check failed', { error: cacheError.message });
-          // Continue to generate fresh preview
         }
       }
 
-      // ✅ Generate new preview with enhanced error handling
+      // Generate new preview
       let preview;
       try {
         preview = templateManager.generatePreview(affidavitData);
@@ -84,10 +77,10 @@ router.post('/preview',
         preview = createFallbackPreview(affidavitData);
       }
 
-      // ✅ FIXED: Enhance preview WITHOUT overwriting processed facts content
+      // Enhance preview with categories
       const enhancedPreview = enhancePreviewWithCategories(preview, affidavitData);
       
-      // ✅ Cache the preview if we have database access
+      // Cache the preview
       if (pool && userId && affidavitData.documentId) {
         try {
           await pool.query(
@@ -98,12 +91,11 @@ router.post('/preview',
           );
         } catch (cacheError) {
           logger.warn('Preview cache update failed', { error: cacheError.message });
-          // Don't fail the request if caching fails
         }
       }
 
       logger.info('Preview generated successfully', {
-        hasTemplate: !!templateManager,
+        hasTemplate: !templateManager,
         documentId: affidavitData.documentId,
         factCount: affidavitData.facts?.length || 0
       });
@@ -122,7 +114,6 @@ router.post('/preview',
     } catch (error) {
       logger.error('Preview generation failed', { error: error.message });
       
-      // ✅ Always return a preview, even if basic
       res.json({
         success: true,
         preview: createFallbackPreview(affidavitData),
@@ -134,7 +125,192 @@ router.post('/preview',
 );
 
 /**
- * ✅ FIXED: Save document with enhanced validation and preview caching
+ * ✅ NEW: Generate and download PDF
+ */
+router.post('/generate', 
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const { affidavitData, documentId, skipPayment } = req.body;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+    const pdfService = req.app.locals.pdfService;
+    const templateManager = req.app.locals.templateManager;
+
+    // Validate inputs
+    if (!affidavitData || typeof affidavitData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid affidavit data is required'
+      });
+    }
+
+    if (!pdfService) {
+      return res.status(503).json({
+        success: false,
+        error: 'PDF generation service unavailable'
+      });
+    }
+
+    try {
+      // STEP 1: Check payment status (if not skipped)
+      if (!skipPayment && pool) {
+        try {
+          const paymentCheck = await pool.query(
+            'SELECT payment_status FROM documents WHERE id = $1 AND user_id = $2',
+            [documentId, userId]
+          );
+
+          if (paymentCheck.rows.length === 0) {
+            return res.status(404).json({
+              success: false,
+              error: 'Document not found'
+            });
+          }
+
+          const paymentStatus = paymentCheck.rows[0].payment_status;
+          if (paymentStatus !== 'completed' && paymentStatus !== 'free') {
+            return res.status(402).json({
+              success: false,
+              error: 'Payment required',
+              errorType: 'payment_required',
+              documentId
+            });
+          }
+        } catch (dbError) {
+          logger.warn('Payment check failed, allowing generation', { 
+            error: dbError.message 
+          });
+        }
+      }
+
+      // STEP 2: Generate document structure using template manager
+      let documentStructure;
+      if (templateManager) {
+        try {
+          documentStructure = templateManager.generateDocument(affidavitData);
+        } catch (templateError) {
+          logger.error('Template generation failed', { 
+            error: templateError.message,
+            state: affidavitData.state 
+          });
+          return res.status(400).json({
+            success: false,
+            error: 'Failed to generate document structure',
+            details: templateError.message
+          });
+        }
+      } else {
+        // Fallback: create basic structure
+        documentStructure = {
+          sections: {
+            header: affidavitData.state ? `THE STATE OF ${affidavitData.state}` : 'AFFIDAVIT',
+            venue: affidavitData.county ? `COUNTY OF ${affidavitData.county}` : '',
+            title: `AFFIDAVIT OF ${(affidavitData.affiantName || '[NAME]').toUpperCase()}`,
+            introduction: `I, ${affidavitData.affiantName || '[NAME]'}, being duly sworn, do hereby state under oath as follows:`,
+            facts: affidavitData.facts || [],
+            conclusion: 'The facts stated herein are within my personal knowledge and are true and correct.',
+            perjuryStatement: 'I declare under penalty of perjury that the foregoing is true and correct.',
+            signatureBlock: {
+              line: '_'.repeat(40),
+              name: affidavitData.affiantName || '[AFFIANT NAME]',
+              title: 'Affiant',
+              date: `Date: ________________`
+            },
+            notaryBlock: `NOTARY ACKNOWLEDGMENT\n\nSworn to and subscribed before me this _____ day of _________, ${new Date().getFullYear()}.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________`
+          },
+          metadata: {
+            documentId: documentId || 'draft',
+            affiantName: affidavitData.affiantName,
+            state: affidavitData.state,
+            generatedAt: new Date().toISOString()
+          }
+        };
+      }
+
+      // STEP 3: Generate PDF using pdfService
+      const result = await pdfService.generatePDF(documentStructure, {
+        documentId: documentId || Date.now(),
+        userId
+      });
+
+      if (!result.success || !result.filepath) {
+        throw new Error('PDF generation failed - no filepath returned');
+      }
+
+      logger.info('PDF generated successfully', {
+        documentId,
+        userId,
+        filepath: result.filepath,
+        pages: result.pages
+      });
+
+      // STEP 4: Update document status in database
+      if (pool && documentId) {
+        try {
+          await pool.query(
+            `UPDATE documents 
+             SET status = 'completed', 
+                 pdf_generated_at = CURRENT_TIMESTAMP,
+                 processing_metadata = jsonb_set(
+                   COALESCE(processing_metadata, '{}'::jsonb),
+                   '{pdfPages}',
+                   $1::text::jsonb
+                 )
+             WHERE id = $2 AND user_id = $3`,
+            [result.pages, documentId, userId]
+          );
+        } catch (dbError) {
+          logger.warn('Failed to update document status', { 
+            error: dbError.message 
+          });
+        }
+      }
+
+      // STEP 5: Stream PDF file to client
+      const fs = require('fs');
+      const stat = await fs.promises.stat(result.filepath);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      
+      const fileStream = fs.createReadStream(result.filepath);
+      fileStream.pipe(res);
+
+      // STEP 6: Clean up PDF file after streaming
+      fileStream.on('end', async () => {
+        setTimeout(async () => {
+          try {
+            await fs.promises.unlink(result.filepath);
+            logger.info('Cleaned up PDF file', { filepath: result.filepath });
+          } catch (cleanupError) {
+            logger.warn('Failed to cleanup PDF file', { 
+              error: cleanupError.message 
+            });
+          }
+        }, 60 * 60 * 1000); // 1 hour
+      });
+
+    } catch (error) {
+      logger.error('PDF generation failed', { 
+        error: error.message, 
+        stack: error.stack,
+        userId,
+        documentId: affidavitData?.documentId 
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate PDF',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  })
+);
+
+/**
+ * ✅ Save document endpoint
  */
 router.post('/save', 
   validateDocumentSave,
@@ -145,7 +321,6 @@ router.post('/save',
     const userId = req.user.id;
     const pool = req.app.locals.pool;
 
-    // ✅ CRITICAL FIX: Validate affidavitData exists before accessing properties
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
         success: false,
@@ -161,91 +336,76 @@ router.post('/save',
     }
 
     try {
-      // ✅ FIXED: Normalize facts before saving to ensure consistent structure
       const normalizedFacts = affidavitData.facts 
         ? prepareFactsForStorage(affidavitData.facts)
         : [];
 
-      // ✅ FIXED: Safe title generation with proper null checking
       const documentTitle = affidavitData.affiantName 
-        ? `Affidavit of ${affidavitData.affiantName}` 
+        ? `Affidavit of ${affidavitData.affiantName}`
         : 'Untitled Affidavit';
-      
-      // Prepare document data with normalized facts
-      const documentData = {
-        content: JSON.stringify({
-          ...affidavitData,
-          facts: normalizedFacts // Use normalized facts
-        }),
-        status: 'draft',
-        template_state: affidavitData.state || 'TX',
-        document_type: affidavitData.documentType || 'general',
-        validation_result: validation || null,
-        fact_categories: categories || null,
-        processing_metadata: {
-          lastModified: new Date().toISOString(),
-          factCount: normalizedFacts.length,
-          completionScore: calculateCompletionScore({ 
-            sections: { 
-              facts: { 
-                items: normalizedFacts 
-              } 
-            } 
-          })
-        }
+
+      const contentToSave = {
+        ...affidavitData,
+        facts: normalizedFacts
       };
 
-      let result;
-      
-      // Update existing document or create new one
+      let savedDocument;
+
       if (affidavitData.documentId) {
         // Update existing document
-        result = await pool.query(
+        const result = await pool.query(
           `UPDATE documents 
-           SET title = $1, content = $2, status = $3, template_state = $4, 
-               document_type = $5, validation_result = $6, fact_categories = $7,
-               processing_metadata = $8, updated_at = CURRENT_TIMESTAMP
-           WHERE id = $9 AND user_id = $10
+           SET content = $1,
+               title = $2,
+               template_state = $3,
+               validation_result = $4,
+               fact_categories = $5,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $6 AND user_id = $7
            RETURNING *`,
           [
-            documentTitle, documentData.content, documentData.status,
-            documentData.template_state, documentData.document_type,
-            documentData.validation_result, documentData.fact_categories,
-            documentData.processing_metadata, affidavitData.documentId, userId
+            JSON.stringify(contentToSave),
+            documentTitle,
+            affidavitData.state || null,
+            validation ? JSON.stringify(validation) : null,
+            categories ? JSON.stringify(categories) : null,
+            affidavitData.documentId,
+            userId
           ]
         );
-        
+
         if (result.rows.length === 0) {
           return res.status(404).json({
             success: false,
-            error: 'Document not found or access denied'
+            error: 'Document not found'
           });
         }
+
+        savedDocument = result.rows[0];
+        logger.info('Document updated', { documentId: savedDocument.id, userId });
       } else {
         // Create new document
-        result = await pool.query(
-          `INSERT INTO documents 
-           (user_id, title, content, status, template_state, document_type, 
-            validation_result, fact_categories, processing_metadata, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           RETURNING *`,
+        const result = await pool.query(
+          `INSERT INTO documents (
+            user_id, title, content, template_state, document_type,
+            status, validation_result, fact_categories, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING *`,
           [
-            userId, documentTitle, documentData.content, documentData.status,
-            documentData.template_state, documentData.document_type,
-            documentData.validation_result, documentData.fact_categories,
-            documentData.processing_metadata
+            userId,
+            documentTitle,
+            JSON.stringify(contentToSave),
+            affidavitData.state || null,
+            affidavitData.documentType || 'general',
+            'draft',
+            validation ? JSON.stringify(validation) : null,
+            categories ? JSON.stringify(categories) : null
           ]
         );
+
+        savedDocument = result.rows[0];
+        logger.info('New document created', { documentId: savedDocument.id, userId });
       }
-
-      const savedDocument = result.rows[0];
-
-      logger.info('Document saved successfully', {
-        documentId: savedDocument.id,
-        userId,
-        factCount: normalizedFacts.length,
-        isUpdate: !!affidavitData.documentId
-      });
 
       res.json({
         success: true,
@@ -274,7 +434,7 @@ router.post('/save',
 );
 
 /**
- * ✅ Get user's documents with pagination and filtering
+ * ✅ Get user's documents with pagination
  */
 router.get('/', 
   auth0Middleware,
@@ -294,7 +454,6 @@ router.get('/',
       const { page = 1, limit = 10, status, state } = req.query;
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
-      // Build query with optional filters
       let query = `
         SELECT id, title, status, template_state, document_type, 
                processing_metadata, created_at, updated_at
@@ -321,7 +480,7 @@ router.get('/',
 
       const result = await pool.query(query, params);
 
-      // Get total count for pagination
+      // Get total count
       let countQuery = 'SELECT COUNT(*) FROM documents WHERE user_id = $1';
       let countParams = [userId];
       let countParamIndex = 2;
@@ -394,10 +553,10 @@ router.get('/:id',
 
       const doc = result.rows[0];
       
-      // Parse content safely
       let content;
       try {
-        content = typeof doc.content === 'string' ? JSON.parse(doc.content) : doc.content;
+        content = typeof doc.content === 'string' ? 
+          JSON.parse(doc.content) : doc.content;
       } catch (parseError) {
         logger.warn('Failed to parse document content', { documentId });
         content = doc.content;
@@ -490,9 +649,7 @@ router.delete('/:id',
 );
 
 /**
- * ✅ COMPLETELY FIXED: Enhance preview with category information
- * Keeps BOTH formatted string for PDF AND items array for UI
- * Never overwrites processed facts from StateTemplateManager
+ * ✅ Helper: Enhance preview with category information
  */
 function enhancePreviewWithCategories(preview, affidavitData) {
   if (!preview || !preview.sections) {
@@ -501,36 +658,28 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 
   const enhanced = { ...preview };
   
-  // Only enhance if we have facts
   if (!affidavitData.facts || affidavitData.facts.length === 0) {
     return enhanced;
   }
 
-  // Normalize facts into items for UI and compute a formatted string on-demand
   const items = prepareFactsForDisplay(affidavitData.facts);
 
-  // Always set items for UI. For formatted string, prefer any template-generated content if present
-  // but do NOT persist it into the canonical content. Use previewRenderer to construct a deterministic formatted string.
-  const previewRenderer = require('../services/previewRenderer');
   let formattedString = '';
-
-  if (enhanced.sections.facts && typeof enhanced.sections.facts.content === 'string' && enhanced.sections.facts.content.length > 10 && !enhanced.sections.facts.content.includes('No facts')) {
-    // Use existing template manager output for display, but keep it cache-only
-    formattedString = enhanced.sections.facts.content;
-  } else {
-    // Build formatted from canonical items
-    try {
-      formattedString = previewRenderer.generateFormattedString({ facts: affidavitData.facts, affiantName: affidavitData.affiantName, state: affidavitData.state, county: affidavitData.county });
-    } catch (e) {
-      formattedString = items.map((f, idx) => `${idx + 1}. ${f.displayContent}`).join('\n\n');
+  if (enhanced.sections.facts) {
+    if (typeof enhanced.sections.facts === 'string') {
+      formattedString = enhanced.sections.facts;
+    } else if (enhanced.sections.facts.formatted) {
+      formattedString = enhanced.sections.facts.formatted;
+    } else if (items.length > 0) {
+      formattedString = items.map(f => `${f.index}. ${f.displayContent}`).join('\n\n');
     }
   }
 
   enhanced.sections.facts = {
     type: 'facts',
     title: enhanced.sections.facts?.title || 'STATEMENT OF FACTS',
-    formatted: formattedString, // For PDF generation (cache-only)
-    items: items, // For UI
+    formatted: formattedString,
+    items: items,
     metadata: {
       totalFacts: affidavitData.facts.length,
       categories: getCategorySummary(affidavitData.facts),
@@ -542,7 +691,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 }
 
 /**
- * Helper: Get category summary
+ * ✅ Helper: Get category summary
  */
 function getCategorySummary(facts) {
   const categories = {};
@@ -556,7 +705,7 @@ function getCategorySummary(facts) {
 }
 
 /**
- * Helper: Calculate quality metrics
+ * ✅ Helper: Calculate quality metrics
  */
 function calculateQualityMetrics(facts) {
   const total = facts.length;
@@ -579,7 +728,7 @@ function calculateQualityMetrics(facts) {
 }
 
 /**
- * ✅ Helper: Create fallback preview when template manager fails
+ * ✅ Helper: Create fallback preview
  */
 function createFallbackPreview(affidavitData) {
   const facts = affidavitData.facts || [];
@@ -608,149 +757,45 @@ function createFallbackPreview(affidavitData) {
               const content = fact.professionalRewrite || fact.content || String(fact);
               return `${index + 1}. ${content}`;
             }).join('\n\n')
-          : 'No facts have been added yet. Start chatting to add facts to your affidavit.'
+          : 'No facts have been added yet.'
       },
       conclusion: {
         type: 'conclusion',
-        title: 'CONCLUSION',
-        content: `I declare under penalty of perjury that the foregoing is true and correct to the best of my knowledge and belief.\n\nFURTHER AFFIANT SAYETH NOT.`
+        content: 'The facts stated herein are within my personal knowledge and are true and correct.'
       },
       signature: {
         type: 'signature',
-        title: 'SIGNATURE AND NOTARIZATION',
-        content: `Executed on this _____ day of _________, 2025.\n\n\n_________________________________\n${affidavitData.affiantName || '[NAME]'}\n\nNOTARY ACKNOWLEDGMENT\n[Notary section will be completed at signing]`
+        content: `\n\n_________________________________\n${affidavitData.affiantName || '[YOUR NAME]'}, Affiant`
+      },
+      notary: {
+        type: 'notary',
+        content: `NOTARY ACKNOWLEDGMENT\n\nSworn to and subscribed before me this _____ day of _________, ${new Date().getFullYear()}.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________`
       }
     },
     metadata: {
-      stateName: getStateName(affidavitData.state),
-      estimatedPages: Math.max(1, Math.ceil((facts.length * 2 + 4) / 25)),
-      wordCount: estimateWordCount(facts),
-      factCount: facts.length,
-      isComplete: !!(affidavitData.affiantName && affidavitData.state && facts.length > 0),
-      isFallback: true
+      fallback: true,
+      totalFacts: facts.length,
+      completionScore: facts.length > 0 ? Math.min(100, Math.round((facts.length / 3) * 100)) : 0
     }
   };
 }
 
 /**
- * ✅ Get category summary for metadata
- */
-function getCategorySummary(facts) {
-  if (!Array.isArray(facts)) return {};
-  
-  const summary = {};
-  facts.forEach(fact => {
-    const category = fact.category || 'general';
-    if (!summary[category]) {
-      summary[category] = { count: 0, issues: 0 };
-    }
-    summary[category].count++;
-    if (fact.severity === 'critical' || fact.severity === 'warning') {
-      summary[category].issues++;
-    }
-  });
-
-  /**
-   * POST /:id/render - generate formatted preview (on-demand) from canonical affidavit data
-   * Returns { success: true, formatted, items, fromCache }
-   */
-  router.post('/:id/render',
-    auth0Middleware,
-    standardLimiter,
-    asyncHandler(async (req, res) => {
-      const { id: documentId } = req.params;
-      const userId = req.user.id;
-      const pool = req.app.locals.pool;
-      const previewRenderer = require('../services/previewRenderer');
-
-      if (!pool) {
-        return res.status(503).json({ success: false, error: 'Database service unavailable' });
-      }
-
-      try {
-        const result = await pool.query('SELECT content, preview_data, last_preview_generated FROM documents WHERE id = $1 AND user_id = $2', [documentId, userId]);
-        if (result.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Document not found' });
-        }
-
-        const row = result.rows[0];
-
-        // Parse canonical content
-        let content;
-        try {
-          content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content;
-        } catch (e) {
-          content = row.content;
-        }
-
-        // If cached preview exists and is fresh (5 minutes), return it
-        if (row.preview_data && row.last_preview_generated) {
-          const ageMs = Date.now() - new Date(row.last_preview_generated).getTime();
-          if (ageMs < 5 * 60 * 1000) {
-            logger.info('Returning cached rendered preview', { documentId });
-            return res.json({ success: true, fromCache: true, ...row.preview_data });
-          }
-        }
-
-        // Generate formatted output using previewRenderer
-        const rendered = previewRenderer.generateBoth(content || {});
-
-        // Attempt to cache the rendered object in preview_data column (non-blocking)
-        try {
-          await pool.query('UPDATE documents SET preview_data = $1, last_preview_generated = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3', [JSON.stringify(rendered), documentId, userId]);
-        } catch (cacheErr) {
-          logger.warn('Failed to cache rendered preview', { error: cacheErr.message, documentId });
-        }
-
-        res.json({ success: true, fromCache: false, ...rendered });
-      } catch (error) {
-        logger.error('Render preview failed', { error: error.message, documentId, userId });
-        res.status(500).json({ success: false, error: 'Failed to render preview' });
-      }
-    })
-  );
-  
-  return summary;
-}
-
-/**
- * ✅ Calculate quality metrics
- */
-function calculateQualityMetrics(facts) {
-  if (!Array.isArray(facts) || facts.length === 0) {
-    return { score: 0, issues: 0, completeness: 0 };
-  }
-  
-  const totalFacts = facts.length;
-  const criticalIssues = facts.filter(f => f.severity === 'critical').length;
-  const warnings = facts.filter(f => f.severity === 'warning').length;
-  const avgConfidence = facts.reduce((sum, f) => sum + (f.confidence || 0.8), 0) / totalFacts;
-  
-  const score = Math.max(0, Math.min(10, 
-    (avgConfidence * 10) - (criticalIssues * 3) - (warnings * 1)
-  ));
-  
-  return {
-    score: Math.round(score * 10) / 10,
-    avgConfidence: Math.round(avgConfidence * 100) / 100,
-    criticalIssues,
-    warnings,
-    completeness: totalFacts >= 3 ? 100 : Math.round((totalFacts / 3) * 100)
-  };
-}
-
-/**
- * ✅ Helper functions
+ * ✅ Helper: Get state name
  */
 function getStateName(stateCode) {
   const stateMap = {
     'TX': 'Texas',
     'UT': 'Utah', 
-    'AZ': 'Arizona'
+    'AZ': 'Arizona',
+    'CA': 'California'
   };
   return stateMap[stateCode] || stateCode || 'Unknown';
 }
 
+/**
+ * ✅ Helper: Estimate word count
+ */
 function estimateWordCount(facts) {
   if (!Array.isArray(facts)) return 0;
   return facts.reduce((count, fact) => {
@@ -760,7 +805,7 @@ function estimateWordCount(facts) {
 }
 
 /**
- * Helper: Calculate completion score
+ * ✅ Helper: Calculate completion score
  */
 function calculateCompletionScore(preview) {
   let score = 0;
@@ -768,17 +813,14 @@ function calculateCompletionScore(preview) {
   
   if (!preview || !preview.sections) return 0;
   
-  // Basic info (30 points)
   if (preview.sections.header) score += 15;
   if (preview.sections.introduction) score += 15;
   
-  // Facts (50 points)
   if (preview.sections.facts?.items?.length > 0) {
     const factScore = Math.min(50, preview.sections.facts.items.length * 10);
     score += factScore;
   }
   
-  // Footer (20 points)
   if (preview.sections.signature) score += 10;
   if (preview.sections.notary) score += 10;
   

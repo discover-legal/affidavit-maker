@@ -1,7 +1,4 @@
-// client/src/components/DocumentPreview.js
-// ENHANCED VERSION - Drop-in replacement for existing DocumentPreview.js
-// Adds: Professional formatting, Pagination, Better empty state
-
+// client/src/components/DocumentPreview.js - FIXED VERSION with Notary Protection
 import React, { useState, useMemo } from 'react';
 import { 
   FileText, 
@@ -13,102 +10,207 @@ import {
 } from 'lucide-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 
-const LINES_PER_PAGE = 42; // Standard legal document
+const LINES_PER_PAGE = 42; // Standard legal document (letter size, double-spaced)
 
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentState();
   const { generatePreview } = useDocumentActions();
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [zoomLevel, setZoomLevel] = useState(80); // Default to 80% zoom
+  const [zoomLevel, setZoomLevel] = useState(80);
 
-  // Calculate pagination from preview content
+  // ✅ FIXED: Calculate pagination with notary block protection
   const pages = useMemo(() => {
     if (!preview?.sections) return [{content: []}];
     
     const sections = preview.sections;
     const allContent = [];
     
-    // Helper to estimate lines for text (accounts for double-spacing)
-    const estimateLines = (text) => {
+    // Helper to estimate lines for text (accounts for double-spacing and wrapping)
+    const estimateLines = (text, type = 'normal') => {
       if (!text) return 0;
-      const chars = typeof text === 'string' ? text.length : String(text).length;
-      // Count newlines for multi-line content (like notary blocks)
-      const newlines = (text.match(/\n/g) || []).length;
-      const baseLines = Math.ceil(chars / 75);
-      return Math.max(baseLines, newlines) + 1; // Use the larger estimate
+      const textStr = typeof text === 'string' ? text : String(text);
+      
+      // Count explicit newlines
+      const newlines = (textStr.match(/\n/g) || []).length;
+      
+      // Estimate wrapped lines (75 chars per line average for legal docs)
+      const wrappedLines = Math.ceil(textStr.length / 75);
+      
+      // Use the larger estimate
+      let lines = Math.max(wrappedLines, newlines + 1);
+      
+      // Add extra spacing based on type
+      if (type === 'title') lines += 2;
+      if (type === 'section-header') lines += 1;
+      if (type === 'notary') lines += 8; // Extra spacing around notary
+      
+      return lines;
     };
     
     // Add header
     if (sections.header) {
-      allContent.push({ type: 'header', content: sections.header.content || sections.header, lines: 3 });
+      allContent.push({ 
+        type: 'header', 
+        content: sections.header.content || sections.header, 
+        lines: 3 
+      });
     }
     
     // Add venue
     if (sections.venue) {
-      allContent.push({ type: 'venue', content: sections.venue.content || sections.venue, lines: 3 });
+      allContent.push({ 
+        type: 'venue', 
+        content: sections.venue.content || sections.venue, 
+        lines: 3 
+      });
     }
     
     // Add title
     if (sections.title) {
-      allContent.push({ type: 'title', content: 'AFFIDAVIT', lines: 2 });
+      allContent.push({ 
+        type: 'title', 
+        content: 'AFFIDAVIT', 
+        lines: 3 
+      });
     }
     
     // Add introduction
     if (sections.introduction) {
       const intro = sections.introduction.content || sections.introduction;
-      allContent.push({ type: 'introduction', content: intro, lines: estimateLines(intro) + 1 });
-    }
-    
-    // Add facts
-    if (sections.facts) {
-      allContent.push({ type: 'section-title', content: 'STATEMENT OF FACTS', lines: 2 });
-      
-      const facts = currentDocument.facts || [];
-      facts.forEach((fact, idx) => {
-        const content = fact.professionalRewrite || fact.content || String(fact);
-        allContent.push({ 
-          type: 'fact', 
-          content: `${idx + 1}. ${content}`, 
-          lines: estimateLines(content) + 1 
-        });
+      allContent.push({ 
+        type: 'introduction', 
+        content: intro, 
+        lines: estimateLines(intro) + 1 
       });
     }
     
+    // Add section title for facts
+    if (sections.facts) {
+      allContent.push({ 
+        type: 'section-title', 
+        content: 'STATEMENT OF FACTS', 
+        lines: 2 
+      });
+    }
+    
+    // ✅ Add facts with smart tracking
+    const facts = currentDocument.facts || [];
+    const factItems = [];
+    
+    facts.forEach((fact, idx) => {
+      const content = fact.professionalRewrite || fact.content || String(fact);
+      const factText = `${idx + 1}. ${content}`;
+      const lines = estimateLines(factText);
+      
+      factItems.push({
+        type: 'fact',
+        content: factText,
+        lines: lines,
+        index: idx,
+        isLastFact: idx === facts.length - 1,
+        isSecondToLastFact: idx === facts.length - 2
+      });
+    });
+    
+    // Add facts to content
+    allContent.push(...factItems);
+    
     // Add conclusion
     if (sections.conclusion) {
-      allContent.push({ type: 'section-title', content: 'CONCLUSION', lines: 2 });
-      const concl = sections.conclusion.content || sections.conclusion;
-      allContent.push({ type: 'conclusion', content: concl, lines: estimateLines(concl) + 1 });
+      const conclusion = sections.conclusion.content || sections.conclusion;
+      allContent.push({ 
+        type: 'conclusion', 
+        content: conclusion, 
+        lines: estimateLines(conclusion) + 1 
+      });
     }
     
-    // Add signature
-    if (sections.signature || sections.signatureBlock) {
-      const sig = sections.signature?.content || sections.signatureBlock?.content || sections.signature;
-      allContent.push({ type: 'signature', content: sig, lines: 6 });
+    // Add perjury statement
+    if (sections.perjuryStatement) {
+      const perjury = sections.perjuryStatement.content || sections.perjuryStatement;
+      allContent.push({
+        type: 'perjury',
+        content: perjury,
+        lines: estimateLines(perjury) + 1
+      });
     }
     
-    // Add notary
-    if (sections.notary || sections.notaryBlock) {
-      const notary = sections.notary?.content || sections.notaryBlock?.content || sections.notary;
-      allContent.push({ type: 'notary', content: notary, lines: 8 });
+    // Add signature block
+    if (sections.signatureBlock) {
+      allContent.push({ 
+        type: 'signature', 
+        content: sections.signatureBlock.formatted || 
+                 `\n\n_________________________________\n${currentDocument.affiantName || '[AFFIANT NAME]'}, Affiant\n\nDate: ________________`, 
+        lines: 6 
+      });
     }
     
-    // Paginate
+    // Add notary block (estimated height)
+    if (sections.notaryBlock) {
+      const notaryText = sections.notaryBlock.content || sections.notaryBlock;
+      allContent.push({ 
+        type: 'notary', 
+        content: notaryText, 
+        lines: estimateLines(notaryText, 'notary') + 15 // Add extra buffer for border/padding
+      });
+    }
+    
+    // ✅ PAGINATION with Notary Block Protection
     const paginatedPages = [];
     let currentPageContent = [];
     let currentPageLines = 0;
     
-    allContent.forEach((section) => {
-      if (currentPageLines + section.lines > LINES_PER_PAGE && currentPageContent.length > 0) {
-        paginatedPages.push({ content: [...currentPageContent] });
-        currentPageContent = [];
-        currentPageLines = 0;
+    for (let i = 0; i < allContent.length; i++) {
+      const item = allContent[i];
+      
+      // ✅ CRITICAL FIX: Notary Block Protection Logic      
+      const isSignature = item.type === 'signature' || item.type === 'perjury';
+      const isNotary = item.type === 'notary';
+      const isLastFact = item.type === 'fact' && item.isLastFact; // ← Only the LAST fact
+      const needsProtection = isLastFact || isSignature || isNotary;
+      if (needsProtection) {
+
+
+        // Calculate space needed for everything remaining
+        let spaceNeeded = item.lines;
+        
+        // Add all remaining items
+        for (let j = i + 1; j < allContent.length; j++) {
+          spaceNeeded += allContent[j].lines;
+        }
+        
+        // ✅ KEY DECISION: If notary + trailing content won't fit, start new page NOW
+        const hasContentOnPage = currentPageContent.length > 0;
+        const wouldOverflow = currentPageLines + spaceNeeded > LINES_PER_PAGE;
+        
+        if (wouldOverflow && hasContentOnPage) {
+          // Save current page
+          paginatedPages.push({ content: currentPageContent });
+          
+          // Start new page with this item
+          currentPageContent = [item];
+          currentPageLines = item.lines;
+          continue;
+        }
       }
-      currentPageContent.push(section);
-      currentPageLines += section.lines;
-    });
+      
+      // Normal page break logic for non-protected items
+      if (currentPageLines + item.lines > LINES_PER_PAGE && currentPageContent.length > 0) {
+        // Save current page
+        paginatedPages.push({ content: currentPageContent });
+        
+        // Start new page
+        currentPageContent = [item];
+        currentPageLines = item.lines;
+      } else {
+        // Add to current page
+        currentPageContent.push(item);
+        currentPageLines += item.lines;
+      }
+    }
     
+    // Add final page if it has content
     if (currentPageContent.length > 0) {
       paginatedPages.push({ content: currentPageContent });
     }
@@ -127,6 +229,8 @@ const DocumentPreview = () => {
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 50));
+  const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
   // Render section with proper legal formatting
   const renderSection = (section, idx) => {
@@ -138,8 +242,9 @@ const DocumentPreview = () => {
       introduction: 'text-justify indent-8 mb-4 leading-loose',
       fact: 'text-justify mb-3 leading-loose pl-8 -indent-8',
       conclusion: 'text-justify indent-8 mb-4 leading-loose',
+      perjury: 'text-justify indent-8 mb-4 leading-loose font-semibold',
       signature: 'mt-6 leading-8 whitespace-pre-line',
-      notary: 'mt-6 border-2 border-black p-4 leading-relaxed whitespace-pre-line text-sm'
+      notary: 'mt-8 border-2 border-black p-4 leading-relaxed whitespace-pre-line text-sm bg-gray-50'
     };
     
     return (
@@ -248,37 +353,37 @@ const DocumentPreview = () => {
         </div>
       </div>
 
-      {/* Footer with stats and pagination */}
-      <div className="border-t bg-white px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>Facts: {currentDocument.facts?.length || 0}</span>
-            <span>State: {currentDocument.state || 'Not specified'}</span>
-            <span>Pages: {totalPages}</span>
-          </div>
-          
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="text-sm text-gray-700 min-w-[100px] text-center">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-          )}
+      {/* Footer with pagination */}
+      <div className="p-4 border-t bg-white flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          {currentDocument.facts?.length || 0} facts • {totalPages} page{totalPages !== 1 ? 's' : ''}
         </div>
+        
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            
+            <span className="text-sm font-medium">
+              {currentPage} / {totalPages}
+            </span>
+            
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

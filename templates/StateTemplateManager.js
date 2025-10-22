@@ -186,13 +186,15 @@ ${name}, Affiant`;
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-Sworn to and subscribed before me this _____ day of _________, 2025.
+  Sworn to and subscribed before me 
+  on this _____ day of _________, 2025.
 
 
-_________________________________
-Notary Public
+  _________________________________
+  Notary Public
 
-My commission expires: ___________`;
+  My commission expires:
+  _________________________________`;
   }
 
   performStateSpecificValidation(affidavitData) {
@@ -292,13 +294,15 @@ class TexasTemplate extends BaseAffidavitTemplate {
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-SWORN TO AND SUBSCRIBED before me on this _____ day of _________, 2025.
+  SWORN TO AND SUBSCRIBED before me 
+  on this _____ day of _________, 2025.
 
 
-_________________________________
-Notary Public, State of Texas
+  _________________________________
+  Notary Public, State of Texas
 
-My commission expires: ___________`;
+  My commission expires:
+  _________________________________`;
   }
 
   generateDocumentTypeSpecificFacts(affidavitData = {}) {
@@ -368,13 +372,15 @@ class UtahTemplate extends BaseAffidavitTemplate {
   generateNotaryBlock(affidavitData) {
     return `NOTARY ACKNOWLEDGMENT
 
-Subscribed and sworn to before me this _____ day of _________, 2025.
+  Subscribed and sworn to before me 
+  on this _____ day of _________, 2025.
 
 
-_________________________________
-Notary Public, State of Utah
+  _________________________________
+  Notary Public, State of Utah
 
-My commission expires: ___________`;
+  My commission expires:
+  _________________________________`;
   }
 }
 
@@ -421,13 +427,15 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
   generateNotaryBlock(affidavitData) {
     return `VERIFICATION
 
-Subscribed and sworn to before me this _____ day of _________, 2025.
+  Subscribed and sworn to before me 
+  on this _____ day of _________, 2025.
 
 
-_________________________________
-Notary Public, State of Arizona
+  _________________________________
+  Notary Public, State of Arizona
 
-My commission expires: ___________`;
+  My commission expires:
+  _________________________________`;
   }
 }
 

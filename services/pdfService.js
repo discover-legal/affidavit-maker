@@ -1,4 +1,4 @@
-// services/pdfService.js 
+// services/pdfService.js - FIXED VERSION with Notary Block Protection
 const PDFDocument = require('pdfkit');
 const fs = require('fs').promises;
 const path = require('path');
@@ -57,7 +57,6 @@ class PDFService {
 
   buildPDF(doc, document) {
     const { sections, metadata } = document;
-    // use class helpers getFormatted/getFactsArray
     let currentPage = 1;
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
@@ -107,15 +106,69 @@ class PDFService {
       doc.moveDown();
     }
 
-    // Facts Section with proper page breaks - support multiple preview shapes
-  const factsList = this.getFactsArray(sections.facts);
+    // ✅ CRITICAL FIX: Facts Section with Notary Block Protection
+    const factsList = this.getFactsArray(sections.facts);
     if (factsList.length > 0) {
-      factsList.forEach((fact) => {
+      // Track which facts we've rendered
+      let renderedFactCount = 0;
+      
+      factsList.forEach((fact, index) => {
         const estimatedHeight = this.estimateTextHeight(doc, fact.content, 12) + 20;
-        this.checkPageBreak(doc, estimatedHeight);
+        
+        // ✅ NOTARY PROTECTION LOGIC
+        // If this is the last fact OR second-to-last fact, check if there's room for:
+        // - This fact + remaining facts + conclusion + signature + notary block
+        const isNearEnd = index >= factsList.length - 2;
+        
+        if (isNearEnd) {
+          // Calculate space needed for everything that follows
+          let spaceNeeded = estimatedHeight; // This fact
+          
+          // Add remaining facts
+          for (let i = index + 1; i < factsList.length; i++) {
+            spaceNeeded += this.estimateTextHeight(doc, factsList[i].content, 12) + 20;
+          }
+          
+          // Add conclusion space
+          if (sections.conclusion) {
+            spaceNeeded += 80;
+          }
+          
+          // Add perjury statement space
+          if (sections.perjuryStatement) {
+            spaceNeeded += 80;
+          }
+          
+          // Add signature block space
+          if (sections.signatureBlock) {
+            spaceNeeded += 120;
+          }
+          
+          // Add notary block space (with buffer)
+          if (sections.notaryBlock) {
+            spaceNeeded += 250; // Notary block + buffer
+          }
+          
+          // ✅ KEY DECISION: If everything won't fit, start new page NOW
+          // This ensures at least one fact stays with the notary block
+          const currentY = doc.y;
+          const pageHeight = doc.page.height;
+          const bottomMargin = doc.page.margins.bottom;
+          const availableSpace = pageHeight - bottomMargin - 50 - currentY;
+          
+          if (availableSpace < spaceNeeded && renderedFactCount > 0) {
+            // Force page break - this keeps last fact(s) with notary
+            doc.addPage();
+            const newPageNumber = this.getCurrentPageNumber(doc);
+            this.addPageFooter(doc, newPageNumber, metadata);
+          }
+        } else {
+          // Normal page break for earlier facts
+          this.checkPageBreak(doc, estimatedHeight);
+        }
 
+        // Render the fact
         doc.fontSize(12).font('Times-Roman');
-
         const numberWidth = doc.widthOfString(`${fact.number}. `);
         doc.text(`${fact.number}. `, { continued: true });
         doc.text(fact.content, {
@@ -124,6 +177,8 @@ class PDFService {
           indent: 0
         });
         doc.moveDown(0.5);
+        
+        renderedFactCount++;
       });
     }
 
@@ -169,11 +224,11 @@ class PDFService {
       doc.moveDown(2);
     }
 
-    // Notary Block
+    // ✅ Notary Block - Should never be orphaned now
     if (sections.notaryBlock) {
+      // Final safety check - but should rarely trigger due to protection above
       this.checkPageBreak(doc, 200);
       
-      // Add border around notary block
       const startY = doc.y;
       doc.fontSize(12).font('Times-Roman');
       
@@ -203,7 +258,7 @@ class PDFService {
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
     
-    if (currentY + neededSpace > pageHeight - bottomMargin - 50) { // 50px buffer for footer
+    if (currentY + neededSpace > pageHeight - bottomMargin - 50) {
       doc.addPage();
       const newPageNumber = this.getCurrentPageNumber(doc);
       this.addPageFooter(doc, newPageNumber, doc.metadata);
@@ -240,15 +295,14 @@ class PDFService {
   }
 
   calculatePages(document) {
-    // Rough estimate of pages based on content
     const { sections } = document;
     let estimatedHeight = 0;
     
     // Header and venue: ~100px
     estimatedHeight += 100;
     
-    // Facts: ~40px per fact (use helper to normalize different shapes)
-    const factsForCalc = (sections && sections.facts) ? this.getFactsArray(sections.facts) : [];
+    // Facts
+    const factsForCalc = sections && sections.facts ? this.getFactsArray(sections.facts) : [];
     estimatedHeight += factsForCalc.length * 40;
     
     // Other sections: ~200px total
@@ -258,30 +312,33 @@ class PDFService {
     return Math.max(1, Math.ceil(estimatedHeight / 720));
   }
 
-  // Helper to derive formatted strings from various preview shapes
   getFormatted(section) {
     if (!section) return '';
     if (typeof section === 'string') return section;
     if (section.formatted) return String(section.formatted);
     if (section.content) return String(section.content);
-    // Fallback: if section looks like a preview object with items, join them
     if (section.items && Array.isArray(section.items)) {
       return section.items.map(it => it.displayContent || it.content || String(it)).join('\n\n');
     }
     return '';
   }
 
-  // Normalize facts into array of { number, content }
   getFactsArray(factsSection) {
     if (!factsSection) return [];
 
     if (Array.isArray(factsSection)) {
       const prepared = prepareFactsForDisplay(factsSection);
-      return prepared.map(f => ({ number: f.index || f.number || 0, content: f.displayContent || f.content || '' }));
+      return prepared.map(f => ({ 
+        number: f.index || f.number || 0, 
+        content: f.displayContent || f.content || '' 
+      }));
     }
 
     if (factsSection.items && Array.isArray(factsSection.items)) {
-      return factsSection.items.map((it, idx) => ({ number: it.index || idx + 1, content: it.displayContent || it.content || '' }));
+      return factsSection.items.map((it, idx) => ({ 
+        number: it.index || idx + 1, 
+        content: it.displayContent || it.content || '' 
+      }));
     }
 
     const formatted = this.getFormatted(factsSection);
@@ -293,7 +350,10 @@ class PDFService {
     if (factsSection && typeof factsSection === 'object') {
       try {
         const { items } = previewRenderer.generateBoth(factsSection);
-        return Array.isArray(items) ? items.map((it, idx) => ({ number: it.number || idx + 1, content: it.displayContent || it.text || it.content || '' })) : [];
+        return Array.isArray(items) ? items.map((it, idx) => ({ 
+          number: it.number || idx + 1, 
+          content: it.displayContent || it.text || it.content || '' 
+        })) : [];
       } catch (e) {
         return [];
       }

@@ -230,14 +230,15 @@ CREATE TABLE IF NOT EXISTS document_templates (
 );
 
 -- API keys table - for enterprise customers
+-- NOTE: API keys are stored as hashes only for security. The plaintext key
+-- should be shown to the user only once during creation and never stored.
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     
     -- Key details
     key_name VARCHAR(255) NOT NULL,
-    api_key VARCHAR(255) UNIQUE NOT NULL,
-    key_hash VARCHAR(255) NOT NULL,
+    api_key_hash VARCHAR(255) UNIQUE NOT NULL, -- Hashed version for verification
     
     -- Permissions
     scopes VARCHAR(100)[],

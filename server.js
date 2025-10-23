@@ -13,7 +13,7 @@ require('dotenv').config();
 // Import services
 const { dbService } = require('./services/DatabaseService');
 const { ResilientOpenAIService } = require('./services/ResilientOpenAIService');
-const AffidavitService = require('./affidavitService');
+const AffidavitService = require('./services/affidavitService');
 const logger = require('./utils/logger');
 const EnhancedFactValidationService = require('./services/enhancedFactValidationService');
 

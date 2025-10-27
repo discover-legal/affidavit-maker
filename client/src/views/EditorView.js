@@ -62,9 +62,9 @@ const EditorView = ({ isNew = false, onBack }) => {
   const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
   
-  // Layout state with new proportions (35/35/30)
-  const [chatWidth, setChatWidth] = useState(35);
-  const [previewWidth, setPreviewWidth] = useState(35);
+  // Layout state with new proportions (30/40/30)
+  const [chatWidth, setChatWidth] = useState(30);
+  const [previewWidth, setPreviewWidth] = useState(40);
   const [validationWidth, setValidationWidth] = useState(30);
   const [isResizing, setIsResizing] = useState(false);
   const [activePanel, setActivePanel] = useState('chat');

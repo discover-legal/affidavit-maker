@@ -21,6 +21,7 @@ const DocumentPreview = () => {
   
   const containerRef = useRef(null);
 
+
   // Center the horizontal scrollbar when zoom changes
   useEffect(() => {
     if (containerRef.current) {

@@ -641,7 +641,7 @@ export const DocumentProvider = ({ children }) => {
     }, 100);
   }, [generatePreview]);
 
-  // ✅ SIMPLIFIED: Update document data (never touches documentId)
+  // ✅ FIXED: Update document data with proper state synchronization
   const updateDocumentData = useCallback((data) => {
     console.log('📝 Updating document data');
     
@@ -653,13 +653,21 @@ export const DocumentProvider = ({ children }) => {
     // Schedule auto-save
     scheduleAutoSave();
     
-    // Generate preview after a short delay
+    // ✅ FIX: Merge the update with current state BEFORE passing to generatePreview
+    const updatedDocument = {
+      ...state.currentDocument,
+      ...data,
+      // Preserve documentId
+      documentId: state.currentDocument.documentId
+    };
+    
+    // Generate preview after a short delay with the fully merged data
     const debounceTimer = setTimeout(() => {
-      generatePreview(data);
+      generatePreview(updatedDocument);  // Pass full merged document
     }, 500);
     
     return () => clearTimeout(debounceTimer);
-  }, [generatePreview, scheduleAutoSave]);
+}, [generatePreview, scheduleAutoSave, state.currentDocument]);
 
   // Load documents on mount
   useEffect(() => {

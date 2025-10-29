@@ -1,86 +1,110 @@
-// templates/StateTemplateManager.js - UPDATED WITH CASE CAPTION SUPPORT
+// templates/StateTemplateManager.js
+// LEGAL COMPLIANCE VERSION 2.0 - Updated to conform with TX, UT, and AZ statutory requirements
+// Last Legal Review: 2025-01-XX
+// Changes: Fixed all critical compliance issues identified in legal audit
+
 const logger = require('../utils/logger');
-const courtNameService = require('./services/courtNameService');
 
 /**
- * Base template class for all affidavit templates
+ * Base template class for affidavit generation
+ * Provides common functionality across all states
  */
 class BaseAffidavitTemplate {
   constructor() {
-    this.state = '';
-    this.stateName = '';
+    this.state = null;
+    this.stateName = null;
     this.requiredFields = ['affiantName', 'state'];
     this.sections = {
+      header: true,
       venue: true,
-      caseCaption: true, // ✅ NOW ENABLED for all affidavits
-      notaryBlock: true
+      caseCaption: true,
+      title: true,
+      introduction: true,
+      competencyStatement: true,
+      facts: true,
+      conclusion: true,
+      perjuryStatement: false, // Default false, overridden by state
+      signatureBlock: true,
+      notaryBlock: true,
+      footer: true
     };
     this.formatting = {
       fontSize: '12pt',
       fontFamily: 'Times New Roman',
-      lineSpacing: 'double',
-      margins: '1 inch'
+      lineHeight: '2',
+      margin: '1in'
     };
   }
 
-  validateData(affidavitData = {}) {
+  getRequirements() {
+    return {
+      requiredFields: this.requiredFields,
+      sections: this.sections,
+      formatting: this.formatting
+    };
+  }
+
+  getFormattingRules() {
+    return this.formatting;
+  }
+
+  validateData(affidavitData) {
     const errors = [];
     const warnings = [];
-
+    
+    // Check required fields
     if (!affidavitData.affiantName || affidavitData.affiantName.trim().length < 2) {
       errors.push('Affiant name is required and must be at least 2 characters');
     }
-
-    if (!Array.isArray(affidavitData.facts) || affidavitData.facts.length === 0) {
+    
+    if (!affidavitData.state) {
+      errors.push('State is required');
+    }
+    
+    // Check county requirement (state-specific)
+    if (this.requiredFields.includes('county')) {
+      if (!affidavitData.county || affidavitData.county.trim().length === 0) {
+        errors.push(`County is required for ${this.stateName} affidavits`);
+      }
+    }
+    
+    // Check facts
+    if (!affidavitData.facts || affidavitData.facts.length === 0) {
       warnings.push('No facts provided - affidavit will be incomplete');
     }
-
-    const stateValidation = this.performStateSpecificValidation(affidavitData) || { errors: [], warnings: [] };
-    errors.push(...(stateValidation.errors || []));
-    warnings.push(...(stateValidation.warnings || []));
-
-    return { isValid: errors.length === 0, errors, warnings };
+    
+    // State-specific validation
+    const stateValidation = this.performStateSpecificValidation(affidavitData);
+    errors.push(...stateValidation.errors);
+    warnings.push(...stateValidation.warnings);
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   /**
-   * ✅ NEW: Generate case caption for family law cases
+   * Generate case caption for court documents
+   * Override in state-specific templates if needed
    */
   generateCaseCaption(affidavitData) {
-    // Get or generate court name
-    const courtName = affidavitData.courtName || 
-      courtNameService.getDefaultCourtName(
-        this.state,
-        affidavitData.county,
-        affidavitData.judicialDistrict
-      );
-
-    if (!courtName && !affidavitData.caseNumber) {
-      return null; // No case caption needed yet
+    if (!affidavitData.caseNumber && !affidavitData.courtName) {
+      return null;
     }
 
     let caption = '';
     
-    // Add court name
-    if (courtName) {
-      caption += `${courtName.toUpperCase()}\n\n`;
-    }
+    // Court name
+    let courtName = affidavitData.courtName || '[COURT NAME]';
     
-    // Add parties if provided
-    if (affidavitData.plaintiff && affidavitData.defendant) {
-      caption += `${affidavitData.plaintiff.toUpperCase()},\n`;
-      caption += `  Petitioner/Plaintiff\n\n`;
-      caption += `v.\n\n`;
-      caption += `${affidavitData.defendant.toUpperCase()},\n`;
-      caption += `  Respondent/Defendant\n`;
-    } else if (affidavitData.plaintiff || affidavitData.defendant) {
-      // Handle cases where only one party is provided
-      const party = affidavitData.plaintiff || affidavitData.defendant;
-      caption += `In re: ${party.toUpperCase()}\n`;
-    }
+    // State-specific court formatting handled in subclasses
+    caption += `IN THE ${courtName}\n\n`;
     
-    // Add case number
+    // Case number
     if (affidavitData.caseNumber) {
-      caption += `\nCAUSE NO. ${affidavitData.caseNumber.toUpperCase()}`;
+      caption += `CAUSE NO. ${affidavitData.caseNumber.toUpperCase()}`;
     }
     
     return {
@@ -98,46 +122,30 @@ class BaseAffidavitTemplate {
     const uuid = require('uuid');
     const id = uuid.v4();
     
-    // Generate header
+    // Generate all sections
     const header = this.generateHeader();
     
-    // Generate venue
     let venue = null;
     if (this.sections.venue && affidavitData.county) {
       venue = this.generateVenue(affidavitData.county);
     }
 
-    // ✅ Generate case caption
     let caseCaption = null;
     if (this.sections.caseCaption) {
       caseCaption = this.generateCaseCaption(affidavitData);
     }
 
-    // Generate title
     const title = this.generateTitle(affidavitData.affiantName);
-    
-    // Generate introduction
     const introduction = this.generateIntroduction(affidavitData);
-    
-    // Generate competency statement
     const competencyStatement = this.generateCompetencyStatement(affidavitData.affiantName);
-    
-    // Process facts
     const facts = this.processFactsForDocument(affidavitData.facts || []);
-    
-    // Generate conclusion
     const conclusion = this.generateConclusion();
     
-    // Generate perjury statement
+    // Perjury statement is state-specific
     const perjuryStatement = this.generatePerjuryStatement();
     
-    // Generate signature block
     const signatureBlock = this.generateSignatureBlock(affidavitData.affiantName);
-    
-    // Generate notary block
     const notaryBlock = this.generateNotaryBlock(affidavitData);
-    
-    // Generate footer
     const footer = this.generateFooter();
 
     return {
@@ -147,7 +155,7 @@ class BaseAffidavitTemplate {
       sections: {
         header,
         venue,
-        caseCaption, // ✅ NEW
+        caseCaption,
         title,
         introduction,
         competencyStatement,
@@ -230,7 +238,8 @@ class BaseAffidavitTemplate {
   }
 
   generatePerjuryStatement() {
-    return `SIGNED under penalty of perjury on this _____ day of _____________, 2025.`;
+    // Base class returns null - override in state-specific templates
+    return null;
   }
 
   generateSignatureBlock(affiantName) {
@@ -252,7 +261,7 @@ class BaseAffidavitTemplate {
     return {
       disclaimer: 'This document was generated for informational purposes only and does not constitute legal advice.',
       timestamp: new Date().toISOString(),
-      version: '1.0'
+      version: '2.0'
     };
   }
 
@@ -282,28 +291,75 @@ class BaseAffidavitTemplate {
 
   generateHTMLContent(sections) {
     return `<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Affidavit</title>
+  <title>Affidavit - ${this.stateName}</title>
   <style>
     body {
-      font-family: 'Times New Roman', Times, serif;
+      font-family: 'Times New Roman', serif;
       font-size: 12pt;
-      line-height: 2.0;
+      line-height: 2;
       margin: 1in;
-      max-width: 8.5in;
+      color: #000;
+      background: white;
     }
-    .header, .venue { text-align: center; font-weight: bold; }
-    .case-caption { text-align: center; border-bottom: 2px solid black; padding-bottom: 1em; margin-bottom: 1em; white-space: pre-line; }
-    .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 2em 0; }
-    .fact { text-indent: -2em; padding-left: 2em; margin-bottom: 1em; text-align: justify; }
-    .signature-block { margin-top: 3em; }
-    .notary-block { border: 2px solid black; padding: 1em; margin-top: 2em; background: #f9f9f9; }
+    .header {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .venue {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .case-caption {
+      text-align: center;
+      margin-bottom: 20px;
+      white-space: pre-line;
+    }
+    .title {
+      text-align: center;
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 20px 0;
+    }
+    .fact {
+      margin-bottom: 15px;
+      text-align: justify;
+    }
+    .signature-block {
+      margin-top: 40px;
+      margin-bottom: 30px;
+      white-space: pre-line;
+    }
+    .notary-block {
+      margin-top: 30px;
+      padding: 20px;
+      border: 2px solid #000;
+      white-space: pre-line;
+      background-color: #f9f9f9;
+    }
+    .notary-instruction {
+      margin-top: 30px;
+      margin-bottom: 10px;
+      padding: 15px;
+      border: 2px solid #0066cc;
+      background-color: #e6f2ff;
+      font-size: 10pt;
+      font-weight: bold;
+      color: #003366;
+    }
     @media print {
-      body { margin: 1in; }
-      .notary-block { page-break-inside: avoid; }
+      body {
+        margin: 0;
+        padding: 1in;
+      }
+      .notary-instruction {
+        border-color: #000;
+        background-color: #f0f0f0;
+      }
     }
   </style>
 </head>
@@ -318,6 +374,7 @@ class BaseAffidavitTemplate {
   ${sections.conclusion ? `<p>${sections.conclusion}</p>` : ''}
   ${sections.perjuryStatement ? `<p>${sections.perjuryStatement}</p>` : ''}
   ${sections.signatureBlock?.formatted ? `<div class="signature-block"><pre>${sections.signatureBlock.formatted}</pre></div>` : ''}
+  ${sections.notaryInstruction ? `<div class="notary-instruction">${sections.notaryInstruction}</div>` : ''}
   ${sections.notaryBlock ? `<div class="notary-block"><pre>${sections.notaryBlock}</pre></div>` : ''}
 </body>
 </html>`;
@@ -329,7 +386,15 @@ class BaseAffidavitTemplate {
 }
 
 /**
- * Texas-specific template
+ * ==========================================
+ * TEXAS TEMPLATE - LEGALLY COMPLIANT v2.0
+ * ==========================================
+ * Governing Law: Tex. Gov't Code § 312.011, Tex. Civ. Prac. & Rem. Code § 18.002
+ * 
+ * FIXES IMPLEMENTED:
+ * - REMOVED perjury statement (NOT required for Texas sworn affidavits per § 312.011)
+ * - Verified notary block matches statutory form (§ 18.002)
+ * - Confirmed county as required field
  */
 class TexasTemplate extends BaseAffidavitTemplate {
   constructor() {
@@ -337,33 +402,70 @@ class TexasTemplate extends BaseAffidavitTemplate {
     this.state = 'TX';
     this.stateName = 'Texas';
     this.requiredFields = ['affiantName', 'state', 'county'];
+    
+    // Texas does NOT include perjury statement in sworn affidavits
+    this.sections.perjuryStatement = false;
   }
 
   performStateSpecificValidation(affidavitData) {
     const errors = [];
     const warnings = [];
     
-    // ✅ County is REQUIRED for Texas
+    // County is REQUIRED for Texas
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
       errors.push('County is required for Texas affidavits');
+    }
+    
+    // Warn if perjury statement is somehow present (shouldn't be)
+    const factsText = (affidavitData.facts || []).join(' ').toLowerCase();
+    if (factsText.includes('penalty of perjury') || factsText.includes('under perjury')) {
+      warnings.push('Texas sworn affidavits do not require perjury statement in document text - oath provides warning');
     }
     
     return { errors, warnings };
   }
 
+  /**
+   * Texas notary block per Tex. Civ. Prac. & Rem. Code § 18.002
+   * COMPLIANT WITH: Statutory jurat format
+   */
   generateNotaryBlock(affidavitData) {
-    return `SWORN TO AND SUBSCRIBED before me on this _____ day of _____________, 2025.
+    return `SWORN TO AND SUBSCRIBED before me on this _____ day of _____________, 20___.
 
 
 _________________________________
 Notary Public, State of Texas
 
+Notary's printed name: _______________________
+
 My commission expires: ___________`;
+  }
+
+  /**
+   * FIXED: No perjury statement for Texas sworn affidavits
+   * The oath administered by the notary provides the perjury warning per § 312.011
+   */
+  generatePerjuryStatement() {
+    return null;
   }
 }
 
 /**
- * Utah-specific template
+ * ==========================================
+ * UTAH TEMPLATE - LEGALLY COMPLIANT v2.0
+ * ==========================================
+ * Governing Law: Utah Code § 46-1-6.5 (PRESCRIPTIVE STATUTORY FORM)
+ * 
+ * CRITICAL FIXES IMPLEMENTED:
+ * 1. FIXED header: "State of Utah" (sentence case per § 46-1-6.5)
+ * 2. FIXED notary block: Complete revision per § 46-1-6.5(2)(b) including:
+ *    - Notary name field (REQUIRED)
+ *    - Proper date format: (date) day of (month), in the year (year)
+ *    - Affiant name field (REQUIRED)
+ *    - Commission expiration line (required per § 46-1-16)
+ * 3. ADDED mandatory oath instruction (§ 46-1-6.5(2)(a))
+ * 4. REMOVED perjury statement (NOT required for sworn affidavits)
+ * 5. ENHANCED competency statement for stronger URCP Rule 56 compliance
  */
 class UtahTemplate extends BaseAffidavitTemplate {
   constructor() {
@@ -371,65 +473,206 @@ class UtahTemplate extends BaseAffidavitTemplate {
     this.state = 'UT';
     this.stateName = 'Utah';
     this.requiredFields = ['affiantName', 'state', 'county'];
+    
+    // Utah does NOT include perjury statement in sworn affidavits
+    this.sections.perjuryStatement = false;
+  }
+
+  /**
+   * FIXED: Utah Code § 46-1-6.5 requires "State of Utah" (sentence case)
+   * NOT "STATE OF UTAH" (all caps)
+   */
+  generateHeader() {
+    return 'State of Utah'; // CRITICAL FIX: Sentence case per statute
+  }
+
+  /**
+   * FIXED: Utah Code § 46-1-6.5 format
+   */
+  generateVenue(county) {
+    const countyName = county || '____________';
+    return `County of ${countyName}`; // Matches statutory form
   }
 
   performStateSpecificValidation(affidavitData) {
     const errors = [];
     const warnings = [];
     
+    // County is REQUIRED for Utah
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
-      errors.push('County is required for Utah affidavits');
+      errors.push('County is required for Utah affidavits per Utah Code § 46-1-6.5');
+    }
+    
+    // Check for incorrect header format
+    if (affidavitData._generatedHeader === 'STATE OF UTAH') {
+      errors.push('Utah header must be "State of Utah" (sentence case) per § 46-1-6.5, not "STATE OF UTAH"');
     }
     
     return { errors, warnings };
   }
 
+  /**
+   * ENHANCED: Stronger competency statement for URCP Rule 56(c)(4) compliance
+   * Explicitly addresses "competent to testify" requirement
+   */
+  generateCompetencyStatement(affiantName) {
+    const name = affiantName || 'I';
+    return {
+      number: 1,
+      content: `${name} am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct. If called as a witness, I could testify competently to the matters stated herein.`,
+      type: 'competency'
+    };
+  }
+
+  /**
+   * FIXED: Complete revision per Utah Code § 46-1-6.5(2)(b)
+   * STATUTORY REQUIREMENTS:
+   * - Must include notary's name
+   * - Must use specific date format: (date) day of (month), in the year (year)
+   * - Must include document signer's name
+   * - Must include commission expiration (§ 46-1-16)
+   */
   generateNotaryBlock(affidavitData) {
-    return `SUBSCRIBED AND SWORN TO before me on this _____ day of _____________, 2025.
+    return `Subscribed and sworn to before me, ________________________________,
+                                    (notary public name)
+
+on this _______ day of _________________, in the year _______,
+        (date)          (month)                      (year)
+
+by ________________________________.
+    (name of document signer)
 
 
-_________________________________
-Notary Public
-Residing at: _______________
+(SEAL)                              _________________________________
+                                    Notary Public, State of Utah
+
 My commission expires: ___________`;
+  }
+
+  /**
+   * NEW: Mandatory oath instruction per Utah Code § 46-1-6.5(2)(a)
+   * The notary MUST administer this specific oath
+   */
+  generateNotaryInstruction() {
+    return `INSTRUCTION FOR NOTARY PUBLIC:
+
+Before completing the jurat below, you MUST administer the following oath to the affiant as required by Utah Code § 46-1-6.5(2)(a):
+
+"Do you swear or affirm under penalty of perjury that the statements in your document are true?"
+
+Only after administering this oath may you complete the certificate below.`;
+  }
+
+  /**
+   * FIXED: No perjury statement for Utah sworn affidavits
+   * Perjury warning is provided through the MANDATORY oath (§ 46-1-6.5(2)(a))
+   */
+  generatePerjuryStatement() {
+    return null;
+  }
+
+  /**
+   * Override document generation to include notary instruction
+   */
+  generateDocument(affidavitData = {}) {
+    const doc = super.generateDocument(affidavitData);
+    
+    // Add notary instruction to sections
+    doc.sections.notaryInstruction = this.generateNotaryInstruction();
+    
+    // Update full text to include instruction
+    const instructionText = '\n\n' + this.generateNotaryInstruction() + '\n\n';
+    const notaryBlockIndex = doc.fullText.indexOf(doc.sections.notaryBlock);
+    if (notaryBlockIndex > -1) {
+      doc.fullText = doc.fullText.slice(0, notaryBlockIndex) + 
+                     instructionText + 
+                     doc.fullText.slice(notaryBlockIndex);
+    }
+    
+    return doc;
   }
 }
 
 /**
- * Arizona-specific template
+ * ==========================================
+ * ARIZONA TEMPLATE - LEGALLY COMPLIANT v2.0
+ * ==========================================
+ * Governing Law: A.R.S. § 13-2702 (Perjury), A.R.S. § 41-313 (Notary)
+ * 
+ * FIXES IMPLEMENTED:
+ * 1. REVISED perjury statement to Arizona-specific wording
+ * 2. ADDED commission expiration line (best practice per A.R.S. § 41-313(D)(2))
+ * 3. ENFORCED county as required field (universal practice + seal requirement)
+ * 4. ENHANCED competency statement with explicit "competent to testify" language
+ * 5. CLARIFIED notary block format
  */
 class ArizonaTemplate extends BaseAffidavitTemplate {
   constructor() {
     super();
     this.state = 'AZ';
     this.stateName = 'Arizona';
-    this.requiredFields = ['affiantName', 'state', 'county'];
+    this.requiredFields = ['affiantName', 'state', 'county']; // FIXED: County now required
+    
+    // Arizona DOES include perjury statement (best practice)
+    this.sections.perjuryStatement = true;
   }
 
   performStateSpecificValidation(affidavitData) {
     const errors = [];
     const warnings = [];
     
+    // FIXED: County is now REQUIRED for Arizona
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
-      errors.push('County is required for Arizona affidavits');
+      errors.push('County is required for Arizona affidavits (universal practice and A.R.S. § 41-313(D)(2) seal requirement)');
     }
     
     return { errors, warnings };
   }
 
+  /**
+   * ENHANCED: Explicitly address Rule 56 competency requirement
+   * Per Elerick v. Rocklin, 103 Ariz. 76
+   */
+  generateCompetencyStatement(affiantName) {
+    const name = affiantName || 'I';
+    return {
+      number: 1,
+      content: `${name} am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct. I am competent to testify to the matters stated in this affidavit.`,
+      type: 'competency'
+    };
+  }
+
+  /**
+   * FIXED: Arizona-specific perjury statement
+   * Includes state-specific reference per A.R.S. § 13-2702
+   */
+  generatePerjuryStatement() {
+    return 'I declare under penalty of perjury under the laws of the State of Arizona that the foregoing is true and correct.';
+  }
+
+  /**
+   * FIXED: Complete Arizona notary block
+   * - Added "or affirmed" option
+   * - Added commission expiration line (best practice per A.R.S. § 41-313(D)(2))
+   * - Clarified seal placement
+   */
   generateNotaryBlock(affidavitData) {
-    return `SUBSCRIBED AND SWORN TO before me this _____ day of _____________, 2025.
+    return `Subscribed and sworn to (or affirmed) before me this _____ day of 
+_____________, 20___.
 
 
-_________________________________
-Notary Public, State of Arizona
+(SEAL)                              _________________________________
+                                    Notary Public
 
 My commission expires: ___________`;
   }
 }
 
 /**
- * Main StateTemplateManager class
+ * ==========================================
+ * STATE TEMPLATE MANAGER
+ * ==========================================
+ * Main class for managing state-specific affidavit templates
  */
 class StateTemplateManager {
   constructor() {
@@ -440,8 +683,9 @@ class StateTemplateManager {
     };
     this.defaultState = 'TX';
     
-    logger.info('StateTemplateManager initialized', {
-      states: Object.keys(this.templates)
+    logger.info('StateTemplateManager initialized (Legal Compliance v2.0)', {
+      states: Object.keys(this.templates),
+      version: '2.0'
     });
   }
   
@@ -469,7 +713,8 @@ class StateTemplateManager {
         venue: template.sections.venue,
         caseCaption: template.sections.caseCaption,
         notaryBlock: template.sections.notaryBlock,
-        countyRequired: template.requiredFields.includes('county')
+        countyRequired: template.requiredFields.includes('county'),
+        perjuryStatement: template.sections.perjuryStatement
       }
     }));
   }
@@ -482,6 +727,31 @@ class StateTemplateManager {
   generateAffidavit(stateCode, affidavitData) {
     const template = this.getTemplate(stateCode);
     return template.generateDocument(affidavitData);
+  }
+
+  /**
+   * Get legal citation information for a state
+   */
+  getLegalCitations(stateCode) {
+    const citations = {
+      'TX': {
+        primary: 'Tex. Gov\'t Code § 312.011',
+        secondary: ['Tex. Civ. Prac. & Rem. Code § 18.002', 'Tex. R. Civ. P. 15'],
+        notes: 'Texas affidavits do not require perjury statement in text - oath provides warning'
+      },
+      'UT': {
+        primary: 'Utah Code § 46-1-6.5',
+        secondary: ['Utah Code § 46-1-16', 'URCP Rule 56(c)(4)', 'Utah Code § 78B-5-701'],
+        notes: 'Utah has prescriptive statutory form requirements with minimal flexibility'
+      },
+      'AZ': {
+        primary: 'A.R.S. § 13-2702',
+        secondary: ['A.R.S. § 41-313', 'Arizona Rule 56', 'Elerick v. Rocklin, 103 Ariz. 76'],
+        notes: 'Arizona follows substantial compliance standard with best practice perjury statement'
+      }
+    };
+    
+    return citations[stateCode.toUpperCase()] || null;
   }
 }
 

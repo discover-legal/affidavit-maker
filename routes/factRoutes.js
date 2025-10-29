@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateOptional } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 const { validateInput } = require('../middleware/validation');
 const logger = require('../utils/logger');
 
@@ -10,7 +10,7 @@ const logger = require('../utils/logger');
  * POST /api/facts/rewrite
  * Generate professional rewrite for a single fact on-demand
  */
-router.post('/rewrite', authenticateOptional, async (req, res) => {
+router.post('/rewrite', optionalAuth, async (req, res) => {
   try {
     const { fact, context } = req.body;
 
@@ -29,9 +29,9 @@ router.post('/rewrite', authenticateOptional, async (req, res) => {
       });
     }
 
-    // Get affidavit service
-    const affidavitService = global.affidavitService;
-    if (!affidavitService) {
+    // Get validation service
+    const validationService = req.app.locals.enhancedFactValidationService;
+    if (!validationService) {
       return res.status(503).json({
         success: false,
         error: 'Rewrite service temporarily unavailable'
@@ -39,9 +39,9 @@ router.post('/rewrite', authenticateOptional, async (req, res) => {
     }
 
     // Generate professional rewrite
-    const professionalRewrite = await affidavitService.generateProfessionalRewrite(
-      fact,
-      context || {}
+    const professionalRewrite = validationService.generateProfessionalVersion(
+      fact.content,
+      { primary: fact.category }
     );
 
     logger.info('Professional rewrite generated', {

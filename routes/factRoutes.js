@@ -39,9 +39,9 @@ router.post('/rewrite', optionalAuth, async (req, res) => {
     }
 
     // Generate professional rewrite
-    const professionalRewrite = validationService.generateProfessionalVersion(
-      fact.content,
-      { primary: fact.category }
+    const professionalRewrite = await validationService.generateProfessionalRewriteWithLLM(
+      fact,
+      context
     );
 
     logger.info('Professional rewrite generated', {

@@ -254,6 +254,11 @@ const safeImportRouter = (routePath, routeName) => {
   }
 };
 
+const factRouter = safeImportRouter('./routes/factRoutes', 'Facts');
+if (factRouter) {
+  app.use('/api/facts', factRouter);
+}
+
 // Import and use routes with safety checks
 const auth0WebhooksRouter = safeImportRouter('./routes/auth0-webhooks', 'Auth0 Webhooks');
 if (auth0WebhooksRouter) {

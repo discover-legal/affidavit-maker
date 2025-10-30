@@ -8,6 +8,8 @@ import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
 // Resizer component for adjusting pane widths
 const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview' }) => {
   const handleMouseDown = useCallback((e) => {
@@ -212,8 +214,8 @@ const EditorView = ({ isNew = false, onBack }) => {
       });
 
       const token = await getAccessTokenSilently();
-      
-      const response = await fetch('http://localhost:3001/api/documents/generate', {
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +224,7 @@ const EditorView = ({ isNew = false, onBack }) => {
         body: JSON.stringify({
           affidavitData: currentDocument,
           documentId: currentDocument.documentId,
-          skipPayment: true
+          skipPayment: process.env.NODE_ENV === 'development'
         })
       });
 

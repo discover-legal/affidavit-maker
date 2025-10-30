@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Download, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
 const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" }) => {
   const [generateStatus, setGenerateStatus] = useState('idle');
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect } = useAuth0();
@@ -35,8 +37,8 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
       setGenerateStatus('generating');
       
       const token = await getAccessTokenSilently();
-      
-      const response = await fetch('http://localhost:3001/api/documents/generate', {
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

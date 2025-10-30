@@ -349,7 +349,7 @@ const ValidationSidebar = () => {
       if (data.success && data.professionalRewrite) {
         const updatedFacts = [...currentDocument.facts];
         const currentFact = updatedFacts[index];
-        
+
         if (typeof currentFact === 'object' && currentFact !== null) {
           updatedFacts[index] = {
             ...currentFact,
@@ -364,9 +364,13 @@ const ValidationSidebar = () => {
             hasRewrite: true
           };
         }
-        
+
+        // ✅ FIX: Update state first
         updateDocumentData({ facts: updatedFacts });
-        await saveDocument();
+
+        // ✅ FIX: Pass the updated facts directly to saveDocument to avoid race condition
+        // This ensures we save the correct data instead of relying on potentially stale state
+        await saveDocument({ facts: updatedFacts });
       } else {
         throw new Error(data.error || 'Failed to generate rewrite');
       }
@@ -383,7 +387,7 @@ const ValidationSidebar = () => {
   const applyProfessionalRewrite = async (index, rewrite) => {
     const updatedFacts = [...currentDocument.facts];
     const currentFact = updatedFacts[index];
-    
+
     if (typeof currentFact === 'object' && currentFact !== null) {
       updatedFacts[index] = {
         ...currentFact,
@@ -399,9 +403,12 @@ const ValidationSidebar = () => {
         lastEdited: new Date().toISOString()
       };
     }
-    
+
+    // ✅ FIX: Update state first
     updateDocumentData({ facts: updatedFacts });
-    await saveDocument();
+
+    // ✅ FIX: Pass the updated facts directly to saveDocument to avoid race condition
+    await saveDocument({ facts: updatedFacts });
   };
 
   // Start editing
@@ -415,10 +422,10 @@ const ValidationSidebar = () => {
   // Save edited fact
   const saveEditedFact = async () => {
     if (editingFactIndex === null) return;
-    
+
     const updatedFacts = [...currentDocument.facts];
     const currentFact = updatedFacts[editingFactIndex];
-    
+
     if (typeof currentFact === 'object' && currentFact !== null) {
       updatedFacts[editingFactIndex] = {
         ...currentFact,
@@ -428,13 +435,15 @@ const ValidationSidebar = () => {
     } else {
       updatedFacts[editingFactIndex] = editedFactContent;
     }
-    
+
+    // ✅ FIX: Update state first
     updateDocumentData({ facts: updatedFacts });
     setEditingFactIndex(null);
     setEditedFactContent('');
-    
+
     try {
-      await saveDocument();
+      // ✅ FIX: Pass the updated facts directly to saveDocument
+      await saveDocument({ facts: updatedFacts });
     } catch (error) {
       console.error('Failed to save fact:', error);
     }
@@ -449,12 +458,15 @@ const ValidationSidebar = () => {
   // Delete fact
   const deleteFact = async (index) => {
     if (!window.confirm('Are you sure you want to delete this fact?')) return;
-    
+
     const updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
+
+    // ✅ FIX: Update state first
     updateDocumentData({ facts: updatedFacts });
-    
+
     try {
-      await saveDocument();
+      // ✅ FIX: Pass the updated facts directly to saveDocument
+      await saveDocument({ facts: updatedFacts });
     } catch (error) {
       console.error('Failed to delete fact:', error);
     }

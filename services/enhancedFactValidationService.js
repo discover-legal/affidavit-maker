@@ -283,29 +283,35 @@ class EnhancedFactValidationService {
       .replace(/\b(kinda|sorta|like totally|like)\b/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
-    
+
     professional = professional
       .replace(/\bi\b/g, 'I')
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bdidnt\b/gi, "didn't")
       .replace(/\bwont\b/gi, "won't")
       .replace(/\bcant\b/gi, "can't");
-    
+
     professional = professional
       .replace(/\b(i think|i believe)\b/gi, 'I state that')
       .replace(/\b(maybe|probably|possibly)\b/gi, '')
       .replace(/\b(might be|might have)\b/gi, 'was');
-    
+
+    // Add "I observed that" prefix if doesn't start with "I"
+    // Handle capitalization properly to avoid "I observed that The child..."
     if (!/^I\b/i.test(professional)) {
-      professional = `I observed that ${professional}`;
+      // Lowercase the first character if the text will be prefixed
+      const firstChar = professional.charAt(0).toLowerCase();
+      const rest = professional.slice(1);
+      professional = `I observed that ${firstChar}${rest}`;
     }
-    
+
     if (!/[.!?]$/.test(professional)) {
       professional += '.';
     }
-    
+
+    // Ensure first character is uppercase (should already be "I")
     professional = professional.charAt(0).toUpperCase() + professional.slice(1);
-    
+
     return professional;
   }
   
@@ -531,17 +537,17 @@ Provide a professional rewrite and specific feedback.`;
         summary: 'No facts to validate'
       };
     }
-    
+
     const results = await Promise.all(
-      facts.map((fact, index) => 
+      facts.map((fact, index) =>
         this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
       )
     );
-    
+
     const hasErrors = results.some(r => !r.isValid);
     const criticalCount = results.filter(r => r.severity === VALIDATION_SEVERITY.CRITICAL).length;
     const warningCount = results.filter(r => r.severity === VALIDATION_SEVERITY.WARNING).length;
-    
+
     return {
       isValid: !hasErrors,
       totalFacts: facts.length,
@@ -555,6 +561,13 @@ Provide a professional rewrite and specific feedback.`;
         successCount: results.filter(r => r.severity === VALIDATION_SEVERITY.SUCCESS).length
       }
     };
+  }
+
+  // Method specifically for on-demand professional rewriting
+  // This is a wrapper around validateFactProfessional that returns just the rewrite
+  async generateProfessionalRewriteWithLLM(fact, context = {}) {
+    const result = await this.validateFactProfessional(fact, [], context);
+    return result.professionalRewrite;
   }
 }
 

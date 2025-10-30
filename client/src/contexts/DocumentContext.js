@@ -54,7 +54,8 @@ const ActionTypes = {
   SET_UNSAVED_CHANGES: 'SET_UNSAVED_CHANGES',
   SET_SESSION_INITIALIZED: 'SET_SESSION_INITIALIZED',
   RESET_DOCUMENT: 'RESET_DOCUMENT',
-  SELECT_DOCUMENT: 'SELECT_DOCUMENT'
+  SELECT_DOCUMENT: 'SELECT_DOCUMENT',
+  MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES'
 };
 
 // Reducer
@@ -184,7 +185,37 @@ const documentReducer = (state, action) => {
         hasUnsavedChanges: false,
         sessionInitialized: true // Existing document = initialized
       };
-    
+
+    case ActionTypes.MERGE_PROFESSIONAL_REWRITES:
+      // Merge professional rewrites from validation results into facts
+      const validationResults = action.payload;
+      if (!validationResults?.results || !Array.isArray(state.currentDocument.facts)) {
+        return state;
+      }
+
+      const updatedFacts = state.currentDocument.facts.map((fact, index) => {
+        const validationResult = validationResults.results[index];
+        if (validationResult && validationResult.professionalRewrite) {
+          return {
+            ...fact,
+            professionalRewrite: validationResult.professionalRewrite,
+            // Optionally store other validation metadata
+            category: validationResult.category,
+            validationScore: validationResult.legalStandardScore
+          };
+        }
+        return fact;
+      });
+
+      return {
+        ...state,
+        currentDocument: {
+          ...state.currentDocument,
+          facts: updatedFacts
+        },
+        hasUnsavedChanges: true
+      };
+
     default:
       return state;
   }
@@ -581,32 +612,53 @@ export const DocumentProvider = ({ children }) => {
   }, [authFetch, isAuthenticated]);
 
   // Validate document
-  const validateDocument = useCallback(async (documentData = null) => {
+  // If mergeProfessionalRewrites is true, will automatically merge the professional rewrites into facts
+  const validateDocument = useCallback(async (documentData = null, options = {}) => {
     try {
+      const { mergeProfessionalRewrites = false } = options;
+
       const payload = {
         affidavitData: {
           ...state.currentDocument,
           ...(documentData || {})
         }
       };
-      
+
       const data = await authFetch('/api/validate', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      
+
       if (data.success && data.validation) {
-        dispatch({ 
-          type: ActionTypes.SET_VALIDATION, 
-          payload: data.validation 
+        dispatch({
+          type: ActionTypes.SET_VALIDATION,
+          payload: data.validation
         });
-        
+
+        // Optionally merge professional rewrites into facts
+        if (mergeProfessionalRewrites && data.validation.factValidation) {
+          dispatch({
+            type: ActionTypes.MERGE_PROFESSIONAL_REWRITES,
+            payload: data.validation.factValidation
+          });
+        }
+
         return data.validation;
       }
     } catch (error) {
       console.error('Failed to validate document:', error);
     }
   }, [authFetch, state.currentDocument]);
+
+  // Helper function to merge professional rewrites manually (for use in components)
+  const mergeProfessionalRewrites = useCallback((validationResults) => {
+    if (validationResults && validationResults.results) {
+      dispatch({
+        type: ActionTypes.MERGE_PROFESSIONAL_REWRITES,
+        payload: validationResults
+      });
+    }
+  }, []);
 
   // Create new document (resets state)
   const createNewDocument = useCallback(() => {
@@ -687,7 +739,7 @@ export const DocumentProvider = ({ children }) => {
 
   return (
     <DocumentContext.Provider value={state}>
-      <DocumentDispatchContext.Provider 
+      <DocumentDispatchContext.Provider
         value={{
           loadDocument,
           loadDocuments,
@@ -697,8 +749,9 @@ export const DocumentProvider = ({ children }) => {
           createNewDocument,
           selectDocument,
           updateDocumentData,
-          initializeNewDocument, // ✅ NEW
-          renderFormattedPreview
+          initializeNewDocument,
+          renderFormattedPreview,
+          mergeProfessionalRewrites
         }}
       >
         {children}

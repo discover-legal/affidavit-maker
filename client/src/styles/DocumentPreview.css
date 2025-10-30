@@ -1,0 +1,235 @@
+/* DocumentPreview.css - Legal Document WYSIWYG Styles */
+
+/* Page container - US Letter size with proper boundaries */
+.document-page {
+  width: 816px; /* 8.5 inches at 96 DPI */
+  height: 1056px; /* 11 inches at 96 DPI */
+  padding: 96px; /* 1 inch margins on all sides */
+  margin: 0 auto 32px auto;
+  background: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden; /* Prevent content overflow */
+  box-sizing: border-box;
+  
+  /* Legal document typography */
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px; /* 12pt */
+  line-height: 2; /* Double spacing */
+  color: #000;
+}
+
+/* Page content area - enforces maximum height */
+.document-page-content {
+  max-height: 864px; /* 9 inches (11 - 2 for margins) at 96 DPI */
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Prevent overflow for all child elements */
+.document-page * {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Affidavit Header */
+.affidavit-header {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+/* Venue (State and County) */
+.affidavit-venue {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Case Caption */
+.affidavit-caption {
+  text-align: center;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid black;
+  white-space: pre-line;
+}
+
+/* Document Title */
+.affidavit-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  text-decoration: underline;
+  margin-bottom: 48px;
+}
+
+/* Regular Paragraphs */
+.affidavit-paragraph {
+  text-align: justify;
+  margin-bottom: 24px;
+  text-indent: 0.5in;
+  padding: 0 48px 0 0; /* Right padding to prevent edge overflow */
+}
+
+/* Numbered Facts */
+.affidavit-fact {
+  text-align: justify;
+  margin-bottom: 24px;
+  padding-left: 48px; /* 0.5 inch indent */
+  text-indent: -48px; /* Hanging indent for numbers */
+  padding-right: 48px; /* Prevent right edge overflow */
+}
+
+/* Perjury Statement */
+.affidavit-perjury {
+  margin-top: 48px;
+  margin-bottom: 24px;
+  text-align: justify;
+  padding-right: 48px;
+}
+
+/* Signature Block */
+.affidavit-signature {
+  margin-top: 48px;
+  margin-bottom: 24px;
+  white-space: pre-line;
+}
+
+.affidavit-signature pre {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Notary Block - MUST stay within page bounds */
+.affidavit-notary {
+  margin-top: 48px;
+  padding: 16px;
+  border: 2px solid black;
+  background-color: #f9f9f9;
+  
+  /* Critical: Prevent breaking across pages */
+  page-break-inside: avoid;
+  break-inside: avoid;
+  
+  /* Ensure it fits within page boundaries */
+  max-width: calc(100% - 32px); /* Account for padding */
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.affidavit-notary pre {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Page Number */
+.page-number {
+  position: absolute;
+  bottom: 48px; /* 0.5 inch from bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+/* Zoom Container */
+.document-preview-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #e5e7eb; /* Gray background */
+  padding: 32px;
+}
+
+.document-preview-zoom-wrapper {
+  transform-origin: top center;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Print Styles */
+@media print {
+  .document-page {
+    width: 8.5in;
+    height: 11in;
+    padding: 1in;
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+  }
+  
+  .document-page-content {
+    max-height: 9in;
+  }
+  
+  .affidavit-notary {
+    page-break-inside: avoid;
+  }
+  
+  .page-number {
+    bottom: 0.5in;
+  }
+  
+  /* Hide UI controls when printing */
+  .document-controls,
+  .document-header,
+  .document-footer {
+    display: none !important;
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media screen and (max-width: 900px) {
+  .document-page {
+    transform: scale(0.9);
+    transform-origin: top center;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .document-page {
+    transform: scale(0.7);
+    transform-origin: top center;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .document-page {
+    transform: scale(0.5);
+    transform-origin: top center;
+  }
+}
+
+/* Ensure long words don't overflow */
+.affidavit-fact,
+.affidavit-paragraph,
+.affidavit-perjury {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  -ms-hyphens: auto;
+}
+
+/* Debug mode - uncomment to see page boundaries */
+/*
+.document-page {
+  border: 2px dashed red;
+}
+
+.document-page-content {
+  border: 2px dashed blue;
+}
+
+.affidavit-notary {
+  border: 2px dashed green !important;
+}
+*/

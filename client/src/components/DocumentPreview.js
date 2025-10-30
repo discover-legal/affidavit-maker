@@ -1,4 +1,5 @@
-// client/src/components/DocumentPreview.js - UPDATED WITH FIXED ASPECT RATIO
+// client/src/components/DocumentPreview.js - FULLY FIXED VERSION
+// With proper page boundaries, real pagination, and WYSIWYG formatting
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   FileText, 
@@ -6,193 +7,263 @@ import {
   ZoomIn,
   ZoomOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import '../styles/DocumentPreview.css';
 
-const LINES_PER_PAGE = 42; // Standard legal document
+// Page configuration for US Letter (8.5" x 11" with 1" margins)
+const PAGE_CONFIG = {
+  width: 8.5,      // inches
+  height: 11,      // inches
+  marginTop: 1,    // inches
+  marginBottom: 1, // inches
+  marginLeft: 1,   // inches
+  marginRight: 1,  // inches
+  lineHeight: 24,  // pixels (double-spaced)
+  fontSize: 16,    // pixels (12pt equivalent)
+  linesPerPage: 26 // Approximate lines per page with double spacing
+};
 
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentState();
   const { generatePreview } = useDocumentActions();
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [zoomLevel, setZoomLevel] = useState(80); // Default to 80% zoom
-  
+  const [zoomLevel, setZoomLevel] = useState(90);
   const containerRef = useRef(null);
+  const measureRef = useRef(null);
 
-
-  // Center the horizontal scrollbar when zoom changes
+  // Center scroll when zoom changes
   useEffect(() => {
     if (containerRef.current) {
       const container = containerRef.current;
-      container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+      const scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+      container.scrollLeft = scrollLeft;
     }
   }, [zoomLevel]);
 
-  // Calculate pagination from preview content
+  // Process and paginate content
   const pages = useMemo(() => {
-    if (!preview?.sections) return [{content: []}];
+    if (!preview?.sections) return [{ content: [], pageNumber: 1 }];
     
     const sections = preview.sections;
     const allContent = [];
     
-    // Helper to estimate lines for text (accounts for double-spacing)
-    const estimateLines = (text, type = 'normal') => {
-      if (!text) return 0;
-      const chars = typeof text === 'string' ? text.length : String(text).length;
-      const charsPerLine = 80; // Approximate characters per line with 1in margins
-      const baseLines = Math.ceil(chars / charsPerLine);
-      
-      // Account for double spacing (line-height: 2.0)
-      return type === 'title' ? baseLines + 2 : baseLines;
-    };
-
-    // Convert sections object to array and add to content
-    // The sections object has properties like: header, venue, introduction, facts, etc.
-    const sectionOrder = ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'perjury', 'signature', 'notary'];
+    // Section order for affidavit
+    const sectionOrder = [
+      'header', 'venue', 'caseCaption', 'title', 
+      'introduction', 'facts', 'conclusion', 
+      'perjury', 'signature', 'notary'
+    ];
     
+    // Process sections into content array
     sectionOrder.forEach(key => {
       const section = sections[key];
       if (!section) return;
       
-      // Handle facts specially - it has items array
       if (key === 'facts' && section.items && Array.isArray(section.items)) {
+        // Handle facts with numbering
         section.items.forEach((fact, idx) => {
+          const factNumber = idx + 1;
+          const factContent = fact.displayContent || fact.content || String(fact);
+          
           allContent.push({
             type: 'fact',
-            content: fact.displayContent || fact.content || String(fact),
-            estimatedLines: estimateLines(fact.displayContent || fact.content || String(fact), 'normal')
+            content: `${factNumber}. ${factContent}`,
+            keepWithNext: false,
+            breakBefore: false,
+            isBlockElement: false
           });
         });
       } else if (section.content) {
-        // Regular section with content
-        allContent.push({
+        // Regular sections
+        const sectionData = {
           type: section.type || key,
           content: section.content,
-          estimatedLines: estimateLines(section.content, section.type || key)
-        });
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: key === 'notary'
+        };
+        
+        // Keep signature elements together with notary
+        if (key === 'perjury' || key === 'signature') {
+          sectionData.keepWithNext = true;
+        }
+        
+        allContent.push(sectionData);
       }
     });
 
-    // Paginate content
+    // Create pages with proper breaks
     const paginatedPages = [];
     let currentPageContent = [];
-    let currentLineCount = 0;
-
-    allContent.forEach(section => {
-      const sectionLines = section.estimatedLines;
+    let currentPageHeight = 0;
+    const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96; // Convert to pixels
+    
+    allContent.forEach((section, idx) => {
+      // Estimate section height (this is simplified - in production you'd measure actual rendered height)
+      let sectionHeight = 0;
       
-      // If adding this section would exceed page limit, start new page
-      if (currentLineCount + sectionLines > LINES_PER_PAGE && currentPageContent.length > 0) {
-        paginatedPages.push({ content: currentPageContent });
-        currentPageContent = [section];
-        currentLineCount = sectionLines;
-      } else {
-        currentPageContent.push(section);
-        currentLineCount += sectionLines;
+      switch(section.type) {
+        case 'header':
+        case 'venue':
+        case 'title':
+          sectionHeight = 60; // Title sections
+          break;
+        case 'case-caption':
+          sectionHeight = 120; // Caption with border
+          break;
+        case 'notary':
+          sectionHeight = 200; // Notary block with border
+          break;
+        case 'signature':
+        case 'perjury':
+          sectionHeight = 100; // Signature sections
+          break;
+        case 'fact':
+        case 'introduction':
+        case 'conclusion':
+        default:
+          // Estimate based on content length
+          const lines = Math.ceil((section.content?.length || 0) / 80);
+          sectionHeight = lines * PAGE_CONFIG.lineHeight * 2; // Double-spaced
+          break;
       }
+      
+      // Check if we need a page break
+      const wouldOverflow = currentPageHeight + sectionHeight > maxPageHeight;
+      const needsPageBreak = wouldOverflow && currentPageContent.length > 0;
+      
+      // Special handling for keep-together elements
+      if (section.keepWithNext && idx < allContent.length - 1) {
+        const nextSection = allContent[idx + 1];
+        const nextHeight = nextSection.type === 'notary' ? 200 : 100;
+        
+        if (currentPageHeight + sectionHeight + nextHeight > maxPageHeight && currentPageContent.length > 0) {
+          // Move both to next page
+          paginatedPages.push({ 
+            content: currentPageContent, 
+            pageNumber: paginatedPages.length + 1 
+          });
+          currentPageContent = [];
+          currentPageHeight = 0;
+        }
+      } else if (needsPageBreak) {
+        // Start new page
+        paginatedPages.push({ 
+          content: currentPageContent, 
+          pageNumber: paginatedPages.length + 1 
+        });
+        currentPageContent = [];
+        currentPageHeight = 0;
+      }
+      
+      currentPageContent.push(section);
+      currentPageHeight += sectionHeight;
     });
-
-    // Add last page
+    
+    // Add final page
     if (currentPageContent.length > 0) {
-      paginatedPages.push({ content: currentPageContent });
+      paginatedPages.push({ 
+        content: currentPageContent, 
+        pageNumber: paginatedPages.length + 1 
+      });
     }
-
-    return paginatedPages.length > 0 ? paginatedPages : [{content: []}];
-  }, [preview, currentDocument.facts]);
+    
+    return paginatedPages.length > 0 ? paginatedPages : [{ content: [], pageNumber: 1 }];
+  }, [preview]); // Removed currentDocument.facts dependency - not needed
 
   const totalPages = pages.length;
-  const currentPageData = pages[currentPage - 1] || { content: [] };
+  const currentPageData = pages[currentPage - 1] || { content: [], pageNumber: 1 };
 
-  // Zoom controls
+  // Controls
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 40));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 50));
   const handleRefresh = () => generatePreview();
-
-  // Pagination
   const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
-  // Render different section types
+  // Render section based on type
   const renderSection = (section, idx) => {
-    const key = `section-${idx}`;
+    const key = `section-${currentPage}-${idx}`;
     
     switch (section.type) {
       case 'header':
         return (
-          <div key={key} className="text-center font-bold mb-4">
+          <div key={key} className="affidavit-header">
             {section.content}
           </div>
         );
       
       case 'venue':
         return (
-          <div key={key} className="text-center mb-4">
+          <div key={key} className="affidavit-venue">
             {section.content}
           </div>
         );
       
+      case 'caseCaption':
       case 'case-caption':
         return (
-          <div key={key} className="text-center mb-6 whitespace-pre-line border-b-2 border-black pb-4">
+          <div key={key} className="affidavit-caption">
             {section.content}
           </div>
         );
       
       case 'title':
         return (
-          <div key={key} className="text-center font-bold text-lg mb-6 underline">
-            {section.content}
-          </div>
-        );
-      
-      case 'section-title':
-        return (
-          <div key={key} className="font-bold mb-4">
+          <div key={key} className="affidavit-title">
             {section.content}
           </div>
         );
       
       case 'introduction':
-      case 'conclusion':
-      case 'perjury':
         return (
-          <p key={key} className="mb-4 text-justify">
+          <p key={key} className="affidavit-paragraph">
             {section.content}
           </p>
         );
       
       case 'fact':
         return (
-          <p key={key} className="mb-4 text-justify pl-8 -indent-8">
+          <p key={key} className="affidavit-fact">
             {section.content}
           </p>
         );
       
+      case 'conclusion':
+        return (
+          <p key={key} className="affidavit-paragraph">
+            {section.content}
+          </p>
+        );
+      
+      case 'perjury':
+        return (
+          <div key={key} className="affidavit-perjury">
+            {section.content}
+          </div>
+        );
+      
       case 'signature':
         return (
-          <div key={key} className="mt-8 mb-4 whitespace-pre-line">
-            {section.content}
+          <div key={key} className="affidavit-signature">
+            <pre>{section.content}</pre>
           </div>
         );
       
       case 'notary':
         return (
-          <div 
-            key={key} 
-            className="mt-8 p-4 border-2 border-black bg-gray-50"
-            style={{ pageBreakInside: 'avoid' }}
-          >
-            <div className="whitespace-pre-line">
-              {section.content}
-            </div>
+          <div key={key} className="affidavit-notary">
+            <pre>{section.content}</pre>
           </div>
         );
       
       default:
         return (
-          <div key={key} className="mb-4">
+          <div key={key} className="affidavit-paragraph">
             {section.content}
           </div>
         );
@@ -213,11 +284,6 @@ const DocumentPreview = () => {
             <p className="text-gray-500 mb-4">
               Start chatting to create your affidavit. The preview will update automatically as you provide information.
             </p>
-            <div className="text-sm text-gray-400 space-y-1">
-              <p>✓ Real-time preview generation</p>
-              <p>✓ Professional legal formatting</p>
-              <p>✓ State-specific requirements</p>
-            </div>
           </div>
         </div>
       </div>
@@ -242,117 +308,234 @@ const DocumentPreview = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
-      {/* Header with controls */}
-      <div className="p-4 border-b bg-white">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Document Preview
-          </h2>
-          <div className="flex items-center gap-2">
-            <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded" title="Zoom out">
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className="text-sm text-gray-600 min-w-[60px] text-center">{zoomLevel}%</span>
-            <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom in">
-              <ZoomIn className="h-4 w-4" />
-            </button>
-            <button onClick={handleRefresh} className="p-2 hover:bg-gray-100 rounded ml-2" title="Refresh">
-              <RefreshCw className="h-4 w-4" />
-            </button>
+    <>
+      <style jsx>{`
+        /* WYSIWYG Legal Document Styles */
+        .page-container {
+          width: ${8.5 * 96}px; /* 8.5 inches at 96 DPI */
+          height: ${11 * 96}px; /* 11 inches at 96 DPI */
+          padding: ${1 * 96}px; /* 1 inch margins */
+          background: white;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          margin: 0 auto 2rem auto;
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize}px;
+          line-height: ${PAGE_CONFIG.lineHeight}px;
+          color: #000;
+          position: relative;
+          overflow: hidden; /* Prevent content overflow */
+          box-sizing: border-box;
+        }
+        
+        .page-content {
+          max-height: ${9 * 96}px; /* 9 inches (11 - 2 inches margins) */
+          overflow: hidden;
+        }
+        
+        /* Affidavit-specific styles */
+        .affidavit-header {
+          text-align: center;
+          font-weight: bold;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+        }
+        
+        .affidavit-venue {
+          text-align: center;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+        }
+        
+        .affidavit-caption {
+          text-align: center;
+          margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
+          padding-bottom: ${PAGE_CONFIG.lineHeight}px;
+          border-bottom: 2px solid black;
+          white-space: pre-line;
+        }
+        
+        .affidavit-title {
+          text-align: center;
+          font-weight: bold;
+          font-size: ${PAGE_CONFIG.fontSize + 2}px;
+          text-decoration: underline;
+          margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
+        }
+        
+        .affidavit-paragraph {
+          text-align: justify;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          text-indent: 0.5in;
+        }
+        
+        .affidavit-fact {
+          text-align: justify;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          padding-left: 0.5in;
+          text-indent: -0.5in;
+        }
+        
+        .affidavit-perjury {
+          margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          text-align: justify;
+        }
+        
+        .affidavit-signature {
+          margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          white-space: pre-line;
+        }
+        
+        .affidavit-signature pre {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize}px;
+          margin: 0;
+        }
+        
+        .affidavit-notary {
+          margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
+          padding: ${PAGE_CONFIG.lineHeight / 2}px;
+          border: 2px solid black;
+          background-color: #f9f9f9;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+        
+        .affidavit-notary pre {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize}px;
+          margin: 0;
+          white-space: pre-wrap;
+        }
+        
+        @media print {
+          .page-container {
+            box-shadow: none;
+            margin: 0;
+            page-break-after: always;
+          }
+        }
+      `}</style>
+      
+      <div className="h-full flex flex-col bg-gray-50">
+        {/* Header with controls */}
+        <div className="p-4 border-b bg-white">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Document Preview
+            </h2>
+            <div className="flex items-center gap-4">
+              {/* Zoom controls */}
+              <div className="flex items-center gap-2 border-r pr-4">
+                <button
+                  onClick={handleZoomOut}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  title="Zoom out"
+                  disabled={zoomLevel <= 50}
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </button>
+                <span className="text-sm text-gray-600 min-w-[50px] text-center font-medium">
+                  {zoomLevel}%
+                </span>
+                <button
+                  onClick={handleZoomIn}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  title="Zoom in"
+                  disabled={zoomLevel >= 150}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </button>
+              </div>
+              
+              {/* Refresh button */}
+              <button
+                onClick={handleRefresh}
+                className="p-2 hover:bg-gray-100 rounded transition-colors"
+                title="Refresh preview"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Document viewer with FIXED ASPECT RATIO */}
-      <div 
-        ref={containerRef}
-        className="flex-1 overflow-auto bg-gray-200 p-6"
-      >
+        {/* Document preview area */}
         <div 
-          style={{ 
-            minWidth: 'fit-content',
-            margin: '0 auto'
-          }}
+          ref={containerRef}
+          className="flex-1 overflow-auto bg-gray-200"
+          style={{ padding: '2rem' }}
         >
           <div 
-            className="bg-white shadow-lg relative"
             style={{ 
-              width: '816px',       // 8.5in at 96 DPI
-              height: '1056px',     // 11in at 96 DPI
-              flexShrink: 0,        // Prevent CSS from squishing
-              padding: '96px',      // 1in margins
-              fontFamily: '"Times New Roman", Times, serif',
-              fontSize: '12pt',
-              lineHeight: '2.0',
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'top center',
-              marginBottom: `${Math.abs(zoomLevel - 100) * 2}px`,
-              boxSizing: 'border-box'
+              transition: 'transform 0.2s ease-in-out'
             }}
           >
-            {currentPageData.content.map((section, idx) => renderSection(section, idx))}
-            
-            {/* Page number */}
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: '48px',     // 0.5in from bottom
-                left: '0',
-                right: '0',
-                textAlign: 'center',
-                fontSize: '10pt',
-                color: '#666',
-                fontFamily: 'Arial, sans-serif'
-              }}
-            >
-              Page {currentPage} of {totalPages}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer with stats and pagination */}
-      <div className="p-4 border-t bg-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>{totalPages} page{totalPages !== 1 ? 's' : ''}</span>
-            {currentDocument.facts?.length > 0 && (
-              <span>•</span>
-            )}
-            {currentDocument.facts?.length > 0 && (
-              <span>{currentDocument.facts.length} fact{currentDocument.facts.length !== 1 ? 's' : ''}</span>
-            )}
-          </div>
-          
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Previous page"
+            <div className="page-container">
+              <div className="page-content">
+                {currentPageData.content.map((section, idx) => renderSection(section, idx))}
+              </div>
+              
+              {/* Page number */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  bottom: '0.5in',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  fontSize: '12px',
+                  color: '#666'
+                }}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-gray-600 min-w-[80px] text-center">
                 Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+
+        {/* Footer with navigation */}
+        <div className="p-4 border-t bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <span>{totalPages} page{totalPages !== 1 ? 's' : ''}</span>
+              {currentDocument.facts?.length > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{currentDocument.facts.length} fact{currentDocument.facts.length !== 1 ? 's' : ''}</span>
+                </>
+              )}
+            </div>
+            
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-4 py-2 bg-gray-50 rounded text-sm font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

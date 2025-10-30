@@ -8,9 +8,9 @@ const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave } = require('../middleware/validation');
 const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
 
-/**
- * ✅ Preview generation endpoint
- */
+// Fixed preview route for routes/documents.js
+// Add this to your routes/documents.js file, replacing the existing /preview route
+
 router.post('/preview', 
   validatePreview,
   optionalAuth,
@@ -27,19 +27,10 @@ router.post('/preview',
 
     try {
       const templateManager = req.app.locals.templateManager;
-      
-      if (!templateManager) {
-        return res.json({
-          success: true,
-          preview: createFallbackPreview(affidavitData),
-          fallback: true
-        });
-      }
-
-      // Check for cached preview (authenticated users only)
       const pool = req.app.locals.pool;
       const userId = req.user?.id;
       
+      // Check for cached preview (authenticated users only)
       if (pool && userId && affidavitData.documentId) {
         try {
           const cachedResult = await pool.query(
@@ -67,13 +58,34 @@ router.post('/preview',
 
       // Generate new preview
       let preview;
-      try {
-        preview = templateManager.generatePreview(affidavitData);
-        logger.info('StateTemplateManager preview generated successfully');
-      } catch (templateError) {
-        logger.warn('Template manager preview failed, using fallback', { 
-          error: templateError.message 
-        });
+      
+      // FIX: Check if template manager exists AND has the correct method
+      if (templateManager && typeof templateManager.generateDocument === 'function') {
+        try {
+          // Use generateDocument instead of generatePreview
+          const template = templateManager.getTemplate(affidavitData.state || 'TX');
+          const document = template.generateDocument(affidavitData);
+          
+          preview = {
+            sections: document.sections || document,
+            htmlContent: document.htmlContent,
+            metadata: {
+              wordCount: template.calculateWordCount ? 
+                template.calculateWordCount(affidavitData.facts) : 
+                (affidavitData.facts?.length || 0) * 50
+            }
+          };
+          
+          logger.info('StateTemplateManager preview generated successfully');
+        } catch (templateError) {
+          logger.warn('Template manager preview failed, using fallback', { 
+            error: templateError.message 
+          });
+          preview = createFallbackPreview(affidavitData);
+        }
+      } else {
+        // Use fallback if template manager not available
+        logger.info('Template manager not available, using fallback preview');
         preview = createFallbackPreview(affidavitData);
       }
 
@@ -95,7 +107,7 @@ router.post('/preview',
       }
 
       logger.info('Preview generated successfully', {
-        hasTemplate: !templateManager,
+        hasTemplate: !!templateManager,
         documentId: affidavitData.documentId,
         factCount: affidavitData.facts?.length || 0
       });

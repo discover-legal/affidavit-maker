@@ -467,9 +467,9 @@ router.get('/',
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       let query = `
-        SELECT id, title, status, template_state, document_type, 
-               processing_metadata, created_at, updated_at
-        FROM documents 
+        SELECT id, title, status, template_state, document_type,
+               processing_metadata, content, created_at, updated_at
+        FROM documents
         WHERE user_id = $1
       `;
       let params = [userId];
@@ -492,6 +492,27 @@ router.get('/',
 
       const result = await pool.query(query, params);
 
+      // Process documents to extract state and facts from content
+      const processedDocuments = result.rows.map(doc => {
+        const processedDoc = { ...doc };
+
+        // Extract state from content, fallback to template_state
+        if (doc.content && doc.content.state) {
+          processedDoc.state = doc.content.state;
+        } else {
+          processedDoc.state = doc.template_state;
+        }
+
+        // Extract facts array from content
+        if (doc.content && doc.content.facts) {
+          processedDoc.facts = doc.content.facts;
+        } else {
+          processedDoc.facts = [];
+        }
+
+        return processedDoc;
+      });
+
       // Get total count
       let countQuery = 'SELECT COUNT(*) FROM documents WHERE user_id = $1';
       let countParams = [userId];
@@ -513,7 +534,7 @@ router.get('/',
 
       res.json({
         success: true,
-        documents: result.rows,
+        documents: processedDocuments,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

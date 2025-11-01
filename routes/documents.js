@@ -29,32 +29,11 @@ router.post('/preview',
       const templateManager = req.app.locals.templateManager;
       const pool = req.app.locals.pool;
       const userId = req.user?.id;
-      
-      // Check for cached preview (authenticated users only)
-      if (pool && userId && affidavitData.documentId) {
-        try {
-          const cachedResult = await pool.query(
-            'SELECT preview_data, last_preview_generated FROM documents WHERE id = $1 AND user_id = $2',
-            [affidavitData.documentId, userId]
-          );
-          
-          if (cachedResult.rows.length > 0) {
-            const cached = cachedResult.rows[0];
-            if (cached.last_preview_generated && 
-                Date.now() - new Date(cached.last_preview_generated).getTime() < 5 * 60 * 1000) {
-              
-              logger.info('Using cached preview', { documentId: affidavitData.documentId });
-              return res.json({
-                success: true,
-                preview: cached.preview_data,
-                fromCache: true
-              });
-            }
-          }
-        } catch (cacheError) {
-          logger.warn('Preview cache check failed', { error: cacheError.message });
-        }
-      }
+
+      // ✅ REMOVED: Preview caching to fix fact reorder issue
+      // Preview caching was causing stale previews to be returned when facts were reordered.
+      // The cache would return the old preview if it was less than 5 minutes old,
+      // even though the facts had changed. We'll always generate a fresh preview now.
 
       // Generate new preview
       let preview;
@@ -91,20 +70,9 @@ router.post('/preview',
 
       // Enhance preview with categories
       const enhancedPreview = enhancePreviewWithCategories(preview, affidavitData);
-      
-      // Cache the preview
-      if (pool && userId && affidavitData.documentId) {
-        try {
-          await pool.query(
-            `UPDATE documents 
-             SET preview_data = $1, last_preview_generated = CURRENT_TIMESTAMP 
-             WHERE id = $2 AND user_id = $3`,
-            [JSON.stringify(enhancedPreview), affidavitData.documentId, userId]
-          );
-        } catch (cacheError) {
-          logger.warn('Preview cache update failed', { error: cacheError.message });
-        }
-      }
+
+      // ✅ REMOVED: Preview caching update
+      // Cache updates have been removed to ensure previews always reflect current document state
 
       logger.info('Preview generated successfully', {
         hasTemplate: !!templateManager,

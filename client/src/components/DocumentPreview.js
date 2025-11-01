@@ -44,6 +44,15 @@ const DocumentPreview = () => {
     }
   }, [zoomLevel]);
 
+  // Center scroll on initial load and when preview content changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      const scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+      container.scrollLeft = scrollLeft;
+    }
+  }, [preview]);
+
   // Process and paginate content
   const pages = useMemo(() => {
     if (!preview?.sections) return [{ content: [], pageNumber: 1 }];

@@ -35,24 +35,6 @@ const DocumentPreview = () => {
   const containerRef = useRef(null);
   const measureRef = useRef(null);
 
-  // Center scroll when zoom changes
-  useEffect(() => {
-    if (containerRef.current) {
-      const container = containerRef.current;
-      const scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
-      container.scrollLeft = scrollLeft;
-    }
-  }, [zoomLevel]);
-
-  // Center scroll on initial load and when preview content changes
-  useEffect(() => {
-    if (containerRef.current) {
-      const container = containerRef.current;
-      const scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
-      container.scrollLeft = scrollLeft;
-    }
-  }, [preview]);
-
   // Process and paginate content
   const pages = useMemo(() => {
     if (!preview?.sections) return [{ content: [], pageNumber: 1 }];
@@ -470,13 +452,17 @@ const DocumentPreview = () => {
         </div>
 
         {/* Document preview area */}
-        <div 
+        <div
           ref={containerRef}
           className="flex-1 overflow-auto bg-gray-200"
-          style={{ padding: '2rem' }}
+          style={{
+            padding: '2rem',
+            display: 'flex',
+            justifyContent: 'center'
+          }}
         >
-          <div 
-            style={{ 
+          <div
+            style={{
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'top center',
               transition: 'transform 0.2s ease-in-out'

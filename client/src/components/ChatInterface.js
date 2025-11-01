@@ -49,17 +49,65 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Initial welcome message
+  // Helper function to generate a fact summary
+  const generateFactSummary = (facts) => {
+    if (!facts || facts.length === 0) return '';
+
+    const factCount = facts.length;
+    const factList = facts.slice(0, 3).map(fact => {
+      const content = typeof fact === 'string' ? fact : fact.content;
+      return content.length > 60 ? content.substring(0, 60) + '...' : content;
+    }).join('; ');
+
+    const moreFactsText = factCount > 3 ? ` and ${factCount - 3} more` : '';
+    return `You've added ${factCount} fact${factCount !== 1 ? 's' : ''} so far: ${factList}${moreFactsText}.`;
+  };
+
+  // Initial welcome message - personalized for returning users
   useEffect(() => {
     if (messages.length === 0) {
-      setMessages([{
-        type: 'bot',
-        content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
-        
+      const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
+
+      if (isReturningUser) {
+        // Welcome back message for returning users
+        const greeting = currentDocument.affiantName
+          ? `Welcome back, ${currentDocument.affiantName}!`
+          : 'Welcome back!';
+
+        let message = `${greeting} Let's continue building your affidavit from where we left off.\n\n`;
+
+        // Add summary of what's been done
+        const progress = [];
+        if (currentDocument.affiantName) progress.push(`your name (${currentDocument.affiantName})`);
+        if (currentDocument.state) progress.push(`state (${currentDocument.state})`);
+        if (currentDocument.county) progress.push(`county (${currentDocument.county})`);
+
+        if (progress.length > 0) {
+          message += `I have ${progress.join(', ')}. `;
+        }
+
+        // Add fact summary
+        if (currentDocument.facts?.length > 0) {
+          message += generateFactSummary(currentDocument.facts);
+        }
+
+        message += `\n\nWhat would you like to add or update today?`;
+
+        setMessages([{
+          type: 'bot',
+          content: message
+        }]);
+      } else {
+        // Standard welcome for new users
+        setMessages([{
+          type: 'bot',
+          content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+
 Let's start with your name and which state you're in.`
-      }]);
+        }]);
+      }
     }
-  }, []);
+  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts]);
 
   // Send message to API
   const sendMessage = async (e) => {

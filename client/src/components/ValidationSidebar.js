@@ -259,7 +259,7 @@ const DraggableFactCard = ({
 // ✅ Main ValidationSidebar Component
 const ValidationSidebar = () => {
   const { currentDocument, isValidating } = useDocumentState();
-  const { updateDocumentData, saveDocument } = useDocumentActions();
+  const { updateDocumentData, updateDocumentDataWithoutPreview, saveDocument } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   const [editingFactIndex, setEditingFactIndex] = useState(null);
@@ -365,8 +365,9 @@ const ValidationSidebar = () => {
           };
         }
 
-        // ✅ FIX: Update state first
-        updateDocumentData({ facts: updatedFacts });
+        // ✅ FIX: Update state WITHOUT triggering preview generation
+        // Preview should only update when the rewrite is applied, not when it's generated
+        updateDocumentDataWithoutPreview({ facts: updatedFacts });
 
         // ✅ FIX: Pass the updated facts directly to saveDocument to avoid race condition
         // This ensures we save the correct data instead of relying on potentially stale state

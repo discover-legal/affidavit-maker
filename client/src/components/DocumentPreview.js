@@ -35,6 +35,18 @@ const DocumentPreview = () => {
   const containerRef = useRef(null);
   const measureRef = useRef(null);
 
+  // Center the preview pane horizontally to ensure equal left/right scroll
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      // Wait for next tick to ensure DOM is updated
+      requestAnimationFrame(() => {
+        const scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+        container.scrollLeft = scrollLeft;
+      });
+    }
+  }, [zoomLevel, preview]);
+
   // Process and paginate content
   const pages = useMemo(() => {
     if (!preview?.sections) return [{ content: [], pageNumber: 1 }];
@@ -456,25 +468,31 @@ const DocumentPreview = () => {
           ref={containerRef}
           className="flex-1 overflow-auto bg-gray-200"
           style={{
-            padding: '2rem',
-            display: 'flex',
-            justifyContent: 'center'
+            padding: '2rem'
           }}
         >
           <div
             style={{
-              transform: `scale(${zoomLevel / 100})`,
-              transformOrigin: 'top center',
-              transition: 'transform 0.2s ease-in-out'
+              display: 'inline-block',
+              minWidth: '100%'
             }}
           >
-            <div className="page-container">
+            <div
+              style={{
+                transform: `scale(${zoomLevel / 100})`,
+                transformOrigin: 'top center',
+                transition: 'transform 0.2s ease-in-out',
+                margin: '0 auto',
+                width: 'fit-content'
+              }}
+            >
+              <div className="page-container">
               <div className="page-content">
                 {currentPageData.content.map((section, idx) => renderSection(section, idx))}
               </div>
               
               {/* Page number */}
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   bottom: '0.5in',
@@ -485,6 +503,7 @@ const DocumentPreview = () => {
                 }}
               >
                 Page {currentPage} of {totalPages}
+              </div>
               </div>
             </div>
           </div>

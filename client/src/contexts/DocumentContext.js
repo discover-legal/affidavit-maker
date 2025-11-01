@@ -735,6 +735,20 @@ export const DocumentProvider = ({ children }) => {
     setPreviewDebounceTimer(timer);
 }, [generatePreview, scheduleAutoSave, state.currentDocument, previewDebounceTimer]);
 
+  // Update document data WITHOUT triggering preview generation
+  // Used when storing professional rewrites before they are applied
+  const updateDocumentDataWithoutPreview = useCallback((data) => {
+    console.log('📝 Updating document data (no preview)');
+
+    dispatch({
+      type: ActionTypes.UPDATE_DOCUMENT_DATA,
+      payload: data
+    });
+
+    // Schedule auto-save
+    scheduleAutoSave();
+  }, [scheduleAutoSave]);
+
   // Load documents on mount
   useEffect(() => {
     if (isAuthenticated) {
@@ -766,6 +780,7 @@ export const DocumentProvider = ({ children }) => {
           createNewDocument,
           selectDocument,
           updateDocumentData,
+          updateDocumentDataWithoutPreview,
           initializeNewDocument,
           renderFormattedPreview,
           mergeProfessionalRewrites

@@ -104,13 +104,21 @@ const EditorView = ({ isNew = false, onBack }) => {
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
     console.log('📂 Loading document from URL:', documentId);
-    
+
+    // ✅ FIX: Reset state when creating new document but there's already a documentId from OLD session
+    // Only reset if NOT already initialized (to prevent infinite loop after creating new doc)
+    if (isNew && currentDocument.documentId && !sessionInitialized) {
+      console.log('🔄 Creating new document, resetting old document state');
+      createNewDocument(); // This will clear documentId and reset sessionInitialized
+      return; // Let the next render initialize the new document
+    }
+
     // Reset session when documentId changes
     if (sessionInitialized && documentId && currentDocument.documentId?.toString() !== documentId) {
       console.log('🔄 Document ID changed, resetting session');
       setSessionInitialized(false);
     }
-    
+
     // Initialize session based on route
     const initializeSession = async () => {
       if (sessionInitialized) {

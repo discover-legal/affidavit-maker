@@ -351,6 +351,12 @@ export const DocumentProvider = ({ children }) => {
       return null;
     }
 
+    // ✅ FIX: Prevent multiple simultaneous document creations
+    if (state.isSaving) {
+      console.log('📄 Document creation already in progress');
+      return null;
+    }
+
     // ✅ CRITICAL: Only initialize if truly new (no documentId exists)
     if (state.currentDocument.documentId) {
       console.log('📄 Document already exists:', state.currentDocument.documentId);
@@ -435,7 +441,7 @@ export const DocumentProvider = ({ children }) => {
     } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
-  }, [authFetch, isAuthenticated, state.currentDocument, state.sessionInitialized, loadDocuments]);
+  }, [authFetch, isAuthenticated, state.currentDocument, state.sessionInitialized, state.isSaving, loadDocuments]);
 
   // ✅ SIMPLIFIED: Save document (always updates existing)
   const saveDocument = useCallback(async (documentData = null) => {

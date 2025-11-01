@@ -232,6 +232,7 @@ export const DocumentProvider = ({ children }) => {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const [state, dispatch] = useReducer(documentReducer, initialState);
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
+  const [previewDebounceTimer, setPreviewDebounceTimer] = useState(null);
 
   // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
@@ -699,18 +700,23 @@ export const DocumentProvider = ({ children }) => {
     }, 100);
   }, [generatePreview]);
 
-  // ✅ FIXED: Update document data with proper state synchronization
+  // ✅ FIXED: Update document data with proper state synchronization and debouncing
   const updateDocumentData = useCallback((data) => {
     console.log('📝 Updating document data');
-    
-    dispatch({ 
-      type: ActionTypes.UPDATE_DOCUMENT_DATA, 
-      payload: data 
+
+    dispatch({
+      type: ActionTypes.UPDATE_DOCUMENT_DATA,
+      payload: data
     });
-    
+
     // Schedule auto-save
     scheduleAutoSave();
-    
+
+    // ✅ FIX: Clear any existing preview debounce timer to prevent multiple preview generations
+    if (previewDebounceTimer) {
+      clearTimeout(previewDebounceTimer);
+    }
+
     // ✅ FIX: Merge the update with current state BEFORE passing to generatePreview
     const updatedDocument = {
       ...state.currentDocument,
@@ -718,14 +724,16 @@ export const DocumentProvider = ({ children }) => {
       // Preserve documentId
       documentId: state.currentDocument.documentId
     };
-    
+
     // Generate preview after a short delay with the fully merged data
-    const debounceTimer = setTimeout(() => {
+    const timer = setTimeout(() => {
+      console.log('🔄 Generating preview after document update');
       generatePreview(updatedDocument);  // Pass full merged document
+      setPreviewDebounceTimer(null);
     }, 500);
-    
-    return () => clearTimeout(debounceTimer);
-}, [generatePreview, scheduleAutoSave, state.currentDocument]);
+
+    setPreviewDebounceTimer(timer);
+}, [generatePreview, scheduleAutoSave, state.currentDocument, previewDebounceTimer]);
 
   // Load documents on mount
   useEffect(() => {
@@ -734,14 +742,17 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [isAuthenticated, loadDocuments]);
 
-  // Clean up auto-save timer
+  // Clean up timers
   useEffect(() => {
     return () => {
       if (autoSaveTimer) {
         clearTimeout(autoSaveTimer);
       }
+      if (previewDebounceTimer) {
+        clearTimeout(previewDebounceTimer);
+      }
     };
-  }, [autoSaveTimer]);
+  }, [autoSaveTimer, previewDebounceTimer]);
 
   return (
     <DocumentContext.Provider value={state}>

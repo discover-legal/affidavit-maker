@@ -168,11 +168,15 @@ router.post('/generate',
       let documentStructure;
       if (templateManager) {
         try {
-          documentStructure = templateManager.generateDocument(affidavitData);
+          // Fix: Use generateAffidavit with state code and data
+          documentStructure = templateManager.generateAffidavit(
+            affidavitData.state || 'TX',
+            affidavitData
+          );
         } catch (templateError) {
-          logger.error('Template generation failed', { 
+          logger.error('Template generation failed', {
             error: templateError.message,
-            state: affidavitData.state 
+            state: affidavitData.state
           });
           return res.status(400).json({
             success: false,

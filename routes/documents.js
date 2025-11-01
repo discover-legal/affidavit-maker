@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
-const { validatePreview, validateDocumentSave } = require('../middleware/validation');
+const { validatePreview, validateDocumentSave, validateDocumentRename } = require('../middleware/validation');
 const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
 
 // Fixed preview route for routes/documents.js
@@ -597,9 +597,103 @@ router.get('/:id',
 );
 
 /**
+ * ✅ Rename document
+ */
+router.put('/:id/rename',
+  validateDocumentRename,
+  auth0Middleware,
+  standardLimiter,
+  asyncHandler(async (req, res) => {
+    const { id: documentId } = req.params;
+    const { newName } = req.body;
+    const userId = req.user.id;
+    const pool = req.app.locals.pool;
+
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database service unavailable'
+      });
+    }
+
+    if (!newName || typeof newName !== 'string' || newName.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid new name is required',
+        details: [{ message: 'newName must be a non-empty string' }]
+      });
+    }
+
+    try {
+      // First, get the current document to update the content
+      const docResult = await pool.query(
+        'SELECT content FROM documents WHERE id = $1 AND user_id = $2',
+        [documentId, userId]
+      );
+
+      if (docResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document not found'
+        });
+      }
+
+      // Parse the content and update the affiantName
+      let content = docResult.rows[0].content;
+      if (typeof content === 'string') {
+        content = JSON.parse(content);
+      }
+
+      // Update the affiantName in the content
+      content.affiantName = newName.trim();
+
+      // Update both the title and the content with new affiantName
+      const newTitle = `Affidavit of ${newName.trim()}`;
+
+      const result = await pool.query(
+        `UPDATE documents
+         SET title = $1, content = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3 AND user_id = $4
+         RETURNING id, title, updated_at`,
+        [newTitle, JSON.stringify(content), documentId, userId]
+      );
+
+      logger.info('Document renamed', {
+        documentId,
+        userId,
+        oldTitle: docResult.rows[0].title,
+        newTitle
+      });
+
+      res.json({
+        success: true,
+        message: 'Document renamed successfully',
+        document: {
+          id: result.rows[0].id,
+          title: result.rows[0].title,
+          updatedAt: result.rows[0].updated_at
+        }
+      });
+
+    } catch (error) {
+      logger.error('Rename document failed', {
+        error: error.message,
+        documentId,
+        userId
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to rename document'
+      });
+    }
+  })
+);
+
+/**
  * ✅ Delete document
  */
-router.delete('/:id', 
+router.delete('/:id',
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
@@ -635,10 +729,10 @@ router.delete('/:id',
       });
 
     } catch (error) {
-      logger.error('Delete document failed', { 
-        error: error.message, 
-        documentId, 
-        userId 
+      logger.error('Delete document failed', {
+        error: error.message,
+        documentId,
+        userId
       });
 
       res.status(500).json({

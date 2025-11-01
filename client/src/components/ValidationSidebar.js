@@ -264,7 +264,7 @@ const ValidationSidebar = () => {
 
   const [editingFactIndex, setEditingFactIndex] = useState(null);
   const [editedFactContent, setEditedFactContent] = useState('');
-  const [generatingRewrite, setGeneratingRewrite] = useState(null);
+  const [generatingRewrite, setGeneratingRewrite] = useState(new Set());
 
   // ✅ Drag & Drop sensors
   const sensors = useSensors(
@@ -309,9 +309,9 @@ const ValidationSidebar = () => {
   // Request professional rewrite
   const requestProfessionalRewrite = async (index) => {
     const fact = currentDocument.facts[index];
-    
+
     try {
-      setGeneratingRewrite(index);
+      setGeneratingRewrite(prev => new Set(prev).add(index));
       
       const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
@@ -379,7 +379,11 @@ const ValidationSidebar = () => {
       console.error('Professional rewrite failed:', error);
       alert('Failed to generate professional rewrite. Please try again.');
     } finally {
-      setGeneratingRewrite(null);
+      setGeneratingRewrite(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
     }
   };
 
@@ -503,7 +507,7 @@ const ValidationSidebar = () => {
                   fact={fact}
                   index={index}
                   isEditing={editingFactIndex === index}
-                  isGenerating={generatingRewrite === index}
+                  isGenerating={generatingRewrite.has(index)}
                   editedFactContent={editedFactContent}
                   onEdit={startEditingFact}
                   onSave={saveEditedFact}

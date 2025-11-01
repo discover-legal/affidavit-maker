@@ -210,7 +210,7 @@ function prepareFactsForDisplay(facts) {
   return normalizeFacts(facts).map((fact, index) => ({
     ...fact,
     index: index + 1,
-    displayContent: fact.professionalRewrite || fact.content,
+    displayContent: fact.content,
     hasIssues: fact.issues.length > 0,
     hasSuggestions: fact.suggestions.length > 0,
     needsAttention: factNeedsReview(fact)

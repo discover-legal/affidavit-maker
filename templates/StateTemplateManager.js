@@ -95,18 +95,26 @@ class BaseAffidavitTemplate {
     }
 
     let caption = '';
-    
-    // Court name
+
+    // Court name - uppercase for legal formatting
     let courtName = affidavitData.courtName || '[COURT NAME]';
-    
+    courtName = courtName.toUpperCase();
+
     // State-specific court formatting handled in subclasses
     caption += `IN THE ${courtName}\n\n`;
-    
+
     // Case number
     if (affidavitData.caseNumber) {
       caption += `CAUSE NO. ${affidavitData.caseNumber.toUpperCase()}`;
     }
-    
+
+    // Add party names if both are provided (style of cause format)
+    if (affidavitData.plaintiff && affidavitData.defendant) {
+      caption += `\n\n${affidavitData.plaintiff.toUpperCase()}\n`;
+      caption += `v.\n`;
+      caption += `${affidavitData.defendant.toUpperCase()}`;
+    }
+
     return {
       courtName,
       caseNumber: affidavitData.caseNumber,

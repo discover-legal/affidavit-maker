@@ -95,18 +95,26 @@ class BaseAffidavitTemplate {
     }
 
     let caption = '';
-    
-    // Court name
+
+    // Court name - uppercase for legal formatting
     let courtName = affidavitData.courtName || '[COURT NAME]';
-    
+    courtName = courtName.toUpperCase();
+
     // State-specific court formatting handled in subclasses
     caption += `IN THE ${courtName}\n\n`;
-    
+
     // Case number
     if (affidavitData.caseNumber) {
       caption += `CAUSE NO. ${affidavitData.caseNumber.toUpperCase()}`;
     }
-    
+
+    // Add party names if both are provided (style of cause format)
+    if (affidavitData.plaintiff && affidavitData.defendant) {
+      caption += `\n\n${affidavitData.plaintiff.toUpperCase()}\n`;
+      caption += `v.\n`;
+      caption += `${affidavitData.defendant.toUpperCase()}`;
+    }
+
     return {
       courtName,
       caseNumber: affidavitData.caseNumber,
@@ -490,7 +498,10 @@ class UtahTemplate extends BaseAffidavitTemplate {
    * FIXED: Utah Code § 46-1-6.5 format
    */
   generateVenue(county) {
-    const countyName = county || '____________';
+    // Properly capitalize county name (title case for each word)
+    const countyName = county
+      ? county.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+      : '____________';
     return `County of ${countyName}`; // Matches statutory form
   }
 
@@ -617,15 +628,26 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
     this.sections.perjuryStatement = true;
   }
 
+  /**
+   * Arizona venue with proper county name capitalization
+   */
+  generateVenue(county) {
+    // Properly capitalize county name (title case for each word)
+    const countyName = county
+      ? county.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+      : '[COUNTY]';
+    return `County of ${countyName}`;
+  }
+
   performStateSpecificValidation(affidavitData) {
     const errors = [];
     const warnings = [];
-    
+
     // FIXED: County is now REQUIRED for Arizona
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
       errors.push('County is required for Arizona affidavits (universal practice and A.R.S. § 41-313(D)(2) seal requirement)');
     }
-    
+
     return { errors, warnings };
   }
 

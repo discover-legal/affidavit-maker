@@ -20,14 +20,27 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  
+
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
-  
+  const currentDocumentIdRef = useRef(null);
+
   // Use DocumentContext
   const { currentDocument } = useDocumentState();
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+
+  // Reset messages when document changes
+  useEffect(() => {
+    if (currentDocument.documentId && currentDocument.documentId !== currentDocumentIdRef.current) {
+      console.log('📄 Document changed, clearing messages', {
+        from: currentDocumentIdRef.current,
+        to: currentDocument.documentId
+      });
+      setMessages([]);
+      currentDocumentIdRef.current = currentDocument.documentId;
+    }
+  }, [currentDocument.documentId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

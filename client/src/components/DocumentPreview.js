@@ -34,6 +34,7 @@ const DocumentPreview = () => {
   const [zoomLevel, setZoomLevel] = useState(90);
   const containerRef = useRef(null);
   const measureRef = useRef(null);
+  const pageRefs = useRef([]);
 
   // Center the preview pane horizontally to ensure equal left/right scroll
   useEffect(() => {
@@ -46,6 +47,38 @@ const DocumentPreview = () => {
       });
     }
   }, [zoomLevel, preview]);
+
+  // IntersectionObserver to track which page is visible
+  useEffect(() => {
+    if (!containerRef.current || pages.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            const pageNum = parseInt(entry.target.dataset.pageNumber);
+            if (pageNum && pageNum !== currentPage) {
+              setCurrentPage(pageNum);
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: [0.5], // Update when 50% of page is visible
+        rootMargin: '-20% 0px -20% 0px' // Focus on center of viewport
+      }
+    );
+
+    // Observe all page elements
+    pageRefs.current.forEach((pageEl) => {
+      if (pageEl) observer.observe(pageEl);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [pages, currentPage]);
 
   // Process and paginate content
   const pages = useMemo(() => {
@@ -179,19 +212,33 @@ const DocumentPreview = () => {
   }, [preview]); // Removed currentDocument.facts dependency - not needed
 
   const totalPages = pages.length;
-  const currentPageData = pages[currentPage - 1] || { content: [], pageNumber: 1 };
 
   // Controls
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 50));
   const handleRefresh = () => generatePreview();
-  const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
-  const handleNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
+
+  const scrollToPage = (pageNum) => {
+    const pageEl = pageRefs.current[pageNum - 1];
+    if (pageEl && containerRef.current) {
+      pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handlePrevPage = () => {
+    const newPage = Math.max(1, currentPage - 1);
+    scrollToPage(newPage);
+  };
+
+  const handleNextPage = () => {
+    const newPage = Math.min(totalPages, currentPage + 1);
+    scrollToPage(newPage);
+  };
 
   // Render section based on type
-  const renderSection = (section, idx) => {
-    const key = `section-${currentPage}-${idx}`;
-    
+  const renderSection = (section, idx, pageNum) => {
+    const key = `section-${pageNum}-${idx}`;
+
     switch (section.type) {
       case 'header':
         return (
@@ -486,25 +533,36 @@ const DocumentPreview = () => {
                 width: 'fit-content'
               }}
             >
-              <div className="page-container">
-              <div className="page-content">
-                {currentPageData.content.map((section, idx) => renderSection(section, idx))}
-              </div>
-              
-              {/* Page number */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '0.5in',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  fontSize: '12px',
-                  color: '#666'
-                }}
-              >
-                Page {currentPage} of {totalPages}
-              </div>
-              </div>
+              {/* Render all pages vertically */}
+              {pages.map((page, pageIndex) => (
+                <div
+                  key={`page-${page.pageNumber}`}
+                  ref={(el) => (pageRefs.current[pageIndex] = el)}
+                  data-page-number={page.pageNumber}
+                  className="page-container"
+                  style={{
+                    marginBottom: pageIndex < pages.length - 1 ? '2rem' : '0'
+                  }}
+                >
+                  <div className="page-content">
+                    {page.content.map((section, idx) => renderSection(section, idx, page.pageNumber))}
+                  </div>
+
+                  {/* Page number */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '0.5in',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      fontSize: '12px',
+                      color: '#666'
+                    }}
+                  >
+                    Page {page.pageNumber} of {totalPages}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

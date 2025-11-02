@@ -120,8 +120,8 @@ const ChatInterface = () => {
           if (hasFacts) {
             // Combine name and fact count in one message
             greeting = currentDocument.affiantName
-              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}.`
-              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}.`;
+              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
+              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
           } else {
             greeting = currentDocument.affiantName
               ? `Hi ${currentDocument.affiantName}, welcome back!`

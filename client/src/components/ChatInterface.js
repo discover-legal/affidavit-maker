@@ -89,44 +89,45 @@ const ChatInterface = () => {
     }
   };
 
-  // Initial welcome message - personalized for returning users
+  // Initial welcome message - immediate display then async review
   useEffect(() => {
     const initializeWelcomeMessage = async () => {
       if (messages.length === 0) {
         const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
 
         if (isReturningUser) {
-          // Welcome back message for returning users
+          // Quick welcome back message - shown immediately
           const greeting = currentDocument.affiantName
-            ? `Welcome back, ${currentDocument.affiantName}!`
-            : 'Welcome back!';
+            ? `Hi ${currentDocument.affiantName}, welcome back!`
+            : 'Hi, welcome back!';
 
-          let message = `${greeting} Let's continue building your affidavit from where we left off.\n\n`;
+          const initialMessages = [{
+            type: 'bot',
+            content: greeting
+          }];
 
-          // Add summary of what's been done
-          const progress = [];
-          if (currentDocument.affiantName) progress.push(`your name (${currentDocument.affiantName})`);
-          if (currentDocument.state) progress.push(`state (${currentDocument.state})`);
-          if (currentDocument.county) progress.push(`county (${currentDocument.county})`);
-
-          if (progress.length > 0) {
-            message += `I have ${progress.join(', ')}. `;
+          // Add a message about reviewing facts if they exist
+          const hasFacts = currentDocument.facts?.length > 0;
+          if (hasFacts) {
+            initialMessages.push({
+              type: 'bot',
+              content: `Let me review your ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}...`
+            });
           }
 
-          // Add AI-generated narrative summary of facts
-          if (currentDocument.facts?.length > 0) {
+          // Show initial messages immediately
+          setMessages(initialMessages);
+
+          // Then generate and add the AI summary asynchronously
+          if (hasFacts) {
             const factSummary = await generateFactSummary(currentDocument.facts);
             if (factSummary) {
-              message += factSummary;
+              setMessages(prev => [...prev, {
+                type: 'bot',
+                content: factSummary + '\n\nWhat would you like to add or update today?'
+              }]);
             }
           }
-
-          message += `\n\nWhat would you like to add or update today?`;
-
-          setMessages([{
-            type: 'bot',
-            content: message
-          }]);
         } else {
           // Standard welcome for new users
           setMessages([{

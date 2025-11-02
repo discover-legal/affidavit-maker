@@ -138,12 +138,13 @@ router.post('/',
     console.log('🔍 7. Created session context');
     
     try {
-      const { message, conversationHistory = [], affidavitData = {} } = req.body;
-      
+      const { message, conversationHistory = [], affidavitData = {}, skipExtraction = false } = req.body;
+
       console.log('🔍 8. Extracted request data:', {
         messageLength: message?.length || 0,
         historyLength: conversationHistory?.length || 0,
-        hasAffidavitData: Object.keys(affidavitData).length > 0
+        hasAffidavitData: Object.keys(affidavitData).length > 0,
+        skipExtraction
       });
       
       // Create session ID for this chat if not exists
@@ -195,13 +196,14 @@ router.post('/',
           const memBefore = process.memoryUsage();
           
           console.log('🔍 15. About to call affidavitService.processMessage');
-          
+
           result = await req.app.locals.affidavitService.processMessage(
             message,
             chunkedHistory,
             affidavitData,
             req.user.id,
-            req.sessionId
+            req.sessionId,
+            skipExtraction
           );
           
           console.log('🔍 16. Received result from affidavitService:', {

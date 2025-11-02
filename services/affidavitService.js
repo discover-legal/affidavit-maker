@@ -64,9 +64,9 @@ class AffidavitService {
   /**
    * ✅ UPDATED: Main processing with county & case caption collection
    */
-  async processMessage(message, conversationHistory = [], affidavitData = {}, userId = null, sessionId = null) {
+  async processMessage(message, conversationHistory = [], affidavitData = {}, userId = null, sessionId = null, skipExtraction = false) {
     const processingKey = `${userId || 'anonymous'}_${sessionId || 'session'}_${Date.now()}`;
-    
+
     try {
       // Input validation
       if (!message || typeof message !== 'string') {
@@ -93,11 +93,12 @@ class AffidavitService {
 
       // Call consolidated LLM with existing facts context
       const result = await this.callConsolidatedLLM(
-        message, 
-        recentHistory, 
+        message,
+        recentHistory,
         affidavitData,
         existingFactsSummary,
-        sessionId
+        sessionId,
+        skipExtraction
       );
 
       return {
@@ -360,7 +361,36 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
   /**
    * ✅ UPDATED: Consolidated LLM call
    */
-  async callConsolidatedLLM(message, conversationHistory, affidavitData, existingFactsSummary, sessionId) {
+  async callConsolidatedLLM(message, conversationHistory, affidavitData, existingFactsSummary, sessionId, skipExtraction = false) {
+    // If skipExtraction is true, use simple chat without function calling
+    if (skipExtraction) {
+      const messages = [
+        { role: 'system', content: 'You are a helpful assistant that provides concise, narrative summaries.' },
+        { role: 'user', content: message }
+      ];
+
+      try {
+        const completion = await this.openAIService.chat(messages, {
+          model: 'gpt-4o-2024-08-06',
+          temperature: 0.5,
+          max_tokens: 500
+        });
+
+        const response = completion.choices[0].message.content;
+
+        return {
+          chatResponse: response,
+          updatedAffidavitData: affidavitData,
+          extractedFacts: [],
+          hasNewData: false
+        };
+      } catch (error) {
+        logger.error('Simple LLM call failed:', error);
+        throw error;
+      }
+    }
+
+    // Standard function calling flow
     const systemPrompt = this.createConsolidatedSystemPrompt();
     const userPrompt = this.createUserPrompt(message, affidavitData, existingFactsSummary);
 

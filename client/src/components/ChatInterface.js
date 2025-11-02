@@ -49,41 +49,98 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Initial welcome message - quick and programmatic
+  // Helper function to generate AI narrative summary of facts
+  const generateFactSummary = async (facts) => {
+    if (!facts || facts.length === 0) return '';
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+
+      if (isAuthenticated) {
+        const token = await getAccessTokenSilently();
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const factList = facts.map(fact =>
+        typeof fact === 'string' ? fact : fact.content
+      ).join('\n- ');
+
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts: ${factList}`,
+          conversationHistory: [],
+          affidavitData: currentDocument,
+          skipExtraction: true // Don't extract new facts from this
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const data = await response.json();
+      return data.success ? data.response : '';
+    } catch (err) {
+      console.error('Error generating fact summary:', err);
+      // Fallback to simple list
+      return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
+    }
+  };
+
+  // Initial welcome message - immediate display then async review
   useEffect(() => {
-    if (messages.length === 0) {
-      const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
+    const initializeWelcomeMessage = async () => {
+      if (messages.length === 0) {
+        const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
 
-      if (isReturningUser) {
-        // Quick welcome back message
-        const greeting = currentDocument.affiantName
-          ? `Hi ${currentDocument.affiantName}, welcome back!`
-          : 'Hi, welcome back!';
+        if (isReturningUser) {
+          // Quick welcome back message - shown immediately
+          const greeting = currentDocument.affiantName
+            ? `Hi ${currentDocument.affiantName}, welcome back!`
+            : 'Hi, welcome back!';
 
-        const initialMessages = [{
-          type: 'bot',
-          content: greeting
-        }];
-
-        // Add a message about reviewing facts if they exist
-        if (currentDocument.facts?.length > 0) {
-          initialMessages.push({
+          const initialMessages = [{
             type: 'bot',
-            content: `Let me review your ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}...`
-          });
-        }
+            content: greeting
+          }];
 
-        setMessages(initialMessages);
-      } else {
-        // Standard welcome for new users
-        setMessages([{
-          type: 'bot',
-          content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+          // Add a message about reviewing facts if they exist
+          const hasFacts = currentDocument.facts?.length > 0;
+          if (hasFacts) {
+            initialMessages.push({
+              type: 'bot',
+              content: `Let me review your ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}...`
+            });
+          }
+
+          // Show initial messages immediately
+          setMessages(initialMessages);
+
+          // Then generate and add the AI summary asynchronously
+          if (hasFacts) {
+            const factSummary = await generateFactSummary(currentDocument.facts);
+            if (factSummary) {
+              setMessages(prev => [...prev, {
+                type: 'bot',
+                content: factSummary + '\n\nWhat would you like to add or update today?'
+              }]);
+            }
+          }
+        } else {
+          // Standard welcome for new users
+          setMessages([{
+            type: 'bot',
+            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
 
 Let's start with your name and which state you're in.`
-        }]);
+          }]);
+        }
       }
-    }
+    };
+
+    initializeWelcomeMessage();
   }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts]);
 
   // Send message to API

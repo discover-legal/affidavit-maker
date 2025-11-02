@@ -63,7 +63,7 @@ const ChatInterface = () => {
   };
 
   // Helper function to generate AI narrative summary of facts
-  const generateFactSummary = async (facts) => {
+  const generateFactSummary = async (facts, affiantName) => {
     if (!facts || facts.length === 0) return '';
 
     try {
@@ -78,11 +78,15 @@ const ChatInterface = () => {
         typeof fact === 'string' ? fact : fact.content
       ).join('\n- ');
 
+      const nameInstruction = affiantName
+        ? ` IMPORTANT: Address the person directly using "you" and "your" instead of using the name "${affiantName}". For example, say "you went to the store" instead of "${affiantName} went to the store".`
+        : '';
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts: ${factList}`,
+          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts: ${factList}${nameInstruction}`,
           conversationHistory: [],
           affidavitData: currentDocument,
           skipExtraction: true // Don't extract new facts from this
@@ -109,31 +113,30 @@ const ChatInterface = () => {
         const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
 
         if (isReturningUser) {
-          // Quick welcome back message - shown immediately
-          const greeting = currentDocument.affiantName
-            ? `Hi ${currentDocument.affiantName}, welcome back!`
-            : 'Hi, welcome back!';
-
-          const initialMessages = [{
-            type: 'bot',
-            content: greeting
-          }];
-
-          // Add a message about reviewing facts if they exist
+          // Welcome back message with name and fact count combined
           const hasFacts = currentDocument.facts?.length > 0;
+          let greeting;
+
           if (hasFacts) {
-            initialMessages.push({
-              type: 'bot',
-              content: `Let me review your ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}...`
-            });
+            // Combine name and fact count in one message
+            greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
+              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
+          } else {
+            greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back!`
+              : 'Hi, welcome back!';
           }
 
-          // Show initial messages immediately
-          setMessages(initialMessages);
+          // Show initial message immediately
+          setMessages([{
+            type: 'bot',
+            content: greeting
+          }]);
 
           // Then generate and add the AI summary asynchronously
           if (hasFacts) {
-            const factSummary = await generateFactSummary(currentDocument.facts);
+            const factSummary = await generateFactSummary(currentDocument.facts, currentDocument.affiantName);
             if (factSummary) {
               setMessages(prev => [...prev, {
                 type: 'bot',

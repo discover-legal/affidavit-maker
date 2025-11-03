@@ -48,38 +48,6 @@ const DocumentPreview = () => {
     }
   }, [zoomLevel, preview]);
 
-  // IntersectionObserver to track which page is visible
-  useEffect(() => {
-    if (!containerRef.current || pages.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            const pageNum = parseInt(entry.target.dataset.pageNumber);
-            if (pageNum && pageNum !== currentPage) {
-              setCurrentPage(pageNum);
-            }
-          }
-        });
-      },
-      {
-        root: containerRef.current,
-        threshold: [0.5], // Update when 50% of page is visible
-        rootMargin: '-20% 0px -20% 0px' // Focus on center of viewport
-      }
-    );
-
-    // Observe all page elements
-    pageRefs.current.forEach((pageEl) => {
-      if (pageEl) observer.observe(pageEl);
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [pages, currentPage]);
-
   // Process and paginate content
   const pages = useMemo(() => {
     if (!preview?.sections) return [{ content: [], pageNumber: 1 }];
@@ -212,6 +180,38 @@ const DocumentPreview = () => {
   }, [preview]); // Removed currentDocument.facts dependency - not needed
 
   const totalPages = pages.length;
+
+  // IntersectionObserver to track which page is visible
+  useEffect(() => {
+    if (!containerRef.current || pages.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            const pageNum = parseInt(entry.target.dataset.pageNumber);
+            if (pageNum && pageNum !== currentPage) {
+              setCurrentPage(pageNum);
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: [0.5], // Update when 50% of page is visible
+        rootMargin: '-20% 0px -20% 0px' // Focus on center of viewport
+      }
+    );
+
+    // Observe all page elements
+    pageRefs.current.forEach((pageEl) => {
+      if (pageEl) observer.observe(pageEl);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [pages, currentPage]);
 
   // Controls
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));

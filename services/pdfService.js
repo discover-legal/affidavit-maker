@@ -147,60 +147,64 @@ class PDFService {
     if (factsList.length > 0) {
       // Track which facts we've rendered
       let renderedFactCount = 0;
-      
+
       factsList.forEach((fact, index) => {
         const estimatedHeight = this.estimateTextHeight(doc, fact.content, 12) + 20;
-        
-        // ✅ NOTARY PROTECTION LOGIC
-        // If this is the last fact OR second-to-last fact, check if there's room for:
-        // - This fact + remaining facts + conclusion + signature + notary block
-        const isNearEnd = index >= factsList.length - 2;
-        
-        if (isNearEnd) {
-          // Calculate space needed for everything that follows
-          let spaceNeeded = estimatedHeight; // This fact
-          
-          // Add remaining facts
-          for (let i = index + 1; i < factsList.length; i++) {
-            spaceNeeded += this.estimateTextHeight(doc, factsList[i].content, 12) + 20;
-          }
-          
-          // Add conclusion space
+
+        // ✅ NOTARY PROTECTION LOGIC - Only for the LAST fact
+        // Only force a page break if the notary block would be orphaned alone on a new page
+        const isLastFact = index === factsList.length - 1;
+
+        if (isLastFact && sections.notaryBlock) {
+          // Calculate space needed for: this fact + conclusion + signature (but NOT notary yet)
+          let spaceForFactAndSignature = estimatedHeight;
+
           if (sections.conclusion) {
-            spaceNeeded += 80;
+            spaceForFactAndSignature += 80;
           }
-          
-          // Add perjury statement space
+
           if (sections.perjuryStatement) {
-            spaceNeeded += 80;
+            spaceForFactAndSignature += 80;
           }
-          
-          // Add signature block space
+
           if (sections.signatureBlock) {
-            spaceNeeded += 120;
+            spaceForFactAndSignature += 120;
           }
-          
-          // Add notary block space (with buffer)
-          if (sections.notaryBlock) {
-            spaceNeeded += 250; // Notary block + buffer
-          }
-          
-          // ✅ KEY DECISION: If everything won't fit, start new page NOW
-          // This ensures at least one fact stays with the notary block
+
+          // Calculate space for notary block (use more conservative estimate)
+          const notarySpace = 200;
+
+          // Check current available space
           const currentY = doc.y;
           const pageHeight = doc.page.height;
           const bottomMargin = doc.page.margins.bottom;
           const availableSpace = pageHeight - bottomMargin - 50 - currentY;
-          
-          if (availableSpace < spaceNeeded && renderedFactCount > 0) {
-            // FIXED: Force page break - this keeps last fact(s) with notary
-            // Add footer to current page before breaking
+
+          // If everything (fact + signature + notary) fits, use normal page break
+          if (availableSpace >= spaceForFactAndSignature + notarySpace) {
+            this.checkPageBreak(doc, estimatedHeight, metadata);
+          }
+          // If fact + signature fit but notary doesn't, the notary would be orphaned
+          // In this case, force a page break to keep the fact with the notary
+          else if (availableSpace >= spaceForFactAndSignature && renderedFactCount > 0) {
+            // Add centered continuation indicator for forced break
+            doc.moveDown(1.5);
+            doc.fontSize(11).font('Times-Italic');
+            doc.text('(Continued on next page)', {
+              align: 'center'
+            });
+            doc.font('Times-Roman').fontSize(12);
+
             const currentPageNum = this.getCurrentPageNumber(doc);
             this.addPageFooter(doc, currentPageNum, metadata);
             doc.addPage();
           }
+          // Otherwise, use normal page break
+          else {
+            this.checkPageBreak(doc, estimatedHeight, metadata);
+          }
         } else {
-          // Normal page break for earlier facts
+          // Normal page break for non-last facts
           this.checkPageBreak(doc, estimatedHeight, metadata);
         }
 
@@ -279,8 +283,8 @@ class PDFService {
         doc.moveDown(0.5);
         doc.text(sections.signatureBlock.date);
       }
-      
-      doc.moveDown(2);
+
+      doc.moveDown(1.5);
     }
 
     // FIXED: Utah Notary Instruction and Block - treat as single unit to prevent overlap
@@ -288,8 +292,8 @@ class PDFService {
     if (sections.notaryInstruction && sections.notaryBlock) {
       // Calculate combined height for instruction + notary block
       const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 30;
-      const notaryHeight = 180; // Estimated notary block height with proper formatting
-      const totalHeight = instructionHeight + notaryHeight + 30; // Add buffer
+      const notaryHeight = 160; // Estimated notary block height (reduced to prevent excessive page breaks)
+      const totalHeight = instructionHeight + notaryHeight + 20; // Reduced buffer
 
       // Check if both can fit, if not start new page
       this.checkPageBreak(doc, totalHeight, metadata);
@@ -328,7 +332,7 @@ class PDFService {
       // Reset color and font
       doc.fillColor('#000000');
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown(1.5); // FIXED: Add more space between instruction and notary block
+      doc.moveDown(1.0); // Space between instruction and notary block
     }
 
     // ✅ FIXED: Notary Block with proper field alignment

@@ -318,18 +318,21 @@ const ValidationSidebar = () => {
 
   // Request professional rewrite
   const requestProfessionalRewrite = async (index) => {
-    // Wait for any previous rewrite operations to complete (prevent race conditions)
-    await rewriteLockRef.current;
+    // Set loading state immediately (even if queued) so icon changes to spinner
+    setGeneratingRewrite(prev => new Set(prev).add(index));
 
-    // Create a promise for this operation and update the lock
-    const operationPromise = (async () => {
-      // Read from ref to get the LATEST facts array
-      const fact = latestDocumentRef.current.facts[index];
+    try {
+      // Wait for any previous rewrite operations to complete (prevent race conditions)
+      await rewriteLockRef.current;
 
-      try {
-        setGeneratingRewrite(prev => new Set(prev).add(index));
-      
-      const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      // Create a promise for this operation and update the lock
+      const operationPromise = (async () => {
+        // Read from ref to get the LATEST facts array
+        const fact = latestDocumentRef.current.facts[index];
+
+        try {
+
+        const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
       let headers = { 'Content-Type': 'application/json' };
       if (isAuthenticated) {
@@ -402,12 +405,22 @@ const ValidationSidebar = () => {
         return next;
       });
     }
-    })();
+      })();
 
-    // Update the lock to this operation's promise
-    rewriteLockRef.current = operationPromise;
+      // Update the lock to this operation's promise
+      rewriteLockRef.current = operationPromise;
 
-    return operationPromise;
+      return operationPromise;
+    } catch (error) {
+      // Handle errors that occur before the operation starts (e.g., while waiting for lock)
+      console.error('Failed to queue professional rewrite:', error);
+      setGeneratingRewrite(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+      throw error;
+    }
   };
 
   // Apply professional rewrite

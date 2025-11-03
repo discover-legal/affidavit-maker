@@ -31,7 +31,7 @@ const DocumentPreview = () => {
   const { generatePreview } = useDocumentActions();
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [zoomLevel, setZoomLevel] = useState(90);
+  const [zoomLevel, setZoomLevel] = useState(80);
   const containerRef = useRef(null);
   const measureRef = useRef(null);
   const pageRefs = useRef([]);

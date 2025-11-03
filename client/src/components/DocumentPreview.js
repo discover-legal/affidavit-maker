@@ -227,11 +227,13 @@ const DocumentPreview = () => {
 
   const handlePrevPage = () => {
     const newPage = Math.max(1, currentPage - 1);
+    setCurrentPage(newPage); // Update state immediately
     scrollToPage(newPage);
   };
 
   const handleNextPage = () => {
     const newPage = Math.min(totalPages, currentPage + 1);
+    setCurrentPage(newPage); // Update state immediately
     scrollToPage(newPage);
   };
 

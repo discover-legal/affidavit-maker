@@ -73,9 +73,42 @@ router.post('/create-intent',
     }
 
     try {
+      // Check if user already has a Stripe customer ID
+      const userResult = await pool.query(
+        'SELECT stripe_customer_id FROM users WHERE id = $1',
+        [userId]
+      );
+
+      let customerId = userResult.rows[0]?.stripe_customer_id;
+
+      // Create Stripe Customer if doesn't exist
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: req.user.email,
+          metadata: {
+            userId: userId.toString(),
+            source: 'affidavit-maker'
+          }
+        });
+
+        customerId = customer.id;
+
+        // Store customer ID in database
+        await pool.query(
+          'UPDATE users SET stripe_customer_id = $1 WHERE id = $2',
+          [customerId, userId]
+        );
+
+        logger.logBusinessEvent('stripe_customer_created', userId, {
+          customerId,
+          email: req.user.email
+        });
+      }
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
+        customer: customerId,
         metadata: {
           userId: userId.toString(),
           documentId: documentId?.toString() || 'new',
@@ -294,23 +327,49 @@ router.post('/webhook',
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object;
-          
-          // Update payment status in database
+
+          // Extract postal code from billing details (if available)
+          const billingDetails = paymentIntent.charges?.data?.[0]?.billing_details;
+          const postalCode = billingDetails?.address?.postal_code || null;
+
+          // Extract payment method details (last 4, brand, etc.)
+          const paymentMethodDetails = paymentIntent.charges?.data?.[0]?.payment_method_details;
+          const paymentMethodInfo = paymentMethodDetails ? {
+            type: paymentMethodDetails.type,
+            card: paymentMethodDetails.card ? {
+              brand: paymentMethodDetails.card.brand,
+              last4: paymentMethodDetails.card.last4,
+              exp_month: paymentMethodDetails.card.exp_month,
+              exp_year: paymentMethodDetails.card.exp_year
+            } : null
+          } : null;
+
+          // Update payment status and store minimal billing data
           const updateResult = await pool.query(
-            `UPDATE payments 
-             SET status = 'succeeded', updated_at = CURRENT_TIMESTAMP 
-             WHERE stripe_payment_intent_id = $1 
+            `UPDATE payments
+             SET status = 'succeeded',
+                 billing_postal_code = $2,
+                 payment_method_details = $3,
+                 stripe_customer_id = $4,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE stripe_payment_intent_id = $1
              RETURNING user_id, amount_cents`,
-            [paymentIntent.id]
+            [
+              paymentIntent.id,
+              postalCode,
+              paymentMethodInfo ? JSON.stringify(paymentMethodInfo) : null,
+              paymentIntent.customer || null
+            ]
           );
 
           if (updateResult.rows.length > 0) {
             const payment = updateResult.rows[0];
-            
+
             logger.logBusinessEvent('payment_succeeded', payment.user_id, {
               paymentIntentId: paymentIntent.id,
               amount: payment.amount_cents,
-              currency: paymentIntent.currency
+              currency: paymentIntent.currency,
+              postalCode: postalCode ? 'captured' : 'not_provided'
             });
 
             // Could trigger document generation here or send confirmation email

@@ -63,7 +63,11 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 const EditorView = ({ isNew = false, onBack }) => {
   const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
-  
+
+  // ✅ FIX: Track if initialization was done in this component mount
+  // This prevents multiple initializations due to dependency changes
+  const initializationDone = React.useRef(false);
+
   // Layout state with new proportions (30/40/30)
   const [chatWidth, setChatWidth] = useState(30);
   const [previewWidth, setPreviewWidth] = useState(40);
@@ -71,16 +75,16 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [activePanel, setActivePanel] = useState('chat');
   const [isMobileView, setIsMobileView] = useState(false);
-  const [sessionInitialized, setSessionInitialized] = useState(false);
-  
+
   // Use DocumentContext for all document-related state
-  const { 
-    currentDocument, 
-    preview, 
-    isPreviewLoading, 
+  const {
+    currentDocument,
+    preview,
+    isPreviewLoading,
     isSaving,
     lastSaved,
-    hasUnsavedChanges
+    hasUnsavedChanges,
+    sessionInitialized
   } = useDocumentState();
   
   const { 
@@ -103,45 +107,61 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
-    console.log('📂 Loading document from URL:', documentId);
+    console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
     // Initialize session based on route
     const initializeSession = async () => {
-      if (sessionInitialized) {
-        console.log('✅ Session already initialized, skipping');
+      // ✅ FIX: Prevent multiple initializations in the same component mount
+      if (initializationDone.current) {
+        console.log('✅ Initialization already done in this mount, skipping');
         return;
       }
 
       if (isNew) {
-        // ✅ FIXED: Clear any existing document state before creating new one
-        console.log('📝 Creating new document (server) - clearing old state first');
-        createNewDocument(); // Reset document state
+        // ✅ FIX: For new documents, always reset to ensure fresh start
+        // Mark as done BEFORE async operations to prevent duplicate calls
+        initializationDone.current = true;
+
+        console.log('📝 Creating new document - resetting state');
+        createNewDocument(); // This resets sessionInitialized to false
 
         try {
           await initializeNewDocument();
-          setSessionInitialized(true);
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
+          // Reset flag on error so user can retry
+          initializationDone.current = false;
         }
       } else if (documentId && isAuthenticated) {
         // Loading existing document from URL
+        // Only load if not already initialized with this specific document
+        if (sessionInitialized && currentDocument.documentId === documentId) {
+          console.log('✅ Document already loaded:', documentId);
+          initializationDone.current = true;
+          return;
+        }
+
+        // Mark as done BEFORE async operations to prevent duplicate calls
+        initializationDone.current = true;
+
         console.log('📂 Loading existing document:', documentId);
         try {
           await loadDocument(documentId);
-          setSessionInitialized(true);
           console.log('✅ Document loaded:', documentId);
         } catch (error) {
           console.error('❌ Failed to load document:', error);
+          // Reset flag on error so user can retry
+          initializationDone.current = false;
         }
       }
     };
 
     initializeSession();
 
-    // Reset session when switching documents
+    // ✅ FIX: Reset initialization flag when component unmounts or document changes
     return () => {
       console.log('🧹 Cleaning up document session');
-      setSessionInitialized(false);
+      initializationDone.current = false;
     };
   }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument, createNewDocument]);
 

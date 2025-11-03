@@ -2,11 +2,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Scale, Gavel, FolderOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Header from './Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect, isLoading } = useAuth0();
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -124,28 +127,50 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     onContinueDocument(doc);
   };
 
+  const handleBackToDashboard = () => {
+    // Already on dashboard, navigate to home
+    navigate('/');
+  };
+
   if (loading || isLoading) {
     return (
-      <div className="text-center p-10">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-        <p className="mt-4 text-gray-600">Loading your dashboard...</p>
-      </div>
+      <>
+        <Header
+          currentView="dashboard"
+          onBackToDashboard={handleBackToDashboard}
+        />
+        <div className="text-center p-10">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center p-10">
-        <p className="text-red-600 mb-4">Error: {error}</p>
-        <button onClick={fetchDocuments} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-          Retry
-        </button>
-      </div>
+      <>
+        <Header
+          currentView="dashboard"
+          onBackToDashboard={handleBackToDashboard}
+        />
+        <div className="text-center p-10">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <button onClick={fetchDocuments} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            Retry
+          </button>
+        </div>
+      </>
     );
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <Header
+        currentView="dashboard"
+        onBackToDashboard={handleBackToDashboard}
+      />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
         <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
@@ -310,6 +335,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         )}
       </div>
     </main>
+    </>
   );
 };
 

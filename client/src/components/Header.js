@@ -36,7 +36,7 @@ const Header = ({ currentView, onBackToDashboard, onSave, sessionSaved, isSaving
                     >
                         <Scale className="h-8 w-8 text-blue-600" />
                         <div className="text-left">
-                            <h1 className="text-xl font-bold text-gray-900">Affidavit Maker</h1>
+                            <h1 className="text-xl font-bold text-gray-900">Discover.Legal</h1>
                             <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
                         </div>
                     </button>

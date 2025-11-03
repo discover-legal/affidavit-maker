@@ -277,7 +277,9 @@ class EnhancedFactValidationService {
     };
   }
   
-  generateProfessionalVersion(factText, category) {
+  generateProfessionalVersion(factText, category, context = {}) {
+    const affiantName = context.affiantName || null;
+
     let professional = factText
       .replace(/\b(fuck|shit|damn|hell|bitch|asshole|cunt|bastard)\b/gi, '[inappropriate]')
       .replace(/\b(kinda|sorta|like totally|like)\b/gi, '')
@@ -296,13 +298,25 @@ class EnhancedFactValidationService {
       .replace(/\b(maybe|probably|possibly)\b/gi, '')
       .replace(/\b(might be|might have)\b/gi, 'was');
 
-    // Add "I observed that" prefix if doesn't start with "I"
+    // Add "I" prefix if doesn't start with "I"
     // Handle capitalization properly to avoid "I observed that The child..."
     if (!/^I\b/i.test(professional)) {
       // Lowercase the first character if the text will be prefixed
       const firstChar = professional.charAt(0).toLowerCase();
       const rest = professional.slice(1);
-      professional = `I observed that ${firstChar}${rest}`;
+
+      // If we have an affiant name, use "I, [Name]," format for formal affidavit style
+      if (affiantName) {
+        professional = `I, ${affiantName}, observed that ${firstChar}${rest}`;
+      } else {
+        professional = `I observed that ${firstChar}${rest}`;
+      }
+    } else if (affiantName && !/^I,/.test(professional)) {
+      // If it starts with "I" but not "I, [Name]", consider adding the name
+      // Only do this if the sentence is simple enough (e.g., "I saw...", "I witnessed...")
+      if (/^I\s+(saw|witnessed|observed|heard|noticed|was)/i.test(professional)) {
+        professional = professional.replace(/^I\s+/i, `I, ${affiantName}, `);
+      }
     }
 
     if (!/[.!?]$/.test(professional)) {
@@ -336,7 +350,7 @@ class EnhancedFactValidationService {
     };
   }
   
-  buildFallbackResult(fact, factText) {
+  buildFallbackResult(fact, factText, context = {}) {
     const localAnalysis = this.analyzeLanguageLocally(factText);
     const categoryInfo = this.detectCategory(factText);
 
@@ -344,7 +358,7 @@ class EnhancedFactValidationService {
       isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
       category: categoryInfo.primary,
       subcategory: categoryInfo.secondary,
-      professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo),
+      professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo, context),
       languageIssues: ensureArray(localAnalysis.issues),
       legalIssues: localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL ? ['Contains inappropriate content'] : [],
       improvements: ensureArray(localAnalysis.suggestions),
@@ -360,7 +374,8 @@ class EnhancedFactValidationService {
   
   async performLLMValidation(fact, existingFacts, context) {
     const factText = fact.content || fact;
-    
+    const affiantName = context.affiantName || 'Unknown';
+
     const prompt = `Analyze this legal fact for an affidavit in ${context.state || 'the US'}:
 
 Fact: "${factText}"
@@ -368,7 +383,7 @@ Fact: "${factText}"
 Context:
 - Document Type: ${context.documentType || 'General Affidavit'}
 - Case Type: ${context.caseType || 'General'}
-- Affiant: ${context.affiantName || 'Unknown'}
+- Affiant: ${affiantName}
 
 Existing facts: ${existingFacts.length}
 
@@ -379,14 +394,23 @@ Evaluate for:
 4. Suggested improvements
 5. Category classification
 
-Provide a professional rewrite and specific feedback.`;
+IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective using "I" statements.
+${affiantName !== 'Unknown' ? `The affiant is ${affiantName}, so write statements as "I, ${affiantName}..." or "I..." as appropriate.` : 'Write in first person using "I" statements.'}
+Use affidavit-appropriate language:
+- State facts directly from the affiant's personal knowledge: "I observed...", "I witnessed...", "I personally saw..."
+- For information from others, indicate the source: "I was informed by [person] that...", "I understand from [source] that..."
+- For beliefs, state clearly: "I believe based on [reason] that..."
+- Use formal, declarative statements suitable for sworn testimony
+- Avoid hedging language unless indicating reasonable belief
+
+Provide a professional rewrite following these guidelines and specific feedback.`;
 
     const completion = await this.openai.chat.completions.create({
       model: "gpt-4o-2024-08-06",
       messages: [
         {
           role: "system",
-          content: "You are a legal document specialist reviewing affidavit facts for admissibility and professionalism."
+          content: "You are a legal document specialist reviewing affidavit facts for admissibility and professionalism. When rewriting facts, always use first-person perspective as sworn testimony from the affiant, following proper affidavit conventions."
         },
         {
           role: "user",
@@ -405,7 +429,7 @@ Provide a professional rewrite and specific feedback.`;
             properties: {
               professionalRewrite: {
                 type: "string",
-                description: "A professionally rewritten version of the fact"
+                description: "A professionally rewritten version of the fact in first-person affidavit format from the affiant's perspective"
               },
               legalIssues: {
                 type: "array",
@@ -513,17 +537,17 @@ Provide a professional rewrite and specific feedback.`;
         this.validationCache.set(cacheKey, finalResult);
         return finalResult;
       }
-      
-      const fallbackResult = this.buildFallbackResult(fact, factText);
+
+      const fallbackResult = this.buildFallbackResult(fact, factText, context);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
-      
+
     } catch (error) {
-      logger.error('Professional fact validation failed', { 
+      logger.error('Professional fact validation failed', {
         error: error.message,
         factText: factText.substring(0, 50) + '...'
       });
-      const fallbackResult = this.buildFallbackResult(fact, factText);
+      const fallbackResult = this.buildFallbackResult(fact, factText, context);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
     }

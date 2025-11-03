@@ -105,24 +105,10 @@ const EditorView = ({ isNew = false, onBack }) => {
   useEffect(() => {
     console.log('📂 Loading document from URL:', documentId);
 
-    // ✅ FIX: Reset state when creating new document but there's already a documentId from OLD session
-    // Only reset if NOT already initialized (to prevent infinite loop after creating new doc)
-    if (isNew && currentDocument.documentId && !sessionInitialized) {
-      console.log('🔄 Creating new document, resetting old document state');
-      createNewDocument(); // This will clear documentId and reset sessionInitialized
-      return; // Let the next render initialize the new document
-    }
-
-    // Reset session when documentId changes
-    if (sessionInitialized && documentId && currentDocument.documentId?.toString() !== documentId) {
-      console.log('🔄 Document ID changed, resetting session');
-      setSessionInitialized(false);
-    }
-
     // Initialize session based on route
     const initializeSession = async () => {
       if (sessionInitialized) {
-        console.log('✅ Session already initialized with document:', currentDocument.documentId);
+        console.log('✅ Session already initialized, skipping');
         return;
       }
 
@@ -149,15 +135,13 @@ const EditorView = ({ isNew = false, onBack }) => {
     };
 
     initializeSession();
-    
-    // ✅ CRITICAL: Cleanup when documentId changes
+
+    // Reset session when switching documents
     return () => {
-      if (documentId && currentDocument.documentId?.toString() !== documentId) {
-        console.log('🧹 Cleaning up old document session');
-        setSessionInitialized(false);
-      }
+      console.log('🧹 Cleaning up document session');
+      setSessionInitialized(false);
     };
-  }, [documentId, isNew, isAuthenticated, loadDocument, createNewDocument, sessionInitialized, currentDocument.documentId]);
+  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument]);
 
   // Handle pane resizing with constraints
   const handlePaneResize = useCallback((deltaPercentage, resizeType) => {

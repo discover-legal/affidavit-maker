@@ -352,6 +352,8 @@ const ValidationSidebar = () => {
         body: JSON.stringify({
           fact: {
             content: typeof fact === 'string' ? fact : fact.content,
+            originalContent: typeof fact === 'string' ? fact : (fact.originalContent || fact.content),
+            initialRewrite: typeof fact === 'object' ? fact.initialRewrite : null,
             category: fact.category || 'general',
             subcategory: fact.subcategory
           },
@@ -374,11 +376,18 @@ const ValidationSidebar = () => {
           updatedFacts[index] = {
             ...currentFact,
             professionalRewrite: data.professionalRewrite,
+            // Set initialRewrite only if this is the first time (preserve existing initialRewrite)
+            initialRewrite: currentFact.initialRewrite || data.professionalRewrite,
+            // Ensure originalContent is preserved
+            originalContent: currentFact.originalContent || currentFact.content,
             hasRewrite: true
           };
         } else {
+          // Handle legacy string facts
           updatedFacts[index] = {
             content: currentFact,
+            originalContent: currentFact,
+            initialRewrite: data.professionalRewrite,
             professionalRewrite: data.professionalRewrite,
             category: 'general',
             hasRewrite: true
@@ -433,11 +442,17 @@ const ValidationSidebar = () => {
         ...currentFact,
         content: rewrite,
         professionalRewrite: rewrite,
+        // Preserve originalContent and initialRewrite (never change)
+        originalContent: currentFact.originalContent || currentFact.content,
+        initialRewrite: currentFact.initialRewrite || currentFact.professionalRewrite,
         lastEdited: new Date().toISOString()
       };
     } else {
+      // Handle legacy string facts
       updatedFacts[index] = {
         content: rewrite,
+        originalContent: currentFact,
+        initialRewrite: rewrite,
         professionalRewrite: rewrite,
         category: 'general',
         lastEdited: new Date().toISOString()

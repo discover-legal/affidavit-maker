@@ -2,11 +2,13 @@
 /**
  * Fact Normalization Utilities
  * Provides standardized fact structure across the application
- * 
+ *
  * Canonical Fact Structure (Option B):
  * {
- *   content: string,
- *   professionalRewrite: string|null,
+ *   content: string,                      // Current displayed content
+ *   originalContent: string,              // Original user-provided text (never changes)
+ *   initialRewrite: string|null,          // First professional rewrite generated
+ *   professionalRewrite: string|null,     // Current professional rewrite (can be regenerated)
  *   category: string,
  *   subcategory: string|null,
  *   confidence: number,
@@ -27,8 +29,11 @@
 function normalizeFact(fact) {
   // Handle null/undefined
   if (!fact) {
+    const invalidContent = '[Invalid fact - requires review]';
     return {
-      content: '[Invalid fact - requires review]',
+      content: invalidContent,
+      originalContent: invalidContent,
+      initialRewrite: null,
       professionalRewrite: null,
       category: 'general',
       subcategory: null,
@@ -42,8 +47,11 @@ function normalizeFact(fact) {
 
   // Handle string facts
   if (typeof fact === 'string') {
+    const trimmedContent = fact.trim() || '[Invalid fact - requires review]';
     return {
-      content: fact.trim() || '[Invalid fact - requires review]',
+      content: trimmedContent,
+      originalContent: trimmedContent,
+      initialRewrite: null,
       professionalRewrite: null,
       category: 'general',
       subcategory: null,
@@ -58,20 +66,29 @@ function normalizeFact(fact) {
   // Handle object facts - merge with defaults
   if (typeof fact === 'object' && fact !== null) {
     // Extract content from various possible fields
-    const content = fact.content || 
-                   fact.text || 
-                   fact.description || 
+    const content = fact.content ||
+                   fact.text ||
+                   fact.description ||
                    fact.professionalRewrite ||
                    '[Invalid fact - requires review]';
 
+    // Migration: Set originalContent if not present
+    const originalContent = fact.originalContent || String(content).trim();
+
+    // Migration: Set initialRewrite from professionalRewrite if not present but rewrite exists
+    const initialRewrite = fact.initialRewrite ||
+                          (fact.professionalRewrite && !fact.initialRewrite ? fact.professionalRewrite : null);
+
     return {
       content: String(content).trim(),
+      originalContent: originalContent,
+      initialRewrite: initialRewrite,
       professionalRewrite: fact.professionalRewrite || null,
       category: fact.category || 'general',
       subcategory: fact.subcategory || null,
       confidence: typeof fact.confidence === 'number' ? fact.confidence : 0.5,
       severity: fact.severity || 'info',
-      issues: Array.isArray(fact.issues) ? fact.issues : 
+      issues: Array.isArray(fact.issues) ? fact.issues :
               Array.isArray(fact.languageIssues) ? fact.languageIssues : [],
       suggestions: Array.isArray(fact.suggestions) ? fact.suggestions :
                   Array.isArray(fact.improvements) ? fact.improvements : [],
@@ -87,8 +104,11 @@ function normalizeFact(fact) {
   }
 
   // Fallback for unknown types
+  const invalidContent = '[Invalid fact format - requires review]';
   return {
-    content: '[Invalid fact format - requires review]',
+    content: invalidContent,
+    originalContent: invalidContent,
+    initialRewrite: null,
     professionalRewrite: null,
     category: 'general',
     subcategory: null,
@@ -126,14 +146,14 @@ function extractFactContent(fact) {
 }
 
 /**
- * Extract original content (ignores professionalRewrite)
- * 
+ * Extract original content (user-provided text, never changes)
+ *
  * @param {string|object} fact - Fact in any format
  * @returns {string} Original content
  */
 function extractOriginalContent(fact) {
   const normalized = normalizeFact(fact);
-  return normalized.content;
+  return normalized.originalContent;
 }
 
 /**
@@ -154,20 +174,25 @@ function factNeedsReview(fact) {
 
 /**
  * Merge validation results into a fact
- * 
+ *
  * @param {object} fact - Existing fact
  * @param {object} validationResult - Validation result to merge
  * @returns {object} Updated fact with validation
  */
 function mergeValidation(fact, validationResult) {
   const normalized = normalizeFact(fact);
-  
+
   if (!validationResult || typeof validationResult !== 'object') {
     return normalized;
   }
 
   return {
     ...normalized,
+    // Preserve originalContent (never changes)
+    originalContent: normalized.originalContent,
+    // Preserve initialRewrite (never changes once set)
+    initialRewrite: normalized.initialRewrite,
+    // Update professional rewrite from validation
     professionalRewrite: validationResult.professionalRewrite || normalized.professionalRewrite,
     category: validationResult.category || normalized.category,
     subcategory: validationResult.subcategory || normalized.subcategory,

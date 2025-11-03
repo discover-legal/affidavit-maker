@@ -1,5 +1,5 @@
 // client/src/contexts/DocumentContext.js - CLEAN ARCHITECTURE
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -345,6 +345,10 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [authFetch]);
 
+  // ✅ Ref to access current state without causing dependency changes
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // ✅ NEW: Initialize a new document session
   const initializeNewDocument = useCallback(async () => {
     if (!isAuthenticated) {
@@ -353,24 +357,25 @@ export const DocumentProvider = ({ children }) => {
     }
 
     // ✅ FIX: Prevent multiple simultaneous document creations
-    if (state.isSaving) {
+    // Access state via ref to avoid dependency on state values
+    if (stateRef.current.isSaving) {
       console.log('📄 Document creation already in progress');
       return null;
     }
 
     // ✅ CRITICAL: Only initialize if truly new (no documentId exists)
-    if (state.currentDocument.documentId) {
-      console.log('📄 Document already exists:', state.currentDocument.documentId);
-      if (!state.sessionInitialized) {
+    if (stateRef.current.currentDocument.documentId) {
+      console.log('📄 Document already exists:', stateRef.current.currentDocument.documentId);
+      if (!stateRef.current.sessionInitialized) {
         dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });
       }
-      return state.currentDocument.documentId;
+      return stateRef.current.currentDocument.documentId;
     }
 
     try {
       console.log('📄 Creating new document...');
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
-      
+
       // Create empty document
       const payload = {
         affidavitData: {
@@ -389,12 +394,12 @@ export const DocumentProvider = ({ children }) => {
           facts: []
         })
       };
-      
+
       const data = await authFetch('/api/documents/save', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      
+
       if (data.success && data.document?.id) {
         const documentId = data.document.id;
 
@@ -421,28 +426,28 @@ export const DocumentProvider = ({ children }) => {
             documentId
           }
         });
-        
+
         dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });
         dispatch({ type: ActionTypes.SET_LAST_SAVED, payload: new Date() });
-        
+
         // Reload documents list
         loadDocuments();
-        
+
         return documentId;
       } else {
         throw new Error('Failed to create document');
       }
     } catch (error) {
       console.error('Failed to initialize document:', error);
-      dispatch({ 
-        type: ActionTypes.SET_ERROR, 
-        payload: 'Failed to create document: ' + error.message 
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: 'Failed to create document: ' + error.message
       });
       throw error;
     } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
-  }, [authFetch, isAuthenticated, state.currentDocument.documentId, state.sessionInitialized, state.isSaving, loadDocuments]);
+  }, [authFetch, isAuthenticated, loadDocuments]);
 
   // ✅ SIMPLIFIED: Save document (always updates existing)
   const saveDocument = useCallback(async (documentData = null) => {
@@ -450,24 +455,25 @@ export const DocumentProvider = ({ children }) => {
       throw new Error('Authentication required to save documents');
     }
 
-    const documentId = state.currentDocument.documentId;
-    
+    // Access state via ref to avoid dependency on state.currentDocument
+    const documentId = stateRef.current.currentDocument.documentId;
+
     if (!documentId) {
       throw new Error('No document ID - session not initialized');
     }
 
     try {
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
-      
+
       // Merge current document with any provided data
       const fullDocumentData = {
-        ...state.currentDocument,
+        ...stateRef.current.currentDocument,
         ...(documentData || {}),
         documentId // Always include the ID
       };
-      
+
       console.log('💾 Saving document:', documentId);
-      
+
       // Build payload
       const payload = {
         affidavitData: {
@@ -480,25 +486,25 @@ export const DocumentProvider = ({ children }) => {
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
         },
-        title: fullDocumentData.affiantName 
-          ? `Affidavit of ${fullDocumentData.affiantName}` 
+        title: fullDocumentData.affiantName
+          ? `Affidavit of ${fullDocumentData.affiantName}`
           : 'Untitled Affidavit',
         content: JSON.stringify(fullDocumentData)
       };
-      
+
       const data = await authFetch('/api/documents/save', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      
+
       if (data.success) {
         console.log('💾 Document saved successfully');
-        
-        dispatch({ 
-          type: ActionTypes.SET_LAST_SAVED, 
-          payload: new Date() 
+
+        dispatch({
+          type: ActionTypes.SET_LAST_SAVED,
+          payload: new Date()
         });
-        
+
         // Update validation if included in response
         if (data.validation) {
           dispatch({
@@ -506,94 +512,96 @@ export const DocumentProvider = ({ children }) => {
             payload: data.validation
           });
         }
-        
+
         // Reload documents list
         loadDocuments();
-        
+
         return documentId;
       } else {
         throw new Error(data.error || 'Save failed');
       }
     } catch (error) {
       console.error('Failed to save document:', error);
-      
-      dispatch({ 
-        type: ActionTypes.SET_ERROR, 
-        payload: 'Failed to save document: ' + error.message 
+
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: 'Failed to save document: ' + error.message
       });
-      
+
       throw error;
     } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
-  }, [authFetch, state.currentDocument, loadDocuments, isAuthenticated]);
+  }, [authFetch, loadDocuments, isAuthenticated]);
 
   // ✅ Auto-save functionality
   const scheduleAutoSave = useCallback(() => {
     if (autoSaveTimer) {
       clearTimeout(autoSaveTimer);
     }
-    
+
     const timer = setTimeout(() => {
-      if (isAuthenticated && 
-          state.hasUnsavedChanges &&
-          state.currentDocument.documentId &&
-          (state.currentDocument.affiantName || 
-           state.currentDocument.state || 
-           (state.currentDocument.facts && state.currentDocument.facts.length > 0))) {
-        
+      // Access state via ref to avoid dependency on state values
+      if (isAuthenticated &&
+          stateRef.current.hasUnsavedChanges &&
+          stateRef.current.currentDocument.documentId &&
+          (stateRef.current.currentDocument.affiantName ||
+           stateRef.current.currentDocument.state ||
+           (stateRef.current.currentDocument.facts && stateRef.current.currentDocument.facts.length > 0))) {
+
         console.log('⏰ Auto-saving document...');
         saveDocument().catch(error => {
           console.log('⏰ Auto-save failed:', error.message);
         });
       }
     }, 30000); // Auto-save after 30 seconds of inactivity
-    
+
     setAutoSaveTimer(timer);
-  }, [isAuthenticated, state.hasUnsavedChanges, state.currentDocument, saveDocument, autoSaveTimer]);
+  }, [isAuthenticated, saveDocument, autoSaveTimer]);
 
   // Generate preview
   const generatePreview = useCallback(async (documentData = null) => {
     try {
       dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: true });
-      
+
+      // Access state via ref to avoid dependency on state.currentDocument
       const payload = {
         affidavitData: {
-          ...state.currentDocument,
+          ...stateRef.current.currentDocument,
           ...(documentData || {})
         }
       };
-      
+
       const data = await authFetch('/api/preview', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      
+
       if (data.success && data.preview) {
-        dispatch({ 
-          type: ActionTypes.SET_PREVIEW, 
-          payload: data.preview 
+        dispatch({
+          type: ActionTypes.SET_PREVIEW,
+          payload: data.preview
         });
-        
+
         if (data.validation) {
-          dispatch({ 
-            type: ActionTypes.SET_VALIDATION, 
-            payload: data.validation 
+          dispatch({
+            type: ActionTypes.SET_VALIDATION,
+            payload: data.validation
           });
         }
-        
+
         return data.preview;
       }
     } catch (error) {
       console.error('Failed to generate preview:', error);
-      dispatch({ 
-        type: ActionTypes.SET_ERROR, 
-        payload: 'Failed to generate preview' 
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: 'Failed to generate preview'
       });
     } finally {
       dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: false });
     }
-  }, [authFetch, state.currentDocument]);
+  }, [authFetch]);
 
   // Render formatted preview for a saved document by documentId (on-demand)
   const renderFormattedPreview = useCallback(async (documentId) => {

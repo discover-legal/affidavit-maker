@@ -382,9 +382,26 @@ class EnhancedFactValidationService {
     const factText = fact.content || fact;
     const affiantName = context.affiantName || 'Unknown';
 
+    // Extract original content and initial rewrite for context
+    const originalContent = fact.originalContent || factText;
+    const initialRewrite = fact.initialRewrite || null;
+
+    // Build prompt with original context
+    let factContext = `Current fact text: "${factText}"`;
+
+    // If we have original content that differs from current, include it
+    if (originalContent && originalContent !== factText) {
+      factContext = `Original user-provided text: "${originalContent}"\nCurrent fact text: "${factText}"`;
+    }
+
+    // If we have an initial rewrite, include it for context
+    if (initialRewrite && initialRewrite !== factText) {
+      factContext += `\nInitial professional rewrite: "${initialRewrite}"`;
+    }
+
     const prompt = `Analyze this legal fact for an affidavit in ${context.state || 'the US'}:
 
-Fact: "${factText}"
+${factContext}
 
 Context:
 - Document Type: ${context.documentType || 'General Affidavit'}
@@ -402,6 +419,7 @@ Evaluate for:
 
 IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective.
 ${affiantName !== 'Unknown' ? `The affiant is ${affiantName}.` : ''}
+${initialRewrite ? `NOTE: When generating the rewrite, consider the original user-provided text and the initial rewrite for context, but create a fresh rewrite that addresses any issues. Do not base it on any existing professional rewrite.` : ''}
 Use natural, persuasive affidavit language:
 - State facts directly in first person: "I am 45 years old", "I reside at...", "I own..."
 - For observations/events: "I witnessed...", "I observed...", "I saw..."

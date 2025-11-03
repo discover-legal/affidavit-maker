@@ -427,7 +427,7 @@ const DocumentPreview = () => {
 
   return (
     <>
-      <style jsx>{`
+      <style>{`
         /* WYSIWYG Legal Document Styles */
         .page-container {
           width: ${8.5 * 96}px; /* 8.5 inches at 96 DPI */
@@ -444,24 +444,24 @@ const DocumentPreview = () => {
           overflow: hidden; /* Prevent content overflow */
           box-sizing: border-box;
         }
-        
+
         .page-content {
           max-height: ${9 * 96}px; /* 9 inches (11 - 2 inches margins) */
           overflow: hidden;
         }
-        
+
         /* Affidavit-specific styles */
         .affidavit-header {
           text-align: center;
           font-weight: bold;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
         }
-        
+
         .affidavit-venue {
           text-align: center;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
         }
-        
+
         .affidavit-caption {
           text-align: center;
           margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
@@ -469,7 +469,7 @@ const DocumentPreview = () => {
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
-        
+
         .affidavit-title {
           text-align: center;
           font-weight: bold;
@@ -477,38 +477,38 @@ const DocumentPreview = () => {
           text-decoration: underline;
           margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
         }
-        
+
         .affidavit-paragraph {
           text-align: justify;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
           text-indent: 0.5in;
         }
-        
+
         .affidavit-fact {
           text-align: justify;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
           padding-left: 0.5in;
           text-indent: -0.5in;
         }
-        
+
         .affidavit-perjury {
           margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
           text-align: justify;
         }
-        
+
         .affidavit-signature {
           margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
           white-space: pre-line;
         }
-        
+
         .affidavit-signature pre {
           font-family: 'Times New Roman', Times, serif;
           font-size: ${PAGE_CONFIG.fontSize}px;
           margin: 0;
         }
-        
+
         .affidavit-notary {
           margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
           padding: ${PAGE_CONFIG.lineHeight / 2}px;
@@ -517,14 +517,14 @@ const DocumentPreview = () => {
           page-break-inside: avoid;
           break-inside: avoid;
         }
-        
+
         .affidavit-notary pre {
           font-family: 'Times New Roman', Times, serif;
           font-size: ${PAGE_CONFIG.fontSize}px;
           margin: 0;
           white-space: pre-wrap;
         }
-        
+
         @media print {
           .page-container {
             box-shadow: none;

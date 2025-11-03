@@ -325,8 +325,10 @@ const DocumentPreview = () => {
     }
   };
 
-  // Empty state
-  if (!currentDocument.affiantName && (!preview || !preview.sections)) {
+  // Empty state - Don't show preview until we have at least a name or state
+  const hasMinimalData = currentDocument.affiantName || currentDocument.state;
+
+  if (!hasMinimalData) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         <div className="p-4 border-b bg-white">
@@ -335,9 +337,9 @@ const DocumentPreview = () => {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No Document Yet</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">Preview will appear shortly!</h3>
             <p className="text-gray-500 mb-4">
-              Start chatting to create your affidavit. The preview will update automatically as you provide information.
+              Once you provide your name and state in the chat, your affidavit preview will appear here with the correct formatting for your jurisdiction.
             </p>
           </div>
         </div>

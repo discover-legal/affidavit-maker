@@ -30,17 +30,26 @@ const ChatInterface = () => {
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Reset messages when document changes
+  // Reset messages when document changes (but not when initializing a new document)
   useEffect(() => {
     if (currentDocument.documentId && currentDocument.documentId !== currentDocumentIdRef.current) {
-      console.log('📄 Document changed, clearing messages', {
-        from: currentDocumentIdRef.current,
-        to: currentDocument.documentId
-      });
-      setMessages([]);
+      // Only clear messages if we're switching between EXISTING documents (both have data)
+      const isExistingDocument = currentDocumentIdRef.current && (
+        currentDocument.affiantName ||
+        currentDocument.facts?.length > 0
+      );
+
+      if (isExistingDocument) {
+        console.log('📄 Document changed, clearing messages', {
+          from: currentDocumentIdRef.current,
+          to: currentDocument.documentId
+        });
+        setMessages([]);
+      }
+
       currentDocumentIdRef.current = currentDocument.documentId;
     }
-  }, [currentDocument.documentId]);
+  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts?.length]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -109,8 +118,10 @@ const ChatInterface = () => {
   // Initial welcome message - immediate display then async review
   useEffect(() => {
     const initializeWelcomeMessage = async () => {
-      if (messages.length === 0) {
-        const isReturningUser = currentDocument.documentId && (currentDocument.facts?.length > 0 || currentDocument.affiantName);
+      // Only show welcome message if we don't have any messages yet
+      // Wait for documentId to be set (either from initialization or loading)
+      if (messages.length === 0 && currentDocument.documentId) {
+        const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
 
         if (isReturningUser) {
           // Welcome back message with name and fact count combined
@@ -145,7 +156,8 @@ const ChatInterface = () => {
             }
           }
         } else {
-          // Standard welcome for new users
+          // Standard welcome for new users - only show if documentId is set and no data yet
+          console.log('👋 Showing welcome message for new affidavit');
           setMessages([{
             type: 'bot',
             content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
@@ -157,7 +169,7 @@ Let's start with your name and which state you're in.`
     };
 
     initializeWelcomeMessage();
-  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts]);
+  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts?.length]);
 
   // Send message to API
   const sendMessage = async (e) => {

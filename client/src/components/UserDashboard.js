@@ -173,15 +173,17 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         </div>
 
         {/* Coming Soon: Document Templates */}
-        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
-          <div className="flex items-center justify-between mb-4">
-            <FolderOpen className="h-8 w-8 text-gray-400" />
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <FolderOpen className="h-8 w-8 text-gray-400" />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+            </div>
+            <h3 className="font-semibold text-gray-600 mb-2">Document Templates</h3>
+            <p className="text-sm text-gray-500">Access a library of pre-filled templates for common family law scenarios. Save time with ready-to-use formats.</p>
           </div>
-          <h3 className="font-semibold text-gray-600 mb-2">Document Templates</h3>
-          <p className="text-sm text-gray-500">Access a library of pre-filled templates for common family law scenarios. Save time with ready-to-use formats.</p>
-          <button 
-            disabled 
+          <button
+            disabled
             className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
           >
             Coming Soon
@@ -189,15 +191,17 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         </div>
 
         {/* Coming Soon: Motion & Declaration Forms */}
-        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70">
-          <div className="flex items-center justify-between mb-4">
-            <Gavel className="h-8 w-8 text-gray-400" />
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Gavel className="h-8 w-8 text-gray-400" />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+            </div>
+            <h3 className="font-semibold text-gray-600 mb-2">Motion & Declaration Forms</h3>
+            <p className="text-sm text-gray-500">Create court motions, declarations, and other legal documents with the same AI-powered assistance.</p>
           </div>
-          <h3 className="font-semibold text-gray-600 mb-2">Motion & Declaration Forms</h3>
-          <p className="text-sm text-gray-500">Create court motions, declarations, and other legal documents with the same AI-powered assistance.</p>
-          <button 
-            disabled 
+          <button
+            disabled
             className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
           >
             Coming Soon

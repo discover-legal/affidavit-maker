@@ -173,7 +173,8 @@ const EditorView = ({ isNew = false, onBack }) => {
     return () => {
       console.log('🧹 Cleaning up document session');
     };
-  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument, createNewDocument, sessionInitialized, currentDocument.documentId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId, isNew, isAuthenticated]);
 
   // Handle pane resizing with constraints
   const handlePaneResize = useCallback((deltaPercentage, resizeType) => {

@@ -442,7 +442,7 @@ export const DocumentProvider = ({ children }) => {
     } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
-  }, [authFetch, isAuthenticated, state.currentDocument, state.sessionInitialized, state.isSaving, loadDocuments]);
+  }, [authFetch, isAuthenticated, state.currentDocument.documentId, state.sessionInitialized, state.isSaving, loadDocuments]);
 
   // ✅ SIMPLIFIED: Save document (always updates existing)
   const saveDocument = useCallback(async (documentData = null) => {

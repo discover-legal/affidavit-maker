@@ -190,8 +190,11 @@ const DocumentPreview = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
             const pageNum = parseInt(entry.target.dataset.pageNumber);
-            if (pageNum && pageNum !== currentPage) {
-              setCurrentPage(pageNum);
+            if (pageNum) {
+              // Use functional setState to compare against latest state
+              setCurrentPage((prevPage) => {
+                return pageNum !== prevPage ? pageNum : prevPage;
+              });
             }
           }
         });
@@ -211,7 +214,7 @@ const DocumentPreview = () => {
     return () => {
       observer.disconnect();
     };
-  }, [pages, currentPage]);
+  }, [pages]);
 
   // Controls
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));

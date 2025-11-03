@@ -71,13 +71,29 @@ router.post('/preview',
       // Enhance preview with categories
       const enhancedPreview = enhancePreviewWithCategories(preview, affidavitData);
 
+      // ✅ SAFETY CHECK: Ensure notaryBlock is present for all states
+      if (!enhancedPreview.sections?.notaryBlock) {
+        logger.warn('NotaryBlock missing from preview, adding default', {
+          state: affidavitData.state,
+          sections: Object.keys(enhancedPreview.sections || {})
+        });
+
+        // Add default notary block if missing
+        if (!enhancedPreview.sections) {
+          enhancedPreview.sections = {};
+        }
+
+        enhancedPreview.sections.notaryBlock = `NOTARY ACKNOWLEDGMENT\n\nSworn to and subscribed before me this _____ day of _________, ${new Date().getFullYear()}.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________`;
+      }
+
       // ✅ REMOVED: Preview caching update
       // Cache updates have been removed to ensure previews always reflect current document state
 
       logger.info('Preview generated successfully', {
         hasTemplate: !!templateManager,
         documentId: affidavitData.documentId,
-        factCount: affidavitData.facts?.length || 0
+        factCount: affidavitData.facts?.length || 0,
+        hasNotaryBlock: !!enhancedPreview.sections?.notaryBlock
       });
 
       res.json({
@@ -866,7 +882,7 @@ function createFallbackPreview(affidavitData) {
         type: 'signature',
         content: `\n\n_________________________________\n${affidavitData.affiantName || '[YOUR NAME]'}, Affiant`
       },
-      notary: {
+      notaryBlock: {
         type: 'notary',
         content: `NOTARY ACKNOWLEDGMENT\n\nSworn to and subscribed before me this _____ day of _________, ${new Date().getFullYear()}.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________`
       }
@@ -920,8 +936,8 @@ function calculateCompletionScore(preview) {
     score += factScore;
   }
   
-  if (preview.sections.signature) score += 10;
-  if (preview.sections.notary) score += 10;
+  if (preview.sections.signature || preview.sections.signatureBlock) score += 10;
+  if (preview.sections.notary || preview.sections.notaryBlock) score += 10;
   
   return Math.min(maxScore, score);
 }

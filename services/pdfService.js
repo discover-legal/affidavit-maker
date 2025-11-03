@@ -279,26 +279,59 @@ class PDFService {
       doc.moveDown(2);
     }
 
+    // Utah Notary Instruction (rendered before notary block if present)
+    if (sections.notaryInstruction) {
+      this.checkPageBreak(doc, 150);
+
+      doc.fontSize(10).font('Times-Bold');
+      doc.fillColor('#0066cc');
+
+      // Render instruction in a highlighted box
+      const startY = doc.y;
+      const instructionLines = sections.notaryInstruction.split('\n');
+
+      instructionLines.forEach(line => {
+        doc.text(line, {
+          align: 'left',
+          width: doc.page.width - doc.page.margins.left - doc.page.margins.right
+        });
+      });
+
+      // Draw border around instruction
+      const endY = doc.y + 5;
+      doc.rect(
+        doc.page.margins.left - 5,
+        startY - 5,
+        doc.page.width - doc.page.margins.left - doc.page.margins.right + 10,
+        endY - startY + 10
+      ).stroke('#0066cc');
+
+      // Reset color and font
+      doc.fillColor('#000000');
+      doc.fontSize(12).font('Times-Roman');
+      doc.moveDown(1);
+    }
+
     // ✅ Notary Block - Should never be orphaned now
     if (sections.notaryBlock) {
       // Final safety check - but should rarely trigger due to protection above
       this.checkPageBreak(doc, 200);
-      
+
       const startY = doc.y;
       doc.fontSize(12).font('Times-Roman');
-      
+
       // Notary content
       const notaryLines = sections.notaryBlock.split('\n');
       notaryLines.forEach((line, idx) => {
         if (idx > 0) doc.moveDown(0.3);
         doc.text(line);
       });
-      
+
       // Draw border around notary section
       const endY = doc.y + 10;
       const borderMargin = 10;
       doc.rect(
-        doc.page.margins.left - borderMargin, 
+        doc.page.margins.left - borderMargin,
         startY - borderMargin,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
         endY - startY + (borderMargin * 2)

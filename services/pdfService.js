@@ -182,22 +182,30 @@ class PDFService {
 
           // If everything (fact + signature + notary) fits, use normal page break
           if (availableSpace >= spaceForFactAndSignature + notarySpace) {
-            this.checkPageBreak(doc, estimatedHeight, metadata);
+            this.checkPageBreak(doc, estimatedHeight, metadata, true);
           }
           // If fact + signature fit but notary doesn't, the notary would be orphaned
           // In this case, force a page break to keep the fact with the notary
           else if (availableSpace >= spaceForFactAndSignature && renderedFactCount > 0) {
+            // Add centered continuation indicator
+            doc.moveDown(1.5);
+            doc.fontSize(11).font('Times-Italic');
+            doc.text('(Continued on next page)', {
+              align: 'center'
+            });
+            doc.font('Times-Roman').fontSize(12);
+
             const currentPageNum = this.getCurrentPageNumber(doc);
             this.addPageFooter(doc, currentPageNum, metadata);
             doc.addPage();
           }
           // Otherwise, use normal page break
           else {
-            this.checkPageBreak(doc, estimatedHeight, metadata);
+            this.checkPageBreak(doc, estimatedHeight, metadata, true);
           }
         } else {
           // Normal page break for non-last facts
-          this.checkPageBreak(doc, estimatedHeight, metadata);
+          this.checkPageBreak(doc, estimatedHeight, metadata, true);
         }
 
         // Render the fact - Fixed approach to avoid text overlapping
@@ -355,13 +363,23 @@ class PDFService {
     this.addPageFooter(doc, this.getCurrentPageNumber(doc), metadata);
   }
 
-  checkPageBreak(doc, neededSpace, metadata) {
+  checkPageBreak(doc, neededSpace, metadata, showContinuation = false) {
     const currentY = doc.y;
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
 
     // FIXED: Add buffer space (50px) to prevent text from getting too close to footer
     if (currentY + neededSpace > pageHeight - bottomMargin - 50) {
+      // Add continuation indicator if requested (for facts section)
+      if (showContinuation) {
+        doc.moveDown(1.5);
+        doc.fontSize(11).font('Times-Italic');
+        doc.text('(Continued on next page)', {
+          align: 'center'
+        });
+        doc.font('Times-Roman').fontSize(12);
+      }
+
       // Add footer to current page before creating new page
       const currentPageNum = this.getCurrentPageNumber(doc);
       this.addPageFooter(doc, currentPageNum, metadata);

@@ -249,9 +249,9 @@ router.post('/generate',
       if (pool && documentId) {
         try {
           await pool.query(
-            `UPDATE documents 
-             SET status = 'completed', 
-                 pdf_generated_at = CURRENT_TIMESTAMP,
+            `UPDATE documents
+             SET status = 'completed',
+                 updated_at = CURRENT_TIMESTAMP,
                  processing_metadata = jsonb_set(
                    COALESCE(processing_metadata, '{}'::jsonb),
                    '{pdfPages}',
@@ -261,8 +261,8 @@ router.post('/generate',
             [result.pages, documentId, userId]
           );
         } catch (dbError) {
-          logger.warn('Failed to update document status', { 
-            error: dbError.message 
+          logger.warn('Failed to update document status', {
+            error: dbError.message
           });
         }
       }

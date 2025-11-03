@@ -81,77 +81,29 @@ const createSessionContext = (req) => {
 /**
  * Chat endpoint with comprehensive error handling and stability features
  */
-router.post('/', 
-  // Debug logging - request received
-  (req, res, next) => {
-    console.log('🔍 1. Chat request received:', {
-      path: req.path,
-      method: req.method,
-      hasAuth: !!req.headers.authorization,
-      bodySize: JSON.stringify(req.body || {}).length,
-      timestamp: new Date().toISOString()
-    });
-    next();
-  },
-
+router.post('/',
   // Apply chat-specific timeout (shorter than OpenAI timeout)
   timeout('45s'),
-  
-  // Debug logging - passed timeout
-  (req, res, next) => {
-    console.log('🔍 2. Passed timeout middleware');
-    next();
-  },
-  
+
   // Rate limiting specific to chat
   chatLimiter,
-  
-  // Debug logging - passed rate limiting
-  (req, res, next) => {
-    console.log('🔍 3. Passed rate limiting');
-    next();
-  },
-  
+
   // Authentication
   auth0Middleware,
-  
-  // Debug logging - passed auth
-  (req, res, next) => {
-    console.log('🔍 4. Passed auth, user:', req.user?.id || 'anonymous', 'email:', req.user?.email || 'none');
-    next();
-  },
-  
+
   // Input validation
   validateChatMessage,
-  
-  // Debug logging - passed validation
-  (req, res, next) => {
-    console.log('🔍 5. Passed validation');
-    next();
-  },
-  
+
   asyncHandler(async (req, res) => {
-    console.log('🔍 6. Reached main handler - starting processing');
     const startTime = Date.now();
     const sessionContext = createSessionContext(req);
-    
-    console.log('🔍 7. Created session context');
-    
+
     try {
       const { message, conversationHistory = [], affidavitData = {}, skipExtraction = false } = req.body;
 
-      console.log('🔍 8. Extracted request data:', {
-        messageLength: message?.length || 0,
-        historyLength: conversationHistory?.length || 0,
-        hasAffidavitData: Object.keys(affidavitData).length > 0,
-        skipExtraction
-      });
-      
       // Create session ID for this chat if not exists
       req.sessionId = req.sessionId || `chat_${Date.now()}_${req.user.id}`;
-      
-      console.log('🔍 9. Created session ID:', req.sessionId);
-      
+
       logger.logChat('message_received', req.sessionId, req.user.id, {
         messageLength: message.length,
         messageWords: message.trim().split(/\s+/).length,
@@ -159,13 +111,9 @@ router.post('/',
         hasAffidavitData: Object.keys(affidavitData).length > 0
       });
 
-      console.log('🔍 10. Logged chat event');
-
       // Chunk conversation history to prevent token overflow
       const chunkedHistory = chunkConversation(conversationHistory);
-      
-      console.log('🔍 11. Chunked conversation history');
-      
+
       if (chunkedHistory.length !== conversationHistory.length) {
         logger.logChat('conversation_chunked', req.sessionId, req.user.id, {
           originalLength: conversationHistory.length,
@@ -176,26 +124,19 @@ router.post('/',
 
       // Check if affidavit service is available
       if (!req.app.locals.affidavitService) {
-        console.log('🔍 12. Affidavit service not available');
         throw new Error('Affidavit service is not available. Please try again later.');
       }
-
-      console.log('🔍 13. Affidavit service available, starting processing');
 
       // Process message with retry logic
       let result;
       let attempts = 0;
-      
+
       while (attempts < CHAT_CONSTANTS.MAX_RETRIES) {
         attempts++;
-        
-        console.log(`🔍 14. Processing attempt ${attempts}/${CHAT_CONSTANTS.MAX_RETRIES}`);
-        
+
         try {
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
-          
-          console.log('🔍 15. About to call affidavitService.processMessage');
 
           result = await req.app.locals.affidavitService.processMessage(
             message,
@@ -205,17 +146,11 @@ router.post('/',
             req.sessionId,
             skipExtraction
           );
-          
-          console.log('🔍 16. Received result from affidavitService:', {
-            success: result?.success,
-            hasResponse: !!result?.response,
-            responseLength: result?.response?.length || 0
-          });
-          
+
           // Monitor memory usage after processing
           const memAfter = process.memoryUsage();
           const memoryDelta = memAfter.heapUsed - memBefore.heapUsed;
-          
+
           if (memoryDelta > 50 * 1024 * 1024) { // 50MB increase
             logger.logPerformance('high_memory_usage_chat', memoryDelta, {
               sessionId: req.sessionId,
@@ -223,13 +158,10 @@ router.post('/',
               messageLength: message.length
             });
           }
-          
-          console.log('🔍 17. Processing completed successfully');
+
           break; // Success, exit retry loop
-          
+
         } catch (error) {
-          console.log(`🔍 18. Error in attempt ${attempts}:`, error.message);
-          
           logger.logError(error, {
             type: 'chat_processing_error',
             attempt: attempts,
@@ -237,49 +169,26 @@ router.post('/',
             userId: req.user.id,
             messageLength: message.length
           }, req.id);
-          
+
           // If it's the last attempt or a non-retryable error, throw
-          if (attempts >= CHAT_CONSTANTS.MAX_RETRIES || 
-              error.statusCode === 400 || 
-              error.statusCode === 401 || 
+          if (attempts >= CHAT_CONSTANTS.MAX_RETRIES ||
+              error.statusCode === 400 ||
+              error.statusCode === 401 ||
               error.statusCode === 403) {
-            console.log('🔍 19. Final attempt failed or non-retryable error');
             throw error;
           }
-          
+
           // Wait before retry (exponential backoff)
           const delay = Math.min(1000 * Math.pow(2, attempts - 1), 5000);
-          console.log(`🔍 20. Waiting ${delay}ms before retry`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
 
       if (!result || !result.response) {
-        console.log('🔍 21. No valid result received');
         throw new Error('No response received from AI service');
       }
 
       const processingTime = Date.now() - startTime;
-      
-      // Return successful response
-      const responseData = {
-        response: result.response,
-        affidavitData: result.affidavitData || affidavitData,
-        newFacts: result.newFacts || [],
-        suggestions: result.suggestions || [],
-        processingTime,
-        sessionId: req.sessionId
-      };
-
-      console.log('🔍 22. About to send response to frontend:', {
-        processingTime,
-        attempts,
-        responseLength: result.response?.length || 0,
-        responsePreview: result.response?.substring(0, 100) + '...',
-        affidavitDataUpdated: !!(result.affidavitData && Object.keys(result.affidavitData).length > 0),
-        affidavitData: result.affidavitData,
-        newFactsCount: result.newFacts?.length || 0
-      });
 
       logger.logChat('message_processed', req.sessionId, req.user.id, {
         processingTime,
@@ -300,25 +209,18 @@ router.post('/',
       }
 
       res.json({
-              success: true,
-              response: result.response,
-              affidavitData: result.affidavitData || affidavitData,
-              newFacts: result.newFacts || [],
-              processingTime,
-              sessionId: req.sessionId,
-              timestamp: new Date().toISOString()
-            });
-
-      console.log('🔍 23. Response sent successfully');
+        success: true,
+        response: result.response,
+        affidavitData: result.affidavitData || affidavitData,
+        newFacts: result.newFacts || [],
+        processingTime,
+        sessionId: req.sessionId,
+        timestamp: new Date().toISOString()
+      });
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
-      console.log('🔍 24. Caught error in main handler:', {
-        error: error.message,
-        processingTime
-      });
-      
+
       // Enhanced error logging for chat failures
       logger.logError(error, {
         type: 'chat_endpoint_error',
@@ -332,7 +234,7 @@ router.post('/',
 
       // Provide user-friendly error messages
       let userMessage = 'Sorry, I encountered an error processing your message. Please try again.';
-      
+
       if (error.message?.includes('timeout')) {
         userMessage = 'Your request timed out. Please try sending a shorter message or try again.';
       } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
@@ -341,17 +243,13 @@ router.post('/',
         userMessage = 'There\'s a temporary service issue. Please try again in a few minutes.';
       }
 
-      console.log('🔍 25. About to send error response:', userMessage);
-
       // Re-throw with user-friendly message
       const enhancedError = new Error(userMessage);
       enhancedError.originalError = error;
       enhancedError.statusCode = error.statusCode || 500;
       enhancedError.errorType = 'chat_error';
-      
+
       throw enhancedError;
-    } finally {
-      console.log('🔍 26. Chat request completed (success or error)');
     }
   })
 );

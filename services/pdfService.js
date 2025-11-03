@@ -1,13 +1,22 @@
-// services/pdfService.js - FIXED VERSION with Notary Block Protection + Styling Fixes
+// services/pdfService.js - FIXED VERSION with Notary Block Protection + Critical Rendering Fixes
 //
-// STYLING FIXES (Nov 2025):
-// 1. Fixed case caption alignment from right to center (matches preview)
-// 2. Added case caption underline border (matches preview CSS)
-// 3. Added title underline (matches preview text-decoration)
-// 4. Implemented double-spacing with lineGap: 6 for all text sections
-// 5. Updated lineHeight from 1.5 to 2.0 for consistency
-// 6. Adjusted moveDown() values for consistent paragraph spacing
-// 7. These changes ensure PDF output matches the HTML preview WYSIWYG
+// CRITICAL FIX (Nov 2025) - Text Overlapping Issue:
+// PROBLEM: Text was literally overlapping (same Y coordinate) due to PDFKit's
+//          handling of continued: true combined with width/lineGap parameters
+//
+// ROOT CAUSE: Using continued: true with width and lineGap caused PDFKit to
+//             not advance the Y position, resulting in all text rendering at
+//             the same position on the page
+//
+// SOLUTION:
+// 1. Removed continued: true approach for facts rendering
+// 2. Replaced with explicit X,Y positioning for number and content
+// 3. Removed all lineGap parameters (they conflicted with text positioning)
+// 4. Used moveDown() calls for spacing instead
+// 5. Fixed case caption alignment from right to center
+// 6. Added visual borders for case caption and title underline
+//
+// These changes ensure PDF renders correctly with proper text positioning
 const PDFDocument = require('pdfkit');
 const fs = require('fs').promises;
 const path = require('path');
@@ -93,7 +102,7 @@ class PDFService {
       this.checkPageBreak(doc, 120);  // Increased for caption + border
       const captionStartY = doc.y;
       doc.fontSize(12).font('Times-Roman');
-      doc.text(this.getFormatted(sections.caseCaption), { align: 'center', lineGap: 4 });
+      doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
       doc.moveDown(0.5);
 
       // Draw underline border for case caption
@@ -128,10 +137,9 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.introduction, {
         align: 'justify',
-        indent: 36,
-        lineGap: 6  // Add spacing for double-spacing effect
+        indent: 36
       });
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
     }
 
     // ✅ CRITICAL FIX: Facts Section with Notary Block Protection
@@ -195,16 +203,32 @@ class PDFService {
           this.checkPageBreak(doc, estimatedHeight);
         }
 
-        // Render the fact
+        // Render the fact - Fixed approach to avoid text overlapping
         doc.fontSize(12).font('Times-Roman');
-        const numberWidth = doc.widthOfString(`${fact.number}. `);
-        doc.text(`${fact.number}. `, { continued: true });
-        doc.text(fact.content, {
-          align: 'justify',
-          width: doc.page.width - doc.page.margins.left - doc.page.margins.right - numberWidth,
-          indent: 0,
-          lineGap: 6  // Double-spacing effect
+
+        // Calculate hanging indent for numbered list
+        const numberText = `${fact.number}. `;
+        const numberWidth = doc.widthOfString(numberText);
+        const textWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+        // Render fact with hanging indent (number outdented)
+        const currentX = doc.x;
+        const currentY = doc.y;
+
+        // Draw the number
+        doc.text(numberText, currentX, currentY, {
+          continued: false,
+          width: numberWidth,
+          lineBreak: false
         });
+
+        // Draw the content with indent to align after number
+        doc.text(fact.content, currentX + numberWidth, currentY, {
+          align: 'justify',
+          width: textWidth - numberWidth,
+          lineBreak: true
+        });
+
         doc.moveDown(1.0);
         
         renderedFactCount++;
@@ -217,10 +241,9 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, {
         align: 'justify',
-        indent: 36,
-        lineGap: 6  // Double-spacing effect
+        indent: 36
       });
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
     }
 
     // Perjury Statement
@@ -229,10 +252,9 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
-        indent: 36,
-        lineGap: 6  // Double-spacing effect
+        indent: 36
       });
-      doc.moveDown(1.5);
+      doc.moveDown(2.0);
     }
 
     // Signature Block
@@ -243,13 +265,15 @@ class PDFService {
       doc.moveDown();
       
       // Signature line
-      doc.text(sections.signatureBlock.line || '_'.repeat(40), { lineGap: 4 });
-      doc.text(sections.signatureBlock.name || '[AFFIANT NAME]', { continued: false, lineGap: 4 });
-      doc.text(sections.signatureBlock.title || 'Affiant', { lineGap: 4 });
-      
+      doc.text(sections.signatureBlock.line || '_'.repeat(40));
+      doc.moveDown(0.3);
+      doc.text(sections.signatureBlock.name || '[AFFIANT NAME]');
+      doc.moveDown(0.3);
+      doc.text(sections.signatureBlock.title || 'Affiant');
+
       if (sections.signatureBlock.date) {
         doc.moveDown(0.5);
-        doc.text(sections.signatureBlock.date, { lineGap: 4 });
+        doc.text(sections.signatureBlock.date);
       }
       
       doc.moveDown(2);
@@ -265,8 +289,9 @@ class PDFService {
       
       // Notary content
       const notaryLines = sections.notaryBlock.split('\n');
-      notaryLines.forEach(line => {
-        doc.text(line, { lineGap: 4 });
+      notaryLines.forEach((line, idx) => {
+        if (idx > 0) doc.moveDown(0.3);
+        doc.text(line);
       });
       
       // Draw border around notary section

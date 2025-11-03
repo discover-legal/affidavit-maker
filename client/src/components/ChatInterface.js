@@ -86,7 +86,7 @@ const ChatInterface = () => {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts: ${factList}${nameInstruction}`,
+          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts, starting with "So far, you've shared that...": ${factList}${nameInstruction}`,
           conversationHistory: [],
           affidavitData: currentDocument,
           skipExtraction: true // Don't extract new facts from this

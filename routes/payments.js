@@ -32,11 +32,45 @@ router.post('/create-intent', validatePayment, asyncHandler(async (req, res) => 
   };
   
   const amount = paymentAmounts[documentType] || paymentAmounts['single_affidavit'];
-  
+
   try {
+    // Check if user already has a Stripe customer ID
+    const userResult = await pool.query(
+      'SELECT stripe_customer_id FROM users WHERE id = $1',
+      [user.id]
+    );
+
+    let customerId = userResult.rows[0]?.stripe_customer_id;
+
+    // Create Stripe Customer if doesn't exist
+    if (!customerId) {
+      const customer = await stripeClient.customers.create({
+        email: user.email,
+        metadata: {
+          userId: user.id.toString(),
+          source: 'affidavit-maker'
+        }
+      });
+
+      customerId = customer.id;
+
+      // Store customer ID in database
+      await pool.query(
+        'UPDATE users SET stripe_customer_id = $1 WHERE id = $2',
+        [customerId, user.id]
+      );
+
+      logger.info('Stripe customer created', {
+        customerId,
+        userId: user.id,
+        requestId: req.id
+      });
+    }
+
     const paymentIntent = await stripeClient.paymentIntents.create({
       amount,
       currency: 'usd',
+      customer: customerId,
       automatic_payment_methods: {
         enabled: true,
       },
@@ -188,20 +222,37 @@ router.post('/confirm', asyncHandler(async (req, res) => {
       });
     }
     
-    // Record the payment
+    // Extract minimal billing info - only postal code for tax/analytics
+    const billingDetails = paymentIntent.charges?.data?.[0]?.billing_details;
+    const postalCode = billingDetails?.address?.postal_code || null;
+
+    // Extract payment method details (last 4, brand, etc.)
+    const paymentMethodDetails = paymentIntent.charges?.data?.[0]?.payment_method_details;
+    const paymentMethodInfo = paymentMethodDetails ? {
+      type: paymentMethodDetails.type,
+      card: paymentMethodDetails.card ? {
+        brand: paymentMethodDetails.card.brand,
+        last4: paymentMethodDetails.card.last4,
+        exp_month: paymentMethodDetails.card.exp_month,
+        exp_year: paymentMethodDetails.card.exp_year
+      } : null
+    } : null;
+
+    // Record the payment (full address deferred to Stripe)
     const payment = await pool.query(
-      `INSERT INTO payments (user_id, stripe_payment_intent_id, amount_cents, currency, status, payment_type, billing_address, payment_method_details)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO payments (user_id, stripe_payment_intent_id, stripe_customer_id, amount_cents, currency, status, payment_type, billing_postal_code, payment_method_details)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
       [
         user.id,
         paymentIntentId,
+        paymentIntent.customer || null,
         paymentIntent.amount,
         paymentIntent.currency,
         'succeeded',
         paymentIntent.metadata.type || 'single_affidavit',
-        JSON.stringify(paymentIntent.charges?.data?.[0]?.billing_details || {}),
-        JSON.stringify(paymentIntent.charges?.data?.[0]?.payment_method_details || {})
+        postalCode,
+        paymentMethodInfo ? JSON.stringify(paymentMethodInfo) : null
       ]
     );
     

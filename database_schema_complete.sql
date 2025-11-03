@@ -27,7 +27,10 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_tier VARCHAR(50) DEFAULT 'free', -- free, pro, enterprise
     subscription_status VARCHAR(50) DEFAULT 'active',
     documents_remaining INTEGER,
-    
+
+    -- Stripe integration
+    stripe_customer_id VARCHAR(255) UNIQUE, -- Created on first payment
+
     -- Usage tracking
     total_documents_created INTEGER DEFAULT 0,
     total_amount_spent_cents INTEGER DEFAULT 0,
@@ -111,10 +114,10 @@ CREATE TABLE IF NOT EXISTS payments (
     -- Transaction metadata
     description TEXT,
     metadata JSONB,
-    
-    -- Billing information
-    billing_address JSONB,
-    
+
+    -- Billing information (full address stored in Stripe)
+    billing_postal_code VARCHAR(20), -- For tax compliance and analytics only
+
     -- Refund tracking
     refunded_amount_cents INTEGER DEFAULT 0,
     refund_reason TEXT,
@@ -289,6 +292,7 @@ CREATE INDEX IF NOT EXISTS idx_users_auth0_id ON users(auth0_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id);
 
 -- Documents table indexes
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
@@ -304,6 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_document_id ON payments(document_id);
 CREATE INDEX IF NOT EXISTS idx_payments_stripe_intent ON payments(stripe_payment_intent_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at);
+CREATE INDEX IF NOT EXISTS idx_payments_postal_code ON payments(billing_postal_code);
 
 -- Activity logs indexes
 CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);

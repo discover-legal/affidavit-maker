@@ -11,7 +11,7 @@ REACT_APP_AUTH0_AUDIENCE=https://your-api-identifier
 # API Configuration
 REACT_APP_API_URL=http://localhost:3001
 
-# Optional - Stripe Publishable Key (if using Stripe Elements)
+# Stripe - Required for payment processing
 REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 
 # Optional - Environment indicator

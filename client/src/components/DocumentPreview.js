@@ -322,8 +322,10 @@ const DocumentPreview = () => {
     }
   };
 
-  // Empty state
-  if (!currentDocument.affiantName && (!preview || !preview.sections)) {
+  // Empty state - Don't show preview until we have at least a name or state
+  const hasMinimalData = currentDocument.affiantName || currentDocument.state;
+
+  if (!hasMinimalData) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         <div className="p-4 border-b bg-white">

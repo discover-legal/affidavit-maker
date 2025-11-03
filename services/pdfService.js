@@ -326,33 +326,38 @@ class PDFService {
   getFactsArray(factsSection) {
     if (!factsSection) return [];
 
+    // FIXED: Handle facts.items format from StateTemplateManager
+    // Facts are already processed and numbered correctly - don't re-process
+    if (factsSection.items && Array.isArray(factsSection.items)) {
+      return factsSection.items.map((fact) => ({
+        number: fact.number || 0,
+        content: fact.content || ''
+      }));
+    }
+
+    // Legacy support: Handle raw array format (shouldn't happen with StateTemplateManager)
     if (Array.isArray(factsSection)) {
       const prepared = prepareFactsForDisplay(factsSection);
-      return prepared.map(f => ({ 
-        number: f.index || f.number || 0, 
-        content: f.displayContent || f.content || '' 
+      return prepared.map(f => ({
+        number: f.index || f.number || 0,
+        content: f.displayContent || f.content || ''
       }));
     }
 
-    if (factsSection.items && Array.isArray(factsSection.items)) {
-      return factsSection.items.map((it, idx) => ({ 
-        number: it.index || idx + 1, 
-        content: it.displayContent || it.content || '' 
-      }));
-    }
-
+    // Legacy support: Handle formatted string
     const formatted = this.getFormatted(factsSection);
     if (formatted && typeof formatted === 'string') {
       const parts = formatted.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
       return parts.map((p, idx) => ({ number: idx + 1, content: p }));
     }
 
+    // Last resort: Try to extract from object
     if (factsSection && typeof factsSection === 'object') {
       try {
         const { items } = previewRenderer.generateBoth(factsSection);
-        return Array.isArray(items) ? items.map((it, idx) => ({ 
-          number: it.number || idx + 1, 
-          content: it.displayContent || it.text || it.content || '' 
+        return Array.isArray(items) ? items.map((it, idx) => ({
+          number: it.number || idx + 1,
+          content: it.displayContent || it.text || it.content || ''
         })) : [];
       } catch (e) {
         return [];

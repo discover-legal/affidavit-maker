@@ -481,11 +481,12 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
       hasNewData = true;
     }
 
-    // Extract facts
+    // Extract facts - preserve full fact objects with metadata (category, subcategory, etc.)
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
-      newData.facts = [...existingFacts, ...extractedFacts.map(f => f.content)];
+      // Store full fact objects to preserve category, subcategory, severity, confidence, etc.
+      newData.facts = [...existingFacts, ...extractedFacts];
       hasNewData = true;
     }
 

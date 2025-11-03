@@ -298,26 +298,32 @@ class EnhancedFactValidationService {
       .replace(/\b(maybe|probably|possibly)\b/gi, '')
       .replace(/\b(might be|might have)\b/gi, 'was');
 
-    // Add "I" prefix if doesn't start with "I"
-    // Handle capitalization properly to avoid "I observed that The child..."
+    // Ensure first-person perspective without over-prefixing
     if (!/^I\b/i.test(professional)) {
-      // Lowercase the first character if the text will be prefixed
+      // Convert to first person by adding "I" prefix
+      // Choose appropriate verb based on content
       const firstChar = professional.charAt(0).toLowerCase();
       const rest = professional.slice(1);
 
-      // If we have an affiant name, use "I, [Name]," format for formal affidavit style
-      if (affiantName) {
-        professional = `I, ${affiantName}, observed that ${firstChar}${rest}`;
+      // Determine if this describes an observation/event or a state/fact
+      const isObservation = /\b(happen|occur|see|notice|take place|went|came|arrived|left)\b/i.test(professional);
+      const isStateOfBeing = /\b(is|am|are|was|were|have|has|had|own|reside|live|work)\b/i.test(professional);
+
+      if (isStateOfBeing) {
+        // Direct statement: "I am..." "I have..." "I reside..."
+        professional = `I ${firstChar}${rest}`;
+      } else if (isObservation) {
+        // Observation: "I witnessed that..." or "I observed that..."
+        professional = `I witnessed that ${firstChar}${rest}`;
       } else {
-        professional = `I observed that ${firstChar}${rest}`;
-      }
-    } else if (affiantName && !/^I,/.test(professional)) {
-      // If it starts with "I" but not "I, [Name]", consider adding the name
-      // Only do this if the sentence is simple enough (e.g., "I saw...", "I witnessed...")
-      if (/^I\s+(saw|witnessed|observed|heard|noticed|was)/i.test(professional)) {
-        professional = professional.replace(/^I\s+/i, `I, ${affiantName}, `);
+        // General case: "I state that..." for declarative facts
+        professional = `I state that ${firstChar}${rest}`;
       }
     }
+
+    // Note: We deliberately do NOT add "I, [Name]," format in the fallback function
+    // The "I, [Name]," format should be used by the LLM when appropriate (e.g., first fact in affidavit)
+    // but not mechanically added to every fact, as it would be repetitive and less persuasive
 
     if (!/[.!?]$/.test(professional)) {
       professional += '.';
@@ -394,14 +400,16 @@ Evaluate for:
 4. Suggested improvements
 5. Category classification
 
-IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective using "I" statements.
-${affiantName !== 'Unknown' ? `The affiant is ${affiantName}, so write statements as "I, ${affiantName}..." or "I..." as appropriate.` : 'Write in first person using "I" statements.'}
-Use affidavit-appropriate language:
-- State facts directly from the affiant's personal knowledge: "I observed...", "I witnessed...", "I personally saw..."
-- For information from others, indicate the source: "I was informed by [person] that...", "I understand from [source] that..."
-- For beliefs, state clearly: "I believe based on [reason] that..."
-- Use formal, declarative statements suitable for sworn testimony
-- Avoid hedging language unless indicating reasonable belief
+IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective.
+${affiantName !== 'Unknown' ? `The affiant is ${affiantName}.` : ''}
+Use natural, persuasive affidavit language:
+- State facts directly in first person: "I am 45 years old", "I reside at...", "I own..."
+- For observations/events: "I witnessed...", "I observed...", "I saw..."
+- For information from others: "I was informed by [person] that...", "I learned from [source] that..."
+- For beliefs: "I believe, based on [reason], that..."
+- Use the formal "I, ${affiantName !== 'Unknown' ? affiantName : '[name]'}," format ONLY when it enhances clarity or formality (e.g., first statement, key declarations), not for every fact
+- Use declarative statements suitable for sworn testimony
+- Avoid repetitive prefixes - vary sentence structure naturally while maintaining first person
 
 Provide a professional rewrite following these guidelines and specific feedback.`;
 

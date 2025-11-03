@@ -266,6 +266,16 @@ const ValidationSidebar = () => {
   const [editedFactContent, setEditedFactContent] = useState('');
   const [generatingRewrite, setGeneratingRewrite] = useState(new Set());
 
+  // Lock to prevent concurrent rewrite operations from racing
+  const rewriteLockRef = React.useRef(Promise.resolve());
+  // Ref to always get the latest document state
+  const latestDocumentRef = React.useRef(currentDocument);
+
+  // Keep ref updated with latest document
+  React.useEffect(() => {
+    latestDocumentRef.current = currentDocument;
+  }, [currentDocument]);
+
   // ✅ Drag & Drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -308,10 +318,16 @@ const ValidationSidebar = () => {
 
   // Request professional rewrite
   const requestProfessionalRewrite = async (index) => {
-    const fact = currentDocument.facts[index];
+    // Wait for any previous rewrite operations to complete (prevent race conditions)
+    await rewriteLockRef.current;
 
-    try {
-      setGeneratingRewrite(prev => new Set(prev).add(index));
+    // Create a promise for this operation and update the lock
+    const operationPromise = (async () => {
+      // Read from ref to get the LATEST facts array
+      const fact = latestDocumentRef.current.facts[index];
+
+      try {
+        setGeneratingRewrite(prev => new Set(prev).add(index));
       
       const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
@@ -337,17 +353,18 @@ const ValidationSidebar = () => {
             subcategory: fact.subcategory
           },
           context: {
-            state: currentDocument.state,
-            caseType: currentDocument.caseType,
-            affiantName: currentDocument.affiantName
+            state: latestDocumentRef.current.state,
+            caseType: latestDocumentRef.current.caseType,
+            affiantName: latestDocumentRef.current.affiantName
           }
         })
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.professionalRewrite) {
-        const updatedFacts = [...currentDocument.facts];
+        // Read LATEST facts to avoid race condition
+        const updatedFacts = [...latestDocumentRef.current.facts];
         const currentFact = updatedFacts[index];
 
         if (typeof currentFact === 'object' && currentFact !== null) {
@@ -375,7 +392,6 @@ const ValidationSidebar = () => {
       } else {
         throw new Error(data.error || 'Failed to generate rewrite');
       }
-      
     } catch (error) {
       console.error('Professional rewrite failed:', error);
       alert('Failed to generate professional rewrite. Please try again.');
@@ -386,6 +402,12 @@ const ValidationSidebar = () => {
         return next;
       });
     }
+    })();
+
+    // Update the lock to this operation's promise
+    rewriteLockRef.current = operationPromise;
+
+    return operationPromise;
   };
 
   // Apply professional rewrite

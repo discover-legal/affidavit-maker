@@ -113,8 +113,10 @@ const EditorView = ({ isNew = false, onBack }) => {
       }
 
       if (isNew) {
-        // Creating a new document on the server and initialize session
-        console.log('📝 Creating new document (server)');
+        // ✅ FIXED: Clear any existing document state before creating new one
+        console.log('📝 Creating new document (server) - clearing old state first');
+        createNewDocument(); // Reset document state
+
         try {
           await initializeNewDocument();
           setSessionInitialized(true);
@@ -141,7 +143,7 @@ const EditorView = ({ isNew = false, onBack }) => {
       console.log('🧹 Cleaning up document session');
       setSessionInitialized(false);
     };
-  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument]);
+  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument, createNewDocument]);
 
   // Handle pane resizing with constraints
   const handlePaneResize = useCallback((deltaPercentage, resizeType) => {

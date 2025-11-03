@@ -277,7 +277,9 @@ class EnhancedFactValidationService {
     };
   }
   
-  generateProfessionalVersion(factText, category) {
+  generateProfessionalVersion(factText, category, context = {}) {
+    const affiantName = context.affiantName || null;
+
     let professional = factText
       .replace(/\b(fuck|shit|damn|hell|bitch|asshole|cunt|bastard)\b/gi, '[inappropriate]')
       .replace(/\b(kinda|sorta|like totally|like)\b/gi, '')
@@ -296,14 +298,32 @@ class EnhancedFactValidationService {
       .replace(/\b(maybe|probably|possibly)\b/gi, '')
       .replace(/\b(might be|might have)\b/gi, 'was');
 
-    // Add "I observed that" prefix if doesn't start with "I"
-    // Handle capitalization properly to avoid "I observed that The child..."
+    // Ensure first-person perspective without over-prefixing
     if (!/^I\b/i.test(professional)) {
-      // Lowercase the first character if the text will be prefixed
+      // Convert to first person by adding "I" prefix
+      // Choose appropriate verb based on content
       const firstChar = professional.charAt(0).toLowerCase();
       const rest = professional.slice(1);
-      professional = `I observed that ${firstChar}${rest}`;
+
+      // Determine if this describes an observation/event or a state/fact
+      const isObservation = /\b(happen|occur|see|notice|take place|went|came|arrived|left)\b/i.test(professional);
+      const isStateOfBeing = /\b(is|am|are|was|were|have|has|had|own|reside|live|work)\b/i.test(professional);
+
+      if (isStateOfBeing) {
+        // Direct statement: "I am..." "I have..." "I reside..."
+        professional = `I ${firstChar}${rest}`;
+      } else if (isObservation) {
+        // Observation: "I witnessed that..." or "I observed that..."
+        professional = `I witnessed that ${firstChar}${rest}`;
+      } else {
+        // General case: "I state that..." for declarative facts
+        professional = `I state that ${firstChar}${rest}`;
+      }
     }
+
+    // Note: We deliberately do NOT add "I, [Name]," format in the fallback function
+    // The "I, [Name]," format should be used by the LLM when appropriate (e.g., first fact in affidavit)
+    // but not mechanically added to every fact, as it would be repetitive and less persuasive
 
     if (!/[.!?]$/.test(professional)) {
       professional += '.';
@@ -336,7 +356,7 @@ class EnhancedFactValidationService {
     };
   }
   
-  buildFallbackResult(fact, factText) {
+  buildFallbackResult(fact, factText, context = {}) {
     const localAnalysis = this.analyzeLanguageLocally(factText);
     const categoryInfo = this.detectCategory(factText);
 
@@ -344,7 +364,7 @@ class EnhancedFactValidationService {
       isValid: localAnalysis.severity !== VALIDATION_SEVERITY.CRITICAL,
       category: categoryInfo.primary,
       subcategory: categoryInfo.secondary,
-      professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo),
+      professionalRewrite: this.generateProfessionalVersion(factText, categoryInfo, context),
       languageIssues: ensureArray(localAnalysis.issues),
       legalIssues: localAnalysis.severity === VALIDATION_SEVERITY.CRITICAL ? ['Contains inappropriate content'] : [],
       improvements: ensureArray(localAnalysis.suggestions),
@@ -360,7 +380,8 @@ class EnhancedFactValidationService {
   
   async performLLMValidation(fact, existingFacts, context) {
     const factText = fact.content || fact;
-    
+    const affiantName = context.affiantName || 'Unknown';
+
     const prompt = `Analyze this legal fact for an affidavit in ${context.state || 'the US'}:
 
 Fact: "${factText}"
@@ -368,7 +389,7 @@ Fact: "${factText}"
 Context:
 - Document Type: ${context.documentType || 'General Affidavit'}
 - Case Type: ${context.caseType || 'General'}
-- Affiant: ${context.affiantName || 'Unknown'}
+- Affiant: ${affiantName}
 
 Existing facts: ${existingFacts.length}
 
@@ -379,14 +400,25 @@ Evaluate for:
 4. Suggested improvements
 5. Category classification
 
-Provide a professional rewrite and specific feedback.`;
+IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective.
+${affiantName !== 'Unknown' ? `The affiant is ${affiantName}.` : ''}
+Use natural, persuasive affidavit language:
+- State facts directly in first person: "I am 45 years old", "I reside at...", "I own..."
+- For observations/events: "I witnessed...", "I observed...", "I saw..."
+- For information from others: "I was informed by [person] that...", "I learned from [source] that..."
+- For beliefs: "I believe, based on [reason], that..."
+- Use the formal "I, ${affiantName !== 'Unknown' ? affiantName : '[name]'}," format ONLY when it enhances clarity or formality (e.g., first statement, key declarations), not for every fact
+- Use declarative statements suitable for sworn testimony
+- Avoid repetitive prefixes - vary sentence structure naturally while maintaining first person
+
+Provide a professional rewrite following these guidelines and specific feedback.`;
 
     const completion = await this.openai.chat.completions.create({
       model: "gpt-4o-2024-08-06",
       messages: [
         {
           role: "system",
-          content: "You are a legal document specialist reviewing affidavit facts for admissibility and professionalism."
+          content: "You are a legal document specialist reviewing affidavit facts for admissibility and professionalism. When rewriting facts, always use first-person perspective as sworn testimony from the affiant, following proper affidavit conventions."
         },
         {
           role: "user",
@@ -405,7 +437,7 @@ Provide a professional rewrite and specific feedback.`;
             properties: {
               professionalRewrite: {
                 type: "string",
-                description: "A professionally rewritten version of the fact"
+                description: "A professionally rewritten version of the fact in first-person affidavit format from the affiant's perspective"
               },
               legalIssues: {
                 type: "array",
@@ -513,17 +545,17 @@ Provide a professional rewrite and specific feedback.`;
         this.validationCache.set(cacheKey, finalResult);
         return finalResult;
       }
-      
-      const fallbackResult = this.buildFallbackResult(fact, factText);
+
+      const fallbackResult = this.buildFallbackResult(fact, factText, context);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
-      
+
     } catch (error) {
-      logger.error('Professional fact validation failed', { 
+      logger.error('Professional fact validation failed', {
         error: error.message,
         factText: factText.substring(0, 50) + '...'
       });
-      const fallbackResult = this.buildFallbackResult(fact, factText);
+      const fallbackResult = this.buildFallbackResult(fact, factText, context);
       this.validationCache.set(cacheKey, fallbackResult);
       return fallbackResult;
     }

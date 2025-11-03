@@ -88,32 +88,32 @@ class BaseAffidavitTemplate {
   /**
    * Generate case caption for court documents
    * Override in state-specific templates if needed
+   * FIXED: Use 'court' field name, show placeholder when no data provided
    */
   generateCaseCaption(affidavitData) {
-    if (!affidavitData.caseNumber && !affidavitData.courtName) {
-      return null;
-    }
-
+    // FIXED: Always show case caption section, even with placeholders
+    // This ensures WYSIWYG preview matches final PDF
     let caption = '';
 
-    // Court name - uppercase for legal formatting
-    let courtName = affidavitData.courtName || '[COURT NAME]';
+    // Court name - use 'court' field (matches schema), fallback to courtName for backwards compatibility
+    let courtName = affidavitData.court || affidavitData.courtName || '[COURT NAME]';
     courtName = courtName.toUpperCase();
 
     // State-specific court formatting handled in subclasses
     caption += `IN THE ${courtName}\n\n`;
 
-    // Case number
-    if (affidavitData.caseNumber) {
-      caption += `CAUSE NO. ${affidavitData.caseNumber.toUpperCase()}`;
-    }
+    // Case number - show placeholder if not provided
+    const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
+    caption += `CAUSE NO. ${caseNumber.toUpperCase()}`;
 
     // Add party names if both are provided (style of cause format)
-    if (affidavitData.plaintiff && affidavitData.defendant) {
-      caption += `\n\n${affidavitData.plaintiff.toUpperCase()}\n`;
-      caption += `v.\n`;
-      caption += `${affidavitData.defendant.toUpperCase()}`;
-    }
+    // Extract from affidavitData or use placeholders
+    const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
+    const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
+
+    caption += `\n\n${plaintiff.toUpperCase()}\n`;
+    caption += `v.\n`;
+    caption += `${defendant.toUpperCase()}`;
 
     return {
       courtName,

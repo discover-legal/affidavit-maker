@@ -360,7 +360,15 @@ class PDFService {
     }
 
     // Add final page footer
-    this.addPageFooter(doc, this.getCurrentPageNumber(doc), metadata);
+    // FIXED: Only add footer if there's actual content on the page
+    // This prevents creating a blank page with just a footer
+    const currentY = doc.y;
+    const topMargin = doc.page.margins.top;
+
+    // Only add footer if we've rendered content on this page (Y position has moved from top)
+    if (currentY > topMargin + 50) {
+      this.addPageFooter(doc, this.getCurrentPageNumber(doc), metadata);
+    }
   }
 
   checkPageBreak(doc, neededSpace, metadata) {
@@ -386,8 +394,9 @@ class PDFService {
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
 
-    // Calculate footer position
-    const footerY = pageHeight - bottomMargin + 20;
+    // FIXED: Calculate footer position WITHIN the content area, not in the margin
+    // Put it 30 pixels above the bottom margin line to prevent page overflow
+    const footerY = pageHeight - bottomMargin - 30;
 
     // Only render footer if we're not already past it
     if (originalY < footerY) {
@@ -398,7 +407,8 @@ class PDFService {
         footerY,
         {
           width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
-          align: 'center'
+          align: 'center',
+          lineBreak: false  // FIXED: Prevent line wrapping that could cause page breaks
         }
       );
 

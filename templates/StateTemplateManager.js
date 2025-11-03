@@ -126,13 +126,13 @@ class BaseAffidavitTemplate {
 
   generateDocument(affidavitData = {}) {
     const validation = this.validateData(affidavitData);
-    
+
     const uuid = require('uuid');
     const id = uuid.v4();
-    
+
     // Generate all sections
     const header = this.generateHeader();
-    
+
     let venue = null;
     if (this.sections.venue && affidavitData.county) {
       venue = this.generateVenue(affidavitData.county);
@@ -146,12 +146,21 @@ class BaseAffidavitTemplate {
     const title = this.generateTitle(affidavitData.affiantName);
     const introduction = this.generateIntroduction(affidavitData);
     const competencyStatement = this.generateCompetencyStatement(affidavitData.affiantName);
-    const facts = this.processFactsForDocument(affidavitData.facts || []);
+
+    // Process facts with original fact data structure preserved
+    const processedFacts = this.processFactsForDocument(affidavitData.facts || []);
+
+    // FIXED: Return facts as {items: [...]} for consistency with preview and PDF expectations
+    // Include competency statement as first fact for proper rendering
+    const facts = {
+      items: [competencyStatement, ...processedFacts]
+    };
+
     const conclusion = this.generateConclusion();
-    
+
     // Perjury statement is state-specific
     const perjuryStatement = this.generatePerjuryStatement();
-    
+
     const signatureBlock = this.generateSignatureBlock(affidavitData.affiantName);
     const notaryBlock = this.generateNotaryBlock(affidavitData);
     const footer = this.generateFooter();
@@ -166,7 +175,6 @@ class BaseAffidavitTemplate {
         caseCaption,
         title,
         introduction,
-        competencyStatement,
         facts,
         conclusion,
         perjuryStatement,
@@ -175,8 +183,8 @@ class BaseAffidavitTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption, title, introduction, 
-        competencyStatement, facts, conclusion, 
+        header, venue, caseCaption, title, introduction,
+        competencyStatement, facts, conclusion,
         perjuryStatement, signatureBlock, notaryBlock, footer
       }),
       htmlContent: this.generateHTMLContent({
@@ -275,25 +283,25 @@ class BaseAffidavitTemplate {
 
   generateFullText(sections) {
     let text = '';
-    
+
     if (sections.header) text += sections.header + '\n\n';
     if (sections.venue) text += sections.venue + '\n\n';
     if (sections.caseCaption?.formatted) text += sections.caseCaption.formatted + '\n\n';
     if (sections.title) text += sections.title + '\n\n';
     if (sections.introduction) text += sections.introduction + '\n\n';
-    if (sections.competencyStatement) {
-      text += `${sections.competencyStatement.number}. ${sections.competencyStatement.content}\n\n`;
+
+    // FIXED: Handle facts.items array (includes competency statement)
+    if (sections.facts?.items && Array.isArray(sections.facts.items)) {
+      sections.facts.items.forEach(fact => {
+        text += `${fact.number}. ${fact.content}\n\n`;
+      });
     }
-    
-    sections.facts.forEach(fact => {
-      text += `${fact.number}. ${fact.content}\n\n`;
-    });
-    
+
     if (sections.conclusion) text += sections.conclusion + '\n\n';
     if (sections.perjuryStatement) text += sections.perjuryStatement + '\n\n';
     if (sections.signatureBlock?.formatted) text += sections.signatureBlock.formatted + '\n\n';
     if (sections.notaryBlock) text += sections.notaryBlock + '\n\n';
-    
+
     return text;
   }
 
@@ -377,8 +385,7 @@ class BaseAffidavitTemplate {
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${sections.caseCaption.formatted}</div>` : ''}
   ${sections.title ? `<div class="title">${sections.title}</div>` : ''}
   ${sections.introduction ? `<p>${sections.introduction}</p>` : ''}
-  ${sections.competencyStatement ? `<p class="fact">${sections.competencyStatement.number}. ${sections.competencyStatement.content}</p>` : ''}
-  ${sections.facts.map(f => `<p class="fact">${f.number}. ${f.content}</p>`).join('\n  ')}
+  ${sections.facts?.items ? sections.facts.items.map(f => `<p class="fact">${f.number}. ${f.content}</p>`).join('\n  ') : ''}
   ${sections.conclusion ? `<p>${sections.conclusion}</p>` : ''}
   ${sections.perjuryStatement ? `<p>${sections.perjuryStatement}</p>` : ''}
   ${sections.signatureBlock?.formatted ? `<div class="signature-block"><pre>${sections.signatureBlock.formatted}</pre></div>` : ''}
@@ -587,19 +594,19 @@ Only after administering this oath may you complete the certificate below.`;
    */
   generateDocument(affidavitData = {}) {
     const doc = super.generateDocument(affidavitData);
-    
+
     // Add notary instruction to sections
     doc.sections.notaryInstruction = this.generateNotaryInstruction();
-    
+
     // Update full text to include instruction
     const instructionText = '\n\n' + this.generateNotaryInstruction() + '\n\n';
     const notaryBlockIndex = doc.fullText.indexOf(doc.sections.notaryBlock);
     if (notaryBlockIndex > -1) {
-      doc.fullText = doc.fullText.slice(0, notaryBlockIndex) + 
-                     instructionText + 
+      doc.fullText = doc.fullText.slice(0, notaryBlockIndex) +
+                     instructionText +
                      doc.fullText.slice(notaryBlockIndex);
     }
-    
+
     return doc;
   }
 }

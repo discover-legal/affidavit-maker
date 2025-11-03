@@ -105,17 +105,47 @@
   word-wrap: break-word;
 }
 
+/* Notary Instruction - Utah-specific instruction for notary */
+.affidavit-notary-instruction {
+  margin-top: 48px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 2px solid #0066cc;
+  background-color: #e6f2ff;
+  font-size: 14px;
+  font-weight: bold;
+  color: #003366;
+
+  /* Keep with notary block */
+  page-break-inside: avoid;
+  break-inside: avoid;
+
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.affidavit-notary-instruction pre {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
 /* Notary Block - MUST stay within page bounds */
 .affidavit-notary {
-  margin-top: 48px;
+  margin-top: 24px;
   padding: 16px;
   border: 2px solid black;
   background-color: #f9f9f9;
-  
+
   /* Critical: Prevent breaking across pages */
   page-break-inside: avoid;
   break-inside: avoid;
-  
+
   /* Ensure it fits within page boundaries */
   max-width: calc(100% - 32px); /* Account for padding */
   overflow: hidden;
@@ -130,6 +160,11 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+}
+
+/* Competency statement styling */
+.affidavit-competency {
+  font-weight: 500; /* Slightly bolder to distinguish from regular facts */
 }
 
 /* Page Number */

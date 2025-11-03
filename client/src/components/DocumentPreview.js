@@ -56,10 +56,11 @@ const DocumentPreview = () => {
     const allContent = [];
     
     // Section order for affidavit
+    // Note: 'facts' now includes competency statement as first item
     const sectionOrder = [
-      'header', 'venue', 'caseCaption', 'title', 
-      'introduction', 'facts', 'conclusion', 
-      'perjury', 'signature', 'notary'
+      'header', 'venue', 'caseCaption', 'title',
+      'introduction', 'facts', 'conclusion',
+      'perjuryStatement', 'signatureBlock', 'notaryBlock', 'notaryInstruction'
     ];
     
     // Process sections into content array
@@ -68,34 +69,76 @@ const DocumentPreview = () => {
       if (!section) return;
       
       if (key === 'facts' && section.items && Array.isArray(section.items)) {
-        // Handle facts with numbering
-        section.items.forEach((fact, idx) => {
-          const factNumber = idx + 1;
-          const factContent = fact.displayContent || fact.content || String(fact);
-          
+        // FIXED: Handle facts with numbering from StateTemplateManager
+        // Facts array includes competency statement as first item
+        section.items.forEach((fact) => {
+          // Use the fact number from the template manager (already correct)
+          const factNumber = fact.number || 1;
+          const factContent = fact.content || String(fact);
+          const factType = fact.type || 'fact';
+
           allContent.push({
-            type: 'fact',
+            type: factType, // Can be 'competency' or 'fact'
             content: `${factNumber}. ${factContent}`,
             keepWithNext: false,
             breakBefore: false,
             isBlockElement: false
           });
         });
-      } else if (section.content) {
-        // Regular sections
+      } else if (key === 'signatureBlock' && section) {
+        // Handle signature block (object with formatted property)
+        const signatureContent = section.formatted || section.content || '';
+        allContent.push({
+          type: 'signature',
+          content: signatureContent,
+          keepWithNext: true, // Keep with notary
+          breakBefore: false,
+          isBlockElement: false
+        });
+      } else if (key === 'notaryBlock' && section) {
+        // Handle notary block (string)
+        allContent.push({
+          type: 'notary',
+          content: typeof section === 'string' ? section : section.content || '',
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: true
+        });
+      } else if (key === 'notaryInstruction' && section) {
+        // Handle notary instruction (Utah-specific)
+        allContent.push({
+          type: 'notary-instruction',
+          content: typeof section === 'string' ? section : section.content || '',
+          keepWithNext: true, // Keep with notary block
+          breakBefore: false,
+          isBlockElement: false
+        });
+      } else if (section && typeof section === 'string') {
+        // Handle string sections (like perjuryStatement, conclusion, etc.)
+        const sectionData = {
+          type: key,
+          content: section,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: key === 'notaryBlock'
+        };
+
+        // Keep perjury statement and signature together with notary
+        if (key === 'perjuryStatement') {
+          sectionData.keepWithNext = true;
+        }
+
+        allContent.push(sectionData);
+      } else if (section?.content) {
+        // Handle object sections with content property
         const sectionData = {
           type: section.type || key,
           content: section.content,
           keepWithNext: false,
           breakBefore: false,
-          isBlockElement: key === 'notary'
+          isBlockElement: key === 'notaryBlock'
         };
-        
-        // Keep signature elements together with notary
-        if (key === 'perjury' || key === 'signature') {
-          sectionData.keepWithNext = true;
-        }
-        
+
         allContent.push(sectionData);
       }
     });
@@ -295,27 +338,45 @@ const DocumentPreview = () => {
           </p>
         );
       
+      case 'perjuryStatement':
       case 'perjury':
         return (
           <div key={key} className="affidavit-perjury">
             {section.content}
           </div>
         );
-      
+
+      case 'signatureBlock':
       case 'signature':
         return (
           <div key={key} className="affidavit-signature">
             <pre>{section.content}</pre>
           </div>
         );
-      
+
+      case 'notaryBlock':
       case 'notary':
         return (
           <div key={key} className="affidavit-notary">
             <pre>{section.content}</pre>
           </div>
         );
-      
+
+      case 'notaryInstruction':
+      case 'notary-instruction':
+        return (
+          <div key={key} className="affidavit-notary-instruction">
+            <pre>{section.content}</pre>
+          </div>
+        );
+
+      case 'competency':
+        return (
+          <p key={key} className="affidavit-fact affidavit-competency">
+            {section.content}
+          </p>
+        );
+
       default:
         return (
           <div key={key} className="affidavit-paragraph">

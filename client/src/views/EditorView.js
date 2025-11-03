@@ -64,9 +64,10 @@ const EditorView = ({ isNew = false, onBack }) => {
   const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
 
-  // ✅ FIX: Track if initialization was done in this component mount
+  // ✅ FIX: Track if initialization was done for a specific documentId
   // This prevents multiple initializations due to dependency changes
   const initializationDone = React.useRef(false);
+  const lastDocumentId = React.useRef(null);
 
   // Layout state with new proportions (30/40/30)
   const [chatWidth, setChatWidth] = useState(30);
@@ -109,11 +110,21 @@ const EditorView = ({ isNew = false, onBack }) => {
   useEffect(() => {
     console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
+    // ✅ FIX: Check if documentId has changed
+    const hasDocumentIdChanged = lastDocumentId.current !== documentId;
+
+    if (hasDocumentIdChanged) {
+      // DocumentId changed - reset initialization flag
+      console.log('📂 Document ID changed from', lastDocumentId.current, 'to', documentId);
+      initializationDone.current = false;
+      lastDocumentId.current = documentId;
+    }
+
     // Initialize session based on route
     const initializeSession = async () => {
-      // ✅ FIX: Prevent multiple initializations in the same component mount
+      // ✅ FIX: Prevent multiple initializations for the same documentId
       if (initializationDone.current) {
-        console.log('✅ Initialization already done in this mount, skipping');
+        console.log('✅ Initialization already done for this document, skipping');
         return;
       }
 
@@ -158,12 +169,11 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     initializeSession();
 
-    // ✅ FIX: Reset initialization flag when component unmounts or document changes
+    // ✅ FIX: Only cleanup when component unmounts, not on every dependency change
     return () => {
       console.log('🧹 Cleaning up document session');
-      initializationDone.current = false;
     };
-  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument, createNewDocument]);
+  }, [documentId, isNew, isAuthenticated, loadDocument, initializeNewDocument, createNewDocument, sessionInitialized, currentDocument.documentId]);
 
   // Handle pane resizing with constraints
   const handlePaneResize = useCallback((deltaPercentage, resizeType) => {

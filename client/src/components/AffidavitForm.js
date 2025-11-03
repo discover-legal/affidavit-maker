@@ -216,10 +216,12 @@ export default function AffidavitForm({
   
   const addFact = useCallback(() => {
     if (newFactInput.trim()) {
+      const trimmedContent = newFactInput.trim();
       dispatch({
         type: ActionTypes.ADD_FACT,
         payload: {
-          content: newFactInput.trim(),
+          content: trimmedContent,
+          originalContent: trimmedContent, // Preserve original user input
           category: 'general',
           id: Date.now().toString()
         }

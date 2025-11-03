@@ -1,4 +1,13 @@
-// services/pdfService.js - FIXED VERSION with Notary Block Protection
+// services/pdfService.js - FIXED VERSION with Notary Block Protection + Styling Fixes
+//
+// STYLING FIXES (Nov 2025):
+// 1. Fixed case caption alignment from right to center (matches preview)
+// 2. Added case caption underline border (matches preview CSS)
+// 3. Added title underline (matches preview text-decoration)
+// 4. Implemented double-spacing with lineGap: 6 for all text sections
+// 5. Updated lineHeight from 1.5 to 2.0 for consistency
+// 6. Adjusted moveDown() values for consistent paragraph spacing
+// 7. These changes ensure PDF output matches the HTML preview WYSIWYG
 const PDFDocument = require('pdfkit');
 const fs = require('fs').promises;
 const path = require('path');
@@ -12,7 +21,7 @@ class PDFService {
       margins: { top: 72, bottom: 72, left: 72, right: 72 },
       font: 'Times-Roman',
       fontSize: 12,
-      lineHeight: 1.5
+      lineHeight: 2.0  // Double spacing to match preview
     };
   }
 
@@ -81,17 +90,35 @@ class PDFService {
 
     // Case Caption
     if (sections.caseCaption) {
-      this.checkPageBreak(doc, 80);
+      this.checkPageBreak(doc, 120);  // Increased for caption + border
+      const captionStartY = doc.y;
       doc.fontSize(12).font('Times-Roman');
-      doc.text(this.getFormatted(sections.caseCaption), { align: 'right' });
-      doc.moveDown();
+      doc.text(this.getFormatted(sections.caseCaption), { align: 'center', lineGap: 4 });
+      doc.moveDown(0.5);
+
+      // Draw underline border for case caption
+      const borderY = doc.y;
+      doc.moveTo(doc.page.margins.left, borderY)
+         .lineTo(doc.page.width - doc.page.margins.right, borderY)
+         .stroke();
+
+      doc.moveDown(1.0);
     }
 
     // Title
     if (sections.title) {
       this.checkPageBreak(doc, 60);
       doc.fontSize(14).font('Times-Bold');
+      const titleY = doc.y;
       doc.text(sections.title, { align: 'center' });
+
+      // Draw underline for title
+      const titleWidth = doc.widthOfString(sections.title);
+      const titleX = (doc.page.width - titleWidth) / 2;
+      doc.moveTo(titleX, doc.y + 2)
+         .lineTo(titleX + titleWidth, doc.y + 2)
+         .stroke();
+
       doc.moveDown(1.5);
     }
 
@@ -99,11 +126,12 @@ class PDFService {
     if (sections.introduction) {
       this.checkPageBreak(doc, 60);
       doc.fontSize(12).font('Times-Roman');
-      doc.text(sections.introduction, { 
+      doc.text(sections.introduction, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // Add spacing for double-spacing effect
       });
-      doc.moveDown();
+      doc.moveDown(1.0);
     }
 
     // ✅ CRITICAL FIX: Facts Section with Notary Block Protection
@@ -174,9 +202,10 @@ class PDFService {
         doc.text(fact.content, {
           align: 'justify',
           width: doc.page.width - doc.page.margins.left - doc.page.margins.right - numberWidth,
-          indent: 0
+          indent: 0,
+          lineGap: 6  // Double-spacing effect
         });
-        doc.moveDown(0.5);
+        doc.moveDown(1.0);
         
         renderedFactCount++;
       });
@@ -186,20 +215,22 @@ class PDFService {
     if (sections.conclusion) {
       this.checkPageBreak(doc, 80);
       doc.fontSize(12).font('Times-Roman');
-      doc.text(sections.conclusion, { 
+      doc.text(sections.conclusion, {
         align: 'justify',
-        indent: 36 
+        indent: 36,
+        lineGap: 6  // Double-spacing effect
       });
-      doc.moveDown();
+      doc.moveDown(1.0);
     }
 
     // Perjury Statement
     if (sections.perjuryStatement) {
       this.checkPageBreak(doc, 80);
       doc.fontSize(12).font('Times-Roman');
-      doc.text(sections.perjuryStatement, { 
+      doc.text(sections.perjuryStatement, {
         align: 'justify',
-        indent: 36 
+        indent: 36,
+        lineGap: 6  // Double-spacing effect
       });
       doc.moveDown(1.5);
     }
@@ -212,13 +243,13 @@ class PDFService {
       doc.moveDown();
       
       // Signature line
-      doc.text(sections.signatureBlock.line || '_'.repeat(40));
-      doc.text(sections.signatureBlock.name || '[AFFIANT NAME]', { continued: false });
-      doc.text(sections.signatureBlock.title || 'Affiant');
+      doc.text(sections.signatureBlock.line || '_'.repeat(40), { lineGap: 4 });
+      doc.text(sections.signatureBlock.name || '[AFFIANT NAME]', { continued: false, lineGap: 4 });
+      doc.text(sections.signatureBlock.title || 'Affiant', { lineGap: 4 });
       
       if (sections.signatureBlock.date) {
         doc.moveDown(0.5);
-        doc.text(sections.signatureBlock.date);
+        doc.text(sections.signatureBlock.date, { lineGap: 4 });
       }
       
       doc.moveDown(2);
@@ -235,7 +266,7 @@ class PDFService {
       // Notary content
       const notaryLines = sections.notaryBlock.split('\n');
       notaryLines.forEach(line => {
-        doc.text(line);
+        doc.text(line, { lineGap: 4 });
       });
       
       // Draw border around notary section

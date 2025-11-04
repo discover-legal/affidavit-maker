@@ -23,32 +23,29 @@ const ChatInterface = () => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const currentDocumentIdRef = useRef(null);
+  const welcomeMessageShownRef = useRef(false);
 
   // Use DocumentContext
   const { currentDocument } = useDocumentState();
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Reset messages when document changes (but not when initializing a new document)
+  // Reset messages when document changes
   useEffect(() => {
     if (currentDocument.documentId && currentDocument.documentId !== currentDocumentIdRef.current) {
-      // Only clear messages if we're switching between EXISTING documents (both have data)
-      const isExistingDocument = currentDocumentIdRef.current && (
-        currentDocument.affiantName ||
-        currentDocument.facts?.length > 0
-      );
-
-      if (isExistingDocument) {
+      // Clear messages if we had a previous document (switching documents)
+      if (currentDocumentIdRef.current) {
         console.log('📄 Document changed, clearing messages', {
           from: currentDocumentIdRef.current,
           to: currentDocument.documentId
         });
         setMessages([]);
+        welcomeMessageShownRef.current = false; // Reset welcome message flag
       }
 
       currentDocumentIdRef.current = currentDocument.documentId;
     }
-  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts?.length]);
+  }, [currentDocument.documentId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -70,9 +67,31 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Helper function to generate AI narrative summary of facts
+  // Helper function to generate a signature for facts (used for caching)
+  const generateFactSignature = (facts) => {
+    if (!facts || facts.length === 0) return '';
+
+    // Create a simple signature by stringifying fact contents
+    const factContents = facts.map(fact =>
+      typeof fact === 'string' ? fact : fact.content
+    );
+    return JSON.stringify(factContents);
+  };
+
+  // Helper function to generate AI narrative summary of facts with caching
   const generateFactSummary = async (facts, affiantName) => {
     if (!facts || facts.length === 0) return '';
+
+    // Generate signature for current facts
+    const currentSignature = generateFactSignature(facts);
+
+    // Check if we have a cached summary for these facts
+    if (currentDocument.factSummary && currentDocument.factSignature === currentSignature) {
+      console.log('✅ Using cached fact summary');
+      return currentDocument.factSummary;
+    }
+
+    console.log('🔄 Generating new fact summary');
 
     try {
       const headers = { 'Content-Type': 'application/json' };
@@ -106,7 +125,15 @@ const ChatInterface = () => {
       }
 
       const data = await response.json();
-      return data.success ? data.response : '';
+      const summary = data.success ? data.response : `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
+
+      // Cache the summary in document state
+      updateDocumentData({
+        factSummary: summary,
+        factSignature: currentSignature
+      });
+
+      return summary;
     } catch (err) {
       console.error('Error generating fact summary:', err);
       // Fallback to simple list
@@ -117,9 +144,11 @@ const ChatInterface = () => {
   // Initial welcome message - immediate display then async review
   useEffect(() => {
     const initializeWelcomeMessage = async () => {
-      // Only show welcome message if we don't have any messages yet
-      // Wait for documentId to be set (either from initialization or loading)
-      if (messages.length === 0 && currentDocument.documentId) {
+      // Only show welcome message if we haven't shown it yet for this document
+      // and we have a documentId
+      if (!welcomeMessageShownRef.current && currentDocument.documentId) {
+        welcomeMessageShownRef.current = true; // Mark as shown to prevent double execution
+
         const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
 
         if (isReturningUser) {
@@ -169,7 +198,7 @@ Let's start with your name and which state you're in.`
 
     initializeWelcomeMessage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts?.length]);
+  }, [currentDocument.documentId]);
 
   // Send message to API
   const sendMessage = async (e) => {

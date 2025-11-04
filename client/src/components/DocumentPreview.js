@@ -322,7 +322,7 @@ const DocumentPreview = () => {
       case 'title':
         return (
           <div key={key} className="affidavit-title">
-            {section.content}
+            <span>{section.content}</span>
           </div>
         );
       
@@ -483,8 +483,13 @@ const DocumentPreview = () => {
           text-align: center;
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
-          text-decoration: underline;
           margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
+        }
+
+        .affidavit-title > span {
+          display: inline-block;
+          border-bottom: 2px solid black;
+          padding-bottom: 2px;
         }
 
         .affidavit-paragraph {

@@ -15,7 +15,9 @@ const initialState = {
     county: '',
     documentType: 'general',
     facts: [],
-    documentId: null
+    documentId: null,
+    factSummary: null,      // Cached AI summary of facts
+    factSignature: null     // Hash of facts used to generate summary
   },
   
   // Document list (for dashboard)

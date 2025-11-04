@@ -1,14 +1,13 @@
 // client/src/components/DocumentPreview.js - FULLY FIXED VERSION
 // With proper page boundaries, real pagination, and WYSIWYG formatting
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { 
-  FileText, 
+import {
+  FileText,
   RefreshCw,
   ZoomIn,
   ZoomOut,
   ChevronLeft,
-  ChevronRight,
-  Download
+  ChevronRight
 } from 'lucide-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 import '../styles/DocumentPreview.css';
@@ -29,11 +28,10 @@ const PAGE_CONFIG = {
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentState();
   const { generatePreview } = useDocumentActions();
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(80);
   const containerRef = useRef(null);
-  const measureRef = useRef(null);
   const pageRefs = useRef([]);
 
   // Center the preview pane horizontally to ensure equal left/right scroll

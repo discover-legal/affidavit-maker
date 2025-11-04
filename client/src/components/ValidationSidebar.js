@@ -258,7 +258,7 @@ const DraggableFactCard = ({
 
 // ✅ Main ValidationSidebar Component
 const ValidationSidebar = () => {
-  const { currentDocument, isValidating } = useDocumentState();
+  const { currentDocument } = useDocumentState();
   const { updateDocumentData, updateDocumentDataWithoutPreview, saveDocument } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 

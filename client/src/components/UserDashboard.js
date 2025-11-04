@@ -1,7 +1,7 @@
 // client/src/components/UserDashboard.js - FIXED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Scale, Gavel, FolderOpen } from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 

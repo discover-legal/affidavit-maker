@@ -61,7 +61,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
 // Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ isNew = false, onBack }) => {
-  const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
 
   // ✅ FIX: Track if initialization was done for a specific documentId
@@ -81,7 +81,6 @@ const EditorView = ({ isNew = false, onBack }) => {
   const {
     currentDocument,
     preview,
-    isPreviewLoading,
     isSaving,
     lastSaved,
     hasUnsavedChanges,

@@ -18,7 +18,6 @@ const ChatInterface = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const messagesEndRef = useRef(null);
@@ -169,6 +168,7 @@ Let's start with your name and which state you're in.`
     };
 
     initializeWelcomeMessage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDocument.documentId, currentDocument.affiantName, currentDocument.facts?.length]);
 
   // Send message to API
@@ -179,8 +179,7 @@ Let's start with your name and which state you're in.`
 
     const userMessage = message.trim();
     setMessage('');
-    setError(null);
-    
+
     // Add user message to chat
     setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
     setIsLoading(true);
@@ -236,8 +235,7 @@ Let's start with your name and which state you're in.`
       }
     } catch (err) {
       console.error('Chat error:', err);
-      setError(err.message);
-      
+
       setMessages(prev => [...prev, {
         type: 'bot',
         content: `I'm sorry, I encountered an error: ${err.message}. Please try again.`,

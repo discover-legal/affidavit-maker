@@ -55,10 +55,11 @@ const DocumentPreview = () => {
     
     // Section order for affidavit
     // Note: 'facts' now includes competency statement as first item
+    // Note: 'notaryInstruction' must come before 'notaryBlock' (Utah requirement)
     const sectionOrder = [
       'header', 'venue', 'caseCaption', 'title',
       'introduction', 'facts', 'conclusion',
-      'perjuryStatement', 'signatureBlock', 'notaryBlock', 'notaryInstruction'
+      'perjuryStatement', 'signatureBlock', 'notaryInstruction', 'notaryBlock'
     ];
     
     // Process sections into content array
@@ -82,6 +83,16 @@ const DocumentPreview = () => {
             breakBefore: false,
             isBlockElement: false
           });
+        });
+      } else if (key === 'caseCaption' && section) {
+        // Handle case caption (object with formatted property)
+        const captionContent = section.formatted || section.content || '';
+        allContent.push({
+          type: 'caseCaption',
+          content: captionContent,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: false
         });
       } else if (key === 'signatureBlock' && section) {
         // Handle signature block (object with formatted property)
@@ -311,7 +322,7 @@ const DocumentPreview = () => {
       case 'title':
         return (
           <div key={key} className="affidavit-title">
-            {section.content}
+            <span>{section.content}</span>
           </div>
         );
       
@@ -472,8 +483,13 @@ const DocumentPreview = () => {
           text-align: center;
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
-          text-decoration: underline;
           margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
+        }
+
+        .affidavit-title > span {
+          display: inline-block;
+          border-bottom: 2px solid black;
+          padding-bottom: 2px;
         }
 
         .affidavit-paragraph {

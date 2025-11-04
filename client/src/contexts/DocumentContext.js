@@ -741,7 +741,8 @@ export const DocumentProvider = ({ children }) => {
     }, 500);
 
     setPreviewDebounceTimer(timer);
-}, [generatePreview, scheduleAutoSave, state.currentDocument, previewDebounceTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [generatePreview, scheduleAutoSave, state.currentDocument]);
 
   // Update document data WITHOUT triggering preview generation
   // Used when storing professional rewrites before they are applied

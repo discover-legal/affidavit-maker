@@ -307,23 +307,23 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-                    <button 
-                      onClick={() => startRename(doc)} 
-                      className="p-2 text-gray-500 hover:text-blue-600" 
+                    <button
+                      onClick={() => startRename(doc)}
+                      className="p-2 text-gray-500 hover:text-blue-600"
                       title="Rename"
                     >
                       <Edit className="h-5 w-5" />
                     </button>
-                    <button 
-                      onClick={() => handleDeleteDocument(doc.id)} 
-                      className="p-2 text-gray-500 hover:text-red-600" 
+                    <button
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="p-2 text-gray-500 hover:text-red-600"
                       title="Delete"
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleContinueDocument(doc)}
-                      className="px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
+                      className="w-28 px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
                     >
                       {doc.status === 'completed' ? 'View' : 'Continue'}
                     </button>

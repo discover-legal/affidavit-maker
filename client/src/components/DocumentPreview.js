@@ -83,6 +83,16 @@ const DocumentPreview = () => {
             isBlockElement: false
           });
         });
+      } else if (key === 'caseCaption' && section) {
+        // Handle case caption (object with formatted property)
+        const captionContent = section.formatted || section.content || '';
+        allContent.push({
+          type: 'caseCaption',
+          content: captionContent,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: false
+        });
       } else if (key === 'signatureBlock' && section) {
         // Handle signature block (object with formatted property)
         const signatureContent = section.formatted || section.content || '';

@@ -55,10 +55,11 @@ const DocumentPreview = () => {
     
     // Section order for affidavit
     // Note: 'facts' now includes competency statement as first item
+    // Note: 'notaryInstruction' must come before 'notaryBlock' (Utah requirement)
     const sectionOrder = [
       'header', 'venue', 'caseCaption', 'title',
       'introduction', 'facts', 'conclusion',
-      'perjuryStatement', 'signatureBlock', 'notaryBlock', 'notaryInstruction'
+      'perjuryStatement', 'signatureBlock', 'notaryInstruction', 'notaryBlock'
     ];
     
     // Process sections into content array

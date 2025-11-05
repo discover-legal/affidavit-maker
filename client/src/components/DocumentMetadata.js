@@ -129,12 +129,6 @@ const DocumentMetadata = () => {
           />
         </div>
       </div>
-
-      <div className="metadata-info">
-        <p className="info-text">
-          <strong>Note:</strong> Case information is optional. If not provided, placeholders will appear in the document that you can fill in manually.
-        </p>
-      </div>
     </div>
   );
 };

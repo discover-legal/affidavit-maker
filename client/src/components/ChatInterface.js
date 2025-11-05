@@ -278,8 +278,8 @@ Let's start with your name and which state you're in.`
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Document Metadata Section - Collapsible */}
-      <div className="border-b bg-white">
+      {/* Document Metadata Button - Only visible on tablet+ screens */}
+      <div className="hidden md:block border-b bg-white">
         <button
           onClick={() => setShowMetadata(!showMetadata)}
           className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -291,19 +291,20 @@ Let's start with your name and which state you're in.`
             <ChevronDown className="h-5 w-5 text-gray-500" />
           )}
         </button>
-        {showMetadata && (
-          <div className="border-t max-h-96 overflow-y-auto">
-            <DocumentMetadata />
-          </div>
-        )}
       </div>
 
       {/* Chat Messages */}
-      <div 
+      <div
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 relative"
       >
+        {/* Document Metadata Overlay - Takes full chat area when open */}
+        {showMetadata && (
+          <div className="absolute inset-0 bg-white z-10 overflow-y-auto p-6 shadow-lg">
+            <DocumentMetadata />
+          </div>
+        )}
         {messages.map((msg, index) => (
           <div
             key={index}

@@ -32,6 +32,12 @@ class PDFService {
       fontSize: 12,
       lineHeight: 2.0  // Double spacing to match preview
     };
+
+    // Footer configuration
+    this.FOOTER_FONT_SIZE = 10;
+    this.FOOTER_HEIGHT = 15; // Estimated height of footer text with 10pt font
+    this.FOOTER_BOTTOM_MARGIN = 36; // 0.5 inch from bottom edge
+    this.MIN_CONTENT_FOOTER_GAP = 20; // Minimum space between content and footer
   }
 
   async generatePDF(document, options = {}) {
@@ -187,8 +193,8 @@ class PDFService {
           // Check current available space
           const currentY = doc.y;
           const pageHeight = doc.page.height;
-          const bottomMargin = doc.page.margins.bottom;
-          const availableSpace = pageHeight - bottomMargin - 50 - currentY;
+          const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
+          const availableSpace = footerY - this.MIN_CONTENT_FOOTER_GAP - this.FOOTER_HEIGHT - currentY;
 
           // If everything (last fact + conclusion + signature + notary) fits, use normal page break
           if (availableSpace >= spaceForEverything) {
@@ -349,13 +355,13 @@ class PDFService {
       if (sections.notaryBlock) {
         const currentY = doc.y;
         const pageHeight = doc.page.height;
-        const bottomMargin = doc.page.margins.bottom;
-        const remainingSpace = pageHeight - bottomMargin - 50 - currentY;
+        const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
+        const remainingSpace = footerY - this.MIN_CONTENT_FOOTER_GAP - this.FOOTER_HEIGHT - currentY;
 
         // If not enough space for notary block, start new page
         if (remainingSpace < 200) {
           const currentPageNum = this.getCurrentPageNumber(doc);
-          this.addPageFooter(doc, currentPageNum, metadata);
+          this.addPageFooter(doc, currentPageNum, totalPages, metadata);
           doc.addPage();
         }
       }
@@ -400,10 +406,15 @@ class PDFService {
   checkPageBreak(doc, neededSpace, totalPages, metadata) {
     const currentY = doc.y;
     const pageHeight = doc.page.height;
-    const bottomMargin = doc.page.margins.bottom;
 
-    // FIXED: Add buffer space (50px) to prevent text from getting too close to footer
-    if (currentY + neededSpace > pageHeight - bottomMargin - 50) {
+    // Calculate where footer will be positioned
+    const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
+
+    // Calculate available space: from current Y to where footer starts (minus safety gap)
+    const availableSpace = footerY - this.MIN_CONTENT_FOOTER_GAP - this.FOOTER_HEIGHT - currentY;
+
+    // If needed space exceeds available space, break to new page
+    if (neededSpace > availableSpace) {
       // Add footer to current page before creating new page
       const currentPageNum = this.getCurrentPageNumber(doc);
       this.addPageFooter(doc, currentPageNum, totalPages, metadata);
@@ -414,31 +425,35 @@ class PDFService {
   }
 
   addPageFooter(doc, pageNumber, totalPages, metadata) {
-    // FIXED: Position footer at very bottom of page (0.5 inch from bottom edge)
     const originalY = doc.y;
     const pageHeight = doc.page.height;
-    const footerY = pageHeight - 36; // 36 points = 0.5 inch from bottom edge
+    const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
 
-    // Only render footer if we're not already past it
-    if (originalY < footerY) {
-      doc.fontSize(10).font('Times-Roman');
-      doc.text(
-        `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
-        doc.page.margins.left,
-        footerY,
-        {
-          width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
-          align: 'center',
-          lineBreak: false
-        }
-      );
-
-      // CRITICAL FIX: Don't restore Y position after adding footer
-      // This was causing PDFKit to buffer the footer operation and apply it to the next page
-      // Instead, keep Y at footerY so PDFKit knows the page is complete
-      // Leave doc.y at footerY + text height to indicate page is done
-      // doc.y = originalY;  // REMOVED - this was causing footer to appear on wrong page
+    // Verify there's adequate space between content and footer
+    const gapBetweenContentAndFooter = footerY - originalY;
+    if (gapBetweenContentAndFooter < this.MIN_CONTENT_FOOTER_GAP) {
+      // Not enough space for footer on this page, skip it
+      // This prevents footer from overlapping with content
+      return;
     }
+
+    // Render footer text
+    doc.fontSize(this.FOOTER_FONT_SIZE).font('Times-Roman');
+    doc.text(
+      `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
+      doc.page.margins.left,
+      footerY,
+      {
+        width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+        align: 'center',
+        lineBreak: false
+      }
+    );
+
+    // CRITICAL FIX: Explicitly set doc.y past the footer to prevent PDFKit buffering issues
+    // This ensures PDFKit knows the page is complete and won't render footer on next page
+    // Set Y to bottom of page to signal no more content should be added
+    doc.y = pageHeight;
   }
 
   getCurrentPageNumber(doc) {

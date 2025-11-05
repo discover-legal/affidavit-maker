@@ -87,10 +87,9 @@ const EditorView = ({ isNew = false, onBack }) => {
     sessionInitialized
   } = useDocumentState();
   
-  const { 
-    saveDocument, 
+  const {
+    saveDocument,
     loadDocument,
-    createNewDocument,
     initializeNewDocument
   } = useDocumentActions();
 
@@ -128,15 +127,14 @@ const EditorView = ({ isNew = false, onBack }) => {
       }
 
       if (isNew) {
-        // ✅ FIX: For new documents, always reset to ensure fresh start
+        // ✅ For new documents, initialize with forceNew=true
+        // This atomically resets state and creates a new document
         // Mark as done BEFORE async operations to prevent duplicate calls
         initializationDone.current = true;
 
-        console.log('📝 Creating new document - resetting state');
-        createNewDocument(); // This resets sessionInitialized to false
-
         try {
-          await initializeNewDocument();
+          // forceNew=true handles both reset and creation in one atomic operation
+          await initializeNewDocument(true);
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
           // Reset flag on error so user can retry

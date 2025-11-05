@@ -34,7 +34,7 @@ const ChatInterface = () => {
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Reset messages when document changes
+  // Reset messages when document changes and show welcome message
   useEffect(() => {
     const newDocId = currentDocument.documentId;
     const prevDocId = currentDocumentIdRef.current;
@@ -46,14 +46,66 @@ const ChatInterface = () => {
         to: newDocId
       });
 
-      // Clear messages whenever documentId changes
+      // Clear messages and reset welcome flag
       setMessages([]);
       welcomeMessageShownRef.current = false;
 
       // Update the ref to track the new documentId
       currentDocumentIdRef.current = newDocId;
+
+      // If we have a new documentId (not null), show welcome message immediately
+      if (newDocId) {
+        welcomeMessageShownRef.current = true;
+
+        const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
+
+        if (isReturningUser) {
+          // Returning user - show welcome back message
+          const hasFacts = currentDocument.facts?.length > 0;
+
+          if (hasFacts) {
+            // Show welcome with fact count, then generate summary asynchronously
+            const greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
+              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
+
+            setMessages([{
+              type: 'bot',
+              content: greeting
+            }]);
+
+            // Generate summary asynchronously
+            generateFactSummary(currentDocument.facts, currentDocument.affiantName).then(factSummary => {
+              if (factSummary) {
+                setMessages(prev => [...prev, {
+                  type: 'bot',
+                  content: factSummary + '\n\nWhat would you like to add or update today?'
+                }]);
+              }
+            });
+          } else {
+            // Has name but no facts
+            const greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back!`
+              : 'Hi, welcome back!';
+            setMessages([{
+              type: 'bot',
+              content: greeting
+            }]);
+          }
+        } else {
+          // New user - show welcome message
+          console.log('👋 Showing welcome message for new affidavit');
+          setMessages([{
+            type: 'bot',
+            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+
+Let's start with your name and which state you're in.`
+          }]);
+        }
+      }
     }
-  }, [currentDocument.documentId]);
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -149,65 +201,6 @@ const ChatInterface = () => {
     }
   };
 
-  // Initial welcome message - immediate display then async review
-  useEffect(() => {
-    const initializeWelcomeMessage = async () => {
-      // Only show welcome message if we haven't shown it yet for this document
-      // and we have a documentId
-      if (!welcomeMessageShownRef.current && currentDocument.documentId) {
-        welcomeMessageShownRef.current = true; // Mark as shown to prevent double execution
-
-        const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
-
-        if (isReturningUser) {
-          // Welcome back message with name and fact count combined
-          const hasFacts = currentDocument.facts?.length > 0;
-          let greeting;
-
-          if (hasFacts) {
-            // Combine name and fact count in one message
-            greeting = currentDocument.affiantName
-              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
-              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
-          } else {
-            greeting = currentDocument.affiantName
-              ? `Hi ${currentDocument.affiantName}, welcome back!`
-              : 'Hi, welcome back!';
-          }
-
-          // Show initial message immediately
-          setMessages([{
-            type: 'bot',
-            content: greeting
-          }]);
-
-          // Then generate and add the AI summary asynchronously
-          if (hasFacts) {
-            const factSummary = await generateFactSummary(currentDocument.facts, currentDocument.affiantName);
-            if (factSummary) {
-              setMessages(prev => [...prev, {
-                type: 'bot',
-                content: factSummary + '\n\nWhat would you like to add or update today?'
-              }]);
-            }
-          }
-        } else {
-          // Standard welcome for new users - only show if documentId is set and no data yet
-          console.log('👋 Showing welcome message for new affidavit');
-          setMessages([{
-            type: 'bot',
-            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
-
-Let's start with your name and which state you're in.`
-          }]);
-        }
-      }
-    };
-
-    initializeWelcomeMessage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDocument.documentId]);
-
   // Send message to API
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -299,7 +292,7 @@ Let's start with your name and which state you're in.`
           )}
         </button>
         {showMetadata && (
-          <div className="border-t">
+          <div className="border-t max-h-96 overflow-y-auto">
             <DocumentMetadata />
           </div>
         )}

@@ -73,15 +73,15 @@ const DocumentMetadata = () => {
         <h3 className="metadata-heading">Case Information</h3>
 
         <div className="form-group">
-          <label htmlFor="court" className="form-label">
+          <label htmlFor="courtName" className="form-label">
             Court Name
           </label>
           <input
             type="text"
-            id="court"
+            id="courtName"
             className="form-input"
-            value={currentDocument.court || ''}
-            onChange={(e) => handleChange('court', e.target.value)}
+            value={currentDocument.courtName || ''}
+            onChange={(e) => handleChange('courtName', e.target.value)}
             placeholder="e.g., District Court of Travis County"
           />
           <p className="form-help">The full name of the court where this will be filed</p>

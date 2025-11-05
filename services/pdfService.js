@@ -413,19 +413,14 @@ class PDFService {
   }
 
   addPageFooter(doc, pageNumber, totalPages, metadata) {
-    // FIXED: Don't modify the document Y position permanently
-    // Save the current position
+    // FIXED: Position footer at very bottom of page (0.5 inch from bottom edge)
     const originalY = doc.y;
     const pageHeight = doc.page.height;
-
-    // FIXED: Position footer at very bottom of page (0.5 inch from bottom edge)
-    // This prevents facts from breaking to next page too early
     const footerY = pageHeight - 36; // 36 points = 0.5 inch from bottom edge
 
     // Only render footer if we're not already past it
     if (originalY < footerY) {
       doc.fontSize(10).font('Times-Roman');
-      // FIXED: Show "Page X of Y • Created with Discover.Legal" format (without date)
       doc.text(
         `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
         doc.page.margins.left,
@@ -433,12 +428,15 @@ class PDFService {
         {
           width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
           align: 'center',
-          lineBreak: false  // FIXED: Prevent line wrapping that could cause page breaks
+          lineBreak: false
         }
       );
 
-      // Always restore the original Y position to prevent layout issues
-      doc.y = originalY;
+      // CRITICAL FIX: Don't restore Y position after adding footer
+      // This was causing PDFKit to buffer the footer operation and apply it to the next page
+      // Instead, keep Y at footerY so PDFKit knows the page is complete
+      // Leave doc.y at footerY + text height to indicate page is done
+      // doc.y = originalY;  // REMOVED - this was causing footer to appear on wrong page
     }
   }
 

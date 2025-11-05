@@ -368,9 +368,13 @@ export const DocumentProvider = ({ children }) => {
       return null;
     }
 
-    // ✅ CRITICAL: Only initialize if truly new (no documentId exists)
-    // Unless forceNew is true (when navigating to /editor/new route)
-    if (!forceNew && stateRef.current.currentDocument.documentId) {
+    // ✅ If forceNew, reset state first to ensure clean slate
+    if (forceNew) {
+      console.log('📄 Force new document - resetting state');
+      dispatch({ type: ActionTypes.RESET_DOCUMENT });
+      // Note: We continue immediately because we know we want a new document
+    } else if (stateRef.current.currentDocument.documentId) {
+      // Only check for existing document if not forcing new
       console.log('📄 Document already exists:', stateRef.current.currentDocument.documentId);
       if (!stateRef.current.sessionInitialized) {
         dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });

@@ -33,16 +33,13 @@ const ChatInterface = () => {
   // Reset messages when document changes
   useEffect(() => {
     if (currentDocument.documentId && currentDocument.documentId !== currentDocumentIdRef.current) {
-      // Clear messages if we had a previous document (switching documents)
-      if (currentDocumentIdRef.current) {
-        console.log('📄 Document changed, clearing messages', {
-          from: currentDocumentIdRef.current,
-          to: currentDocument.documentId
-        });
-        setMessages([]);
-        welcomeMessageShownRef.current = false; // Reset welcome message flag
-      }
-
+      // Always clear messages when document ID changes (including from null to a new ID)
+      console.log('📄 Document changed, clearing messages', {
+        from: currentDocumentIdRef.current,
+        to: currentDocument.documentId
+      });
+      setMessages([]);
+      welcomeMessageShownRef.current = false; // Reset welcome message flag
       currentDocumentIdRef.current = currentDocument.documentId;
     }
   }, [currentDocument.documentId]);

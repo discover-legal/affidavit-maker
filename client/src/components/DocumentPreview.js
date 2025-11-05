@@ -209,17 +209,18 @@ const DocumentPreview = () => {
           sectionHeight = 106; // PDF uses 80 points = 106px
           break;
         case 'introduction':
-          // Use more conservative estimate for introduction
-          const introLines = Math.ceil((section.content?.length || 0) / 70);
-          sectionHeight = introLines * PAGE_CONFIG.lineHeight * 2;
+          // Estimate for introduction paragraph
+          const introLines = Math.ceil((section.content?.length || 0) / 80);
+          sectionHeight = introLines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
           break;
         case 'fact':
         case 'competency':
         default:
-          // Estimate based on content length - be more conservative
-          // PDF wraps differently than browser, so overestimate slightly
-          const lines = Math.ceil((section.content?.length || 0) / 70); // Changed from 80 to 70 for safety
-          sectionHeight = lines * PAGE_CONFIG.lineHeight * 2; // Double-spaced
+          // Estimate based on content length
+          // CRITICAL FIX: PAGE_CONFIG.lineHeight (24px) already represents double-spacing
+          // Multiplying by 2 again was causing preview to show ~4 facts when PDF shows ~9
+          const lines = Math.ceil((section.content?.length || 0) / 80); // Characters per line estimate
+          sectionHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
           break;
       }
       
@@ -266,8 +267,8 @@ const DocumentPreview = () => {
               followingHeight = 106; // Match main calculation
               break;
             default:
-              const lines = Math.ceil((followingSection.content?.length || 0) / 70); // Changed from 80 to 70
-              followingHeight = lines * PAGE_CONFIG.lineHeight * 2;
+              const lines = Math.ceil((followingSection.content?.length || 0) / 80);
+              followingHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
               break;
           }
 

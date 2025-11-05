@@ -355,7 +355,7 @@ export const DocumentProvider = ({ children }) => {
   stateRef.current = state;
 
   // ✅ NEW: Initialize a new document session
-  const initializeNewDocument = useCallback(async () => {
+  const initializeNewDocument = useCallback(async (forceNew = false) => {
     if (!isAuthenticated) {
       console.warn('Cannot initialize document: User not authenticated');
       return null;
@@ -369,7 +369,8 @@ export const DocumentProvider = ({ children }) => {
     }
 
     // ✅ CRITICAL: Only initialize if truly new (no documentId exists)
-    if (stateRef.current.currentDocument.documentId) {
+    // Unless forceNew is true (when navigating to /editor/new route)
+    if (!forceNew && stateRef.current.currentDocument.documentId) {
       console.log('📄 Document already exists:', stateRef.current.currentDocument.documentId);
       if (!stateRef.current.sessionInitialized) {
         dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });

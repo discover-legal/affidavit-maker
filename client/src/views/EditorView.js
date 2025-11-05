@@ -136,7 +136,8 @@ const EditorView = ({ isNew = false, onBack }) => {
         createNewDocument(); // This resets sessionInitialized to false
 
         try {
-          await initializeNewDocument();
+          // ✅ FIX: Pass forceNew=true to bypass stale documentId check
+          await initializeNewDocument(true);
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
           // Reset flag on error so user can retry

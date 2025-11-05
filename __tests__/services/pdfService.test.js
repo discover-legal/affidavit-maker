@@ -25,11 +25,16 @@ jest.mock('pdfkit', () => {
     stream.text = jest.fn();
     stream.fontSize = jest.fn(() => stream);
     stream.font = jest.fn(() => stream);
-    stream.addPage = jest.fn();
+    stream.addPage = jest.fn(() => {
+      // Simulate page addition
+      stream._pageBuffer.push(stream._pageBuffer.length + 1);
+    });
     stream.rect = jest.fn(() => stream);
     stream.stroke = jest.fn(() => stream);
-    stream.y = 0;
-    stream.page = { width: 612, height: 792, margins: { left: 72, right: 72, bottom: 72 } };
+    stream.fillColor = jest.fn(() => stream);
+    stream.y = 72; // Start at top margin
+    stream.x = 72; // Start at left margin
+    stream.page = { width: 612, height: 792, margins: { left: 72, right: 72, top: 72, bottom: 72 } };
     stream.moveDown = jest.fn(() => { stream.y += 12; return stream; });
     stream.moveUp = jest.fn(() => { stream.y = Math.max(0, stream.y - 12); return stream; });
     stream.moveTo = jest.fn(() => stream);
@@ -38,6 +43,13 @@ jest.mock('pdfkit', () => {
     stream._fontSize = 12;
     stream.widthOfString = jest.fn(() => 40);
     stream.heightOfString = jest.fn(() => 12);
+
+    // FIXED: Add bufferedPageRange() method that getCurrentPageNumber() relies on
+    stream.bufferedPageRange = jest.fn(() => ({
+      start: 0,
+      count: stream._pageBuffer.length
+    }));
+
     return stream;
   });
 });

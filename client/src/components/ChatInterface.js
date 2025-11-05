@@ -1,16 +1,19 @@
 // client/src/components/ChatInterface.js - FIXED VERSION
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Send, 
-  Bot, 
-  User, 
-  ArrowDown, 
-  Check, 
+import {
+  Send,
+  Bot,
+  User,
+  ArrowDown,
+  Check,
   AlertCircle,
-  Loader 
+  Loader,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import DocumentMetadata from './DocumentMetadata';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -19,6 +22,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showMetadata, setShowMetadata] = useState(false);
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -274,6 +278,26 @@ Let's start with your name and which state you're in.`
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
+      {/* Document Metadata Section - Collapsible */}
+      <div className="border-b bg-white">
+        <button
+          onClick={() => setShowMetadata(!showMetadata)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <span className="font-medium text-gray-700">Document Details</span>
+          {showMetadata ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+        {showMetadata && (
+          <div className="border-t">
+            <DocumentMetadata />
+          </div>
+        )}
+      </div>
+
       {/* Chat Messages */}
       <div 
         ref={chatContainerRef}

@@ -20,9 +20,9 @@ const PAGE_CONFIG = {
   marginBottom: 1, // inches
   marginLeft: 1,   // inches
   marginRight: 1,  // inches
-  lineHeight: 24,  // pixels (double-spaced)
+  lineHeight: 24,  // pixels - FIXED: matches CSS line-height: 1.5 (1.5 × 16px = 24px)
   fontSize: 16,    // pixels (12pt equivalent)
-  linesPerPage: 26 // Approximate lines per page with double spacing
+  linesPerPage: 35 // Approximate lines per page with 1.5x spacing
 };
 
 const DocumentPreview = () => {
@@ -217,8 +217,8 @@ const DocumentPreview = () => {
         case 'competency':
         default:
           // Estimate based on content length
-          // CRITICAL FIX: PAGE_CONFIG.lineHeight (24px) already represents double-spacing
-          // Multiplying by 2 again was causing preview to show ~4 facts when PDF shows ~9
+          // CRITICAL FIX: Match PDF's actual spacing (1.5x, not 2x)
+          // PDF uses PDFKit default spacing (~1.2x) + moveDown(), not true double-spacing
           const lines = Math.ceil((section.content?.length || 0) / 80); // Characters per line estimate
           sectionHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
           break;

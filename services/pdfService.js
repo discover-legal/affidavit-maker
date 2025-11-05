@@ -243,6 +243,7 @@ class PDFService {
           align: 'justify',
           width: textWidth - numberWidth,
           lineBreak: true
+          // NOTE: No lineGap parameter - uses PDFKit default ~1.2x spacing
         });
 
         // FIXED: Reset X position to left margin after rendering
@@ -441,7 +442,10 @@ class PDFService {
   }
 
   getCurrentPageNumber(doc) {
-    return doc._pageBuffer.length;
+    // Use bufferedPageRange() instead of internal _pageBuffer
+    // This is the correct way to get current page number in PDFKit
+    const range = doc.bufferedPageRange();
+    return range.start + range.count;
   }
 
   calculatePages(document) {

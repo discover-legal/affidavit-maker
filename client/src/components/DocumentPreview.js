@@ -137,8 +137,9 @@ const DocumentPreview = () => {
           isBlockElement: key === 'notaryBlock'
         };
 
-        // Keep perjury statement and signature together with notary
-        if (key === 'perjuryStatement') {
+        // FIXED: Keep conclusion, perjury statement, and signature together with notary
+        // This ensures the keepWithNext chain is complete from last fact through notary block
+        if (key === 'conclusion' || key === 'perjuryStatement') {
           sectionData.keepWithNext = true;
         }
 
@@ -164,31 +165,60 @@ const DocumentPreview = () => {
     const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96; // Convert to pixels
     
     allContent.forEach((section, idx) => {
-      // Estimate section height (this is simplified - in production you'd measure actual rendered height)
+      // CRITICAL: Height estimation must match PDF rendering for WYSIWYG accuracy
+      // PDF uses PDFKit points (72 DPI), Preview uses CSS pixels (96 DPI)
+      // Conversion: PDF points × (96/72) = CSS pixels
+      // Example: 80 points × 1.333 = 106.67px ≈ 106px
+      //
+      // NOTE: These are conservative estimates. Actual rendering may vary due to:
+      // - Font rendering differences (browser Times New Roman vs PDFKit Times-Roman)
+      // - Text wrapping differences (browser vs PDFKit text engine)
+      // - Justified text alignment differences
       let sectionHeight = 0;
-      
+
       switch(section.type) {
         case 'header':
         case 'venue':
         case 'title':
-          sectionHeight = 60; // Title sections
+          sectionHeight = 80; // Title sections (PDF uses ~60 points = 80px)
           break;
+        case 'caseCaption':
         case 'case-caption':
-          sectionHeight = 120; // Caption with border
+          sectionHeight = 160; // Caption with border (PDF uses ~120 points = 160px)
           break;
         case 'notary':
-          sectionHeight = 200; // Notary block with border
+        case 'notaryBlock':
+          // PDF uses 180 points for notary block = 240px, but with borders and padding
+          sectionHeight = 260;
+          break;
+        case 'notary-instruction':
+        case 'notaryInstruction':
+          // Variable based on content, but estimate conservatively
+          const instructionLines = Math.ceil((section.content?.length || 0) / 60);
+          sectionHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
           break;
         case 'signature':
+        case 'signatureBlock':
+          sectionHeight = 160; // PDF uses 120 points = 160px
+          break;
         case 'perjury':
-          sectionHeight = 100; // Signature sections
+        case 'perjuryStatement':
+          sectionHeight = 106; // PDF uses 80 points = 106px
+          break;
+        case 'conclusion':
+          sectionHeight = 106; // PDF uses 80 points = 106px
+          break;
+        case 'introduction':
+          // Use more conservative estimate for introduction
+          const introLines = Math.ceil((section.content?.length || 0) / 70);
+          sectionHeight = introLines * PAGE_CONFIG.lineHeight * 2;
           break;
         case 'fact':
-        case 'introduction':
-        case 'conclusion':
+        case 'competency':
         default:
-          // Estimate based on content length
-          const lines = Math.ceil((section.content?.length || 0) / 80);
+          // Estimate based on content length - be more conservative
+          // PDF wraps differently than browser, so overestimate slightly
+          const lines = Math.ceil((section.content?.length || 0) / 70); // Changed from 80 to 70 for safety
           sectionHeight = lines * PAGE_CONFIG.lineHeight * 2; // Double-spaced
           break;
       }
@@ -200,8 +230,13 @@ const DocumentPreview = () => {
       // Special handling for keep-together elements
       if (section.keepWithNext && idx < allContent.length - 1) {
         // CRITICAL FIX: Calculate total height for all remaining sections that should stay together
-        // This is especially important for the last fact which needs to stay with:
-        // conclusion, perjury statement, signature, notary instruction, and notary block
+        // This matches PDF's notary protection logic (pdfService.js lines 159-216)
+        //
+        // The keepWithNext chain for affidavits is typically:
+        // Last fact → conclusion → perjury → signature → notary instruction → notary block
+        //
+        // We must calculate the TOTAL height of this entire chain to ensure they all
+        // fit on one page together. If they don't fit, we move ALL of them to the next page.
         let totalKeepTogetherHeight = sectionHeight;
 
         // Look ahead and sum up heights of all sections that should stay together
@@ -211,21 +246,27 @@ const DocumentPreview = () => {
 
           switch(followingSection.type) {
             case 'notary':
-              followingHeight = 200;
+            case 'notaryBlock':
+              followingHeight = 260; // Match main calculation
               break;
             case 'notary-instruction':
-              followingHeight = 150;
+            case 'notaryInstruction':
+              const instructionLines = Math.ceil((followingSection.content?.length || 0) / 60);
+              followingHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
               break;
             case 'signature':
+            case 'signatureBlock':
+              followingHeight = 160; // Match main calculation
+              break;
             case 'perjuryStatement':
             case 'perjury':
-              followingHeight = 100;
+              followingHeight = 106; // Match main calculation
               break;
             case 'conclusion':
-              followingHeight = 80;
+              followingHeight = 106; // Match main calculation
               break;
             default:
-              const lines = Math.ceil((followingSection.content?.length || 0) / 80);
+              const lines = Math.ceil((followingSection.content?.length || 0) / 70); // Changed from 80 to 70
               followingHeight = lines * PAGE_CONFIG.lineHeight * 2;
               break;
           }

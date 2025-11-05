@@ -79,6 +79,9 @@ class PDFService {
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
 
+    // Calculate total pages upfront for accurate page numbering
+    const totalPages = this.calculatePages(document);
+
     // FIXED: Don't add page footer at start - it will be added at the end
     // This was causing a blank first page issue
 
@@ -91,7 +94,7 @@ class PDFService {
 
     // Venue
     if (sections.venue) {
-      this.checkPageBreak(doc, 60, metadata);
+      this.checkPageBreak(doc, 60, totalPages, metadata);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.venue, { align: 'center' });
       doc.moveDown(0.5);
@@ -99,7 +102,7 @@ class PDFService {
 
     // Case Caption
     if (sections.caseCaption) {
-      this.checkPageBreak(doc, 120, metadata);  // Increased for caption + border
+      this.checkPageBreak(doc, 120, totalPages, metadata);  // Increased for caption + border
       const captionStartY = doc.y;
       doc.fontSize(12).font('Times-Roman');
       doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
@@ -116,7 +119,7 @@ class PDFService {
 
     // Title
     if (sections.title) {
-      this.checkPageBreak(doc, 60, metadata);
+      this.checkPageBreak(doc, 60, totalPages, metadata);
       doc.fontSize(14).font('Times-Bold');
       const titleY = doc.y;
       doc.text(sections.title, { align: 'center' });
@@ -133,7 +136,7 @@ class PDFService {
 
     // Introduction
     if (sections.introduction) {
-      this.checkPageBreak(doc, 60, metadata);
+      this.checkPageBreak(doc, 60, totalPages, metadata);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.introduction, {
         align: 'justify',
@@ -189,7 +192,7 @@ class PDFService {
 
           // If everything (last fact + conclusion + signature + notary) fits, use normal page break
           if (availableSpace >= spaceForEverything) {
-            this.checkPageBreak(doc, estimatedHeight, metadata);
+            this.checkPageBreak(doc, estimatedHeight, totalPages, metadata);
           }
           // If it doesn't all fit AND we've rendered at least 1 fact, force a page break
           // BEFORE the last fact so that: last fact + conclusion + signature + notary all appear together
@@ -203,16 +206,16 @@ class PDFService {
             doc.font('Times-Roman').fontSize(12);
 
             const currentPageNum = this.getCurrentPageNumber(doc);
-            this.addPageFooter(doc, currentPageNum, metadata);
+            this.addPageFooter(doc, currentPageNum, totalPages, metadata);
             doc.addPage();
           }
           // Otherwise (this is the only fact), use normal page break and let it flow naturally
           else {
-            this.checkPageBreak(doc, estimatedHeight, metadata);
+            this.checkPageBreak(doc, estimatedHeight, totalPages, metadata);
           }
         } else {
           // Normal page break for non-last facts
-          this.checkPageBreak(doc, estimatedHeight, metadata);
+          this.checkPageBreak(doc, estimatedHeight, totalPages, metadata);
         }
 
         // Render the fact - Fixed approach to avoid text overlapping
@@ -252,7 +255,7 @@ class PDFService {
 
     // Conclusion
     if (sections.conclusion) {
-      this.checkPageBreak(doc, 80, metadata);
+      this.checkPageBreak(doc, 80, totalPages, metadata);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, {
         align: 'justify',
@@ -263,7 +266,7 @@ class PDFService {
 
     // Perjury Statement
     if (sections.perjuryStatement) {
-      this.checkPageBreak(doc, 80, metadata);
+      this.checkPageBreak(doc, 80, totalPages, metadata);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
@@ -274,7 +277,7 @@ class PDFService {
 
     // Signature Block
     if (sections.signatureBlock) {
-      this.checkPageBreak(doc, 120, metadata);
+      this.checkPageBreak(doc, 120, totalPages, metadata);
       
       doc.fontSize(12).font('Times-Roman');
       doc.moveDown();
@@ -303,14 +306,14 @@ class PDFService {
       const totalHeight = instructionHeight + notaryHeight + 40; // Increased buffer
 
       // Check if both can fit, if not start new page
-      this.checkPageBreak(doc, totalHeight, metadata);
+      this.checkPageBreak(doc, totalHeight, totalPages, metadata);
     }
 
     // Utah Notary Instruction (rendered before notary block if present)
     if (sections.notaryInstruction) {
       // Don't check page break here if we have notary block (already checked above)
       if (!sections.notaryBlock) {
-        this.checkPageBreak(doc, 150, metadata);
+        this.checkPageBreak(doc, 150, totalPages, metadata);
       }
 
       doc.fontSize(10).font('Times-Bold');
@@ -361,7 +364,7 @@ class PDFService {
     if (sections.notaryBlock) {
       // Don't check page break here if we have instruction (already checked above)
       if (!sections.notaryInstruction) {
-        this.checkPageBreak(doc, 200, metadata);
+        this.checkPageBreak(doc, 200, totalPages, metadata);
       }
 
       const startY = doc.y;
@@ -389,11 +392,11 @@ class PDFService {
 
     // Only add footer if we've rendered content on this page (Y position has moved from top)
     if (currentY > topMargin + 50) {
-      this.addPageFooter(doc, this.getCurrentPageNumber(doc), metadata);
+      this.addPageFooter(doc, this.getCurrentPageNumber(doc), totalPages, metadata);
     }
   }
 
-  checkPageBreak(doc, neededSpace, metadata) {
+  checkPageBreak(doc, neededSpace, totalPages, metadata) {
     const currentY = doc.y;
     const pageHeight = doc.page.height;
     const bottomMargin = doc.page.margins.bottom;
@@ -402,29 +405,29 @@ class PDFService {
     if (currentY + neededSpace > pageHeight - bottomMargin - 50) {
       // Add footer to current page before creating new page
       const currentPageNum = this.getCurrentPageNumber(doc);
-      this.addPageFooter(doc, currentPageNum, metadata);
+      this.addPageFooter(doc, currentPageNum, totalPages, metadata);
 
       // Now add the new page
       doc.addPage();
     }
   }
 
-  addPageFooter(doc, pageNumber, metadata) {
+  addPageFooter(doc, pageNumber, totalPages, metadata) {
     // FIXED: Don't modify the document Y position permanently
     // Save the current position
     const originalY = doc.y;
     const pageHeight = doc.page.height;
-    const bottomMargin = doc.page.margins.bottom;
 
-    // FIXED: Calculate footer position WITHIN the content area, not in the margin
-    // Put it 30 pixels above the bottom margin line to prevent page overflow
-    const footerY = pageHeight - bottomMargin - 30;
+    // FIXED: Position footer at very bottom of page (0.5 inch from bottom edge)
+    // This prevents facts from breaking to next page too early
+    const footerY = pageHeight - 36; // 36 points = 0.5 inch from bottom edge
 
     // Only render footer if we're not already past it
     if (originalY < footerY) {
       doc.fontSize(10).font('Times-Roman');
+      // FIXED: Show "Page X of Y • Created with Discover.Legal" format (without date)
       doc.text(
-        `Page ${pageNumber} • Created with Discover.Legal • ${new Date().toLocaleDateString()}`,
+        `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
         doc.page.margins.left,
         footerY,
         {

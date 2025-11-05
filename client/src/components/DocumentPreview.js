@@ -70,16 +70,21 @@ const DocumentPreview = () => {
       if (key === 'facts' && section.items && Array.isArray(section.items)) {
         // FIXED: Handle facts with numbering from StateTemplateManager
         // Facts array includes competency statement as first item
-        section.items.forEach((fact) => {
+        section.items.forEach((fact, factIndex) => {
           // Use the fact number from the template manager (already correct)
           const factNumber = fact.number || 1;
           const factContent = fact.content || String(fact);
           const factType = fact.type || 'fact';
 
+          // CRITICAL FIX: Mark the last fact with keepWithNext to ensure it stays
+          // with conclusion, perjury statement, signature, and notary sections
+          const isLastFact = factIndex === section.items.length - 1;
+          const hasNotaryBlock = sections.notaryBlock || sections.notaryInstruction;
+
           allContent.push({
             type: factType, // Can be 'competency' or 'fact'
             content: `${factNumber}. ${factContent}`,
-            keepWithNext: false,
+            keepWithNext: isLastFact && hasNotaryBlock, // Keep last fact with following sections
             breakBefore: false,
             isBlockElement: false
           });
@@ -194,14 +199,51 @@ const DocumentPreview = () => {
       
       // Special handling for keep-together elements
       if (section.keepWithNext && idx < allContent.length - 1) {
-        const nextSection = allContent[idx + 1];
-        const nextHeight = nextSection.type === 'notary' ? 200 : 100;
-        
-        if (currentPageHeight + sectionHeight + nextHeight > maxPageHeight && currentPageContent.length > 0) {
-          // Move both to next page
-          paginatedPages.push({ 
-            content: currentPageContent, 
-            pageNumber: paginatedPages.length + 1 
+        // CRITICAL FIX: Calculate total height for all remaining sections that should stay together
+        // This is especially important for the last fact which needs to stay with:
+        // conclusion, perjury statement, signature, notary instruction, and notary block
+        let totalKeepTogetherHeight = sectionHeight;
+
+        // Look ahead and sum up heights of all sections that should stay together
+        for (let i = idx + 1; i < allContent.length; i++) {
+          const followingSection = allContent[i];
+          let followingHeight = 0;
+
+          switch(followingSection.type) {
+            case 'notary':
+              followingHeight = 200;
+              break;
+            case 'notary-instruction':
+              followingHeight = 150;
+              break;
+            case 'signature':
+            case 'perjuryStatement':
+            case 'perjury':
+              followingHeight = 100;
+              break;
+            case 'conclusion':
+              followingHeight = 80;
+              break;
+            default:
+              const lines = Math.ceil((followingSection.content?.length || 0) / 80);
+              followingHeight = lines * PAGE_CONFIG.lineHeight * 2;
+              break;
+          }
+
+          totalKeepTogetherHeight += followingHeight;
+
+          // If this following section also has keepWithNext, continue looking ahead
+          if (!followingSection.keepWithNext) {
+            break;
+          }
+        }
+
+        // Check if all sections that should stay together fit on current page
+        if (currentPageHeight + totalKeepTogetherHeight > maxPageHeight && currentPageContent.length > 0) {
+          // Move all of them to next page
+          paginatedPages.push({
+            content: currentPageContent,
+            pageNumber: paginatedPages.length + 1
           });
           currentPageContent = [];
           currentPageHeight = 0;

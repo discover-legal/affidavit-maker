@@ -36,15 +36,22 @@ const ChatInterface = () => {
 
   // Reset messages when document changes
   useEffect(() => {
-    if (currentDocument.documentId && currentDocument.documentId !== currentDocumentIdRef.current) {
-      // Always clear messages when document ID changes (including from null to a new ID)
-      console.log('📄 Document changed, clearing messages', {
-        from: currentDocumentIdRef.current,
-        to: currentDocument.documentId
+    const newDocId = currentDocument.documentId;
+    const prevDocId = currentDocumentIdRef.current;
+
+    // If documentId changed (including null -> value, value -> null, or value -> different value)
+    if (newDocId !== prevDocId) {
+      console.log('📄 Document ID changed, clearing messages', {
+        from: prevDocId,
+        to: newDocId
       });
+
+      // Clear messages whenever documentId changes
       setMessages([]);
-      welcomeMessageShownRef.current = false; // Reset welcome message flag
-      currentDocumentIdRef.current = currentDocument.documentId;
+      welcomeMessageShownRef.current = false;
+
+      // Update the ref to track the new documentId
+      currentDocumentIdRef.current = newDocId;
     }
   }, [currentDocument.documentId]);
 

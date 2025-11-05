@@ -414,27 +414,31 @@ class PDFService {
   }
 
   addPageFooter(doc, pageNumber, totalPages, metadata) {
-    // Calculate footer position (0.5 inch from bottom)
+    // FIXED: Position footer at very bottom of page (0.5 inch from bottom edge)
+    const originalY = doc.y;
     const pageHeight = doc.page.height;
     const footerY = pageHeight - 36; // 36 points = 0.5 inch from bottom edge
 
-    // Render footer at absolute position
-    // NOTE: We do NOT restore doc.y after this - the footer "owns" this space
-    // and subsequent content should go on the next page if needed
-    doc.fontSize(10).font('Times-Roman');
-    doc.text(
-      `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
-      doc.page.margins.left,
-      footerY,
-      {
-        width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
-        align: 'center',
-        lineBreak: false
-      }
-    );
+    // Only render footer if we're not already past it
+    if (originalY < footerY) {
+      doc.fontSize(10).font('Times-Roman');
+      doc.text(
+        `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
+        doc.page.margins.left,
+        footerY,
+        {
+          width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+          align: 'center',
+          lineBreak: false
+        }
+      );
 
-    // After rendering footer, doc.y is now at footerY + text height (~footerY + 10)
-    // This signals to PDFKit that the page is full and no more content should be added
+      // CRITICAL FIX: Don't restore Y position after adding footer
+      // This was causing PDFKit to buffer the footer operation and apply it to the next page
+      // Instead, keep Y at footerY so PDFKit knows the page is complete
+      // Leave doc.y at footerY + text height to indicate page is done
+      // doc.y = originalY;  // REMOVED - this was causing footer to appear on wrong page
+    }
   }
 
   getCurrentPageNumber(doc) {

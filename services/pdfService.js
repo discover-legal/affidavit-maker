@@ -425,9 +425,9 @@ class PDFService {
     // Only render footer if we're not already past it
     if (originalY < footerY) {
       doc.fontSize(10).font('Times-Roman');
-      // FIXED: Remove date and show "Page X of Y" format
+      // FIXED: Show "Page X of Y • Created with Discover.Legal" format (without date)
       doc.text(
-        `Page ${pageNumber} of ${totalPages}`,
+        `Page ${pageNumber} of ${totalPages} • Created with Discover.Legal`,
         doc.page.margins.left,
         footerY,
         {

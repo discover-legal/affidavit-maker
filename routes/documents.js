@@ -37,28 +37,28 @@ router.post('/preview',
 
       // Generate new preview
       let preview;
-      
-      // FIX: Check if template manager exists AND has the correct method
-      if (templateManager && typeof templateManager.generateDocument === 'function') {
+
+      // FIX: Use templateManager.generateAffidavit() method (matches /generate endpoint)
+      if (templateManager) {
         try {
-          // Use generateDocument instead of generatePreview
-          const template = templateManager.getTemplate(affidavitData.state || 'TX');
-          const document = template.generateDocument(affidavitData);
-          
+          // Use generateAffidavit with state code and data (same as /generate endpoint)
+          const document = templateManager.generateAffidavit(
+            affidavitData.state || 'TX',
+            affidavitData
+          );
+
           preview = {
             sections: document.sections || document,
             htmlContent: document.htmlContent,
             metadata: {
-              wordCount: template.calculateWordCount ? 
-                template.calculateWordCount(affidavitData.facts) : 
-                (affidavitData.facts?.length || 0) * 50
+              wordCount: estimateWordCount(affidavitData.facts)
             }
           };
-          
+
           logger.info('StateTemplateManager preview generated successfully');
         } catch (templateError) {
-          logger.warn('Template manager preview failed, using fallback', { 
-            error: templateError.message 
+          logger.warn('Template manager preview failed, using fallback', {
+            error: templateError.message
           });
           preview = createFallbackPreview(affidavitData);
         }

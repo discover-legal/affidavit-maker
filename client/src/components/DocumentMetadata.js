@@ -8,10 +8,10 @@ import '../styles/DocumentMetadata.css';
  */
 const DocumentMetadata = () => {
   const { currentDocument } = useDocumentState();
-  const { updateDocument } = useDocumentActions();
+  const { updateDocumentData } = useDocumentActions();
 
   const handleChange = (field, value) => {
-    updateDocument({ [field]: value });
+    updateDocumentData({ [field]: value });
   };
 
   return (

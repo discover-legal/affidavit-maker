@@ -772,12 +772,27 @@ function enhancePreviewWithCategories(preview, affidavitData) {
   }
 
   const enhanced = { ...preview };
-  
+
   if (!affidavitData.facts || affidavitData.facts.length === 0) {
     return enhanced;
   }
 
-  const items = prepareFactsForDisplay(affidavitData.facts);
+  // ✅ FIX: Use items from StateTemplateManager if available (they have proper 'number' property)
+  // The StateTemplateManager already properly numbers facts (1, 2, 3, etc.) with the 'number' property
+  // prepareFactsForDisplay creates items with 'index' property instead, which causes all facts to show as "1."
+  let items;
+  if (enhanced.sections.facts?.items && Array.isArray(enhanced.sections.facts.items)) {
+    // Use the properly numbered items from StateTemplateManager
+    items = enhanced.sections.facts.items;
+  } else {
+    // Fallback: create items from raw facts (for backwards compatibility)
+    items = prepareFactsForDisplay(affidavitData.facts);
+    // Add 'number' property to match what DocumentPreview expects
+    items = items.map(item => ({
+      ...item,
+      number: item.index // Copy index to number so DocumentPreview can use it
+    }));
+  }
 
   let formattedString = '';
   if (enhanced.sections.facts) {
@@ -786,7 +801,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
     } else if (enhanced.sections.facts.formatted) {
       formattedString = enhanced.sections.facts.formatted;
     } else if (items.length > 0) {
-      formattedString = items.map(f => `${f.index}. ${f.displayContent}`).join('\n\n');
+      formattedString = items.map(f => `${f.number || f.index}. ${f.content || f.displayContent}`).join('\n\n');
     }
   }
 
@@ -801,7 +816,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
       qualityMetrics: calculateQualityMetrics(affidavitData.facts)
     }
   };
-  
+
   return enhanced;
 }
 

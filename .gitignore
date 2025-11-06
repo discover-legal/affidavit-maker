@@ -140,3 +140,6 @@ dist
 repomix-output.xml
 repomix-output.xml
 auto-fix.sh
+
+# Generated PDF documents
+documents/

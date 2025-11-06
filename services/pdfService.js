@@ -15,7 +15,8 @@ class PDFService {
       margins: { top: 72, bottom: 72, left: 72, right: 72 },
       font: 'Times-Roman',
       fontSize: 12,
-      lineHeight: 2.0
+      lineHeight: 2.0,
+      bufferPages: true  // CRITICAL: Required for switchToPage() and bufferedPageRange()
     };
 
     // Footer configuration
@@ -45,29 +46,24 @@ class PDFService {
         try {
           // PASS 1: Render all content
           this.buildPDF(doc, document);
-          
-          // ✅ CRITICAL: Force buffer flush by calling flushPages()
-          // This ensures PDFKit knows about all pages before we try to switch between them
-          if (typeof doc.flushPages === 'function') {
-            doc.flushPages();
-          }
-          
-          // Get total page count after all content is rendered and buffer is flushed
+
+          // ✅ CRITICAL: Get total page count BEFORE flushing
+          // flushPages() clears the buffer, so we must get count first!
           const range = doc.bufferedPageRange();
           const totalPages = range.count;
-          
+
           // PASS 2: Add footers to all pages with correct total
-          // Now that buffer is flushed, all pages exist and switchToPage will work
+          // Pages are still in buffer, so switchToPage will work
           for (let pageNum = 0; pageNum < totalPages; pageNum++) {
             doc.switchToPage(pageNum); // 0-indexed: 0, 1, 2, ...
-            
+
             const pageHeight = doc.page.height;
             const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
-            
+
             // Save current position
             const savedY = doc.y;
             const savedX = doc.x;
-            
+
             // Add footer (pageNum + 1 for display: 1, 2, 3, ...)
             doc.fontSize(this.FOOTER_FONT_SIZE).font('Times-Roman');
             doc.text(
@@ -80,10 +76,16 @@ class PDFService {
                 lineBreak: false
               }
             );
-            
+
             // Restore position
             doc.y = savedY;
             doc.x = savedX;
+          }
+
+          // ✅ OPTIONAL: Flush pages after adding footers (or let doc.end() handle it)
+          // This writes all buffered pages to the stream
+          if (typeof doc.flushPages === 'function') {
+            doc.flushPages();
           }
           
           doc.end();

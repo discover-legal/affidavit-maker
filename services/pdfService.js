@@ -15,7 +15,8 @@ class PDFService {
       margins: { top: 72, bottom: 72, left: 72, right: 72 },
       font: 'Times-Roman',
       fontSize: 12,
-      lineHeight: 2.0
+      lineHeight: 2.0,
+      bufferPages: true  // CRITICAL: Required for switchToPage() and bufferedPageRange()
     };
 
     // Footer configuration
@@ -30,64 +31,33 @@ class PDFService {
 
   async generatePDF(document, options = {}) {
     const { documentId, userId } = options;
-    
+
     try {
       const documentsDir = path.join(__dirname, '..', 'documents');
       await fs.mkdir(documentsDir, { recursive: true });
-      
+
       const filename = `affidavit-${documentId || Date.now()}.pdf`;
       const filepath = path.join(documentsDir, filename);
-      
+
       return new Promise((resolve, reject) => {
+        // PASS 1: Count total pages by rendering to a dummy document
+        const dummyDoc = new PDFDocument(this.defaultOptions);
+        dummyDoc.pipe(require('stream').PassThrough()); // Pipe to nowhere
+        this.buildPDF(dummyDoc, document, false); // false = no footers
+        const totalPages = dummyDoc.bufferedPageRange().count;
+        dummyDoc.end();
+
+        // PASS 2: Render actual PDF with footers
         const doc = new PDFDocument(this.defaultOptions);
         const stream = doc.pipe(require('fs').createWriteStream(filepath));
-        
+
+        // Set up page numbering for pass 2
+        this.totalPages = totalPages;
+
         try {
-          // PASS 1: Render all content
-          this.buildPDF(doc, document);
-          
-          // ✅ CRITICAL: Force buffer flush by calling flushPages()
-          // This ensures PDFKit knows about all pages before we try to switch between them
-          if (typeof doc.flushPages === 'function') {
-            doc.flushPages();
-          }
-          
-          // Get total page count after all content is rendered and buffer is flushed
-          const range = doc.bufferedPageRange();
-          const totalPages = range.count;
-          
-          // PASS 2: Add footers to all pages with correct total
-          // Now that buffer is flushed, all pages exist and switchToPage will work
-          for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-            doc.switchToPage(pageNum); // 0-indexed: 0, 1, 2, ...
-            
-            const pageHeight = doc.page.height;
-            const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
-            
-            // Save current position
-            const savedY = doc.y;
-            const savedX = doc.x;
-            
-            // Add footer (pageNum + 1 for display: 1, 2, 3, ...)
-            doc.fontSize(this.FOOTER_FONT_SIZE).font('Times-Roman');
-            doc.text(
-              `Page ${pageNum + 1} of ${totalPages} • Created with Discover.Legal`,
-              doc.page.margins.left,
-              footerY,
-              {
-                width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
-                align: 'center',
-                lineBreak: false
-              }
-            );
-            
-            // Restore position
-            doc.y = savedY;
-            doc.x = savedX;
-          }
-          
+          this.buildPDF(doc, document, true); // true = add footers
           doc.end();
-          
+
           stream.on('finish', () => {
             resolve({
               filepath,
@@ -96,7 +66,7 @@ class PDFService {
               success: true
             });
           });
-          
+
           stream.on('error', reject);
         } catch (error) {
           reject(error);
@@ -108,8 +78,71 @@ class PDFService {
     }
   }
 
-  buildPDF(doc, document) {
+  addPageWithFooter(doc) {
+    // Add footer to current page before creating new page
+    if (this.shouldAddFooters && !this.addingFooter) {
+      this.addFooter(doc);
+    }
+
+    // Add new page
+    doc.addPage();
+
+    // Increment page counter
+    if (this.shouldAddFooters) {
+      this.currentPage++;
+    }
+  }
+
+  addFooter(doc) {
+    // Prevent recursive footer addition
+    this.addingFooter = true;
+
+    const pageHeight = doc.page.height;
+    const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
+
+    // Save current state
+    const savedY = doc.y;
+    const savedX = doc.x;
+    const savedFont = doc._font;
+    const savedFontSize = doc._fontSize;
+
+    // CRITICAL: Move cursor to a safe position to prevent page break
+    // Set Y to a position well within the page margins
+    doc.y = Math.min(savedY, this.EFFECTIVE_PAGE_HEIGHT - 50);
+
+    // Use direct PDF text positioning to place footer outside normal flow
+    const footerText = `Page ${this.currentPage} of ${this.totalPages} • Created with Discover.Legal`;
+    const textWidth = doc.widthOfString(footerText, { fontSize: this.FOOTER_FONT_SIZE });
+    const centerX = (doc.page.width - textWidth) / 2;
+
+    // Render footer using direct positioning
+    doc.fontSize(this.FOOTER_FONT_SIZE).font('Times-Roman');
+    doc.save();
+    doc.translate(centerX, footerY);
+    doc.text(footerText, 0, 0, {
+      lineBreak: false,
+      width: textWidth
+    });
+    doc.restore();
+
+    // Restore state
+    doc.y = savedY;
+    doc.x = savedX;
+    if (savedFont) doc.font(savedFont.name || 'Times-Roman');
+    if (savedFontSize) doc.fontSize(savedFontSize);
+
+    this.addingFooter = false;
+  }
+
+  buildPDF(doc, document, addFooters = false) {
     const { sections, metadata } = document;
+
+    // Track current page for footer rendering
+    this.shouldAddFooters = addFooters;
+    if (addFooters) {
+      this.currentPage = 1;
+      this.addingFooter = false;
+    }
 
     // Header
     if (sections.header) {
@@ -199,7 +232,7 @@ class PDFService {
             doc.fontSize(11).font('Times-Italic');
             doc.text('(Continued on next page)', { align: 'center' });
             doc.font('Times-Roman').fontSize(12);
-            doc.addPage();
+            this.addPageWithFooter(doc);
           }
           else {
             this.checkPageBreak(doc, estimatedHeight);
@@ -318,7 +351,7 @@ class PDFService {
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
         if (remainingSpace < 200) {
-          doc.addPage();
+          this.addPageWithFooter(doc);
         }
       }
     }
@@ -341,13 +374,18 @@ class PDFService {
         endY - startY + (borderMargin * 2)
       ).stroke();
     }
+
+    // Add footer to the last page
+    if (this.shouldAddFooters && !this.addingFooter) {
+      this.addFooter(doc);
+    }
   }
 
   checkPageBreak(doc, neededSpace = 60) {
     const availableSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
 
     if (neededSpace > availableSpace) {
-      doc.addPage();
+      this.addPageWithFooter(doc);
     }
   }
 

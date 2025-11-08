@@ -282,6 +282,16 @@ const DocumentPreview = () => {
 
         // Check if all sections that should stay together fit on current page
         if (currentPageHeight + totalKeepTogetherHeight > maxPageHeight && currentPageContent.length > 0) {
+          // Add "continued on next page" text before the page break
+          // This matches the PDF behavior (pdfService.js lines 230-236)
+          currentPageContent.push({
+            type: 'continuation',
+            content: '(Continued on next page)',
+            keepWithNext: false,
+            breakBefore: false,
+            isBlockElement: false
+          });
+
           // Move all of them to next page
           paginatedPages.push({
             content: currentPageContent,
@@ -470,6 +480,13 @@ const DocumentPreview = () => {
           </p>
         );
 
+      case 'continuation':
+        return (
+          <div key={key} className="affidavit-continuation">
+            {section.content}
+          </div>
+        );
+
       default:
         return (
           <div key={key} className="affidavit-paragraph">
@@ -621,6 +638,15 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize}px;
           margin: 0;
           white-space: pre-wrap;
+        }
+
+        .affidavit-continuation {
+          text-align: center;
+          font-style: italic;
+          font-size: ${PAGE_CONFIG.fontSize - 1}px;
+          margin-top: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight / 2}px;
+          color: #333;
         }
 
         @media print {

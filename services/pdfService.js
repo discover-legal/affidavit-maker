@@ -164,14 +164,14 @@ class PDFService {
       this.checkPageBreak(doc, 120);
       doc.fontSize(12).font('Times-Roman');
       doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
-      doc.moveDown(0.5);
+      doc.moveDown(1.3); // 24px padding-bottom in preview (18pt)
 
       const borderY = doc.y;
       doc.moveTo(doc.page.margins.left, borderY)
          .lineTo(doc.page.width - doc.page.margins.right, borderY)
          .stroke();
 
-      doc.moveDown(1.0);
+      doc.moveDown(2.6); // 48px margin-bottom in preview (36pt)
     }
 
     // Title

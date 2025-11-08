@@ -284,8 +284,8 @@ Let's start with your name and which state you're in.`
           onClick={() => setShowMetadata(!showMetadata)}
           className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
             showMetadata
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'hover:bg-gray-50 text-gray-700'
+              ? 'bg-gray-100 hover:bg-gray-200'
+              : 'hover:bg-gray-50'
           }`}
         >
           <span className="font-medium">Document Details</span>

@@ -282,13 +282,17 @@ Let's start with your name and which state you're in.`
       <div className="hidden md:block border-b bg-white">
         <button
           onClick={() => setShowMetadata(!showMetadata)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
+            showMetadata
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'hover:bg-gray-50 text-gray-700'
+          }`}
         >
-          <span className="font-medium text-gray-700">Document Details</span>
+          <span className="font-medium">Document Details</span>
           {showMetadata ? (
-            <ChevronUp className="h-5 w-5 text-gray-500" />
+            <ChevronUp className={`h-5 w-5 ${showMetadata ? 'text-white' : 'text-gray-500'}`} />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-500" />
+            <ChevronDown className={`h-5 w-5 ${showMetadata ? 'text-white' : 'text-gray-500'}`} />
           )}
         </button>
       </div>

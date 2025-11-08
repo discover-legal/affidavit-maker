@@ -180,10 +180,9 @@ class PDFService {
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.title, { align: 'center' });
 
-      const titleWidth = doc.widthOfString(sections.title);
-      const titleX = (doc.page.width - titleWidth) / 2;
-      doc.moveTo(titleX, doc.y + 2)
-         .lineTo(titleX + titleWidth, doc.y + 2)
+      const borderY = doc.y + 2;
+      doc.moveTo(doc.page.margins.left, borderY)
+         .lineTo(doc.page.width - doc.page.margins.right, borderY)
          .stroke();
 
       doc.moveDown(1.5);

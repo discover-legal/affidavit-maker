@@ -288,11 +288,11 @@ Let's start with your name and which state you're in.`
               : 'hover:bg-gray-50'
           }`}
         >
-          <span className="font-medium text-gray-700">Document Details</span>
+          <span className="font-medium">Document Details</span>
           {showMetadata ? (
-            <ChevronUp className="h-5 w-5 text-gray-500" />
+            <ChevronUp className={`h-5 w-5 ${showMetadata ? 'text-white' : 'text-gray-500'}`} />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-500" />
+            <ChevronDown className={`h-5 w-5 ${showMetadata ? 'text-white' : 'text-gray-500'}`} />
           )}
         </button>
       </div>

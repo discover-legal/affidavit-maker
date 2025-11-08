@@ -301,7 +301,7 @@ Let's start with your name and which state you're in.`
       >
         {/* Document Metadata Overlay - Takes full chat area when open */}
         {showMetadata && (
-          <div className="absolute inset-0 bg-white z-10 overflow-y-auto p-6 shadow-lg">
+          <div className="absolute inset-0 bg-white z-10 overflow-y-auto p-3 shadow-lg">
             <DocumentMetadata />
           </div>
         )}

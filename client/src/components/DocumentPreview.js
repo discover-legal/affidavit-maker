@@ -416,7 +416,7 @@ const DocumentPreview = () => {
       case 'title':
         return (
           <div key={key} className="affidavit-title">
-            <span>{section.content}</span>
+            {section.content}
           </div>
         );
       

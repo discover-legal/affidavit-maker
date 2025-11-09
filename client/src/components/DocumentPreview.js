@@ -10,7 +10,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
-import '../styles/DocumentPreview.css';
 
 // Page configuration for US Letter (8.5" x 11" with 1" margins)
 const PAGE_CONFIG = {
@@ -603,8 +602,6 @@ const DocumentPreview = () => {
         .affidavit-fact {
           text-align: justify;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding-left: 0.5in;
-          text-indent: -0.5in;
         }
 
         .affidavit-perjury {

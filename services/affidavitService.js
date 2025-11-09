@@ -1,5 +1,6 @@
 // services/affidavitService.js - UPDATED WITH COUNTY & CASE CAPTION COLLECTION
 const logger = require('../utils/logger');
+const courtNameService = require('./courtNameService');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -461,6 +462,18 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     if (args.extracted_county) {
       newData.county = String(args.extracted_county).trim();
       hasNewData = true;
+    }
+
+    // ✅ Auto-generate court name from county and state if not manually provided
+    if (newData.county && newData.state && !args.court_name && !currentData.courtName) {
+      const autoCourtName = courtNameService.getDefaultCourtName(
+        newData.state,
+        newData.county
+      );
+      if (autoCourtName) {
+        newData.courtName = autoCourtName;
+        hasNewData = true;
+      }
     }
 
     // ✅ Extract case caption fields

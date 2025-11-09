@@ -1,5 +1,5 @@
 // services/courtNameService.js - Court Name Formatting Service
-const logger = require('./utils/logger');
+const logger = require('../utils/logger');
 
 class CourtNameService {
   constructor() {

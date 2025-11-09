@@ -3,11 +3,27 @@ const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const { Pool } = require('pg');
 const logger = require('../utils/logger');
-const config = require('../config');
+
+// Process Auth0 domain to get jwksUri
+const processAuth0Domain = (domain) => {
+  if (!domain) return null;
+  // Remove any protocol if present
+  domain = domain.replace(/^https?:\/\//, '');
+  // Remove any trailing slash
+  domain = domain.replace(/\/$/, '');
+  // Add https:// protocol
+  return `https://${domain}`;
+};
+
+const auth0Domain = processAuth0Domain(process.env.AUTH0_DOMAIN);
+const jwksUri = `${auth0Domain}/.well-known/jwks.json`;
+const auth0Audience = process.env.AUTH0_AUDIENCE;
+const auth0Issuer = `${auth0Domain}/`;
+const auth0Algorithms = ['RS256'];
 
 // Create JWKS client
 const client = jwksClient({
-  jwksUri: config.auth0.jwksUri,
+  jwksUri: jwksUri,
   cache: true,
   cacheMaxEntries: 5,
   cacheMaxAge: 600000, // 10 minutes
@@ -99,17 +115,17 @@ const checkJwt = (req, res, next) => {
   }
   
   jwt.verify(token, getKey, {
-    audience: config.auth0.audience,
-    issuer: config.auth0.issuer,
-    algorithms: config.auth0.algorithms
+    audience: auth0Audience,
+    issuer: auth0Issuer,
+    algorithms: auth0Algorithms
   }, async (err, decoded) => {
     if (err) {
       logger.error('JWT verification error:', {
         error: err.message,
         path: req.path,
         requestId: req.id,
-        expectedIssuer: config.auth0.issuer,
-        expectedAudience: config.auth0.audience
+        expectedIssuer: auth0Issuer,
+        expectedAudience: auth0Audience
       });
       
       return res.status(401).json({ 
@@ -174,9 +190,9 @@ const optionalAuth = async (req, res, next) => {
   }
   
   jwt.verify(token, getKey, {
-    audience: config.auth0.audience,
-    issuer: config.auth0.issuer,
-    algorithms: config.auth0.algorithms
+    audience: auth0Audience,
+    issuer: auth0Issuer,
+    algorithms: auth0Algorithms
   }, async (err, decoded) => {
     if (err) {
       // Log but don't fail - this is optional auth

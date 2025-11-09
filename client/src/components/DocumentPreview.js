@@ -574,8 +574,8 @@ const DocumentPreview = () => {
 
         .affidavit-caption {
           text-align: center;
-          margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
-          padding-bottom: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight / 3}px;
+          padding-bottom: ${PAGE_CONFIG.lineHeight + 3}px;
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
@@ -584,7 +584,8 @@ const DocumentPreview = () => {
           text-align: center;
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
-          margin-bottom: ${PAGE_CONFIG.lineHeight * 2}px;
+          padding-bottom: ${PAGE_CONFIG.lineHeight / 3}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight + 3}px;
         }
 
         .affidavit-title > span {

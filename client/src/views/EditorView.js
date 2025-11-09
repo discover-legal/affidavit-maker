@@ -84,7 +84,8 @@ const EditorView = ({ isNew = false, onBack }) => {
     isSaving,
     lastSaved,
     hasUnsavedChanges,
-    sessionInitialized
+    sessionInitialized,
+    justSaved
   } = useDocumentState();
   
   const {
@@ -415,11 +416,11 @@ const EditorView = ({ isNew = false, onBack }) => {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSaveProgress}
-                disabled={isSaving || !isAuthenticated}
+                disabled={isSaving || justSaved || !isAuthenticated}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Save className="h-4 w-4" />
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save'}
               </button>
               
               <button

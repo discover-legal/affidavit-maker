@@ -40,7 +40,8 @@ const initialState = {
   lastSaved: null,
   error: null,
   validation: null,
-  hasUnsavedChanges: false
+  hasUnsavedChanges: false,
+  justSaved: false
 };
 
 // Action types
@@ -60,7 +61,8 @@ const ActionTypes = {
   SET_SESSION_INITIALIZED: 'SET_SESSION_INITIALIZED',
   RESET_DOCUMENT: 'RESET_DOCUMENT',
   SELECT_DOCUMENT: 'SELECT_DOCUMENT',
-  MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES'
+  MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
+  SET_JUST_SAVED: 'SET_JUST_SAVED'
 };
 
 // Reducer
@@ -162,7 +164,13 @@ const documentReducer = (state, action) => {
         ...state,
         hasUnsavedChanges: action.payload
       };
-    
+
+    case ActionTypes.SET_JUST_SAVED:
+      return {
+        ...state,
+        justSaved: action.payload
+      };
+
     case ActionTypes.SET_SESSION_INITIALIZED:
       return {
         ...state,
@@ -520,6 +528,20 @@ export const DocumentProvider = ({ children }) => {
           type: ActionTypes.SET_LAST_SAVED,
           payload: new Date()
         });
+
+        // Set justSaved flag
+        dispatch({
+          type: ActionTypes.SET_JUST_SAVED,
+          payload: true
+        });
+
+        // Clear justSaved flag after 2.5 seconds
+        setTimeout(() => {
+          dispatch({
+            type: ActionTypes.SET_JUST_SAVED,
+            payload: false
+          });
+        }, 2500);
 
         // Update validation if included in response
         if (data.validation) {

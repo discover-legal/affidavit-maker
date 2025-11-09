@@ -573,8 +573,8 @@ const DocumentPreview = () => {
 
         .affidavit-caption {
           text-align: center;
-          margin-bottom: ${PAGE_CONFIG.lineHeight / 3}px;
-          padding-bottom: ${PAGE_CONFIG.lineHeight + 3}px;
+          padding-bottom: 16px;
+          margin-bottom: 32px;
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
@@ -583,14 +583,9 @@ const DocumentPreview = () => {
           text-align: center;
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
-          padding-bottom: ${PAGE_CONFIG.lineHeight / 3}px;
-          margin-bottom: ${PAGE_CONFIG.lineHeight + 3}px;
-        }
-
-        .affidavit-title > span {
-          display: inline-block;
-          border-bottom: 2px solid black;
           padding-bottom: 2px;
+          margin-bottom: 48px;
+          border-bottom: 2px solid black;
         }
 
         .affidavit-paragraph {

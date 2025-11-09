@@ -93,7 +93,7 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
 const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, documentId, documentType = 'single_affidavit' }) => {
   const { getAccessTokenSilently } = useAuth0();
   const [clientSecret, setClientSecret] = useState(null);
-  const [amount, setAmount] = useState(3999); // Default: $39.99
+  const [amount, setAmount] = useState(7900); // Default: $79.00
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 

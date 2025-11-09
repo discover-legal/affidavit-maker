@@ -78,8 +78,6 @@
 .affidavit-fact {
   text-align: justify;
   margin-bottom: 24px;
-  padding-left: 48px; /* 0.5 inch indent */
-  text-indent: -48px; /* Hanging indent for numbers */
   padding-right: 48px; /* Prevent right edge overflow */
 }
 

@@ -148,7 +148,7 @@ class PDFService {
     if (sections.header) {
       doc.fontSize(16).font('Times-Bold');
       doc.text(sections.header, { align: 'center' });
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
     }
 
     // Venue
@@ -156,7 +156,7 @@ class PDFService {
       this.checkPageBreak(doc);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.venue, { align: 'center' });
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
     }
 
     // Case Caption
@@ -164,14 +164,14 @@ class PDFService {
       this.checkPageBreak(doc, 120);
       doc.fontSize(12).font('Times-Roman');
       doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
 
       const borderY = doc.y;
       doc.moveTo(doc.page.margins.left, borderY)
          .lineTo(doc.page.width - doc.page.margins.right, borderY)
          .stroke();
 
-      doc.moveDown(1.0);
+      doc.moveDown(1.5);
     }
 
     // Title

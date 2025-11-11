@@ -105,7 +105,7 @@ const LandingPage = ({ onGetStarted }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">$79.00</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">$79</div>
               <div className="text-sm text-gray-600">Per Document</div>
             </div>
             <div className="text-center">

@@ -32,6 +32,38 @@ const DocumentPreview = () => {
   const [zoomLevel, setZoomLevel] = useState(80);
   const containerRef = useRef(null);
   const pageRefs = useRef([]);
+  const measureCanvasRef = useRef(null);
+
+  // Create a canvas for accurate text measurement
+  const getTextHeight = (text, fontSize, fontFamily, maxWidth) => {
+    if (!measureCanvasRef.current) {
+      measureCanvasRef.current = document.createElement('canvas');
+    }
+    const canvas = measureCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${fontSize}px ${fontFamily}`;
+
+    // Split text into words and calculate wrapped lines
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    // Return total height (lines * line height + margins)
+    return lines.length * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight;
+  };
 
   // Center the preview pane horizontally to ensure equal left/right scroll
   useEffect(() => {
@@ -168,12 +200,8 @@ const DocumentPreview = () => {
       // PDF uses PDFKit points (72 DPI), Preview uses CSS pixels (96 DPI)
       // Conversion: PDF points × (96/72) = CSS pixels
       // Example: 80 points × 1.333 = 106.67px ≈ 106px
-      //
-      // NOTE: These are conservative estimates. Actual rendering may vary due to:
-      // - Font rendering differences (browser Times New Roman vs PDFKit Times-Roman)
-      // - Text wrapping differences (browser vs PDFKit text engine)
-      // - Justified text alignment differences
       let sectionHeight = 0;
+      const contentWidth = (PAGE_CONFIG.width - PAGE_CONFIG.marginLeft - PAGE_CONFIG.marginRight) * 96; // Available width in pixels
 
       switch(section.type) {
         case 'header':
@@ -185,43 +213,42 @@ const DocumentPreview = () => {
           break;
         case 'caseCaption':
         case 'case-caption':
-          sectionHeight = 140; // Caption with border: updated for more accurate spacing
+          // Use actual text measurement for multi-line captions
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48; // Add border and margins
           break;
         case 'notary':
         case 'notaryBlock':
-          // Reduced from 260 to match PDF's 180 points estimate (240px)
-          sectionHeight = 240;
+          // Use actual text measurement
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 48; // Account for padding
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
-          // Variable based on content, but estimate conservatively
-          const instructionLines = Math.ceil((section.content?.length || 0) / 60);
-          sectionHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
+          // Use actual text measurement with smaller font
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48) + 48; // 10pt font + padding
           break;
         case 'signature':
         case 'signatureBlock':
-          sectionHeight = 160; // PDF uses 120 points = 160px
+          // Use actual text measurement for signature lines
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48; // Extra margin for signature spacing
           break;
         case 'perjury':
         case 'perjuryStatement':
-          sectionHeight = 106; // PDF uses 80 points = 106px
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'conclusion':
-          sectionHeight = 106; // PDF uses 80 points = 106px
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'introduction':
-          // Estimate for introduction paragraph
-          const introLines = Math.ceil((section.content?.length || 0) / 80);
-          sectionHeight = introLines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'fact':
         case 'competency':
         default:
-          // Estimate based on content length
-          // CRITICAL FIX: Match PDF's actual spacing (1.5x, not 2x)
-          // PDF uses PDFKit default spacing (~1.2x) + moveDown(), not true double-spacing
-          const lines = Math.ceil((section.content?.length || 0) / 80); // Characters per line estimate
-          sectionHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+          // Use actual text measurement for facts
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight;
           break;
       }
       
@@ -249,27 +276,25 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = 240; // Match updated main calculation (180pt = 240px)
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 48;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
-              const instructionLines = Math.ceil((followingSection.content?.length || 0) / 60);
-              followingHeight = Math.max(160, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48) + 48;
               break;
             case 'signature':
             case 'signatureBlock':
-              followingHeight = 160; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48;
               break;
             case 'perjuryStatement':
             case 'perjury':
-              followingHeight = 106; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24;
               break;
             case 'conclusion':
-              followingHeight = 106; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24;
               break;
             default:
-              const lines = Math.ceil((followingSection.content?.length || 0) / 80);
-              followingHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight;
               break;
           }
 
@@ -633,6 +658,25 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize}px;
           margin: 0;
           white-space: pre-wrap;
+        }
+
+        .affidavit-notary-instruction {
+          margin-top: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          padding: ${PAGE_CONFIG.lineHeight / 2}px;
+          border: 2px solid #0066cc;
+          color: #0066cc;
+          font-weight: bold;
+          font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
+        }
+
+        .affidavit-notary-instruction pre {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
+          font-weight: bold;
+          margin: 0;
+          white-space: pre-wrap;
+          color: #0066cc;
         }
 
         .affidavit-continuation {

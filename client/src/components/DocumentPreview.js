@@ -295,7 +295,7 @@ const DocumentPreview = () => {
           // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
           // Total spacing: ~20pt + 24pt = 44pt = 59px, but text height differs between systems
           // Fine-tuned to +27px to match PDF pagination (30px still fell just short for 7th fact)
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 27;
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 25;
           break;
       }
       
@@ -682,8 +682,8 @@ const DocumentPreview = () => {
 
         .affidavit-caption {
           text-align: center;
-          padding-bottom: 16px;
-          margin-bottom: 32px; /* 1.0 moveDown after border in PDF (24pt = 32px) */
+          padding-bottom: 12px;
+          margin-bottom: 12px; /* 1.0 moveDown after border in PDF (24pt = 32px) */
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
@@ -693,7 +693,7 @@ const DocumentPreview = () => {
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
           padding-bottom: 12px;
-          margin-bottom: 48px;
+          margin-bottom: 24px;
           border-bottom: 2px solid black;
         }
 

@@ -398,15 +398,22 @@ const DocumentPreview = () => {
           }
         }
       } else if (needsPageBreak) {
-        // Start new page
-        paginatedPages.push({ 
-          content: currentPageContent, 
-          pageNumber: paginatedPages.length + 1 
-        });
-        currentPageContent = [];
-        currentPageHeight = 0;
+        // Check if previous section had keepWithNext - if so, DON'T break
+        // This ensures sections like notary-instruction stay with notary-block
+        const previousSection = idx > 0 ? allContent[idx - 1] : null;
+        const previousHasKeepWithNext = previousSection?.keepWithNext === true;
+
+        if (!previousHasKeepWithNext) {
+          // Start new page only if previous section doesn't require staying together
+          paginatedPages.push({
+            content: currentPageContent,
+            pageNumber: paginatedPages.length + 1
+          });
+          currentPageContent = [];
+          currentPageHeight = 0;
+        }
       }
-      
+
       currentPageContent.push(section);
       currentPageHeight += sectionHeight;
     });

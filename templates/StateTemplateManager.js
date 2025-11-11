@@ -573,11 +573,8 @@ My commission expires: ___________`;
    */
   generateNotaryInstruction() {
     return `INSTRUCTION FOR NOTARY PUBLIC:
-
 Before completing the jurat below, you MUST administer the following oath to the affiant as required by Utah Code § 46-1-6.5(2)(a):
-
 "Do you swear or affirm under penalty of perjury that the statements in your document are true?"
-
 Only after administering this oath may you complete the certificate below.`;
   }
 

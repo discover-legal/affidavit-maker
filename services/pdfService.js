@@ -210,14 +210,14 @@ class PDFService {
 
         if (isLastFact && sections.notaryBlock) {
           let spaceForEverything = estimatedHeight;
-          if (sections.conclusion) spaceForEverything += 80;
-          if (sections.perjuryStatement) spaceForEverything += 80;
-          if (sections.signatureBlock) spaceForEverything += 120;
+          if (sections.conclusion) spaceForEverything += 60;
+          if (sections.perjuryStatement) spaceForEverything += 60;
+          if (sections.signatureBlock) spaceForEverything += 100;
 
-          let notarySpace = 180; // Reduced from 200 for more accurate space calculation
+          let notarySpace = 155; // Reduced from 180 for more accurate space calculation
           if (sections.notaryInstruction) {
-            const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 30;
-            notarySpace = instructionHeight + 160 + 30; // More accurate notary block estimation
+            const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 20;
+            notarySpace = instructionHeight + 145 + 20; // More accurate notary block estimation
           }
           spaceForEverything += notarySpace;
 
@@ -268,7 +268,7 @@ class PDFService {
 
     // Conclusion
     if (sections.conclusion) {
-      this.checkPageBreak(doc, 80);
+      this.checkPageBreak(doc, 60);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, {
         align: 'justify',
@@ -279,7 +279,7 @@ class PDFService {
 
     // Perjury Statement
     if (sections.perjuryStatement) {
-      this.checkPageBreak(doc, 80);
+      this.checkPageBreak(doc, 60);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
@@ -290,7 +290,7 @@ class PDFService {
 
     // Signature Block
     if (sections.signatureBlock) {
-      this.checkPageBreak(doc, 120);
+      this.checkPageBreak(doc, 100);
       
       doc.fontSize(12).font('Times-Roman');
       doc.moveDown();
@@ -311,9 +311,9 @@ class PDFService {
 
     // Utah Notary Instruction and Block
     if (sections.notaryInstruction && sections.notaryBlock) {
-      const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 40;
-      const notaryHeight = 180;
-      const totalHeight = instructionHeight + notaryHeight + 40;
+      const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 30;
+      const notaryHeight = 155;
+      const totalHeight = instructionHeight + notaryHeight + 30;
       this.checkPageBreak(doc, totalHeight);
     }
 
@@ -349,7 +349,7 @@ class PDFService {
 
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
-        if (remainingSpace < 180) { // Reduced from 200 for more accurate space calculation
+        if (remainingSpace < 155) { // Reduced from 180 for more accurate space calculation
           this.addPageWithFooter(doc);
         }
       }
@@ -357,7 +357,7 @@ class PDFService {
 
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
-        this.checkPageBreak(doc, 180); // Reduced from 200 for more accurate space calculation
+        this.checkPageBreak(doc, 155); // Reduced from 180 for more accurate space calculation
       }
 
       const startY = doc.y;

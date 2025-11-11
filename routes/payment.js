@@ -21,7 +21,7 @@ try {
 
 // Server-side pricing configuration - DO NOT expose to client or accept from client
 const PRICING_CONFIG = {
-  single_affidavit: 3999, // $39.99 in cents
+  single_affidavit: 7900, // $79.00 in cents
   family_law_package: 11999, // $119.99 for 5 documents
   all_state_access: 19999 // $199.99 for unlimited
 };

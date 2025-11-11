@@ -51,11 +51,6 @@ const LandingPage = ({ onGetStarted }) => {
             Get Started {!isAuthenticated && '(Sign Up Required)'}
             <ChevronRight className="ml-2 h-5 w-5" />
           </button>
-          {!isAuthenticated && (
-            <p className="mt-4 text-sm text-gray-500">
-              No credit card required for your first document
-            </p>
-          )}
         </div>
       </div>
 
@@ -110,7 +105,7 @@ const LandingPage = ({ onGetStarted }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">$9.99</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">$79.00</div>
               <div className="text-sm text-gray-600">Per Document</div>
             </div>
             <div className="text-center">

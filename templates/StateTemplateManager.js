@@ -100,19 +100,19 @@ class BaseAffidavitTemplate {
     courtName = courtName.toUpperCase();
 
     // State-specific court formatting handled in subclasses
-    caption += `IN THE ${courtName}\n`;
+    caption += `IN THE ${courtName}\n\n`;
 
     // Case number - show placeholder if not provided
     const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
-    caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n`;
+    caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
 
     // Add party names if both are provided (style of cause format)
     // Extract from affidavitData or use placeholders
     const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
-    caption += `${plaintiff.toUpperCase()}\n`;
-    caption += `v.\n`;
+    caption += `${plaintiff.toUpperCase()}\n\n`;
+    caption += `v.\n\n`;
     caption += `${defendant.toUpperCase()}`;
 
     return {

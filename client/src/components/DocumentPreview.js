@@ -101,8 +101,9 @@ const DocumentPreview = () => {
     });
     if (currentLine) lines.push(currentLine);
 
-    // Return total height (lines * line height + margins)
-    return lines.length * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight;
+    // Return total height (lines * line height)
+    // Note: Individual sections add their own spacing/margins as needed
+    return lines.length * PAGE_CONFIG.lineHeight;
   };
 
   // Center the preview pane horizontally to ensure equal left/right scroll
@@ -291,7 +292,10 @@ const DocumentPreview = () => {
         case 'competency':
         default:
           // Use actual text measurement for facts
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight;
+          // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
+          // Total spacing: ~20pt + 24pt = 44pt = 59px, but text height differs between systems
+          // Empirically: add 36px to match PDF pagination
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 36;
           break;
       }
       

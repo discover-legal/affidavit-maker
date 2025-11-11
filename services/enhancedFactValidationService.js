@@ -556,7 +556,7 @@ Provide a professional rewrite following these guidelines and specific feedback.
         return result;
       }
       
-      if (this.openai && factText.length > 20) {
+      if (this.openai && factText.length > 5) { // Reduced from 20 to 5 to allow AI rewrites for short facts like "i own a boat"
         await this.respectRateLimit();
         const llmResult = await this.performLLMValidation(fact, existingFacts, context);
         const finalResult = this.combineAnalysisResults(localAnalysis, llmResult, fact);

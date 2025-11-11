@@ -35,7 +35,7 @@ const DocumentPreview = () => {
   const measureCanvasRef = useRef(null);
 
   // Create a canvas for accurate text measurement
-  const getTextHeight = (text, fontSize, fontFamily, maxWidth) => {
+  const getTextHeight = (text, fontSize, fontFamily, maxWidth, isPreFormatted = false) => {
     if (!measureCanvasRef.current) {
       measureCanvasRef.current = document.createElement('canvas');
     }
@@ -43,7 +43,46 @@ const DocumentPreview = () => {
     const ctx = canvas.getContext('2d');
     ctx.font = `${fontSize}px ${fontFamily}`;
 
-    // Split text into words and calculate wrapped lines
+    // For pre-formatted text (like notary blocks), respect newlines
+    if (isPreFormatted) {
+      const explicitLines = text.split('\n');
+      let totalLines = 0;
+
+      explicitLines.forEach(line => {
+        if (line.trim() === '') {
+          totalLines++; // Empty line still takes space
+        } else {
+          // Check if this line needs wrapping
+          const metrics = ctx.measureText(line);
+          if (metrics.width > maxWidth) {
+            // Line is too long, calculate wrapped lines
+            const words = line.split(' ');
+            let currentLine = '';
+            let wrappedLineCount = 0;
+
+            words.forEach(word => {
+              const testLine = currentLine ? `${currentLine} ${word}` : word;
+              const testMetrics = ctx.measureText(testLine);
+
+              if (testMetrics.width > maxWidth && currentLine) {
+                wrappedLineCount++;
+                currentLine = word;
+              } else {
+                currentLine = testLine;
+              }
+            });
+            if (currentLine) wrappedLineCount++;
+            totalLines += wrappedLineCount;
+          } else {
+            totalLines++;
+          }
+        }
+      });
+
+      return totalLines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight;
+    }
+
+    // For regular text, split by words and calculate wrapped lines
     const words = text.split(' ');
     const lines = [];
     let currentLine = '';
@@ -218,18 +257,18 @@ const DocumentPreview = () => {
           break;
         case 'notary':
         case 'notaryBlock':
-          // Use actual text measurement
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 48; // Account for padding
+          // Use actual text measurement - notary blocks are pre-formatted with newlines
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72; // Account for padding + extra margin
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
-          // Use actual text measurement with smaller font
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48) + 48; // 10pt font + padding
+          // Use actual text measurement with smaller font - instructions are pre-formatted
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72; // 10pt font + padding + extra margin
           break;
         case 'signature':
         case 'signatureBlock':
-          // Use actual text measurement for signature lines
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48; // Extra margin for signature spacing
+          // Use actual text measurement for signature lines - signatures are pre-formatted
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60; // Extra margin for signature spacing
           break;
         case 'perjury':
         case 'perjuryStatement':
@@ -276,15 +315,15 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 48;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48) + 48;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72;
               break;
             case 'signature':
             case 'signatureBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60;
               break;
             case 'perjuryStatement':
             case 'perjury':

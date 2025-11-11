@@ -294,8 +294,8 @@ const DocumentPreview = () => {
           // Use actual text measurement for facts
           // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
           // Total spacing: ~20pt + 24pt = 44pt = 59px, but text height differs between systems
-          // Fine-tuned to +30px to match PDF pagination (was 36px, caused 6/7 facts issue)
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
+          // Fine-tuned to +27px to match PDF pagination (30px still fell just short for 7th fact)
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 27;
           break;
       }
       

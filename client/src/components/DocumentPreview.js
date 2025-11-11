@@ -382,8 +382,13 @@ const DocumentPreview = () => {
           // Non-fact sections with keepWithNext (conclusion, perjury, signature, notary instruction)
           const hasContentBefore = currentPageContent.length > 0;
 
-          if (wouldExceedPage && hasContentBefore) {
+          // CRITICAL: Check if previous section is a last fact that we committed to keeping
+          // If so, DO NOT break between them - we already decided they stay together
+          const hasLastFactBefore = currentPageContent.some(s => s.isLastFact);
+
+          if (wouldExceedPage && hasContentBefore && !hasLastFactBefore) {
             // Break page and start fresh for this chain
+            // BUT: don't break if there's a last fact on this page - we already committed to keeping them together
             paginatedPages.push({
               content: currentPageContent,
               pageNumber: paginatedPages.length + 1

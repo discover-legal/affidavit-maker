@@ -345,7 +345,7 @@ class PDFService {
 
       doc.fillColor('#000000');
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown(1.0);
+      doc.moveDown(1.5); // Increased from 1.0 to provide more separation between instruction and notary block
 
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;

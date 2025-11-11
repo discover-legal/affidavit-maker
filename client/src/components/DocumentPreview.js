@@ -79,7 +79,8 @@ const DocumentPreview = () => {
         }
       });
 
-      return totalLines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight;
+      // For pre-formatted text, just return lines * lineHeight (no extra line)
+      return totalLines * PAGE_CONFIG.lineHeight;
     }
 
     // For regular text, split by words and calculate wrapped lines
@@ -258,12 +259,14 @@ const DocumentPreview = () => {
         case 'notary':
         case 'notaryBlock':
           // Use actual text measurement - notary blocks are pre-formatted with newlines
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72; // Account for padding + extra margin
+          // PDF: text height + border margins (10pt each side = 20pt = 27px) + spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60; // Account for padding + border + margins
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
           // Use actual text measurement with smaller font - instructions are pre-formatted
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72; // 10pt font + padding + extra margin
+          // PDF: instructionHeight + 40pt = height + 53px (matching pdfService.js:314)
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53; // 10pt font + 40pt padding (PDF line 314)
           break;
         case 'signature':
         case 'signatureBlock':
@@ -315,11 +318,11 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 72;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
               break;
             case 'signature':
             case 'signatureBlock':

@@ -157,7 +157,8 @@ const DocumentPreview = () => {
             content: `${factNumber}. ${factContent}`,
             keepWithNext: isLastFact && hasNotaryBlock, // Keep last fact with following sections
             breakBefore: false,
-            isBlockElement: false
+            isBlockElement: false,
+            isLastFact: isLastFact  // Track if this is the last fact for special handling
           });
         });
       } else if (key === 'caseCaption' && section) {
@@ -301,7 +302,7 @@ const DocumentPreview = () => {
       // Special handling for keep-together elements
       if (section.keepWithNext && idx < allContent.length - 1) {
         // CRITICAL FIX: Calculate total height for all remaining sections that should stay together
-        // This matches PDF's notary protection logic (pdfService.js lines 159-216)
+        // This matches PDF's notary protection logic (pdfService.js lines 211-238)
         //
         // The keepWithNext chain for affidavits is typically:
         // Last fact → conclusion → perjury → signature → notary instruction → notary block
@@ -349,24 +350,47 @@ const DocumentPreview = () => {
         }
 
         // Check if all sections that should stay together fit on current page
-        if (currentPageHeight + totalKeepTogetherHeight > maxPageHeight && currentPageContent.length > 0) {
-          // Add "continued on next page" text before the page break
-          // This matches the PDF behavior (pdfService.js lines 230-236)
-          currentPageContent.push({
-            type: 'continuation',
-            content: '(Continued on next page)',
-            keepWithNext: false,
-            breakBefore: false,
-            isBlockElement: false
-          });
+        const wouldExceedPage = currentPageHeight + totalKeepTogetherHeight > maxPageHeight;
 
-          // Move all of them to next page
-          paginatedPages.push({
-            content: currentPageContent,
-            pageNumber: paginatedPages.length + 1
-          });
-          currentPageContent = [];
-          currentPageHeight = 0;
+        // Special handling for last fact (matches PDF logic at pdfService.js:226-238)
+        if (section.isLastFact) {
+          // Count how many facts are already on the current page
+          const factsOnPage = currentPageContent.filter(s => s.type === 'fact' || s.type === 'competency').length;
+
+          if (wouldExceedPage && factsOnPage > 0) {
+            // CASE: There are previous facts on page, and everything doesn't fit
+            // Solution: Add continuation marker, break page, move last fact + chain to next page
+            // This matches PDF lines 229-234
+            currentPageContent.push({
+              type: 'continuation',
+              content: '(Continued on next page)',
+              keepWithNext: false,
+              breakBefore: false,
+              isBlockElement: false
+            });
+
+            paginatedPages.push({
+              content: currentPageContent,
+              pageNumber: paginatedPages.length + 1
+            });
+            currentPageContent = [];
+            currentPageHeight = 0;
+          }
+          // ELSE: Either everything fits (line 226-227), or this is the only fact on page (line 236-237)
+          // In both cases, proceed normally (don't break)
+        } else {
+          // Non-fact sections with keepWithNext (conclusion, perjury, signature, notary instruction)
+          const hasContentBefore = currentPageContent.length > 0;
+
+          if (wouldExceedPage && hasContentBefore) {
+            // Break page and start fresh for this chain
+            paginatedPages.push({
+              content: currentPageContent,
+              pageNumber: paginatedPages.length + 1
+            });
+            currentPageContent = [];
+            currentPageHeight = 0;
+          }
         }
       } else if (needsPageBreak) {
         // Start new page

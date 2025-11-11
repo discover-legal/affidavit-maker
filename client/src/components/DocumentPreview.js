@@ -32,6 +32,79 @@ const DocumentPreview = () => {
   const [zoomLevel, setZoomLevel] = useState(80);
   const containerRef = useRef(null);
   const pageRefs = useRef([]);
+  const measureCanvasRef = useRef(null);
+
+  // Create a canvas for accurate text measurement
+  const getTextHeight = (text, fontSize, fontFamily, maxWidth, isPreFormatted = false) => {
+    if (!measureCanvasRef.current) {
+      measureCanvasRef.current = document.createElement('canvas');
+    }
+    const canvas = measureCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${fontSize}px ${fontFamily}`;
+
+    // For pre-formatted text (like notary blocks), respect newlines
+    if (isPreFormatted) {
+      const explicitLines = text.split('\n');
+      let totalLines = 0;
+
+      explicitLines.forEach(line => {
+        if (line.trim() === '') {
+          totalLines++; // Empty line still takes space
+        } else {
+          // Check if this line needs wrapping
+          const metrics = ctx.measureText(line);
+          if (metrics.width > maxWidth) {
+            // Line is too long, calculate wrapped lines
+            const words = line.split(' ');
+            let currentLine = '';
+            let wrappedLineCount = 0;
+
+            words.forEach(word => {
+              const testLine = currentLine ? `${currentLine} ${word}` : word;
+              const testMetrics = ctx.measureText(testLine);
+
+              if (testMetrics.width > maxWidth && currentLine) {
+                wrappedLineCount++;
+                currentLine = word;
+              } else {
+                currentLine = testLine;
+              }
+            });
+            if (currentLine) wrappedLineCount++;
+            totalLines += wrappedLineCount;
+          } else {
+            totalLines++;
+          }
+        }
+      });
+
+      // For pre-formatted text, just return lines * lineHeight (no extra line)
+      return totalLines * PAGE_CONFIG.lineHeight;
+    }
+
+    // For regular text, split by words and calculate wrapped lines
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    // Return total height (lines * line height)
+    // Note: Individual sections add their own spacing/margins as needed
+    return lines.length * PAGE_CONFIG.lineHeight;
+  };
 
   // Center the preview pane horizontally to ensure equal left/right scroll
   useEffect(() => {
@@ -85,7 +158,8 @@ const DocumentPreview = () => {
             content: `${factNumber}. ${factContent}`,
             keepWithNext: isLastFact && hasNotaryBlock, // Keep last fact with following sections
             breakBefore: false,
-            isBlockElement: false
+            isBlockElement: false,
+            isLastFact: isLastFact  // Track if this is the last fact for special handling
           });
         });
       } else if (key === 'caseCaption' && section) {
@@ -168,58 +242,60 @@ const DocumentPreview = () => {
       // PDF uses PDFKit points (72 DPI), Preview uses CSS pixels (96 DPI)
       // Conversion: PDF points × (96/72) = CSS pixels
       // Example: 80 points × 1.333 = 106.67px ≈ 106px
-      //
-      // NOTE: These are conservative estimates. Actual rendering may vary due to:
-      // - Font rendering differences (browser Times New Roman vs PDFKit Times-Roman)
-      // - Text wrapping differences (browser vs PDFKit text engine)
-      // - Justified text alignment differences
       let sectionHeight = 0;
+      const contentWidth = (PAGE_CONFIG.width - PAGE_CONFIG.marginLeft - PAGE_CONFIG.marginRight) * 96; // Available width in pixels
 
       switch(section.type) {
         case 'header':
         case 'venue':
+          sectionHeight = 60; // Reduced: 0.5 moveDown in PDF (12pt = 16px) + text height
+          break;
         case 'title':
-          sectionHeight = 80; // Title sections (PDF uses ~60 points = 80px)
+          sectionHeight = 80; // Title with border and 1.5 moveDown (PDF uses ~60 points = 80px)
           break;
         case 'caseCaption':
         case 'case-caption':
-          sectionHeight = 160; // Caption with border (PDF uses ~120 points = 160px)
+          // Use actual text measurement for multi-line captions
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48; // Add border and margins
           break;
         case 'notary':
         case 'notaryBlock':
-          // PDF uses 180 points for notary block = 240px, but with borders and padding
-          sectionHeight = 260;
+          // Use actual text measurement - notary blocks are pre-formatted with newlines
+          // PDF: text height + border margins (10pt each side = 20pt = 27px) + spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60; // Account for padding + border + margins
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
-          // Variable based on content, but estimate conservatively
-          const instructionLines = Math.ceil((section.content?.length || 0) / 60);
-          sectionHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
+          // Use actual text measurement with smaller font - instructions are pre-formatted
+          // PDF: instructionHeight + 40pt = height + 53px (matching pdfService.js:314)
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53; // 10pt font + 40pt padding (PDF line 314)
           break;
         case 'signature':
         case 'signatureBlock':
-          sectionHeight = 160; // PDF uses 120 points = 160px
+          // Use actual text measurement for signature lines - signatures are pre-formatted
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60; // Extra margin for signature spacing
           break;
         case 'perjury':
         case 'perjuryStatement':
-          sectionHeight = 106; // PDF uses 80 points = 106px
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'conclusion':
-          sectionHeight = 106; // PDF uses 80 points = 106px
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'introduction':
-          // Estimate for introduction paragraph
-          const introLines = Math.ceil((section.content?.length || 0) / 80);
-          sectionHeight = introLines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+          // Use actual text measurement with indent
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'fact':
         case 'competency':
         default:
-          // Estimate based on content length
-          // CRITICAL FIX: Match PDF's actual spacing (1.5x, not 2x)
-          // PDF uses PDFKit default spacing (~1.2x) + moveDown(), not true double-spacing
-          const lines = Math.ceil((section.content?.length || 0) / 80); // Characters per line estimate
-          sectionHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+          // Use actual text measurement for facts
+          // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
+          // Total spacing: ~20pt + 24pt = 44pt = 59px, but text height differs between systems
+          // Fine-tuned to +27px to match PDF pagination (30px still fell just short for 7th fact)
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 25;
           break;
       }
       
@@ -230,7 +306,7 @@ const DocumentPreview = () => {
       // Special handling for keep-together elements
       if (section.keepWithNext && idx < allContent.length - 1) {
         // CRITICAL FIX: Calculate total height for all remaining sections that should stay together
-        // This matches PDF's notary protection logic (pdfService.js lines 159-216)
+        // This matches PDF's notary protection logic (pdfService.js lines 211-238)
         //
         // The keepWithNext chain for affidavits is typically:
         // Last fact → conclusion → perjury → signature → notary instruction → notary block
@@ -247,27 +323,25 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = 260; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
-              const instructionLines = Math.ceil((followingSection.content?.length || 0) / 60);
-              followingHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
               break;
             case 'signature':
             case 'signatureBlock':
-              followingHeight = 160; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60;
               break;
             case 'perjuryStatement':
             case 'perjury':
-              followingHeight = 106; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24;
               break;
             case 'conclusion':
-              followingHeight = 106; // Match main calculation
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24;
               break;
             default:
-              const lines = Math.ceil((followingSection.content?.length || 0) / 80);
-              followingHeight = lines * PAGE_CONFIG.lineHeight + PAGE_CONFIG.lineHeight; // Line height + margin
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight;
               break;
           }
 
@@ -280,18 +354,61 @@ const DocumentPreview = () => {
         }
 
         // Check if all sections that should stay together fit on current page
-        if (currentPageHeight + totalKeepTogetherHeight > maxPageHeight && currentPageContent.length > 0) {
-          // Add "continued on next page" text before the page break
-          // This matches the PDF behavior (pdfService.js lines 230-236)
-          currentPageContent.push({
-            type: 'continuation',
-            content: '(Continued on next page)',
-            keepWithNext: false,
-            breakBefore: false,
-            isBlockElement: false
-          });
+        const wouldExceedPage = currentPageHeight + totalKeepTogetherHeight > maxPageHeight;
 
-          // Move all of them to next page
+        // Special handling for last fact (matches PDF logic at pdfService.js:226-238)
+        if (section.isLastFact) {
+          // Count how many facts are already on the current page
+          const factsOnPage = currentPageContent.filter(s => s.type === 'fact' || s.type === 'competency').length;
+
+          if (wouldExceedPage && factsOnPage > 0) {
+            // CASE: There are previous facts on page, and everything doesn't fit
+            // Solution: Add continuation marker, break page, move last fact + chain to next page
+            // This matches PDF lines 229-234
+            currentPageContent.push({
+              type: 'continuation',
+              content: '(Continued on next page)',
+              keepWithNext: false,
+              breakBefore: false,
+              isBlockElement: false
+            });
+
+            paginatedPages.push({
+              content: currentPageContent,
+              pageNumber: paginatedPages.length + 1
+            });
+            currentPageContent = [];
+            currentPageHeight = 0;
+          }
+          // ELSE: Either everything fits (line 226-227), or this is the only fact on page (line 236-237)
+          // In both cases, proceed normally (don't break)
+        } else {
+          // Non-fact sections with keepWithNext (conclusion, perjury, signature, notary instruction)
+          const hasContentBefore = currentPageContent.length > 0;
+
+          // CRITICAL: Check if previous section is a last fact that we committed to keeping
+          // If so, DO NOT break between them - we already decided they stay together
+          const hasLastFactBefore = currentPageContent.some(s => s.isLastFact);
+
+          if (wouldExceedPage && hasContentBefore && !hasLastFactBefore) {
+            // Break page and start fresh for this chain
+            // BUT: don't break if there's a last fact on this page - we already committed to keeping them together
+            paginatedPages.push({
+              content: currentPageContent,
+              pageNumber: paginatedPages.length + 1
+            });
+            currentPageContent = [];
+            currentPageHeight = 0;
+          }
+        }
+      } else if (needsPageBreak) {
+        // Check if previous section had keepWithNext - if so, DON'T break
+        // This ensures sections like notary-instruction stay with notary-block
+        const previousSection = idx > 0 ? allContent[idx - 1] : null;
+        const previousHasKeepWithNext = previousSection?.keepWithNext === true;
+
+        if (!previousHasKeepWithNext) {
+          // Start new page only if previous section doesn't require staying together
           paginatedPages.push({
             content: currentPageContent,
             pageNumber: paginatedPages.length + 1
@@ -299,16 +416,8 @@ const DocumentPreview = () => {
           currentPageContent = [];
           currentPageHeight = 0;
         }
-      } else if (needsPageBreak) {
-        // Start new page
-        paginatedPages.push({ 
-          content: currentPageContent, 
-          pageNumber: paginatedPages.length + 1 
-        });
-        currentPageContent = [];
-        currentPageHeight = 0;
       }
-      
+
       currentPageContent.push(section);
       currentPageHeight += sectionHeight;
     });
@@ -563,18 +672,18 @@ const DocumentPreview = () => {
         .affidavit-header {
           text-align: center;
           font-weight: bold;
-          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: 16px; /* 0.5 moveDown in PDF (12pt = 16px) */
         }
 
         .affidavit-venue {
           text-align: center;
-          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: 16px; /* 0.5 moveDown in PDF (12pt = 16px) */
         }
 
         .affidavit-caption {
           text-align: center;
-          padding-bottom: 16px;
-          margin-bottom: 24px;
+          padding-bottom: 12px;
+          margin-bottom: 12px; /* 1.0 moveDown after border in PDF (24pt = 32px) */
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
@@ -584,7 +693,7 @@ const DocumentPreview = () => {
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
           padding-bottom: 12px;
-          margin-bottom: 48px;
+          margin-bottom: 24px;
           border-bottom: 2px solid black;
         }
 
@@ -631,6 +740,25 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize}px;
           margin: 0;
           white-space: pre-wrap;
+        }
+
+        .affidavit-notary-instruction {
+          margin-top: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          padding: ${PAGE_CONFIG.lineHeight / 2}px;
+          border: 2px solid #0066cc;
+          color: #0066cc;
+          font-weight: bold;
+          font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
+        }
+
+        .affidavit-notary-instruction pre {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
+          font-weight: bold;
+          margin: 0;
+          white-space: pre-wrap;
+          color: #0066cc;
         }
 
         .affidavit-continuation {

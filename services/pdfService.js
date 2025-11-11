@@ -23,8 +23,8 @@ class PDFService {
     this.FOOTER_FONT_SIZE = 10;
     this.FOOTER_HEIGHT = 15;
     this.FOOTER_BOTTOM_MARGIN = 36;
-    this.MIN_CONTENT_FOOTER_GAP = 20;
-    
+    this.MIN_CONTENT_FOOTER_GAP = 10; // Reduced from 20 to allow more content per page
+
     // CRITICAL: Reduce effective page height to reserve space for footer
     this.EFFECTIVE_PAGE_HEIGHT = 792 - 72 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
   }
@@ -214,10 +214,10 @@ class PDFService {
           if (sections.perjuryStatement) spaceForEverything += 80;
           if (sections.signatureBlock) spaceForEverything += 120;
 
-          let notarySpace = 200;
+          let notarySpace = 180; // Reduced from 200 for more accurate space calculation
           if (sections.notaryInstruction) {
-            const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 40;
-            notarySpace = instructionHeight + 180 + 40;
+            const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 30;
+            notarySpace = instructionHeight + 160 + 30; // More accurate notary block estimation
           }
           spaceForEverything += notarySpace;
 
@@ -345,11 +345,11 @@ class PDFService {
 
       doc.fillColor('#000000');
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown(1.0);
+      doc.moveDown(1.5); // Increased from 1.0 to provide more separation between instruction and notary block
 
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
-        if (remainingSpace < 200) {
+        if (remainingSpace < 180) { // Reduced from 200 for more accurate space calculation
           this.addPageWithFooter(doc);
         }
       }
@@ -357,7 +357,7 @@ class PDFService {
 
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
-        this.checkPageBreak(doc, 200);
+        this.checkPageBreak(doc, 180); // Reduced from 200 for more accurate space calculation
       }
 
       const startY = doc.y;

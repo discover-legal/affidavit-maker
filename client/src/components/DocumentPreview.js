@@ -574,7 +574,7 @@ const DocumentPreview = () => {
         .affidavit-caption {
           text-align: center;
           padding-bottom: 16px;
-          margin-bottom: 32px;
+          margin-bottom: 24px;
           border-bottom: 2px solid black;
           white-space: pre-line;
         }
@@ -583,7 +583,7 @@ const DocumentPreview = () => {
           text-align: center;
           font-weight: bold;
           font-size: ${PAGE_CONFIG.fontSize + 2}px;
-          padding-bottom: 2px;
+          padding-bottom: 12px;
           margin-bottom: 48px;
           border-bottom: 2px solid black;
         }

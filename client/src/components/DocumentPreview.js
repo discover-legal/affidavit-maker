@@ -178,17 +178,19 @@ const DocumentPreview = () => {
       switch(section.type) {
         case 'header':
         case 'venue':
+          sectionHeight = 60; // Reduced: 0.5 moveDown in PDF (12pt = 16px) + text height
+          break;
         case 'title':
-          sectionHeight = 80; // Title sections (PDF uses ~60 points = 80px)
+          sectionHeight = 80; // Title with border and 1.5 moveDown (PDF uses ~60 points = 80px)
           break;
         case 'caseCaption':
         case 'case-caption':
-          sectionHeight = 160; // Caption with border (PDF uses ~120 points = 160px)
+          sectionHeight = 140; // Caption with border: updated for more accurate spacing
           break;
         case 'notary':
         case 'notaryBlock':
-          // PDF uses 180 points for notary block = 240px, but with borders and padding
-          sectionHeight = 260;
+          // Reduced from 260 to match PDF's 180 points estimate (240px)
+          sectionHeight = 240;
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
@@ -247,12 +249,12 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = 260; // Match main calculation
+              followingHeight = 240; // Match updated main calculation (180pt = 240px)
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
               const instructionLines = Math.ceil((followingSection.content?.length || 0) / 60);
-              followingHeight = Math.max(180, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
+              followingHeight = Math.max(160, instructionLines * PAGE_CONFIG.lineHeight * 1.5);
               break;
             case 'signature':
             case 'signatureBlock':
@@ -563,18 +565,18 @@ const DocumentPreview = () => {
         .affidavit-header {
           text-align: center;
           font-weight: bold;
-          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: 16px; /* 0.5 moveDown in PDF (12pt = 16px) */
         }
 
         .affidavit-venue {
           text-align: center;
-          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          margin-bottom: 16px; /* 0.5 moveDown in PDF (12pt = 16px) */
         }
 
         .affidavit-caption {
           text-align: center;
           padding-bottom: 16px;
-          margin-bottom: 24px;
+          margin-bottom: 32px; /* 1.0 moveDown after border in PDF (24pt = 32px) */
           border-bottom: 2px solid black;
           white-space: pre-line;
         }

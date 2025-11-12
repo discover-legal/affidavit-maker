@@ -252,6 +252,10 @@ export const DocumentProvider = ({ children }) => {
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
   const [previewDebounceTimer, setPreviewDebounceTimer] = useState(null);
 
+  // ✅ Ref to access current state without causing dependency changes
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
     try {
@@ -281,6 +285,50 @@ export const DocumentProvider = ({ children }) => {
       throw error;
     }
   }, [isAuthenticated, getAccessTokenSilently]);
+
+  // Generate preview
+  const generatePreview = useCallback(async (documentData = null) => {
+    try {
+      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: true });
+
+      // Access state via ref to avoid dependency on state.currentDocument
+      const payload = {
+        affidavitData: {
+          ...stateRef.current.currentDocument,
+          ...(documentData || {})
+        }
+      };
+
+      const data = await authFetch('/api/preview', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (data.success && data.preview) {
+        dispatch({
+          type: ActionTypes.SET_PREVIEW,
+          payload: data.preview
+        });
+
+        if (data.validation) {
+          dispatch({
+            type: ActionTypes.SET_VALIDATION,
+            payload: data.validation
+          });
+        }
+
+        return data.preview;
+      }
+    } catch (error) {
+      console.error('Failed to generate preview:', error);
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: 'Failed to generate preview'
+      });
+    } finally {
+      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: false });
+    }
+  }, [authFetch]);
 
   // Load documents list
   const loadDocuments = useCallback(async () => {
@@ -365,10 +413,6 @@ export const DocumentProvider = ({ children }) => {
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
   }, [authFetch, generatePreview]);
-
-  // ✅ Ref to access current state without causing dependency changes
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   // ✅ NEW: Initialize a new document session
   const initializeNewDocument = useCallback(async (forceNew = false) => {
@@ -604,50 +648,6 @@ export const DocumentProvider = ({ children }) => {
 
     setAutoSaveTimer(timer);
   }, [isAuthenticated, saveDocument, autoSaveTimer]);
-
-  // Generate preview
-  const generatePreview = useCallback(async (documentData = null) => {
-    try {
-      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: true });
-
-      // Access state via ref to avoid dependency on state.currentDocument
-      const payload = {
-        affidavitData: {
-          ...stateRef.current.currentDocument,
-          ...(documentData || {})
-        }
-      };
-
-      const data = await authFetch('/api/preview', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      if (data.success && data.preview) {
-        dispatch({
-          type: ActionTypes.SET_PREVIEW,
-          payload: data.preview
-        });
-
-        if (data.validation) {
-          dispatch({
-            type: ActionTypes.SET_VALIDATION,
-            payload: data.validation
-          });
-        }
-
-        return data.preview;
-      }
-    } catch (error) {
-      console.error('Failed to generate preview:', error);
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: 'Failed to generate preview'
-      });
-    } finally {
-      dispatch({ type: ActionTypes.SET_PREVIEW_LOADING, payload: false });
-    }
-  }, [authFetch]);
 
   // Render formatted preview for a saved document by documentId (on-demand)
   const renderFormattedPreview = useCallback(async (documentId) => {

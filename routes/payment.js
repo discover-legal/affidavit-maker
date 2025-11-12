@@ -365,14 +365,31 @@ router.post('/webhook',
           if (updateResult.rows.length > 0) {
             const payment = updateResult.rows[0];
 
+            // Update document payment_status if documentId is in metadata
+            const documentId = paymentIntent.metadata?.documentId;
+            if (documentId && documentId !== 'new') {
+              try {
+                await pool.query(
+                  'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                  ['paid', documentId]
+                );
+                logger.info('Document payment status updated', { documentId, paymentIntentId: paymentIntent.id });
+              } catch (docUpdateError) {
+                logger.error('Failed to update document payment status', {
+                  error: docUpdateError.message,
+                  documentId,
+                  paymentIntentId: paymentIntent.id
+                });
+              }
+            }
+
             logger.logBusinessEvent('payment_succeeded', payment.user_id, {
               paymentIntentId: paymentIntent.id,
               amount: payment.amount_cents,
               currency: paymentIntent.currency,
-              postalCode: postalCode ? 'captured' : 'not_provided'
+              postalCode: postalCode ? 'captured' : 'not_provided',
+              documentId: documentId || 'none'
             });
-
-            // Could trigger document generation here or send confirmation email
           }
           break;
 

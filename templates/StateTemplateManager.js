@@ -111,8 +111,8 @@ class BaseAffidavitTemplate {
     const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
-    caption += `${plaintiff.toUpperCase()}\n\n`;
-    caption += `V.\n\n`;
+    caption += `${plaintiff.toUpperCase()}\n`;
+    caption += `V.\n`;
     caption += `${defendant.toUpperCase()}`;
 
     return {
@@ -237,17 +237,6 @@ class BaseAffidavitTemplate {
         ? fact
         : (fact.professionalRewrite || fact.content || '');
 
-      // ✅ DEBUG: Log each fact processing
-      const contentTrimmed = content ? content.trim() : '';
-      if (!contentTrimmed) {
-        console.warn(`⚠️ Fact ${index} filtered out - empty content:`, {
-          isString: typeof fact === 'string',
-          hasProfessionalRewrite: !!(fact && fact.professionalRewrite),
-          hasContent: !!(fact && fact.content),
-          rawContentLength: content?.length || 0
-        });
-      }
-
       if (content && content.trim()) {
         processedFacts.push({
           number: factNumber++,
@@ -256,8 +245,6 @@ class BaseAffidavitTemplate {
         });
       }
     });
-
-    console.log(`✅ Processed ${processedFacts.length} facts out of ${facts.length} input facts`);
 
     return processedFacts;
   }

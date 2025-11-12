@@ -69,6 +69,7 @@ const EditorView = ({ isNew = false, onBack }) => {
   // This prevents multiple initializations due to dependency changes
   const initializationDone = React.useRef(false);
   const lastDocumentId = React.useRef(null);
+  const lastAuthState = React.useRef(isAuthenticated);
 
   // Layout state with new proportions (30/40/30)
   const [chatWidth, setChatWidth] = useState(30);
@@ -157,10 +158,12 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
-    console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
-
-    // ✅ FIX: Check if documentId has changed
     const hasDocumentIdChanged = lastDocumentId.current !== documentId;
+    const authStateChanged = lastAuthState.current !== isAuthenticated;
+    const becameAuthenticated = !lastAuthState.current && isAuthenticated;
+
+    // Update refs
+    lastAuthState.current = isAuthenticated;
 
     if (hasDocumentIdChanged) {
       // DocumentId changed - reset initialization flag
@@ -171,36 +174,37 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     // Initialize session based on route
     const initializeSession = async () => {
-      // ✅ FIX: Prevent multiple initializations for the same documentId
+      // Skip if already initialized (prevents duplicate runs on auth state changes)
       if (initializationDone.current) {
-        console.log('✅ Initialization already done for this document, skipping');
         return;
       }
 
+      // For existing documents, wait for authentication before proceeding
+      if (documentId && !isNew && !isAuthenticated) {
+        return;
+      }
+
+      // Log what we're doing
+      console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
+
       if (isNew) {
-        // ✅ For new documents, initialize with forceNew=true
-        // This atomically resets state and creates a new document
-        // Mark as done BEFORE async operations to prevent duplicate calls
+        // For new documents, initialize with forceNew=true
         initializationDone.current = true;
 
         try {
-          // forceNew=true handles both reset and creation in one atomic operation
           await initializeNewDocument(true);
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
-          // Reset flag on error so user can retry
           initializationDone.current = false;
         }
       } else if (documentId && isAuthenticated) {
         // Loading existing document from URL
-        // Only load if not already initialized with this specific document
         if (sessionInitialized && currentDocument.documentId === documentId) {
           console.log('✅ Document already loaded:', documentId);
           initializationDone.current = true;
           return;
         }
 
-        // Mark as done BEFORE async operations to prevent duplicate calls
         initializationDone.current = true;
 
         console.log('📂 Loading existing document:', documentId);
@@ -209,7 +213,6 @@ const EditorView = ({ isNew = false, onBack }) => {
           console.log('✅ Document loaded:', documentId);
         } catch (error) {
           console.error('❌ Failed to load document:', error);
-          // Reset flag on error so user can retry
           initializationDone.current = false;
         }
       }
@@ -217,7 +220,6 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     initializeSession();
 
-    // ✅ FIX: Only cleanup when component unmounts, not on every dependency change
     return () => {
       console.log('🧹 Cleaning up document session');
     };

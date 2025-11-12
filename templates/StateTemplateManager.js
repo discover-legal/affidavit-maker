@@ -112,7 +112,7 @@ class BaseAffidavitTemplate {
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
     caption += `${plaintiff.toUpperCase()}\n\n`;
-    caption += `v.\n\n`;
+    caption += `V.\n\n`;
     caption += `${defendant.toUpperCase()}`;
 
     return {

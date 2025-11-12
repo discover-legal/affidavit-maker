@@ -191,7 +191,12 @@ const documentReducer = (state, action) => {
     case ActionTypes.SELECT_DOCUMENT:
       return {
         ...state,
-        currentDocument: action.payload,
+        currentDocument: {
+          ...action.payload,
+          // Clear UI cache fields when switching documents
+          factSummary: null,
+          factSignature: null
+        },
         preview: null,
         validation: null,
         error: null,
@@ -329,9 +334,12 @@ export const DocumentProvider = ({ children }) => {
           }
         }
 
+        // Clear UI cache fields that shouldn't be restored from database
         const documentWithId = {
           ...documentContent,
-          documentId: data.document.id
+          documentId: data.document.id,
+          factSummary: null,
+          factSignature: null
         };
 
         dispatch({

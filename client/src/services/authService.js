@@ -1,5 +1,6 @@
 // client/src/services/authService.js
 import { useAuth0 } from '@auth0/auth0-react';
+import { useCallback } from 'react';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -7,7 +8,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 export const useAuthenticatedApi = () => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
 
-  const makeAuthenticatedRequest = async (url, options = {}) => {
+  const makeAuthenticatedRequest = useCallback(async (url, options = {}) => {
     if (!isAuthenticated) {
       throw new Error('User not authenticated');
     }
@@ -45,7 +46,7 @@ export const useAuthenticatedApi = () => {
       }
       throw error;
     }
-  };
+  }, [getAccessTokenSilently, loginWithRedirect, isAuthenticated]);
 
   return { makeAuthenticatedRequest };
 };

@@ -179,8 +179,9 @@ class PDFService {
       this.checkPageBreak(doc);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.title, { align: 'center' });
+      doc.moveDown(0.5);
 
-      const borderY = doc.y + 2;
+      const borderY = doc.y;
       doc.moveTo(doc.page.margins.left, borderY)
          .lineTo(doc.page.width - doc.page.margins.right, borderY)
          .stroke();

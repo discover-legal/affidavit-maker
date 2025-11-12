@@ -1,4 +1,4 @@
-// client/src/views/EditorView.js - FIXED VERSION
+// client/src/views/EditorView.js - FIXED VERSION WITH PAYMENT
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useDocumentState, useDocumentActions } from '../contexts/DocumentContex
 import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
+import PaymentModal from '../components/PaymentModal';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -77,6 +78,11 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [activePanel, setActivePanel] = useState('chat');
   const [isMobileView, setIsMobileView] = useState(false);
 
+  // Payment modal state
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPaidDocument, setIsPaidDocument] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
   // Use DocumentContext for all document-related state
   const {
     currentDocument,
@@ -99,11 +105,21 @@ const EditorView = ({ isNew = false, onBack }) => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     checkMobileView();
     window.addEventListener('resize', checkMobileView);
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
+
+  // Check payment status when document loads
+  useEffect(() => {
+    if (currentDocument.documentId && isAuthenticated && !isNew) {
+      checkPaymentStatus(currentDocument.documentId);
+    } else {
+      // Reset payment status for new documents
+      setIsPaidDocument(false);
+    }
+  }, [currentDocument.documentId, isAuthenticated, isNew]);
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
@@ -218,18 +234,42 @@ const EditorView = ({ isNew = false, onBack }) => {
     }
   };
 
-  // Handle PDF download
-  const handleDownload = async () => {
-    if (!currentDocument.documentId) {
-      alert('Please save the document first');
-      return;
-    }
+  // Check payment status for a document
+  const checkPaymentStatus = async (docId) => {
+    try {
+      setIsCheckingPayment(true);
+      const token = await getAccessTokenSilently();
 
-    if (!isAuthenticated) {
-      alert('Please log in to download your document');
-      return;
-    }
+      const response = await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+
+      const data = await response.json();
+      // Access payment_status from the document object
+      const paymentStatus = data.document?.payment_status || data.payment_status;
+      // Valid paid statuses: paid, completed, free, succeeded
+      const validPaidStatuses = ['paid', 'completed', 'free', 'succeeded'];
+      const isPaid = validPaidStatuses.includes(paymentStatus);
+      setIsPaidDocument(isPaid);
+      console.log('💰 Payment status checked:', { docId, paymentStatus, isPaid });
+      return isPaid;
+    } catch (error) {
+      console.error('❌ Payment status check failed:', error);
+      return false;
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
+  // Perform the actual PDF download
+  const performDownload = async () => {
     try {
       console.log('📥 Starting PDF download...', {
         documentId: currentDocument.documentId,
@@ -247,7 +287,7 @@ const EditorView = ({ isNew = false, onBack }) => {
         body: JSON.stringify({
           affidavitData: currentDocument,
           documentId: currentDocument.documentId,
-          skipPayment: process.env.NODE_ENV === 'development'
+          // Don't skip payment - let backend check payment status
         })
       });
 
@@ -269,10 +309,56 @@ const EditorView = ({ isNew = false, onBack }) => {
       window.URL.revokeObjectURL(url);
 
       console.log('✅ PDF download started');
-      
+
     } catch (error) {
       console.error('❌ PDF download failed:', error);
       alert(`Failed to download PDF: ${error.message}`);
+      throw error;
+    }
+  };
+
+  // Handle PDF download - check payment first
+  const handleDownload = async () => {
+    if (!currentDocument.documentId) {
+      alert('Please save the document first');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      alert('Please log in to download your document');
+      return;
+    }
+
+    try {
+      // Check if document has been paid for
+      const isPaid = await checkPaymentStatus(currentDocument.documentId);
+
+      if (isPaid) {
+        // Document already paid - proceed with download
+        await performDownload();
+      } else {
+        // Payment required - show payment modal
+        setIsPaymentModalOpen(true);
+      }
+    } catch (error) {
+      console.error('❌ Download initiation failed:', error);
+      alert(`Failed to initiate download: ${error.message}`);
+    }
+  };
+
+  // Handle successful payment
+  const handlePaymentSuccess = async () => {
+    console.log('✅ Payment successful, starting download...');
+    setIsPaymentModalOpen(false);
+    setIsPaidDocument(true);
+
+    try {
+      // Wait a moment for webhook to process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await performDownload();
+    } catch (error) {
+      console.error('❌ Post-payment download failed:', error);
+      alert('Payment successful, but download failed. Please try downloading again.');
     }
   };
   // Mobile panel navigation
@@ -425,11 +511,11 @@ const EditorView = ({ isNew = false, onBack }) => {
               
               <button
                 onClick={handleDownload}
-                disabled={!currentDocument.documentId}
+                disabled={!currentDocument.documentId || isCheckingPayment}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Download className="h-4 w-4" />
-                Download
+                {isCheckingPayment ? 'Checking...' : isPaidDocument ? 'Download' : 'Download ($79)'}
               </button>
             </div>
           </div>
@@ -469,6 +555,16 @@ const EditorView = ({ isNew = false, onBack }) => {
 
       {/* Main content area */}
       {isMobileView ? renderMobileLayout() : renderDesktopLayout()}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        affidavitData={currentDocument}
+        onPaymentSuccess={handlePaymentSuccess}
+        documentId={currentDocument.documentId}
+        documentType="single_affidavit"
+      />
     </div>
   );
 };

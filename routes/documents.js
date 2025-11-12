@@ -165,7 +165,9 @@ router.post('/generate',
           }
 
           const paymentStatus = paymentCheck.rows[0].payment_status;
-          if (paymentStatus !== 'completed' && paymentStatus !== 'free') {
+          // Allow: paid, completed, free, or succeeded
+          const validStatuses = ['paid', 'completed', 'free', 'succeeded'];
+          if (!validStatuses.includes(paymentStatus)) {
             return res.status(402).json({
               success: false,
               error: 'Payment required',
@@ -596,6 +598,7 @@ router.get('/:id',
           metadata: doc.processing_metadata || {},
           previewCache: doc.preview_data,
           lastPreviewGenerated: doc.last_preview_generated,
+          payment_status: doc.payment_status || 'unpaid',
           createdAt: doc.created_at,
           updatedAt: doc.updated_at
         }

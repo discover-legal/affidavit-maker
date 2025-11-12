@@ -47,11 +47,11 @@ const TOSGuard = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading]);
 
-  const handleAcceptTos = async (tosVersion) => {
+  const handleAcceptTos = async (tosVersion, researchConsent = false) => {
     try {
       const data = await makeAuthenticatedRequest('/api/auth/accept-tos', {
         method: 'POST',
-        body: JSON.stringify({ tosVersion }),
+        body: JSON.stringify({ tosVersion, researchConsent }),
       });
 
       if (data.success) {

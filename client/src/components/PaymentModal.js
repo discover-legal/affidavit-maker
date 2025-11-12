@@ -122,11 +122,11 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to create payment intent');
+          throw new Error(data.error || data.message || 'Failed to create payment intent');
         }
 
-        setClientSecret(data.clientSecret);
-        setAmount(data.amount);
+        setClientSecret(data.data?.clientSecret);
+        setAmount(data.data?.amount);
         setLoading(false);
       } catch (err) {
         setError(err.message || 'Failed to initialize payment');

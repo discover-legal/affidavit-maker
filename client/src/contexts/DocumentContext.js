@@ -748,15 +748,32 @@ export const DocumentProvider = ({ children }) => {
 
   // ✅ FIXED: Update document data with proper state synchronization and debouncing
   const updateDocumentData = useCallback((data) => {
-    console.log('📝 Updating document data');
+    console.log('📝 Updating document data', {
+      hasName: !!data.affiantName,
+      hasState: !!data.state,
+      factCount: data.facts?.length,
+      updatingFields: Object.keys(data)
+    });
 
     dispatch({
       type: ActionTypes.UPDATE_DOCUMENT_DATA,
       payload: data
     });
 
-    // Schedule auto-save
-    scheduleAutoSave();
+    // ✅ NEW: If facts were updated, auto-save immediately (don't wait 30 seconds)
+    const factsUpdated = data.facts && Array.isArray(data.facts);
+    if (factsUpdated) {
+      console.log('💾 Facts updated - triggering immediate auto-save');
+      // Save immediately when facts change
+      if (isAuthenticated && stateRef.current.currentDocument.documentId) {
+        saveDocument().catch(error => {
+          console.error('Immediate auto-save failed:', error);
+        });
+      }
+    } else {
+      // For other updates, schedule auto-save as before
+      scheduleAutoSave();
+    }
 
     // ✅ FIX: Clear any existing preview debounce timer to prevent multiple preview generations
     if (previewDebounceTimer) {
@@ -771,6 +788,12 @@ export const DocumentProvider = ({ children }) => {
       documentId: state.currentDocument.documentId
     };
 
+    console.log('🔄 Merged document for preview:', {
+      factCount: updatedDocument.facts?.length,
+      firstFact: updatedDocument.facts?.[0],
+      lastFact: updatedDocument.facts?.[updatedDocument.facts?.length - 1]
+    });
+
     // Generate preview after a short delay with the fully merged data
     const timer = setTimeout(() => {
       console.log('🔄 Generating preview after document update');
@@ -780,7 +803,7 @@ export const DocumentProvider = ({ children }) => {
 
     setPreviewDebounceTimer(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [generatePreview, scheduleAutoSave, state.currentDocument]);
+}, [generatePreview, scheduleAutoSave, saveDocument, isAuthenticated, state.currentDocument]);
 
   // Update document data WITHOUT triggering preview generation
   // Used when storing professional rewrites before they are applied

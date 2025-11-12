@@ -1,5 +1,5 @@
 // client/src/components/ChatInterface.js - FIXED VERSION
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send,
   Bot,
@@ -105,7 +105,8 @@ Let's start with your name and which state you're in.`
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

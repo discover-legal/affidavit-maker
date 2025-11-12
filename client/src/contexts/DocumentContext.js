@@ -364,7 +364,8 @@ export const DocumentProvider = ({ children }) => {
     } finally {
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
-  }, [authFetch, generatePreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authFetch]);
 
   // ✅ Ref to access current state without causing dependency changes
   const stateRef = useRef(state);

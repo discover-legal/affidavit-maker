@@ -153,7 +153,7 @@ const EditorView = ({ isNew = false, onBack }) => {
       // Reset payment status for new documents
       setIsPaidDocument(false);
     }
-  }, [currentDocument.documentId, isAuthenticated, isNew, checkPaymentStatus, setIsPaidDocument]);
+  }, [currentDocument.documentId, isAuthenticated, isNew, setIsPaidDocument, checkPaymentStatus]);
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {

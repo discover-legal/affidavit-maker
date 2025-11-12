@@ -75,14 +75,14 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
         >
           <ReactMarkdown
             components={{
-              h1: ({ node: _node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
-              h2: ({ node: _node, ...props }) => <h2 className="text-2xl font-bold mt-6 mb-3" {...props} />,
-              h3: ({ node: _node, ...props }) => <h3 className="text-xl font-bold mt-4 mb-2" {...props} />,
-              p: ({ node, ...props }) => <p className="mb-4 text-gray-700 leading-relaxed" {...props} />,
-              ul: ({ node, ...props }) => <ul className="mb-4 ml-6 list-disc" {...props} />,
-              li: ({ node, ...props }) => <li className="mb-2 text-gray-700" {...props} />,
-              strong: ({ node, ...props }) => <strong className="font-semibold text-gray-900" {...props} />,
-              hr: ({ node, ...props }) => <hr className="my-6 border-gray-300" {...props} />,
+              h1: ({ node: _node, children, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props}>{children}</h1>,
+              h2: ({ node: _node, children, ...props }) => <h2 className="text-2xl font-bold mt-6 mb-3" {...props}>{children}</h2>,
+              h3: ({ node: _node, children, ...props }) => <h3 className="text-xl font-bold mt-4 mb-2" {...props}>{children}</h3>,
+              p: ({ node: _node, ...props }) => <p className="mb-4 text-gray-700 leading-relaxed" {...props} />,
+              ul: ({ node: _node, ...props }) => <ul className="mb-4 ml-6 list-disc" {...props} />,
+              li: ({ node: _node, ...props }) => <li className="mb-2 text-gray-700" {...props} />,
+              strong: ({ node: _node, ...props }) => <strong className="font-semibold text-gray-900" {...props} />,
+              hr: ({ node: _node, ...props }) => <hr className="my-6 border-gray-300" {...props} />,
             }}
           >
             {TERMS_OF_SERVICE}

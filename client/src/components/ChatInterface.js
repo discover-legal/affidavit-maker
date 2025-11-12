@@ -1,5 +1,5 @@
 // client/src/components/ChatInterface.js - FIXED VERSION
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send,
   Bot,
@@ -33,6 +33,80 @@ const ChatInterface = () => {
   const { currentDocument } = useDocumentState();
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+
+  // Helper function to generate a signature for facts (used for caching)
+  const generateFactSignature = (facts) => {
+    if (!facts || facts.length === 0) return '';
+
+    // Create a simple signature by stringifying fact contents
+    const factContents = facts.map(fact =>
+      typeof fact === 'string' ? fact : fact.content
+    );
+    return JSON.stringify(factContents);
+  };
+
+  // Helper function to generate AI narrative summary of facts with caching
+  const generateFactSummary = useCallback(async (facts, affiantName) => {
+    if (!facts || facts.length === 0) return '';
+
+    // Generate signature for current facts
+    const currentSignature = generateFactSignature(facts);
+
+    // Check if we have a cached summary for these facts
+    if (currentDocument.factSummary && currentDocument.factSignature === currentSignature) {
+      console.log('✅ Using cached fact summary');
+      return currentDocument.factSummary;
+    }
+
+    console.log('🔄 Generating new fact summary');
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+
+      if (isAuthenticated) {
+        const token = await getAccessTokenSilently();
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const factList = facts.map(fact =>
+        typeof fact === 'string' ? fact : fact.content
+      ).join('\n- ');
+
+      const nameInstruction = affiantName
+        ? ` IMPORTANT: Address the person directly using "you" and "your" instead of using the name "${affiantName}". For example, say "you went to the store" instead of "${affiantName} went to the store".`
+        : '';
+
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts, starting with "So far, you've shared that...": ${factList}${nameInstruction}`,
+          conversationHistory: [],
+          affidavitData: currentDocument,
+          skipExtraction: true // Don't extract new facts from this
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const data = await response.json();
+      const summary = data.success ? data.response : `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
+
+      // Cache the summary in document state
+      updateDocumentData({
+        factSummary: summary,
+        factSignature: currentSignature
+      });
+
+      return summary;
+    } catch (err) {
+      console.error('Error generating fact summary:', err);
+      // Fallback to simple list
+      return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
+    }
+  }, [currentDocument, updateDocumentData, isAuthenticated, getAccessTokenSilently]);
 
   // Reset messages when document changes and show welcome message
   useEffect(() => {
@@ -126,80 +200,6 @@ Let's start with your name and which state you're in.`
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  // Helper function to generate a signature for facts (used for caching)
-  const generateFactSignature = (facts) => {
-    if (!facts || facts.length === 0) return '';
-
-    // Create a simple signature by stringifying fact contents
-    const factContents = facts.map(fact =>
-      typeof fact === 'string' ? fact : fact.content
-    );
-    return JSON.stringify(factContents);
-  };
-
-  // Helper function to generate AI narrative summary of facts with caching
-  const generateFactSummary = useCallback(async (facts, affiantName) => {
-    if (!facts || facts.length === 0) return '';
-
-    // Generate signature for current facts
-    const currentSignature = generateFactSignature(facts);
-
-    // Check if we have a cached summary for these facts
-    if (currentDocument.factSummary && currentDocument.factSignature === currentSignature) {
-      console.log('✅ Using cached fact summary');
-      return currentDocument.factSummary;
-    }
-
-    console.log('🔄 Generating new fact summary');
-
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-
-      if (isAuthenticated) {
-        const token = await getAccessTokenSilently();
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const factList = facts.map(fact =>
-        typeof fact === 'string' ? fact : fact.content
-      ).join('\n- ');
-
-      const nameInstruction = affiantName
-        ? ` IMPORTANT: Address the person directly using "you" and "your" instead of using the name "${affiantName}". For example, say "you went to the store" instead of "${affiantName} went to the store".`
-        : '';
-
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts, starting with "So far, you've shared that...": ${factList}${nameInstruction}`,
-          conversationHistory: [],
-          affidavitData: currentDocument,
-          skipExtraction: true // Don't extract new facts from this
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summary');
-      }
-
-      const data = await response.json();
-      const summary = data.success ? data.response : `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
-
-      // Cache the summary in document state
-      updateDocumentData({
-        factSummary: summary,
-        factSignature: currentSignature
-      });
-
-      return summary;
-    } catch (err) {
-      console.error('Error generating fact summary:', err);
-      // Fallback to simple list
-      return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
-    }
-  }, [currentDocument, updateDocumentData, isAuthenticated, getAccessTokenSilently]);
 
   // Send message to API
   const sendMessage = async (e) => {

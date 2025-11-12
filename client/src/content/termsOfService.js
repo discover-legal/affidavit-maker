@@ -1,7 +1,7 @@
 // Terms of Service Content
 // Last Updated: November 12, 2025
 
-export const TOS_VERSION = "1.2.0";
+export const TOS_VERSION = "1.3.0";
 export const TOS_LAST_UPDATED = "November 12, 2025";
 
 export const TERMS_OF_SERVICE = `
@@ -9,15 +9,15 @@ export const TERMS_OF_SERVICE = `
 
 **Last Updated: ${TOS_LAST_UPDATED}**
 
-Welcome to Affidavit Maker! We're glad you're here. We've written these terms in plain English to make them easy to understand. Please read them carefully.
+Welcome to Discover.Legal! We're glad you're here. We've written these terms in plain English to make them easy to understand. Please read them carefully.
 
 ## The Basics
 
-By using Affidavit Maker, you agree to these terms. If you don't agree, please don't use our service.
+By using Discover.Legal, you agree to these terms. If you don't agree, please don't use our service.
 
 ## What We Do
 
-Affidavit Maker is a document preparation tool designed to help you tell your story in an easy-to-follow, persuasive way while complying with complex court formatting requirements. Our goal is to help you focus on the substantive issues of your case rather than getting bogged down in stylistic and formatting technicalities.
+Discover.Legal is a document preparation tool designed to help you tell your story in an easy-to-follow, persuasive way while complying with complex court formatting requirements. Our goal is to help you focus on the substantive issues of your case rather than getting bogged down in stylistic and formatting technicalities.
 
 **We provide:**
 - Tools to organize and present your facts clearly and persuasively
@@ -29,26 +29,16 @@ Affidavit Maker is a document preparation tool designed to help you tell your st
 
 **NO LEGAL ADVICE PROVIDED**
 
-Affidavit Maker is strictly a document preparation and formatting tool. **We are not a law firm, and we do not provide legal advice, legal representation, or legal services of any kind.**
+Discover.Legal is strictly a document preparation and formatting tool. **We are not a law firm, and we do not provide legal advice, legal representation, or legal services of any kind.**
 
-- We do not offer opinions on the law
-- We do not advise you on how the law applies to your specific situation
-- We do not recommend specific legal strategies or courses of action
-- We do not review your documents for legal sufficiency or merit
 - Using our service does not create an attorney-client relationship
-
-**Our service helps you with the "how" (formatting and presentation), not the "what" or "why" (legal strategy or merit).**
+- We do not offer opinions on the law or advise how it applies to your situation
+- We do not recommend legal strategies or review documents for legal merit
+- **Our service helps you with the "how" (formatting and presentation), not the "what" or "why" (legal strategy or merit)**
 
 ### When You Need a Lawyer
 
-Questions about the law or how it applies to your situation should be directed to qualified and insured legal professionals. You should consult a licensed attorney if you need:
-
-- Legal advice about your rights or obligations
-- Guidance on legal strategy or what arguments to make
-- Review of the legal sufficiency of your documents
-- Representation in court proceedings
-- Advice on what laws apply to your situation
-- Professional liability protection through attorney malpractice insurance
+Questions about the law or how it applies to your situation should be directed to qualified and insured legal professionals. Consult a licensed attorney if you need legal advice, strategy guidance, document review, court representation, or professional liability protection.
 
 **If you're unsure whether you need a lawyer, it's best to consult one.** Many attorneys offer free or low-cost initial consultations.
 
@@ -119,7 +109,7 @@ With your consent, we may use de-identified, aggregated data for research purpos
 ## Intellectual Property
 
 - You own the content you create and the documents you generate
-- We own the platform, code, and technology that powers Affidavit Maker
+- We own the platform, code, and technology that powers Discover.Legal
 - You grant us a limited license to process your content to provide our service
 - Our logos, trademarks, and branding belong to us
 
@@ -128,12 +118,9 @@ With your consent, we may use de-identified, aggregated data for research purpos
 Our service uses AI technology to help format and organize your documents. While we strive for accuracy:
 
 - **AI can make mistakes** - Always review your documents carefully for accuracy
-- **AI is not a lawyer** - Our AI provides formatting and organizational assistance, not legal advice
 - **You're responsible** for the accuracy and legal sufficiency of your final documents
-- **We format, you decide** - The AI helps with presentation; you decide the substance
 - **Double-check everything** before filing documents in legal proceedings
-- **Get professional review** - Have a qualified attorney review your documents if you have any questions about the law or legal strategy
-- **No substitute for a lawyer** - Our tool helps you present your story clearly, but cannot replace legal counsel for questions about how the law applies to your situation
+- **Get professional review** - Have a qualified attorney review your documents if you have any questions
 
 ## Service Availability
 
@@ -204,7 +191,7 @@ You have the right to:
 - Correct inaccurate information
 - Opt out of marketing communications
 
-To exercise these rights, contact us at support@affidavitmaker.com (or through your account settings).
+To exercise these rights, contact us at support@discover.legal (or through your account settings).
 
 ## Children's Privacy
 
@@ -223,7 +210,7 @@ These terms are governed by the laws of the United States and the state where ou
 
 ## Entire Agreement
 
-These terms, along with our Privacy Policy, constitute the entire agreement between you and Affidavit Maker. They supersede any prior agreements or understandings.
+These terms, along with our Privacy Policy, constitute the entire agreement between you and Discover.Legal. They supersede any prior agreements or understandings.
 
 ## Severability
 
@@ -237,22 +224,18 @@ Our failure to enforce any right or provision doesn't constitute a waiver of tha
 
 Questions about these terms? We're here to help!
 
-**Email:** support@affidavitmaker.com
+**Email:** support@discover.legal
 
 ---
 
 ## Summary (TL;DR)
 
-- **NO LEGAL ADVICE** - We help with formatting and telling your story, not legal strategy or advice
-- **Questions about the law?** Consult a qualified and insured attorney
-- **Our purpose:** Help you present your story clearly and comply with court formatting requirements
+- **NO LEGAL ADVICE** - We're a document formatting tool, not a law firm. Consult an attorney for legal questions.
 - **We will NEVER sell your data to advertisers**
-- We're a document preparation tool, not a law firm - review your documents carefully
 - $79 per document, non-refundable after download
-- We can update these terms with notice
 - You own your documents, we own the platform
+- AI can make mistakes - always review your documents carefully
 - You can cancel anytime
-- Be honest and don't do anything illegal or harmful
 
 **By clicking "I Accept" below, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.**
 `;

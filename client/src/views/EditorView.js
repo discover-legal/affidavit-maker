@@ -157,8 +157,6 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
-    console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
-
     // ✅ FIX: Check if documentId has changed
     const hasDocumentIdChanged = lastDocumentId.current !== documentId;
 
@@ -173,9 +171,12 @@ const EditorView = ({ isNew = false, onBack }) => {
     const initializeSession = async () => {
       // ✅ FIX: Prevent multiple initializations for the same documentId
       if (initializationDone.current) {
-        console.log('✅ Initialization already done for this document, skipping');
+        // Already initialized - skip silently to avoid duplicate console logs
         return;
       }
+
+      // Log only once when actually initializing
+      console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
       if (isNew) {
         // ✅ For new documents, initialize with forceNew=true
@@ -212,6 +213,9 @@ const EditorView = ({ isNew = false, onBack }) => {
           // Reset flag on error so user can retry
           initializationDone.current = false;
         }
+      } else if (documentId && !isAuthenticated) {
+        // Silently wait for authentication - don't log to avoid noise
+        return;
       }
     };
 

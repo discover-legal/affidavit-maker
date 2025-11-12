@@ -171,7 +171,7 @@ class PDFService {
          .lineTo(doc.page.width - doc.page.margins.right, borderY)
          .stroke();
 
-      doc.moveDown(1.5);
+      doc.moveDown(1.0);
     }
 
     // Title

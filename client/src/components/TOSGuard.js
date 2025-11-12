@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import TermsOfServiceModal from './TermsOfServiceModal';
-import { authFetch } from '../services/authService';
+import { useAuthenticatedApi } from '../services/authService';
 
 /**
  * TOSGuard - Protects routes and ensures users have accepted Terms of Service
@@ -9,6 +9,7 @@ import { authFetch } from '../services/authService';
  */
 const TOSGuard = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth0();
+  const { makeAuthenticatedRequest } = useAuthenticatedApi();
   const [tosStatus, setTosStatus] = useState(null);
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
@@ -22,8 +23,7 @@ const TOSGuard = ({ children }) => {
       }
 
       try {
-        const response = await authFetch('/api/auth/tos-status');
-        const data = await response.json();
+        const data = await makeAuthenticatedRequest('/api/auth/tos-status');
 
         if (data.success) {
           setTosStatus(data);
@@ -43,19 +43,14 @@ const TOSGuard = ({ children }) => {
     };
 
     checkTosStatus();
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, makeAuthenticatedRequest]);
 
   const handleAcceptTos = async (tosVersion) => {
     try {
-      const response = await authFetch('/api/auth/accept-tos', {
+      const data = await makeAuthenticatedRequest('/api/auth/accept-tos', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ tosVersion }),
       });
-
-      const data = await response.json();
 
       if (data.success) {
         setTosStatus({

@@ -10,7 +10,7 @@ import { useAuthenticatedApi } from '../services/authService';
 const TOSGuard = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth0();
   const { makeAuthenticatedRequest } = useAuthenticatedApi();
-  const [tosStatus, setTosStatus] = useState(null);
+  const [, setTosStatus] = useState(null);
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
 

@@ -75,9 +75,9 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
         >
           <ReactMarkdown
             components={{
-              h1: ({ node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
-              h2: ({ node, ...props }) => <h2 className="text-2xl font-bold mt-6 mb-3" {...props} />,
-              h3: ({ node, ...props }) => <h3 className="text-xl font-bold mt-4 mb-2" {...props} />,
+              h1: ({ node: _node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
+              h2: ({ node: _node, ...props }) => <h2 className="text-2xl font-bold mt-6 mb-3" {...props} />,
+              h3: ({ node: _node, ...props }) => <h3 className="text-xl font-bold mt-4 mb-2" {...props} />,
               p: ({ node, ...props }) => <p className="mb-4 text-gray-700 leading-relaxed" {...props} />,
               ul: ({ node, ...props }) => <ul className="mb-4 ml-6 list-disc" {...props} />,
               li: ({ node, ...props }) => <li className="mb-2 text-gray-700" {...props} />,

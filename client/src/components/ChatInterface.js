@@ -105,7 +105,7 @@ Let's start with your name and which state you're in.`
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName]);
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -139,7 +139,7 @@ Let's start with your name and which state you're in.`
   };
 
   // Helper function to generate AI narrative summary of facts with caching
-  const generateFactSummary = async (facts, affiantName) => {
+  const generateFactSummary = useCallback(async (facts, affiantName) => {
     if (!facts || facts.length === 0) return '';
 
     // Generate signature for current facts
@@ -199,7 +199,7 @@ Let's start with your name and which state you're in.`
       // Fallback to simple list
       return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
     }
-  };
+  }, [currentDocument, updateDocumentData, isAuthenticated, getAccessTokenSilently]);
 
   // Send message to API
   const sendMessage = async (e) => {

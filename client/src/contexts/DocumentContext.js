@@ -364,7 +364,7 @@ export const DocumentProvider = ({ children }) => {
     } finally {
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
-  }, [authFetch]);
+  }, [authFetch, generatePreview]);
 
   // ✅ Ref to access current state without causing dependency changes
   const stateRef = useRef(state);

@@ -80,7 +80,7 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // Payment modal state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isPaidDocument, setIsPaidDocument] = useState(false);
+  const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   // Use DocumentContext for all document-related state
@@ -119,7 +119,7 @@ const EditorView = ({ isNew = false, onBack }) => {
       // Reset payment status for new documents
       setIsPaidDocument(false);
     }
-  }, [currentDocument.documentId, isAuthenticated, isNew]);
+  }, [currentDocument.documentId, isAuthenticated, isNew, checkPaymentStatus, setIsPaidDocument]);
 
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
@@ -235,7 +235,7 @@ const EditorView = ({ isNew = false, onBack }) => {
   };
 
   // Check payment status for a document
-  const checkPaymentStatus = async (docId) => {
+  const checkPaymentStatus = useCallback(async (docId) => {
     try {
       setIsCheckingPayment(true);
       const token = await getAccessTokenSilently();
@@ -266,7 +266,7 @@ const EditorView = ({ isNew = false, onBack }) => {
     } finally {
       setIsCheckingPayment(false);
     }
-  };
+  }, [getAccessTokenSilently, setIsPaidDocument]);
 
   // Perform the actual PDF download
   const performDownload = async () => {

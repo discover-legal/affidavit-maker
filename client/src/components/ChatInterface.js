@@ -34,100 +34,6 @@ const ChatInterface = () => {
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
-  // Reset messages when document changes and show welcome message
-  useEffect(() => {
-    const newDocId = currentDocument.documentId;
-    const prevDocId = currentDocumentIdRef.current;
-
-    // If documentId changed (including null -> value, value -> null, or value -> different value)
-    if (newDocId !== prevDocId) {
-      console.log('📄 Document ID changed, clearing messages', {
-        from: prevDocId,
-        to: newDocId
-      });
-
-      // Clear messages and reset welcome flag
-      setMessages([]);
-      welcomeMessageShownRef.current = false;
-
-      // Update the ref to track the new documentId
-      currentDocumentIdRef.current = newDocId;
-
-      // If we have a new documentId (not null), show welcome message immediately
-      if (newDocId) {
-        welcomeMessageShownRef.current = true;
-
-        const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
-
-        if (isReturningUser) {
-          // Returning user - show welcome back message
-          const hasFacts = currentDocument.facts?.length > 0;
-
-          if (hasFacts) {
-            // Show welcome with fact count, then generate summary asynchronously
-            const greeting = currentDocument.affiantName
-              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
-              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
-
-            setMessages([{
-              type: 'bot',
-              content: greeting
-            }]);
-
-            // Generate summary asynchronously
-            generateFactSummary(currentDocument.facts, currentDocument.affiantName).then(factSummary => {
-              if (factSummary) {
-                setMessages(prev => [...prev, {
-                  type: 'bot',
-                  content: factSummary + '\n\nWhat would you like to add or update today?'
-                }]);
-              }
-            });
-          } else {
-            // Has name but no facts
-            const greeting = currentDocument.affiantName
-              ? `Hi ${currentDocument.affiantName}, welcome back!`
-              : 'Hi, welcome back!';
-            setMessages([{
-              type: 'bot',
-              content: greeting
-            }]);
-          }
-        } else {
-          // New user - show welcome message
-          console.log('👋 Showing welcome message for new affidavit');
-          setMessages([{
-            type: 'bot',
-            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
-
-Let's start with your name and which state you're in.`
-          }]);
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName]);
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (isAtBottom) {
-      scrollToBottom();
-    }
-  }, [messages, isAtBottom]);
-
-  // Check scroll position
-  const handleScroll = () => {
-    if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isBottom = scrollHeight - scrollTop - clientHeight < 10;
-      setIsAtBottom(isBottom);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   // Helper function to generate a signature for facts (used for caching)
   const generateFactSignature = (facts) => {
     if (!facts || facts.length === 0) return '';
@@ -201,6 +107,99 @@ Let's start with your name and which state you're in.`
       return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
     }
   }, [currentDocument, updateDocumentData, isAuthenticated, getAccessTokenSilently]);
+
+  // Reset messages when document changes and show welcome message
+  useEffect(() => {
+    const newDocId = currentDocument.documentId;
+    const prevDocId = currentDocumentIdRef.current;
+
+    // If documentId changed (including null -> value, value -> null, or value -> different value)
+    if (newDocId !== prevDocId) {
+      console.log('📄 Document ID changed, clearing messages', {
+        from: prevDocId,
+        to: newDocId
+      });
+
+      // Clear messages and reset welcome flag
+      setMessages([]);
+      welcomeMessageShownRef.current = false;
+
+      // Update the ref to track the new documentId
+      currentDocumentIdRef.current = newDocId;
+
+      // If we have a new documentId (not null), show welcome message immediately
+      if (newDocId) {
+        welcomeMessageShownRef.current = true;
+
+        const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
+
+        if (isReturningUser) {
+          // Returning user - show welcome back message
+          const hasFacts = currentDocument.facts?.length > 0;
+
+          if (hasFacts) {
+            // Show welcome with fact count, then generate summary asynchronously
+            const greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`
+              : `Hi, welcome back! I see you have ${currentDocument.facts.length} fact${currentDocument.facts.length !== 1 ? 's' : ''}. Give me a second to summarize them...`;
+
+            setMessages([{
+              type: 'bot',
+              content: greeting
+            }]);
+
+            // Generate summary asynchronously
+            generateFactSummary(currentDocument.facts, currentDocument.affiantName).then(factSummary => {
+              if (factSummary) {
+                setMessages(prev => [...prev, {
+                  type: 'bot',
+                  content: factSummary + '\n\nWhat would you like to add or update today?'
+                }]);
+              }
+            });
+          } else {
+            // Has name but no facts
+            const greeting = currentDocument.affiantName
+              ? `Hi ${currentDocument.affiantName}, welcome back!`
+              : 'Hi, welcome back!';
+            setMessages([{
+              type: 'bot',
+              content: greeting
+            }]);
+          }
+        } else {
+          // New user - show welcome message
+          console.log('👋 Showing welcome message for new affidavit');
+          setMessages([{
+            type: 'bot',
+            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+
+Let's start with your name and which state you're in.`
+          }]);
+        }
+      }
+    }
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (isAtBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isAtBottom]);
+
+  // Check scroll position
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isBottom = scrollHeight - scrollTop - clientHeight < 10;
+      setIsAtBottom(isBottom);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Send message to API
   const sendMessage = async (e) => {

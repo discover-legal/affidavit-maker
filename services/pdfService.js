@@ -163,10 +163,7 @@ class PDFService {
     if (sections.caseCaption) {
       this.checkPageBreak(doc, 120);
       doc.fontSize(12).font('Times-Roman');
-      doc.text(this.getFormatted(sections.caseCaption), {
-        align: 'center',
-        lineGap: 6  // Adds extra spacing between lines for "one and a half" line effect
-      });
+      doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
       doc.moveDown(1.5);
 
       const borderY = doc.y;

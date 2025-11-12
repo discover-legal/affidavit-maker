@@ -1,7 +1,7 @@
 // Terms of Service Content
 // Last Updated: November 12, 2025
 
-export const TOS_VERSION = "1.1.0";
+export const TOS_VERSION = "1.2.0";
 export const TOS_LAST_UPDATED = "November 12, 2025";
 
 export const TERMS_OF_SERVICE = `
@@ -17,7 +17,40 @@ By using Affidavit Maker, you agree to these terms. If you don't agree, please d
 
 ## What We Do
 
-Affidavit Maker helps you create legal affidavits and documents using AI technology. We provide tools to draft, edit, and generate professional legal documents. However, **we are not a law firm and do not provide legal advice**. For legal advice, please consult a licensed attorney.
+Affidavit Maker is a document preparation tool designed to help you tell your story in an easy-to-follow, persuasive way while complying with complex court formatting requirements. Our goal is to help you focus on the substantive issues of your case rather than getting bogged down in stylistic and formatting technicalities.
+
+**We provide:**
+- Tools to organize and present your facts clearly and persuasively
+- Automated formatting that complies with court requirements
+- AI-powered assistance to help structure your narrative effectively
+- Professional document templates that meet legal standards
+
+## Important Legal Disclaimer - Please Read Carefully
+
+**NO LEGAL ADVICE PROVIDED**
+
+Affidavit Maker is strictly a document preparation and formatting tool. **We are not a law firm, and we do not provide legal advice, legal representation, or legal services of any kind.**
+
+- We do not offer opinions on the law
+- We do not advise you on how the law applies to your specific situation
+- We do not recommend specific legal strategies or courses of action
+- We do not review your documents for legal sufficiency or merit
+- Using our service does not create an attorney-client relationship
+
+**Our service helps you with the "how" (formatting and presentation), not the "what" or "why" (legal strategy or merit).**
+
+### When You Need a Lawyer
+
+Questions about the law or how it applies to your situation should be directed to qualified and insured legal professionals. You should consult a licensed attorney if you need:
+
+- Legal advice about your rights or obligations
+- Guidance on legal strategy or what arguments to make
+- Review of the legal sufficiency of your documents
+- Representation in court proceedings
+- Advice on what laws apply to your situation
+- Professional liability protection through attorney malpractice insurance
+
+**If you're unsure whether you need a lawyer, it's best to consult one.** Many attorneys offer free or low-cost initial consultations.
 
 ## Your Account
 
@@ -92,13 +125,15 @@ With your consent, we may use de-identified, aggregated data for research purpos
 
 ## AI-Generated Content Disclaimer
 
-Our service uses AI technology to help create documents. While we strive for accuracy:
+Our service uses AI technology to help format and organize your documents. While we strive for accuracy:
 
-- **AI can make mistakes** - Always review your documents carefully
-- **AI is not a lawyer** - This is not legal advice
-- **You're responsible** for the accuracy of your final documents
-- **Double-check everything** before using documents in legal proceedings
-- **Consult an attorney** if you're unsure about anything
+- **AI can make mistakes** - Always review your documents carefully for accuracy
+- **AI is not a lawyer** - Our AI provides formatting and organizational assistance, not legal advice
+- **You're responsible** for the accuracy and legal sufficiency of your final documents
+- **We format, you decide** - The AI helps with presentation; you decide the substance
+- **Double-check everything** before filing documents in legal proceedings
+- **Get professional review** - Have a qualified attorney review your documents if you have any questions about the law or legal strategy
+- **No substitute for a lawyer** - Our tool helps you present your story clearly, but cannot replace legal counsel for questions about how the law applies to your situation
 
 ## Service Availability
 
@@ -208,14 +243,16 @@ Questions about these terms? We're here to help!
 
 ## Summary (TL;DR)
 
-- Be honest and don't do anything illegal or harmful
+- **NO LEGAL ADVICE** - We help with formatting and telling your story, not legal strategy or advice
+- **Questions about the law?** Consult a qualified and insured attorney
+- **Our purpose:** Help you present your story clearly and comply with court formatting requirements
 - **We will NEVER sell your data to advertisers**
-- We're a tool, not a law firm - review your documents carefully
+- We're a document preparation tool, not a law firm - review your documents carefully
 - $79 per document, non-refundable after download
 - We can update these terms with notice
 - You own your documents, we own the platform
 - You can cancel anytime
-- Be nice to others and follow the rules
+- Be honest and don't do anything illegal or harmful
 
 **By clicking "I Accept" below, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.**
 `;

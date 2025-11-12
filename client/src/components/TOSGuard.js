@@ -43,7 +43,9 @@ const TOSGuard = ({ children }) => {
     };
 
     checkTosStatus();
-  }, [isAuthenticated, isLoading, makeAuthenticatedRequest]);
+    // makeAuthenticatedRequest is stable and should not trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isLoading]);
 
   const handleAcceptTos = async (tosVersion) => {
     try {

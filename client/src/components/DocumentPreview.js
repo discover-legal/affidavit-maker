@@ -256,7 +256,9 @@ const DocumentPreview = () => {
         case 'caseCaption':
         case 'case-caption':
           // Use actual text measurement for multi-line captions
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 48; // Add border and margins
+          // PDF: text + moveDown(1.5) + border + moveDown(1.0) = text + 40px
+          // Preview: text + padding-bottom(12px) + margin-bottom(12px) + border(2px) ≈ text + 40px
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 40; // Match PDF spacing
           break;
         case 'notary':
         case 'notaryBlock':

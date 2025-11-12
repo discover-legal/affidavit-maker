@@ -111,8 +111,8 @@ class BaseAffidavitTemplate {
     const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
-    caption += `${plaintiff.toUpperCase()}\n\n`;
-    caption += `V.\n\n`;
+    caption += `${plaintiff.toUpperCase()}\n`;
+    caption += `V.\n`;
     caption += `${defendant.toUpperCase()}`;
 
     return {
@@ -232,29 +232,10 @@ class BaseAffidavitTemplate {
     const processedFacts = [];
     let factNumber = 2; // Start at 2 (after competency statement)
 
-    console.log(`📊 Processing ${facts.length} facts for document:`);
-
     facts.forEach((fact, index) => {
       const content = typeof fact === 'string'
         ? fact
         : (fact.professionalRewrite || fact.content || '');
-
-      const contentTrimmed = content ? content.trim() : '';
-
-      // ✅ ENHANCED DEBUG: Log every fact with details
-      console.log(`  Fact ${index + 1}:`, {
-        hasContent: !!contentTrimmed,
-        contentLength: contentTrimmed.length,
-        contentPreview: contentTrimmed.substring(0, 50) + (contentTrimmed.length > 50 ? '...' : ''),
-        willAssignNumber: contentTrimmed ? factNumber : 'SKIPPED',
-        rawType: typeof fact,
-        hasProfessionalRewrite: !!(fact && fact.professionalRewrite),
-        hasContentField: !!(fact && fact.content)
-      });
-
-      if (!contentTrimmed) {
-        console.warn(`  ⚠️ Fact ${index + 1} FILTERED OUT - empty or whitespace-only content`);
-      }
 
       if (content && content.trim()) {
         processedFacts.push({
@@ -264,8 +245,6 @@ class BaseAffidavitTemplate {
         });
       }
     });
-
-    console.log(`✅ Final result: ${processedFacts.length} facts processed (numbers ${2}-${factNumber - 1}) out of ${facts.length} input facts`);
 
     return processedFacts;
   }

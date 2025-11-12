@@ -102,17 +102,17 @@ class BaseAffidavitTemplate {
     // State-specific court formatting handled in subclasses
     caption += `IN THE ${courtName}\n\n`;
 
-    // Case number - show placeholder if not provided
+    // Case number - default uses "CASE NO." (override in state-specific templates if needed)
     const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
-    caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
+    caption += `CASE NO. ${caseNumber.toUpperCase()}\n\n`;
 
     // Add party names if both are provided (style of cause format)
     // Extract from affidavitData or use placeholders
     const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
-    caption += `${plaintiff.toUpperCase()}\n`;
-    caption += `v.\n`;
+    caption += `${plaintiff.toUpperCase()}\n\n`;
+    caption += `V.\n\n`;
     caption += `${defendant.toUpperCase()}`;
 
     return {
@@ -422,21 +422,54 @@ class TexasTemplate extends BaseAffidavitTemplate {
     this.sections.perjuryStatement = false;
   }
 
+  /**
+   * Texas-specific case caption with "CAUSE NO." terminology
+   */
+  generateCaseCaption(affidavitData) {
+    let caption = '';
+
+    // Court name - use 'court' field (matches schema), fallback to courtName for backwards compatibility
+    let courtName = affidavitData.court || affidavitData.courtName || '[COURT NAME]';
+    courtName = courtName.toUpperCase();
+
+    caption += `IN THE ${courtName}\n\n`;
+
+    // Case number - Texas uses "CAUSE NO."
+    const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
+    caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
+
+    // Add party names
+    const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
+    const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
+
+    caption += `${plaintiff.toUpperCase()}\n\n`;
+    caption += `V.\n\n`;
+    caption += `${defendant.toUpperCase()}`;
+
+    return {
+      courtName,
+      caseNumber: affidavitData.caseNumber,
+      plaintiff: affidavitData.plaintiff,
+      defendant: affidavitData.defendant,
+      formatted: caption
+    };
+  }
+
   performStateSpecificValidation(affidavitData) {
     const errors = [];
     const warnings = [];
-    
+
     // County is REQUIRED for Texas
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
       errors.push('County is required for Texas affidavits');
     }
-    
+
     // Warn if perjury statement is somehow present (shouldn't be)
     const factsText = (affidavitData.facts || []).join(' ').toLowerCase();
     if (factsText.includes('penalty of perjury') || factsText.includes('under perjury')) {
       warnings.push('Texas sworn affidavits do not require perjury statement in document text - oath provides warning');
     }
-    
+
     return { errors, warnings };
   }
 
@@ -491,6 +524,39 @@ class UtahTemplate extends BaseAffidavitTemplate {
     
     // Utah does NOT include perjury statement in sworn affidavits
     this.sections.perjuryStatement = false;
+  }
+
+  /**
+   * Utah-specific case caption with "CASE NO." terminology
+   */
+  generateCaseCaption(affidavitData) {
+    let caption = '';
+
+    // Court name - use 'court' field (matches schema), fallback to courtName for backwards compatibility
+    let courtName = affidavitData.court || affidavitData.courtName || '[COURT NAME]';
+    courtName = courtName.toUpperCase();
+
+    caption += `IN THE ${courtName}\n\n`;
+
+    // Case number - Utah uses "CASE NO."
+    const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
+    caption += `CASE NO. ${caseNumber.toUpperCase()}\n\n`;
+
+    // Add party names
+    const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
+    const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
+
+    caption += `${plaintiff.toUpperCase()}\n\n`;
+    caption += `V.\n\n`;
+    caption += `${defendant.toUpperCase()}`;
+
+    return {
+      courtName,
+      caseNumber: affidavitData.caseNumber,
+      plaintiff: affidavitData.plaintiff,
+      defendant: affidavitData.defendant,
+      formatted: caption
+    };
   }
 
   /**
@@ -630,6 +696,39 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
     
     // Arizona DOES include perjury statement (best practice)
     this.sections.perjuryStatement = true;
+  }
+
+  /**
+   * Arizona-specific case caption with "CASE NO." terminology
+   */
+  generateCaseCaption(affidavitData) {
+    let caption = '';
+
+    // Court name - use 'court' field (matches schema), fallback to courtName for backwards compatibility
+    let courtName = affidavitData.court || affidavitData.courtName || '[COURT NAME]';
+    courtName = courtName.toUpperCase();
+
+    caption += `IN THE ${courtName}\n\n`;
+
+    // Case number - Arizona uses "CASE NO."
+    const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
+    caption += `CASE NO. ${caseNumber.toUpperCase()}\n\n`;
+
+    // Add party names
+    const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
+    const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
+
+    caption += `${plaintiff.toUpperCase()}\n\n`;
+    caption += `V.\n\n`;
+    caption += `${defendant.toUpperCase()}`;
+
+    return {
+      courtName,
+      caseNumber: affidavitData.caseNumber,
+      plaintiff: affidavitData.plaintiff,
+      defendant: affidavitData.defendant,
+      formatted: caption
+    };
   }
 
   /**

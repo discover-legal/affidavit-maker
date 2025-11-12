@@ -1,7 +1,7 @@
 // Terms of Service Content
 // Last Updated: November 12, 2025
 
-export const TOS_VERSION = "1.0.0";
+export const TOS_VERSION = "1.1.0";
 export const TOS_LAST_UPDATED = "November 12, 2025";
 
 export const TERMS_OF_SERVICE = `
@@ -50,6 +50,32 @@ Your personal information, documents, and data are yours. Period. We will never 
 - Use it to train third-party AI models without your permission
 - Give third parties access without your explicit consent
 - Read your documents unless you ask us for support
+
+### 🎓 Academic Research & Data for Good
+
+We believe in advancing knowledge and improving legal access. With your consent through acceptance of these terms, we may use **de-identified, aggregated data** for academic research purposes:
+
+**What this means:**
+- We may share anonymized, non-identifiable data with academic researchers
+- All personal information, names, and identifying details are removed
+- Research focuses on improving legal document accessibility and AI technology
+- Results may be published in academic papers or conferences
+- This helps improve legal services for everyone
+
+**Your protection:**
+- All data is de-identified using industry-standard anonymization techniques
+- No individual documents or cases can be traced back to you
+- We comply with all research ethics standards (IRB requirements)
+- You can opt out of research data sharing at any time in your account settings
+- Opting out does not affect your use of the service
+
+**Examples of research use:**
+- Studying patterns in legal document creation to improve AI assistance
+- Analyzing how people use legal services to increase accessibility
+- Publishing anonymized statistics about legal document trends
+- Improving natural language processing for legal documents
+
+This research clause supports our mission to make legal services more accessible while maintaining your privacy and never selling your data.
 
 ## Payment & Billing
 
@@ -206,6 +232,7 @@ Questions about these terms? We're here to help!
 
 - Be honest and don't do anything illegal or harmful
 - **We will NEVER sell your data to advertisers**
+- We may use de-identified data for academic research (you can opt out)
 - We're a tool, not a law firm - review your documents carefully
 - $79 per document, non-refundable after download
 - We can update these terms with notice

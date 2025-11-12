@@ -104,14 +104,14 @@ class BaseAffidavitTemplate {
 
     // Case number - show placeholder if not provided
     const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
-    caption += `CAUSE NO. ${caseNumber.toUpperCase()}`;
+    caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
 
     // Add party names if both are provided (style of cause format)
     // Extract from affidavitData or use placeholders
     const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
     const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
 
-    caption += `\n\n${plaintiff.toUpperCase()}\n`;
+    caption += `${plaintiff.toUpperCase()}\n`;
     caption += `v.\n`;
     caption += `${defendant.toUpperCase()}`;
 

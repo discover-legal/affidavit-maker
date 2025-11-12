@@ -252,6 +252,10 @@ export const DocumentProvider = ({ children }) => {
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
   const [previewDebounceTimer, setPreviewDebounceTimer] = useState(null);
 
+  // ✅ Ref to access current state without causing dependency changes
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
     try {
@@ -281,10 +285,6 @@ export const DocumentProvider = ({ children }) => {
       throw error;
     }
   }, [isAuthenticated, getAccessTokenSilently]);
-
-  // ✅ Ref to access current state without causing dependency changes
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   // Generate preview
   const generatePreview = useCallback(async (documentData = null) => {

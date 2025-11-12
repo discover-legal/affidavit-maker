@@ -11,13 +11,13 @@ const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/fac
 // Fixed preview route for routes/documents.js
 // Add this to your routes/documents.js file, replacing the existing /preview route
 
-router.post('/preview', 
+router.post('/preview',
   validatePreview,
   optionalAuth,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { affidavitData } = req.body;
-    
+
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
         success: false,
@@ -29,6 +29,19 @@ router.post('/preview',
       const templateManager = req.app.locals.templateManager;
       const pool = req.app.locals.pool;
       const userId = req.user?.id;
+
+      // ✅ DEBUG: Log incoming facts for preview
+      logger.info('Preview endpoint received affidavitData', {
+        factCount: affidavitData.facts?.length || 0,
+        hasName: !!affidavitData.affiantName,
+        hasState: !!affidavitData.state,
+        facts: affidavitData.facts?.map((f, i) => ({
+          index: i,
+          hasContent: !!(typeof f === 'string' ? f : f.content),
+          contentLength: (typeof f === 'string' ? f : f.content || '').length,
+          contentPreview: (typeof f === 'string' ? f : f.content || '').substring(0, 50)
+        }))
+      });
 
       // ✅ REMOVED: Preview caching to fix fact reorder issue
       // Preview caching was causing stale previews to be returned when facts were reordered.
@@ -46,6 +59,17 @@ router.post('/preview',
             affidavitData.state || 'TX',
             affidavitData
           );
+
+          // ✅ DEBUG: Log generated document sections
+          logger.info('Template generated document', {
+            factItemCount: document.sections?.facts?.items?.length || 0,
+            factItems: document.sections?.facts?.items?.map((f, i) => ({
+              number: f.number,
+              hasContent: !!f.content,
+              contentLength: f.content?.length,
+              contentPreview: f.content?.substring(0, 50)
+            }))
+          });
 
           preview = {
             sections: document.sections || document,

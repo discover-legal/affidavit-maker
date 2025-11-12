@@ -228,15 +228,26 @@ class BaseAffidavitTemplate {
 
   processFactsForDocument(facts) {
     if (!Array.isArray(facts)) return [];
-    
+
     const processedFacts = [];
     let factNumber = 2; // Start at 2 (after competency statement)
-    
-    facts.forEach(fact => {
-      const content = typeof fact === 'string' 
-        ? fact 
+
+    facts.forEach((fact, index) => {
+      const content = typeof fact === 'string'
+        ? fact
         : (fact.professionalRewrite || fact.content || '');
-      
+
+      // ✅ DEBUG: Log each fact processing
+      const contentTrimmed = content ? content.trim() : '';
+      if (!contentTrimmed) {
+        console.warn(`⚠️ Fact ${index} filtered out - empty content:`, {
+          isString: typeof fact === 'string',
+          hasProfessionalRewrite: !!(fact && fact.professionalRewrite),
+          hasContent: !!(fact && fact.content),
+          rawContentLength: content?.length || 0
+        });
+      }
+
       if (content && content.trim()) {
         processedFacts.push({
           number: factNumber++,
@@ -245,7 +256,9 @@ class BaseAffidavitTemplate {
         });
       }
     });
-    
+
+    console.log(`✅ Processed ${processedFacts.length} facts out of ${facts.length} input facts`);
+
     return processedFacts;
   }
 

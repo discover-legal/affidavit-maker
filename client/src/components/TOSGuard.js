@@ -16,8 +16,20 @@ const TOSGuard = ({ children }) => {
 
   useEffect(() => {
     const checkTosStatus = async () => {
-      // Only check if user is authenticated
-      if (!isAuthenticated || isLoading) {
+      // Wait for auth to finish loading
+      if (isLoading) {
+        return;
+      }
+
+      // If not authenticated, no need to check TOS
+      if (!isAuthenticated) {
+        setIsCheckingTos(false);
+        return;
+      }
+
+      // Check if we've already checked TOS this session
+      const tosCheckedThisSession = sessionStorage.getItem(`tos_checked_${user?.sub}`);
+      if (tosCheckedThisSession === 'true') {
         setIsCheckingTos(false);
         return;
       }
@@ -28,6 +40,9 @@ const TOSGuard = ({ children }) => {
         if (data.success) {
           setTosStatus(data);
 
+          // Mark as checked this session
+          sessionStorage.setItem(`tos_checked_${user?.sub}`, 'true');
+
           // Show TOS modal if user hasn't accepted
           if (!data.tosAccepted) {
             setShowTosModal(true);
@@ -35,8 +50,8 @@ const TOSGuard = ({ children }) => {
         }
       } catch (error) {
         console.error('Error checking TOS status:', error);
-        // On error, default to showing TOS modal for safety
-        setShowTosModal(true);
+        // On error, don't show modal - allow user to continue
+        // They'll see it next time they log in
       } finally {
         setIsCheckingTos(false);
       }
@@ -45,7 +60,7 @@ const TOSGuard = ({ children }) => {
     checkTosStatus();
     // makeAuthenticatedRequest is stable and should not trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, user?.sub]);
 
   const handleAcceptTos = async (tosVersion, researchConsent = false) => {
     try {
@@ -76,7 +91,7 @@ const TOSGuard = ({ children }) => {
     // 1. Log them out
     // 2. Show a message explaining they must accept to continue
     // For now, we'll keep the modal open (they must accept to use the service)
-    alert('You must accept the Terms of Service to use Affidavit Maker.');
+    alert('You must accept the Terms of Service to use Discover.Legal.');
   };
 
   // Show loading state while checking TOS

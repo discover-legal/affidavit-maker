@@ -24,6 +24,10 @@ const PAGE_CONFIG = {
   linesPerPage: 35 // Approximate lines per page with 1.5x spacing
 };
 
+// Pagination safety constants
+const SAFETY_MARGIN = 24; // Pixels to subtract from max page height to prevent overflow
+const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + margin-bottom (12px)
+
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentState();
   const { generatePreview } = useDocumentActions();
@@ -235,7 +239,7 @@ const DocumentPreview = () => {
     const paginatedPages = [];
     let currentPageContent = [];
     let currentPageHeight = 0;
-    const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96; // Convert to pixels
+    const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96 - SAFETY_MARGIN; // Convert to pixels and subtract safety margin
     
     allContent.forEach((section, idx) => {
       // CRITICAL: Height estimation must match PDF rendering for WYSIWYG accuracy
@@ -365,15 +369,23 @@ const DocumentPreview = () => {
 
           if (wouldExceedPage && factsOnPage > 0) {
             // CASE: There are previous facts on page, and everything doesn't fit
-            // Solution: Add continuation marker, break page, move last fact + chain to next page
+            // Solution: Add continuation marker if it fits, break page, move last fact + chain to next page
             // This matches PDF lines 229-234
-            currentPageContent.push({
-              type: 'continuation',
-              content: '(Continued on next page)',
-              keepWithNext: false,
-              breakBefore: false,
-              isBlockElement: false
-            });
+
+            // Only add continuation marker if there's room for it on the current page
+            const canFitContinuationMarker = currentPageHeight + CONTINUATION_MARKER_HEIGHT <= maxPageHeight;
+
+            if (canFitContinuationMarker) {
+              currentPageContent.push({
+                type: 'continuation',
+                content: '(Continued on next page)',
+                keepWithNext: false,
+                breakBefore: false,
+                isBlockElement: false
+              });
+              // Update height to reflect the continuation marker
+              currentPageHeight += CONTINUATION_MARKER_HEIGHT;
+            }
 
             paginatedPages.push({
               content: currentPageContent,

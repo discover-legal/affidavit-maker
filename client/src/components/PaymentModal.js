@@ -12,7 +12,6 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { getAccessTokenSilently } = useAuth0();
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
 

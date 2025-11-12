@@ -6,12 +6,16 @@ import { TERMS_OF_SERVICE, TOS_VERSION, TOS_LAST_UPDATED } from '../content/term
 const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [tosChecked, setTosChecked] = useState(false);
+  const [researchConsent, setResearchConsent] = useState(false);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     // Reset scroll state when modal opens
     if (isOpen) {
       setHasScrolledToBottom(false);
+      setTosChecked(false);
+      setResearchConsent(false);
     }
   }, [isOpen]);
 
@@ -31,7 +35,7 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
   const handleAccept = async () => {
     setIsAccepting(true);
     try {
-      await onAccept(TOS_VERSION);
+      await onAccept(TOS_VERSION, researchConsent);
     } catch (error) {
       console.error('Error accepting TOS:', error);
       setIsAccepting(false);
@@ -100,6 +104,8 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
             <input
               type="checkbox"
               id="tos-checkbox"
+              checked={tosChecked}
+              onChange={(e) => setTosChecked(e.target.checked)}
               disabled={!hasScrolledToBottom}
               className={`mt-1 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
                 !hasScrolledToBottom ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
@@ -115,6 +121,27 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
             </label>
           </div>
 
+          <div className="flex items-start space-x-3 mb-4 pl-1">
+            <input
+              type="checkbox"
+              id="research-checkbox"
+              checked={researchConsent}
+              onChange={(e) => setResearchConsent(e.target.checked)}
+              disabled={!hasScrolledToBottom}
+              className={`mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
+                !hasScrolledToBottom ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+            />
+            <label
+              htmlFor="research-checkbox"
+              className={`text-xs ${
+                !hasScrolledToBottom ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              <span className="font-medium">Optional:</span> I consent to the use of de-identified data for research purposes to improve legal accessibility
+            </label>
+          </div>
+
           <div className="flex items-center justify-end space-x-3">
             {onDecline && (
               <button
@@ -127,9 +154,9 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
             )}
             <button
               onClick={handleAccept}
-              disabled={!hasScrolledToBottom || isAccepting}
+              disabled={!hasScrolledToBottom || !tosChecked || isAccepting}
               className={`px-8 py-2 rounded-lg font-semibold transition-all ${
-                hasScrolledToBottom && !isAccepting
+                hasScrolledToBottom && tosChecked && !isAccepting
                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -140,7 +167,12 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
 
           {!hasScrolledToBottom && (
             <p className="text-xs text-gray-500 text-center mt-3">
-              The "I Accept" button will be enabled once you scroll to the bottom
+              Please scroll to the bottom and check the box above to continue
+            </p>
+          )}
+          {hasScrolledToBottom && !tosChecked && (
+            <p className="text-xs text-gray-500 text-center mt-3">
+              Please check the Terms of Service box to continue
             </p>
           )}
         </div>

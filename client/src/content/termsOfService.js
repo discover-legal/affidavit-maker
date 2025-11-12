@@ -1,7 +1,7 @@
 // Terms of Service Content
 // Last Updated: November 12, 2025
 
-export const TOS_VERSION = "1.0.0";
+export const TOS_VERSION = "1.1.0";
 export const TOS_LAST_UPDATED = "November 12, 2025";
 
 export const TERMS_OF_SERVICE = `
@@ -50,6 +50,10 @@ Your personal information, documents, and data are yours. Period. We will never 
 - Use it to train third-party AI models without your permission
 - Give third parties access without your explicit consent
 - Read your documents unless you ask us for support
+
+### 📊 Research & Service Improvement
+
+With your consent, we may use de-identified, aggregated data for research purposes to improve legal accessibility and AI technology. All personal information and identifying details are removed using industry-standard anonymization techniques. Research data cannot be traced back to individual users and complies with research ethics standards.
 
 ## Payment & Billing
 

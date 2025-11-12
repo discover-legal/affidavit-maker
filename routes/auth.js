@@ -42,7 +42,7 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
 // Accept Terms of Service
 router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
   const user = req.user;
-  const { tosVersion } = req.body;
+  const { tosVersion, researchConsent = false } = req.body;
   const pool = req.app.locals.pool;
 
   if (!tosVersion) {
@@ -72,18 +72,24 @@ router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
            tos_accepted_at = NOW(),
            tos_version_accepted = $1,
            tos_ip_address = $2,
+           research_consent = $3,
+           research_consent_at = CASE WHEN $3 = true THEN NOW() ELSE NULL END,
            updated_at = NOW()
-       WHERE id = $3`,
-      [tosVersion, ipAddress, user.id]
+       WHERE id = $4`,
+      [tosVersion, ipAddress, researchConsent, user.id]
     );
 
     // Log TOS acceptance for audit trail
     await client.query(
       `INSERT INTO tos_acceptance_log
-       (user_id, tos_version, ip_address, user_agent, accepted_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       ON CONFLICT (user_id, tos_version) DO NOTHING`,
-      [user.id, tosVersion, ipAddress, userAgent]
+       (user_id, tos_version, ip_address, user_agent, research_consent, accepted_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (user_id, tos_version) DO UPDATE
+       SET research_consent = EXCLUDED.research_consent,
+           ip_address = EXCLUDED.ip_address,
+           user_agent = EXCLUDED.user_agent,
+           accepted_at = NOW()`,
+      [user.id, tosVersion, ipAddress, userAgent, researchConsent]
     );
 
     await client.query('COMMIT');
@@ -91,6 +97,7 @@ router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
     logger.info('User accepted TOS', {
       userId: user.id,
       tosVersion,
+      researchConsent,
       ipAddress,
       requestId: req.id
     });
@@ -99,7 +106,8 @@ router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
       success: true,
       message: 'Terms of Service accepted',
       tosAccepted: true,
-      tosVersion
+      tosVersion,
+      researchConsent
     });
   } catch (error) {
     await client.query('ROLLBACK');

@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';
 import EditorView from './views/EditorView';
 import ErrorBoundary from './components/ErrorBoundary';
+import TOSGuard from './components/TOSGuard';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -105,7 +106,9 @@ const App = () => {
       <Auth0Provider {...AUTH0_CONFIG}>
         <DocumentProvider>
           <Router>
-            <AppRoutes />
+            <TOSGuard>
+              <AppRoutes />
+            </TOSGuard>
           </Router>
         </DocumentProvider>
       </Auth0Provider>

@@ -8,7 +8,7 @@ const logger = require('../utils/logger');
 // Get current user profile
 router.get('/me', checkJwt, asyncHandler(async (req, res) => {
   const user = req.user;
-  
+
   if (!user) {
     return res.status(404).json({
       success: false,
@@ -16,12 +16,12 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
       requestId: req.id
     });
   }
-  
+
   logger.info('User profile accessed', {
     userId: user.id,
     requestId: req.id
   });
-  
+
   res.json({
     success: true,
     user: {
@@ -31,8 +31,93 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
       subscriptionStatus: user.subscription_status,
       subscriptionTier: user.subscription_tier,
       createdAt: user.created_at,
-      lastLoginAt: user.last_login_at
+      lastLoginAt: user.last_login_at,
+      tosAccepted: user.tos_accepted,
+      tosAcceptedAt: user.tos_accepted_at,
+      tosVersionAccepted: user.tos_version_accepted
     }
+  });
+}));
+
+// Accept Terms of Service
+router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
+  const user = req.user;
+  const { tosVersion } = req.body;
+  const pool = req.app.locals.pool;
+
+  if (!tosVersion) {
+    return res.status(400).json({
+      success: false,
+      error: 'TOS version is required',
+      requestId: req.id
+    });
+  }
+
+  // Get IP address from request
+  const ipAddress = req.ip || req.connection.remoteAddress ||
+                    req.headers['x-forwarded-for']?.split(',')[0] ||
+                    'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  // Start transaction
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Update user's TOS acceptance
+    await client.query(
+      `UPDATE users
+       SET tos_accepted = true,
+           tos_accepted_at = NOW(),
+           tos_version_accepted = $1,
+           tos_ip_address = $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [tosVersion, ipAddress, user.id]
+    );
+
+    // Log TOS acceptance for audit trail
+    await client.query(
+      `INSERT INTO tos_acceptance_log
+       (user_id, tos_version, ip_address, user_agent, accepted_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (user_id, tos_version) DO NOTHING`,
+      [user.id, tosVersion, ipAddress, userAgent]
+    );
+
+    await client.query('COMMIT');
+
+    logger.info('User accepted TOS', {
+      userId: user.id,
+      tosVersion,
+      ipAddress,
+      requestId: req.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Terms of Service accepted',
+      tosAccepted: true,
+      tosVersion
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}));
+
+// Get TOS acceptance status
+router.get('/tos-status', checkJwt, asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  res.json({
+    success: true,
+    tosAccepted: user.tos_accepted || false,
+    tosAcceptedAt: user.tos_accepted_at,
+    tosVersionAccepted: user.tos_version_accepted
   });
 }));
 

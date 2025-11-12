@@ -111,6 +111,40 @@ const EditorView = ({ isNew = false, onBack }) => {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
+  // Check payment status for a document
+  const checkPaymentStatus = useCallback(async (docId) => {
+    try {
+      setIsCheckingPayment(true);
+      const token = await getAccessTokenSilently();
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+
+      const data = await response.json();
+      // Access payment_status from the document object
+      const paymentStatus = data.document?.payment_status || data.payment_status;
+      // Valid paid statuses: paid, completed, free, succeeded
+      const validPaidStatuses = ['paid', 'completed', 'free', 'succeeded'];
+      const isPaid = validPaidStatuses.includes(paymentStatus);
+      setIsPaidDocument(isPaid);
+      console.log('💰 Payment status checked:', { docId, paymentStatus, isPaid });
+      return isPaid;
+    } catch (error) {
+      console.error('❌ Payment status check failed:', error);
+      return false;
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  }, [getAccessTokenSilently, setIsPaidDocument]);
+
   // Check payment status when document loads
   useEffect(() => {
     if (currentDocument.documentId && isAuthenticated && !isNew) {
@@ -233,40 +267,6 @@ const EditorView = ({ isNew = false, onBack }) => {
       console.error('Save error:', error);
     }
   };
-
-  // Check payment status for a document
-  const checkPaymentStatus = useCallback(async (docId) => {
-    try {
-      setIsCheckingPayment(true);
-      const token = await getAccessTokenSilently();
-
-      const response = await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to check payment status');
-      }
-
-      const data = await response.json();
-      // Access payment_status from the document object
-      const paymentStatus = data.document?.payment_status || data.payment_status;
-      // Valid paid statuses: paid, completed, free, succeeded
-      const validPaidStatuses = ['paid', 'completed', 'free', 'succeeded'];
-      const isPaid = validPaidStatuses.includes(paymentStatus);
-      setIsPaidDocument(isPaid);
-      console.log('💰 Payment status checked:', { docId, paymentStatus, isPaid });
-      return isPaid;
-    } catch (error) {
-      console.error('❌ Payment status check failed:', error);
-      return false;
-    } finally {
-      setIsCheckingPayment(false);
-    }
-  }, [getAccessTokenSilently, setIsPaidDocument]);
 
   // Perform the actual PDF download
   const performDownload = async () => {

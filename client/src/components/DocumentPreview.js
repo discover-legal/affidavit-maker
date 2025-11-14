@@ -25,7 +25,7 @@ const PAGE_CONFIG = {
 };
 
 // Pagination safety constants
-const SAFETY_MARGIN = 24; // Pixels to subtract from max page height to prevent overflow
+const SAFETY_MARGIN = 7; // Pixels to subtract from max page height to prevent overflow
 const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + margin-bottom (12px)
 
 const DocumentPreview = () => {
@@ -152,15 +152,14 @@ const DocumentPreview = () => {
           const factContent = fact.content || String(fact);
           const factType = fact.type || 'fact';
 
-          // CRITICAL FIX: Mark the last fact with keepWithNext to ensure it stays
-          // with conclusion, perjury statement, signature, and notary sections
+          // Track if this is the last fact, but DON'T use keepWithNext on it
+          // This prevents orphaning previous facts when the last fact + closing sections don't fit
           const isLastFact = factIndex === section.items.length - 1;
-          const hasNotaryBlock = sections.notaryBlock || sections.notaryInstruction;
 
           allContent.push({
             type: factType, // Can be 'competency' or 'fact'
             content: `${factNumber}. ${factContent}`,
-            keepWithNext: isLastFact && hasNotaryBlock, // Keep last fact with following sections
+            keepWithNext: false, // Don't force keeping last fact with closing - let it flow naturally
             breakBefore: false,
             isBlockElement: false,
             isLastFact: isLastFact  // Track if this is the last fact for special handling
@@ -240,8 +239,10 @@ const DocumentPreview = () => {
     let currentPageContent = [];
     let currentPageHeight = 0;
     const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96 - SAFETY_MARGIN; // Convert to pixels and subtract safety margin
-    
+
+    console.log(`📄 Total sections to paginate: ${allContent.length}`);
     allContent.forEach((section, idx) => {
+      console.log(`  ${idx}: ${section.type} - ${section.content?.substring(0, 50)}...`);
       // CRITICAL: Height estimation must match PDF rendering for WYSIWYG accuracy
       // PDF uses PDFKit points (72 DPI), Preview uses CSS pixels (96 DPI)
       // Conversion: PDF points × (96/72) = CSS pixels
@@ -311,14 +312,11 @@ const DocumentPreview = () => {
       
       // Special handling for keep-together elements
       if (section.keepWithNext && idx < allContent.length - 1) {
-        // CRITICAL FIX: Calculate total height for all remaining sections that should stay together
-        // This matches PDF's notary protection logic (pdfService.js lines 211-238)
-        //
+        // SIMPLIFIED: Calculate total height for sections that should stay together
         // The keepWithNext chain for affidavits is typically:
-        // Last fact → conclusion → perjury → signature → notary instruction → notary block
+        // conclusion → perjury → signature → notary instruction → notary block
         //
-        // We must calculate the TOTAL height of this entire chain to ensure they all
-        // fit on one page together. If they don't fit, we move ALL of them to the next page.
+        // We calculate the TOTAL height of this chain to ensure they fit together
         let totalKeepTogetherHeight = sectionHeight;
 
         // Look ahead and sum up heights of all sections that should stay together
@@ -361,59 +359,16 @@ const DocumentPreview = () => {
 
         // Check if all sections that should stay together fit on current page
         const wouldExceedPage = currentPageHeight + totalKeepTogetherHeight > maxPageHeight;
+        const hasContentBefore = currentPageContent.length > 0;
 
-        // Special handling for last fact (matches PDF logic at pdfService.js:226-238)
-        if (section.isLastFact) {
-          // Count how many facts are already on the current page
-          const factsOnPage = currentPageContent.filter(s => s.type === 'fact' || s.type === 'competency').length;
-
-          if (wouldExceedPage && factsOnPage > 0) {
-            // CASE: There are previous facts on page, and everything doesn't fit
-            // Solution: Add continuation marker if it fits, break page, move last fact + chain to next page
-            // This matches PDF lines 229-234
-
-            // Only add continuation marker if there's room for it on the current page
-            const canFitContinuationMarker = currentPageHeight + CONTINUATION_MARKER_HEIGHT <= maxPageHeight;
-
-            if (canFitContinuationMarker) {
-              currentPageContent.push({
-                type: 'continuation',
-                content: '(Continued on next page)',
-                keepWithNext: false,
-                breakBefore: false,
-                isBlockElement: false
-              });
-              // Update height to reflect the continuation marker
-              currentPageHeight += CONTINUATION_MARKER_HEIGHT;
-            }
-
-            paginatedPages.push({
-              content: currentPageContent,
-              pageNumber: paginatedPages.length + 1
-            });
-            currentPageContent = [];
-            currentPageHeight = 0;
-          }
-          // ELSE: Either everything fits (line 226-227), or this is the only fact on page (line 236-237)
-          // In both cases, proceed normally (don't break)
-        } else {
-          // Non-fact sections with keepWithNext (conclusion, perjury, signature, notary instruction)
-          const hasContentBefore = currentPageContent.length > 0;
-
-          // CRITICAL: Check if previous section is a last fact that we committed to keeping
-          // If so, DO NOT break between them - we already decided they stay together
-          const hasLastFactBefore = currentPageContent.some(s => s.isLastFact);
-
-          if (wouldExceedPage && hasContentBefore && !hasLastFactBefore) {
-            // Break page and start fresh for this chain
-            // BUT: don't break if there's a last fact on this page - we already committed to keeping them together
-            paginatedPages.push({
-              content: currentPageContent,
-              pageNumber: paginatedPages.length + 1
-            });
-            currentPageContent = [];
-            currentPageHeight = 0;
-          }
+        if (wouldExceedPage && hasContentBefore) {
+          // Break page and start fresh for this keep-together chain
+          paginatedPages.push({
+            content: currentPageContent,
+            pageNumber: paginatedPages.length + 1
+          });
+          currentPageContent = [];
+          currentPageHeight = 0;
         }
       } else if (needsPageBreak) {
         // Check if previous section had keepWithNext - if so, DON'T break
@@ -434,16 +389,27 @@ const DocumentPreview = () => {
 
       currentPageContent.push(section);
       currentPageHeight += sectionHeight;
+
+      console.log(`  ✅ Added ${section.type} to page ${paginatedPages.length + 1}, height now: ${currentPageHeight}/${maxPageHeight}`);
     });
-    
+
     // Add final page
     if (currentPageContent.length > 0) {
-      paginatedPages.push({ 
-        content: currentPageContent, 
-        pageNumber: paginatedPages.length + 1 
+      paginatedPages.push({
+        content: currentPageContent,
+        pageNumber: paginatedPages.length + 1
       });
     }
-    
+
+    // Log final pagination
+    console.log(`📊 Final pagination:`);
+    paginatedPages.forEach((page, idx) => {
+      console.log(`  Page ${page.pageNumber}: ${page.content.length} items`);
+      page.content.forEach((section, sIdx) => {
+        console.log(`    ${sIdx}: ${section.type} - ${section.content?.substring(0, 50)}...`);
+      });
+    });
+
     return paginatedPages.length > 0 ? paginatedPages : [{ content: [], pageNumber: 1 }];
   }, [preview]); // Removed currentDocument.facts dependency - not needed
 

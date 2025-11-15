@@ -239,10 +239,11 @@ const DocumentPreview = () => {
     const paginatedPages = [];
     let currentPageContent = [];
     let currentPageHeight = 0;
-    // CRITICAL: Match PDF's EFFECTIVE_PAGE_HEIGHT calculation
-    // PDF: 792pt - 72pt (top) - 36pt (footer bottom) - 15pt (footer height) - 10pt (gap) = 659pt
-    // Convert to pixels: 659pt * (96/72) = 879px
-    const maxPageHeight = 879; // Match PDF's effective page height exactly
+    // CRITICAL: Match PDF's available space calculation
+    // PDF EFFECTIVE_PAGE_HEIGHT: 792pt - 72pt (top) - 36pt (footer) - 15pt (height) - 10pt (gap) = 659pt
+    // But doc.y starts at 72pt (top margin), so available space = 659pt - 72pt = 587pt
+    // Convert to pixels: 587pt * (96/72) = 783px
+    const maxPageHeight = 783; // Available space from top margin to footer area
 
     console.log(`📄 Total sections to paginate: ${allContent.length}`);
     allContent.forEach((section, idx) => {

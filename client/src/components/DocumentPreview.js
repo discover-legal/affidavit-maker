@@ -152,14 +152,15 @@ const DocumentPreview = () => {
           const factContent = fact.content || String(fact);
           const factType = fact.type || 'fact';
 
-          // Track if this is the last fact, but DON'T use keepWithNext on it
-          // This prevents orphaning previous facts when the last fact + closing sections don't fit
+          // CONVENTION: Last fact must have keepWithNext to prevent orphaning closing sections
+          // Closing sections (conclusion, perjury, signature, notary) must always be with at least one fact
           const isLastFact = factIndex === section.items.length - 1;
+          const hasNotaryBlock = sections.notaryBlock || sections.notaryInstruction;
 
           allContent.push({
             type: factType, // Can be 'competency' or 'fact'
             content: `${factNumber}. ${factContent}`,
-            keepWithNext: false, // Don't force keeping last fact with closing - let it flow naturally
+            keepWithNext: isLastFact && hasNotaryBlock, // Keep closing sections with at least one fact
             breakBefore: false,
             isBlockElement: false,
             isLastFact: isLastFact  // Track if this is the last fact for special handling
@@ -269,7 +270,7 @@ const DocumentPreview = () => {
         case 'notaryBlock':
           // Use actual text measurement - notary blocks are pre-formatted with newlines
           // PDF: text height + border margins (10pt each side = 20pt = 27px) + spacing
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60; // Account for padding + border + margins
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40; // Account for padding + border + margins
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
@@ -280,7 +281,7 @@ const DocumentPreview = () => {
         case 'signature':
         case 'signatureBlock':
           // Use actual text measurement for signature lines - signatures are pre-formatted
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60; // Extra margin for signature spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 40; // Extra margin for signature spacing
           break;
         case 'perjury':
         case 'perjuryStatement':
@@ -327,7 +328,7 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 60;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
@@ -335,7 +336,7 @@ const DocumentPreview = () => {
               break;
             case 'signature':
             case 'signatureBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 60;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 40;
               break;
             case 'perjuryStatement':
             case 'perjury':

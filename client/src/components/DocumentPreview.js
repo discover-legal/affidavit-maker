@@ -239,7 +239,10 @@ const DocumentPreview = () => {
     const paginatedPages = [];
     let currentPageContent = [];
     let currentPageHeight = 0;
-    const maxPageHeight = (PAGE_CONFIG.height - PAGE_CONFIG.marginTop - PAGE_CONFIG.marginBottom) * 96 - SAFETY_MARGIN; // Convert to pixels and subtract safety margin
+    // CRITICAL: Match PDF's EFFECTIVE_PAGE_HEIGHT calculation
+    // PDF: 792pt - 72pt (top) - 36pt (footer bottom) - 15pt (footer height) - 10pt (gap) = 659pt
+    // Convert to pixels: 659pt * (96/72) = 879px
+    const maxPageHeight = 879; // Match PDF's effective page height exactly
 
     console.log(`📄 Total sections to paginate: ${allContent.length}`);
     allContent.forEach((section, idx) => {
@@ -300,10 +303,10 @@ const DocumentPreview = () => {
         case 'competency':
         default:
           // Use actual text measurement for facts
-          // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
-          // Preview rendering tends to be taller than calculations, so we add extra buffer
-          // to prevent overflow: hidden from cutting off content
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 35;
+          // PDF uses: estimateTextHeight(text, 12) + 20pt + moveDown(1.0) = text + 32pt = text + 43px
+          // But our getTextHeight might measure differently than PDF's heightOfString
+          // Using +30px as a balanced buffer that accounts for line spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
           break;
       }
       

@@ -19,14 +19,14 @@ const PAGE_CONFIG = {
   marginBottom: 1, // inches
   marginLeft: 1,   // inches
   marginRight: 1,  // inches
-  lineHeight: 24,  // pixels - FIXED: matches CSS line-height: 1.5 (1.5 × 16px = 24px)
+  lineHeight: 32,  // pixels - FIXED: matches PDF lineHeight 2.0 (2.0 × 12pt × 96/72 = 32px)
   fontSize: 16,    // pixels (12pt equivalent)
   linesPerPage: 35 // Approximate lines per page with 1.5x spacing
 };
 
 // Pagination safety constants
 const SAFETY_MARGIN = 7; // Pixels to subtract from max page height to prevent overflow
-const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + margin-bottom (12px)
+const CONTINUATION_MARKER_HEIGHT = 48; // Based on CSS: margin-top (32px) + margin-bottom (16px)
 
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentState();

@@ -301,9 +301,9 @@ const DocumentPreview = () => {
         default:
           // Use actual text measurement for facts
           // PDF uses: estimateTextHeight + 20pt + moveDown (pdfService.js:208, 263)
-          // Total spacing: ~20pt + 24pt = 44pt = 59px, but text height differs between systems
-          // Fine-tuned to +27px to match PDF pagination (30px still fell just short for 7th fact)
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 25;
+          // Preview rendering tends to be taller than calculations, so we add extra buffer
+          // to prevent overflow: hidden from cutting off content
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 35;
           break;
       }
       
@@ -645,8 +645,8 @@ const DocumentPreview = () => {
         }
 
         .page-content {
-          max-height: ${9 * 96}px; /* 9 inches (11 - 2 inches margins) */
-          overflow: hidden;
+          /* Let pagination logic control content height - no max-height restriction */
+          /* Removing max-height prevents overflow: hidden from cutting off content */
         }
 
         /* Affidavit-specific styles */

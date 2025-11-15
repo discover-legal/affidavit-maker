@@ -15,7 +15,6 @@ class PDFService {
       margins: { top: 72, bottom: 72, left: 72, right: 72 },
       font: 'Times-Roman',
       fontSize: 12,
-      lineHeight: 2.0,
       bufferPages: true  // CRITICAL: Required for switchToPage() and bufferedPageRange()
     };
 
@@ -194,7 +193,8 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.introduction, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
       doc.moveDown(1.5);
     }
@@ -256,7 +256,8 @@ class PDFService {
         doc.text(fact.content, currentX + numberWidth, currentY, {
           align: 'justify',
           width: textWidth - numberWidth,
-          lineBreak: true
+          lineBreak: true,
+          lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
         });
 
         doc.x = doc.page.margins.left;
@@ -272,7 +273,8 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
       doc.moveDown(1.5);
     }
@@ -283,7 +285,8 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
       doc.moveDown(2.0);
     }

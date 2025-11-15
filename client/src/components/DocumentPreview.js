@@ -265,9 +265,9 @@ const DocumentPreview = () => {
         case 'caseCaption':
         case 'case-caption':
           // Use actual text measurement for multi-line captions
-          // PDF: text + moveDown(1.5) + border + moveDown(1.0) = text + 40px
-          // Preview: text + padding-bottom(12px) + margin-bottom(12px) + border(2px) ≈ text + 40px
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 40; // Match PDF spacing
+          // PDF: text + moveDown(1.5) + border + moveDown(1.0)
+          // Preview: text + padding-bottom(20px) + border(2px) + margin-bottom(16px) = text + 38px
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 38;
           break;
         case 'notary':
         case 'notaryBlock':
@@ -666,8 +666,8 @@ const DocumentPreview = () => {
 
         .affidavit-caption {
           text-align: center;
-          padding-bottom: 12px;
-          margin-bottom: 12px; /* 1.0 moveDown after border in PDF (24pt = 32px) */
+          padding-bottom: 20px; /* PDF moveDown(1.5) ≈ 18-22px before border */
+          margin-bottom: 16px; /* PDF moveDown(1.0) ≈ 12-16px after border */
           border-bottom: 2px solid black;
           white-space: pre-line;
         }

@@ -24,8 +24,11 @@ class PDFService {
     this.FOOTER_BOTTOM_MARGIN = 36;
     this.MIN_CONTENT_FOOTER_GAP = 10; // Reduced from 20 to allow more content per page
 
-    // CRITICAL: Reduce effective page height to reserve space for footer
-    this.EFFECTIVE_PAGE_HEIGHT = 792 - 72 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
+    // CRITICAL: Set effective page height to reserve space for footer
+    // This is the maximum Y coordinate before page break (not the available height)
+    // Available space = EFFECTIVE_PAGE_HEIGHT - doc.y (where doc.y starts at 72)
+    // Formula: 792 (page height) - footer reserves = max Y coordinate
+    this.EFFECTIVE_PAGE_HEIGHT = 792 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
   }
 
   async generatePDF(document, options = {}) {

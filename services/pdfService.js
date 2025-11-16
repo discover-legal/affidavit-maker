@@ -79,10 +79,21 @@ class PDFService {
       });
 
       // PASS 3: Append exhibits if any
-      const facts = document.metadata?.facts || document.sections?.facts || [];
-      const state = document.metadata?.state || 'TX';
+      const facts = document.metadata?.facts
+        || document.sections?.facts?.items
+        || document.sections?.facts
+        || [];
+      const state = document.state || document.metadata?.state || 'TX';
 
-      if (userId && facts.length > 0) {
+      console.log('🔍 Checking for exhibits:', {
+        userId,
+        factsType: Array.isArray(facts) ? 'array' : typeof facts,
+        factsLength: Array.isArray(facts) ? facts.length : 'N/A',
+        state,
+        hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false
+      });
+
+      if (userId && Array.isArray(facts) && facts.length > 0) {
         await this.appendExhibits(filepath, facts, state, userId);
       }
 
@@ -579,10 +590,25 @@ class PDFService {
    * Append exhibits to PDF using pdf-lib
    */
   async appendExhibits(pdfPath, facts, state, userId) {
-    const evidenceItems = getEvidenceItems(facts || []).filter(e => evidenceHasFile(e));
+    console.log('📎 appendExhibits called:', {
+      pdfPath,
+      factsCount: facts?.length || 0,
+      state,
+      userId
+    });
+
+    const allEvidenceItems = getEvidenceItems(facts || []);
+    console.log('📎 Evidence items found:', allEvidenceItems.length, allEvidenceItems.map(e => ({
+      id: e.id,
+      description: e.evidenceData?.description,
+      hasFile: evidenceHasFile(e),
+      fileKey: e.evidenceData?.fileKey
+    })));
+
+    const evidenceItems = allEvidenceItems.filter(e => evidenceHasFile(e));
 
     if (evidenceItems.length === 0) {
-      console.log('No evidence items with files to append');
+      console.log('❌ No evidence items with files to append');
       return pdfPath;
     }
 
@@ -593,7 +619,7 @@ class PDFService {
       const template = templateManager.getTemplate(state);
       const exhibitRules = template.getExhibitRules();
 
-      console.log(`Appending ${evidenceItems.length} exhibits with rules:`, exhibitRules);
+      console.log(`📎 Appending ${evidenceItems.length} exhibits with rules:`, exhibitRules);
 
       // Load the main PDF
       const mainPdfBytes = await fs.readFile(pdfPath);
@@ -607,19 +633,28 @@ class PDFService {
         const fileKey = evidenceData.fileKey;
 
         if (!fileKey) {
-          console.log(`Skipping evidence ${exhibitLabel} - no file key`);
+          console.log(`⚠️ Skipping evidence ${exhibitLabel} - no file key`);
           continue;
         }
 
-        // Construct file path (matches evidenceStorage.js structure)
+        // Construct file path (fileKey is relative path from base, includes userId directory)
         const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'evidence');
-        const filePath = path.join(evidenceBasePath, String(userId), fileKey);
+        const filePath = path.join(evidenceBasePath, fileKey);
+
+        console.log(`📎 Processing Exhibit ${exhibitLabel}:`, {
+          description,
+          fileKey,
+          filePath,
+          exists: fssync.existsSync(filePath)
+        });
 
         // Check if file exists
         if (!fssync.existsSync(filePath)) {
-          console.log(`Skipping evidence ${exhibitLabel} - file not found: ${filePath}`);
+          console.log(`❌ Skipping evidence ${exhibitLabel} - file not found: ${filePath}`);
           continue;
         }
+
+        console.log(`✅ Attaching Exhibit ${exhibitLabel}`);
 
         try {
           // Add cover page if required

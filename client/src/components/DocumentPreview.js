@@ -802,7 +802,7 @@ const DocumentPreview = () => {
         .affidavit-notary-instruction {
           margin-top: ${PAGE_CONFIG.lineHeight}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding: 7px; /* Matches PDF's 5pt border extension (5pt × 96/72 ≈ 7px) */
+          padding: 7px 13px 13px 13px; /* top, right, bottom, left - matches PDF's 5pt top, 10pt sides/bottom */
           border: 2px solid #0066cc;
           color: #0066cc;
           font-weight: bold;
@@ -814,7 +814,7 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
           font-weight: bold;
           margin: 0;
-          line-height: 1.6; /* Increased for better readability */
+          line-height: 1.85; /* Matches PDF's 10pt + 6pt lineGap = 24px total */
           white-space: pre-wrap;
           color: #0066cc;
         }

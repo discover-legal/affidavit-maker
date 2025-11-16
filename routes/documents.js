@@ -8,6 +8,16 @@ const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave, validateDocumentRename } = require('../middleware/validation');
 const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
 
+// Stripe for payment verification fallback
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  }
+} catch (err) {
+  logger.warn('Stripe not initialized in documents.js', { error: err.message });
+}
+
 // Fixed preview route for routes/documents.js
 // Add this to your routes/documents.js file, replacing the existing /preview route
 
@@ -188,20 +198,113 @@ router.post('/generate',
             });
           }
 
-          const paymentStatus = paymentCheck.rows[0].payment_status;
+          let paymentStatus = paymentCheck.rows[0].payment_status;
           // Allow: paid, completed, free, or succeeded
           const validStatuses = ['paid', 'completed', 'free', 'succeeded'];
+
+          logger.info('Payment status check', {
+            documentId,
+            userId,
+            paymentStatus,
+            isValid: validStatuses.includes(paymentStatus)
+          });
+
           if (!validStatuses.includes(paymentStatus)) {
-            return res.status(402).json({
-              success: false,
-              error: 'Payment required',
-              errorType: 'payment_required',
-              documentId
-            });
+            // FALLBACK: Check Stripe directly if webhooks haven't updated the database yet
+            // This handles cases where webhooks are delayed or not configured
+            if (stripe) {
+              try {
+                logger.info('Payment status not found in DB, checking Stripe directly', { documentId, userId });
+
+                // Find the most recent payment intent for this document
+                const paymentRecord = await pool.query(
+                  `SELECT stripe_payment_intent_id, status, metadata FROM payments
+                   WHERE metadata->>'documentId' = $1
+                   AND user_id = $2
+                   ORDER BY created_at DESC LIMIT 1`,
+                  [documentId.toString(), userId]
+                );
+
+                logger.info('Payment record query result', {
+                  found: paymentRecord.rows.length > 0,
+                  documentIdSearched: documentId.toString(),
+                  userId,
+                  record: paymentRecord.rows[0] || null
+                });
+
+                if (paymentRecord.rows.length > 0) {
+                  const paymentIntentId = paymentRecord.rows[0].stripe_payment_intent_id;
+
+                  logger.info('Retrieving payment intent from Stripe', { paymentIntentId });
+
+                  // Verify with Stripe
+                  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+                  logger.info('Stripe payment intent status', {
+                    paymentIntentId,
+                    status: paymentIntent.status,
+                    amount: paymentIntent.amount,
+                    metadata: paymentIntent.metadata
+                  });
+
+                  if (paymentIntent.status === 'succeeded') {
+                    logger.info('Payment verified via Stripe, updating database', {
+                      documentId,
+                      paymentIntentId,
+                      stripeStatus: paymentIntent.status
+                    });
+
+                    // Update the database to reflect successful payment
+                    await pool.query(
+                      'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                      ['paid', documentId]
+                    );
+
+                    // Update payment record too
+                    await pool.query(
+                      'UPDATE payments SET status = $1, succeeded_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
+                      ['succeeded', paymentIntentId]
+                    );
+
+                    logger.info('Database updated successfully, allowing download');
+
+                    // Payment verified, allow download
+                    paymentStatus = 'paid';
+                  } else {
+                    logger.warn('Stripe payment not succeeded', {
+                      documentId,
+                      paymentIntentId,
+                      stripeStatus: paymentIntent.status
+                    });
+                  }
+                } else {
+                  logger.warn('No payment record found for document', { documentId, userId });
+                }
+              } catch (stripeError) {
+                logger.error('Stripe payment verification failed', {
+                  error: stripeError.message,
+                  stack: stripeError.stack,
+                  documentId,
+                  userId
+                });
+              }
+            } else {
+              logger.warn('Stripe not available for payment verification fallback');
+            }
+
+            // After fallback check, verify payment status again
+            if (!validStatuses.includes(paymentStatus)) {
+              return res.status(402).json({
+                success: false,
+                error: 'Payment required',
+                errorType: 'payment_required',
+                documentId
+              });
+            }
           }
         } catch (dbError) {
-          logger.warn('Payment check failed, allowing generation', { 
-            error: dbError.message 
+          logger.warn('Payment check failed, allowing generation', {
+            error: dbError.message
           });
         }
       }

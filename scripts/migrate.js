@@ -1,5 +1,7 @@
 #! scripts/migrate.js
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 async function runMigrations() {
@@ -17,16 +19,16 @@ async function runMigrations() {
       )
     `);
 
-    // Define migrations
-    const migrations = [
+    // Define hardcoded migrations (legacy)
+    const hardcodedMigrations = [
       {
         name: 'add_performance_indexes',
         query: `
-          CREATE INDEX IF NOT EXISTS idx_activity_logs_user_action 
+          CREATE INDEX IF NOT EXISTS idx_activity_logs_user_action
           ON activity_logs(user_id, action);
-          
-          CREATE INDEX IF NOT EXISTS idx_payments_date_type 
-          ON payments(created_at, payment_type);
+
+          CREATE INDEX IF NOT EXISTS idx_payments_date_method_type
+          ON payments(created_at, payment_method_type);
         `
       },
       {
@@ -45,8 +47,22 @@ async function runMigrations() {
       }
     ];
 
+    // Load file-based migrations from migrations/ folder
+    const migrationsDir = path.join(__dirname, '..', 'migrations');
+    const migrationFiles = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql') && file.match(/^\d+_/)) // Only numbered migrations like 001_*.sql
+      .sort(); // Sort by filename to ensure order
+
+    const fileMigrations = migrationFiles.map(file => ({
+      name: file.replace('.sql', ''),
+      query: fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+    }));
+
+    // Combine all migrations: hardcoded first (for backwards compatibility), then file-based
+    const allMigrations = [...hardcodedMigrations, ...fileMigrations];
+
     // Run migrations
-    for (const migration of migrations) {
+    for (const migration of allMigrations) {
       const result = await pool.query(
         'SELECT * FROM migrations WHERE name = $1',
         [migration.name]

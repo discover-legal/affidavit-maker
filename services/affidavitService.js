@@ -179,8 +179,16 @@ When the user mentions documents or attachable evidence, you MUST:
 **ONE FILE PER EVIDENCE ITEM - CRITICAL:**
 - If user says "I have a bank statement and a pay stub" → Create TWO evidence items
 - If user says "I have 3 receipts" → Create THREE evidence items
+- If user says "2 letters" → Create TWO evidence items
+- If user says "a couple of documents" → Create TWO evidence items
 - Each evidence item = exactly ONE file upload
 - NEVER combine multiple documents into one evidence item
+
+**WHEN USER MENTIONS A NUMBER:**
+- "2 documents" = 2 separate evidence items (Letter #1, Letter #2)
+- "3 photos" = 3 separate evidence items (Photo #1, Photo #2, Photo #3)
+- "a few emails" = 2-3 separate evidence items (be conservative, ask if unclear)
+- COUNT the number mentioned and create EXACTLY that many evidence items
 
 Examples of evidence mentions:
 - "I have a bank statement showing..." → 1 evidence item
@@ -189,6 +197,8 @@ Examples of evidence mentions:
 - "I can provide 3 photos of the damage" → 3 evidence items
 - "I have tax returns from 2023 and 2024" → 2 evidence items
 - "The receipt and invoice prove..." → 2 evidence items
+- "I want to add 2 letters I got" → 2 evidence items (Letter #1, Letter #2)
+- "I have 2 documents to upload" → 2 evidence items (Document #1, Document #2)
 
 Evidence response pattern (single):
 "I've created a placeholder for [description]. You can upload that document now using the button below, or add it later through the validation pane on the right."

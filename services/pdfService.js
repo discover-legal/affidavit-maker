@@ -4,9 +4,11 @@
 
 const PDFDocument = require('pdfkit');
 const fs = require('fs').promises;
+const fssync = require('fs');
 const path = require('path');
 const previewRenderer = require('./previewRenderer');
-const { prepareFactsForDisplay } = require('../utils/factNormalizer');
+const { prepareFactsForDisplay, isEvidence, evidenceHasFile, getEvidenceItems } = require('../utils/factNormalizer');
+const { PDFDocument: PDFLib } = require('pdf-lib');
 
 class PDFService {
   constructor() {
@@ -41,7 +43,8 @@ class PDFService {
       const filename = `affidavit-${documentId || Date.now()}.pdf`;
       const filepath = path.join(documentsDir, filename);
 
-      return new Promise((resolve, reject) => {
+      // Generate base PDF
+      const result = await new Promise((resolve, reject) => {
         // PASS 1: Count total pages by rendering to a dummy document
         const dummyDoc = new PDFDocument(this.defaultOptions);
         dummyDoc.pipe(require('stream').PassThrough()); // Pipe to nowhere
@@ -74,6 +77,16 @@ class PDFService {
           reject(error);
         }
       });
+
+      // PASS 3: Append exhibits if any
+      const facts = document.metadata?.facts || document.sections?.facts || [];
+      const state = document.metadata?.state || 'TX';
+
+      if (userId && facts.length > 0) {
+        await this.appendExhibits(filepath, facts, state, userId);
+      }
+
+      return result;
     } catch (error) {
       console.error('PDF generation error:', error);
       throw error;
@@ -521,6 +534,163 @@ class PDFService {
         doc.text(line, { align: 'left' });
       }
     });
+  }
+
+  /**
+   * Generate exhibit cover page using PDFKit
+   */
+  generateExhibitCoverPage(exhibitLabel, description, requireCoverPage) {
+    if (!requireCoverPage) return null;
+
+    return new Promise((resolve) => {
+      const doc = new PDFDocument(this.defaultOptions);
+      const chunks = [];
+
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+      // Center the title vertically and horizontally
+      const pageHeight = doc.page.height;
+      const pageWidth = doc.page.width;
+
+      doc.fontSize(20).font('Times-Bold');
+      const titleText = `EXHIBIT ${exhibitLabel}`;
+      const titleWidth = doc.widthOfString(titleText);
+      const titleX = (pageWidth - titleWidth) / 2;
+      const titleY = pageHeight / 3;
+
+      doc.text(titleText, titleX, titleY, { align: 'center' });
+
+      // Add description below if provided
+      if (description) {
+        doc.moveDown(2);
+        doc.fontSize(12).font('Times-Roman');
+        doc.text(description, {
+          align: 'center',
+          width: pageWidth - 144 // 1 inch margins on each side
+        });
+      }
+
+      doc.end();
+    });
+  }
+
+  /**
+   * Append exhibits to PDF using pdf-lib
+   */
+  async appendExhibits(pdfPath, facts, state, userId) {
+    const evidenceItems = getEvidenceItems(facts || []).filter(e => evidenceHasFile(e));
+
+    if (evidenceItems.length === 0) {
+      console.log('No evidence items with files to append');
+      return pdfPath;
+    }
+
+    try {
+      // Get exhibit rules for this state
+      const StateTemplateManager = require('../templates/StateTemplateManager');
+      const templateManager = new StateTemplateManager();
+      const template = templateManager.getTemplate(state);
+      const exhibitRules = template.getExhibitRules();
+
+      console.log(`Appending ${evidenceItems.length} exhibits with rules:`, exhibitRules);
+
+      // Load the main PDF
+      const mainPdfBytes = await fs.readFile(pdfPath);
+      const mainPdf = await PDFLib.load(mainPdfBytes);
+
+      // Process each evidence item
+      for (const evidence of evidenceItems) {
+        const evidenceData = evidence.evidenceData || {};
+        const exhibitLabel = evidenceData.exhibitLabel || '?';
+        const description = evidenceData.description || '';
+        const fileKey = evidenceData.fileKey;
+
+        if (!fileKey) {
+          console.log(`Skipping evidence ${exhibitLabel} - no file key`);
+          continue;
+        }
+
+        // Construct file path (matches evidenceStorage.js structure)
+        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'evidence');
+        const filePath = path.join(evidenceBasePath, String(userId), fileKey);
+
+        // Check if file exists
+        if (!fssync.existsSync(filePath)) {
+          console.log(`Skipping evidence ${exhibitLabel} - file not found: ${filePath}`);
+          continue;
+        }
+
+        try {
+          // Add cover page if required
+          if (exhibitRules.requireCoverPage) {
+            const coverPageBuffer = await this.generateExhibitCoverPage(
+              exhibitLabel,
+              description,
+              exhibitRules.requireCoverPage
+            );
+
+            if (coverPageBuffer) {
+              const coverPdf = await PDFLib.load(coverPageBuffer);
+              const [coverPage] = await mainPdf.copyPages(coverPdf, [0]);
+              mainPdf.addPage(coverPage);
+            }
+          }
+
+          // Add the actual exhibit file
+          const fileBuffer = await fs.readFile(filePath);
+          const fileType = evidenceData.fileType || '';
+
+          if (fileType === 'application/pdf') {
+            // Merge PDF
+            const exhibitPdf = await PDFLib.load(fileBuffer);
+            const pages = await mainPdf.copyPages(exhibitPdf, exhibitPdf.getPageIndices());
+            pages.forEach(page => mainPdf.addPage(page));
+          } else if (fileType === 'image/jpeg' || fileType === 'image/png') {
+            // Embed image
+            const image = fileType === 'image/jpeg'
+              ? await mainPdf.embedJpg(fileBuffer)
+              : await mainPdf.embedPng(fileBuffer);
+
+            const page = mainPdf.addPage();
+            const { width: pageWidth, height: pageHeight } = page.getSize();
+
+            // Scale image to fit page while maintaining aspect ratio
+            const imgWidth = image.width;
+            const imgHeight = image.height;
+            const scale = Math.min(
+              (pageWidth - 144) / imgWidth,  // 1 inch margins
+              (pageHeight - 144) / imgHeight
+            );
+
+            const scaledWidth = imgWidth * scale;
+            const scaledHeight = imgHeight * scale;
+            const x = (pageWidth - scaledWidth) / 2;
+            const y = (pageHeight - scaledHeight) / 2;
+
+            page.drawImage(image, {
+              x,
+              y,
+              width: scaledWidth,
+              height: scaledHeight
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to attach exhibit ${exhibitLabel}:`, error.message);
+        }
+      }
+
+      // Save the merged PDF
+      const mergedPdfBytes = await mainPdf.save();
+      await fs.writeFile(pdfPath, mergedPdfBytes);
+
+      console.log(`Successfully appended ${evidenceItems.length} exhibits to PDF`);
+      return pdfPath;
+    } catch (error) {
+      console.error('Failed to append exhibits:', error);
+      // Return original PDF if exhibit attachment fails
+      return pdfPath;
+    }
   }
 }
 

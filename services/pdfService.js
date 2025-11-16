@@ -343,18 +343,18 @@ class PDFService {
         });
       });
 
-      const endY = doc.y + 5;
+      const endY = doc.y + 7.5;
       const instructionBorderMargin = 10; // Match notary block border margin
       doc.rect(
         doc.page.margins.left - instructionBorderMargin,
-        startY - 5,
+        startY - 7.5,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (instructionBorderMargin * 2),
-        endY - startY + 10
+        endY - startY + 7.5
       ).stroke('#0066cc');
 
-      // Position cursor at bottom of border (endY + 5) and add spacing to match preview (24px)
-      // Border bottom is at endY + 5 (since border extends 5pt below endY)
-      doc.y = endY + 5; // Move to actual bottom of instruction border
+      // Position cursor at bottom of border and add spacing to match preview (24px)
+      // Border bottom is at endY (7.5pt padding after text)
+      doc.y = endY; // Move to actual bottom of instruction border
       doc.fillColor('#000000');
       doc.strokeColor('#000000'); // Reset stroke color to black for subsequent borders
       doc.fontSize(12).font('Times-Roman');

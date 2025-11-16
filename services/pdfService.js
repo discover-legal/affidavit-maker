@@ -682,15 +682,21 @@ class PDFService {
           // Add the actual exhibit file
           const fileBuffer = await fs.readFile(filePath);
           const fileType = evidenceData.fileType || '';
+          const fileName = evidenceData.fileName || '';
 
-          if (fileType === 'application/pdf') {
+          // Determine file type from both fileType field and fileName extension
+          const isPDF = fileType === 'application/pdf' || fileType === 'pdf' || fileName.toLowerCase().endsWith('.pdf');
+          const isJPG = fileType === 'image/jpeg' || fileType === 'jpg' || fileName.toLowerCase().match(/\.(jpg|jpeg)$/);
+          const isPNG = fileType === 'image/png' || fileType === 'png' || fileName.toLowerCase().endsWith('.png');
+
+          if (isPDF) {
             // Merge PDF
             const exhibitPdf = await PDFLib.load(fileBuffer);
             const pages = await mainPdf.copyPages(exhibitPdf, exhibitPdf.getPageIndices());
             pages.forEach(page => mainPdf.addPage(page));
-          } else if (fileType === 'image/jpeg' || fileType === 'image/png') {
+          } else if (isJPG || isPNG) {
             // Embed image
-            const image = fileType === 'image/jpeg'
+            const image = isJPG
               ? await mainPdf.embedJpg(fileBuffer)
               : await mainPdf.embedPng(fileBuffer);
 

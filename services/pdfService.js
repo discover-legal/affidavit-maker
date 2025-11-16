@@ -645,7 +645,7 @@ class PDFService {
         }
 
         // Construct file path (fileKey is relative path from base, includes userId directory)
-        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'evidence');
+        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'documents', 'evidence');
         const filePath = path.join(evidenceBasePath, fileKey);
 
         console.log(`📎 Processing Exhibit ${exhibitLabel}:`, {

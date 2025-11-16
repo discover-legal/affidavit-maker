@@ -793,7 +793,7 @@ const DocumentPreview = () => {
         .affidavit-notary-instruction {
           margin-top: ${PAGE_CONFIG.lineHeight}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding: ${PAGE_CONFIG.lineHeight / 2}px;
+          padding: 7px; /* Matches PDF's 5pt border extension (5pt × 96/72 ≈ 7px) */
           border: 2px solid #0066cc;
           color: #0066cc;
           font-weight: bold;

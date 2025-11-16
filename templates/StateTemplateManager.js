@@ -254,11 +254,20 @@ class BaseAffidavitTemplate {
         : (fact.professionalRewrite || fact.content || '');
 
       if (content && content.trim()) {
-        processedFacts.push({
+        const processedFact = {
           number: factNumber++,
           content: content.trim(),
-          type: 'fact'
-        });
+          type: typeof fact === 'object' && fact.type ? fact.type : 'fact'
+        };
+
+        // ✅ PRESERVE EVIDENCE DATA: If this is an evidence item, keep evidenceData
+        if (typeof fact === 'object' && fact.type === 'evidence' && fact.evidenceData) {
+          processedFact.evidenceData = fact.evidenceData;
+          processedFact.id = fact.id; // Also preserve ID for matching
+          processedFact.category = 'evidence'; // Set category for consistency
+        }
+
+        processedFacts.push(processedFact);
       }
     });
 

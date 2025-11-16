@@ -464,9 +464,9 @@ Let's start with your name and which state you're in.`
         onClose={() => setShowEvidenceUpload(false)}
         onUploadSuccess={(updatedEvidence) => {
           console.log('✅ Evidence uploaded:', updatedEvidence);
-          // Update the fact in the document
+          // Update the fact in the document by matching ID (not reference)
           const updatedFacts = (currentDocument.facts || []).map(fact =>
-            fact === currentEvidence ? updatedEvidence : fact
+            fact.id === currentEvidence?.id ? updatedEvidence : fact
           );
           updateDocumentData({
             ...currentDocument,

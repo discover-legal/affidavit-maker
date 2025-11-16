@@ -805,8 +805,9 @@ const ValidationSidebar = () => {
   const handleUploadSuccess = (updatedEvidence) => {
     console.log('✅ Evidence uploaded:', updatedEvidence);
 
+    // Update the fact in the document by matching ID (not reference)
     let updatedFacts = (currentDocument.facts || []).map(fact =>
-      fact === currentEvidence ? updatedEvidence : fact
+      fact.id === currentEvidence?.id ? updatedEvidence : fact
     );
 
     // Recalculate exhibit labels

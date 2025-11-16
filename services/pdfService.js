@@ -347,9 +347,9 @@ class PDFService {
       const instructionBorderMargin = 10; // Match notary block border margin
       doc.rect(
         doc.page.margins.left - instructionBorderMargin,
-        startY - 7.5,
+        startY - 10,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (instructionBorderMargin * 2),
-        endY - startY + 7.5
+        endY - startY + 10
       ).stroke('#0066cc');
 
       // Position cursor at bottom of border and add spacing to match preview (24px)

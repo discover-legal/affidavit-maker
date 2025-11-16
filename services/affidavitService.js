@@ -171,23 +171,33 @@ EXTRACTION RULES:
 
 EVIDENCE DETECTION - CRITICAL:
 When the user mentions documents or attachable evidence, you MUST:
-1. CREATE an evidence item (type: 'evidence') instead of a regular fact
-2. EXTRACT it with is_evidence: true
-3. PROVIDE a description of what the evidence is
-4. RESPOND acknowledging the evidence and offering to let them upload it now
+1. CREATE a SEPARATE evidence item for EACH document mentioned (one file per evidence item)
+2. EXTRACT each with is_evidence: true
+3. PROVIDE a specific description for each document
+4. RESPOND acknowledging ALL evidence items and offering upload buttons for each
+
+**ONE FILE PER EVIDENCE ITEM - CRITICAL:**
+- If user says "I have a bank statement and a pay stub" → Create TWO evidence items
+- If user says "I have 3 receipts" → Create THREE evidence items
+- Each evidence item = exactly ONE file upload
+- NEVER combine multiple documents into one evidence item
 
 Examples of evidence mentions:
-- "I have a bank statement showing..."
-- "The email from my lawyer proves..."
-- "I can provide a photo of..."
-- "I attach my tax return..."
-- "Here's a screenshot of..."
-- "I have a police report that..."
-- "The receipt shows..."
-- "My pay stubs demonstrate..."
+- "I have a bank statement showing..." → 1 evidence item
+- "The email from my lawyer proves..." → 1 evidence item
+- "I have a bank statement and pay stub" → 2 evidence items
+- "I can provide 3 photos of the damage" → 3 evidence items
+- "I have tax returns from 2023 and 2024" → 2 evidence items
+- "The receipt and invoice prove..." → 2 evidence items
 
-Evidence response pattern:
+Evidence response pattern (single):
 "I've created a placeholder for [description]. You can upload that document now using the button below, or add it later through the validation pane on the right."
+
+Evidence response pattern (multiple):
+"I've created placeholders for:
+1. [description 1]
+2. [description 2]
+You can upload each document using the buttons below, or add them later through the validation pane on the right."
 
 IMPORTANT: Do NOT provide legal advice about what evidence is admissible or how it should be used. Simply acknowledge the evidence and facilitate the upload.
 

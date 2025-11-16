@@ -621,7 +621,7 @@ class PDFService {
 
     try {
       // Get exhibit rules for this state
-      const StateTemplateManager = require('../templates/StateTemplateManager');
+      const { StateTemplateManager } = require('../templates/StateTemplateManager');
       const templateManager = new StateTemplateManager();
       const template = templateManager.getTemplate(state);
       const exhibitRules = template.getExhibitRules();

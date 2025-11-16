@@ -802,7 +802,7 @@ const DocumentPreview = () => {
         .affidavit-notary-instruction {
           margin-top: ${PAGE_CONFIG.lineHeight}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding: 13px 13px 10px 13px; /* top, right, bottom, left - more top for visual balance */
+          padding: 17px 13px 9px 13px; /* top, right, bottom, left - 2:1 ratio for visual centering */
           border: 2px solid #0066cc;
           color: #0066cc;
           font-weight: bold;

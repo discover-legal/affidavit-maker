@@ -90,7 +90,14 @@ class PDFService {
         factsType: Array.isArray(facts) ? 'array' : typeof facts,
         factsLength: Array.isArray(facts) ? facts.length : 'N/A',
         state,
-        hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false
+        hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false,
+        factSample: Array.isArray(facts) && facts.length > 0 ? facts.slice(0, 9).map(f => ({
+          content: f.content?.substring(0, 50),
+          type: f.type,
+          category: f.category,
+          hasEvidenceData: !!f.evidenceData,
+          fileKey: f.evidenceData?.fileKey
+        })) : []
       });
 
       if (userId && Array.isArray(facts) && facts.length > 0) {

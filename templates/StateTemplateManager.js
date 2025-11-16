@@ -691,12 +691,12 @@ Only after administering this oath may you complete the certificate below.`;
 
   /**
    * Utah exhibit rules
-   * Letters (A, B, C), cover pages recommended but not required
+   * Letters (A, B, C), cover pages recommended and should be included
    */
   getExhibitRules() {
     return {
       labelStyle: 'letters', // A, B, C...
-      requireCoverPage: false, // Recommended but not required
+      requireCoverPage: true, // Recommended by Utah courts for clarity
       coverPageFormat: {
         title: 'EXHIBIT [LABEL]',
         centered: true,
@@ -705,7 +705,7 @@ Only after administering this oath may you complete the certificate below.`;
       allowedFormats: ['PDF', 'JPG', 'PNG'],
       maxFileSize: 25 * 1024 * 1024, // 25MB
       maxTotalSize: 100 * 1024 * 1024, // 100MB
-      instructions: 'Exhibits should be labeled with letters (A, B, C, etc.). Cover pages are recommended for clarity but not required by Utah court rules.'
+      instructions: 'Exhibits should be labeled with letters (A, B, C, etc.). Cover pages are recommended for clarity.'
     };
   }
 

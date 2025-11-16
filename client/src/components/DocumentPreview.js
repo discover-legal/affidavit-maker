@@ -272,18 +272,18 @@ const DocumentPreview = () => {
         case 'notaryBlock':
           // Use actual text measurement - notary blocks are pre-formatted with newlines
           // PDF: text height + border margins (10pt each side = 20pt = 27px) + spacing
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40; // Account for padding + border + margins
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 30; // Reduced from 40 to better match PDF
           break;
         case 'notary-instruction':
         case 'notaryInstruction':
           // Use actual text measurement with smaller font - instructions are pre-formatted
-          // PDF: text height + 15pt padding (7.5pt top + 7.5pt bottom) + spacing ≈ +53px
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
+          // PDF: text height + 15pt padding (7.5pt top + 7.5pt bottom) + spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40; // Reduced from 53 to better match PDF
           break;
         case 'signature':
         case 'signatureBlock':
           // Use actual text measurement for signature lines - signatures are pre-formatted
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 40; // Extra margin for signature spacing
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 30; // Reduced from 40 to better match PDF
           break;
         case 'perjury':
         case 'perjuryStatement':
@@ -330,15 +330,15 @@ const DocumentPreview = () => {
           switch(followingSection.type) {
             case 'notary':
             case 'notaryBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48, true) + 30;
               break;
             case 'notary-instruction':
             case 'notaryInstruction':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 40;
               break;
             case 'signature':
             case 'signatureBlock':
-              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 40;
+              followingHeight = getTextHeight(followingSection.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 30;
               break;
             case 'perjuryStatement':
             case 'perjury':

@@ -365,6 +365,20 @@ const DocumentPreview = () => {
         const hasContentBefore = currentPageContent.length > 0;
 
         if (wouldExceedPage && hasContentBefore) {
+          // Add continuation marker when breaking before the last fact due to keep-together constraints
+          // This matches the PDF behavior (pdfService.js:232-237)
+          if (section.isLastFact) {
+            currentPageContent.push({
+              type: 'continuation',
+              content: '(Continued on next page)',
+              keepWithNext: false,
+              breakBefore: false,
+              isBlockElement: false
+            });
+            // Account for continuation marker height
+            currentPageHeight += CONTINUATION_MARKER_HEIGHT;
+          }
+
           // Break page and start fresh for this keep-together chain
           paginatedPages.push({
             content: currentPageContent,

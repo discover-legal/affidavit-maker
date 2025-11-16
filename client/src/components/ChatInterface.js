@@ -240,7 +240,14 @@ Let's start with your name and which state you're in.`
       }
 
       const data = await response.json();
-      
+
+      console.log('🔍 Chat API Response:', {
+        success: data.success,
+        hasNewFacts: !!data.newFacts,
+        newFactsCount: data.newFacts?.length || 0,
+        newFacts: data.newFacts
+      });
+
       if (data.success) {
         // Add bot response
         setMessages(prev => [...prev, {
@@ -261,12 +268,23 @@ Let's start with your name and which state you're in.`
 
         // Check for evidence items that need upload
         if (data.newFacts && data.newFacts.length > 0) {
-          const evidenceItems = data.newFacts.filter(fact => fact.type === 'evidence');
+          console.log('🔍 Checking for evidence in newFacts:', data.newFacts);
+
+          const evidenceItems = data.newFacts.filter(fact => {
+            console.log('Checking fact:', { type: fact.type, isEvidence: fact.type === 'evidence', fact });
+            return fact.type === 'evidence';
+          });
+
+          console.log('🔍 Evidence items found:', evidenceItems.length, evidenceItems);
 
           if (evidenceItems.length > 0) {
             // Show upload modal for first evidence item
             const firstEvidence = evidenceItems[0];
-            console.log('🔍 Evidence detected in chat:', firstEvidence.evidenceData?.description);
+            console.log('✅ Triggering upload modal for:', {
+              id: firstEvidence.id,
+              description: firstEvidence.evidenceData?.description,
+              content: firstEvidence.content
+            });
 
             setCurrentEvidence(firstEvidence);
             setShowEvidenceUpload(true);

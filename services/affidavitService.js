@@ -532,13 +532,15 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
+      const { v4: uuidv4 } = require('uuid');
 
       // Convert evidence facts to proper format
       const processedFacts = extractedFacts.map(fact => {
         if (fact.is_evidence) {
           // Convert to evidence type with evidenceData
-          return {
+          const evidenceItem = {
             ...fact,
+            id: uuidv4(), // Add unique ID for evidence tracking
             type: 'evidence',
             category: 'evidence',
             evidenceData: {
@@ -554,10 +556,19 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
               requiresUpload: true
             }
           };
+
+          logger.info('🔍 Evidence item created:', {
+            id: evidenceItem.id,
+            description: evidenceItem.evidenceData.description,
+            content: fact.content
+          });
+
+          return evidenceItem;
         }
         // Regular fact - ensure it has type: 'fact'
         return {
           ...fact,
+          id: fact.id || uuidv4(),
           type: fact.type || 'fact'
         };
       });

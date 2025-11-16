@@ -1,20 +1,32 @@
-// client/src/components/ValidationSidebar.js - WITH DRAG & DROP
+// client/src/components/ValidationSidebar.js - WITH DRAG & DROP + EVIDENCE
 import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  Info, 
-  Edit2, 
-  Trash2, 
-  Save, 
+import {
+  AlertTriangle,
+  Info,
+  Edit2,
+  Trash2,
+  Save,
   X,
   Sparkles,
   Loader2,
   CheckCircle,
   XCircle,
-  GripVertical  // ✅ Drag handle icon
+  GripVertical,  // ✅ Drag handle icon
+  FileText,      // Evidence icon
+  Upload,        // Upload icon
+  FilePlus       // Add evidence button
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import EvidenceUploadModal from './EvidenceUploadModal';
+
+// Import evidence helper functions
+import {
+  isEvidence,
+  evidenceHasFile,
+  calculateExhibitLabels,
+  createEvidencePlaceholder
+} from '../../../utils/factNormalizer';
 
 // ✅ Import drag & drop
 import {
@@ -256,6 +268,159 @@ const DraggableFactCard = ({
   );
 };
 
+// ✅ Draggable Evidence Card Component
+const DraggableEvidenceCard = ({
+  evidence,
+  index,
+  isEditing,
+  editedDescription,
+  onEdit,
+  onSave,
+  onCancel,
+  onDelete,
+  onUpload,
+  onDescriptionChange
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: evidence.id || `evidence-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const evidenceData = evidence.evidenceData || {};
+  const hasFile = evidenceHasFile(evidence);
+  const exhibitLabel = evidenceData.exhibitLabel || '[TBD]';
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-3 border-2 border-blue-200 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors ${
+        isDragging ? 'shadow-lg' : ''
+      }`}
+    >
+      {/* Evidence Header */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {/* ✅ DRAG HANDLE */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-blue-400 hover:text-blue-600"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+
+          <span className="text-xs font-medium text-blue-700 flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            Exhibit {exhibitLabel}
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        {!isEditing && (
+          <div className="flex items-center gap-1">
+            {!hasFile && (
+              <button
+                onClick={() => onUpload(evidence)}
+                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                title="Upload evidence file"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={() => onEdit(index)}
+              className="p-1 text-blue-600 hover:text-blue-800 rounded transition-colors"
+              title="Edit description"
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onDelete(index)}
+              className="p-1 text-blue-600 hover:text-red-600 rounded transition-colors"
+              title="Delete evidence"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Evidence Content */}
+      {isEditing ? (
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-blue-800">Description:</label>
+          <textarea
+            value={editedDescription}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={2}
+            placeholder="Describe this evidence..."
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={onSave}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+            >
+              <Save className="h-3 w-3" />
+              Save
+            </button>
+            <button
+              onClick={onCancel}
+              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 flex items-center gap-1"
+            >
+              <X className="h-3 w-3" />
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-blue-900 mb-2">
+            {evidenceData.description || 'No description'}
+          </p>
+
+          {/* File Status */}
+          {hasFile ? (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-green-800">
+                  {evidenceData.fileName}
+                </p>
+                {evidenceData.fileSizeBytes && (
+                  <p className="text-xs text-green-600">
+                    {(evidenceData.fileSizeBytes / 1024).toFixed(1)} KB
+                    {evidenceData.filePages && ` • ${evidenceData.filePages} page${evidenceData.filePages > 1 ? 's' : ''}`}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <p className="text-xs text-yellow-800">
+                File upload required
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // ✅ Main ValidationSidebar Component
 const ValidationSidebar = () => {
   const { currentDocument } = useDocumentState();
@@ -265,6 +430,12 @@ const ValidationSidebar = () => {
   const [editingFactIndex, setEditingFactIndex] = useState(null);
   const [editedFactContent, setEditedFactContent] = useState('');
   const [generatingRewrite, setGeneratingRewrite] = useState(new Set());
+
+  // Evidence state
+  const [editingEvidenceIndex, setEditingEvidenceIndex] = useState(null);
+  const [editedEvidenceDescription, setEditedEvidenceDescription] = useState('');
+  const [showEvidenceUpload, setShowEvidenceUpload] = useState(false);
+  const [currentEvidence, setCurrentEvidence] = useState(null);
 
   // Lock to prevent concurrent rewrite operations from racing
   const rewriteLockRef = React.useRef(Promise.resolve());
@@ -292,22 +463,33 @@ const ValidationSidebar = () => {
     );
   }
 
-  // ✅ Handle drag end
+  // ✅ Handle drag end - supports both facts and evidence
   const handleDragEnd = async (event) => {
     const { active, over } = event;
 
     if (active.id !== over.id) {
       const oldIndex = currentDocument.facts.findIndex(
-        (fact, idx) => (fact.id || `fact-${idx}`) === active.id
+        (fact, idx) => {
+          const factId = fact.id || `fact-${idx}`;
+          const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
+          return factId === active.id || evidenceId === active.id;
+        }
       );
       const newIndex = currentDocument.facts.findIndex(
-        (fact, idx) => (fact.id || `fact-${idx}`) === over.id
+        (fact, idx) => {
+          const factId = fact.id || `fact-${idx}`;
+          const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
+          return factId === over.id || evidenceId === over.id;
+        }
       );
 
-      const reorderedFacts = arrayMove(currentDocument.facts, oldIndex, newIndex);
-      
+      let reorderedFacts = arrayMove(currentDocument.facts, oldIndex, newIndex);
+
+      // ✅ Recalculate exhibit labels after reordering
+      reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
+
       updateDocumentData({ facts: reorderedFacts });
-      
+
       try {
         await saveDocument();
       } catch (error) {
@@ -527,20 +709,142 @@ const ValidationSidebar = () => {
     }
   };
 
+  // ===== EVIDENCE HANDLERS =====
+
+  // Add new evidence
+  const addNewEvidence = () => {
+    const newEvidence = createEvidencePlaceholder({
+      description: ''
+    });
+
+    let updatedFacts = [...(currentDocument.facts || []), newEvidence];
+
+    // Recalculate exhibit labels
+    updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: updatedFacts });
+
+    // Auto-open for editing
+    setEditingEvidenceIndex(updatedFacts.length - 1);
+    setEditedEvidenceDescription('');
+  };
+
+  // Start editing evidence
+  const startEditingEvidence = (index) => {
+    const item = currentDocument.facts[index];
+    if (isEvidence(item)) {
+      const description = item.evidenceData?.description || '';
+      setEditingEvidenceIndex(index);
+      setEditedEvidenceDescription(description);
+    }
+  };
+
+  // Save edited evidence
+  const saveEditedEvidence = async () => {
+    if (editingEvidenceIndex === null) return;
+
+    let updatedFacts = [...currentDocument.facts];
+    const currentItem = updatedFacts[editingEvidenceIndex];
+
+    if (isEvidence(currentItem)) {
+      updatedFacts[editingEvidenceIndex] = {
+        ...currentItem,
+        evidenceData: {
+          ...currentItem.evidenceData,
+          description: editedEvidenceDescription
+        },
+        content: `I attach as Exhibit ${currentItem.evidenceData?.exhibitLabel || '[TBD]'} ${editedEvidenceDescription}.`
+      };
+    }
+
+    // Recalculate exhibit labels
+    updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: updatedFacts });
+    setEditingEvidenceIndex(null);
+    setEditedEvidenceDescription('');
+
+    try {
+      await saveDocument({ facts: updatedFacts });
+    } catch (error) {
+      console.error('Failed to save evidence:', error);
+    }
+  };
+
+  // Cancel editing evidence
+  const cancelEditingEvidence = () => {
+    setEditingEvidenceIndex(null);
+    setEditedEvidenceDescription('');
+  };
+
+  // Delete evidence
+  const deleteEvidence = async (index) => {
+    if (!window.confirm('Are you sure you want to delete this evidence?')) return;
+
+    let updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
+
+    // Recalculate exhibit labels
+    updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: updatedFacts });
+
+    try {
+      await saveDocument({ facts: updatedFacts });
+    } catch (error) {
+      console.error('Failed to delete evidence:', error);
+    }
+  };
+
+  // Open upload modal for evidence
+  const openEvidenceUpload = (evidence) => {
+    setCurrentEvidence(evidence);
+    setShowEvidenceUpload(true);
+  };
+
+  // Handle successful upload
+  const handleUploadSuccess = (updatedEvidence) => {
+    console.log('✅ Evidence uploaded:', updatedEvidence);
+
+    let updatedFacts = (currentDocument.facts || []).map(fact =>
+      fact === currentEvidence ? updatedEvidence : fact
+    );
+
+    // Recalculate exhibit labels
+    updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: updatedFacts });
+    setShowEvidenceUpload(false);
+  };
+
+  // Count facts and evidence separately
+  const factCount = currentDocument.facts?.filter(f => !isEvidence(f)).length || 0;
+  const evidenceCount = currentDocument.facts?.filter(f => isEvidence(f)).length || 0;
+  const totalCount = currentDocument.facts?.length || 0;
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Facts & Validation</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          {currentDocument.facts?.length || 0} fact{currentDocument.facts?.length !== 1 ? 's' : ''} added
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Facts & Evidence</h3>
+          <button
+            onClick={addNewEvidence}
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            title="Add evidence"
+          >
+            <FilePlus className="h-4 w-4" />
+            Add Evidence
+          </button>
+        </div>
+        <p className="text-sm text-gray-600 mt-2">
+          {factCount} fact{factCount !== 1 ? 's' : ''} • {evidenceCount} exhibit{evidenceCount !== 1 ? 's' : ''}
         </p>
         <p className="text-xs text-gray-500 mt-1">
           ⚡ Drag to reorder
         </p>
       </div>
 
-      {/* Facts List */}
+      {/* Facts & Evidence List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {currentDocument.facts && currentDocument.facts.length > 0 ? (
           <DndContext
@@ -549,33 +853,61 @@ const ValidationSidebar = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={currentDocument.facts.map((fact, idx) => fact.id || `fact-${idx}`)}
+              items={currentDocument.facts.map((item, idx) => {
+                // Generate unique ID for each item
+                if (isEvidence(item)) {
+                  return item.id || `evidence-${idx}`;
+                } else {
+                  return item.id || `fact-${idx}`;
+                }
+              })}
               strategy={verticalListSortingStrategy}
             >
-              {currentDocument.facts.map((fact, index) => (
-                <DraggableFactCard
-                  key={fact.id || `fact-${index}`}
-                  fact={fact}
-                  index={index}
-                  isEditing={editingFactIndex === index}
-                  isGenerating={generatingRewrite.has(index)}
-                  editedFactContent={editedFactContent}
-                  onEdit={startEditingFact}
-                  onSave={saveEditedFact}
-                  onCancel={cancelEditingFact}
-                  onDelete={deleteFact}
-                  onRequestRewrite={requestProfessionalRewrite}
-                  onApplyRewrite={applyProfessionalRewrite}
-                  onContentChange={setEditedFactContent}
-                />
-              ))}
+              {currentDocument.facts.map((item, index) => {
+                // Render evidence card or fact card based on type
+                if (isEvidence(item)) {
+                  return (
+                    <DraggableEvidenceCard
+                      key={item.id || `evidence-${index}`}
+                      evidence={item}
+                      index={index}
+                      isEditing={editingEvidenceIndex === index}
+                      editedDescription={editedEvidenceDescription}
+                      onEdit={startEditingEvidence}
+                      onSave={saveEditedEvidence}
+                      onCancel={cancelEditingEvidence}
+                      onDelete={deleteEvidence}
+                      onUpload={openEvidenceUpload}
+                      onDescriptionChange={setEditedEvidenceDescription}
+                    />
+                  );
+                } else {
+                  return (
+                    <DraggableFactCard
+                      key={item.id || `fact-${index}`}
+                      fact={item}
+                      index={index}
+                      isEditing={editingFactIndex === index}
+                      isGenerating={generatingRewrite.has(index)}
+                      editedFactContent={editedFactContent}
+                      onEdit={startEditingFact}
+                      onSave={saveEditedFact}
+                      onCancel={cancelEditingFact}
+                      onDelete={deleteFact}
+                      onRequestRewrite={requestProfessionalRewrite}
+                      onApplyRewrite={applyProfessionalRewrite}
+                      onContentChange={setEditedFactContent}
+                    />
+                  );
+                }
+              })}
             </SortableContext>
           </DndContext>
         ) : (
           <div className="text-center text-gray-500 py-8">
             <Info className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No facts added yet</p>
-            <p className="text-xs mt-1">Start chatting to add facts</p>
+            <p className="text-sm">No facts or evidence added yet</p>
+            <p className="text-xs mt-1">Start chatting to add facts, or click "Add Evidence" to attach exhibits</p>
           </div>
         )}
       </div>
@@ -611,11 +943,39 @@ const ValidationSidebar = () => {
               <XCircle className="h-4 w-4 text-gray-300 mr-2" />
             )}
             <span className={currentDocument.facts?.length >= 3 ? 'text-gray-700' : 'text-gray-400'}>
-              At least 3 facts ({currentDocument.facts?.length || 0}/3)
+              At least 3 facts ({factCount}/3)
             </span>
           </div>
+          {/* Evidence upload requirement */}
+          {evidenceCount > 0 && (
+            <div className="flex items-center text-sm">
+              {currentDocument.facts?.filter(f => isEvidence(f)).every(e => evidenceHasFile(e)) ? (
+                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+              )}
+              <span className={
+                currentDocument.facts?.filter(f => isEvidence(f)).every(e => evidenceHasFile(e))
+                  ? 'text-gray-700'
+                  : 'text-yellow-700'
+              }>
+                All evidence files uploaded (
+                {currentDocument.facts?.filter(f => isEvidence(f) && evidenceHasFile(f)).length}/{evidenceCount}
+                )
+              </span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Evidence Upload Modal */}
+      <EvidenceUploadModal
+        isOpen={showEvidenceUpload}
+        onClose={() => setShowEvidenceUpload(false)}
+        onUploadSuccess={handleUploadSuccess}
+        evidence={currentEvidence}
+        documentId={currentDocument?.documentId}
+      />
     </div>
   );
 };

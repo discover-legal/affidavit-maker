@@ -277,7 +277,7 @@ const DocumentPreview = () => {
         case 'notary-instruction':
         case 'notaryInstruction':
           // Use actual text measurement with smaller font - instructions are pre-formatted
-          // PDF: instructionHeight + 40pt = height + 53px (matching pdfService.js:321)
+          // PDF: text height + 15pt padding (7.5pt top + 7.5pt bottom) + spacing ≈ +53px
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
           break;
         case 'signature':
@@ -802,7 +802,7 @@ const DocumentPreview = () => {
         .affidavit-notary-instruction {
           margin-top: ${PAGE_CONFIG.lineHeight}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding: 7px; /* Matches PDF's 5pt border extension (5pt × 96/72 ≈ 7px) */
+          padding: 17px 13px 9px 13px; /* top, right, bottom, left - 2:1 ratio for visual centering */
           border: 2px solid #0066cc;
           color: #0066cc;
           font-weight: bold;
@@ -814,7 +814,7 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
           font-weight: bold;
           margin: 0;
-          line-height: 1.6; /* Increased for better readability */
+          line-height: 1.85; /* Matches PDF's 10pt + 6pt lineGap = 24px total */
           white-space: pre-wrap;
           color: #0066cc;
         }

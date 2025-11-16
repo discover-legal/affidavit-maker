@@ -350,7 +350,10 @@ class PDFService {
         endY - startY + 10
       ).stroke('#0066cc');
 
+      // Position cursor at bottom of instruction box and add spacing
+      doc.y = endY;
       doc.fillColor('#000000');
+      doc.strokeColor('#000000'); // Reset stroke color to black for subsequent borders
       doc.fontSize(12).font('Times-Roman');
       doc.moveDown(1.5); // Increased from 1.0 to provide more separation between instruction and notary block
 

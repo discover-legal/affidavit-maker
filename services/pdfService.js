@@ -285,22 +285,23 @@ class PDFService {
     // Perjury Statement
     if (sections.perjuryStatement) {
       this.checkPageBreak(doc, 60);
+      doc.moveDown(3.0); // Add spacing before perjury to match preview (48px = 3.0 moveDown)
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
         indent: 36,
         lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
-      doc.moveDown(2.0);
+      doc.moveDown(1.5); // Spacing after perjury to match preview (24px = 1.5 moveDown)
     }
 
     // Signature Block
     if (sections.signatureBlock) {
       this.checkPageBreak(doc, 100);
-      
+
+      doc.moveDown(3.0); // Add spacing before signature to match preview (48px = 3.0 moveDown)
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown();
-      
+
       doc.text(sections.signatureBlock.line || '_'.repeat(40));
       doc.moveDown(0.3);
       doc.text(sections.signatureBlock.name || '[AFFIANT NAME]');
@@ -312,7 +313,7 @@ class PDFService {
         doc.text(sections.signatureBlock.date);
       }
 
-      doc.moveDown(1.5);
+      doc.moveDown(1.5); // Spacing after signature to match preview (24px = 1.5 moveDown)
     }
 
     // Utah Notary Instruction and Block
@@ -364,6 +365,7 @@ class PDFService {
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
         this.checkPageBreak(doc, 155); // Reduced from 180 for more accurate space calculation
+        doc.moveDown(3.0); // Add spacing before notary to match preview (48px = 3.0 moveDown)
       }
 
       const startY = doc.y;
@@ -372,12 +374,26 @@ class PDFService {
 
       const endY = doc.y + 10;
       const borderMargin = 10;
+
+      // Draw background fill (light gray) to match preview
+      doc.fillColor('#f9f9f9');
+      doc.rect(
+        doc.page.margins.left - borderMargin,
+        startY - borderMargin,
+        doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
+        endY - startY + (borderMargin * 2)
+      ).fill();
+
+      // Draw border
       doc.rect(
         doc.page.margins.left - borderMargin,
         startY - borderMargin,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
         endY - startY + (borderMargin * 2)
       ).stroke();
+
+      // Reset fill color to black for subsequent text
+      doc.fillColor('#000000');
     }
 
     // Add footer to the last page

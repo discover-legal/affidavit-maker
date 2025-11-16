@@ -475,7 +475,7 @@ Let's start with your name and which state you're in.`
           setShowEvidenceUpload(false);
         }}
         evidence={currentEvidence}
-        documentId={currentDocument?.id}
+        documentId={currentDocument?.documentId}
       />
     </div>
   );

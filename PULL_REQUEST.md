@@ -121,6 +121,17 @@ Implements a complete evidence/exhibits system that allows users to attach suppo
    - Fixed: AI wasn't creating separate evidence items for each document
    - Added explicit examples: "2 letters" → 2 evidence items
 
+7. **Evidence Type Preservation in PDF Generation** (`8a2118e`)
+   - Fixed: `StateTemplateManager.processFactsForDocument()` was hardcoding `type: 'fact'` for ALL facts
+   - This destroyed evidence metadata during PDF generation
+   - Solution: Preserve original `type` field and copy `evidenceData`, `id`, `category` for evidence items
+   - Critical bug that prevented exhibit attachment from working
+
+8. **StateTemplateManager Import Error** (`77535a8`)
+   - Fixed: `TypeError: StateTemplateManager is not a constructor` in pdfService.js
+   - StateTemplateManager is exported as named export, not default export
+   - Changed from `const StateTemplateManager = require(...)` to `const { StateTemplateManager } = require(...)`
+
 ## Testing
 
 - ✅ 17 unit tests for evidence normalization
@@ -169,9 +180,12 @@ None - This is a purely additive feature. Existing affidavits without evidence c
 
 ## Commits
 
-15 commits from `253b785` to `2639506`:
+18 commits from `253b785` to `77535a8`:
 
 ```
+77535a8 fix: Use destructuring for StateTemplateManager import in pdfService
+8a2118e fix: Preserve evidence type and metadata in StateTemplateManager
+75e6a33 fix: Correct facts access and file path for exhibit attachment
 2639506 fix: Set database pool before route initialization
 6e6e7f8 feat: Add exhibit attachment to PDF generation
 872da1c feat: Add state-specific exhibit rules to StateTemplateManager

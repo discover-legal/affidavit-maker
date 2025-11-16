@@ -285,7 +285,7 @@ class PDFService {
     // Perjury Statement
     if (sections.perjuryStatement) {
       this.checkPageBreak(doc, 60);
-      doc.moveDown(3.0); // Add spacing before perjury to match preview (48px = 3.0 moveDown)
+      doc.moveDown(1.5); // Total spacing with conclusion = 24+24=48px (matches CSS margin collapse)
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
@@ -299,7 +299,7 @@ class PDFService {
     if (sections.signatureBlock) {
       this.checkPageBreak(doc, 100);
 
-      doc.moveDown(3.0); // Add spacing before signature to match preview (48px = 3.0 moveDown)
+      doc.moveDown(1.5); // Total spacing with perjury = 24+24=48px (matches CSS margin collapse)
       doc.fontSize(12).font('Times-Roman');
 
       doc.text(sections.signatureBlock.line || '_'.repeat(40));
@@ -365,35 +365,40 @@ class PDFService {
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
         this.checkPageBreak(doc, 155); // Reduced from 180 for more accurate space calculation
-        doc.moveDown(3.0); // Add spacing before notary to match preview (48px = 3.0 moveDown)
+        doc.moveDown(1.5); // Total spacing = 24+24=48px (matches CSS margin collapse)
       }
 
       const startY = doc.y;
-      doc.fontSize(12).font('Times-Roman');
-      this.renderNotaryBlock(doc, sections.notaryBlock);
-
-      const endY = doc.y + 10;
       const borderMargin = 10;
 
-      // Draw background fill (light gray) to match preview
+      // Estimate notary block height
+      const estimatedHeight = this.estimateTextHeight(doc, sections.notaryBlock, 12) + 20;
+
+      // Draw background fill FIRST (light gray) to match preview
       doc.fillColor('#f9f9f9');
       doc.rect(
         doc.page.margins.left - borderMargin,
         startY - borderMargin,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
-        endY - startY + (borderMargin * 2)
+        estimatedHeight + (borderMargin * 2)
       ).fill();
 
-      // Draw border
+      // Reset fill color to black BEFORE rendering text
+      doc.fillColor('#000000');
+
+      // NOW render the text on top of the background
+      doc.fontSize(12).font('Times-Roman');
+      this.renderNotaryBlock(doc, sections.notaryBlock);
+
+      const endY = doc.y + 10;
+
+      // Draw border on top
       doc.rect(
         doc.page.margins.left - borderMargin,
         startY - borderMargin,
         doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
         endY - startY + (borderMargin * 2)
       ).stroke();
-
-      // Reset fill color to black for subsequent text
-      doc.fillColor('#000000');
     }
 
     // Add footer to the last page

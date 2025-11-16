@@ -48,6 +48,22 @@ class BaseAffidavitTemplate {
     return this.formatting;
   }
 
+  /**
+   * Get exhibit formatting rules for this state
+   * Override in state-specific templates
+   */
+  getExhibitRules() {
+    return {
+      labelStyle: 'letters', // 'letters' (A, B, C) or 'numbers' (1, 2, 3)
+      requireCoverPage: false,
+      coverPageFormat: null,
+      allowedFormats: ['PDF', 'JPG', 'PNG'],
+      maxFileSize: 25 * 1024 * 1024, // 25MB
+      maxTotalSize: 100 * 1024 * 1024, // 100MB
+      instructions: 'Attach exhibits after the affidavit.'
+    };
+  }
+
   validateData(affidavitData) {
     const errors = [];
     const warnings = [];
@@ -490,6 +506,26 @@ My commission expires: ___________`;
   }
 
   /**
+   * Texas exhibit rules
+   * Letters (A, B, C), cover pages required per local rules
+   */
+  getExhibitRules() {
+    return {
+      labelStyle: 'letters', // A, B, C...
+      requireCoverPage: true,
+      coverPageFormat: {
+        title: 'EXHIBIT [LABEL]',
+        centered: true,
+        description: true
+      },
+      allowedFormats: ['PDF', 'JPG', 'PNG'],
+      maxFileSize: 25 * 1024 * 1024, // 25MB
+      maxTotalSize: 100 * 1024 * 1024, // 100MB
+      instructions: 'Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. The cover page should include a brief description of the exhibit.'
+    };
+  }
+
+  /**
    * FIXED: No perjury statement for Texas sworn affidavits
    * The oath administered by the notary provides the perjury warning per § 312.011
    */
@@ -645,6 +681,26 @@ Only after administering this oath may you complete the certificate below.`;
   }
 
   /**
+   * Utah exhibit rules
+   * Letters (A, B, C), cover pages recommended but not required
+   */
+  getExhibitRules() {
+    return {
+      labelStyle: 'letters', // A, B, C...
+      requireCoverPage: false, // Recommended but not required
+      coverPageFormat: {
+        title: 'EXHIBIT [LABEL]',
+        centered: true,
+        description: true
+      },
+      allowedFormats: ['PDF', 'JPG', 'PNG'],
+      maxFileSize: 25 * 1024 * 1024, // 25MB
+      maxTotalSize: 100 * 1024 * 1024, // 100MB
+      instructions: 'Exhibits should be labeled with letters (A, B, C, etc.). Cover pages are recommended for clarity but not required by Utah court rules.'
+    };
+  }
+
+  /**
    * FIXED: No perjury statement for Utah sworn affidavits
    * Perjury warning is provided through the MANDATORY oath (§ 46-1-6.5(2)(a))
    */
@@ -764,6 +820,27 @@ class ArizonaTemplate extends BaseAffidavitTemplate {
       number: 1,
       content: `${name} am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct. I am competent to testify to the matters stated in this affidavit.`,
       type: 'competency'
+    };
+  }
+
+  /**
+   * Arizona exhibit rules
+   * Letters (A, B, C), cover pages required with specific format
+   */
+  getExhibitRules() {
+    return {
+      labelStyle: 'letters', // A, B, C...
+      requireCoverPage: true,
+      coverPageFormat: {
+        title: 'EXHIBIT [LABEL]',
+        centered: true,
+        description: true,
+        specificFormat: 'Arizona courts require each exhibit to have a cover page with the exhibit letter centered at the top and a brief description of the document.'
+      },
+      allowedFormats: ['PDF', 'JPG', 'PNG'],
+      maxFileSize: 25 * 1024 * 1024, // 25MB
+      maxTotalSize: 100 * 1024 * 1024, // 100MB
+      instructions: 'Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. Include a brief description of the exhibit on the cover page.'
     };
   }
 

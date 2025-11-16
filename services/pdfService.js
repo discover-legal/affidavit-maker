@@ -351,12 +351,11 @@ class PDFService {
         endY - startY + 10
       ).stroke('#0066cc');
 
-      // Position cursor at bottom of instruction box and add spacing
-      doc.y = endY;
+      // Reset colors and add spacing to match preview (24px)
       doc.fillColor('#000000');
       doc.strokeColor('#000000'); // Reset stroke color to black for subsequent borders
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown(1.5); // Increased from 1.0 to provide more separation between instruction and notary block
+      doc.moveDown(1.5); // 1.5 * 12pt = 18pt = 24px (matches preview margin-bottom)
 
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;

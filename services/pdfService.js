@@ -343,10 +343,11 @@ class PDFService {
       });
 
       const endY = doc.y + 5;
+      const instructionBorderMargin = 10; // Match notary block border margin
       doc.rect(
-        doc.page.margins.left - 5,
+        doc.page.margins.left - instructionBorderMargin,
         startY - 5,
-        doc.page.width - doc.page.margins.left - doc.page.margins.right + 10,
+        doc.page.width - doc.page.margins.left - doc.page.margins.right + (instructionBorderMargin * 2),
         endY - startY + 10
       ).stroke('#0066cc');
 

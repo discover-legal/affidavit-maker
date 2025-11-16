@@ -164,10 +164,32 @@ YOUR DUAL ROLE:
 SUPPORTED STATES: Only Texas (TX), Utah (UT), Arizona (AZ)
 
 EXTRACTION RULES:
-- ALWAYS look for names, even partial ones (Mike = extract as "Mike")  
+- ALWAYS look for names, even partial ones (Mike = extract as "Mike")
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
+
+EVIDENCE DETECTION - CRITICAL:
+When the user mentions documents or attachable evidence, you MUST:
+1. CREATE an evidence item (type: 'evidence') instead of a regular fact
+2. EXTRACT it with is_evidence: true
+3. PROVIDE a description of what the evidence is
+4. RESPOND acknowledging the evidence and offering to let them upload it now
+
+Examples of evidence mentions:
+- "I have a bank statement showing..."
+- "The email from my lawyer proves..."
+- "I can provide a photo of..."
+- "I attach my tax return..."
+- "Here's a screenshot of..."
+- "I have a police report that..."
+- "The receipt shows..."
+- "My pay stubs demonstrate..."
+
+Evidence response pattern:
+"I've created a placeholder for [description]. You can upload that document now using the button below, or add it later through the validation pane on the right."
+
+IMPORTANT: Do NOT provide legal advice about what evidence is admissible or how it should be used. Simply acknowledge the evidence and facilitate the upload.
 
 COUNTY COLLECTION - CRITICAL:
 - When state is extracted, IMMEDIATELY ask for the county
@@ -333,6 +355,18 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
                   confidence: {
                     type: "number",
                     description: "Confidence in extraction (0.0-1.0)"
+                  },
+                  is_evidence: {
+                    type: "boolean",
+                    description: "TRUE if this is evidence/document that user mentioned and needs to upload (e.g., bank statement, email, photo). Use null or false for regular facts."
+                  },
+                  evidence_description: {
+                    type: "string",
+                    description: "Brief description of the evidence if is_evidence=true (e.g., 'Bank statement from January 2025', 'Email from attorney'). Use null if not evidence."
+                  },
+                  evidence_mentioned_as: {
+                    type: "string",
+                    description: "How user referred to the evidence (e.g., 'bank statement', 'email', 'photo', 'receipt'). Use null if not evidence."
                   }
                 },
                 required: ["content", "category"]
@@ -498,8 +532,38 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
+
+      // Convert evidence facts to proper format
+      const processedFacts = extractedFacts.map(fact => {
+        if (fact.is_evidence) {
+          // Convert to evidence type with evidenceData
+          return {
+            ...fact,
+            type: 'evidence',
+            category: 'evidence',
+            evidenceData: {
+              exhibitLabel: '', // Will be calculated based on position
+              description: fact.evidence_description || fact.evidence_mentioned_as || '',
+              fileName: null,
+              fileKey: null,
+              fileType: null,
+              fileSizeBytes: 0,
+              filePages: 1,
+              uploadedAt: null,
+              thumbnailKey: null,
+              requiresUpload: true
+            }
+          };
+        }
+        // Regular fact - ensure it has type: 'fact'
+        return {
+          ...fact,
+          type: fact.type || 'fact'
+        };
+      });
+
       // Store full fact objects to preserve category, subcategory, severity, confidence, etc.
-      newData.facts = [...existingFacts, ...extractedFacts];
+      newData.facts = [...existingFacts, ...processedFacts];
       hasNewData = true;
     }
 

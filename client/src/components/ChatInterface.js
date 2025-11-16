@@ -14,6 +14,7 @@ import {
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 import DocumentMetadata from './DocumentMetadata';
+import EvidenceUploadModal from './EvidenceUploadModal';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -23,6 +24,8 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [showEvidenceUpload, setShowEvidenceUpload] = useState(false);
+  const [currentEvidence, setCurrentEvidence] = useState(null);
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -240,11 +243,11 @@ Let's start with your name and which state you're in.`
       
       if (data.success) {
         // Add bot response
-        setMessages(prev => [...prev, { 
-          type: 'bot', 
-          content: data.response 
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          content: data.response
         }]);
-        
+
         // Update document if data changed
         if (data.affidavitData) {
           console.log('📝 Chat updated document:', {
@@ -252,10 +255,24 @@ Let's start with your name and which state you're in.`
             hasState: !!data.affidavitData.state,
             factCount: data.affidavitData.facts?.length || 0
           });
-          
+
           updateDocumentData(data.affidavitData);
         }
-        
+
+        // Check for evidence items that need upload
+        if (data.newFacts && data.newFacts.length > 0) {
+          const evidenceItems = data.newFacts.filter(fact => fact.type === 'evidence');
+
+          if (evidenceItems.length > 0) {
+            // Show upload modal for first evidence item
+            const firstEvidence = evidenceItems[0];
+            console.log('🔍 Evidence detected in chat:', firstEvidence.evidenceData?.description);
+
+            setCurrentEvidence(firstEvidence);
+            setShowEvidenceUpload(true);
+          }
+        }
+
         // Handle any additional actions
         if (data.action === 'validate') {
           // Validation will be triggered by ValidationSidebar
@@ -411,6 +428,26 @@ Let's start with your name and which state you're in.`
           </button>
         </form>
       </div>
+
+      {/* Evidence Upload Modal */}
+      <EvidenceUploadModal
+        isOpen={showEvidenceUpload}
+        onClose={() => setShowEvidenceUpload(false)}
+        onUploadSuccess={(updatedEvidence) => {
+          console.log('✅ Evidence uploaded:', updatedEvidence);
+          // Update the fact in the document
+          const updatedFacts = (currentDocument.facts || []).map(fact =>
+            fact === currentEvidence ? updatedEvidence : fact
+          );
+          updateDocumentData({
+            ...currentDocument,
+            facts: updatedFacts
+          });
+          setShowEvidenceUpload(false);
+        }}
+        evidence={currentEvidence}
+        documentId={currentDocument?.id}
+      />
     </div>
   );
 };

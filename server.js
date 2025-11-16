@@ -304,6 +304,11 @@ if (validationRouter) {
   app.use('/api/validate', validationRouter);
 }
 
+const evidenceRouter = safeImportRouter('./routes/evidence', 'Evidence');
+if (evidenceRouter) {
+  app.use('/api/evidence', evidenceRouter);
+}
+
 // Basic fallback routes for critical endpoints if files are missing
 if (!documentsRouter) {
   app.get('/api/documents', (req, res) => {

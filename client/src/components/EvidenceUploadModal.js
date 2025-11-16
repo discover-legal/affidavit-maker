@@ -1,5 +1,5 @@
 // Evidence Upload Modal Component
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, File, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -21,6 +21,16 @@ const EvidenceUploadModal = ({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+
+  // Reset modal state when it opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset when closing
+      setSelectedFile(null);
+      setError(null);
+      setDragActive(false);
+    }
+  }, [isOpen]);
 
   const ALLOWED_TYPES = {
     'application/pdf': { ext: 'PDF', icon: FileText },
@@ -84,7 +94,22 @@ const EvidenceUploadModal = ({
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !evidence || !documentId) return;
+    console.log('🔼 Upload initiated:', {
+      hasFile: !!selectedFile,
+      hasEvidence: !!evidence,
+      hasDocId: !!documentId,
+      evidenceId: evidence?.id,
+      fileName: selectedFile?.name
+    });
+
+    if (!selectedFile || !evidence || !documentId) {
+      console.error('❌ Upload validation failed:', {
+        selectedFile: !!selectedFile,
+        evidence: !!evidence,
+        documentId: !!documentId
+      });
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -98,6 +123,8 @@ const EvidenceUploadModal = ({
       formData.append('evidenceId', evidence.id || Date.now().toString());
       formData.append('description', evidence.evidenceData?.description || '');
 
+      console.log('📤 Uploading to /api/evidence/upload...');
+
       const response = await fetch('/api/evidence/upload', {
         method: 'POST',
         headers: {
@@ -108,11 +135,15 @@ const EvidenceUploadModal = ({
 
       const data = await response.json();
 
+      console.log('📥 Upload response:', { ok: response.ok, status: response.status, data });
+
       if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
       }
 
       // Success!
+      console.log('✅ Upload successful, calling onUploadSuccess');
+
       onUploadSuccess({
         ...evidence,
         evidenceData: {
@@ -130,7 +161,7 @@ const EvidenceUploadModal = ({
 
       onClose();
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error('❌ Upload error:', err);
       setError(err.message || 'Failed to upload evidence. Please try again.');
     } finally {
       setUploading(false);

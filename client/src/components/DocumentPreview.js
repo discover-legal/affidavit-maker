@@ -277,8 +277,8 @@ const DocumentPreview = () => {
         case 'notary-instruction':
         case 'notaryInstruction':
           // Use actual text measurement with smaller font - instructions are pre-formatted
-          // PDF: instructionHeight + 40pt = height + 53px (matching pdfService.js:314)
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53; // 10pt font + 40pt padding (PDF line 314)
+          // PDF: instructionHeight + 40pt = height + 53px (matching pdfService.js:321)
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize - 3, '"Times New Roman", Times, serif', contentWidth - 48, true) + 53;
           break;
         case 'signature':
         case 'signatureBlock':
@@ -365,6 +365,20 @@ const DocumentPreview = () => {
         const hasContentBefore = currentPageContent.length > 0;
 
         if (wouldExceedPage && hasContentBefore) {
+          // Add continuation marker when breaking before the last fact due to keep-together constraints
+          // This matches the PDF behavior (pdfService.js:232-237)
+          if (section.isLastFact) {
+            currentPageContent.push({
+              type: 'continuation',
+              content: '(Continued on next page)',
+              keepWithNext: false,
+              breakBefore: false,
+              isBlockElement: false
+            });
+            // Account for continuation marker height
+            currentPageHeight += CONTINUATION_MARKER_HEIGHT;
+          }
+
           // Break page and start fresh for this keep-together chain
           paginatedPages.push({
             content: currentPageContent,
@@ -477,9 +491,60 @@ const DocumentPreview = () => {
     scrollToPage(newPage);
   };
 
+  // Helper to render notary block with special formatting (matches pdfService.js:479-518)
+  const renderNotaryBlock = (notaryBlockText) => {
+    const lines = notaryBlockText.split('\n');
+
+    return (
+      <div style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '16px' }}>
+        {lines.map((line, idx) => {
+          // Check for lines that need special formatting
+          if (line.includes('_____')) {
+            // Lines with parenthetical notes get indented
+            if (line.includes('(notary public name)') ||
+                line.includes('(date)') ||
+                line.includes('(month)') ||
+                line.includes('(year)') ||
+                line.includes('(name of document signer)')) {
+              return (
+                <div key={idx} style={{ paddingLeft: '20pt', marginTop: idx > 0 ? '8px' : '0' }}>
+                  {line}
+                </div>
+              );
+            } else if (line.includes('(SEAL)')) {
+              // Special positioning for SEAL line - left and right split
+              const parts = line.split('(SEAL)');
+              return (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginTop: idx > 0 ? '8px' : '0' }}>
+                  <span>(SEAL)</span>
+                  <span>{parts[1]?.trim()}</span>
+                </div>
+              );
+            } else {
+              // Other lines with underscores (no special handling)
+              return (
+                <div key={idx} style={{ marginTop: idx > 0 ? '8px' : '0' }}>
+                  {line}
+                </div>
+              );
+            }
+          } else {
+            // Regular lines
+            return (
+              <div key={idx} style={{ marginTop: idx > 0 ? '8px' : '0' }}>
+                {line}
+              </div>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   // Render section based on type
-  const renderSection = (section, idx, pageNum) => {
+  const renderSection = (section, idx, pageNum, pageContent) => {
     const key = `section-${pageNum}-${idx}`;
+    const previousSection = idx > 0 ? pageContent[idx - 1] : null;
 
     switch (section.type) {
       case 'header':
@@ -550,9 +615,18 @@ const DocumentPreview = () => {
 
       case 'notaryBlock':
       case 'notary':
+        // Match PDF's special formatting logic (pdfService.js:479-518)
+        // PDF only adds moveDown(1.5) when there's NO notary instruction (line 366-369)
+        // When there IS an instruction, spacing comes from instruction's margin-bottom
+        const hasInstructionBefore = previousSection?.type === 'notaryInstruction' ||
+                                      previousSection?.type === 'notary-instruction';
         return (
-          <div key={key} className="affidavit-notary">
-            <pre>{section.content}</pre>
+          <div
+            key={key}
+            className="affidavit-notary"
+            style={hasInstructionBefore ? { marginTop: 0 } : {}}
+          >
+            {renderNotaryBlock(section.content)}
           </div>
         );
 
@@ -728,7 +802,7 @@ const DocumentPreview = () => {
         .affidavit-notary-instruction {
           margin-top: ${PAGE_CONFIG.lineHeight}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight}px;
-          padding: ${PAGE_CONFIG.lineHeight / 2}px;
+          padding: 7px; /* Matches PDF's 5pt border extension (5pt × 96/72 ≈ 7px) */
           border: 2px solid #0066cc;
           color: #0066cc;
           font-weight: bold;
@@ -740,6 +814,7 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
           font-weight: bold;
           margin: 0;
+          line-height: 1.6; /* Increased for better readability */
           white-space: pre-wrap;
           color: #0066cc;
         }
@@ -841,7 +916,7 @@ const DocumentPreview = () => {
                   }}
                 >
                   <div className="page-content">
-                    {page.content.map((section, idx) => renderSection(section, idx, page.pageNumber))}
+                    {page.content.map((section, idx) => renderSection(section, idx, page.pageNumber, page.content))}
                   </div>
 
                   {/* Page number */}

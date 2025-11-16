@@ -338,21 +338,27 @@ class PDFService {
       instructionLines.forEach(line => {
         doc.text(line, {
           align: 'left',
-          width: doc.page.width - doc.page.margins.left - doc.page.margins.right
+          width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+          lineGap: 6  // Increased line spacing for readability (matches preview line-height: 1.6)
         });
       });
 
       const endY = doc.y + 5;
+      const instructionBorderMargin = 10; // Match notary block border margin
       doc.rect(
-        doc.page.margins.left - 5,
+        doc.page.margins.left - instructionBorderMargin,
         startY - 5,
-        doc.page.width - doc.page.margins.left - doc.page.margins.right + 10,
+        doc.page.width - doc.page.margins.left - doc.page.margins.right + (instructionBorderMargin * 2),
         endY - startY + 10
       ).stroke('#0066cc');
 
+      // Position cursor at bottom of border (endY + 5) and add spacing to match preview (24px)
+      // Border bottom is at endY + 5 (since border extends 5pt below endY)
+      doc.y = endY + 5; // Move to actual bottom of instruction border
       doc.fillColor('#000000');
+      doc.strokeColor('#000000'); // Reset stroke color to black for subsequent borders
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown(1.5); // Increased from 1.0 to provide more separation between instruction and notary block
+      doc.moveDown(1.5); // 1.5 * 12pt = 18pt = 24px (matches preview margin-bottom)
 
       if (sections.notaryBlock) {
         const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;

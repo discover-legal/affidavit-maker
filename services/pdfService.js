@@ -351,8 +351,9 @@ class PDFService {
         endY - startY + 10
       ).stroke('#0066cc');
 
-      // Position cursor at bottom of border and add spacing to match preview (24px)
-      doc.y = endY; // Move to bottom of instruction box
+      // Position cursor at bottom of border (endY + 5) and add spacing to match preview (24px)
+      // Border bottom is at endY + 5 (since border extends 5pt below endY)
+      doc.y = endY + 5; // Move to actual bottom of instruction border
       doc.fillColor('#000000');
       doc.strokeColor('#000000'); // Reset stroke color to black for subsequent borders
       doc.fontSize(12).font('Times-Roman');

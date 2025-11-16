@@ -542,8 +542,9 @@ const DocumentPreview = () => {
   };
 
   // Render section based on type
-  const renderSection = (section, idx, pageNum) => {
+  const renderSection = (section, idx, pageNum, pageContent) => {
     const key = `section-${pageNum}-${idx}`;
+    const previousSection = idx > 0 ? pageContent[idx - 1] : null;
 
     switch (section.type) {
       case 'header':
@@ -615,8 +616,16 @@ const DocumentPreview = () => {
       case 'notaryBlock':
       case 'notary':
         // Match PDF's special formatting logic (pdfService.js:479-518)
+        // PDF only adds moveDown(1.5) when there's NO notary instruction (line 366-369)
+        // When there IS an instruction, spacing comes from instruction's margin-bottom
+        const hasInstructionBefore = previousSection?.type === 'notaryInstruction' ||
+                                      previousSection?.type === 'notary-instruction';
         return (
-          <div key={key} className="affidavit-notary">
+          <div
+            key={key}
+            className="affidavit-notary"
+            style={hasInstructionBefore ? { marginTop: 0 } : {}}
+          >
             {renderNotaryBlock(section.content)}
           </div>
         );
@@ -906,7 +915,7 @@ const DocumentPreview = () => {
                   }}
                 >
                   <div className="page-content">
-                    {page.content.map((section, idx) => renderSection(section, idx, page.pageNumber))}
+                    {page.content.map((section, idx) => renderSection(section, idx, page.pageNumber, page.content))}
                   </div>
 
                   {/* Page number */}

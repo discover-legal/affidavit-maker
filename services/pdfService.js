@@ -338,7 +338,8 @@ class PDFService {
       instructionLines.forEach(line => {
         doc.text(line, {
           align: 'left',
-          width: doc.page.width - doc.page.margins.left - doc.page.margins.right
+          width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+          lineGap: 6  // Increased line spacing for readability (matches preview line-height: 1.6)
         });
       });
 

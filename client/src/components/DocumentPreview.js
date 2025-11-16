@@ -814,7 +814,7 @@ const DocumentPreview = () => {
           font-size: ${PAGE_CONFIG.fontSize - 3}px; /* 10pt equivalent */
           font-weight: bold;
           margin: 0;
-          line-height: 1.2; /* Match PDFKit's default line height for 10pt Times-Bold */
+          line-height: 1.6; /* Increased for better readability */
           white-space: pre-wrap;
           color: #0066cc;
         }

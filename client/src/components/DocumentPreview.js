@@ -491,6 +491,56 @@ const DocumentPreview = () => {
     scrollToPage(newPage);
   };
 
+  // Helper to render notary block with special formatting (matches pdfService.js:479-518)
+  const renderNotaryBlock = (notaryBlockText) => {
+    const lines = notaryBlockText.split('\n');
+
+    return (
+      <div style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '16px' }}>
+        {lines.map((line, idx) => {
+          // Check for lines that need special formatting
+          if (line.includes('_____')) {
+            // Lines with parenthetical notes get indented
+            if (line.includes('(notary public name)') ||
+                line.includes('(date)') ||
+                line.includes('(month)') ||
+                line.includes('(year)') ||
+                line.includes('(name of document signer)')) {
+              return (
+                <div key={idx} style={{ paddingLeft: '20pt', marginTop: idx > 0 ? '8px' : '0' }}>
+                  {line}
+                </div>
+              );
+            } else if (line.includes('(SEAL)')) {
+              // Special positioning for SEAL line - left and right split
+              const parts = line.split('(SEAL)');
+              return (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginTop: idx > 0 ? '8px' : '0' }}>
+                  <span>(SEAL)</span>
+                  <span>{parts[1]?.trim()}</span>
+                </div>
+              );
+            } else {
+              // Other lines with underscores (no special handling)
+              return (
+                <div key={idx} style={{ marginTop: idx > 0 ? '8px' : '0' }}>
+                  {line}
+                </div>
+              );
+            }
+          } else {
+            // Regular lines
+            return (
+              <div key={idx} style={{ marginTop: idx > 0 ? '8px' : '0' }}>
+                {line}
+              </div>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   // Render section based on type
   const renderSection = (section, idx, pageNum) => {
     const key = `section-${pageNum}-${idx}`;
@@ -564,9 +614,10 @@ const DocumentPreview = () => {
 
       case 'notaryBlock':
       case 'notary':
+        // Match PDF's special formatting logic (pdfService.js:479-518)
         return (
           <div key={key} className="affidavit-notary">
-            <pre>{section.content}</pre>
+            {renderNotaryBlock(section.content)}
           </div>
         );
 

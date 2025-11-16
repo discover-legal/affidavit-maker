@@ -15,7 +15,6 @@ class PDFService {
       margins: { top: 72, bottom: 72, left: 72, right: 72 },
       font: 'Times-Roman',
       fontSize: 12,
-      lineHeight: 2.0,
       bufferPages: true  // CRITICAL: Required for switchToPage() and bufferedPageRange()
     };
 
@@ -25,8 +24,11 @@ class PDFService {
     this.FOOTER_BOTTOM_MARGIN = 36;
     this.MIN_CONTENT_FOOTER_GAP = 10; // Reduced from 20 to allow more content per page
 
-    // CRITICAL: Reduce effective page height to reserve space for footer
-    this.EFFECTIVE_PAGE_HEIGHT = 792 - 72 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
+    // CRITICAL: Set effective page height to reserve space for footer
+    // This is the maximum Y coordinate before page break (not the available height)
+    // Available space = EFFECTIVE_PAGE_HEIGHT - doc.y (where doc.y starts at 72)
+    // Formula: 792 (page height) - footer reserves = max Y coordinate
+    this.EFFECTIVE_PAGE_HEIGHT = 792 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
   }
 
   async generatePDF(document, options = {}) {
@@ -194,7 +196,8 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.introduction, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
       doc.moveDown(1.5);
     }
@@ -256,7 +259,8 @@ class PDFService {
         doc.text(fact.content, currentX + numberWidth, currentY, {
           align: 'justify',
           width: textWidth - numberWidth,
-          lineBreak: true
+          lineBreak: true,
+          lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
         });
 
         doc.x = doc.page.margins.left;
@@ -272,7 +276,8 @@ class PDFService {
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
       doc.moveDown(1.5);
     }
@@ -280,21 +285,23 @@ class PDFService {
     // Perjury Statement
     if (sections.perjuryStatement) {
       this.checkPageBreak(doc, 60);
+      doc.moveDown(1.5); // Total spacing with conclusion = 24+24=48px (matches CSS margin collapse)
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, {
         align: 'justify',
-        indent: 36
+        indent: 36,
+        lineGap: 6  // 0.5 * fontSize (12pt) = 6pt for 1.5x line height
       });
-      doc.moveDown(2.0);
+      doc.moveDown(1.5); // Spacing after perjury to match preview (24px = 1.5 moveDown)
     }
 
     // Signature Block
     if (sections.signatureBlock) {
       this.checkPageBreak(doc, 100);
-      
+
+      doc.moveDown(1.5); // Total spacing with perjury = 24+24=48px (matches CSS margin collapse)
       doc.fontSize(12).font('Times-Roman');
-      doc.moveDown();
-      
+
       doc.text(sections.signatureBlock.line || '_'.repeat(40));
       doc.moveDown(0.3);
       doc.text(sections.signatureBlock.name || '[AFFIANT NAME]');
@@ -306,7 +313,7 @@ class PDFService {
         doc.text(sections.signatureBlock.date);
       }
 
-      doc.moveDown(1.5);
+      doc.moveDown(1.5); // Spacing after signature to match preview (24px = 1.5 moveDown)
     }
 
     // Utah Notary Instruction and Block
@@ -358,14 +365,34 @@ class PDFService {
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
         this.checkPageBreak(doc, 155); // Reduced from 180 for more accurate space calculation
+        doc.moveDown(1.5); // Total spacing = 24+24=48px (matches CSS margin collapse)
       }
 
       const startY = doc.y;
+      const borderMargin = 10;
+
+      // Estimate notary block height
+      const estimatedHeight = this.estimateTextHeight(doc, sections.notaryBlock, 12) + 20;
+
+      // Draw background fill FIRST (light gray) to match preview
+      doc.fillColor('#f9f9f9');
+      doc.rect(
+        doc.page.margins.left - borderMargin,
+        startY - borderMargin,
+        doc.page.width - doc.page.margins.left - doc.page.margins.right + (borderMargin * 2),
+        estimatedHeight + (borderMargin * 2)
+      ).fill();
+
+      // Reset fill color to black BEFORE rendering text
+      doc.fillColor('#000000');
+
+      // NOW render the text on top of the background
       doc.fontSize(12).font('Times-Roman');
       this.renderNotaryBlock(doc, sections.notaryBlock);
 
       const endY = doc.y + 10;
-      const borderMargin = 10;
+
+      // Draw border on top
       doc.rect(
         doc.page.margins.left - borderMargin,
         startY - borderMargin,

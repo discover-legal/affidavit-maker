@@ -26,7 +26,7 @@ import {
   evidenceHasFile,
   calculateExhibitLabels,
   createEvidencePlaceholder
-} from '../../../utils/factNormalizer';
+} from '../utils/factNormalizer';
 
 // ✅ Import drag & drop
 import {
@@ -819,7 +819,6 @@ const ValidationSidebar = () => {
   // Count facts and evidence separately
   const factCount = currentDocument.facts?.filter(f => !isEvidence(f)).length || 0;
   const evidenceCount = currentDocument.facts?.filter(f => isEvidence(f)).length || 0;
-  const totalCount = currentDocument.facts?.length || 0;
 
   return (
     <div className="h-full flex flex-col bg-white">

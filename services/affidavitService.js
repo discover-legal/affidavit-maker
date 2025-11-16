@@ -530,12 +530,14 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
 
     // Extract facts - preserve full fact objects with metadata (category, subcategory, etc.)
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
+    let processedFacts = []; // Declare outside if block so we can return it
+
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
       const { v4: uuidv4 } = require('uuid');
 
       // Convert evidence facts to proper format
-      const processedFacts = extractedFacts.map(fact => {
+      processedFacts = extractedFacts.map(fact => {
         if (fact.is_evidence) {
           // Convert to evidence type with evidenceData
           const evidenceItem = {
@@ -581,7 +583,7 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     return {
       chatResponse: args.chat_response || "I understand. Please continue.",
       updatedAffidavitData: newData,
-      extractedFacts,
+      extractedFacts: processedFacts, // ✅ FIX: Return processedFacts with type field, not raw extractedFacts
       validationSummary: args.validation_summary || {},
       suggestions: args.suggestions || [],
       hasNewData

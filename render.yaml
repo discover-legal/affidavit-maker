@@ -118,7 +118,7 @@ services:
 databases:
   # PostgreSQL Database
   - name: affidavit-db
-    plan: starter # or 'free' for testing (expires after 90 days)
+    plan: standard # Use 'free' for testing (expires after 90 days, limited resources)
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon # Should match web service region

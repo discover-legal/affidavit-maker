@@ -1,0 +1,69 @@
+# Node modules (will be installed in container)
+node_modules
+client/node_modules
+
+# Build output (will be built in container)
+client/build
+
+# Development files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# Testing
+coverage
+*.test.js
+*.spec.js
+__tests__
+.nyc_output
+
+# Environment files (will be set via Render env vars)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+.env.example.sh
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Deployment scripts (not needed in container)
+scripts/deploy.sh
+ecosystem.config.js
+nginx.conf.txt
+
+# Logs
+logs
+*.log
+
+# Documents (ephemeral storage, empty at build time)
+documents/*
+!documents/.gitkeep
+
+# Misc
+.dockerignore
+Dockerfile
+docker-compose.yml

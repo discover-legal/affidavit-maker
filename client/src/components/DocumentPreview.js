@@ -299,6 +299,7 @@ const DocumentPreview = () => {
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
         case 'fact':
+        case 'evidence':
         case 'competency':
         default:
           // Use actual text measurement for facts
@@ -582,14 +583,15 @@ const DocumentPreview = () => {
             {section.content}
           </p>
         );
-      
+
       case 'fact':
+      case 'evidence':
         return (
           <p key={key} className="affidavit-fact">
             {section.content}
           </p>
         );
-      
+
       case 'conclusion':
         return (
           <p key={key} className="affidavit-paragraph">

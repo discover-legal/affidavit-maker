@@ -1,8 +1,8 @@
 // Terms of Service Content
-// Last Updated: November 12, 2025
+// Last Updated: November 17, 2025
 
-export const TOS_VERSION = "1.3.0";
-export const TOS_LAST_UPDATED = "November 12, 2025";
+export const TOS_VERSION = "1.4.0";
+export const TOS_LAST_UPDATED = "November 17, 2025";
 
 export const TERMS_OF_SERVICE = `
 # Terms of Service
@@ -133,10 +133,12 @@ Our service uses AI technology to help format and organize your documents. While
 
 **To the maximum extent permitted by law:**
 
-- Our service is provided "as is" without warranties
-- We're not liable for any indirect, incidental, or consequential damages
-- Our total liability is limited to the amount you paid us in the last 12 months
-- We're not responsible for the legal validity of documents you create
+- Our service is provided "as is" and "as available" without warranties of any kind, either express or implied
+- **We expressly disclaim all implied warranties, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement**
+- We make no warranties about the accuracy, reliability, completeness, or timeliness of our service
+- **We're not liable for any indirect, incidental, special, consequential, or punitive damages**, including but not limited to loss of profits, data, use, goodwill, or other intangible losses
+- Our total liability for any claims arising from or related to these terms or our service is limited to the amount you paid us in the last 12 months (or $100 if you haven't paid us anything)
+- We're not responsible for the legal validity, effectiveness, or sufficiency of documents you create
 - We're not liable for outcomes of legal proceedings using our documents
 
 ## Termination
@@ -199,14 +201,33 @@ Our service is not intended for anyone under 18. We don't knowingly collect info
 
 ## Governing Law
 
-These terms are governed by the laws of the United States and the state where our company is registered, without regard to conflict of law provisions. Any disputes will be resolved in the courts located in that jurisdiction.
+These terms are governed by the laws of the Province of Ontario, Canada, without regard to conflict of law provisions.
 
 ## Dispute Resolution
 
-- We prefer to resolve disputes informally - contact us first
-- If we can't resolve it, we'll try mediation
-- You agree to resolve disputes individually, not as part of a class action
-- You have the right to opt out of arbitration within 30 days of accepting these terms
+### Informal Resolution
+
+We prefer to resolve disputes informally. If you have any dispute with us, please contact us first at support@discover.legal and we'll work in good faith to resolve it.
+
+### Mandatory Mediation
+
+**Before filing any lawsuit**, you agree to first attempt to resolve the dispute through mediation. Either party may initiate mediation by providing written notice to the other party. The parties will mutually agree on a mediator and share the costs of mediation equally. Mediation will take place in Ontario, Canada, or by video conference if mutually agreed.
+
+### Small Claims Court Exception
+
+Notwithstanding the mediation requirement above, either party may bring an individual action in small claims court without first participating in mediation, provided the claim is within that court's jurisdiction and is brought in an individual capacity (not as a class action or representative proceeding).
+
+### Venue and Jurisdiction
+
+If mediation does not resolve the dispute, you agree that any legal action must be brought in the courts located in Ontario, Canada, **or**, at your option, in the state or province where you are domiciled if we provide service in that jurisdiction. Both parties consent to the personal jurisdiction and venue of such courts.
+
+### Individual Capacity Only - Class Action Waiver
+
+**You agree that all claims must be brought in your individual capacity, and not as a plaintiff or class member in any purported class action, collective action, or representative proceeding.** This waiver applies to class arbitrations, class actions, private attorney general actions, and consolidation with other proceedings. Neither you nor we may participate in a class action or class-wide arbitration for any claims covered by these terms.
+
+### No Joinder or Consolidation
+
+Unless both parties expressly agree otherwise in writing, the mediator or arbitrator may not consolidate more than one person's claims and may not otherwise preside over any form of a representative or class proceeding.
 
 ## Entire Agreement
 

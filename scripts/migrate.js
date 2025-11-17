@@ -19,47 +19,16 @@ async function runMigrations() {
       )
     `);
 
-    // Define hardcoded migrations (legacy)
-    const hardcodedMigrations = [
-      {
-        name: 'add_performance_indexes',
-        query: `
-          CREATE INDEX IF NOT EXISTS idx_activity_logs_user_action
-          ON activity_logs(user_id, action);
-
-          CREATE INDEX IF NOT EXISTS idx_payments_date_method_type
-          ON payments(created_at, payment_method_type);
-        `
-      },
-      {
-        name: 'add_template_analytics',
-        query: `
-          CREATE TABLE IF NOT EXISTS template_analytics (
-            id SERIAL PRIMARY KEY,
-            template_state VARCHAR(5),
-            template_type VARCHAR(50),
-            success_rate DECIMAL(5,2),
-            avg_completion_time INTEGER,
-            total_uses INTEGER,
-            calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `
-      }
-    ];
-
     // Load file-based migrations from migrations/ folder
     const migrationsDir = path.join(__dirname, '..', 'migrations');
     const migrationFiles = fs.readdirSync(migrationsDir)
-      .filter(file => file.endsWith('.sql') && file.match(/^\d+_/)) // Only numbered migrations like 001_*.sql
+      .filter(file => file.endsWith('.sql') && file.match(/^\d+_/)) // Only numbered migrations like 000_*.sql, 001_*.sql, etc.
       .sort(); // Sort by filename to ensure order
 
-    const fileMigrations = migrationFiles.map(file => ({
+    const allMigrations = migrationFiles.map(file => ({
       name: file.replace('.sql', ''),
       query: fs.readFileSync(path.join(migrationsDir, file), 'utf8')
     }));
-
-    // Combine all migrations: hardcoded first (for backwards compatibility), then file-based
-    const allMigrations = [...hardcodedMigrations, ...fileMigrations];
 
     // Run migrations
     for (const migration of allMigrations) {

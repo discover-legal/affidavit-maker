@@ -2,11 +2,10 @@ services:
   # Web Service (Backend + Frontend)
   - type: web
     name: affidavit-maker
-    env: docker
-    plan: starter # or 'free' for testing
+    runtime: docker
+    plan: starter
     dockerfilePath: ./Dockerfile
-    region: oregon # Change to your preferred region
-    branch: main # Change to your deployment branch
+    region: oregon
 
     # Run migrations before starting the server
     preDeployCommand: node scripts/migrate.js
@@ -21,10 +20,10 @@ services:
     envVars:
       # Server Configuration
       - key: NODE_ENV
-        value: production
+        value: "production"
 
       - key: LOG_LEVEL
-        value: info
+        value: "info"
 
       # Database (auto-populated from Render PostgreSQL)
       - key: DATABASE_URL
@@ -33,7 +32,7 @@ services:
           property: connectionString
 
       - key: DATABASE_POOL_MAX
-        value: 20
+        value: "20"
 
       # Auth0 - YOU MUST SET THESE IN RENDER DASHBOARD
       - key: AUTH0_DOMAIN
@@ -53,13 +52,13 @@ services:
         sync: false
 
       - key: OPENAI_MODEL
-        value: gpt-4-turbo
+        value: "gpt-4-turbo"
 
       - key: OPENAI_MAX_TOKENS
-        value: 2000
+        value: "2000"
 
       - key: OPENAI_TEMPERATURE
-        value: 0.3
+        value: "0.3"
 
       # Stripe - YOU MUST SET THESE IN RENDER DASHBOARD
       - key: STRIPE_SECRET_KEY
@@ -70,50 +69,50 @@ services:
 
       # Frontend URL (will be your Render URL)
       - key: FRONTEND_URL
-        value: https://affidavit-maker.onrender.com # UPDATE THIS
+        value: "https://affidavit-maker.onrender.com"
 
       # Security
       - key: SESSION_SECRET
         generateValue: true # Render will auto-generate
 
       - key: BCRYPT_ROUNDS
-        value: 10
+        value: "10"
 
       - key: JWT_EXPIRES_IN
-        value: 24h
+        value: "24h"
 
       - key: TRUSTED_PROXIES
-        value: 1
+        value: "1"
 
       # Rate Limiting
       - key: RATE_LIMIT_WINDOW_MS
-        value: 900000
+        value: "900000"
 
       - key: RATE_LIMIT_MAX_REQUESTS
-        value: 100
+        value: "100"
 
       - key: RATE_LIMIT_AUTH_ATTEMPTS
-        value: 5
+        value: "5"
 
       # File Storage (ephemeral for MVP)
       - key: DOCUMENTS_PATH
-        value: ./documents
+        value: "./documents"
 
       - key: MAX_FILE_SIZE
-        value: 10485760
+        value: "10485760"
 
       # Feature Flags
       - key: ENABLE_WEBHOOKS
-        value: true
+        value: "true"
 
       - key: ENABLE_EMAIL_NOTIFICATIONS
-        value: false
+        value: "false"
 
       - key: ENABLE_ANALYTICS
-        value: true
+        value: "true"
 
       - key: MAINTENANCE_MODE
-        value: false
+        value: "false"
 
 databases:
   # PostgreSQL Database

@@ -1,7 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { TERMS_OF_SERVICE, TOS_VERSION, TOS_LAST_UPDATED } from '../content/termsOfService';
+import { TERMS_OF_SERVICE, TOS_VERSION, TOS_LAST_UPDATED, TOOLTIP_DEFINITIONS } from '../content/termsOfService';
+import Tooltip from './Tooltip';
+
+// Helper function to parse tooltip syntax {{term}} and render Tooltip components
+const parseTooltips = (content) => {
+  // Handle arrays of children
+  if (Array.isArray(content)) {
+    return content.map((child, idx) => {
+      if (typeof child === 'string') {
+        return <React.Fragment key={idx}>{parseTooltips(child)}</React.Fragment>;
+      }
+      return child;
+    });
+  }
+
+  // Handle non-string content
+  if (typeof content !== 'string') {
+    return content;
+  }
+
+  const parts = [];
+  let lastIndex = 0;
+  const regex = /\{\{([^}]+)\}\}/g;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(content.substring(lastIndex, match.index));
+    }
+
+    // Add the tooltip component
+    const term = match[1];
+    const definition = TOOLTIP_DEFINITIONS[term] || TOOLTIP_DEFINITIONS[term.toLowerCase()];
+
+    if (definition) {
+      parts.push(
+        <Tooltip key={match.index} term={term} definition={definition}>
+          {term}
+        </Tooltip>
+      );
+    } else {
+      // If no definition found, just render the term without tooltip
+      parts.push(term);
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : content;
+};
 
 const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
@@ -78,10 +133,22 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
               h1: ({ node: _node, children, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props}>{children}</h1>,
               h2: ({ node: _node, children, ...props }) => <h2 className="text-2xl font-bold mt-6 mb-3" {...props}>{children}</h2>,
               h3: ({ node: _node, children, ...props }) => <h3 className="text-xl font-bold mt-4 mb-2" {...props}>{children}</h3>,
-              p: ({ node: _node, ...props }) => <p className="mb-4 text-gray-700 leading-relaxed" {...props} />,
+              p: ({ node: _node, children, ...props }) => (
+                <p className="mb-4 text-gray-700 leading-relaxed" {...props}>
+                  {parseTooltips(children)}
+                </p>
+              ),
               ul: ({ node: _node, ...props }) => <ul className="mb-4 ml-6 list-disc" {...props} />,
-              li: ({ node: _node, ...props }) => <li className="mb-2 text-gray-700" {...props} />,
-              strong: ({ node: _node, ...props }) => <strong className="font-semibold text-gray-900" {...props} />,
+              li: ({ node: _node, children, ...props }) => (
+                <li className="mb-2 text-gray-700" {...props}>
+                  {parseTooltips(children)}
+                </li>
+              ),
+              strong: ({ node: _node, children, ...props }) => (
+                <strong className="font-semibold text-gray-900" {...props}>
+                  {parseTooltips(children)}
+                </strong>
+              ),
               hr: ({ node: _node, ...props }) => <hr className="my-6 border-gray-300" {...props} />,
             }}
           >

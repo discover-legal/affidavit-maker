@@ -33,9 +33,9 @@ const TOSGuard = ({ children }) => {
         return;
       }
 
-      // Check if we've already checked TOS this session
-      const tosCheckedThisSession = sessionStorage.getItem(`tos_checked_${user?.sub}`);
-      if (tosCheckedThisSession === 'true') {
+      // Check if we've already verified TOS acceptance this session
+      const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
+      if (tosAcceptedThisSession === 'true') {
         setIsCheckingTos(false);
         return;
       }
@@ -46,11 +46,11 @@ const TOSGuard = ({ children }) => {
         if (data.success) {
           setTosStatus(data);
 
-          // Mark as checked this session
-          sessionStorage.setItem(`tos_checked_${user?.sub}`, 'true');
-
-          // Show TOS modal if user hasn't accepted
-          if (!data.tosAccepted) {
+          // Only cache if user has actually accepted TOS
+          if (data.tosAccepted) {
+            sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
+          } else {
+            // Show TOS modal if user hasn't accepted
             setShowTosModal(true);
           }
         }
@@ -84,6 +84,10 @@ const TOSGuard = ({ children }) => {
           tosVersionAccepted: tosVersion,
           tosAcceptedAt: new Date().toISOString(),
         });
+        // Cache the acceptance in sessionStorage
+        if (user?.sub) {
+          sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
+        }
         setShowTosModal(false);
       } else {
         throw new Error(data.error || 'Failed to accept TOS');

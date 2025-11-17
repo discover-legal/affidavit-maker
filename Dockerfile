@@ -42,9 +42,9 @@ RUN npm ci --only=production
 # Copy client package files
 COPY client/package*.json ./client/
 
-# Install client dependencies
+# Install client dependencies (including dev deps needed for build)
 WORKDIR /app/client
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy all application files
 WORKDIR /app
@@ -53,6 +53,9 @@ COPY . .
 # Build the React frontend
 WORKDIR /app/client
 RUN npm run build
+
+# Clean up client node_modules to save space (not needed after build)
+RUN rm -rf node_modules
 
 # Back to app root
 WORKDIR /app

@@ -1,7 +1,7 @@
 // Terms of Service Content
 // Last Updated: November 17, 2025
 
-export const TOS_VERSION = "2.0.0";
+export const TOS_VERSION = "2.1.0";
 export const TOS_LAST_UPDATED = "November 17, 2025";
 
 // Tooltip definitions for technical terms
@@ -31,7 +31,7 @@ By using Discover.Legal, you agree to these terms.
 
 ## What We Do
 
-Discover.Legal is a document formatting tool that helps you organize your story and comply with court requirements. We provide formatting automation and AI assistance—not legal advice.
+Discover.Legal helps you tell your story effectively while ensuring compliance with court formatting rules. Our platform handles the technical requirements so you can keep your attention on crafting your narrative—not wrestling with formatting. We provide formatting automation and AI assistance—not legal advice.
 
 ## 🚨 Critical: We Don't Provide Legal Advice
 
@@ -128,10 +128,6 @@ AI can make mistakes. **You are responsible for reviewing your documents for acc
 ## Security
 
 All data is encrypted in transit and at rest. We use industry-standard security practices and perform regular audits. However, no system is 100% secure—you use the service at your own risk.
-
-## Children
-
-Not for anyone under 18. We don't knowingly collect children's data.
 
 ## Changes to Terms
 

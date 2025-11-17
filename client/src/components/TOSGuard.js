@@ -18,49 +18,72 @@ const TOSGuard = ({ children }) => {
     const checkTosStatus = async () => {
       // Wait for auth to finish loading
       if (isLoading) {
+        console.log('[TOSGuard] Waiting for auth to finish loading...');
+        // Keep isCheckingTos true while loading
         return;
       }
 
       // If not authenticated, no need to check TOS
       if (!isAuthenticated) {
+        console.log('[TOSGuard] User not authenticated, skipping TOS check');
         setIsCheckingTos(false);
         return;
       }
 
       // Wait for user object to be available
       if (!user?.sub) {
-        setIsCheckingTos(false);
+        console.log('[TOSGuard] User object not available yet, waiting...');
+        // Keep checking - don't set isCheckingTos to false yet
+        // The useEffect will re-run when user becomes available
         return;
       }
+
+      console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
 
       // Check if we've already verified TOS acceptance this session
       const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
       if (tosAcceptedThisSession === 'true') {
+        console.log('[TOSGuard] TOS already accepted this session (cached)');
         setIsCheckingTos(false);
         return;
       }
 
       try {
+        console.log('[TOSGuard] Calling API: /api/auth/tos-status');
         const data = await makeAuthenticatedRequest('/api/auth/tos-status');
+        console.log('[TOSGuard] API response:', data);
 
         if (data.success) {
           setTosStatus(data);
 
           // Only cache if user has actually accepted TOS
           if (data.tosAccepted) {
+            console.log('[TOSGuard] User has accepted TOS, caching acceptance');
             sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
           } else {
             // Show TOS modal if user hasn't accepted
+            console.log('[TOSGuard] User has NOT accepted TOS, showing modal');
             setShowTosModal(true);
           }
+        } else {
+          // API returned success: false - fail secure and show modal
+          console.warn('[TOSGuard] API returned success: false, showing modal to be safe');
+          setShowTosModal(true);
         }
       } catch (error) {
-        // Don't log authentication errors - they're expected during auth state transitions
-        if (!error.message?.includes('not authenticated')) {
-          console.error('Error checking TOS status:', error);
+        // CRITICAL FIX: On error, show TOS modal (fail-secure approach)
+        // This prevents users from bypassing TOS if there's an API error
+        console.error('[TOSGuard] Error checking TOS status:', error);
+        console.warn('[TOSGuard] Showing TOS modal due to error (fail-secure)');
+
+        // Don't show modal for transient auth errors during initialization
+        if (error.message?.includes('not authenticated') ||
+            error.message?.includes('login_required')) {
+          console.log('[TOSGuard] Auth initialization error, will retry on next render');
+        } else {
+          // For all other errors, show the modal to be safe
+          setShowTosModal(true);
         }
-        // On error, don't show modal - allow user to continue
-        // They'll see it next time they log in
       } finally {
         setIsCheckingTos(false);
       }
@@ -73,12 +96,15 @@ const TOSGuard = ({ children }) => {
 
   const handleAcceptTos = async (tosVersion, researchConsent = false) => {
     try {
+      console.log('[TOSGuard] User accepting TOS:', { tosVersion, researchConsent, userId: user?.sub });
       const data = await makeAuthenticatedRequest('/api/auth/accept-tos', {
         method: 'POST',
         body: JSON.stringify({ tosVersion, researchConsent }),
       });
+      console.log('[TOSGuard] TOS acceptance response:', data);
 
       if (data.success) {
+        console.log('[TOSGuard] TOS acceptance successful, updating state and cache');
         setTosStatus({
           tosAccepted: true,
           tosVersionAccepted: tosVersion,
@@ -87,13 +113,15 @@ const TOSGuard = ({ children }) => {
         // Cache the acceptance in sessionStorage
         if (user?.sub) {
           sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
+          console.log('[TOSGuard] TOS acceptance cached in sessionStorage');
         }
         setShowTosModal(false);
+        console.log('[TOSGuard] TOS modal closed, user can now access application');
       } else {
         throw new Error(data.error || 'Failed to accept TOS');
       }
     } catch (error) {
-      console.error('Error accepting TOS:', error);
+      console.error('[TOSGuard] Error accepting TOS:', error);
       alert('There was an error accepting the Terms of Service. Please try again.');
       throw error;
     }

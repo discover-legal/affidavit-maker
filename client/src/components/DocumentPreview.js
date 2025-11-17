@@ -24,8 +24,7 @@ const PAGE_CONFIG = {
   linesPerPage: 35 // Approximate lines per page with 1.5x spacing
 };
 
-// Pagination safety constants
-const SAFETY_MARGIN = 7; // Pixels to subtract from max page height to prevent overflow
+// Pagination constants
 const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + margin-bottom (12px)
 
 const DocumentPreview = () => {

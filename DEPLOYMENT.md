@@ -59,7 +59,7 @@ If you prefer to create services manually:
 1. **Create PostgreSQL Database**:
    - Dashboard → New + → PostgreSQL
    - Name: `affidavit-db`
-   - Plan: Standard ($7/mo) or Free (90-day trial, limited resources)
+   - Plan: Starter or Free (90-day trial)
    - Copy the **Internal Database URL**
 
 2. **Create Web Service**:
@@ -348,9 +348,9 @@ For high traffic, enable multiple instances:
 ## Cost Estimation
 
 For MVP/testing:
-- **Web Service**: $7/month (Starter plan) or Free (with limitations)
-- **PostgreSQL**: $7/month (Standard plan) or Free (90-day trial, limited resources)
-- **Total**: ~$14/month or Free for testing
+- **Web Service**: $7/month (Starter plan)
+- **PostgreSQL**: $7/month (Starter plan)
+- **Total**: ~$14/month
 
 For production:
 - **Web Service**: $25-85/month (Standard-Pro)

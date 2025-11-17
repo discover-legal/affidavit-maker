@@ -27,6 +27,12 @@ const TOSGuard = ({ children }) => {
         return;
       }
 
+      // Wait for user object to be available
+      if (!user?.sub) {
+        setIsCheckingTos(false);
+        return;
+      }
+
       // Check if we've already checked TOS this session
       const tosCheckedThisSession = sessionStorage.getItem(`tos_checked_${user?.sub}`);
       if (tosCheckedThisSession === 'true') {
@@ -49,7 +55,10 @@ const TOSGuard = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error('Error checking TOS status:', error);
+        // Don't log authentication errors - they're expected during auth state transitions
+        if (!error.message?.includes('not authenticated')) {
+          console.error('Error checking TOS status:', error);
+        }
         // On error, don't show modal - allow user to continue
         // They'll see it next time they log in
       } finally {

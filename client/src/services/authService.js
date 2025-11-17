@@ -8,13 +8,12 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 export const useAuthenticatedApi = () => {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
 
-  // Memoize the request function with stable dependencies
-  // isAuthenticated is read from closure at runtime, not needed as dependency
-  // to avoid unnecessary re-creation when auth state changes
+  // Memoize the request function with current auth state
   const makeAuthenticatedRequest = useCallback(async (url, options = {}) => {
-    if (!isAuthenticated) {
-      throw new Error('User not authenticated');
-    }
+    // Note: We skip the isAuthenticated check here because Auth0 state updates
+    // can lag behind the actual authentication. Instead, we rely on
+    // getAccessTokenSilently to fail if the user isn't actually authenticated.
+    // This prevents race conditions during the auth initialization flow.
 
     try {
       const token = await getAccessTokenSilently({
@@ -49,7 +48,6 @@ export const useAuthenticatedApi = () => {
       }
       throw error;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAccessTokenSilently, loginWithRedirect]);
 
   return { makeAuthenticatedRequest };

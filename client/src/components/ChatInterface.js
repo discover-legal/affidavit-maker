@@ -9,11 +9,13 @@ import {
   AlertCircle,
   Loader,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Upload
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 import DocumentMetadata from './DocumentMetadata';
+import EvidenceUploadModal from './EvidenceUploadModal';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -23,6 +25,8 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [showEvidenceUpload, setShowEvidenceUpload] = useState(false);
+  const [currentEvidence, setCurrentEvidence] = useState(null);
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -237,14 +241,35 @@ Let's start with your name and which state you're in.`
       }
 
       const data = await response.json();
-      
+
+      console.log('🔍 Chat API Response:', {
+        success: data.success,
+        hasNewFacts: !!data.newFacts,
+        newFactsCount: data.newFacts?.length || 0,
+        newFacts: data.newFacts
+      });
+
       if (data.success) {
-        // Add bot response
-        setMessages(prev => [...prev, { 
-          type: 'bot', 
-          content: data.response 
+        // Check for evidence items that need upload
+        let evidenceItems = [];
+        if (data.newFacts && data.newFacts.length > 0) {
+          console.log('🔍 Checking for evidence in newFacts:', data.newFacts);
+
+          evidenceItems = data.newFacts.filter(fact => {
+            console.log('Checking fact:', { type: fact.type, isEvidence: fact.type === 'evidence', fact });
+            return fact.type === 'evidence';
+          });
+
+          console.log('🔍 Evidence items found:', evidenceItems.length, evidenceItems);
+        }
+
+        // Add bot response with evidence items attached
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          content: data.response,
+          evidenceItems: evidenceItems.length > 0 ? evidenceItems : undefined
         }]);
-        
+
         // Update document if data changed
         if (data.affidavitData) {
           console.log('📝 Chat updated document:', {
@@ -252,10 +277,10 @@ Let's start with your name and which state you're in.`
             hasState: !!data.affidavitData.state,
             factCount: data.affidavitData.facts?.length || 0
           });
-          
+
           updateDocumentData(data.affidavitData);
         }
-        
+
         // Handle any additional actions
         if (data.action === 'validate') {
           // Validation will be triggered by ValidationSidebar
@@ -314,28 +339,49 @@ Let's start with your name and which state you're in.`
             key={index}
             className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.type === 'user' 
-                ? 'bg-blue-600 text-white' 
-                : msg.isError 
-                ? 'bg-red-50 text-red-900 border border-red-200' 
+            <div className={`max-w-[80%] rounded-lg ${
+              msg.type === 'user'
+                ? 'bg-blue-600 text-white p-3'
+                : msg.isError
+                ? 'bg-red-50 text-red-900 border border-red-200 p-3'
                 : 'bg-white text-gray-800 shadow-sm'
             }`}>
-              <div className="flex items-start">
-                {msg.type === 'bot' && (
-                  <div className="mr-2 mt-0.5">
-                    {msg.isError ? (
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                    ) : (
-                      <Bot className="h-4 w-4 text-gray-600" />
-                    )}
-                  </div>
-                )}
-                <div className="whitespace-pre-wrap flex-1">{msg.content}</div>
-                {msg.type === 'user' && (
-                  <User className="h-4 w-4 ml-2 mt-0.5" />
-                )}
+              <div className={msg.type === 'user' || msg.isError ? '' : 'p-3'}>
+                <div className="flex items-start">
+                  {msg.type === 'bot' && (
+                    <div className="mr-2 mt-0.5">
+                      {msg.isError ? (
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                      ) : (
+                        <Bot className="h-4 w-4 text-gray-600" />
+                      )}
+                    </div>
+                  )}
+                  <div className="whitespace-pre-wrap flex-1">{msg.content}</div>
+                  {msg.type === 'user' && (
+                    <User className="h-4 w-4 ml-2 mt-0.5" />
+                  )}
+                </div>
               </div>
+
+              {/* Evidence Upload Buttons */}
+              {msg.type === 'bot' && msg.evidenceItems && msg.evidenceItems.length > 0 && (
+                <div className="border-t border-gray-100 px-3 py-2 space-y-2">
+                  {msg.evidenceItems.map((evidence, evidenceIndex) => (
+                    <button
+                      key={evidenceIndex}
+                      onClick={() => {
+                        setCurrentEvidence(evidence);
+                        setShowEvidenceUpload(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors text-sm font-medium"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload {evidence.evidenceData?.description || 'Evidence'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -411,6 +457,26 @@ Let's start with your name and which state you're in.`
           </button>
         </form>
       </div>
+
+      {/* Evidence Upload Modal */}
+      <EvidenceUploadModal
+        isOpen={showEvidenceUpload}
+        onClose={() => setShowEvidenceUpload(false)}
+        onUploadSuccess={(updatedEvidence) => {
+          console.log('✅ Evidence uploaded:', updatedEvidence);
+          // Update the fact in the document by matching ID (not reference)
+          const updatedFacts = (currentDocument.facts || []).map(fact =>
+            fact.id === currentEvidence?.id ? updatedEvidence : fact
+          );
+          updateDocumentData({
+            ...currentDocument,
+            facts: updatedFacts
+          });
+          setShowEvidenceUpload(false);
+        }}
+        evidence={currentEvidence}
+        documentId={currentDocument?.documentId}
+      />
     </div>
   );
 };

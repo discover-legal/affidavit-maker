@@ -9,13 +9,26 @@
  *   originalContent: string,              // Original user-provided text (never changes)
  *   initialRewrite: string|null,          // First professional rewrite generated
  *   professionalRewrite: string|null,     // Current professional rewrite (can be regenerated)
+ *   type: 'fact'|'evidence',              // Fact type (default: 'fact')
  *   category: string,
  *   subcategory: string|null,
  *   confidence: number,
  *   severity: string,
  *   issues: array,
  *   suggestions: array,
- *   metadata: object
+ *   metadata: object,
+ *   evidenceData: {                       // Only present when type='evidence'
+ *     exhibitLabel: string,               // Auto-calculated: A, B, C...
+ *     description: string,                // User-provided description
+ *     fileName: string,                   // Original upload filename
+ *     fileKey: string,                    // Storage path/key
+ *     fileType: string,                   // 'pdf' | 'jpg' | 'png'
+ *     fileSizeBytes: number,
+ *     filePages: number,                  // For PDFs
+ *     uploadedAt: string,                 // ISO timestamp
+ *     thumbnailKey: string,               // Path to thumbnail
+ *     requiresUpload: boolean             // TRUE until file uploaded
+ *   }
  * }
  */
 
@@ -79,11 +92,16 @@ function normalizeFact(fact) {
     const initialRewrite = fact.initialRewrite ||
                           (fact.professionalRewrite && !fact.initialRewrite ? fact.professionalRewrite : null);
 
-    return {
+    // Determine type: 'fact' or 'evidence'
+    const type = fact.type === 'evidence' ? 'evidence' : 'fact';
+
+    // Base normalized fact
+    const normalized = {
       content: String(content).trim(),
       originalContent: originalContent,
       initialRewrite: initialRewrite,
       professionalRewrite: fact.professionalRewrite || null,
+      type: type,
       category: fact.category || 'general',
       subcategory: fact.subcategory || null,
       confidence: typeof fact.confidence === 'number' ? fact.confidence : 0.5,
@@ -101,6 +119,24 @@ function normalizeFact(fact) {
         lastEdited: fact.lastEdited || null
       }
     };
+
+    // Add evidenceData if this is evidence type
+    if (type === 'evidence') {
+      normalized.evidenceData = {
+        exhibitLabel: fact.evidenceData?.exhibitLabel || '',
+        description: fact.evidenceData?.description || '',
+        fileName: fact.evidenceData?.fileName || null,
+        fileKey: fact.evidenceData?.fileKey || null,
+        fileType: fact.evidenceData?.fileType || null,
+        fileSizeBytes: fact.evidenceData?.fileSizeBytes || 0,
+        filePages: fact.evidenceData?.filePages || 1,
+        uploadedAt: fact.evidenceData?.uploadedAt || null,
+        thumbnailKey: fact.evidenceData?.thumbnailKey || null,
+        requiresUpload: fact.evidenceData?.requiresUpload !== false // Default true
+      };
+    }
+
+    return normalized;
   }
 
   // Fallback for unknown types
@@ -227,7 +263,7 @@ function prepareFactsForStorage(facts) {
 /**
  * Prepare facts for display in UI
  * Adds display-specific properties
- * 
+ *
  * @param {array} facts - Facts to prepare
  * @returns {array} Facts with display properties
  */
@@ -242,6 +278,100 @@ function prepareFactsForDisplay(facts) {
   }));
 }
 
+/**
+ * Check if a fact is evidence type
+ *
+ * @param {object} fact - Fact to check
+ * @returns {boolean} True if evidence
+ */
+function isEvidence(fact) {
+  const normalized = normalizeFact(fact);
+  return normalized.type === 'evidence';
+}
+
+/**
+ * Check if evidence item has uploaded file
+ *
+ * @param {object} evidence - Evidence fact to check
+ * @returns {boolean} True if file is uploaded
+ */
+function evidenceHasFile(evidence) {
+  const normalized = normalizeFact(evidence);
+  if (normalized.type !== 'evidence') return false;
+  return !normalized.evidenceData?.requiresUpload && !!normalized.evidenceData?.fileKey;
+}
+
+/**
+ * Get all evidence items from facts array
+ *
+ * @param {array} facts - Array of facts
+ * @returns {array} Only evidence items
+ */
+function getEvidenceItems(facts) {
+  return normalizeFacts(facts).filter(fact => fact.type === 'evidence');
+}
+
+/**
+ * Calculate exhibit labels for evidence items based on position
+ * Uses letters (A, B, C...) by default, configurable for state-specific rules
+ *
+ * @param {array} facts - Array of all facts (mixed types)
+ * @param {object} options - { style: 'letters' | 'numbers' }
+ * @returns {array} Facts with updated exhibit labels
+ */
+function calculateExhibitLabels(facts, options = { style: 'letters' }) {
+  const normalized = normalizeFacts(facts);
+  let evidenceIndex = 0;
+
+  return normalized.map(fact => {
+    if (fact.type === 'evidence') {
+      const label = options.style === 'numbers'
+        ? String(evidenceIndex + 1)
+        : String.fromCharCode(65 + evidenceIndex); // A, B, C...
+
+      evidenceIndex++;
+
+      return {
+        ...fact,
+        evidenceData: {
+          ...fact.evidenceData,
+          exhibitLabel: label
+        }
+      };
+    }
+    return fact;
+  });
+}
+
+/**
+ * Create a new evidence fact placeholder
+ *
+ * @param {object} options - { description, content }
+ * @returns {object} New evidence fact with requiresUpload=true
+ */
+function createEvidencePlaceholder(options = {}) {
+  const { description = '', content = '' } = options;
+
+  return normalizeFact({
+    content: content || `I attach as Exhibit [TBD] ${description}.`,
+    originalContent: content || `I attach as Exhibit [TBD] ${description}.`,
+    type: 'evidence',
+    category: 'evidence',
+    evidenceData: {
+      exhibitLabel: '',
+      description: description,
+      fileName: null,
+      fileKey: null,
+      fileType: null,
+      fileSizeBytes: 0,
+      filePages: 1,
+      uploadedAt: null,
+      thumbnailKey: null,
+      requiresUpload: true
+    }
+  });
+}
+
 module.exports = {
   normalizeFact,
   normalizeFacts,
@@ -250,5 +380,11 @@ module.exports = {
   factNeedsReview,
   mergeValidation,
   prepareFactsForStorage,
-  prepareFactsForDisplay
+  prepareFactsForDisplay,
+  // Evidence-specific functions
+  isEvidence,
+  evidenceHasFile,
+  getEvidenceItems,
+  calculateExhibitLabels,
+  createEvidencePlaceholder
 };

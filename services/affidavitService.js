@@ -164,10 +164,52 @@ YOUR DUAL ROLE:
 SUPPORTED STATES: Only Texas (TX), Utah (UT), Arizona (AZ)
 
 EXTRACTION RULES:
-- ALWAYS look for names, even partial ones (Mike = extract as "Mike")  
+- ALWAYS look for names, even partial ones (Mike = extract as "Mike")
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
+
+EVIDENCE DETECTION - CRITICAL:
+When the user mentions documents or attachable evidence, you MUST:
+1. CREATE a SEPARATE evidence item for EACH document mentioned (one file per evidence item)
+2. EXTRACT each with is_evidence: true
+3. PROVIDE a specific description for each document
+4. RESPOND acknowledging ALL evidence items and offering upload buttons for each
+
+**ONE FILE PER EVIDENCE ITEM - CRITICAL:**
+- If user says "I have a bank statement and a pay stub" → Create TWO evidence items
+- If user says "I have 3 receipts" → Create THREE evidence items
+- If user says "2 letters" → Create TWO evidence items
+- If user says "a couple of documents" → Create TWO evidence items
+- Each evidence item = exactly ONE file upload
+- NEVER combine multiple documents into one evidence item
+
+**WHEN USER MENTIONS A NUMBER:**
+- "2 documents" = 2 separate evidence items (Letter #1, Letter #2)
+- "3 photos" = 3 separate evidence items (Photo #1, Photo #2, Photo #3)
+- "a few emails" = 2-3 separate evidence items (be conservative, ask if unclear)
+- COUNT the number mentioned and create EXACTLY that many evidence items
+
+Examples of evidence mentions:
+- "I have a bank statement showing..." → 1 evidence item
+- "The email from my lawyer proves..." → 1 evidence item
+- "I have a bank statement and pay stub" → 2 evidence items
+- "I can provide 3 photos of the damage" → 3 evidence items
+- "I have tax returns from 2023 and 2024" → 2 evidence items
+- "The receipt and invoice prove..." → 2 evidence items
+- "I want to add 2 letters I got" → 2 evidence items (Letter #1, Letter #2)
+- "I have 2 documents to upload" → 2 evidence items (Document #1, Document #2)
+
+Evidence response pattern (single):
+"I've created a placeholder for [description]. You can upload that document now using the button below, or add it later through the validation pane on the right."
+
+Evidence response pattern (multiple):
+"I've created placeholders for:
+1. [description 1]
+2. [description 2]
+You can upload each document using the buttons below, or add them later through the validation pane on the right."
+
+IMPORTANT: Do NOT provide legal advice about what evidence is admissible or how it should be used. Simply acknowledge the evidence and facilitate the upload.
 
 COUNTY COLLECTION - CRITICAL:
 - When state is extracted, IMMEDIATELY ask for the county
@@ -333,6 +375,18 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
                   confidence: {
                     type: "number",
                     description: "Confidence in extraction (0.0-1.0)"
+                  },
+                  is_evidence: {
+                    type: "boolean",
+                    description: "TRUE if this is evidence/document that user mentioned and needs to upload (e.g., bank statement, email, photo). Use null or false for regular facts."
+                  },
+                  evidence_description: {
+                    type: "string",
+                    description: "Brief description of the evidence if is_evidence=true (e.g., 'Bank statement from January 2025', 'Email from attorney'). Use null if not evidence."
+                  },
+                  evidence_mentioned_as: {
+                    type: "string",
+                    description: "How user referred to the evidence (e.g., 'bank statement', 'email', 'photo', 'receipt'). Use null if not evidence."
                   }
                 },
                 required: ["content", "category"]
@@ -496,17 +550,60 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
 
     // Extract facts - preserve full fact objects with metadata (category, subcategory, etc.)
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
+    let processedFacts = []; // Declare outside if block so we can return it
+
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
+      const { v4: uuidv4 } = require('uuid');
+
+      // Convert evidence facts to proper format
+      processedFacts = extractedFacts.map(fact => {
+        if (fact.is_evidence) {
+          // Convert to evidence type with evidenceData
+          const evidenceItem = {
+            ...fact,
+            id: uuidv4(), // Add unique ID for evidence tracking
+            type: 'evidence',
+            category: 'evidence',
+            evidenceData: {
+              exhibitLabel: '', // Will be calculated based on position
+              description: fact.evidence_description || fact.evidence_mentioned_as || '',
+              fileName: null,
+              fileKey: null,
+              fileType: null,
+              fileSizeBytes: 0,
+              filePages: 1,
+              uploadedAt: null,
+              thumbnailKey: null,
+              requiresUpload: true
+            }
+          };
+
+          logger.info('🔍 Evidence item created:', {
+            id: evidenceItem.id,
+            description: evidenceItem.evidenceData.description,
+            content: fact.content
+          });
+
+          return evidenceItem;
+        }
+        // Regular fact - ensure it has type: 'fact'
+        return {
+          ...fact,
+          id: fact.id || uuidv4(),
+          type: fact.type || 'fact'
+        };
+      });
+
       // Store full fact objects to preserve category, subcategory, severity, confidence, etc.
-      newData.facts = [...existingFacts, ...extractedFacts];
+      newData.facts = [...existingFacts, ...processedFacts];
       hasNewData = true;
     }
 
     return {
       chatResponse: args.chat_response || "I understand. Please continue.",
       updatedAffidavitData: newData,
-      extractedFacts,
+      extractedFacts: processedFacts, // ✅ FIX: Return processedFacts with type field, not raw extractedFacts
       validationSummary: args.validation_summary || {},
       suggestions: args.suggestions || [],
       hasNewData

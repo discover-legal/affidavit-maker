@@ -201,8 +201,7 @@ async function initializeServices() {
     // Initialize affidavit service with dependencies
     affidavitService = new AffidavitService(templateManager);
 
-    // Add services to app locals
-    app.locals.pool = dbService.pool;
+    // Add services to app locals (pool is already set before initializeServices())
     app.locals.openAIService = openAIService;
     app.locals.affidavitService = affidavitService;
     app.locals.templateManager = templateManager;
@@ -216,7 +215,11 @@ async function initializeServices() {
     console.error('❌ Service initialization failed:', error.message);
   }
 }
- 
+
+// ✅ FIX: Set database pool immediately (dbService is initialized synchronously on import)
+// This prevents "Database pool not available" errors during route initialization
+app.locals.pool = dbService.pool;
+
 // Initialize services immediately
 initializeServices();
 
@@ -302,6 +305,11 @@ if (templatesRouter) {
 const validationRouter = safeImportRouter('./routes/validation', 'Validation');
 if (validationRouter) {
   app.use('/api/validate', validationRouter);
+}
+
+const evidenceRouter = safeImportRouter('./routes/evidence', 'Evidence');
+if (evidenceRouter) {
+  app.use('/api/evidence', evidenceRouter);
 }
 
 // Basic fallback routes for critical endpoints if files are missing

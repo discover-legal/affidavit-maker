@@ -213,7 +213,7 @@ Copy the webhook secret and update `STRIPE_WEBHOOK_SECRET` in Render.
 
 ### 3. Frontend Environment Variables
 
-⚠️ **IMPORTANT**: The frontend gets built during Docker build, so it needs environment variables set in Render Dashboard BEFORE building.
+⚠️ **CRITICAL FIX FOR "undefined" ERROR**: The frontend gets built during Docker build, so environment variables must be available as BUILD ARGUMENTS.
 
 **Required REACT_APP_* variables (must be set in Render Environment tab):**
 - `REACT_APP_AUTH0_DOMAIN` - Your Auth0 domain (e.g., your-tenant.auth0.com)
@@ -222,20 +222,48 @@ Copy the webhook secret and update `STRIPE_WEBHOOK_SECRET` in Render.
 - `REACT_APP_API_URL` - Already set in render.yaml
 - `REACT_APP_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key (pk_live_* or pk_test_*)
 
+**How the Fix Works:**
+1. The Dockerfile now accepts these variables as `ARG` (build arguments)
+2. Render automatically passes environment variables to Docker build as build args
+3. During `npm run build`, React can access these values and bake them into the JavaScript bundle
+4. The built app will have the correct Auth0 domain, client ID, etc.
+
 **To add/update these variables:**
 1. Go to Render Dashboard → Your Web Service → Environment
 2. Click "Add Environment Variable"
 3. Add each REACT_APP_* variable listed above
 4. Click "Save Changes"
-5. Render will automatically trigger a redeploy with the new variables
+5. Render will automatically trigger a **FULL REBUILD** with the new variables
 
 **Why this matters:**
 - These variables get baked into the JavaScript bundle during `npm run build`
 - If not set, the React app will have `undefined` values (breaking login, payments, etc.)
-- Changing these requires a full rebuild/redeploy
+- Changing these requires a full rebuild/redeploy (not just a restart)
 
-**Troubleshooting:**
-If login shows "https://undefined/authorize", you're missing REACT_APP_AUTH0_DOMAIN.
+**Troubleshooting "undefined" Errors:**
+
+If you see errors like:
+- `https://undefined/authorize`
+- `Cannot read property 'loginWithRedirect' of undefined`
+- Console shows `REACT_APP_AUTH0_DOMAIN: undefined`
+
+**Solution:**
+1. Verify ALL REACT_APP_* variables are set in Render Dashboard → Environment
+2. Trigger a manual deploy from Render Dashboard (this rebuilds the Docker image)
+3. Check build logs to confirm environment variables are passed to the build
+4. After deployment, open browser console and check: `window.location.origin` should show your domain
+
+**Expected Values:**
+```javascript
+// Open browser console on your deployed app:
+console.log(process.env); // Won't work in production build
+
+// Instead, check the built code by looking at login behavior
+// If working correctly, clicking "Sign In" should redirect to:
+// https://dev-g0xk31oseyh6gdmd.us.auth0.com/authorize?...
+// NOT:
+// https://undefined/authorize?...
+```
 
 ## Database Migrations
 

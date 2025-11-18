@@ -1,6 +1,21 @@
 # Use Node.js 18 LTS
 FROM node:18-bullseye-slim
 
+# Accept build arguments for React environment variables
+# These must be provided during docker build via --build-arg
+ARG REACT_APP_AUTH0_DOMAIN
+ARG REACT_APP_AUTH0_CLIENT_ID
+ARG REACT_APP_AUTH0_AUDIENCE
+ARG REACT_APP_API_URL
+ARG REACT_APP_STRIPE_PUBLISHABLE_KEY
+
+# Convert build args to environment variables for the build process
+ENV REACT_APP_AUTH0_DOMAIN=$REACT_APP_AUTH0_DOMAIN
+ENV REACT_APP_AUTH0_CLIENT_ID=$REACT_APP_AUTH0_CLIENT_ID
+ENV REACT_APP_AUTH0_AUDIENCE=$REACT_APP_AUTH0_AUDIENCE
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_STRIPE_PUBLISHABLE_KEY=$REACT_APP_STRIPE_PUBLISHABLE_KEY
+
 # Create app directory
 WORKDIR /app
 
@@ -21,7 +36,7 @@ RUN npm ci
 WORKDIR /app
 COPY . .
 
-# Build the React frontend
+# Build the React frontend (environment variables are now available)
 WORKDIR /app/client
 RUN npm run build
 

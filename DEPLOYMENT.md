@@ -258,15 +258,25 @@ Render provides built-in metrics:
 
 ## Important Notes
 
-### Ephemeral File Storage
+### File Storage Options
 
-⚠️ **PDFs are stored in `/documents` which uses ephemeral storage**
+⚠️ **PDFs are stored in `/documents` which uses ephemeral storage by default**
 
 What this means:
 - Files persist during normal operation
 - **Files are deleted when you deploy/restart**
 - Acceptable for MVP where users download immediately
-- For production, migrate to AWS S3 or similar
+
+**To enable persistent storage on Render:**
+- Follow the step-by-step guide: [Render Persistent Disk Setup](docs/RENDER_PERSISTENT_DISK.md)
+- Attach a 1GB (or larger) persistent disk to your service
+- PDFs will persist across deployments and restarts
+- Recommended for production use
+
+**For large-scale production:**
+- Migrate to AWS S3, Cloudflare R2, or similar cloud storage
+- Better for horizontal scaling with multiple instances
+- Automatic backups and CDN integration
 
 ### Cold Starts
 
@@ -375,8 +385,9 @@ Plus usage costs:
 3. ✅ Test Stripe payment flow
 4. ✅ Generate a test affidavit (PDF generation)
 5. ✅ Monitor logs for errors
-6. ⬜ Set up custom domain (optional)
-7. ⬜ Enable monitoring/alerting (optional)
-8. ⬜ Migrate to S3 for persistent PDF storage (future)
-9. ⬜ Set up staging environment (optional)
-10. ⬜ Configure CDN for faster global delivery (optional)
+6. ⬜ Set up persistent disk for PDF storage ([Guide](docs/RENDER_PERSISTENT_DISK.md))
+7. ⬜ Set up custom domain (optional)
+8. ⬜ Enable monitoring/alerting (optional)
+9. ⬜ Migrate to S3 for large-scale storage (future)
+10. ⬜ Set up staging environment (optional)
+11. ⬜ Configure CDN for faster global delivery (optional)

@@ -95,7 +95,10 @@ services:
       - key: RATE_LIMIT_AUTH_ATTEMPTS
         value: 5
 
-      # File Storage (ephemeral for MVP)
+      # File Storage
+      # By default uses ephemeral storage (files deleted on restart/deploy)
+      # For persistent storage, see: docs/RENDER_PERSISTENT_DISK.md
+      # After adding a persistent disk, DOCUMENTS_PATH should match the mount path
       - key: DOCUMENTS_PATH
         value: ./documents
 
@@ -122,3 +125,15 @@ databases:
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon # Should match web service region
+
+# Note: Persistent Disks
+# Persistent disks cannot be configured in render.yaml
+# You must create them manually in the Render Dashboard
+# See: docs/RENDER_PERSISTENT_DISK.md for step-by-step instructions
+# 
+# To add persistent storage for PDFs:
+# 1. Go to your web service in Render Dashboard
+# 2. Click "Disks" tab
+# 3. Add a disk with mount path: /app/documents
+# 4. Recommended size: 1GB (can be increased later)
+# 5. Service will auto-restart to mount the disk

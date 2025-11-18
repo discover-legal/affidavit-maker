@@ -48,6 +48,17 @@ services:
       - key: AUTH0_AUDIENCE
         sync: false
 
+      # Auth0 Frontend (React) - REQUIRED for build
+      # These must be set for the React build to work
+      - key: REACT_APP_AUTH0_DOMAIN
+        sync: false
+
+      - key: REACT_APP_AUTH0_CLIENT_ID
+        sync: false
+
+      - key: REACT_APP_AUTH0_AUDIENCE
+        sync: false
+
       # OpenAI - YOU MUST SET THESE IN RENDER DASHBOARD
       - key: OPENAI_API_KEY
         sync: false
@@ -68,9 +79,18 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
 
+      # Stripe Frontend (React) - REQUIRED for build
+      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
+        sync: false
+
+      # Frontend Configuration
       # Frontend URL (will be your Render URL)
       - key: FRONTEND_URL
         value: https://affidavit-maker.onrender.com # UPDATE THIS
+
+      # API URL for React app - REQUIRED for build
+      - key: REACT_APP_API_URL
+        value: https://affidavit-maker.onrender.com
 
       # Security
       - key: SESSION_SECRET

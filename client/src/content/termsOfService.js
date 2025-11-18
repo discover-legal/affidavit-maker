@@ -137,7 +137,7 @@ We can update these terms anytime. We'll email you about significant changes wit
 
 **Step 1 - Talk to us:** Contact support@discover.legal first.
 
-**Step 2 - {{Mediation}}:** Before any lawsuit, you agree to try {{mediation}}. Costs are split equally. Takes place in Texas, United States (or by video).
+**Step 2 - {{Mediation}}:** Before any lawsuit, you agree to try {{mediation}}. Costs are split equally. Takes place online.
 
 **Exception:** You can skip mediation for small claims court.
 

@@ -30,8 +30,8 @@
 | **Class Action Waiver** | Detailed waiver with consolidation clause | Condensed waiver, substance maintained | ✅ Maintained |
 | **Mandatory Mediation** | Required before lawsuit | Required before lawsuit with tooltip | ✅ Maintained |
 | **Small Claims Exception** | Can skip mediation for small claims | Identical exception | ✅ Maintained |
-| **Governing Law** | Ontario, Canada | Ontario, Canada | ✅ Maintained |
-| **Venue & Jurisdiction** | Ontario or user's domicile | Ontario or user's domicile | ✅ Maintained |
+| **Governing Law** | Texas, United States | Texas, United States | ✅ Maintained |
+| **Venue & Jurisdiction** | Texas or user's domicile | Texas or user's domicile | ✅ Maintained |
 | **Intellectual Property** | User owns documents, we own platform | Identical ownership | ✅ Maintained |
 | **AI Disclaimer** | AI can make mistakes, user responsible | Identical disclaimer | ✅ Maintained |
 | **Termination Rights** | Both parties' termination rights | Identical rights | ✅ Maintained |

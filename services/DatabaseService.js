@@ -114,7 +114,7 @@ class DatabaseService {
   // Transaction helper
   async transaction(callback) {
     const client = await this.getClient();
-    
+
     try {
       await client.query('BEGIN');
       const result = await callback(client);
@@ -126,6 +126,12 @@ class DatabaseService {
     } finally {
       client.release();
     }
+  }
+
+  // Graceful shutdown - close all connections
+  async end() {
+    logger.info('Closing database connection pool...');
+    await this.pool.end();
   }
 }
 

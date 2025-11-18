@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth0 Config Check</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .good { color: green; }
+        .bad { color: red; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Auth0 Configuration Diagnostic</h1>
+    <p>This page checks if REACT_APP_* variables were baked into the build correctly.</p>
+
+    <h2>Build-Time Environment Variables:</h2>
+    <pre id="config"></pre>
+
+    <script>
+        // These values are baked in at build time by React
+        const config = {
+            REACT_APP_AUTH0_DOMAIN: process.env.REACT_APP_AUTH0_DOMAIN || 'UNDEFINED',
+            REACT_APP_AUTH0_CLIENT_ID: process.env.REACT_APP_AUTH0_CLIENT_ID || 'UNDEFINED',
+            REACT_APP_AUTH0_AUDIENCE: process.env.REACT_APP_AUTH0_AUDIENCE || 'UNDEFINED',
+            REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'UNDEFINED',
+            REACT_APP_STRIPE_PUBLISHABLE_KEY: process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ? 'SET (hidden)' : 'UNDEFINED'
+        };
+
+        const configEl = document.getElementById('config');
+        let hasUndefined = false;
+
+        Object.entries(config).forEach(([key, value]) => {
+            const isUndefined = value === 'UNDEFINED';
+            if (isUndefined) hasUndefined = true;
+
+            const className = isUndefined ? 'bad' : 'good';
+            configEl.innerHTML += `<span class="${className}">${key}: ${value}</span>\n`;
+        });
+
+        configEl.innerHTML += '\n';
+        if (hasUndefined) {
+            configEl.innerHTML += '<span class="bad">❌ PROBLEM DETECTED: Some variables are UNDEFINED</span>\n';
+            configEl.innerHTML += '<span class="bad">This means the Docker build did not have these environment variables available.</span>\n';
+        } else {
+            configEl.innerHTML += '<span class="good">✅ All variables are set correctly!</span>\n';
+        }
+    </script>
+</body>
+</html>

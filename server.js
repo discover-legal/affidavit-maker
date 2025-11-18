@@ -341,10 +341,19 @@ if (!chatRouter) {
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-  
-  // Catch-all route for React SPA
+  // Serve static assets with caching (they have content hashes in filenames)
+  app.use(express.static(path.join(__dirname, 'client/build'), {
+    maxAge: '1y', // Cache JS/CSS bundles for 1 year (they have content hashes)
+    etag: true,
+    lastModified: true
+  }));
+
+  // Catch-all route for React SPA - NO CACHING for index.html
   app.get('*', (req, res) => {
+    // Prevent caching of index.html to ensure users get the latest app version
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   });
 }

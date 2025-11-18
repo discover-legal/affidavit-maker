@@ -36,8 +36,11 @@ This automatically creates all services and configures most settings.
 
 3. **Set secret environment variables** in Render Dashboard:
 
+   ⚠️ **CRITICAL**: These MUST be set BEFORE the first build or your login will fail!
+
    Go to your web service → Environment and add:
 
+   **Backend Variables:**
    ```
    AUTH0_DOMAIN=your-tenant.auth0.com
    AUTH0_CLIENT_ID=your_client_id
@@ -47,6 +50,16 @@ This automatically creates all services and configures most settings.
    STRIPE_SECRET_KEY=sk_live_your_key
    STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
    ```
+
+   **Frontend Variables (REQUIRED for React build):**
+   ```
+   REACT_APP_AUTH0_DOMAIN=your-tenant.auth0.com (same as AUTH0_DOMAIN)
+   REACT_APP_AUTH0_CLIENT_ID=your_client_id (same as AUTH0_CLIENT_ID)
+   REACT_APP_AUTH0_AUDIENCE=https://your-api-identifier (same as AUTH0_AUDIENCE)
+   REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_your_key
+   ```
+
+   Note: REACT_APP_API_URL is already set in render.yaml
 
 4. **Deploy**:
    - Click "Apply" to create services
@@ -98,10 +111,16 @@ DATABASE_POOL_MAX=20
 
 ### Auth0 (Required - Get from Auth0 Dashboard)
 ```bash
+# Backend Auth0 variables
 AUTH0_DOMAIN=your-tenant.auth0.com
 AUTH0_CLIENT_ID=your_client_id
 AUTH0_CLIENT_SECRET=your_client_secret
 AUTH0_AUDIENCE=https://your-api-identifier
+
+# Frontend Auth0 variables (REQUIRED for React build)
+REACT_APP_AUTH0_DOMAIN=your-tenant.auth0.com
+REACT_APP_AUTH0_CLIENT_ID=your_client_id
+REACT_APP_AUTH0_AUDIENCE=https://your-api-identifier
 ```
 
 ### OpenAI (Required - Get from OpenAI Platform)
@@ -114,13 +133,18 @@ OPENAI_TEMPERATURE=0.3
 
 ### Stripe (Required - Get from Stripe Dashboard)
 ```bash
+# Backend Stripe variables
 STRIPE_SECRET_KEY=sk_live_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# Frontend Stripe variable (REQUIRED for React build)
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_your_key
 ```
 
 ### Frontend URL
 ```bash
 FRONTEND_URL=https://your-app.onrender.com
+REACT_APP_API_URL=https://your-app.onrender.com
 ```
 
 ### Security
@@ -189,28 +213,29 @@ Copy the webhook secret and update `STRIPE_WEBHOOK_SECRET` in Render.
 
 ### 3. Frontend Environment Variables
 
-The frontend gets built during Docker build, so it uses compile-time environment variables.
+⚠️ **IMPORTANT**: The frontend gets built during Docker build, so it needs environment variables set in Render Dashboard BEFORE building.
 
-For the React app, you need to rebuild when changing:
-- `REACT_APP_AUTH0_DOMAIN`
-- `REACT_APP_AUTH0_CLIENT_ID`
-- `REACT_APP_AUTH0_AUDIENCE`
-- `REACT_APP_API_URL`
-- `REACT_APP_STRIPE_PUBLISHABLE_KEY`
+**Required REACT_APP_* variables (must be set in Render Environment tab):**
+- `REACT_APP_AUTH0_DOMAIN` - Your Auth0 domain (e.g., your-tenant.auth0.com)
+- `REACT_APP_AUTH0_CLIENT_ID` - Your Auth0 client ID
+- `REACT_APP_AUTH0_AUDIENCE` - Your Auth0 API audience
+- `REACT_APP_API_URL` - Already set in render.yaml
+- `REACT_APP_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key (pk_live_* or pk_test_*)
 
-These should be set in your repository's `.env.production` file or as build-time environment variables in Render.
+**To add/update these variables:**
+1. Go to Render Dashboard → Your Web Service → Environment
+2. Click "Add Environment Variable"
+3. Add each REACT_APP_* variable listed above
+4. Click "Save Changes"
+5. Render will automatically trigger a redeploy with the new variables
 
-**Create `.env.production` in `/client` directory**:
-```bash
-REACT_APP_AUTH0_DOMAIN=your-tenant.auth0.com
-REACT_APP_AUTH0_CLIENT_ID=your_client_id
-REACT_APP_AUTH0_AUDIENCE=https://your-api-identifier
-REACT_APP_API_URL=https://your-app.onrender.com
-REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_your_key
-REACT_APP_ENVIRONMENT=production
-```
+**Why this matters:**
+- These variables get baked into the JavaScript bundle during `npm run build`
+- If not set, the React app will have `undefined` values (breaking login, payments, etc.)
+- Changing these requires a full rebuild/redeploy
 
-Commit this file to your repository, then trigger a redeploy.
+**Troubleshooting:**
+If login shows "https://undefined/authorize", you're missing REACT_APP_AUTH0_DOMAIN.
 
 ## Database Migrations
 

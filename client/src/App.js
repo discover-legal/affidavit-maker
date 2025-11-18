@@ -19,7 +19,16 @@ const AUTH0_CONFIG = {
     scope: "openid profile email"
   },
   cacheLocation: 'memory',
-  useRefreshTokens: false
+  useRefreshTokens: false,
+  onRedirectCallback: (appState) => {
+    // After Auth0 redirects back, navigate to the page the user was on
+    // or default to the dashboard
+    window.history.replaceState(
+      {},
+      document.title,
+      appState?.returnTo || '/dashboard'
+    );
+  }
 };
 
 // Main routing component

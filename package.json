@@ -42,7 +42,6 @@
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
-    "puppeteer": "^21.11.0",
     "rate-limit-redis": "^4.2.1",
     "react-router-dom": "^7.8.1",
     "stripe": "^14.25.0",

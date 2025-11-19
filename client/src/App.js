@@ -20,6 +20,9 @@ const AUTH0_CONFIG = {
   },
   cacheLocation: 'localstorage',
   useRefreshTokens: true,
+  useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
+  useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
+  authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
   onRedirectCallback: (appState) => {
     // After Auth0 redirects back, navigate to the page the user was on
     // or default to the dashboard

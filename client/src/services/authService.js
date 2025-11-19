@@ -15,39 +15,61 @@ export const useAuthenticatedApi = () => {
     // getAccessTokenSilently to fail if the user isn't actually authenticated.
     // This prevents race conditions during the auth initialization flow.
 
-    try {
-      const token = await getAccessTokenSilently({
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: 'openid profile email'
-      });
+    const makeRequest = async (retryCount = 0) => {
+      try {
+        // Add timeout to token retrieval with retry logic
+        const tokenPromise = getAccessTokenSilently({
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+          scope: 'openid profile email',
+          timeoutInSeconds: 10 // 10 second timeout for token retrieval
+        });
 
-      const response = await fetch(`${API_BASE}${url}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          ...options.headers
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Token retrieval timeout')), 12000);
+        });
+
+        const token = await Promise.race([tokenPromise, timeoutPromise]);
+
+        const response = await fetch(`${API_BASE}${url}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+          }
+        });
+
+        if (response.status === 401) {
+          // Token expired or invalid, redirect to login
+          loginWithRedirect();
+          throw new Error('Authentication required');
         }
-      });
 
-      if (response.status === 401) {
-        // Token expired or invalid, redirect to login
-        loginWithRedirect();
-        throw new Error('Authentication required');
-      }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
+        return await response.json();
+      } catch (error) {
+        // Retry once if token retrieval times out or fails on first attempt
+        if (retryCount === 0 &&
+            (error.message === 'Token retrieval timeout' ||
+             error.error === 'timeout' ||
+             error.message?.includes('timeout'))) {
+          console.warn('[authService] Token retrieval failed, retrying...', error.message);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+          return makeRequest(1); // Retry once
+        }
 
-      return await response.json();
-    } catch (error) {
-      if (error.error === 'login_required') {
-        loginWithRedirect();
+        if (error.error === 'login_required') {
+          loginWithRedirect();
+        }
+        throw error;
       }
-      throw error;
-    }
+    };
+
+    return makeRequest();
   }, [getAccessTokenSilently, loginWithRedirect]);
 
   return { makeAuthenticatedRequest };

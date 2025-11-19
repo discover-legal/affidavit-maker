@@ -20,6 +20,9 @@ const AUTH0_CONFIG = {
   },
   cacheLocation: 'localstorage',
   useRefreshTokens: true,
+  useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
+  useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
+  authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
   onRedirectCallback: (appState) => {
     // After Auth0 redirects back, navigate to the page the user was on
     // or default to the dashboard
@@ -59,48 +62,52 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Landing Page */}
-      <Route 
-        path="/" 
-        element={<LandingPage onGetStarted={handleGetStarted} />} 
+      {/* Public Landing Page - No auth required */}
+      <Route
+        path="/"
+        element={<LandingPage onGetStarted={handleGetStarted} />}
       />
 
-      {/* Dashboard */}
-      <Route 
-        path="/dashboard" 
+      {/* Protected Routes - Require auth and TOS acceptance */}
+      <Route
+        path="/dashboard"
         element={
-          <UserDashboard 
-            onNewDocument={handleNewDocument}
-            onContinueDocument={handleContinueDocument}
-          />
-        } 
+          <TOSGuard>
+            <UserDashboard
+              onNewDocument={handleNewDocument}
+              onContinueDocument={handleContinueDocument}
+            />
+          </TOSGuard>
+        }
       />
 
-      {/* Editor - New Document */}
-      <Route 
-        path="/editor/new" 
+      <Route
+        path="/editor/new"
         element={
-          <EditorView 
-            isNew={true}
-            onBack={handleBackToDashboard} 
-          />
-        } 
+          <TOSGuard>
+            <EditorView
+              isNew={true}
+              onBack={handleBackToDashboard}
+            />
+          </TOSGuard>
+        }
       />
 
-      {/* Editor - Existing Document */}
-      <Route 
-        path="/editor/:documentId" 
+      <Route
+        path="/editor/:documentId"
         element={
-          <EditorView 
-            onBack={handleBackToDashboard} 
-          />
-        } 
+          <TOSGuard>
+            <EditorView
+              onBack={handleBackToDashboard}
+            />
+          </TOSGuard>
+        }
       />
 
       {/* Catch-all redirect */}
-      <Route 
-        path="*" 
-        element={<Navigate to="/" replace />} 
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
       />
     </Routes>
   );
@@ -115,9 +122,7 @@ const App = () => {
       <Auth0Provider {...AUTH0_CONFIG}>
         <DocumentProvider>
           <Router>
-            <TOSGuard>
-              <AppRoutes />
-            </TOSGuard>
+            <AppRoutes />
           </Router>
         </DocumentProvider>
       </Auth0Provider>

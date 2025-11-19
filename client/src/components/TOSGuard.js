@@ -4,41 +4,74 @@ import TermsOfServiceModal from './TermsOfServiceModal';
 import { useAuthenticatedApi } from '../services/authService';
 
 /**
- * TOSGuard - Protects routes and ensures users have accepted Terms of Service
+ * TOSGuard - Protects authenticated routes and ensures users have accepted Terms of Service
  * Shows TOS modal for new users who haven't accepted yet
+ * NOTE: This component should ONLY wrap authenticated routes (/dashboard, /editor/*)
+ * Public routes like the landing page should NOT be wrapped with TOSGuard
  */
 const TOSGuard = ({ children }) => {
-  const { isAuthenticated, isLoading, user } = useAuth0();
+  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
   const { makeAuthenticatedRequest } = useAuthenticatedApi();
   const [, setTosStatus] = useState(null);
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Initializing...');
+  const [authStartTime] = useState(Date.now());
 
   useEffect(() => {
     const checkTosStatus = async () => {
+      const elapsedTime = Date.now() - authStartTime;
+
       // Wait for auth to finish loading
       if (isLoading) {
         console.log('[TOSGuard] Waiting for auth to finish loading...');
-        // Keep isCheckingTos true while loading
-        return;
+        setLoadingMessage('Checking authentication...');
+
+        // Timeout after 10 seconds of waiting for Auth0
+        if (elapsedTime > 10000) {
+          console.error('[TOSGuard] Auth0 loading timeout - forcing check anyway');
+          setLoadingMessage('Authentication check taking longer than expected...');
+          // Don't return - continue to check even if isLoading is stuck
+        } else {
+          return;
+        }
       }
 
-      // If not authenticated, no need to check TOS
+      // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
       if (!isAuthenticated) {
-        console.log('[TOSGuard] User not authenticated, skipping TOS check');
-        setIsCheckingTos(false);
+        console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
+        setLoadingMessage('Redirecting to login...');
+        loginWithRedirect({
+          appState: { returnTo: window.location.pathname }
+        });
         return;
       }
 
-      // Wait for user object to be available
+      // Wait for user object to be available (with timeout)
       if (!user?.sub) {
         console.log('[TOSGuard] User object not available yet, waiting...');
+        setLoadingMessage('Loading user profile...');
+
+        // Timeout after 5 seconds of waiting for user object
+        if (elapsedTime > 5000 && !isLoading) {
+          console.error('[TOSGuard] User object timeout after 5s - may be an Auth0 issue');
+          setLoadingMessage('Having trouble loading user data. Please refresh if this persists.');
+
+          // After 8 seconds total, give up and allow access (fail-open for UX)
+          if (elapsedTime > 8000) {
+            console.error('[TOSGuard] Giving up after 8s - allowing access');
+            setIsCheckingTos(false);
+            return;
+          }
+        }
+
         // Keep checking - don't set isCheckingTos to false yet
         // The useEffect will re-run when user becomes available
         return;
       }
 
       console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
+      setLoadingMessage('Verifying account...');
 
       // Check if we've already verified TOS acceptance (try localStorage first, then sessionStorage)
       const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
@@ -51,6 +84,7 @@ const TOSGuard = ({ children }) => {
 
       try {
         console.log('[TOSGuard] Calling API: /api/auth/tos-status');
+        setLoadingMessage('Checking account status...');
         const data = await makeAuthenticatedRequest('/api/auth/tos-status');
         console.log('[TOSGuard] API response:', data);
 
@@ -93,7 +127,7 @@ const TOSGuard = ({ children }) => {
     };
 
     checkTosStatus();
-    // makeAuthenticatedRequest is stable and should not trigger re-runs
+    // makeAuthenticatedRequest and loginWithRedirect are stable and should not trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, user?.sub]);
 
@@ -142,18 +176,14 @@ const TOSGuard = ({ children }) => {
   // Show loading state while checking TOS
   if (isCheckingTos) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-700 font-medium">{loadingMessage}</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait...</p>
         </div>
       </div>
     );
-  }
-
-  // If not authenticated, just render children (landing page, etc.)
-  if (!isAuthenticated) {
-    return <>{children}</>;
   }
 
   // If TOS not accepted, show modal (blocking)

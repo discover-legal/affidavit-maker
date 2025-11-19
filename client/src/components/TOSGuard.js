@@ -4,11 +4,13 @@ import TermsOfServiceModal from './TermsOfServiceModal';
 import { useAuthenticatedApi } from '../services/authService';
 
 /**
- * TOSGuard - Protects routes and ensures users have accepted Terms of Service
+ * TOSGuard - Protects authenticated routes and ensures users have accepted Terms of Service
  * Shows TOS modal for new users who haven't accepted yet
+ * NOTE: This component should ONLY wrap authenticated routes (/dashboard, /editor/*)
+ * Public routes like the landing page should NOT be wrapped with TOSGuard
  */
 const TOSGuard = ({ children }) => {
-  const { isAuthenticated, isLoading, user } = useAuth0();
+  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
   const { makeAuthenticatedRequest } = useAuthenticatedApi();
   const [, setTosStatus] = useState(null);
   const [showTosModal, setShowTosModal] = useState(false);
@@ -35,10 +37,13 @@ const TOSGuard = ({ children }) => {
         }
       }
 
-      // If not authenticated, no need to check TOS
+      // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
       if (!isAuthenticated) {
-        console.log('[TOSGuard] User not authenticated, skipping TOS check');
-        setIsCheckingTos(false);
+        console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
+        setLoadingMessage('Redirecting to login...');
+        loginWithRedirect({
+          appState: { returnTo: window.location.pathname }
+        });
         return;
       }
 
@@ -122,7 +127,7 @@ const TOSGuard = ({ children }) => {
     };
 
     checkTosStatus();
-    // makeAuthenticatedRequest is stable and should not trigger re-runs
+    // makeAuthenticatedRequest and loginWithRedirect are stable and should not trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, user?.sub]);
 
@@ -179,11 +184,6 @@ const TOSGuard = ({ children }) => {
         </div>
       </div>
     );
-  }
-
-  // If not authenticated, just render children (landing page, etc.)
-  if (!isAuthenticated) {
-    return <>{children}</>;
   }
 
   // If TOS not accepted, show modal (blocking)

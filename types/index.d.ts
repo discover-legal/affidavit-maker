@@ -10,7 +10,7 @@ export interface User {
   subscription_tier: 'pay_per_use' | 'family_law_package' | 'all_state_access';
   created_at: Date;
   updated_at: Date;
-  last_login_at?: Date;
+  last_login?: Date;
 }
 
 // Document Types

@@ -31,7 +31,7 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
       subscriptionStatus: user.subscription_status,
       subscriptionTier: user.subscription_tier,
       createdAt: user.created_at,
-      lastLoginAt: user.last_login_at,
+      lastLoginAt: user.last_login,
       tosAccepted: user.tos_accepted,
       tosAcceptedAt: user.tos_accepted_at,
       tosVersionAccepted: user.tos_version_accepted

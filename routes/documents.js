@@ -157,15 +157,19 @@ router.post('/preview',
 /**
  * ✅ NEW: Generate and download PDF
  */
-router.post('/generate', 
+router.post('/generate',
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
-    const { affidavitData, documentId, skipPayment } = req.body;
+    const { affidavitData, documentId } = req.body;
     const userId = req.user.id;
     const pool = req.app.locals.pool;
     const pdfService = req.app.locals.pdfService;
     const templateManager = req.app.locals.templateManager;
+
+    // SECURITY: Only allow payment bypass in development environment
+    // Never trust client-provided payment bypass flags
+    const skipPayment = process.env.NODE_ENV === 'development';
 
     // Validate inputs
     if (!affidavitData || typeof affidavitData !== 'object') {

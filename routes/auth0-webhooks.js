@@ -1,6 +1,7 @@
 // routes/auth0-webhooks.js
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { dbService } = require('../services/DatabaseService');
 const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
@@ -9,24 +10,63 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const verifyAuth0Webhook = (req, res, next) => {
   const auth0Secret = process.env.AUTH0_WEBHOOK_SECRET;
   const signature = req.headers['auth0-signature'];
-  
-  if (!auth0Secret || !signature) {
-    return res.status(401).json({ 
-      success: false, 
-      error: 'Unauthorized' 
+
+  if (!auth0Secret) {
+    logger.error('AUTH0_WEBHOOK_SECRET not configured');
+    return res.status(500).json({
+      success: false,
+      error: 'Webhook verification not configured'
     });
   }
-  
-  // Implement proper signature verification here
-  // This is a simplified version
+
+  if (!signature) {
+    logger.logSecurity('auth0_webhook_missing_signature', {
+      path: req.path,
+      ip: req.ip
+    });
+    return res.status(401).json({
+      success: false,
+      error: 'Missing signature'
+    });
+  }
+
   try {
-    // Verification logic would go here
+    // Get raw request body (captured by middleware in server.js)
+    const requestBody = req.rawBody || JSON.stringify(req.body);
+
+    // Compute HMAC-SHA256 signature
+    const expectedSignature = crypto
+      .createHmac('sha256', auth0Secret)
+      .update(requestBody, 'utf8')
+      .digest('hex');
+
+    // Timing-safe comparison to prevent timing attacks
+    const signatureBuffer = Buffer.from(signature, 'hex');
+    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      throw new Error('Signature length mismatch');
+    }
+
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+      throw new Error('Signature verification failed');
+    }
+
+    // Signature is valid
+    logger.info('Auth0 webhook signature verified', {
+      path: req.path
+    });
     next();
   } catch (error) {
-    logger.error('Invalid Auth0 webhook signature', { error: error.message });
-    return res.status(401).json({ 
-      success: false, 
-      error: 'Invalid signature' 
+    logger.logSecurity('auth0_webhook_verification_failed', {
+      error: error.message,
+      path: req.path,
+      ip: req.ip,
+      signaturePreview: signature?.substring(0, 20) + '...'
+    });
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid signature'
     });
   }
 };

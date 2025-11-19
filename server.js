@@ -257,6 +257,10 @@ const safeImportRouter = (routePath, routeName) => {
   }
 };
 
+// CSRF Protection Middleware (Origin/Referer validation)
+const { csrfProtection } = require('./middleware/csrfProtection');
+app.use(csrfProtection);
+
 const factRouter = safeImportRouter('./routes/factRoutes', 'Facts');
 if (factRouter) {
   app.use('/api/facts', factRouter);

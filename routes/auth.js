@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { checkJwt } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorMiddleware');
+const { authLimiter, strictLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
 
 // Get current user profile
@@ -40,7 +41,7 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Accept Terms of Service
-router.post('/accept-tos', checkJwt, asyncHandler(async (req, res) => {
+router.post('/accept-tos', authLimiter, checkJwt, asyncHandler(async (req, res) => {
   const user = req.user;
   const { tosVersion, researchConsent = false } = req.body;
   const pool = req.app.locals.pool;
@@ -130,7 +131,7 @@ router.get('/tos-status', checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Update user profile
-router.put('/me', checkJwt, asyncHandler(async (req, res) => {
+router.put('/me', authLimiter, checkJwt, asyncHandler(async (req, res) => {
   const user = req.user;
   const { name, preferences } = req.body;
   const pool = req.app.locals.pool;
@@ -184,7 +185,7 @@ router.put('/me', checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Delete user account
-router.delete('/me', checkJwt, asyncHandler(async (req, res) => {
+router.delete('/me', strictLimiter, checkJwt, asyncHandler(async (req, res) => {
   const user = req.user;
   const pool = req.app.locals.pool;
   

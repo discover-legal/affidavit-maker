@@ -39,8 +39,19 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://*.auth0.com"],
+      // SECURITY: Removed 'unsafe-inline' in production, kept for development compatibility
+      styleSrc: [
+        "'self'",
+        "https://fonts.googleapis.com",
+        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'"] : [])
+      ],
+      // SECURITY: Removed 'unsafe-inline' and 'unsafe-eval' in production
+      scriptSrc: [
+        "'self'",
+        "https://js.stripe.com",
+        "https://*.auth0.com",
+        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'", "'unsafe-eval'"] : [])
+      ],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: [
         "'self'",
@@ -50,12 +61,26 @@ app.use(helmet({
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      frameSrc: ["'self'", "https://js.stripe.com", "https://*.auth0.com"], // Added Auth0 for iframe login
+      frameSrc: ["'self'", "https://js.stripe.com", "https://*.auth0.com"],
       objectSrc: ["'none'"],
-      baseUri: ["'self'"]
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
     },
   },
-  crossOriginEmbedderPolicy: false
+  // Additional security headers
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  frameguard: { action: 'deny' },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
 // CORS configuration
@@ -150,7 +175,49 @@ let pdfService = null; // ✅ NEW
 
 async function initializeServices() {
   try {
-    // Configuration logging
+    // SECURITY: Validate required environment variables
+    const REQUIRED_ENV_VARS = {
+      production: [
+        'DATABASE_URL',
+        'AUTH0_DOMAIN',
+        'AUTH0_ISSUER_BASE_URL',
+        'AUTH0_AUDIENCE',
+        'OPENAI_API_KEY',
+        'STRIPE_SECRET_KEY',
+        'STRIPE_WEBHOOK_SECRET',
+        'AUTH0_WEBHOOK_SECRET'
+      ],
+      development: [
+        'DATABASE_URL',
+        'AUTH0_DOMAIN',
+        'AUTH0_ISSUER_BASE_URL',
+        'AUTH0_AUDIENCE'
+      ]
+    };
+
+    const requiredVars = process.env.NODE_ENV === 'production'
+      ? REQUIRED_ENV_VARS.production
+      : REQUIRED_ENV_VARS.development;
+
+    const missingVars = requiredVars.filter(varName => {
+      const value = process.env[varName];
+      return !value || value.trim() === '';
+    });
+
+    if (missingVars.length > 0) {
+      logger.error('❌ Missing required environment variables:', {
+        missing: missingVars,
+        environment: process.env.NODE_ENV || 'development'
+      });
+      console.error('\n❌ ERROR: Missing required environment variables:');
+      missingVars.forEach(varName => console.error(`   - ${varName}`));
+      console.error('\nPlease set these variables in your .env file or environment.\n');
+      process.exit(1);
+    }
+
+    logger.info('✅ All required environment variables configured');
+
+    // Configuration logging (non-sensitive values only)
     console.log('🔧 Configuration loaded:');
     console.log(`  - Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`  - Port: ${process.env.PORT || 3001}`);

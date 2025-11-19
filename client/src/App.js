@@ -18,8 +18,8 @@ const AUTH0_CONFIG = {
     audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     scope: "openid profile email"
   },
-  cacheLocation: 'memory',
-  useRefreshTokens: false,
+  cacheLocation: 'localstorage',
+  useRefreshTokens: true,
   onRedirectCallback: (appState) => {
     // After Auth0 redirects back, navigate to the page the user was on
     // or default to the dashboard

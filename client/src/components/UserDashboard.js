@@ -1,77 +1,44 @@
 // client/src/components/UserDashboard.js - FIXED VERSION
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
+import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect, isLoading } = useAuth0();
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
+  // Use DocumentContext instead of local state
+  const { documents, isDocumentsLoading, error } = useDocumentState();
+  const { loadDocuments } = useDocumentActions();
+
   const [renamingDocId, setRenamingDocId] = useState(null);
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
-  // Fetch documents
-  const fetchDocuments = useCallback(async () => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE}/api/documents`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          loginWithRedirect();
-          return;
-        }
-        throw new Error(`Failed to fetch documents: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setDocuments(data.documents || []);
-    } catch (err) {
-      if (err.error === 'login_required') loginWithRedirect();
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [getAccessTokenSilently, isAuthenticated, loginWithRedirect]);
-
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      fetchDocuments();
-    }
-  }, [isAuthenticated, isLoading, fetchDocuments]);
-
   // ✅ FIXED: Delete handler now properly uses the hook
   const handleDeleteDocument = async (docId) => {
     if (!window.confirm('Are you sure you want to permanently delete this affidavit?')) return;
-    
+
     console.log('🗑️ Attempting to delete document:', docId);
-    
+
     try {
       // ✅ This is correct - calling the hook at component level, not inside nested function
       const token = await getAccessTokenSilently();
-      
+
       const response = await fetch(`${API_BASE}/api/documents/${docId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         console.log('✅ Document deleted successfully:', docId);
-        setDocuments(prev => prev.filter(doc => doc.id !== docId));
+        // Reload documents from context
+        loadDocuments();
       } else {
         const errData = await response.json();
         console.error('❌ Delete failed:', errData);
@@ -108,7 +75,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         body: JSON.stringify({ newName: newName.trim() })
       });
       if (response.ok) {
-        await fetchDocuments();
+        await loadDocuments();
         cancelRename();
       } else {
         const errData = await response.json();
@@ -132,7 +99,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     navigate('/');
   };
 
-  if (loading || isLoading) {
+  if (isDocumentsLoading || isLoading) {
     return (
       <>
         <Header
@@ -156,7 +123,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         />
         <div className="text-center p-10">
           <p className="text-red-600 mb-4">Error: {error}</p>
-          <button onClick={fetchDocuments} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+          <button onClick={loadDocuments} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
             Retry
           </button>
         </div>

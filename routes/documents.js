@@ -157,15 +157,19 @@ router.post('/preview',
 /**
  * ✅ NEW: Generate and download PDF
  */
-router.post('/generate', 
+router.post('/generate',
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
-    const { affidavitData, documentId, skipPayment } = req.body;
+    const { affidavitData, documentId } = req.body;
     const userId = req.user.id;
     const pool = req.app.locals.pool;
     const pdfService = req.app.locals.pdfService;
     const templateManager = req.app.locals.templateManager;
+
+    // SECURITY: Only allow payment bypass in development environment
+    // Never trust client-provided payment bypass flags
+    const skipPayment = process.env.NODE_ENV === 'development';
 
     // Validate inputs
     if (!affidavitData || typeof affidavitData !== 'object') {
@@ -584,7 +588,48 @@ router.get('/',
 
     try {
       const { page = 1, limit = 10, status, state } = req.query;
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // SECURITY: Validate query parameters
+      const VALID_STATUSES = ['draft', 'completed', 'archived', 'pending', 'processing'];
+      const VALID_STATES = ['TX', 'UT', 'AZ', 'CA', 'NY', 'FL', 'IL', 'PA', 'OH', 'GA',
+                            'NC', 'MI', 'NJ', 'VA', 'WA', 'MA', 'IN', 'MO', 'TN', 'WI',
+                            'MD', 'CO', 'MN', 'SC', 'AL', 'LA', 'KY', 'OR', 'OK', 'CT',
+                            'IA', 'MS', 'AR', 'KS', 'NV', 'NM', 'NE', 'WV', 'ID', 'HI',
+                            'NH', 'ME', 'RI', 'MT', 'DE', 'SD', 'ND', 'AK', 'VT', 'WY', 'DC'];
+
+      // Validate page and limit
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+
+      if (isNaN(pageNum) || pageNum < 1 || pageNum > 10000) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid page parameter (must be between 1 and 10000)'
+        });
+      }
+
+      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid limit parameter (must be between 1 and 100)'
+        });
+      }
+
+      if (status && !VALID_STATUSES.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid status parameter. Valid values: ${VALID_STATUSES.join(', ')}`
+        });
+      }
+
+      if (state && !VALID_STATES.includes(state)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid state parameter. Must be a valid US state code.'
+        });
+      }
+
+      const offset = (pageNum - 1) * limitNum;
 
       let query = `
         SELECT id, title, status, template_state, document_type,
@@ -608,7 +653,7 @@ router.get('/',
       }
 
       query += ` ORDER BY updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      params.push(parseInt(limit), offset);
+      params.push(limitNum, offset);
 
       const result = await pool.query(query, params);
 

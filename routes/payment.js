@@ -298,7 +298,7 @@ router.get('/history',
  */
 router.post('/webhook',
   strictLimiter,
-  express.raw({ type: 'application/json' }),
+  // Note: rawBody is captured by verify middleware in server.js for all webhook routes
   asyncHandler(async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -311,12 +311,21 @@ router.post('/webhook',
     let event;
 
     try {
+      // SECURITY: Use rawBody for signature verification
+      // The raw body is captured by the verify middleware in server.js
+      const webhookBody = req.rawBody || req.body;
+
+      if (!req.rawBody) {
+        logger.warn('Stripe webhook: rawBody not available, using parsed body (may fail verification)');
+      }
+
       // Verify webhook signature
-      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      event = stripe.webhooks.constructEvent(webhookBody, sig, endpointSecret);
     } catch (error) {
       logger.logSecurity('stripe_webhook_verification_failed', {
         error: error.message,
-        signature: sig?.substring(0, 20) + '...'
+        signature: sig?.substring(0, 20) + '...',
+        hasRawBody: !!req.rawBody
       });
       return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
     }

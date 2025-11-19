@@ -102,19 +102,70 @@ logger.stream = {
  * Enhanced logging methods with consistent structure
  */
 
+// List of sensitive field patterns to redact
+const SENSITIVE_PATTERNS = [
+  'password', 'passwd', 'pwd',
+  'secret', 'token', 'auth', 'bearer',
+  'api_key', 'apikey', 'api-key',
+  'private_key', 'privatekey', 'private-key',
+  'access_token', 'refresh_token',
+  'session', 'cookie',
+  'credit_card', 'creditcard', 'card_number',
+  'ssn', 'social_security',
+  'credential', 'authorization'
+];
+
+/**
+ * Sanitize an object by redacting sensitive fields
+ * @param {Object} obj - Object to sanitize
+ * @param {number} depth - Current recursion depth
+ * @returns {Object} Sanitized object
+ */
+const sanitizeObject = (obj, depth = 0) => {
+  // Prevent infinite recursion
+  if (depth > 5 || obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObject(item, depth + 1));
+  }
+
+  const sanitized = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const lowerKey = key.toLowerCase();
+
+    // Check if key matches sensitive pattern
+    const isSensitive = SENSITIVE_PATTERNS.some(pattern =>
+      lowerKey.includes(pattern)
+    );
+
+    if (isSensitive) {
+      sanitized[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeObject(value, depth + 1);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
+
 // Log errors with context
 logger.logError = (error, context = {}, requestId = null) => {
   const errorData = {
     message: error.message,
-    stack: error.stack,
+    // Only include stack traces in development
+    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     name: error.name,
     code: error.code,
     statusCode: error.statusCode,
-    ...context
+    // Sanitize context to remove sensitive data
+    ...sanitizeObject(context)
   };
-  
+
   if (requestId) errorData.requestId = requestId;
-  
+
   logger.error('Error occurred', errorData);
 };
 
@@ -147,9 +198,10 @@ logger.logDatabase = (operation, table, duration, params = {}) => {
     operation,
     table,
     duration: `${duration}ms`,
-    ...params
+    // Sanitize params to prevent logging sensitive query data
+    ...sanitizeObject(params)
   };
-  
+
   if (duration > 1000) {
     logger.warn('Slow database query', logData);
   } else {
@@ -190,9 +242,10 @@ logger.logSecurity = (event, details = {}, level = 'warn') => {
     type: 'security_event',
     event,
     timestamp: new Date().toISOString(),
-    ...details
+    // Sanitize details to prevent logging sensitive data
+    ...sanitizeObject(details)
   };
-  
+
   logger[level]('Security event', logData);
 };
 

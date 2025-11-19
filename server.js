@@ -43,14 +43,14 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://*.auth0.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: [
-        "'self'", 
-        "https://api.openai.com", 
-        "https://api.stripe.com", 
+        "'self'",
+        "https://api.openai.com",
+        "https://api.stripe.com",
         "https://*.auth0.com",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      frameSrc: ["'self'", "https://js.stripe.com"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://*.auth0.com"], // Added Auth0 for iframe login
       objectSrc: ["'none'"],
       baseUri: ["'self'"]
     },

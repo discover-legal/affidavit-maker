@@ -56,15 +56,15 @@ async function getUserFromAuth(pool, authId, decoded) {
       // Create new user
       logger.info('Creating new user:', { email: decoded.email, authId });
       result = await client.query(
-        `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login_at) 
-         VALUES ($1, $2, $3, NOW(), NOW(), NOW()) 
+        `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
+         VALUES ($1, $2, $3, NOW(), NOW(), NOW())
          RETURNING *`,
         [authId, decoded.email || '', decoded.name || '']
       );
     } else if (result.rows.length > 0) {
       // Update last login
       await client.query(
-        'UPDATE users SET last_login_at = NOW() WHERE id = $1',
+        'UPDATE users SET last_login = NOW() WHERE id = $1',
         [result.rows[0].id]
       );
     }

@@ -40,10 +40,11 @@ const TOSGuard = ({ children }) => {
 
       console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
 
-      // Check if we've already verified TOS acceptance this session
+      // Check if we've already verified TOS acceptance (try localStorage first, then sessionStorage)
+      const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
       const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
-      if (tosAcceptedThisSession === 'true') {
-        console.log('[TOSGuard] TOS already accepted this session (cached)');
+      if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
+        console.log('[TOSGuard] TOS already accepted (cached)');
         setIsCheckingTos(false);
         return;
       }
@@ -59,6 +60,8 @@ const TOSGuard = ({ children }) => {
           // Only cache if user has actually accepted TOS
           if (data.tosAccepted) {
             console.log('[TOSGuard] User has accepted TOS, caching acceptance');
+            // Cache in both localStorage (persistent) and sessionStorage (backward compat)
+            localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
             sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
           } else {
             // Show TOS modal if user hasn't accepted
@@ -110,10 +113,11 @@ const TOSGuard = ({ children }) => {
           tosVersionAccepted: tosVersion,
           tosAcceptedAt: new Date().toISOString(),
         });
-        // Cache the acceptance in sessionStorage
+        // Cache the acceptance in both localStorage (persistent) and sessionStorage
         if (user?.sub) {
+          localStorage.setItem(`tos_accepted_${user.sub}`, 'true');
           sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
-          console.log('[TOSGuard] TOS acceptance cached in sessionStorage');
+          console.log('[TOSGuard] TOS acceptance cached in localStorage and sessionStorage');
         }
         setShowTosModal(false);
         console.log('[TOSGuard] TOS modal closed, user can now access application');

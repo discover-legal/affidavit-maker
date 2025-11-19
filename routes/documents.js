@@ -385,8 +385,8 @@ router.post('/generate',
             `UPDATE documents
              SET status = 'completed',
                  updated_at = CURRENT_TIMESTAMP,
-                 processing_metadata = jsonb_set(
-                   COALESCE(processing_metadata, '{}'::jsonb),
+                 generation_metadata = jsonb_set(
+                   COALESCE(generation_metadata, '{}'::jsonb),
                    '{pdfPages}',
                    $1::text::jsonb
                  )
@@ -490,21 +490,19 @@ router.post('/save',
       if (affidavitData.documentId) {
         // Update existing document
         const result = await pool.query(
-          `UPDATE documents 
+          `UPDATE documents
            SET content = $1,
                title = $2,
                template_state = $3,
-               validation_result = $4,
-               fact_categories = $5,
+               validation_results = $4,
                updated_at = CURRENT_TIMESTAMP
-           WHERE id = $6 AND user_id = $7
+           WHERE id = $5 AND user_id = $6
            RETURNING *`,
           [
             JSON.stringify(contentToSave),
             documentTitle,
             affidavitData.state || null,
             validation ? JSON.stringify(validation) : null,
-            categories ? JSON.stringify(categories) : null,
             affidavitData.documentId,
             userId
           ]
@@ -524,8 +522,8 @@ router.post('/save',
         const result = await pool.query(
           `INSERT INTO documents (
             user_id, title, content, template_state, document_type,
-            status, validation_result, fact_categories, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            status, validation_results, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           RETURNING *`,
           [
             userId,
@@ -534,8 +532,7 @@ router.post('/save',
             affidavitData.state || null,
             affidavitData.documentType || 'general',
             'draft',
-            validation ? JSON.stringify(validation) : null,
-            categories ? JSON.stringify(categories) : null
+            validation ? JSON.stringify(validation) : null
           ]
         );
 
@@ -633,7 +630,7 @@ router.get('/',
 
       let query = `
         SELECT id, title, status, template_state, document_type,
-               processing_metadata, content, created_at, updated_at
+               generation_metadata, content, created_at, updated_at
         FROM documents
         WHERE user_id = $1
       `;
@@ -768,11 +765,8 @@ router.get('/:id',
           status: doc.status,
           documentType: doc.document_type,
           affidavitData: content,
-          validation: doc.validation_result || {},
-          categories: doc.fact_categories || {},
-          metadata: doc.processing_metadata || {},
-          previewCache: doc.preview_data,
-          lastPreviewGenerated: doc.last_preview_generated,
+          validation: doc.validation_results || {},
+          metadata: doc.generation_metadata || {},
           payment_status: doc.payment_status || 'unpaid',
           createdAt: doc.created_at,
           updatedAt: doc.updated_at

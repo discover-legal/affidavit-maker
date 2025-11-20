@@ -773,8 +773,9 @@ export const DocumentProvider = ({ children }) => {
     if (factsUpdated) {
       console.log('💾 Facts updated - triggering immediate auto-save');
       // Save immediately when facts change
+      // CRITICAL: Pass the updated data to saveDocument so it saves the NEW facts, not old state
       if (isAuthenticated && stateRef.current.currentDocument.documentId) {
-        saveDocument().catch(error => {
+        saveDocument(data).catch(error => {
           console.error('Immediate auto-save failed:', error);
         });
       }

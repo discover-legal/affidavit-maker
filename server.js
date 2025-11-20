@@ -59,6 +59,8 @@ app.use(helmet({
         "https://api.stripe.com",
         "https://*.auth0.com",
         "https://affidavit-maker.onrender.com",
+        "https://discover.legal",
+        "https://www.discover.legal",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],

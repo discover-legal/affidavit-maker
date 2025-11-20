@@ -9,7 +9,7 @@ import { useDocumentState, useDocumentActions } from '../contexts/DocumentContex
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
-  const { isAuthenticated, getAccessTokenSilently, loginWithRedirect, isLoading } = useAuth0();
+  const { getAccessTokenSilently, isLoading } = useAuth0();
   const navigate = useNavigate();
 
   // Use DocumentContext instead of local state
@@ -137,10 +137,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         currentView="dashboard"
         onBackToDashboard={handleBackToDashboard}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-        <p className="text-gray-600">Create new affidavits or continue working on your drafts.</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
+        <p className="text-sm sm:text-base text-gray-600">Create new affidavits or continue working on your drafts.</p>
       </div>
 
       {/* ✅ RESTORED: Three Feature Cards */}
@@ -273,24 +273,26 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => startRename(doc)}
-                      className="p-2 text-gray-500 hover:text-blue-600"
+                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Rename"
+                      aria-label="Rename document"
                     >
                       <Edit className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
-                      className="p-2 text-gray-500 hover:text-red-600"
+                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete"
+                      aria-label="Delete document"
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleContinueDocument(doc)}
-                      className="w-28 px-4 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 font-semibold"
+                      className="px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors min-w-[80px] sm:min-w-[100px]"
                     >
                       {doc.status === 'completed' ? 'View' : 'Continue'}
                     </button>

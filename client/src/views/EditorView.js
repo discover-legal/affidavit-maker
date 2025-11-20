@@ -159,8 +159,6 @@ const EditorView = ({ isNew = false, onBack }) => {
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
     const hasDocumentIdChanged = lastDocumentId.current !== documentId;
-    const authStateChanged = lastAuthState.current !== isAuthenticated;
-    const becameAuthenticated = !lastAuthState.current && isAuthenticated;
 
     // Update refs
     lastAuthState.current = isAuthenticated;
@@ -365,39 +363,39 @@ const EditorView = ({ isNew = false, onBack }) => {
   };
   // Mobile panel navigation
   const renderMobileNavigation = () => (
-    <div className="flex border-b bg-white">
+    <div className="flex border-b bg-white sticky top-0 z-10 shadow-sm">
       <button
         onClick={() => setActivePanel('chat')}
-        className={`flex-1 py-4 px-1 border-b-2 font-medium text-sm ${
+        className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'chat'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-600 hover:text-blue-600'
+            ? 'border-blue-600 text-blue-600 bg-blue-50'
+            : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-gray-50'
         }`}
       >
-        <MessageSquare className="h-4 w-4 mx-auto mb-1" />
-        Chat
+        <MessageSquare className="h-5 w-5 mx-auto mb-1" />
+        <span className="block">Chat</span>
       </button>
       <button
         onClick={() => setActivePanel('preview')}
-        className={`flex-1 py-4 px-1 border-b-2 font-medium text-sm ${
+        className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'preview'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-600 hover:text-blue-600'
+            ? 'border-blue-600 text-blue-600 bg-blue-50'
+            : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-gray-50'
         }`}
       >
-        <Eye className="h-4 w-4 mx-auto mb-1" />
-        Preview
+        <Eye className="h-5 w-5 mx-auto mb-1" />
+        <span className="block">Preview</span>
       </button>
       <button
         onClick={() => setActivePanel('validation')}
-        className={`flex-1 py-4 px-1 border-b-2 font-medium text-sm ${
+        className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'validation'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-600 hover:text-blue-600'
+            ? 'border-blue-600 text-blue-600 bg-blue-50'
+            : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-gray-50'
         }`}
       >
-        <Settings className="h-4 w-4 mx-auto mb-1" />
-        Validate
+        <Settings className="h-5 w-5 mx-auto mb-1" />
+        <span className="block">Validate</span>
       </button>
     </div>
   );
@@ -476,79 +474,79 @@ const EditorView = ({ isNew = false, onBack }) => {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
+      <header className="bg-white shadow-sm border-b px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <button
               onClick={onBack}
-              className="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+              className="mr-2 sm:mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex-shrink-0"
               aria-label="Back to dashboard"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="flex items-center">
-              <Gavel className="h-6 w-6 text-blue-600 mr-2" />
-              <h1 className="text-xl font-semibold">
+            <div className="flex items-center min-w-0">
+              <Gavel className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2 flex-shrink-0" />
+              <h1 className="text-base sm:text-xl font-semibold truncate">
                 {isNew ? 'New Affidavit' : 'Edit Affidavit'}
               </h1>
             </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Save status */}
-            <div className="text-sm text-gray-600">
+
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            {/* Save status - hidden on very small screens */}
+            <div className="hidden sm:block text-sm text-gray-600">
               {getSaveStatusText()}
             </div>
-            
+
             {/* Action buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={handleSaveProgress}
                 disabled={isSaving || justSaved || !isAuthenticated}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Save className="h-4 w-4" />
-                {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save'}
+                <span className="hidden sm:inline">{isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save'}</span>
               </button>
-              
+
               <button
                 onClick={handleDownload}
                 disabled={!currentDocument.documentId || isCheckingPayment}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Download className="h-4 w-4" />
-                {isCheckingPayment ? 'Checking...' : 'Download PDF'}
+                <span className="hidden sm:inline">{isCheckingPayment ? 'Checking...' : 'Download PDF'}</span>
               </button>
             </div>
           </div>
         </div>
         
         {/* Document info bar */}
-        <div className="mt-3 flex items-center gap-6 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <span>Document:</span>
-            <span className="font-medium">
-              {currentDocument.affiantName || 'Unnamed'} - {currentDocument.state || 'No state'}
+        <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="hidden sm:inline">Document:</span>
+            <span className="font-medium truncate">
+              {currentDocument.affiantName || 'Unnamed'}{currentDocument.state && ` - ${currentDocument.state}`}
             </span>
           </div>
-          
+
           {currentDocument.facts?.length > 0 && (
             <div className="flex items-center gap-2">
               <span>Facts:</span>
               <span className="font-medium">{currentDocument.facts.length}</span>
             </div>
           )}
-          
+
           {preview?.metadata?.estimatedPages && (
             <div className="flex items-center gap-2">
-              <span>Est. Pages:</span>
+              <span>Pages:</span>
               <span className="font-medium">{preview.metadata.estimatedPages}</span>
             </div>
           )}
-          
+
           {/* Current document ID (for debugging) */}
           {!isMobileView && documentId && (
-            <div className="text-xs text-gray-400 ml-auto">
+            <div className="text-xs text-gray-400 ml-auto hidden lg:block">
               Doc ID: {documentId} | Layout: {Math.round(chatWidth)}% | {Math.round(previewWidth)}% | {Math.round(validationWidth)}%
             </div>
           )}

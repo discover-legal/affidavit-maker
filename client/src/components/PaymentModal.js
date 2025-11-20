@@ -5,6 +5,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
 
+// API Base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 // Load Stripe (publishable key from environment)
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
@@ -106,7 +109,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
 
         const token = await getAccessTokenSilently();
 
-        const response = await fetch('/api/payment/create-intent', {
+        const response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -146,11 +149,13 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         colorPrimary: '#2563eb',
       },
     },
+    // Disable "save payment method" checkbox to reduce modal height
+    paymentMethodSave: 'disabled',
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Complete Payment</h3>
           <button onClick={onClose} disabled={loading}>

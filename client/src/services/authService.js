@@ -2,7 +2,10 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useCallback } from 'react';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Use relative URLs in production (empty string), localhost in development
+const API_BASE = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
 
 // Custom hook for authenticated API calls
 export const useAuthenticatedApi = () => {

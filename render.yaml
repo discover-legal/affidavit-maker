@@ -88,9 +88,9 @@ services:
       - key: FRONTEND_URL
         value: https://affidavit-maker.onrender.com # UPDATE THIS
 
-      # API URL for React app - REQUIRED for build
+      # API URL for React app - Empty = use relative URLs (works with any domain)
       - key: REACT_APP_API_URL
-        value: https://affidavit-maker.onrender.com
+        value: ""
 
       # Security
       - key: SESSION_SECRET

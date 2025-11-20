@@ -3,7 +3,10 @@ import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Download, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Use relative URLs in production (empty string), localhost in development
+const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
 
 const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" }) => {
   const [generateStatus, setGenerateStatus] = useState('idle');

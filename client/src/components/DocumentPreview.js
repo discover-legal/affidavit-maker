@@ -32,10 +32,27 @@ const DocumentPreview = () => {
   const { generatePreview } = useDocumentActions();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isMobileView, setIsMobileView] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(80);
   const containerRef = useRef(null);
   const pageRefs = useRef([]);
   const measureCanvasRef = useRef(null);
+
+  // Detect mobile and adjust zoom accordingly
+  useEffect(() => {
+    const checkMobileView = () => {
+      const isMobile = window.innerWidth < 768;
+      setIsMobileView(isMobile);
+      // Set appropriate zoom for mobile devices
+      if (isMobile && zoomLevel > 60) {
+        setZoomLevel(50); // Smaller zoom to fit mobile screens
+      }
+    };
+
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Create a canvas for accurate text measurement
   const getTextHeight = (text, fontSize, fontFamily, maxWidth, isPreFormatted = false) => {
@@ -887,7 +904,7 @@ const DocumentPreview = () => {
           ref={containerRef}
           className="flex-1 overflow-auto bg-gray-200"
           style={{
-            padding: '2rem'
+            padding: isMobileView ? '0.5rem' : '2rem'
           }}
         >
           <div
@@ -913,7 +930,7 @@ const DocumentPreview = () => {
                   data-page-number={page.pageNumber}
                   className="page-container"
                   style={{
-                    marginBottom: pageIndex < pages.length - 1 ? '2rem' : '0'
+                    marginBottom: pageIndex < pages.length - 1 ? (isMobileView ? '0.5rem' : '2rem') : '0'
                   }}
                 >
                   <div className="page-content">

@@ -62,7 +62,8 @@ const ActionTypes = {
   RESET_DOCUMENT: 'RESET_DOCUMENT',
   SELECT_DOCUMENT: 'SELECT_DOCUMENT',
   MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
-  SET_JUST_SAVED: 'SET_JUST_SAVED'
+  SET_JUST_SAVED: 'SET_JUST_SAVED',
+  REORDER_FACTS: 'REORDER_FACTS'
 };
 
 // Reducer
@@ -230,6 +231,22 @@ const documentReducer = (state, action) => {
         currentDocument: {
           ...state.currentDocument,
           facts: updatedFacts
+        },
+        hasUnsavedChanges: true
+      };
+
+    case ActionTypes.REORDER_FACTS:
+      // Reorder facts array - payload: { fromIndex, toIndex }
+      const { fromIndex, toIndex } = action.payload;
+      const facts = [...state.currentDocument.facts];
+      const [movedFact] = facts.splice(fromIndex, 1);
+      facts.splice(toIndex, 0, movedFact);
+
+      return {
+        ...state,
+        currentDocument: {
+          ...state.currentDocument,
+          facts
         },
         hasUnsavedChanges: true
       };
@@ -828,6 +845,24 @@ export const DocumentProvider = ({ children }) => {
     scheduleAutoSave();
   }, [scheduleAutoSave]);
 
+  // Reorder facts
+  const reorderFacts = useCallback((fromIndex, toIndex) => {
+    console.log('🔄 Reordering facts:', { fromIndex, toIndex });
+
+    dispatch({
+      type: ActionTypes.REORDER_FACTS,
+      payload: { fromIndex, toIndex }
+    });
+
+    // Trigger preview regeneration and auto-save
+    const timer = setTimeout(() => {
+      generatePreview();
+      scheduleAutoSave();
+    }, 500);
+
+    setPreviewDebounceTimer(timer);
+  }, [generatePreview, scheduleAutoSave]);
+
   // Load documents on mount
   useEffect(() => {
     if (isAuthenticated) {
@@ -862,7 +897,8 @@ export const DocumentProvider = ({ children }) => {
           updateDocumentDataWithoutPreview,
           initializeNewDocument,
           renderFormattedPreview,
-          mergeProfessionalRewrites
+          mergeProfessionalRewrites,
+          reorderFacts
         }}
       >
         {children}

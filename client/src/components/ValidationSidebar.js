@@ -14,7 +14,9 @@ import {
   GripVertical,  // ✅ Drag handle icon
   FileText,      // Evidence icon
   Upload,        // Upload icon
-  FilePlus       // Add evidence button
+  FilePlus,      // Add evidence button
+  ChevronUp,     // Move up button
+  ChevronDown    // Move down button
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
@@ -47,10 +49,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // ✅ Draggable Fact Card Component
-const DraggableFactCard = ({ 
-  fact, 
-  index, 
-  isEditing, 
+const DraggableFactCard = ({
+  fact,
+  index,
+  totalFacts,
+  isEditing,
   isGenerating,
   editedFactContent,
   onEdit,
@@ -59,7 +62,9 @@ const DraggableFactCard = ({
   onDelete,
   onRequestRewrite,
   onApplyRewrite,
-  onContentChange
+  onContentChange,
+  onMoveUp,
+  onMoveDown
 }) => {
   const {
     attributes,
@@ -155,6 +160,24 @@ const DraggableFactCard = ({
         {/* Action Buttons */}
         {!isEditing && (
           <div className="flex items-center gap-1">
+            {/* Move Up/Down Buttons - Mobile-friendly reordering */}
+            <button
+              onClick={() => onMoveUp(index)}
+              disabled={index === 0}
+              className="p-1 text-gray-500 hover:text-blue-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Move up"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onMoveDown(index)}
+              disabled={index === totalFacts - 1}
+              className="p-1 text-gray-500 hover:text-blue-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Move down"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+
             {/* Sparkle Icon */}
             {!isGenerating && (
               <button
@@ -272,6 +295,7 @@ const DraggableFactCard = ({
 const DraggableEvidenceCard = ({
   evidence,
   index,
+  totalFacts,
   isEditing,
   editedDescription,
   onEdit,
@@ -279,7 +303,9 @@ const DraggableEvidenceCard = ({
   onCancel,
   onDelete,
   onUpload,
-  onDescriptionChange
+  onDescriptionChange,
+  onMoveUp,
+  onMoveDown
 }) => {
   const {
     attributes,
@@ -330,6 +356,24 @@ const DraggableEvidenceCard = ({
         {/* Action Buttons */}
         {!isEditing && (
           <div className="flex items-center gap-1">
+            {/* Move Up/Down Buttons - Mobile-friendly reordering */}
+            <button
+              onClick={() => onMoveUp(index)}
+              disabled={index === 0}
+              className="p-1 text-blue-600 hover:text-blue-800 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Move up"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onMoveDown(index)}
+              disabled={index === totalFacts - 1}
+              className="p-1 text-blue-600 hover:text-blue-800 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Move down"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+
             {!hasFile && (
               <button
                 onClick={() => onUpload(evidence)}
@@ -495,6 +539,37 @@ const ValidationSidebar = () => {
       } catch (error) {
         console.error('Failed to save reordered facts:', error);
       }
+    }
+  };
+
+  // ✅ Handle move up/down with arrow buttons (mobile-friendly)
+  const handleMoveUp = async (index) => {
+    if (index === 0) return; // Already at top
+
+    let reorderedFacts = arrayMove(currentDocument.facts, index, index - 1);
+    reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: reorderedFacts });
+
+    try {
+      await saveDocument();
+    } catch (error) {
+      console.error('Failed to save reordered facts:', error);
+    }
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === currentDocument.facts.length - 1) return; // Already at bottom
+
+    let reorderedFacts = arrayMove(currentDocument.facts, index, index + 1);
+    reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
+
+    updateDocumentData({ facts: reorderedFacts });
+
+    try {
+      await saveDocument();
+    } catch (error) {
+      console.error('Failed to save reordered facts:', error);
     }
   };
 
@@ -913,6 +988,7 @@ const ValidationSidebar = () => {
                       key={item.id || `evidence-${index}`}
                       evidence={item}
                       index={index}
+                      totalFacts={currentDocument.facts.length}
                       isEditing={editingEvidenceIndex === index}
                       editedDescription={editedEvidenceDescription}
                       onEdit={startEditingEvidence}
@@ -921,6 +997,8 @@ const ValidationSidebar = () => {
                       onDelete={deleteEvidence}
                       onUpload={openEvidenceUpload}
                       onDescriptionChange={setEditedEvidenceDescription}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
                     />
                   );
                 } else {
@@ -929,6 +1007,7 @@ const ValidationSidebar = () => {
                       key={item.id || `fact-${index}`}
                       fact={item}
                       index={index}
+                      totalFacts={currentDocument.facts.length}
                       isEditing={editingFactIndex === index}
                       isGenerating={generatingRewrite.has(index)}
                       editedFactContent={editedFactContent}
@@ -939,6 +1018,8 @@ const ValidationSidebar = () => {
                       onRequestRewrite={requestProfessionalRewrite}
                       onApplyRewrite={applyProfessionalRewrite}
                       onContentChange={setEditedFactContent}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
                     />
                   );
                 }

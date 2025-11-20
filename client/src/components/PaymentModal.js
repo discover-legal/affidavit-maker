@@ -5,6 +5,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
 
+// API Base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 // Load Stripe (publishable key from environment)
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
@@ -106,7 +109,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
 
         const token = await getAccessTokenSilently();
 
-        const response = await fetch('/api/payment/create-intent', {
+        const response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

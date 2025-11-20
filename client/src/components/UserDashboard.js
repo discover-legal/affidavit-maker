@@ -6,7 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Use relative URLs in production (empty string), localhost in development
+const API_BASE = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const { getAccessTokenSilently, isLoading } = useAuth0();

@@ -9,7 +9,10 @@ import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 import PaymentModal from '../components/PaymentModal';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Use relative URLs in production (empty string), localhost in development
+const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
 
 // Resizer component for adjusting pane widths
 const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview' }) => {

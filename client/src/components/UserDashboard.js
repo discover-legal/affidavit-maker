@@ -9,7 +9,7 @@ import { useDocumentState, useDocumentActions } from '../contexts/DocumentContex
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
-  const { isAuthenticated, getAccessTokenSilently, loginWithRedirect, isLoading } = useAuth0();
+  const { getAccessTokenSilently, isLoading } = useAuth0();
   const navigate = useNavigate();
 
   // Use DocumentContext instead of local state

@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Custom hook for authenticated API calls
 export const useAuthenticatedApi = () => {
-  const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
 
   // Memoize the request function with current auth state
   const makeAuthenticatedRequest = useCallback(async (url, options = {}) => {

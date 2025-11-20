@@ -159,8 +159,6 @@ const EditorView = ({ isNew = false, onBack }) => {
   // ✅ FIXED: Properly handle document loading and switching
   useEffect(() => {
     const hasDocumentIdChanged = lastDocumentId.current !== documentId;
-    const authStateChanged = lastAuthState.current !== isAuthenticated;
-    const becameAuthenticated = !lastAuthState.current && isAuthenticated;
 
     // Update refs
     lastAuthState.current = isAuthenticated;

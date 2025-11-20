@@ -445,15 +445,21 @@ const EditorView = ({ isNew = false, onBack }) => {
     </div>
   );
 
-  // Mobile layout
+  // Mobile layout - Keep all components mounted to preserve state
   const renderMobileLayout = () => (
     <div className="flex-1 flex flex-col min-h-0">
       {renderMobileNavigation()}
-      
+
       <div className="flex-1 min-h-0 overflow-hidden">
-        {activePanel === 'chat' && <ChatInterface />}
-        {activePanel === 'preview' && <DocumentPreview />}
-        {activePanel === 'validation' && <ValidationSidebar />}
+        <div className={`h-full ${activePanel === 'chat' ? 'block' : 'hidden'}`}>
+          <ChatInterface />
+        </div>
+        <div className={`h-full ${activePanel === 'preview' ? 'block' : 'hidden'}`}>
+          <DocumentPreview />
+        </div>
+        <div className={`h-full ${activePanel === 'validation' ? 'block' : 'hidden'}`}>
+          <ValidationSidebar />
+        </div>
       </div>
     </div>
   );

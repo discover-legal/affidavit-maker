@@ -51,9 +51,18 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        <PaymentElement />
+    <form onSubmit={handleSubmit} className="flex flex-col">
+      <div className="mb-6">
+        <PaymentElement
+          options={{
+            layout: {
+              type: 'accordion',
+              defaultCollapsed: false,
+              radios: false,
+              spacedAccordionItems: false,
+            }
+          }}
+        />
       </div>
 
       {error && (
@@ -63,19 +72,19 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={processing}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-medium"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+          className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center font-medium"
         >
           {processing ? (
             <>
@@ -147,62 +156,75 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
       theme: 'stripe',
       variables: {
         colorPrimary: '#2563eb',
+        spacingUnit: '4px',
+        borderRadius: '6px',
       },
     },
     // Disable "save payment method" checkbox to reduce modal height
     paymentMethodSave: 'disabled',
+    // Optimize layout for mobile
+    layout: {
+      type: 'accordion',
+      defaultCollapsed: false,
+      radios: false,
+      spacedAccordionItems: false,
+    },
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full my-auto flex flex-col max-h-[85vh]">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-4 sm:p-6 pb-3 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold">Complete Payment</h3>
           <button onClick={onClose} disabled={loading}>
             <X className="h-6 w-6 text-gray-400 hover:text-gray-600" />
           </button>
         </div>
 
-        <div className="mb-6">
-          <div className="flex items-center justify-between py-2">
-            <span>Professional Affidavit</span>
-            <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
-          </div>
-          <div className="border-t pt-2">
-            <div className="flex items-center justify-between font-semibold text-lg">
-              <span>Total</span>
-              <span>${(amount / 100).toFixed(2)}</span>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4">
+          <div className="mb-6">
+            <div className="flex items-center justify-between py-2">
+              <span>Professional Affidavit</span>
+              <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2">
+              <div className="flex items-center justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>${(amount / 100).toFixed(2)}</span>
+              </div>
             </div>
           </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-800">
+                <p className="font-semibold">Payment Error</p>
+                <p>{error}</p>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && clientSecret && (
+            <Elements stripe={stripePromise} options={options}>
+              <PaymentForm
+                amount={amount}
+                onSuccess={onPaymentSuccess}
+                onCancel={onClose}
+                documentId={documentId}
+                documentType={documentType}
+              />
+            </Elements>
+          )}
         </div>
-
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800">
-              <p className="font-semibold">Payment Error</p>
-              <p>{error}</p>
-            </div>
-          </div>
-        )}
-
-        {!loading && !error && clientSecret && (
-          <Elements stripe={stripePromise} options={options}>
-            <PaymentForm
-              amount={amount}
-              onSuccess={onPaymentSuccess}
-              onCancel={onClose}
-              documentId={documentId}
-              documentType={documentType}
-            />
-          </Elements>
-        )}
       </div>
     </div>
   );

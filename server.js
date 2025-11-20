@@ -84,18 +84,56 @@ app.use(helmet({
 }));
 
 // CORS configuration
+// Helper to normalize origin URL (remove trailing slash)
+const normalizeOrigin = (origin) => {
+  if (!origin) return null;
+  return origin.replace(/\/$/, '');
+};
+
+// Build allowed origins list
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    const origins = [];
+
+    // Add FRONTEND_URL if set (normalized)
+    if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
+      origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
+    }
+
+    // Always add discover.legal domains for backward compatibility
+    origins.push('https://discover.legal', 'https://www.discover.legal');
+
+    // Remove duplicates
+    const uniqueOrigins = [...new Set(origins)];
+
+    logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
+    return uniqueOrigins;
+  } else {
+    return ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+  }
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? [
-        process.env.FRONTEND_URL || 'https://discover.legal',
-        'https://discover.legal',
-        'https://www.discover.legal'
-      ]
-    : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000'
-      ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS blocked origin', {
+        origin,
+        normalizedOrigin,
+        allowedOrigins,
+        nodeEnv: process.env.NODE_ENV
+      });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -303,6 +341,21 @@ app.get('/health', (req, res) => {
       stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Connected',
       openai: openAIService ? 'OK' : 'Not Initialized'
     }
+  });
+});
+
+// CORS/CSRF diagnostic endpoint (helps debug domain issues)
+app.get('/api/debug/cors', (req, res) => {
+  res.json({
+    success: true,
+    config: {
+      nodeEnv: process.env.NODE_ENV || 'development',
+      frontendUrl: process.env.FRONTEND_URL || '(not set)',
+      allowedOrigins,
+      requestOrigin: req.headers.origin || '(none)',
+      requestReferer: req.headers.referer || '(none)'
+    },
+    message: 'CORS configuration and request headers'
   });
 });
 

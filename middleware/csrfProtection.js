@@ -2,6 +2,32 @@
 // CSRF protection for JWT-based API
 const logger = require('../utils/logger');
 
+// Helper to normalize origin/referer URL (remove trailing slash)
+const normalizeUrl = (url) => {
+  if (!url) return null;
+  return url.replace(/\/$/, '');
+};
+
+// Build allowed origins list (same logic as CORS in server.js)
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    const origins = [];
+
+    // Add FRONTEND_URL if set (normalized)
+    if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
+      origins.push(normalizeUrl(process.env.FRONTEND_URL.trim()));
+    }
+
+    // Always add discover.legal domains for backward compatibility
+    origins.push('https://discover.legal', 'https://www.discover.legal');
+
+    // Remove duplicates
+    return [...new Set(origins)];
+  } else {
+    return ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+  }
+};
+
 /**
  * CSRF Protection Middleware
  *
@@ -22,18 +48,8 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // Get allowed origins from CORS config
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [
-        process.env.FRONTEND_URL || 'https://discover.legal',
-        'https://discover.legal',
-        'https://www.discover.legal'
-      ]
-    : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000'
-      ];
+  // Get allowed origins
+  const allowedOrigins = getAllowedOrigins();
 
   // Check Origin header (modern browsers)
   const origin = req.headers.origin;
@@ -45,7 +61,9 @@ const csrfProtection = (req, res, next) => {
       method: req.method,
       path: req.path,
       ip: req.ip,
-      userAgent: req.get('user-agent')
+      userAgent: req.get('user-agent'),
+      allowedOrigins,
+      nodeEnv: process.env.NODE_ENV
     });
 
     return res.status(403).json({
@@ -57,47 +75,68 @@ const csrfProtection = (req, res, next) => {
 
   // Validate Origin header if present
   if (origin) {
+    const normalizedOrigin = normalizeUrl(origin);
     const isAllowedOrigin = allowedOrigins.some(allowed => {
-      // Exact match or subdomain match
-      return origin === allowed || origin.endsWith('.' + allowed);
+      // Exact match (normalized)
+      return normalizedOrigin === allowed;
     });
 
     if (!isAllowedOrigin) {
       logger.logSecurity('csrf_invalid_origin', {
         origin,
+        normalizedOrigin,
+        allowedOrigins,
         method: req.method,
         path: req.path,
         ip: req.ip,
-        userId: req.user?.id
+        userId: req.user?.id,
+        nodeEnv: process.env.NODE_ENV
       });
 
       return res.status(403).json({
         success: false,
         error: 'Invalid origin',
-        errorType: 'csrf_protection'
+        errorType: 'csrf_protection',
+        debug: process.env.NODE_ENV !== 'production' ? {
+          receivedOrigin: origin,
+          normalizedOrigin,
+          allowedOrigins,
+          nodeEnv: process.env.NODE_ENV
+        } : undefined
       });
     }
   }
 
   // Validate Referer header if Origin is not present
   if (!origin && referer) {
+    const normalizedReferer = normalizeUrl(referer);
     const isAllowedReferer = allowedOrigins.some(allowed => {
-      return referer.startsWith(allowed);
+      // Check if referer starts with allowed origin
+      return normalizedReferer === allowed || normalizedReferer.startsWith(allowed + '/');
     });
 
     if (!isAllowedReferer) {
       logger.logSecurity('csrf_invalid_referer', {
         referer,
+        normalizedReferer,
+        allowedOrigins,
         method: req.method,
         path: req.path,
         ip: req.ip,
-        userId: req.user?.id
+        userId: req.user?.id,
+        nodeEnv: process.env.NODE_ENV
       });
 
       return res.status(403).json({
         success: false,
         error: 'Invalid referer',
-        errorType: 'csrf_protection'
+        errorType: 'csrf_protection',
+        debug: process.env.NODE_ENV !== 'production' ? {
+          receivedReferer: referer,
+          normalizedReferer,
+          allowedOrigins,
+          nodeEnv: process.env.NODE_ENV
+        } : undefined
       });
     }
   }

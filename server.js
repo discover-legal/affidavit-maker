@@ -58,9 +58,10 @@ app.use(helmet({
         "https://api.openai.com",
         "https://api.stripe.com",
         "https://*.auth0.com",
+        "https://affidavit-maker.onrender.com",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],
       frameSrc: ["'self'", "https://js.stripe.com", "https://*.auth0.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],

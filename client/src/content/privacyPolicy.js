@@ -9,7 +9,7 @@ export const PRIVACY_POLICY = `
 
 ## Introduction
 
-This Privacy Policy explains how Affidavit Maker ("we," "us," or "our") collects, uses, shares, and protects your personal information when you use our service.
+This Privacy Policy explains how discover.legal ("we," "us," or "our") collects, uses, shares, and protects your personal information when you use our service.
 
 Your privacy is critically important to us. We believe in transparency about how we handle your data, and we are committed to protecting your personal information.
 

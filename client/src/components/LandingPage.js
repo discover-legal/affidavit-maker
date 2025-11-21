@@ -27,8 +27,14 @@ const LandingPage = ({ onGetStarted }) => {
               <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
             </div>
 
-            {/* Auth Buttons */}
-            <div>
+            {/* Navigation Links & Auth Buttons */}
+            <div className="flex items-center gap-4 sm:gap-6">
+              <Link
+                to="/resources"
+                className="text-gray-700 hover:text-gray-900 font-medium text-sm sm:text-base transition-colors"
+              >
+                Resources
+              </Link>
               {isAuthenticated ? (
                 <button
                   onClick={onGetStarted}
@@ -172,6 +178,12 @@ const LandingPage = ({ onGetStarted }) => {
 
             {/* Links */}
             <div className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6">
+              <Link
+                to="/resources"
+                className="text-sm text-gray-300 hover:text-white transition-colors"
+              >
+                Resources
+              </Link>
               <Link
                 to="/privacy"
                 className="text-sm text-gray-300 hover:text-white transition-colors"

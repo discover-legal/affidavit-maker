@@ -102,17 +102,17 @@ const TermsOfServicePage = () => {
               components={{
                 h1: ({ node: _node, children, ...props }) => (
                   <h1 className="text-3xl font-bold mt-8 mb-4 text-gray-900" {...props}>
-                    {children}
+                    {parseTooltips(children)}
                   </h1>
                 ),
                 h2: ({ node: _node, children, ...props }) => (
                   <h2 className="text-2xl font-bold mt-6 mb-3 text-gray-900" {...props}>
-                    {children}
+                    {parseTooltips(children)}
                   </h2>
                 ),
                 h3: ({ node: _node, children, ...props }) => (
                   <h3 className="text-xl font-semibold mt-5 mb-2 text-gray-800" {...props}>
-                    {children}
+                    {parseTooltips(children)}
                   </h3>
                 ),
                 p: ({ node: _node, children, ...props }) => (

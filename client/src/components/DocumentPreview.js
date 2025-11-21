@@ -143,8 +143,12 @@ const DocumentPreview = () => {
 
   // Process and paginate content
   const pages = useMemo(() => {
-    if (!preview?.sections) return [{ content: [], pageNumber: 1 }];
-    
+    if (!preview?.sections) {
+      console.log('📄 DocumentPreview: No preview sections found, returning empty page');
+      return [{ content: [], pageNumber: 1 }];
+    }
+
+    console.log('📄 DocumentPreview: Processing preview sections:', Object.keys(preview.sections));
     const sections = preview.sections;
     const allContent = [];
     
@@ -932,6 +936,7 @@ const DocumentPreview = () => {
               }}
             >
               {/* Render all pages vertically */}
+              {console.log('📄 Rendering pages:', pages.length, 'Mobile:', isMobileView, 'Zoom:', zoomLevel) || null}
               {pages.map((page, pageIndex) => (
                 <div
                   key={`page-${page.pageNumber}`}

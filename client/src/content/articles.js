@@ -59,11 +59,10 @@ This is the heart of your affidavit. Each fact should:
 - Stick to facts you personally know (not hearsay)
 
 **Example:**
-\`\`\`
-1. I am John Smith, residing at 123 Main Street, Austin, Texas 78701.
-2. I have personal knowledge of the facts stated in this affidavit.
-3. On October 15, 2025, at approximately 2:00 PM, I witnessed...
-\`\`\``
+
+    1. I am John Smith, residing at 123 Main Street, Austin, Texas 78701.
+    2. I have personal knowledge of the facts stated in this affidavit.
+    3. On October 15, 2025, at approximately 2:00 PM, I witnessed...
 
 ### Step 4: Use Clear, Simple Language
 
@@ -75,9 +74,8 @@ This is the heart of your affidavit. Each fact should:
 ### Step 5: Include the Verification Statement
 
 End with a statement like:
-\`\`\`
-"I declare under penalty of perjury under the laws of [State] that the foregoing is true and correct."
-\`\`\``
+
+    "I declare under penalty of perjury under the laws of [State] that the foregoing is true and correct."
 
 ### Step 6: Sign Before a Notary
 
@@ -143,39 +141,37 @@ Avoid these common mistakes:
 
 Here's a basic template structure:
 
-\`\`\`
-[STATE] OF [STATE NAME]
-COUNTY OF [COUNTY NAME]
+    [STATE] OF [STATE NAME]
+    COUNTY OF [COUNTY NAME]
 
-AFFIDAVIT OF [YOUR NAME]
+    AFFIDAVIT OF [YOUR NAME]
 
-I, [Your Full Name], being duly sworn, depose and state:
+    I, [Your Full Name], being duly sworn, depose and state:
 
-1. I am over the age of 18 and competent to make this affidavit.
+    1. I am over the age of 18 and competent to make this affidavit.
 
-2. I have personal knowledge of the matters stated herein.
+    2. I have personal knowledge of the matters stated herein.
 
-3. [Your first fact here]
+    3. [Your first fact here]
 
-4. [Your second fact here]
+    4. [Your second fact here]
 
-5. [Continue with numbered facts]
+    5. [Continue with numbered facts]
 
-I declare under penalty of perjury that the foregoing is true and correct.
+    I declare under penalty of perjury that the foregoing is true and correct.
 
-_________________________
-[Your Signature]
-[Your Printed Name]
+    _________________________
+    [Your Signature]
+    [Your Printed Name]
 
-Dated: _______________
+    Dated: _______________
 
 
-SUBSCRIBED AND SWORN to before me this ____ day of ________, 20__.
+    SUBSCRIBED AND SWORN to before me this ____ day of ________, 20__.
 
-_________________________
-Notary Public
-My Commission Expires: ___________
-\`\`\`
+    _________________________
+    Notary Public
+    My Commission Expires: ___________
 
 ## Tips for a Strong Affidavit
 

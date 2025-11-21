@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Clock, ChevronRight } from 'lucide-react';
 import { ARTICLES, getCategories } from '../content/articles';
@@ -7,6 +7,10 @@ const ResourcesPage = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const categories = ['All', ...getCategories()];
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const filteredArticles = selectedCategory === 'All'
     ? ARTICLES

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -8,6 +8,10 @@ const ArticlePage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const article = getArticleBySlug(slug);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
 
   // If article not found, redirect to resources page
   if (!article) {

@@ -158,14 +158,14 @@ Your continued use of our service after changes are posted constitutes your acce
 
 If you have questions, concerns, or requests regarding this Privacy Policy or our privacy practices, please contact us:
 
-- **Email:** [Support email to be configured]
+- **Email:** privacy@discover.legal
 - **Response Time:** We aim to respond to privacy inquiries within 48 hours
 
 ## Data Protection Officer
 
 For data protection inquiries specific to GDPR or other privacy regulations:
 
-- **Email:** [Admin email to be configured]
+- **Email:** privacy@discover.legal
 
 ## Commitment to Privacy
 

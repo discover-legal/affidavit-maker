@@ -59,11 +59,11 @@ This is the heart of your affidavit. Each fact should:
 - Stick to facts you personally know (not hearsay)
 
 **Example:**
-```
+\`\`\`
 1. I am John Smith, residing at 123 Main Street, Austin, Texas 78701.
 2. I have personal knowledge of the facts stated in this affidavit.
 3. On October 15, 2025, at approximately 2:00 PM, I witnessed...
-```
+\`\`\``
 
 ### Step 4: Use Clear, Simple Language
 
@@ -75,9 +75,9 @@ This is the heart of your affidavit. Each fact should:
 ### Step 5: Include the Verification Statement
 
 End with a statement like:
-```
+\`\`\`
 "I declare under penalty of perjury under the laws of [State] that the foregoing is true and correct."
-```
+\`\`\``
 
 ### Step 6: Sign Before a Notary
 

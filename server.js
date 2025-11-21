@@ -39,11 +39,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      // SECURITY: Removed 'unsafe-inline' in production, kept for development compatibility
+      // IMPORTANT: 'unsafe-inline' needed for DocumentPreview component's CSS-in-JS styling
+      // The preview uses inline <style> tags and style attributes for WYSIWYG rendering
       styleSrc: [
         "'self'",
         "https://fonts.googleapis.com",
-        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'"] : [])
+        "'unsafe-inline'"
       ],
       // SECURITY: Removed 'unsafe-inline' and 'unsafe-eval' in production
       scriptSrc: [

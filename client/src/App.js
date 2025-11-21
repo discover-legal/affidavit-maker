@@ -8,6 +8,8 @@ import UserDashboard from './components/UserDashboard';
 import EditorView from './views/EditorView';
 import ErrorBoundary from './components/ErrorBoundary';
 import TOSGuard from './components/TOSGuard';
+import PrivacyPolicyPage from './components/PrivacyPolicyPage';
+import TermsOfServicePage from './components/TermsOfServicePage';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -66,6 +68,17 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={<LandingPage onGetStarted={handleGetStarted} />}
+      />
+
+      {/* Public Policy Pages - No auth required */}
+      <Route
+        path="/privacy"
+        element={<PrivacyPolicyPage />}
+      />
+
+      <Route
+        path="/tos"
+        element={<TermsOfServicePage />}
       />
 
       {/* Protected Routes - Require auth and TOS acceptance */}

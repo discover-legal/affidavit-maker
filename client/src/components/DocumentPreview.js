@@ -34,20 +34,23 @@ const DocumentPreview = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileView, setIsMobileView] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(80);
+  const [hasManuallyAdjustedZoom, setHasManuallyAdjustedZoom] = useState(false);
   const containerRef = useRef(null);
   const pageRefs = useRef([]);
   const measureCanvasRef = useRef(null);
 
-  // Detect mobile and adjust zoom accordingly
+  // Detect mobile and adjust zoom accordingly (only on initial load)
   useEffect(() => {
     const checkMobileView = () => {
       const isMobile = window.innerWidth < 768;
       setIsMobileView(isMobile);
-      // Set appropriate zoom for mobile devices
-      if (isMobile && zoomLevel > 60) {
-        setZoomLevel(50); // Smaller zoom to fit mobile screens
-      }
     };
+
+    // Set initial zoom for mobile devices (only on first load)
+    const initialIsMobile = window.innerWidth < 768;
+    if (initialIsMobile && !hasManuallyAdjustedZoom) {
+      setZoomLevel(65); // Better zoom level for mobile - not too small
+    }
 
     checkMobileView();
     window.addEventListener('resize', checkMobileView);
@@ -485,8 +488,14 @@ const DocumentPreview = () => {
   }, [pages]);
 
   // Controls
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 50));
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 10, 150));
+    setHasManuallyAdjustedZoom(true);
+  };
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 10, 50));
+    setHasManuallyAdjustedZoom(true);
+  };
   const handleRefresh = () => generatePreview();
 
   const scrollToPage = (pageNum) => {
@@ -904,7 +913,7 @@ const DocumentPreview = () => {
           ref={containerRef}
           className="flex-1 overflow-auto bg-gray-200"
           style={{
-            padding: isMobileView ? '0.5rem' : '2rem'
+            padding: isMobileView ? '1rem' : '2rem'
           }}
         >
           <div
@@ -930,7 +939,7 @@ const DocumentPreview = () => {
                   data-page-number={page.pageNumber}
                   className="page-container"
                   style={{
-                    marginBottom: pageIndex < pages.length - 1 ? (isMobileView ? '0.5rem' : '2rem') : '0'
+                    marginBottom: pageIndex < pages.length - 1 ? (isMobileView ? '1rem' : '2rem') : '0'
                   }}
                 >
                   <div className="page-content">

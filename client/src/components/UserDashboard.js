@@ -1,5 +1,5 @@
 // client/src/components/UserDashboard.js - FIXED VERSION
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,11 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [renamingDocId, setRenamingDocId] = useState(null);
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
+
+  // Reset scroll position when dashboard loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // ✅ FIXED: Delete handler now properly uses the hook
   const handleDeleteDocument = async (docId) => {

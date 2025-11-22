@@ -115,6 +115,18 @@ const EditorView = ({ isNew = false, onBack }) => {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
+  // Reset scroll position when editor loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Reset scroll position when switching mobile tabs
+  useEffect(() => {
+    if (isMobileView) {
+      window.scrollTo(0, 0);
+    }
+  }, [activePanel, isMobileView]);
+
   // Check payment status for a document
   const checkPaymentStatus = useCallback(async (docId) => {
     try {

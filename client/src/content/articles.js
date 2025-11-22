@@ -346,6 +346,7 @@ Family law cases in Texas frequently require affidavits to support motions, esta
 Used to request waiver of court costs if you can't afford them.
 
 **Requirements:**
+
 - Detailed financial information
 - List of all income and expenses
 - Statement of inability to pay costs
@@ -355,6 +356,7 @@ Used to request waiver of court costs if you can't afford them.
 Used to request temporary orders before final hearing.
 
 **Common uses:**
+
 - Temporary custody arrangements
 - Temporary child support
 - Temporary spousal support
@@ -374,6 +376,7 @@ Details income, expenses, assets, and debts in divorce proceedings.
 Texas law has specific requirements for family law affidavits:
 
 **Format Requirements:**
+
 - Jurat (oath before notary)
 - Venue (county and state)
 - Clear statement of personal knowledge
@@ -381,6 +384,7 @@ Texas law has specific requirements for family law affidavits:
 - Notary seal and signature
 
 **Content Requirements:**
+
 - First-person statements ("I am" not "The affiant is")
 - Numbered paragraphs
 - Specific dates and facts
@@ -407,6 +411,7 @@ Texas law has specific requirements for family law affidavits:
 Special considerations for custody-related affidavits:
 
 **What to Include:**
+
 - Your relationship with the child
 - Daily care routines you provide
 - Child's school and activities
@@ -414,6 +419,7 @@ Special considerations for custody-related affidavits:
 - Other parent's involvement (factually)
 
 **What NOT to Include:**
+
 - Accusations without evidence
 - Character attacks on other parent
 - Hearsay from the child
@@ -547,17 +553,20 @@ You'll need:
 Some states allow online notarization via video call:
 
 **Benefits:**
+
 - Convenient - do it from home
 - Often available 24/7
 - No travel required
 - Same legal validity
 
 **States Allowing RON:**
+
 - Utah - fully authorized
 - Arizona - fully authorized
 - Texas - authorized (with restrictions)
 
 **How RON Works:**
+
 1. Upload ID and affidavit to platform
 2. Schedule video call with notary
 3. Verify identity via video
@@ -632,6 +641,7 @@ Utah has some unique features:
 Sworn statements made under oath before a notary.
 
 **Utah Requirements:**
+
 - Clear venue (State of Utah, County of [County Name])
 - Statement of personal knowledge
 - Numbered facts
@@ -642,7 +652,9 @@ Sworn statements made under oath before a notary.
 Unsworn statements made under penalty of perjury.
 
 **Utah Law (Utah Code § 78B-5-705):**
+
 Utah allows declarations without notarization if they include:
+
 > "I declare under penalty of perjury under the laws of the State of Utah that the foregoing is true and correct."
 
 ### 3. Verified Pleadings
@@ -651,12 +663,14 @@ Court documents verified by affidavit or declaration.
 ## When to Use Each Document Type
 
 **Use an Affidavit when:**
+
 - Specifically required by court
 - Filing in another state
 - Supporting important motions
 - Registering documents
 
 **Use a Declaration when:**
+
 - Permitted by Utah law
 - Want to avoid notary costs
 - Need quick completion
@@ -699,11 +713,13 @@ Court documents verified by affidavit or declaration.
 ## Utah Notary Information
 
 **Maximum Fees:**
+
 - $10 per signature
 - Additional fees for mobile service
 - Travel fees vary by notary
 
 **Where to Find Utah Notaries:**
+
 - Utah.gov notary directory
 - Banks and credit unions
 - UPS and FedEx locations
@@ -714,12 +730,14 @@ Court documents verified by affidavit or declaration.
 Utah fully authorizes RON (Utah Code § 46-1-16):
 
 **Benefits:**
+
 - Available 24/7
 - No travel needed
 - Same legal validity
 - Convenient for rural areas
 
 **Approved RON Platforms:**
+
 - Notarize.com
 - Proof.com
 - NotaryCam
@@ -733,6 +751,7 @@ Utah courts provide forms at:
 - Legal aid offices
 
 **Popular Forms:**
+
 - Petition for Divorce
 - Financial Declaration
 - Custody affidavit
@@ -743,12 +762,14 @@ Utah courts provide forms at:
 Most Utah district courts require electronic filing:
 
 **Registration:**
+
 1. Create account at utah.gov/mycase
 2. Verify identity
 3. Link to case
 4. Upload documents
 
 **Format Requirements:**
+
 - PDF format
 - Searchable text
 - Specific naming convention
@@ -828,6 +849,7 @@ Acceptable forms of ID in Arizona:
 Arizona fully authorizes RON under A.R.S. § 41-351 et seq.
 
 **RON Benefits:**
+
 - 24/7 availability
 - No travel required
 - Legally equivalent to in-person
@@ -959,6 +981,7 @@ Arizona courts are friendly to self-represented litigants:
 - Law library access
 
 **Resources:**
+
 - Arizona Supreme Court Self-Service Center
 - Volunteer lawyer programs
 - Legal aid organizations

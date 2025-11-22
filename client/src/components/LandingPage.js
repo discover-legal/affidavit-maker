@@ -23,15 +23,16 @@ const LandingPage = ({ onGetStarted }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo */}
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
             </div>
 
             {/* Navigation Links & Auth Buttons */}
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
               <Link
                 to="/resources"
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm sm:text-base transition-colors"
+                className="text-gray-700 hover:text-gray-900 font-medium text-sm sm:text-base transition-colors whitespace-nowrap"
               >
                 Resources
               </Link>
@@ -169,9 +170,12 @@ const LandingPage = ({ onGetStarted }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             {/* Brand */}
-            <div className="mb-4 md:mb-0">
-              <span className="text-xl font-bold text-white">discover.legal</span>
-              <p className="text-sm text-gray-400 mt-1">
+            <div className="mb-4 md:mb-0 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start space-x-2 mb-1">
+                <Scale className="h-6 w-6 text-blue-400" />
+                <span className="text-xl font-bold text-white">discover.legal</span>
+              </div>
+              <p className="text-sm text-gray-400">
                 Professional legal document preparation
               </p>
             </div>

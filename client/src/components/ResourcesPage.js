@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Clock, ChevronRight } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, ChevronRight, Scale } from 'lucide-react';
 import { ARTICLES, getCategories } from '../content/articles';
 
 const ResourcesPage = () => {
@@ -27,13 +27,16 @@ const ResourcesPage = () => {
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-3 sm:mr-4"
                 aria-label="Back to home"
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                <span className="text-sm font-medium">Back</span>
+                <ArrowLeft className="h-5 w-5 mr-1 sm:mr-2" />
+                <span className="text-sm font-medium hidden sm:inline">Back</span>
               </button>
-              <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
+              <div className="flex items-center space-x-2">
+                <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+                <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
+              </div>
             </div>
           </div>
         </div>
@@ -186,9 +189,12 @@ const ResourcesPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             {/* Brand */}
-            <div className="mb-4 md:mb-0">
-              <span className="text-xl font-bold text-white">discover.legal</span>
-              <p className="text-sm text-gray-400 mt-1">
+            <div className="mb-4 md:mb-0 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start space-x-2 mb-1">
+                <Scale className="h-6 w-6 text-blue-400" />
+                <span className="text-xl font-bold text-white">discover.legal</span>
+              </div>
+              <p className="text-sm text-gray-400">
                 Professional legal document preparation
               </p>
             </div>

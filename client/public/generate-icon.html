@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate App Icon - 1024x1024</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f3f4f6;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #e5e7eb;
+            margin: 1rem 0;
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .preview {
+            margin-top: 1rem;
+        }
+        h1 {
+            color: #1f2937;
+        }
+        p {
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 App Icon Generator</h1>
+        <p>discover.legal - 1024x1024 App Icon</p>
+
+        <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+
+        <div class="preview">
+            <button onclick="generateIcon()">Generate Icon</button>
+            <button onclick="downloadIcon()">Download PNG</button>
+        </div>
+
+        <p style="margin-top: 1rem; font-size: 0.875rem;">
+            Click "Generate Icon" first, then "Download PNG" to save the 1024x1024 icon.
+        </p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function generateIcon() {
+            // Clear canvas
+            ctx.clearRect(0, 0, 1024, 1024);
+
+            // Draw rounded rectangle background (blue)
+            const radius = 180;
+            ctx.fillStyle = '#2563EB';
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(1024 - radius, 0);
+            ctx.quadraticCurveTo(1024, 0, 1024, radius);
+            ctx.lineTo(1024, 1024 - radius);
+            ctx.quadraticCurveTo(1024, 1024, 1024 - radius, 1024);
+            ctx.lineTo(radius, 1024);
+            ctx.quadraticCurveTo(0, 1024, 0, 1024 - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw scale icon in white
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+            ctx.lineWidth = 40;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const scale = 40;
+            const offsetX = 512;
+            const offsetY = 512;
+
+            // Draw the scale beam (horizontal line at top)
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 240, offsetY - 240);
+            ctx.lineTo(offsetX + 240, offsetY - 240);
+            ctx.stroke();
+
+            // Draw the vertical pole
+            ctx.beginPath();
+            ctx.moveTo(offsetX, offsetY - 280);
+            ctx.lineTo(offsetX, offsetY + 280);
+            ctx.stroke();
+
+            // Draw the base
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 160, offsetY + 280);
+            ctx.lineTo(offsetX + 160, offsetY + 280);
+            ctx.stroke();
+
+            // Draw left scale pan (triangle)
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 240, offsetY - 240);
+            ctx.lineTo(offsetX - 240 - 80, offsetY - 80);
+            ctx.lineTo(offsetX - 240 + 80, offsetY - 80);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw right scale pan (triangle)
+            ctx.beginPath();
+            ctx.moveTo(offsetX + 240, offsetY - 240);
+            ctx.lineTo(offsetX + 240 - 80, offsetY - 80);
+            ctx.lineTo(offsetX + 240 + 80, offsetY - 80);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw chains for left pan
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 240 - 60, offsetY - 240);
+            ctx.lineTo(offsetX - 240 - 60, offsetY - 80);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 240 + 60, offsetY - 240);
+            ctx.lineTo(offsetX - 240 + 60, offsetY - 80);
+            ctx.stroke();
+
+            // Draw chains for right pan
+            ctx.beginPath();
+            ctx.moveTo(offsetX + 240 - 60, offsetY - 240);
+            ctx.lineTo(offsetX + 240 - 60, offsetY - 80);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(offsetX + 240 + 60, offsetY - 240);
+            ctx.lineTo(offsetX + 240 + 60, offsetY - 80);
+            ctx.stroke();
+
+            alert('Icon generated! You can now download it.');
+        }
+
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'discover-legal-icon-1024x1024.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Auto-generate on load
+        window.addEventListener('load', generateIcon);
+    </script>
+</body>
+</html>

@@ -32,11 +32,11 @@ const Header = ({ currentView, onBackToDashboard, onSave, sessionSaved, isSaving
                     {/* Logo and Title */}
                     <button
                         onClick={handleHomeClick}
-                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                        className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity"
                     >
-                        <Scale className="h-8 w-8 text-blue-600" />
+                        <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                         <div className="text-left">
-                            <h1 className="text-xl font-bold text-gray-900">Discover.Legal</h1>
+                            <h1 className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</h1>
                             <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
                         </div>
                     </button>

@@ -1,11 +1,16 @@
 // Landing Page - Allow browsing, require auth for action
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Zap, Shield, Scale } from 'lucide-react';
 
 const LandingPage = ({ onGetStarted }) => {
   const { loginWithRedirect, isAuthenticated } = useAuth0();
+
+  // Reset scroll position when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleGetStarted = () => {
     if (isAuthenticated) {

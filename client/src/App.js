@@ -1,7 +1,7 @@
 // client/src/App.js - COMPLETE INTEGRATION
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Auth0Provider } from '@auth0/auth0-react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { DocumentProvider } from './contexts/DocumentContext';
 import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';
@@ -13,6 +13,7 @@ import TermsOfServicePage from './components/TermsOfServicePage';
 import ResourcesPage from './components/ResourcesPage';
 import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
+import { trackPageView } from './utils/analytics';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -37,6 +38,18 @@ const AUTH0_CONFIG = {
       appState?.returnTo || '/dashboard'
     );
   }
+};
+
+// Google Analytics page tracking component
+const AnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track page view whenever the route changes
+    trackPageView(location.pathname + location.search);
+  }, [location]);
+
+  return null;
 };
 
 // Main routing component
@@ -66,12 +79,14 @@ const AppRoutes = () => {
   };
 
   return (
-    <Routes>
-      {/* Public Landing Page - No auth required */}
-      <Route
-        path="/"
-        element={<LandingPage onGetStarted={handleGetStarted} />}
-      />
+    <>
+      <AnalyticsTracker />
+      <Routes>
+        {/* Public Landing Page - No auth required */}
+        <Route
+          path="/"
+          element={<LandingPage onGetStarted={handleGetStarted} />}
+        />
 
       {/* Public Policy Pages - No auth required */}
       <Route
@@ -142,7 +157,8 @@ const AppRoutes = () => {
         path="*"
         element={<Navigate to="/" replace />}
       />
-    </Routes>
+      </Routes>
+    </>
   );
 };
 

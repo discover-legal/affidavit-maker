@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Scale } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { TERMS_OF_SERVICE, TOS_VERSION, TOS_LAST_UPDATED, TOOLTIP_DEFINITIONS } from '../content/termsOfService';
 import Tooltip from './Tooltip';
@@ -75,13 +75,19 @@ const TermsOfServicePage = () => {
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-3 sm:mr-4"
                 aria-label="Back to home"
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                <span className="text-sm font-medium">Back</span>
+                <ArrowLeft className="h-5 w-5 mr-1 sm:mr-2" />
+                <span className="text-sm font-medium hidden sm:inline">Back</span>
               </button>
-              <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+                <div className="text-left">
+                  <h1 className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</h1>
+                  <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

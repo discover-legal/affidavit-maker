@@ -12,6 +12,7 @@ import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsOfServicePage from './components/TermsOfServicePage';
 import ResourcesPage from './components/ResourcesPage';
 import ArticlePage from './components/ArticlePage';
+import BrandAssetsPage from './components/BrandAssetsPage';
 
 // Environment configuration
 const AUTH0_CONFIG = {
@@ -92,6 +93,12 @@ const AppRoutes = () => {
       <Route
         path="/resources/:slug"
         element={<ArticlePage />}
+      />
+
+      {/* Brand Assets Page - No auth required */}
+      <Route
+        path="/brand"
+        element={<BrandAssetsPage />}
       />
 
       {/* Protected Routes - Require auth and TOS acceptance */}

@@ -415,7 +415,7 @@ Let's start with your name and which state you're in.`
       <div className="border-t bg-white p-4">
         {/* Document Status */}
         {(currentDocument.affiantName || currentDocument.state) && (
-          <div className="mb-3 flex items-center gap-4 text-sm">
+          <div className="mb-2 flex items-center gap-4 text-sm">
             {currentDocument.affiantName && (
               <div className="flex items-center text-green-600">
                 <Check className="h-3 w-3 mr-1" />
@@ -436,7 +436,12 @@ Let's start with your name and which state you're in.`
             )}
           </div>
         )}
-        
+
+        {/* AI Disclaimer */}
+        <div className="mb-2 text-xs text-gray-500 text-center">
+          AI can make mistakes. Verify important information.
+        </div>
+
         {/* Message Input */}
         <form onSubmit={sendMessage} className="flex gap-2">
           <input

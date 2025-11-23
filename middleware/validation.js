@@ -80,53 +80,14 @@ const sanitizeText = (text) => {
     .trim();
 };
 
-// SQL Injection prevention for raw queries
-const sanitizeSQL = (input) => {
-  if (typeof input !== 'string') return input;
-  
-  return input
-    .replace(/'/g, "''")
-    .replace(/;/g, '')
-    .replace(/--/g, '')
-    .replace(/\/\*/g, '')
-    .replace(/\*\//g, '')
-    .replace(/xp_/gi, '')
-    .replace(/exec/gi, '')
-    .replace(/union/gi, '')
-    .replace(/select/gi, '')
-    .replace(/insert/gi, '')
-    .replace(/update/gi, '')
-    .replace(/delete/gi, '')
-    .replace(/drop/gi, '');
-};
-
-// XSS Prevention for output sanitization
-const sanitizeOutput = (data) => {
-  if (typeof data === 'string') {
-    return data
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;')
-      .replace(/\\/g, '&#x5C;')
-      .replace(/`/g, '&#x60;');
-  }
-  
-  if (Array.isArray(data)) {
-    return data.map(sanitizeOutput);
-  }
-  
-  if (typeof data === 'object' && data !== null) {
-    const sanitized = {};
-    for (const [key, value] of Object.entries(data)) {
-      sanitized[key] = sanitizeOutput(value);
-    }
-    return sanitized;
-  }
-  
-  return data;
-};
+// NOTE: SQL injection prevention is NOT needed here because all database queries
+// use parameterized queries ($1, $2, etc.) which inherently prevent SQL injection.
+// String replacement functions like sanitizeSQL are anti-patterns that:
+// 1. Provide false security
+// 2. Can break legitimate user content (e.g., "I select the following terms...")
+// 3. Can be easily bypassed
+// The previously existing sanitizeSQL and sanitizeOutput functions have been removed
+// as they were unused and provided no actual security benefit.
 
 /**
  * Custom validators
@@ -580,12 +541,14 @@ const validateRateLimit = (req, res, next) => {
 
 /**
  * Security middleware to detect suspicious activity
+ *
+ * NOTE: SQL keyword patterns (union, select, insert, etc.) have been REMOVED
+ * because they block legitimate legal content like "I select the following terms..."
+ * SQL injection is prevented by parameterized queries, not keyword filtering.
  */
 const detectSuspiciousActivity = (req, res, next) => {
   const suspiciousPatterns = [
-    // SQL Injection patterns
-    /(\bunion\b|\bselect\b|\binsert\b|\bupdate\b|\bdelete\b|\bdrop\b)/gi,
-    // Script injection patterns  
+    // Script injection patterns (XSS prevention)
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
     // Command injection patterns
     /(\b(ls|cat|pwd|whoami|id|uname|ps|netstat|ifconfig|rm|mv|cp|mkdir|chmod|chown|kill|wget|curl|nc|nmap|sqlmap)\b)/gi
@@ -641,8 +604,6 @@ module.exports = {
   checkValidationResult,
   countWords,
   sanitizeText,
-  sanitizeSQL,
-  sanitizeOutput,
   wordCountValidator,
   jsonSizeValidator,
   

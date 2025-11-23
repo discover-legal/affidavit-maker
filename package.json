@@ -21,8 +21,6 @@
     "analyze": "node scripts/analyze-bundle.js"
   },
   "dependencies": {
-    "axios": "^1.11.0",
-    "bcrypt": "^5.1.1",
     "compression": "^1.8.1",
     "connect-timeout": "^1.9.1",
     "cors": "^2.8.5",
@@ -37,16 +35,12 @@
     "lodash": "^4.17.21",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "node-cache": "^5.1.2",
     "openai": "^4.104.0",
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
-    "rate-limit-redis": "^4.2.1",
-    "react-router-dom": "^7.8.1",
     "stripe": "^14.25.0",
     "uuid": "^9.0.1",
-    "web-vitals": "^5.1.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {

@@ -40,7 +40,7 @@ const LandingPage = ({ onGetStarted }) => {
             <div className="flex items-center gap-3 sm:gap-6">
               <Link
                 to="/resources"
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm sm:text-base transition-colors whitespace-nowrap"
+                className="hidden sm:inline text-gray-700 hover:text-gray-900 font-medium text-sm sm:text-base transition-colors whitespace-nowrap"
               >
                 Resources
               </Link>

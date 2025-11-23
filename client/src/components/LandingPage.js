@@ -26,15 +26,18 @@ const LandingPage = ({ onGetStarted }) => {
       {/* Navigation Bar with Branding */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex justify-between items-center h-16">
             {/* Brand Logo */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity"
+            >
               <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               <div className="text-left">
                 <h1 className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</h1>
                 <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
               </div>
-            </div>
+            </button>
 
             {/* Navigation Links & Auth Buttons */}
             <div className="flex items-center gap-3 sm:gap-6">

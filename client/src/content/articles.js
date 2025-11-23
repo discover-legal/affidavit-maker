@@ -135,15 +135,15 @@ Establishes inheritance rights when someone dies without a will.
 ### 5. Affidavit of Service
 Proves that legal documents were properly served to another party.
 
-## Understanding Legal Terminology
+## Understanding Legal Terms
 
-Before diving deeper into what makes affidavits effective, it's helpful to understand key legal concepts:
+Here are three important concepts that help you understand how courts evaluate your affidavit:
 
-**Weight of Evidence:** "Weight" refers to how much importance or persuasive value a court gives to a piece of evidence. Direct evidence (what you personally saw) typically carries more weight than indirect evidence (what you heard from someone else). Evidence that can be verified independently carries more weight than unsupported statements.
+**Weight:** This means how much the court believes and trusts your evidence. What you saw yourself has more weight than what someone told you. Facts you can prove have more weight than things you can't prove.
 
-**Credibility:** This is the quality of being believable and trustworthy. Your credibility is judged by: the consistency of your statements, whether you can provide specific details, your demeanor (professional vs. emotional), and whether other evidence supports what you say.
+**Credibility:** This means whether people believe you're telling the truth. Courts trust you more when you give specific details, stay consistent, act professional, and have proof that backs up what you say.
 
-**Reliability:** This refers to how dependable or trustworthy your information is. Reliable evidence is verifiable, comes from firsthand knowledge, and is documented when possible. Courts assess reliability by looking at how you obtained the information, whether you have reason to be biased, and whether your statements are consistent with other evidence.
+**Reliability:** This means how trustworthy your information is. Information is more reliable when you saw it yourself, can prove it, and your story doesn't change.
 
 ## What NOT to Include in an Affidavit
 
@@ -263,9 +263,9 @@ Don't struggle with templates or worry about legal requirements. Our platform gu
 
 ---
 
-Many self-represented litigants feel that courts are biased against them. While the legal system can be intimidating, often the real issue isn't bias—it's that legal documents submitted by non-lawyers frequently don't follow the conventions that judges and court staff are trained to expect.
+Many people representing themselves in court feel that judges are biased against them. The legal system can be scary. But often the real problem isn't bias—it's that documents from non-lawyers don't follow the format that judges expect.
 
-This isn't about intelligence or justice. It's about communication. Just as professionals in any field have established standards for how information is presented, courts have developed conventions for legal documents that make them easier to process and evaluate.
+This isn't about how smart you are. It's about communication. Every profession has standards for how to share information. Courts have standards too. These standards make legal documents easier to read and understand.
 
 ## The Reality Check: Why Format Matters
 
@@ -333,35 +333,35 @@ Courts need concrete information they can evaluate and verify.
 
 ### 4. **First-Person, Personal Knowledge**
 
-Affidavits should primarily contain what you personally know. However, understanding the nuances of hearsay and personal belief is important.
+Write about what you know yourself. But it's also important to understand hearsay and when you can share your beliefs.
 
-**Proper Personal Knowledge:**
-> "I personally witnessed the defendant run the red light at the intersection of 5th and Main on October 30, 2025 at approximately 2:45 PM."
+**Good - What You Saw:**
+> "I saw the defendant run the red light at 5th and Main on October 30, 2025 at about 2:45 PM."
 
-**Hearsay (Generally Problematic):**
+**Bad - Hearsay (What Someone Told You):**
 > "My neighbor told me that the defendant always runs red lights and drives recklessly."
 
-**Your Belief with Source (May Be Acceptable):**
-> "Based on my review of the repair estimate from ABC Auto dated November 1, 2025, I believe the damage to my vehicle will cost approximately $3,500 to repair."
+**OK - Your Belief When You Say Where It Comes From:**
+> "Based on the repair estimate from ABC Auto dated November 1, 2025, I believe fixing my car will cost about $3,500."
 
-**Understanding Hearsay:**
+**What Is Hearsay?**
 
-Hearsay is an out-of-court statement offered to prove the truth of what it asserts. Courts generally exclude hearsay because it cannot be cross-examined and may be unreliable.
+Hearsay is when you tell the court what someone else said, and you're trying to prove that what they said is true. Courts usually don't allow hearsay.
 
-**The Dangers of Hearsay:**
-- Cannot be verified or cross-examined
-- May be inaccurate or misremembered
-- Undermines your credibility
-- May be inadmissible and ignored by the court
+**Why Hearsay Is a Problem:**
+- No one can check if it's true
+- People might remember it wrong
+- Makes you look less trustworthy
+- The court might ignore it completely
 
-**When Beliefs and Opinions May Be Stated:**
+**When You Can Share Your Beliefs:**
 
-While affidavits should focus on facts, you can sometimes state your belief or opinion if you:
-- Clearly identify it as your belief/opinion
-- State the source or basis for that belief
-- Understand it may be given less weight than direct factual evidence
+Your affidavit should mostly be about facts. But you can sometimes share what you believe if you:
+- Say clearly that it's what you believe
+- Explain where your belief comes from
+- Know the court might not trust it as much as facts you saw yourself
 
-For example, stating "I believe the property is worth $200,000 based on the appraisal I obtained from Licensed Appraiser Jane Doe on October 15, 2025" identifies your source and allows the court to evaluate the reliability of that basis—even though it may receive less weight than the appraiser's own testimony would.
+For example: "I believe the property is worth $200,000 based on an appraisal by Jane Doe on October 15, 2025." This tells the court where your belief comes from. The court can decide how much to trust it—but it won't have as much weight as if the appraiser said it in court herself.
 
 ### 5. **Organized Chronologically**
 

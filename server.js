@@ -56,6 +56,7 @@ app.use(helmet({
         "'self'",
         "https://js.stripe.com",
         "https://*.auth0.com",
+        "https://www.googletagmanager.com",
         ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'", "'unsafe-eval'"] : [])
       ],
       imgSrc: ["'self'", "data:", "https:", "blob:"],

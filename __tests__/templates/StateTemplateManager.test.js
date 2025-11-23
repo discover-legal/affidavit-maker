@@ -64,8 +64,8 @@ describe('StateTemplateManager', () => {
         facts: ['Fact 1', 'Fact 2'],
         state: 'TX',
       };
-      
-      const validation = templateManager.validateAffidavitData(data, 'TX');
+
+      const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
@@ -76,8 +76,8 @@ describe('StateTemplateManager', () => {
         facts: ['Fact 1'],
         state: 'TX',
       };
-      
-      const validation = templateManager.validateAffidavitData(data, 'TX');
+
+      const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(false);
       expect(validation.errors).toContain('Affiant name is required and must be at least 2 characters');
     });
@@ -88,8 +88,8 @@ describe('StateTemplateManager', () => {
         facts: ['Fact 1'],
         state: 'TX',
       };
-      
-      const validation = templateManager.validateAffidavitData(data, 'TX');
+
+      const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(false);
       expect(validation.errors).toContain('County is required for Texas affidavits');
     });
@@ -102,7 +102,7 @@ describe('StateTemplateManager', () => {
         state: 'TX',
       };
       
-      const validation = templateManager.validateAffidavitData(data, 'TX');
+      const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.warnings).toContain('No facts provided - affidavit will be incomplete');
     });
   });

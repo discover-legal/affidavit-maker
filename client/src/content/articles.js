@@ -135,12 +135,22 @@ Establishes inheritance rights when someone dies without a will.
 ### 5. Affidavit of Service
 Proves that legal documents were properly served to another party.
 
+## Understanding Legal Terminology
+
+Before diving deeper into what makes affidavits effective, it's helpful to understand key legal concepts:
+
+**Weight of Evidence:** "Weight" refers to how much importance or persuasive value a court gives to a piece of evidence. Direct evidence (what you personally saw) typically carries more weight than indirect evidence (what you heard from someone else). Evidence that can be verified independently carries more weight than unsupported statements.
+
+**Credibility:** This is the quality of being believable and trustworthy. Your credibility is judged by: the consistency of your statements, whether you can provide specific details, your demeanor (professional vs. emotional), and whether other evidence supports what you say.
+
+**Reliability:** This refers to how dependable or trustworthy your information is. Reliable evidence is verifiable, comes from firsthand knowledge, and is documented when possible. Courts assess reliability by looking at how you obtained the information, whether you have reason to be biased, and whether your statements are consistent with other evidence.
+
 ## What NOT to Include in an Affidavit
 
 Avoid these common mistakes:
 
-❌ **Hearsay** - Don't include things you heard from others
-❌ **Opinions** - Stick to facts unless your opinion is specifically relevant
+❌ **Pure Hearsay** - Avoid unattributed secondhand information (what you heard from others without identifying the source)
+❌ **Unsupported Opinions** - Stick to facts unless your opinion has a stated basis
 ❌ **Irrelevant Information** - Only include pertinent facts
 ❌ **Legal Arguments** - Save arguments for your lawyer
 ❌ **Emotional Language** - Stay factual and neutral
@@ -255,7 +265,7 @@ Don't struggle with templates or worry about legal requirements. Our platform gu
 
 Many self-represented litigants feel that courts are biased against them. While the legal system can be intimidating, often the real issue isn't bias—it's that legal documents submitted by non-lawyers frequently don't follow the conventions that judges and court staff are trained to expect.
 
-This isn't about intelligence or justice. It's about communication. Just as a doctor wouldn't take medical advice written in crayon seriously, courts expect legal documents to follow certain formats and writing styles.
+This isn't about intelligence or justice. It's about communication. Just as professionals in any field have established standards for how information is presented, courts have developed conventions for legal documents that make them easier to process and evaluate.
 
 ## The Reality Check: Why Format Matters
 
@@ -323,15 +333,35 @@ Courts need concrete information they can evaluate and verify.
 
 ### 4. **First-Person, Personal Knowledge**
 
-Affidavits should contain only what you personally know—not what you heard, assume, or believe.
+Affidavits should primarily contain what you personally know. However, understanding the nuances of hearsay and personal belief is important.
 
 **Proper Personal Knowledge:**
 > "I personally witnessed the defendant run the red light at the intersection of 5th and Main on October 30, 2025 at approximately 2:45 PM."
 
-**Improper Hearsay:**
+**Hearsay (Generally Problematic):**
 > "My neighbor told me that the defendant always runs red lights and drives recklessly."
 
-**Why This Matters:** Courts generally exclude hearsay (statements about what others said or did when you weren't present). Including hearsay makes you look uninformed about legal procedures.
+**Your Belief with Source (May Be Acceptable):**
+> "Based on my review of the repair estimate from ABC Auto dated November 1, 2025, I believe the damage to my vehicle will cost approximately $3,500 to repair."
+
+**Understanding Hearsay:**
+
+Hearsay is an out-of-court statement offered to prove the truth of what it asserts. Courts generally exclude hearsay because it cannot be cross-examined and may be unreliable.
+
+**The Dangers of Hearsay:**
+- Cannot be verified or cross-examined
+- May be inaccurate or misremembered
+- Undermines your credibility
+- May be inadmissible and ignored by the court
+
+**When Beliefs and Opinions May Be Stated:**
+
+While affidavits should focus on facts, you can sometimes state your belief or opinion if you:
+- Clearly identify it as your belief/opinion
+- State the source or basis for that belief
+- Understand it may be given less weight than direct factual evidence
+
+For example, stating "I believe the property is worth $200,000 based on the appraisal I obtained from Licensed Appraiser Jane Doe on October 15, 2025" identifies your source and allows the court to evaluate the reliability of that basis—even though it may receive less weight than the appraiser's own testimony would.
 
 ### 5. **Organized Chronologically**
 

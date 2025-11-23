@@ -15,7 +15,11 @@ export const ARTICLES = [
     content: `
 # How to Write an Affidavit: Complete Guide for 2025
 
-An affidavit is a sworn written statement of facts, made under oath before a notary public or other authorized official. It's a powerful legal document that can be used in court proceedings, real estate transactions, immigration cases, and many other legal matters.
+**Disclaimer:** This article provides general educational information about affidavits and is not legal advice. Legal requirements vary by jurisdiction and situation. For advice about your specific legal matter, consult with a licensed attorney in your area.
+
+---
+
+An affidavit is a sworn written statement of facts, made under oath before a notary public or other authorized official. It's a legal document commonly used in court proceedings, real estate transactions, and many other legal matters.
 
 ## What is an Affidavit?
 
@@ -23,14 +27,16 @@ An affidavit is a voluntary declaration of facts that you swear or affirm to be 
 
 ### Key Components of a Valid Affidavit
 
-Every affidavit must include:
+Affidavits typically include these standard elements:
 
 1. **Title** - Clearly identifies the document as an affidavit
 2. **Your Identity** - Your full legal name and address
 3. **Statement of Facts** - Clear, numbered facts you're swearing to
 4. **Oath or Affirmation** - Statement that you swear or affirm the truth
-5. **Your Signature** - Must be signed in front of a notary
+5. **Your Signature** - Signed in front of a notary
 6. **Notary Section** - Notary's signature, seal, and commission details
+
+*Note: Specific requirements vary by jurisdiction and purpose. Consult local court rules or an attorney for requirements in your area.*
 
 ## Step-by-Step: How to Write an Affidavit
 
@@ -86,9 +92,11 @@ End with a statement like:
 
 ## State-Specific Requirements
 
+**Important:** Requirements vary significantly by state and court. The information below is general in nature. Always verify current requirements with your local court or consult an attorney.
+
 ### Texas Affidavits
 
-Texas requires:
+Texas affidavits commonly include:
 - Jurat (oath administered by notary)
 - Notary's county of commission
 - Notary seal or stamp
@@ -96,7 +104,7 @@ Texas requires:
 
 ### Utah Affidavits
 
-Utah requires:
+Utah affidavits commonly include:
 - Clear statement of personal knowledge
 - Notary's signature and seal
 - Date of notarization
@@ -104,7 +112,7 @@ Utah requires:
 
 ### Arizona Affidavits
 
-Arizona requires:
+Arizona affidavits commonly include:
 - Verification statement
 - Notary public seal
 - Statement of jurisdiction
@@ -207,19 +215,19 @@ Our AI-powered platform makes creating affidavits simple:
 ## Frequently Asked Questions
 
 **Q: Can I write my own affidavit?**
-A: Yes, you can write your own affidavit. However, ensure it meets your state's legal requirements.
+A: Many people prepare their own affidavits, though requirements vary by jurisdiction and purpose. For important legal matters, consider consulting an attorney to ensure your affidavit meets all applicable requirements.
 
 **Q: Does an affidavit need to be notarized?**
-A: Yes, affidavits must be signed in the presence of a notary public to be legally valid.
+A: In most jurisdictions, affidavits require notarization to be legally valid. Some states allow unsworn declarations as alternatives in certain situations. Check your local requirements.
 
 **Q: Can I change an affidavit after signing?**
-A: No. Once notarized, you would need to create a new affidavit with corrections.
+A: Generally, once an affidavit is notarized, it cannot be altered. Corrections typically require creating a new affidavit. Consult with an attorney if you need to correct a previously filed affidavit.
 
 **Q: How long is an affidavit valid?**
-A: Affidavits don't expire, but older affidavits may be given less weight if circumstances have changed.
+A: Affidavits typically don't have expiration dates, though courts may give less weight to older affidavits if circumstances have changed. Specific validity periods may apply in certain contexts.
 
 **Q: What happens if I lie in an affidavit?**
-A: Lying in an affidavit is perjury, a criminal offense that can result in fines and imprisonment.
+A: False statements in an affidavit can constitute perjury, which is a serious criminal offense. Always ensure your statements are truthful and accurate.
 
 ## Ready to Create Your Affidavit?
 
@@ -229,100 +237,230 @@ Don't struggle with templates or worry about legal requirements. Our platform gu
 `
   },
   {
-    id: 'affidavit-of-support-guide',
-    slug: 'affidavit-of-support-guide',
-    title: 'Affidavit of Support: Complete Guide for Family Immigration',
-    description: 'Everything you need to know about affidavits of support for immigration cases, including financial requirements and common mistakes.',
-    category: 'Immigration',
-    readTime: '6 min read',
+    id: 'persuasive-legal-writing-guide',
+    slug: 'persuasive-legal-writing-guide',
+    title: 'How to Write Persuasive Legal Documents: A Guide for Self-Represented Litigants',
+    description: 'Learn what makes legal writing effective and credible. Understand why formatting, tone, and structure matter in court documents.',
+    category: 'Guides',
+    readTime: '7 min read',
     publishDate: 'November 18, 2025',
-    image: '🛂',
+    image: '⚖️',
     featured: true,
     content: `
-# Affidavit of Support: Complete Guide for Family Immigration
+# How to Write Persuasive Legal Documents: A Guide for Self-Represented Litigants
 
-An affidavit of support (Form I-864) is a legally binding contract required for most family-based immigration cases. It demonstrates that an immigrant has adequate financial support and won't become a public charge.
+**Disclaimer:** This article provides general information about effective legal writing and is not legal advice. For advice about your specific situation, consult with a licensed attorney in your jurisdiction.
 
-## What is an Affidavit of Support?
+---
 
-An affidavit of support is a legal document where a U.S. citizen or permanent resident (the sponsor) agrees to financially support an immigrant seeking permanent residence. This document is required by U.S. Citizenship and Immigration Services (USCIS) for most family-based green card applications.
+Many self-represented litigants feel that courts are biased against them. While the legal system can be intimidating, often the real issue isn't bias—it's that legal documents submitted by non-lawyers frequently don't follow the conventions that judges and court staff are trained to expect.
 
-## Who Needs an Affidavit of Support?
+This isn't about intelligence or justice. It's about communication. Just as a doctor wouldn't take medical advice written in crayon seriously, courts expect legal documents to follow certain formats and writing styles.
 
-You need an affidavit of support if you're:
-- Sponsoring a family member for a green card
-- Being sponsored by a family member for immigration
-- Applying for adjustment of status based on family relationship
+## The Reality Check: Why Format Matters
 
-### Who Can Be a Sponsor?
+Judges review hundreds of documents. Court clerks process thousands. When your affidavit looks professional and follows expected conventions, it signals:
 
-To sponsor someone, you must:
-- Be a U.S. citizen or lawful permanent resident
-- Be at least 18 years old
-- Live in the United States or U.S. territory
-- Meet minimum income requirements (125% of federal poverty guidelines)
+- **Credibility** - You take the matter seriously
+- **Competence** - You understand the process
+- **Respect** - You value the court's time
+- **Reliability** - Your facts are likely accurate
 
-## Income Requirements for 2025
+When your document is poorly formatted, filled with emotional language, or difficult to follow, it creates the opposite impression—regardless of how valid your case may be.
 
-The sponsor must have income of at least 125% of the federal poverty guideline for their household size:
+## What Makes Legal Writing Persuasive
 
-| Household Size | Minimum Annual Income |
-|----------------|----------------------|
-| 2 people       | $23,612             |
-| 3 people       | $29,812             |
-| 4 people       | $36,012             |
-| 5 people       | $42,212             |
-| 6 people       | $48,412             |
+### 1. **Professional Formatting**
 
-*Note: Requirements are higher (162%) for active military sponsors*
+Legal writing has evolved standard formats for good reasons—they make information easy to find and verify.
 
-## What If Income is Insufficient?
+**What Works:**
+- Clean, typed text in standard fonts (Times New Roman, Arial)
+- Numbered paragraphs for easy reference
+- Clear headings and sections
+- Consistent margins and spacing
+- Page numbers
 
-If the sponsor doesn't meet income requirements, options include:
+**What Doesn't Work:**
+- Handwritten documents (except where specifically allowed)
+- Unusual fonts or colors
+- Wall-of-text paragraphs
+- Inconsistent formatting
+- Missing page numbers
 
-1. **Joint Sponsor** - Another person can also sign an affidavit of support
-2. **Household Member** - Someone living with the sponsor can contribute income
-3. **Assets** - Use assets worth 3x the income shortfall (5x for non-citizens)
+**Why It Matters:** A judge needs to quickly reference "paragraph 12" during a hearing. If your document isn't numbered or is hard to read, you're making their job harder.
 
-## Documents Required
+### 2. **Factual, Not Emotional**
 
-Sponsors must provide:
-- Most recent tax return (with all schedules)
-- W-2s from the past year
-- Recent pay stubs
-- Employment verification letter
-- Proof of citizenship or permanent residence
+This is where many self-represented litigants struggle. When you're involved in a legal matter—especially family law—emotions run high. But courts deal in facts, not feelings.
 
-## Common Mistakes to Avoid
+**Effective Approach:**
+> "On October 15, 2025, at 3:00 PM, the other party failed to return the child at the agreed pickup time of 2:00 PM as specified in the court order dated June 1, 2025."
 
-❌ Not including all household members in the count
-❌ Forgetting to sign before a notary
-❌ Missing required financial documentation
-❌ Using outdated poverty guidelines
-❌ Not accounting for the sponsored immigrant in household size
+**Ineffective Approach:**
+> "He ALWAYS does this! He doesn't care about our child and just wants to hurt me. He's a terrible person who never follows the rules and the court needs to punish him!"
 
-## How Long Does the Obligation Last?
+**Why the Difference Matters:**
+- The first statement can be verified with dates and references to court orders
+- The second statement is opinion, contains generalizations ("always"), and focuses on character rather than conduct
+- Judges see emotional language as potentially exaggerated or unreliable
 
-The affidavit of support remains in effect until:
-- The sponsored immigrant becomes a U.S. citizen
-- The sponsored immigrant works 40 quarters (10 years)
-- The sponsored immigrant dies or leaves the U.S. permanently
-- The sponsor dies
+### 3. **Specific Facts, Not Generalizations**
 
-## State-Specific Considerations
+Courts need concrete information they can evaluate and verify.
 
-While Form I-864 is federal, additional affidavits may be needed for:
-- State benefit applications
-- School enrollment
-- Housing applications
+**Strong Factual Writing:**
+- "I have lived at 123 Main Street, Austin, Texas since January 15, 2023"
+- "The lease agreement dated March 1, 2025 specifies rent of $1,200 per month"
+- "I submitted the required form to the clerk's office on November 20, 2025 at 10:30 AM"
 
-Texas, Utah, and Arizona have specific requirements for supplemental affidavits in certain situations.
+**Weak, Generalized Writing:**
+- "I have lived here for a while"
+- "The rent is expensive"
+- "I turned in the paperwork recently"
 
-## Create Your Affidavit Today
+**The Difference:** Specific facts can be verified. General statements cannot be checked and suggest you may not have reliable information.
 
-Need help with immigration-related affidavits? Our platform provides guidance and state-specific templates.
+### 4. **First-Person, Personal Knowledge**
 
-[Start Your Affidavit →](#cta)
+Affidavits should contain only what you personally know—not what you heard, assume, or believe.
+
+**Proper Personal Knowledge:**
+> "I personally witnessed the defendant run the red light at the intersection of 5th and Main on October 30, 2025 at approximately 2:45 PM."
+
+**Improper Hearsay:**
+> "My neighbor told me that the defendant always runs red lights and drives recklessly."
+
+**Why This Matters:** Courts generally exclude hearsay (statements about what others said or did when you weren't present). Including hearsay makes you look uninformed about legal procedures.
+
+### 5. **Organized Chronologically**
+
+When presenting a series of events, organize them by date. This makes your narrative easy to follow.
+
+**Well-Organized:**
+\`\`\`
+1. On June 1, 2025, I signed the lease agreement.
+2. On August 15, 2025, I notified the landlord in writing about the leak.
+3. On September 1, 2025, the landlord acknowledged the leak via email.
+4. On October 15, 2025, the leak still had not been repaired.
+\`\`\`
+
+**Poorly Organized:**
+\`\`\`
+The leak hasn't been fixed and I told the landlord about it back in August, well actually I signed the lease in June and then in September he said he knew about it...
+\`\`\`
+
+### 6. **Concise and Relevant**
+
+Include only information relevant to the legal matter at hand.
+
+**The Common Mistake:** Many self-represented litigants think "more is better" and include excessive background information, personal history, or tangential facts.
+
+**The Reality:** Judges have limited time. Irrelevant information:
+- Dilutes your key points
+- Wastes the court's time
+- Makes you appear unable to identify what matters
+- Can accidentally introduce information that hurts your case
+
+**Best Practice:** If a fact doesn't directly support your specific legal request, leave it out.
+
+## Common Mistakes That Undermine Credibility
+
+### ❌ ALL CAPS AND EXCESSIVE EMPHASIS
+
+Writing in all caps or with excessive exclamation points makes you appear emotional and unprofessional, not emphatic.
+
+### ❌ Legal Jargon Misused
+
+Using legal terms you don't fully understand often backfires. It's better to use plain English correctly than legal terminology incorrectly.
+
+**Don't Say:** "I hereby invoke my rights under the aforementioned statute pursuant to the holding in..."
+
+**Do Say:** "I am requesting relief based on Texas Family Code Section 123.45 because..."
+
+### ❌ Arguing Your Case
+
+An affidavit states facts. It's not the place to argue why you should win. Save legal arguments for briefs or hearings.
+
+**Affidavit (Fact):** "The contract specifies delivery by October 1, 2025. The goods were delivered on October 15, 2025."
+
+**Not an Affidavit (Argument):** "Therefore, the defendant clearly breached the contract and should be required to pay damages because the delay caused significant harm and the law says..."
+
+### ❌ Personal Attacks
+
+Character attacks on the opposing party severely damage your credibility.
+
+**Wrong:** "The defendant is a liar and a cheat who can't be trusted."
+
+**Right:** "The defendant stated under oath on June 1, 2025 that they had paid the rent. Bank records show no payment was received."
+
+Let the facts speak for themselves.
+
+## The Professional Difference
+
+Here's the same information written two different ways:
+
+**Unprofessional Version:**
+> "My ex is ALWAYS late picking up our daughter and he doesn't even care!!! Last month he was late like 5 times and she missed dinner. He's a terrible father and the court needs to do something about this because it's not fair to her. He probably does it just to make me mad. This has been going on forever and I'm sick of it!"
+
+**Professional Version:**
+> "1. I am Jane Smith, mother of Emily Smith (age 7).
+> 2. The custody order dated March 15, 2025 specifies that the child's father shall pick up Emily at 5:00 PM each Friday.
+> 3. During the month of October 2025, pickup occurred after 5:30 PM on the following dates: October 4 (5:45 PM), October 11 (6:15 PM), October 18 (5:50 PM), and October 25 (6:00 PM).
+> 4. On each occasion, Emily missed her regular 6:00 PM dinner time."
+
+**Why the Second Version is Better:**
+- Specific dates and times can be verified
+- States facts without emotional language
+- References the specific court order
+- Presents information the court can evaluate
+- Maintains credibility through professional tone
+
+## Why This Matters to Self-Represented Litigants
+
+You may feel that the system is stacked against you. Sometimes, that feeling comes from seeing your carefully written but improperly formatted documents receive less weight than a lawyer's professionally prepared filings.
+
+**The truth:** Courts aren't necessarily biased against you personally. They're biased toward documents that follow legal conventions because those documents are:
+- Easier to process
+- More reliable
+- Consistent with legal standards of evidence
+- Respectful of court procedures
+
+When you submit a document that looks and reads like a professional legal document, you level the playing field significantly.
+
+## How discover.legal Helps
+
+This is exactly why we built discover.legal. Our platform:
+
+✅ **Guides you through proper structure** - Numbered paragraphs, proper sections, required elements
+
+✅ **Formats everything professionally** - Courts-ready formatting that looks professionally prepared
+
+✅ **Helps you stay factual** - Prompts ask for specific facts, dates, and details—not opinions or emotions
+
+✅ **Validates your information** - Catches common errors before you print
+
+✅ **Includes state-specific requirements** - Each state has different formatting and content requirements built-in
+
+✅ **Saves you time and stress** - Complete a court-ready affidavit in under 10 minutes
+
+For just $79—a fraction of attorney fees—you get a professionally formatted legal document that presents your facts in the way courts expect to see them.
+
+## The Bottom Line
+
+Having your day in court starts with being heard. Being heard starts with being taken seriously. Being taken seriously starts with presenting your information professionally.
+
+You don't need to be a lawyer to write an effective affidavit. You just need to understand the conventions and follow them. That's what we help you do.
+
+## Ready to Create a Professional Affidavit?
+
+Stop worrying about whether your document looks professional enough. Let our system guide you through creating a court-ready affidavit that presents your facts clearly and credibly.
+
+[Get Started Now →](#cta)
+
+---
+
+**Remember:** This information is general guidance about effective legal writing, not legal advice. Laws and court rules vary by jurisdiction. When in doubt, consult with a licensed attorney in your area.
 `
   },
   {
@@ -338,7 +476,11 @@ Need help with immigration-related affidavits? Our platform provides guidance an
     content: `
 # Texas Family Law Affidavits: What You Need to Know
 
-Family law cases in Texas frequently require affidavits to support motions, establish facts, and provide evidence. Understanding when and how to use affidavits can significantly impact your case.
+**Disclaimer:** This article provides general educational information about affidavits in Texas family law and is not legal advice. Family law matters are fact-specific and jurisdictional. For guidance about your specific case, consult with a Texas family law attorney.
+
+---
+
+Family law cases in Texas frequently require affidavits to support motions, establish facts, and provide evidence. Understanding the general types and formats of affidavits can help you prepare better documentation.
 
 ## Types of Affidavits in Texas Family Law
 
@@ -373,9 +515,11 @@ Details income, expenses, assets, and debts in divorce proceedings.
 
 ## Texas-Specific Requirements
 
-Texas law has specific requirements for family law affidavits:
+**Important:** The information below describes common requirements, but specific courts may have additional local rules. Always check with your local court or consult an attorney.
 
-**Format Requirements:**
+Texas family law affidavits commonly follow these conventions:
+
+**Typical Format Elements:**
 
 - Jurat (oath before notary)
 - Venue (county and state)
@@ -383,12 +527,12 @@ Texas law has specific requirements for family law affidavits:
 - Signature in presence of notary
 - Notary seal and signature
 
-**Content Requirements:**
+**Typical Content Elements:**
 
 - First-person statements ("I am" not "The affiant is")
 - Numbered paragraphs
 - Specific dates and facts
-- No hearsay (with limited exceptions)
+- Personal knowledge (hearsay generally excluded)
 
 ## Best Practices for Family Law Affidavits
 
@@ -408,23 +552,27 @@ Texas law has specific requirements for family law affidavits:
 
 ## Child Custody Affidavits
 
-Special considerations for custody-related affidavits:
+**Important:** Child custody matters are among the most sensitive and complex areas of family law. The information below is general guidance only. Custody determinations involve many factors specific to each case. Strongly consider consulting with a family law attorney for custody-related affidavits.
 
-**What to Include:**
+Custody-related affidavits typically focus on factual information:
 
-- Your relationship with the child
-- Daily care routines you provide
-- Child's school and activities
-- Your ability to provide stable home
-- Other parent's involvement (factually)
+**General Content Considerations:**
 
-**What NOT to Include:**
+- Your relationship with the child and involvement in daily care
+- Factual information about routines, school, and activities
+- Objective observations (not opinions or conclusions)
+- Specific dates, times, and verifiable facts
+- Professional, non-emotional tone
 
-- Accusations without evidence
-- Character attacks on other parent
-- Hearsay from the child
-- Irrelevant past history
-- Opinions presented as facts
+**Common Pitfalls to Avoid:**
+
+- Unsubstantiated accusations
+- Character attacks that don't relate to parenting
+- Hearsay or secondhand information
+- Irrelevant personal history
+- Emotional or inflammatory language
+
+*Note: What is relevant or admissible varies by case and jurisdiction. An attorney can help you determine what information is appropriate for your specific situation.*
 
 ## How Much Does It Cost?
 
@@ -457,7 +605,11 @@ Our platform provides Texas-specific family law affidavit templates with:
     content: `
 # Affidavit Notarization: Everything You Need to Know
 
-Notarization is the final critical step in creating a legally valid affidavit. Here's everything you need to know about getting your affidavit properly notarized.
+**Disclaimer:** This article provides general educational information about notarization processes and is not legal advice. Notarization requirements vary by state and document type. For specific guidance, consult with a notary public or attorney in your jurisdiction.
+
+---
+
+Notarization is typically the final step in creating a legally valid affidavit. Here's what you need to know about the notarization process.
 
 ## What is Notarization?
 
@@ -512,22 +664,24 @@ You'll need:
 
 ## State-Specific Notary Requirements
 
+**Note:** Notary requirements and fees change periodically. The information below reflects general requirements as of 2025. Always verify current requirements with your state's notary regulatory body.
+
 ### Texas
-- Maximum fee: $6 per signature
-- Notary must use seal or stamp
-- Jurat required for affidavits
+- Maximum statutory fee: $6 per signature (as of 2025)
+- Notaries typically use seal or stamp
+- Jurat commonly required for affidavits
 - ID must be current (not expired)
 
 ### Utah
-- Maximum fee: $10 per signature
-- Notary seal required
+- Maximum statutory fee: $10 per signature (as of 2025)
+- Notary seal typically required
 - Multiple types of acceptable ID
-- Allows remote online notarization (RON)
+- Remote online notarization (RON) authorized
 
 ### Arizona
-- Maximum fee: $10 per signature
-- Notary seal or stamp required
-- Allows remote online notarization (RON)
+- Maximum statutory fee: $10 per signature (as of 2025)
+- Notary seal or stamp typically required
+- Remote online notarization (RON) authorized
 - ID must be government-issued
 
 ## The Notarization Process
@@ -625,7 +779,11 @@ We provide:
     content: `
 # Utah Legal Documents: Affidavits, Declarations, and More
 
-Utah has specific requirements for legal documents including affidavits, declarations, and verified pleadings. This guide covers everything you need to know about preparing Utah legal documents.
+**Disclaimer:** This article provides general educational information about Utah legal documents and is not legal advice. Legal requirements vary by case type and court. For advice about your specific situation, consult with a Utah-licensed attorney.
+
+---
+
+Utah has specific requirements for legal documents including affidavits, declarations, and verified pleadings. This guide provides an overview of common document types used in Utah courts.
 
 ## Utah vs. Other States
 
@@ -651,44 +809,52 @@ Sworn statements made under oath before a notary.
 ### 2. Declarations
 Unsworn statements made under penalty of perjury.
 
-**Utah Law (Utah Code § 78B-5-705):**
+**Utah Law:**
 
-Utah allows declarations without notarization if they include:
+Utah law (Utah Code § 78B-5-705) allows unsworn declarations in certain circumstances. These declarations typically include a statement such as:
 
 > "I declare under penalty of perjury under the laws of the State of Utah that the foregoing is true and correct."
+
+*Note: Not all courts or situations accept unsworn declarations. Verify what your court requires.*
 
 ### 3. Verified Pleadings
 Court documents verified by affidavit or declaration.
 
 ## When to Use Each Document Type
 
-**Use an Affidavit when:**
+**Note:** The appropriate document type depends on your specific court's requirements and the purpose of the filing. When in doubt, consult with an attorney or your court clerk.
 
-- Specifically required by court
-- Filing in another state
-- Supporting important motions
-- Registering documents
+**Affidavits are commonly used for:**
 
-**Use a Declaration when:**
+- Situations where specifically required by court rule
+- Filings in other states that may not recognize Utah declarations
+- Supporting significant motions
+- Recording documents with government offices
 
-- Permitted by Utah law
-- Want to avoid notary costs
-- Need quick completion
-- Supporting routine motions
+**Declarations may be appropriate when:**
+
+- Permitted by applicable Utah law and court rules
+- Notarization is not specifically required
+- Supporting routine court filings
+- Speed or cost are considerations
+
+*Always verify which format your specific court requires before filing.*
 
 ## Utah Court Requirements
 
+**Important:** Court requirements vary by district and change over time. Always check with your specific court for current requirements.
+
 ### District Courts
-- Must follow Utah Rules of Civil Procedure
+- Generally follow Utah Rules of Civil Procedure
 - E-filing required in most cases
-- Specific formatting rules
-- Font and margin requirements
+- Specific formatting rules often apply
+- Font and margin requirements may apply
 
 ### Justice Courts
-- Less formal procedures
-- May accept handwritten documents
-- Notarization usually required
-- Simpler formatting acceptable
+- Typically less formal procedures than district courts
+- May accept handwritten documents in some cases
+- Notarization usually required for affidavits
+- Generally more flexible formatting
 
 ## Common Uses in Utah
 
@@ -818,16 +984,22 @@ We provide:
     content: `
 # Arizona Affidavit Requirements: Complete State Guide
 
-Arizona has specific requirements for affidavits used in legal proceedings. This comprehensive guide covers everything you need to create legally valid affidavits in Arizona.
+**Disclaimer:** This article provides general educational information about Arizona affidavit requirements and is not legal advice. Requirements vary by court, case type, and jurisdiction. For advice about your specific legal matter, consult with an Arizona-licensed attorney.
+
+---
+
+Arizona has specific requirements for affidavits used in legal proceedings. This guide provides an overview of common affidavit requirements in Arizona courts.
 
 ## Arizona Affidavit Basics
 
-An affidavit in Arizona must include:
+Arizona affidavits typically include these elements:
 - Proper venue (State of Arizona, County of [Name])
 - Affiant's personal knowledge statement
 - Clear, numbered facts
 - Verification under penalty of perjury
 - Notary acknowledgment and seal
+
+*Note: Specific requirements may vary by court and document type. Verify requirements with your local court.*
 
 ## Arizona Notary Requirements
 
@@ -857,25 +1029,27 @@ Arizona fully authorizes RON under A.R.S. § 41-351 et seq.
 
 ## Court Requirements in Arizona
 
+**Note:** Requirements vary by court and change over time. Always check with your specific court for current filing requirements.
+
 ### Superior Courts
-Arizona Superior Courts require:
-- Typed documents (handwritten not accepted)
+Arizona Superior Courts typically require:
+- Typed documents (handwritten generally not accepted)
 - 8.5" x 11" paper
 - Specific caption format
 - Line numbering for pleadings
 - Proper case number
 
 ### Justice Courts
-Less formal but still require:
+Generally less formal but typically require:
 - Legible documents
 - Proper venue
 - Valid notarization
 - Complete information
 
 ### Municipal Courts
-Similar to justice courts:
-- More flexible formatting
-- Notarization required
+Similar to justice courts with:
+- More flexible formatting standards
+- Notarization generally required
 - Clear statements of fact
 
 ## Common Arizona Affidavit Types
@@ -901,28 +1075,41 @@ Similar to justice courts:
 ## Arizona-Specific Considerations
 
 ### Community Property
-Arizona is a community property state. Affidavits regarding:
-- Marriage assets
-- Debt obligations
-- Property rights
 
-May require both spouses' signatures.
+**Important:** Arizona is a community property state, which can affect property-related affidavits in marriage or divorce contexts. Community property law is complex and fact-specific.
+
+If your affidavit concerns marital assets, debt obligations, or property rights, consult with an Arizona family law attorney to determine:
+- Whether both spouses' signatures may be required
+- How community property law affects your situation
+- What disclosures may be necessary
 
 ### Native American Jurisdictions
-For matters involving tribal lands:
-- May need tribal court approval
-- Different requirements may apply
-- Consult tribal authorities
+
+**Important:** Legal matters involving tribal lands, tribal members, or tribal jurisdiction are governed by complex federal and tribal law.
+
+If your matter involves:
+- Tribal lands or reservations
+- Tribal court proceedings
+- Matters under tribal jurisdiction
+
+You should consult with:
+- An attorney experienced in federal Indian law
+- The relevant tribal court or tribal attorney's office
+- Legal aid organizations specializing in Native American law
+
+*Affidavit requirements and procedures may differ significantly in tribal court systems.*
 
 ## Arizona Verification Language
 
-Arizona law requires specific verification language:
+Arizona affidavits commonly use verification language such as:
 
 > "I declare under penalty of perjury that the foregoing is true and correct according to the best of my knowledge and belief."
 
 OR
 
 > "Subscribed and sworn to (or affirmed) before me this ___ day of _______, 20___."
+
+*Note: Specific wording requirements may vary. Consult your court's local rules or an attorney.*
 
 ## Where to File Affidavits in Arizona
 

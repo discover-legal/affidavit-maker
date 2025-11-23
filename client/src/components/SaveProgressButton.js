@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader, Check, AlertCircle, Clock } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { trackEvent } from '../utils/analytics';
 
 const SaveProgressButton = ({ 
   onSave, 
@@ -26,22 +27,32 @@ const SaveProgressButton = ({
       loginWithRedirect();
       return;
     }
-    
+
     if (disabled || saveStatus === 'saving') {
       return;
     }
-    
+
     try {
       setSaveStatus('saving');
       await onSave();
       setSaveStatus('success');
-      
+
+      // Track successful save
+      trackEvent('document_saved', {
+        has_unsaved_changes: hasUnsavedChanges
+      });
+
       // Reset to idle after showing success
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error('Save failed:', error);
       setSaveStatus('error');
-      
+
+      // Track save failure
+      trackEvent('document_save_failed', {
+        error_message: error.message
+      });
+
       // Reset to idle after showing error
       setTimeout(() => setSaveStatus('idle'), 3000);
     }

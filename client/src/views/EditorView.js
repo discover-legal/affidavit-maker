@@ -8,6 +8,7 @@ import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 import PaymentModal from '../components/PaymentModal';
+import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -206,6 +207,10 @@ const EditorView = ({ isNew = false, onBack }) => {
 
         try {
           await initializeNewDocument(true);
+          // Track new document editor opened
+          trackEvent('editor_opened', {
+            is_new_document: true
+          });
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
           initializationDone.current = false;
@@ -224,6 +229,11 @@ const EditorView = ({ isNew = false, onBack }) => {
         try {
           await loadDocument(documentId);
           console.log('✅ Document loaded:', documentId);
+          // Track existing document editor opened
+          trackEvent('editor_opened', {
+            is_new_document: false,
+            document_id: documentId
+          });
         } catch (error) {
           console.error('❌ Failed to load document:', error);
           initializationDone.current = false;

@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, File, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { trackEvent } from '../utils/analytics';
 
 /**
  * Modal for uploading evidence files
@@ -114,6 +115,13 @@ const EvidenceUploadModal = ({
     setUploading(true);
     setError(null);
 
+    // Track evidence upload attempt
+    trackEvent('evidence_upload_started', {
+      document_id: documentId,
+      file_type: selectedFile.type,
+      file_size_mb: (selectedFile.size / (1024 * 1024)).toFixed(2)
+    });
+
     try {
       const token = await getAccessTokenSilently();
 
@@ -144,6 +152,14 @@ const EvidenceUploadModal = ({
       // Success!
       console.log('✅ Upload successful, calling onUploadSuccess');
 
+      // Track successful upload
+      trackEvent('evidence_uploaded_successfully', {
+        document_id: documentId,
+        file_type: selectedFile.type,
+        file_size_mb: (selectedFile.size / (1024 * 1024)).toFixed(2),
+        file_pages: data.evidence.filePages
+      });
+
       onUploadSuccess({
         ...evidence,
         evidenceData: {
@@ -163,6 +179,12 @@ const EvidenceUploadModal = ({
     } catch (err) {
       console.error('❌ Upload error:', err);
       setError(err.message || 'Failed to upload evidence. Please try again.');
+
+      // Track upload failure
+      trackEvent('evidence_upload_failed', {
+        document_id: documentId,
+        error_message: err.message
+      });
     } finally {
       setUploading(false);
     }

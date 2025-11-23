@@ -5,6 +5,7 @@ import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpe
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE = process.env.REACT_APP_API_URL !== undefined
@@ -45,6 +46,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
       if (response.ok) {
         console.log('✅ Document deleted successfully:', docId);
+        // Track document deletion
+        trackEvent('document_deleted', {
+          document_id: docId
+        });
         // Reload documents from context
         loadDocuments();
       } else {
@@ -99,7 +104,22 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   const handleContinueDocument = (doc) => {
     console.log('📂 Opening document:', doc.id);
+    // Track document open
+    trackEvent('document_opened', {
+      document_id: doc.id,
+      state: doc.state,
+      facts_count: doc.facts?.length || 0,
+      status: doc.status
+    });
     onContinueDocument(doc);
+  };
+
+  const handleNewDocumentClick = () => {
+    // Track new document creation
+    trackEvent('new_document_clicked', {
+      source: 'dashboard'
+    });
+    onNewDocument();
   };
 
   const handleBackToDashboard = () => {
@@ -163,8 +183,8 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
             <h3 className="font-semibold text-gray-900 mb-2">Create New Affidavit</h3>
             <p className="text-sm text-gray-600">Our AI assistant will guide you through the entire process, ensuring state-specific compliance.</p>
           </div>
-          <button 
-            onClick={onNewDocument} 
+          <button
+            onClick={handleNewDocumentClick}
             className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-semibold"
           >
             <PlusCircle className="h-4 w-4 mr-2" />
@@ -222,8 +242,8 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           <div className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 mb-4">You haven't created any documents yet</p>
-            <button 
-              onClick={onNewDocument}
+            <button
+              onClick={handleNewDocumentClick}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Your First Affidavit

@@ -127,10 +127,7 @@ app.use(cors({
       if (process.env.NODE_ENV === 'development') {
         return callback(null, true);
       }
-      logger.warn('CORS blocked request without Origin header in production', {
-        ip: req?.ip,
-        path: req?.path
-      });
+      logger.warn('CORS blocked request without Origin header in production');
       return callback(new Error('Origin header required'));
     }
 

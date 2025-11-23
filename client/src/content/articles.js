@@ -135,12 +135,22 @@ Establishes inheritance rights when someone dies without a will.
 ### 5. Affidavit of Service
 Proves that legal documents were properly served to another party.
 
+## Understanding Legal Terms
+
+Here are three important concepts that help you understand how courts evaluate your affidavit:
+
+**Weight:** This means how much the court believes and trusts your evidence. What you saw yourself has more weight than what someone told you. Facts you can prove have more weight than things you can't prove.
+
+**Credibility:** This means whether people believe you're telling the truth. Courts trust you more when you give specific details, stay consistent, act professional, and have proof that backs up what you say.
+
+**Reliability:** This means how trustworthy your information is. Information is more reliable when you saw it yourself, can prove it, and your story doesn't change.
+
 ## What NOT to Include in an Affidavit
 
 Avoid these common mistakes:
 
-❌ **Hearsay** - Don't include things you heard from others
-❌ **Opinions** - Stick to facts unless your opinion is specifically relevant
+❌ **Pure Hearsay** - Avoid unattributed secondhand information (what you heard from others without identifying the source)
+❌ **Unsupported Opinions** - Stick to facts unless your opinion has a stated basis
 ❌ **Irrelevant Information** - Only include pertinent facts
 ❌ **Legal Arguments** - Save arguments for your lawyer
 ❌ **Emotional Language** - Stay factual and neutral
@@ -253,9 +263,9 @@ Don't struggle with templates or worry about legal requirements. Our platform gu
 
 ---
 
-Many self-represented litigants feel that courts are biased against them. While the legal system can be intimidating, often the real issue isn't bias—it's that legal documents submitted by non-lawyers frequently don't follow the conventions that judges and court staff are trained to expect.
+Many people representing themselves in court feel that judges are biased against them. The legal system can be scary. But often the real problem isn't bias—it's that documents from non-lawyers don't follow the format that judges expect.
 
-This isn't about intelligence or justice. It's about communication. Just as a doctor wouldn't take medical advice written in crayon seriously, courts expect legal documents to follow certain formats and writing styles.
+This isn't about how smart you are. It's about communication. Every profession has standards for how to share information. Courts have standards too. These standards make legal documents easier to read and understand.
 
 ## The Reality Check: Why Format Matters
 
@@ -323,15 +333,35 @@ Courts need concrete information they can evaluate and verify.
 
 ### 4. **First-Person, Personal Knowledge**
 
-Affidavits should contain only what you personally know—not what you heard, assume, or believe.
+Write about what you know yourself. But it's also important to understand hearsay and when you can share your beliefs.
 
-**Proper Personal Knowledge:**
-> "I personally witnessed the defendant run the red light at the intersection of 5th and Main on October 30, 2025 at approximately 2:45 PM."
+**Good - What You Saw:**
+> "I saw the defendant run the red light at 5th and Main on October 30, 2025 at about 2:45 PM."
 
-**Improper Hearsay:**
+**Bad - Hearsay (What Someone Told You):**
 > "My neighbor told me that the defendant always runs red lights and drives recklessly."
 
-**Why This Matters:** Courts generally exclude hearsay (statements about what others said or did when you weren't present). Including hearsay makes you look uninformed about legal procedures.
+**OK - Your Belief When You Say Where It Comes From:**
+> "Based on the repair estimate from ABC Auto dated November 1, 2025, I believe fixing my car will cost about $3,500."
+
+**What Is Hearsay?**
+
+Hearsay is when you tell the court what someone else said, and you're trying to prove that what they said is true. Courts usually don't allow hearsay.
+
+**Why Hearsay Is a Problem:**
+- No one can check if it's true
+- People might remember it wrong
+- Makes you look less trustworthy
+- The court might ignore it completely
+
+**When You Can Share Your Beliefs:**
+
+Your affidavit should mostly be about facts. But you can sometimes share what you believe if you:
+- Say clearly that it's what you believe
+- Explain where your belief comes from
+- Know the court might not trust it as much as facts you saw yourself
+
+For example: "I believe the property is worth $200,000 based on an appraisal by Jane Doe on October 15, 2025." This tells the court where your belief comes from. The court can decide how much to trust it—but it won't have as much weight as if the appraiser said it in court herself.
 
 ### 5. **Organized Chronologically**
 

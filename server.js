@@ -121,14 +121,15 @@ const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
   origin: (origin, callback) => {
-    // SECURITY: Only allow requests without origin in development
-    // In production, require Origin header to prevent server-to-server attacks
+    // SECURITY: Allow requests without Origin header
+    // These are typically same-origin requests, health checks, or server-to-server calls
+    // The Origin header is sent by browsers for cross-origin requests
+    // Blocking requests without Origin breaks legitimate use cases like:
+    // - Health checks and monitoring
+    // - Same-origin browser requests
+    // - Server-to-server API calls
     if (!origin) {
-      if (process.env.NODE_ENV === 'development') {
-        return callback(null, true);
-      }
-      logger.warn('CORS blocked request without Origin header in production');
-      return callback(new Error('Origin header required'));
+      return callback(null, true);
     }
 
     const normalizedOrigin = normalizeOrigin(origin);

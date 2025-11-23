@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Template Metadata Schema",
+  "description": "Schema for state template metadata files",
+  "type": "object",
+  "required": [
+    "stateCode",
+    "stateName",
+    "documentTypes",
+    "version",
+    "legallyCompliant",
+    "requiredFields",
+    "features"
+  ],
+  "properties": {
+    "stateCode": {
+      "type": "string",
+      "description": "Two-letter state code (e.g., TX, UT, AZ)",
+      "pattern": "^[A-Z]{2}$",
+      "examples": ["TX", "UT", "AZ"]
+    },
+    "stateName": {
+      "type": "string",
+      "description": "Full state name",
+      "minLength": 2,
+      "examples": ["Texas", "Utah", "Arizona"]
+    },
+    "documentTypes": {
+      "type": "array",
+      "description": "Types of documents this template supports",
+      "items": {
+        "type": "string",
+        "enum": ["affidavit", "petition", "motion", "notice"]
+      },
+      "minItems": 1,
+      "examples": [["affidavit"]]
+    },
+    "version": {
+      "type": "string",
+      "description": "Template version (semantic versioning)",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "examples": ["2.0", "1.0.0"]
+    },
+    "legallyCompliant": {
+      "type": "boolean",
+      "description": "Whether template meets state legal requirements"
+    },
+    "requiredFields": {
+      "type": "array",
+      "description": "Fields required by this template",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["affiantName", "state", "county"]]
+    },
+    "optionalFields": {
+      "type": "array",
+      "description": "Optional fields supported by this template",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["caseNumber", "courtName", "plaintiff", "defendant"]]
+    },
+    "features": {
+      "type": "object",
+      "description": "State-specific features and requirements",
+      "properties": {
+        "perjuryStatement": {
+          "type": "boolean",
+          "description": "Whether perjury statement is required"
+        },
+        "notaryBlock": {
+          "type": "boolean",
+          "description": "Whether notary block is required"
+        },
+        "notaryInstruction": {
+          "type": "boolean",
+          "description": "Whether notary instruction is included"
+        },
+        "caseNumberLabel": {
+          "type": "string",
+          "description": "Label for case number (e.g., 'CAUSE NO.', 'CASE NO.')",
+          "examples": ["CAUSE NO.", "CASE NO."]
+        },
+        "caseNumberRequired": {
+          "type": "boolean",
+          "description": "Whether case number is required"
+        },
+        "headerFormat": {
+          "type": "string",
+          "description": "Format for document header",
+          "enum": ["uppercase", "sentencecase", "titlecase"],
+          "examples": ["uppercase", "sentencecase"]
+        },
+        "venueFormat": {
+          "type": "string",
+          "description": "Format for venue section",
+          "enum": ["uppercase", "sentencecase", "titlecase"],
+          "examples": ["uppercase", "sentencecase"]
+        }
+      },
+      "required": [
+        "perjuryStatement",
+        "notaryBlock",
+        "caseNumberLabel"
+      ]
+    },
+    "legalCitations": {
+      "type": "array",
+      "description": "Legal citations and references for this state",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Legal code citation"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what this citation covers"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the legal code (optional)",
+            "format": "uri"
+          }
+        },
+        "required": ["code", "description"]
+      }
+    },
+    "exhibitRules": {
+      "type": "object",
+      "description": "Rules for exhibit formatting",
+      "properties": {
+        "labelStyle": {
+          "type": "string",
+          "enum": ["letters", "numbers"],
+          "description": "Style for exhibit labels (A,B,C or 1,2,3)"
+        },
+        "requireCoverPage": {
+          "type": "boolean",
+          "description": "Whether exhibits require cover pages"
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Instructions for exhibit formatting"
+        }
+      }
+    }
+  }
+}

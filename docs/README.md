@@ -4,18 +4,6 @@ This directory contains supplementary documentation for the Affidavit Maker appl
 
 ## Available Guides
 
-### [Render Persistent Disk Setup](RENDER_PERSISTENT_DISK.md)
-**Step-by-step instructions for adding persistent storage to your Render.com deployment**
-
-Learn how to:
-- Create a 1GB (or larger) persistent disk on Render.com
-- Attach the disk to your running Docker container
-- Configure persistent PDF storage that survives deployments
-- Monitor disk usage and troubleshoot common issues
-- Migrate from ephemeral to persistent storage
-
-Perfect for production deployments where PDFs need to persist across restarts and deployments.
-
 ### [API Key Security](API_KEY_SECURITY.md)
 **Security best practices for managing API keys and secrets**
 

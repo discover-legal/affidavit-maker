@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Download, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -38,7 +39,14 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
   const handleGenerate = async () => {
     try {
       setGenerateStatus('generating');
-      
+
+      // Track PDF generation attempt
+      trackEvent('pdf_generation_started', {
+        document_id: affidavitData.documentId,
+        state: affidavitData.state,
+        facts_count: affidavitData.facts?.length || 0
+      });
+
       const token = await getAccessTokenSilently();
 
       const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
@@ -53,11 +61,11 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
           skipPayment: process.env.NODE_ENV === 'development' // Skip payment in development
         })
       });
-      
+
       if (response.ok) {
         // Handle PDF download
         const blob = await response.blob();
-        
+
         // Create download link
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -67,34 +75,50 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
+
         setGenerateStatus('success');
-        
+
+        // Track successful PDF generation
+        trackEvent('pdf_generated_successfully', {
+          document_id: affidavitData.documentId,
+          state: affidavitData.state,
+          facts_count: affidavitData.facts?.length || 0
+        });
+
         if (onGenerate) {
           onGenerate({ success: true, message: 'PDF downloaded successfully' });
         }
-        
+
       } else {
         // Handle error response
         const errorData = await response.json().catch(() => ({ error: 'Generation failed' }));
-        
+
         if (response.status === 402) {
           // Payment required
           setGenerateStatus('payment-required');
+          trackEvent('pdf_generation_payment_required', {
+            document_id: affidavitData.documentId
+          });
         } else {
           throw new Error(errorData.error || 'Generation failed');
         }
       }
-      
+
     } catch (error) {
       console.error('Generate failed:', error);
       setGenerateStatus('error');
-      
+
+      // Track PDF generation failure
+      trackEvent('pdf_generation_failed', {
+        document_id: affidavitData.documentId,
+        error_message: error.message
+      });
+
       if (onGenerate) {
         onGenerate({ success: false, error: error.message });
       }
     }
-    
+
     // Reset status after showing result
     setTimeout(() => setGenerateStatus('idle'), 3000);
   };

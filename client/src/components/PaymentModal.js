@@ -4,6 +4,7 @@ import { X, Loader2, AlertCircle } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
+import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -30,6 +31,13 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
     setProcessing(true);
     setError(null);
 
+    // Track payment attempt
+    trackEvent('payment_initiated', {
+      document_id: documentId,
+      document_type: documentType,
+      amount: amount / 100
+    });
+
     try {
       const { error: submitError } = await stripe.confirmPayment({
         elements,
@@ -42,13 +50,30 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
       if (submitError) {
         setError(submitError.message);
         setProcessing(false);
+
+        // Track payment failure
+        trackEvent('payment_failed', {
+          document_id: documentId,
+          error_message: submitError.message
+        });
       } else {
         // Payment succeeded
+        trackEvent('payment_completed', {
+          document_id: documentId,
+          document_type: documentType,
+          amount: amount / 100
+        });
         onSuccess();
       }
     } catch (err) {
       setError(err.message || 'An unexpected error occurred');
       setProcessing(false);
+
+      // Track payment error
+      trackEvent('payment_error', {
+        document_id: documentId,
+        error_message: err.message
+      });
     }
   };
 
@@ -112,6 +137,12 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Track payment modal opened
+    trackEvent('payment_modal_opened', {
+      document_id: documentId,
+      document_type: documentType
+    });
 
     const createPaymentIntent = async () => {
       try {

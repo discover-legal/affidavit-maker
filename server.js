@@ -24,6 +24,11 @@ const { responseMiddleware } = require('./utils/responseHelpers');
 // Initialize Express app
 const app = express();
 
+// Trust proxy - required for correct IP detection behind reverse proxies/load balancers
+// This enables express-rate-limit and other middleware to correctly identify users
+// Set to 1 to trust the first proxy (cloud platform load balancer)
+app.set('trust proxy', 1);
+
 // Request ID middleware 
 app.use((req, res, next) => {
   req.id = uuidv4();

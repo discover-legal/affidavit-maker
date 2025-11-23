@@ -251,36 +251,8 @@ const styles = {
   }
 };
 
-// Higher-order component for wrapping components with error boundary
-export const withErrorBoundary = (Component, fallback) => {
-  return class extends React.Component {
-    render() {
-      return (
-        <ErrorBoundary fallback={fallback}>
-          <Component {...this.props} />
-        </ErrorBoundary>
-      );
-    }
-  };
-};
-
-// Hook for error handling (requires React 16.8+)
-export const useErrorHandler = () => {
-  const [error, setError] = React.useState(null);
-  
-  const resetError = () => setError(null);
-  
-  const captureError = React.useCallback((error) => {
-    setError(error);
-  }, []);
-  
-  React.useEffect(() => {
-    if (error) {
-      throw error;
-    }
-  }, [error]);
-  
-  return { captureError, resetError };
-};
+// NOTE: The withErrorBoundary HOC and useErrorHandler hook have been removed
+// as they were not used anywhere in the codebase. If needed in the future,
+// they can be re-added or used from a library like react-error-boundary.
 
 export default ErrorBoundary;

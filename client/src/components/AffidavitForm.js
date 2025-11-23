@@ -8,7 +8,7 @@
 
 import React, { useReducer, useCallback, useMemo, useRef, useEffect } from 'react';
 import { debounce } from 'lodash';
-import EnhancedFactValidationService from '../services/EnhancedFactValidationService';
+// NOTE: EnhancedFactValidationService import removed - validation is handled server-side
 
 // Action types
 const ActionTypes = {
@@ -204,9 +204,9 @@ export default function AffidavitForm({
   
   const [newFactInput, setNewFactInput] = React.useState('');
   
-  // Memoized validation service
+  // Memoized validation service (validation is handled server-side)
   const validator = useMemo(() => {
-    return validationService || new EnhancedFactValidationService(null, 'en');
+    return validationService || null;
   }, [validationService]);
   
   // Callbacks with useCallback to prevent unnecessary re-renders

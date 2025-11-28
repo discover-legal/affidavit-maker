@@ -136,7 +136,7 @@ router.post('/preview',
         metadata: {
           generatedAt: new Date().toISOString(),
           factCount: affidavitData.facts?.length || 0,
-          categories: getCategorySummary(affidavitData.facts),
+          categories: getCategorySummary(affidavitData.facts || []),
           completionScore: calculateCompletionScore(enhancedPreview)
         }
       });

@@ -64,32 +64,42 @@ router.post('/preview',
       // FIX: Use templateManager.generateAffidavit() method (matches /generate endpoint)
       if (templateManager) {
         try {
-          // Use generateAffidavit with state code and data (same as /generate endpoint)
-          const document = templateManager.generateAffidavit(
-            affidavitData.state || 'TX',
-            affidavitData
-          );
+          // ✅ FIX: Don't default to 'TX' when state is empty - use neutral preview instead
+          // This prevents the "flash" where Texas template shows before user selects their state
+          const hasState = affidavitData.state && affidavitData.state.trim() !== '';
 
-          // ✅ DEBUG: Log generated document sections
-          logger.info('Template generated document', {
-            factItemCount: document.sections?.facts?.items?.length || 0,
-            factItems: document.sections?.facts?.items?.map((f, i) => ({
-              number: f.number,
-              hasContent: !!f.content,
-              contentLength: f.content?.length,
-              contentPreview: f.content?.substring(0, 50)
-            }))
-          });
+          if (!hasState) {
+            // State not yet selected - use neutral fallback preview
+            logger.info('State not set, using neutral preview');
+            preview = createFallbackPreview(affidavitData);
+          } else {
+            // Use generateAffidavit with state code and data (same as /generate endpoint)
+            const document = templateManager.generateAffidavit(
+              affidavitData.state,
+              affidavitData
+            );
 
-          preview = {
-            sections: document.sections || document,
-            htmlContent: document.htmlContent,
-            metadata: {
-              wordCount: estimateWordCount(affidavitData.facts)
-            }
-          };
+            // ✅ DEBUG: Log generated document sections
+            logger.info('Template generated document', {
+              factItemCount: document.sections?.facts?.items?.length || 0,
+              factItems: document.sections?.facts?.items?.map((f, i) => ({
+                number: f.number,
+                hasContent: !!f.content,
+                contentLength: f.content?.length,
+                contentPreview: f.content?.substring(0, 50)
+              }))
+            });
 
-          logger.info('StateTemplateManager preview generated successfully');
+            preview = {
+              sections: document.sections || document,
+              htmlContent: document.htmlContent,
+              metadata: {
+                wordCount: estimateWordCount(affidavitData.facts)
+              }
+            };
+
+            logger.info('StateTemplateManager preview generated successfully');
+          }
         } catch (templateError) {
           logger.warn('Template manager preview failed, using fallback', {
             error: templateError.message
@@ -316,10 +326,19 @@ router.post('/generate',
       // STEP 2: Generate document structure using template manager
       let documentStructure;
       if (templateManager) {
+        // ✅ FIX: Require state to be set for PDF generation - don't silently default to TX
+        if (!affidavitData.state || affidavitData.state.trim() === '') {
+          return res.status(400).json({
+            success: false,
+            error: 'State selection is required before generating PDF',
+            errorType: 'missing_state'
+          });
+        }
+
         try {
-          // Fix: Use generateAffidavit with state code and data
+          // Use generateAffidavit with state code and data
           documentStructure = templateManager.generateAffidavit(
-            affidavitData.state || 'TX',
+            affidavitData.state,
             affidavitData
           );
         } catch (templateError) {

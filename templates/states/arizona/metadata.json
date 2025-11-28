@@ -1,0 +1,41 @@
+{
+  "stateCode": "AZ",
+  "stateName": "Arizona",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase"
+  },
+  "legalCitations": [
+    {
+      "code": "A.R.S. § 13-2702",
+      "description": "Perjury statute - Arizona includes perjury statement as best practice"
+    },
+    {
+      "code": "A.R.S. § 41-313",
+      "description": "Notary public requirements including seal and commission expiration"
+    },
+    {
+      "code": "Arizona Rule 56",
+      "description": "Summary judgment procedures requiring competent affidavits"
+    },
+    {
+      "code": "Elerick v. Rocklin, 103 Ariz. 76",
+      "description": "Case law on affidavit competency requirements"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. Include a brief description of the exhibit on the cover page."
+  }
+}

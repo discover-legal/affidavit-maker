@@ -1,0 +1,37 @@
+{
+  "stateCode": "TX",
+  "stateName": "Texas",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "causeNumber", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CAUSE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "Tex. Gov't Code § 312.011",
+      "description": "Affidavit requirements - Texas does not require perjury statement in text, oath provides warning"
+    },
+    {
+      "code": "Tex. Civ. Prac. & Rem. Code § 18.002",
+      "description": "Statutory jurat format for notary block"
+    },
+    {
+      "code": "Tex. R. Civ. P. 15",
+      "description": "Requirements for affidavits in civil proceedings"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. The cover page should include a brief description of the exhibit."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "stateCode": "UT",
+  "stateName": "Utah",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": true,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "sentencecase",
+    "venueFormat": "sentencecase"
+  },
+  "legalCitations": [
+    {
+      "code": "Utah Code § 46-1-6.5",
+      "description": "PRESCRIPTIVE STATUTORY FORM - Utah has minimal flexibility in affidavit format, requires sentence case for 'State of Utah'"
+    },
+    {
+      "code": "Utah Code § 46-1-16",
+      "description": "Notary commission requirements including expiration date"
+    },
+    {
+      "code": "URCP Rule 56(c)(4)",
+      "description": "Requirements for affidavits in summary judgment - must show affiant is competent to testify"
+    },
+    {
+      "code": "Utah Code § 78B-5-701",
+      "description": "Competency of witnesses"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Exhibits should be labeled with letters (A, B, C, etc.). Cover pages are recommended for clarity."
+  }
+}

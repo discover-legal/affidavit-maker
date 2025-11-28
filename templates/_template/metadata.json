@@ -1,0 +1,38 @@
+{
+  "stateCode": "XX",
+  "stateName": "Your State Name",
+  "documentTypes": ["affidavit"],
+  "version": "1.0",
+  "legallyCompliant": false,
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase"
+  },
+  "legalCitations": [
+    {
+      "code": "[State Code § XX.XXX]",
+      "description": "[Description of what this statute covers]"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Exhibits should be labeled with letters (A, B, C, etc.). Cover pages are recommended."
+  }
+}

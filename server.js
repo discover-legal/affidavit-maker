@@ -283,9 +283,20 @@ async function initializeServices() {
     console.log(`  - OpenAI: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '❌ Not configured'}`);
     console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '❌ Not configured'}`);
 
-    // Initialize template manager first
-    const { StateTemplateManager } = require('./templates/StateTemplateManager');
-    templateManager = new StateTemplateManager();
+    // Initialize template manager
+    // Feature flag to switch between old and new template system
+    const useNewTemplateSystem = process.env.USE_NEW_TEMPLATE_SYSTEM !== 'false';
+
+    if (useNewTemplateSystem) {
+      logger.info('Using new template system (auto-discovery)');
+      const { initializeTemplates } = require('./templates/initialize');
+      templateManager = await initializeTemplates();
+    } else {
+      logger.info('Using legacy template system');
+      const { StateTemplateManager } = require('./templates/StateTemplateManager');
+      templateManager = new StateTemplateManager();
+    }
+
     app.locals.templateManager = templateManager;
     logger.info('✅ Template Manager initialized');
 

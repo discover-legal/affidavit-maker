@@ -168,11 +168,11 @@ EXTRACTION RULES:
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
-- EXTRACT facts in FIRST PERSON from the affiant's perspective
-  * Convert "Mike Smith contributed to the business" → "I contributed to the business"
-  * Convert "He paid $500" → "I paid $500"
-  * Convert "The affiant witnessed the incident" → "I witnessed the incident"
-  * Use natural first-person statements: "I am...", "I reside...", "I witnessed...", "I was informed by..."
+- ALWAYS extract facts in FIRST PERSON from the affiant's perspective, regardless of how the user phrases their input
+  * User says: "Mike Smith contributed to the business" → Extract: "I contributed to the business"
+  * User says: "He paid $500" → Extract: "I paid $500"
+  * User says: "The affiant witnessed the incident" → Extract: "I witnessed the incident"
+  * Format as direct first-person statements: "I am...", "I reside...", "I witnessed...", "I was informed by..."
   * Write as if the affiant is speaking directly under oath
 
 EVIDENCE DETECTION - CRITICAL:

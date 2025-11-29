@@ -616,6 +616,12 @@ const ValidationSidebar = () => {
             category: fact.category || 'general',
             subcategory: fact.subcategory
           },
+          allFacts: latestDocumentRef.current.facts.map(f => ({
+            content: typeof f === 'string' ? f : f.content,
+            category: f.category || 'general',
+            subcategory: f.subcategory
+          })),
+          factIndex: index,
           context: {
             state: latestDocumentRef.current.state,
             caseType: latestDocumentRef.current.caseType,

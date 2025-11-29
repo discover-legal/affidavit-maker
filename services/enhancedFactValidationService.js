@@ -399,6 +399,17 @@ class EnhancedFactValidationService {
       factContext += `\nInitial professional rewrite: "${initialRewrite}"`;
     }
 
+    // Build context showing all facts in display order
+    let allFactsContext = '';
+    if (existingFacts && existingFacts.length > 0) {
+      allFactsContext = '\n\nAll facts in document order (for logical flow context):\n';
+      existingFacts.forEach((f, idx) => {
+        const factContent = typeof f === 'string' ? f : (f.content || '');
+        const isCurrentFact = factContent === factText;
+        allFactsContext += `${idx + 1}. ${isCurrentFact ? '→ [CURRENT FACT TO REWRITE] ' : ''}${factContent}\n`;
+      });
+    }
+
     const prompt = `Analyze this legal fact for an affidavit in ${context.state || 'the US'}:
 
 ${factContext}
@@ -407,8 +418,7 @@ Context:
 - Document Type: ${context.documentType || 'General Affidavit'}
 - Case Type: ${context.caseType || 'General'}
 - Affiant: ${affiantName}
-
-Existing facts: ${existingFacts.length}
+${allFactsContext}
 
 Evaluate for:
 1. Legal admissibility and relevance
@@ -420,6 +430,13 @@ Evaluate for:
 IMPORTANT: For the professional rewrite, write in FIRST PERSON from the affiant's perspective.
 ${affiantName !== 'Unknown' ? `The affiant is ${affiantName}.` : ''}
 ${initialRewrite ? `NOTE: When generating the rewrite, consider the original user-provided text and the initial rewrite for context, but create a fresh rewrite that addresses any issues. Do not base it on any existing professional rewrite.` : ''}
+
+CRITICAL: Use the surrounding facts (shown above in document order) to ensure logical flow and transitions.
+- Rewrite this fact so it flows naturally from the preceding facts
+- Use appropriate transitions and connecting language where relevant
+- Maintain consistent terminology with nearby facts
+- Ensure the rewrite complements rather than contradicts surrounding context
+
 Use natural, persuasive affidavit language:
 - State facts directly in first person: "I am 45 years old", "I reside at...", "I own..."
 - For observations/events: "I witnessed...", "I observed...", "I saw..."
@@ -615,8 +632,8 @@ Provide a professional rewrite following these guidelines and specific feedback.
 
   // Method specifically for on-demand professional rewriting
   // This is a wrapper around validateFactProfessional that returns just the rewrite
-  async generateProfessionalRewriteWithLLM(fact, context = {}) {
-    const result = await this.validateFactProfessional(fact, [], context);
+  async generateProfessionalRewriteWithLLM(fact, context = {}, allFacts = [], factIndex = null) {
+    const result = await this.validateFactProfessional(fact, allFacts, context);
     return result.professionalRewrite;
   }
 }

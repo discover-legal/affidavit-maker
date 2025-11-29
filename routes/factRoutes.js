@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
  */
 router.post('/rewrite', optionalAuth, async (req, res) => {
   try {
-    const { fact, context } = req.body;
+    const { fact, allFacts, factIndex, context } = req.body;
 
     // Validate input
     if (!fact || !fact.content) {
@@ -38,10 +38,12 @@ router.post('/rewrite', optionalAuth, async (req, res) => {
       });
     }
 
-    // Generate professional rewrite
+    // Generate professional rewrite with full context
     const professionalRewrite = await validationService.generateProfessionalRewriteWithLLM(
       fact,
-      context
+      context,
+      allFacts,
+      factIndex
     );
 
     logger.info('Professional rewrite generated', {

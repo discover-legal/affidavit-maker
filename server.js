@@ -51,13 +51,16 @@ app.use(helmet({
         "https://fonts.googleapis.com",
         "'unsafe-inline'"
       ],
-      // SECURITY: Removed 'unsafe-inline' and 'unsafe-eval' in production
+      // SECURITY: 'unsafe-eval' needed for Google Analytics gtag.js library
+      // The gtag library uses Function() constructor internally for performance
       scriptSrc: [
         "'self'",
         "https://js.stripe.com",
         "https://*.auth0.com",
         "https://www.googletagmanager.com",
-        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'", "'unsafe-eval'"] : [])
+        "https://www.google-analytics.com",
+        "'unsafe-eval'", // Required for gtag.js
+        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'"] : [])
       ],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: [
@@ -65,6 +68,9 @@ app.use(helmet({
         "https://api.openai.com",
         "https://api.stripe.com",
         "https://*.auth0.com",
+        "https://www.google-analytics.com",
+        "https://www.googletagmanager.com",
+        "https://analytics.google.com",
         "https://affidavit-maker.onrender.com",
         "https://discover.legal",
         "https://www.discover.legal",

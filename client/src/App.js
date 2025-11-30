@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Auth0Provider } from '@auth0/auth0-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { DocumentProvider } from './contexts/DocumentContext';
 import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';
@@ -168,13 +169,15 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <ErrorBoundary>
-      <Auth0Provider {...AUTH0_CONFIG}>
-        <DocumentProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </DocumentProvider>
-      </Auth0Provider>
+      <HelmetProvider>
+        <Auth0Provider {...AUTH0_CONFIG}>
+          <DocumentProvider>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </DocumentProvider>
+        </Auth0Provider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 };

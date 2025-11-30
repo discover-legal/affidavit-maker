@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Clock, ChevronRight, Scale } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getArticleBySlug, ARTICLES } from '../content/articles';
@@ -30,8 +31,38 @@ const ArticlePage = () => {
     '**[Get Started Now →](/)**'
   );
 
+  const pageUrl = `https://discover.legal/resources/${article.slug}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <Helmet>
+        {/* Primary Meta Tags */}
+        <title>{article.title} | discover.legal</title>
+        <meta name="title" content={article.title} />
+        <meta name="description" content={article.description} />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href={pageUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={article.title} />
+        <meta property="og:description" content={article.description} />
+        <meta property="og:site_name" content="discover.legal" />
+        <meta property="article:published_time" content={article.publishDate} />
+        <meta property="article:section" content={article.category} />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={article.title} />
+        <meta name="twitter:description" content={article.description} />
+
+        {/* Additional SEO */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="discover.legal" />
+      </Helmet>
       {/* Navigation Bar */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, BookOpen, Clock, ChevronRight, Scale } from 'lucide-react';
 import { ARTICLES, getCategories } from '../content/articles';
 
@@ -18,8 +19,38 @@ const ResourcesPage = () => {
 
   const featuredArticles = ARTICLES.filter(article => article.featured);
 
+  const pageTitle = 'Legal Resources & Guides | discover.legal';
+  const pageDescription = 'Free guides and articles to help you understand legal documents and navigate the legal system. Expert advice on affidavits, legal forms, and court procedures.';
+  const pageUrl = 'https://discover.legal/resources';
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <Helmet>
+        {/* Primary Meta Tags */}
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={pageDescription} />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href={pageUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:site_name" content="discover.legal" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+
+        {/* Additional SEO */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="discover.legal" />
+      </Helmet>
       {/* Navigation Bar */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,14 +1,50 @@
 // client/src/components/UnsupportedStateMessage.js
 // Component to handle users from unsupported states gracefully
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 const UnsupportedStateMessage = ({ detectedState, onClose }) => {
-  const supportedStates = [
-    { code: 'TX', name: 'Texas' },
-    { code: 'UT', name: 'Utah' },
-    { code: 'AZ', name: 'Arizona' }
-  ];
+  const [supportedStates, setSupportedStates] = useState([]);
+  const [country, setCountry] = useState('US');
+
+  // Detect country based on subdomain
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    if (hostname.startsWith('ca.') || hostname.startsWith('canada.')) {
+      setCountry('CA');
+    } else {
+      setCountry('US');
+    }
+  }, []);
+
+  // Fetch supported states/provinces dynamically
+  useEffect(() => {
+    fetch('/api/templates/states')
+      .then(res => res.json())
+      .then(data => {
+        if (data.states) {
+          // Filter by country if needed
+          const filtered = country === 'CA'
+            ? data.states.filter(s => s.country === 'CA')
+            : data.states.filter(s => s.country === 'US' || !s.country);
+          setSupportedStates(filtered);
+        }
+      })
+      .catch(() => {
+        // Fallback to hardcoded list if API fails
+        if (country === 'US') {
+          setSupportedStates([
+            { code: 'TX', name: 'Texas' },
+            { code: 'UT', name: 'Utah' },
+            { code: 'AZ', name: 'Arizona' }
+          ]);
+        } else {
+          setSupportedStates([]);
+        }
+      });
+  }, [country]);
+
+  const jurisdictionType = country === 'CA' ? 'province' : 'state';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -23,7 +59,7 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
 
           {/* Title */}
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Service Not Available in Your State
+            Service Not Available in Your {jurisdictionType === 'province' ? 'Province' : 'State'}
           </h3>
 
           {/* Message */}
@@ -34,7 +70,7 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
               </p>
             )}
             <p className="mb-3">
-              Currently, we only provide affidavit services in:
+              Currently, our service is available in these {jurisdictionType}s:
             </p>
             <ul className="text-left space-y-1 mb-4">
               {supportedStates.map(state => (
@@ -47,7 +83,7 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
               ))}
             </ul>
             <p className="text-xs text-gray-500">
-              We're working hard to expand to other states soon!
+              We're continuously expanding to serve more {jurisdictionType}s!
             </p>
           </div>
 
@@ -60,10 +96,10 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
               I understand
             </button>
             <a
-              href="mailto:support@affidavit-maker.com?subject=Expansion Request&body=I'm interested in using your service in [YOUR STATE]. Please let me know when you expand!"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              href={`mailto:support@affidavit-maker.com?subject=Expansion Request&body=I'm interested in using your service in [YOUR ${jurisdictionType.toUpperCase()}]. Please let me know when you expand!`}
+              className={`px-4 py-2 text-sm font-medium text-white ${country === 'CA' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'} border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2`}
             >
-              Request My State
+              Request My {jurisdictionType === 'province' ? 'Province' : 'State'}
             </a>
           </div>
         </div>

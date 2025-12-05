@@ -161,7 +161,7 @@ YOUR DUAL ROLE:
 1. EXTRACT structured legal data (names, states, county, case info, NEW facts only) via function calling
 2. PROVIDE a warm, conversational response to keep them sharing
 
-SUPPORTED STATES: Only Texas (TX), Utah (UT), Arizona (AZ)
+SUPPORTED JURISDICTIONS: Check template registry for current coverage (US states and Canadian provinces)
 
 EXTRACTION RULES:
 - ALWAYS look for names, even partial ones (Mike = extract as "Mike")
@@ -512,7 +512,7 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     // Extract state
     if (args.extracted_state && args.extracted_state !== 'NONE') {
       if (args.extracted_state === 'UNSUPPORTED') {
-        throw new Error(`State "${args.detected_unsupported_state}" is not currently supported. We currently support Texas (TX), Utah (UT), and Arizona (AZ).`);
+        throw new Error(`State "${args.detected_unsupported_state}" is not currently supported. Please visit our website to see currently supported jurisdictions.`);
       }
       newData.state = args.extracted_state;
       hasNewData = true;

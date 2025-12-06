@@ -161,7 +161,10 @@ YOUR DUAL ROLE:
 1. EXTRACT structured legal data (names, states, county, case info, NEW facts only) via function calling
 2. PROVIDE a warm, conversational response to keep them sharing
 
-SUPPORTED JURISDICTIONS: Check template registry for current coverage (US states and Canadian provinces)
+SUPPORTED JURISDICTIONS: Currently available - Texas (TX), Utah (UT), Arizona (AZ)
+- If user mentions these states → Extract normally
+- If user mentions OTHER states → Set extracted_state to "UNSUPPORTED" and inform them politely
+- Response for unsupported states: "I appreciate you sharing that information! Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve Texas, Utah, and Arizona. Is there anything else I can help you with?"
 
 EXTRACTION RULES:
 - ALWAYS look for names, even partial ones (Mike = extract as "Mike")
@@ -512,10 +515,17 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     // Extract state
     if (args.extracted_state && args.extracted_state !== 'NONE') {
       if (args.extracted_state === 'UNSUPPORTED') {
-        throw new Error(`State "${args.detected_unsupported_state}" is not currently supported. Please visit our website to see currently supported jurisdictions.`);
+        // Don't throw - instead, mark state as unsupported and let the response inform the user
+        logger.warn('Unsupported state detected', {
+          detectedState: args.detected_unsupported_state
+        });
+        // Set a flag for unsupported state (don't actually set the state field)
+        newData.unsupportedState = args.detected_unsupported_state;
+        hasNewData = true;
+      } else {
+        newData.state = args.extracted_state;
+        hasNewData = true;
       }
-      newData.state = args.extracted_state;
-      hasNewData = true;
     }
 
     // ✅ Extract county

@@ -285,12 +285,12 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                         </button>
                       </div>
                     ) : (
-                      <h4 
-                        className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline" 
-                        title="Click to edit" 
+                      <h4
+                        className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline"
+                        title="Click to edit"
                         onClick={() => startRename(doc)}
                       >
-                        {doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Affidavit #${doc.id}`}
+                        {doc.documentTitle || (doc.affiantName ? `${doc.affiantName}'s Affidavit` : (doc.firstName && doc.lastName ? `${doc.firstName} ${doc.lastName}'s Affidavit` : `Affidavit #${doc.id}`))}
                       </h4>
                     )}
                     <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">

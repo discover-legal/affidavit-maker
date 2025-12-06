@@ -20,17 +20,48 @@ const DocumentMetadata = () => {
         <h3 className="metadata-heading">Basic Information</h3>
 
         <div className="form-group">
-          <label htmlFor="affiantName" className="form-label">
-            Your Name <span className="required">*</span>
+          <label htmlFor="documentTitle" className="form-label">
+            Document Title
           </label>
           <input
             type="text"
-            id="affiantName"
+            id="documentTitle"
             className="form-input"
-            value={currentDocument.affiantName || ''}
-            onChange={(e) => handleChange('affiantName', e.target.value)}
-            placeholder="Enter your full legal name"
+            value={currentDocument.documentTitle || ''}
+            onChange={(e) => handleChange('documentTitle', e.target.value)}
+            placeholder="e.g., Child Custody Affidavit, Financial Disclosure"
           />
+          <p className="form-help">Custom name for easy identification on your dashboard</p>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="firstName" className="form-label">
+              First Name <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="firstName"
+              className="form-input"
+              value={currentDocument.firstName || ''}
+              onChange={(e) => handleChange('firstName', e.target.value)}
+              placeholder="Your legal first name"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="lastName" className="form-label">
+              Last Name <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="lastName"
+              className="form-input"
+              value={currentDocument.lastName || ''}
+              onChange={(e) => handleChange('lastName', e.target.value)}
+              placeholder="Your legal last name"
+            />
+          </div>
         </div>
 
         <div className="form-row">

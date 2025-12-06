@@ -166,7 +166,9 @@ const ChatInterface = () => {
             });
           } else {
             // Has name but no facts
-            const greeting = currentDocument.affiantName
+            const greeting = currentDocument.firstName
+              ? `Hi ${currentDocument.firstName}, welcome back!`
+              : currentDocument.affiantName
               ? `Hi ${currentDocument.affiantName}, welcome back!`
               : 'Hi, welcome back!';
             setMessages([{
@@ -181,7 +183,7 @@ const ChatInterface = () => {
             type: 'bot',
             content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
 
-Let's start with your name and which state you're in.`
+Let's start with your legal first name and last name, then which state you're in.`
           }]);
         }
       }

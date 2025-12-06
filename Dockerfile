@@ -1,6 +1,34 @@
 # Use Node.js 18 LTS
 FROM node:18-bullseye-slim
 
+# Install dependencies for Puppeteer/Chrome (needed for react-snap pre-rendering)
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-sandbox \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tell Puppeteer to use the installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Accept build arguments for React environment variables
 # These must be provided during docker build via --build-arg
 ARG REACT_APP_AUTH0_DOMAIN

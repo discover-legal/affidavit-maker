@@ -354,18 +354,24 @@ router.post('/generate',
         }
       } else {
         // Fallback: create basic structure
+        // Get affiant name - prefer affiantName, otherwise construct from firstName/lastName
+        const affiantName = affidavitData.affiantName ||
+          (affidavitData.firstName && affidavitData.lastName
+            ? `${affidavitData.firstName} ${affidavitData.lastName}`
+            : (affidavitData.firstName || affidavitData.lastName || '[NAME]'));
+
         documentStructure = {
           sections: {
             header: affidavitData.state ? `THE STATE OF ${affidavitData.state}` : 'AFFIDAVIT',
             venue: affidavitData.county ? `COUNTY OF ${affidavitData.county}` : '',
-            title: `AFFIDAVIT OF ${(affidavitData.affiantName || '[NAME]').toUpperCase()}`,
-            introduction: `I, ${affidavitData.affiantName || '[NAME]'}, being duly sworn, do hereby state under oath as follows:`,
+            title: `AFFIDAVIT OF ${affiantName.toUpperCase()}`,
+            introduction: `I, ${affiantName}, being duly sworn, do hereby state under oath as follows:`,
             facts: affidavitData.facts || [],
             conclusion: 'The facts stated herein are within my personal knowledge and are true and correct.',
             perjuryStatement: 'I declare under penalty of perjury that the foregoing is true and correct.',
             signatureBlock: {
               line: '_'.repeat(40),
-              name: affidavitData.affiantName || '[AFFIANT NAME]',
+              name: affiantName,
               title: 'Affiant',
               date: `Date: ________________`
             },
@@ -373,7 +379,9 @@ router.post('/generate',
           },
           metadata: {
             documentId: documentId || 'draft',
-            affiantName: affidavitData.affiantName,
+            affiantName,
+            firstName: affidavitData.firstName,
+            lastName: affidavitData.lastName,
             state: affidavitData.state,
             generatedAt: new Date().toISOString()
           }
@@ -492,8 +500,14 @@ router.post('/save',
         ? prepareFactsForStorage(affidavitData.facts)
         : [];
 
-      const documentTitle = affidavitData.affiantName 
-        ? `Affidavit of ${affidavitData.affiantName}`
+      // Use custom document title if provided, otherwise generate from name
+      const affiantName = affidavitData.affiantName ||
+        (affidavitData.firstName && affidavitData.lastName
+          ? `${affidavitData.firstName} ${affidavitData.lastName}`
+          : null);
+
+      const documentTitle = affidavitData.documentTitle || (affiantName
+        ? `Affidavit of ${affiantName}`
         : 'Untitled Affidavit';
 
       // Filter out UI cache fields that shouldn't be persisted
@@ -1053,7 +1067,13 @@ function calculateQualityMetrics(facts) {
  */
 function createFallbackPreview(affidavitData) {
   const facts = affidavitData.facts || [];
-  
+
+  // Get affiant name - prefer affiantName, otherwise construct from firstName/lastName
+  const affiantName = affidavitData.affiantName ||
+    (affidavitData.firstName && affidavitData.lastName
+      ? `${affidavitData.firstName} ${affidavitData.lastName}`
+      : (affidavitData.firstName || affidavitData.lastName || '[YOUR NAME]'));
+
   return {
     sections: {
       header: {
@@ -1068,12 +1088,12 @@ function createFallbackPreview(affidavitData) {
       introduction: {
         type: 'introduction',
         title: 'INTRODUCTION',
-        content: `I, ${affidavitData.affiantName || '[YOUR NAME]'}, being first duly sworn, depose and state as follows:`
+        content: `I, ${affiantName}, being first duly sworn, depose and state as follows:`
       },
       facts: {
         type: 'facts',
         title: 'STATEMENT OF FACTS',
-        content: facts.length > 0 
+        content: facts.length > 0
           ? facts.map((fact, index) => {
               const content = fact.professionalRewrite || fact.content || String(fact);
               return `${index + 1}. ${content}`;
@@ -1086,7 +1106,7 @@ function createFallbackPreview(affidavitData) {
       },
       signature: {
         type: 'signature',
-        content: `\n\n_________________________________\n${affidavitData.affiantName || '[YOUR NAME]'}, Affiant`
+        content: `\n\n_________________________________\n${affiantName}, Affiant`
       },
       notaryBlock: {
         type: 'notary',

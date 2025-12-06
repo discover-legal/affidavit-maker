@@ -164,7 +164,11 @@ YOUR DUAL ROLE:
 SUPPORTED JURISDICTIONS: Check template registry for current coverage (US states and Canadian provinces)
 
 EXTRACTION RULES:
-- ALWAYS look for names, even partial ones (Mike = extract as "Mike")
+- ALWAYS ask for BOTH legal first name AND legal last name separately
+  * Ask: "What is your legal first name?" then "What is your legal last name?"
+  * Extract first name and last name as separate fields
+  * If user provides full name (e.g., "Mike Jones"), split it into firstName: "Mike" and lastName: "Jones"
+  * Never proceed with just a first name - always ask for the last name too
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
@@ -248,7 +252,14 @@ These affidavits are for family law court cases. You MUST collect case caption i
    - Examples: "John Smith vs Jane Smith", "In re: Marriage of Smith"
 
 COLLECTION ORDER:
-1. Name → 2. State → 3. County → 4. Case Caption Info → 5. Facts
+1. First Name → 2. Last Name → 3. State → 4. County → 5. Case Caption Info → 6. Facts
+
+NAME COLLECTION - CRITICAL:
+- ALWAYS collect first name and last name as separate fields
+- Ask: "What is your legal first name?" (wait for response)
+- Then ask: "And what is your legal last name?"
+- If user gives full name at once (e.g., "John Smith"), extract both parts
+- Never move forward without both first AND last name
 
 COURT NAME FORMATS BY STATE:
 **Texas**: "[XXX]th District Court, [County] County, Texas"
@@ -288,7 +299,8 @@ Remember: Only extract NEW information. Existing facts will be shown to you.`;
     return `USER MESSAGE: "${message}"
 
 CURRENT AFFIDAVIT STATUS:
-- Name: ${affidavitData.affiantName || 'Not provided'}
+- First Name: ${affidavitData.firstName || (affidavitData.affiantName ? affidavitData.affiantName.split(' ')[0] : '❌ NOT PROVIDED - ASK FOR IT!')}
+- Last Name: ${affidavitData.lastName || (affidavitData.affiantName ? affidavitData.affiantName.split(' ').slice(1).join(' ') : '❌ NOT PROVIDED - ASK FOR IT!')}
 - State: ${affidavitData.state || 'Not selected'}
 - County: ${affidavitData.county || '❌ NOT PROVIDED - ASK FOR IT!'}
 - Case Number: ${affidavitData.caseNumber || 'Not provided'}
@@ -316,9 +328,13 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
               type: "string",
               description: "REQUIRED: Conversational response to keep user engaged. Always provide this."
             },
-            extracted_name: {
+            extracted_first_name: {
               type: "string",
-              description: "Full or partial name mentioned (e.g. 'Mike', 'Mike Jones'). Use null if none mentioned."
+              description: "First name mentioned or extracted. If user gives full name, split it. Use null if not mentioned."
+            },
+            extracted_last_name: {
+              type: "string",
+              description: "Last name mentioned or extracted. If user gives full name, split it. Use null if not mentioned."
             },
             extracted_state: {
               type: "string",
@@ -480,7 +496,8 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
       const functionResult = JSON.parse(toolCall.function.arguments);
 
       logger.info('Function call extraction', {
-        hasName: !!functionResult.extracted_name,
+        hasFirstName: !!functionResult.extracted_first_name,
+        hasLastName: !!functionResult.extracted_last_name,
         hasState: !!functionResult.extracted_state,
         hasCounty: !!functionResult.extracted_county,
         hasCaseNumber: !!functionResult.case_number,
@@ -503,10 +520,28 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
     const newData = { ...currentData };
     let hasNewData = false;
 
-    // Extract name
-    if (args.extracted_name && args.extracted_name !== 'NONE') {
-      newData.affiantName = String(args.extracted_name).trim();
+    // Extract first name
+    if (args.extracted_first_name && args.extracted_first_name !== 'NONE') {
+      newData.firstName = String(args.extracted_first_name).trim();
       hasNewData = true;
+      // Also update affiantName for backward compatibility
+      if (args.extracted_last_name && args.extracted_last_name !== 'NONE') {
+        newData.affiantName = `${newData.firstName} ${String(args.extracted_last_name).trim()}`;
+      } else {
+        newData.affiantName = newData.firstName;
+      }
+    }
+
+    // Extract last name
+    if (args.extracted_last_name && args.extracted_last_name !== 'NONE') {
+      newData.lastName = String(args.extracted_last_name).trim();
+      hasNewData = true;
+      // Also update affiantName for backward compatibility
+      if (newData.firstName) {
+        newData.affiantName = `${newData.firstName} ${newData.lastName}`;
+      } else {
+        newData.affiantName = newData.lastName;
+      }
     }
 
     // Extract state

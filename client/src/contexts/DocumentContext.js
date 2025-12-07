@@ -1,6 +1,7 @@
 // client/src/contexts/DocumentContext.js - CLEAN ARCHITECTURE
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useTOS } from './TOSContext';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -268,6 +269,7 @@ const DocumentDispatchContext = createContext();
  */
 export const DocumentProvider = ({ children }) => {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { tosVerified } = useTOS();
   const [state, dispatch] = useReducer(documentReducer, initialState);
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
   const [previewDebounceTimer, setPreviewDebounceTimer] = useState(null);
@@ -866,12 +868,15 @@ export const DocumentProvider = ({ children }) => {
     setPreviewDebounceTimer(timer);
   }, [generatePreview, scheduleAutoSave]);
 
-  // Load documents on mount
+  // Load documents on mount - only after TOS is verified
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && tosVerified) {
+      console.log('[DocumentContext] Auth and TOS verified, loading documents');
       loadDocuments();
+    } else if (isAuthenticated && !tosVerified) {
+      console.log('[DocumentContext] Waiting for TOS verification before loading documents');
     }
-  }, [isAuthenticated, loadDocuments]);
+  }, [isAuthenticated, tosVerified, loadDocuments]);
 
   // Clean up timers
   useEffect(() => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import TermsOfServiceModal from './TermsOfServiceModal';
 import { useAuthenticatedApi } from '../services/authService';
+import { useTOS } from '../contexts/TOSContext';
 
 /**
  * TOSGuard - Protects authenticated routes and ensures users have accepted Terms of Service
@@ -12,6 +13,7 @@ import { useAuthenticatedApi } from '../services/authService';
 const TOSGuard = ({ children }) => {
   const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
   const { makeAuthenticatedRequest } = useAuthenticatedApi();
+  const { markTosVerified } = useTOS();
   const [, setTosStatus] = useState(null);
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
@@ -78,6 +80,7 @@ const TOSGuard = ({ children }) => {
       const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
       if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
         console.log('[TOSGuard] TOS already accepted (cached)');
+        markTosVerified();
         setIsCheckingTos(false);
         return;
       }
@@ -97,6 +100,7 @@ const TOSGuard = ({ children }) => {
             // Cache in both localStorage (persistent) and sessionStorage (backward compat)
             localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
             sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
+            markTosVerified();
           } else {
             // Show TOS modal if user hasn't accepted
             console.log('[TOSGuard] User has NOT accepted TOS, showing modal');
@@ -153,6 +157,7 @@ const TOSGuard = ({ children }) => {
           sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
           console.log('[TOSGuard] TOS acceptance cached in localStorage and sessionStorage');
         }
+        markTosVerified();
         setShowTosModal(false);
         console.log('[TOSGuard] TOS modal closed, user can now access application');
       } else {

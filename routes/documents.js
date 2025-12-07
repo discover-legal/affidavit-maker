@@ -508,7 +508,7 @@ router.post('/save',
 
       const documentTitle = affidavitData.documentTitle || (affiantName
         ? `Affidavit of ${affiantName}`
-        : 'Untitled Affidavit';
+        : 'Untitled Affidavit');
 
       // Filter out UI cache fields that shouldn't be persisted
       const { factSummary, factSignature, ...affidavitDataToSave } = affidavitData;

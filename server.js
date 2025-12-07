@@ -371,9 +371,6 @@ async function initializeServices() {
 // This prevents "Database pool not available" errors during route initialization
 app.locals.pool = dbService.pool;
 
-// Initialize services immediately
-initializeServices();
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -578,25 +575,44 @@ const gracefulShutdown = (signal) => {
   }, 10000);
 };
 
+// Server instance (will be set when server starts)
+let server;
+
 // Listen for shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Start server
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
-});
+// Async server startup function
+async function startServer() {
+  try {
+    // Initialize all services before starting server
+    console.log('⏳ Initializing services...');
+    await initializeServices();
+    console.log('✅ Services initialized successfully');
 
-// Handle server errors
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
-  } else {
-    console.error('❌ Server error:', error);
+    // Start server
+    const PORT = process.env.PORT || 3001;
+    server = app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`📍 Health check: http://localhost:${PORT}/health`);
+    });
+
+    // Handle server errors
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+      } else {
+        console.error('❌ Server error:', error);
+      }
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
-  process.exit(1);
-});
+}
+
+// Start the server
+startServer();
 
 module.exports = app;

@@ -175,34 +175,78 @@ const loadUser = async (req, res, next) => {
         try {
           const email = req.auth.email || req.auth[`${config.auth0.audience}/email`] || null;
           const name = req.auth.name || req.auth.nickname || 'User';
-          
-          const createResult = await pool.query(
-            `INSERT INTO users (auth0_id, email, name, created_at, updated_at) 
-             VALUES ($1, $2, $3, NOW(), NOW()) 
+
+          // Use UPSERT pattern to handle race conditions
+          let createResult = await pool.query(
+            `INSERT INTO users (auth0_id, email, name, created_at, updated_at)
+             VALUES ($1, $2, $3, NOW(), NOW())
+             ON CONFLICT (auth0_id) DO UPDATE SET
+               last_login = NOW(),
+               updated_at = NOW()
              RETURNING *`,
             [auth0Id, email, name]
           );
-          
+
           req.user = createResult.rows[0];
-          
+
           logger.info('New user created', {
             userId: req.user.id,
             auth0Id: auth0Id,
             email: email
           });
         } catch (createError) {
-          logger.error('Failed to create user', {
-            error: createError.message,
-            auth0Id: auth0Id
-          });
-          
-          return res.status(500).json({
-            success: false,
-            error: 'User account setup failed',
-            errorType: 'server_error',
-            timestamp: new Date().toISOString(),
-            requestId: req.id
-          });
+          // Handle duplicate email constraint violation (account linking scenario)
+          if (createError.code === '23505' && createError.constraint === 'users_email_key') {
+            const email = req.auth.email || req.auth[`${config.auth0.audience}/email`] || null;
+            logger.info('User exists with same email, linking auth0_id:', { email, auth0Id });
+
+            try {
+              const linkResult = await pool.query(
+                `UPDATE users
+                 SET auth0_id = $1, last_login = NOW(), updated_at = NOW()
+                 WHERE email = $2
+                 RETURNING *`,
+                [auth0Id, email]
+              );
+
+              if (linkResult.rows.length > 0) {
+                req.user = linkResult.rows[0];
+                logger.info('Account linked successfully', {
+                  userId: req.user.id,
+                  auth0Id: auth0Id,
+                  email: email
+                });
+              } else {
+                throw new Error('Failed to link account');
+              }
+            } catch (linkError) {
+              logger.error('Failed to link user account', {
+                error: linkError.message,
+                auth0Id: auth0Id
+              });
+
+              return res.status(500).json({
+                success: false,
+                error: 'User account setup failed',
+                errorType: 'server_error',
+                timestamp: new Date().toISOString(),
+                requestId: req.id
+              });
+            }
+          } else {
+            logger.error('Failed to create user', {
+              error: createError.message,
+              auth0Id: auth0Id
+            });
+
+            return res.status(500).json({
+              success: false,
+              error: 'User account setup failed',
+              errorType: 'server_error',
+              timestamp: new Date().toISOString(),
+              requestId: req.id
+            });
+          }
         }
       } else {
         req.user = userResult.rows[0];

@@ -48,27 +48,68 @@ async function getUserFromAuth(pool, authId, decoded) {
   let client;
   try {
     client = await pool.connect();
-    
-    // Try to find existing user
+
+    // Try to find existing user by auth0_id first
     let result = await client.query('SELECT * FROM users WHERE auth0_id = $1', [authId]);
-    
+
     if (result.rows.length === 0 && decoded) {
-      // Create new user
-      logger.info('Creating new user:', { email: decoded.email, authId });
-      result = await client.query(
-        `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
-         VALUES ($1, $2, $3, NOW(), NOW(), NOW())
-         RETURNING *`,
-        [authId, decoded.email || '', decoded.name || '']
-      );
+      // User not found by auth0_id - try to create or find by email
+      const email = decoded.email || '';
+      const name = decoded.name || '';
+
+      logger.info('Creating new user:', { email, authId });
+
+      // Use UPSERT pattern to handle race conditions:
+      // - If auth0_id already exists, update the record
+      // - If email already exists (different auth0_id), link the account
+      // This handles both race conditions and account linking scenarios
+      try {
+        result = await client.query(
+          `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
+           VALUES ($1, $2, $3, NOW(), NOW(), NOW())
+           ON CONFLICT (auth0_id) DO UPDATE SET
+             last_login = NOW(),
+             updated_at = NOW()
+           RETURNING *`,
+          [authId, email, name]
+        );
+      } catch (insertError) {
+        // Handle duplicate email constraint violation
+        // This happens when user exists with same email but different auth0_id
+        if (insertError.code === '23505' && insertError.constraint === 'users_email_key') {
+          logger.info('User exists with same email, linking auth0_id:', { email, authId });
+
+          // Update existing user with new auth0_id (account linking)
+          result = await client.query(
+            `UPDATE users
+             SET auth0_id = $1, last_login = NOW(), updated_at = NOW()
+             WHERE email = $2
+             RETURNING *`,
+            [authId, email]
+          );
+
+          if (result.rows.length === 0) {
+            // Edge case: email was deleted between error and update
+            // Retry the insert
+            result = await client.query(
+              `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
+               VALUES ($1, $2, $3, NOW(), NOW(), NOW())
+               RETURNING *`,
+              [authId, email, name]
+            );
+          }
+        } else {
+          throw insertError;
+        }
+      }
     } else if (result.rows.length > 0) {
-      // Update last login
+      // Update last login for existing user
       await client.query(
         'UPDATE users SET last_login = NOW() WHERE id = $1',
         [result.rows[0].id]
       );
     }
-    
+
     return result.rows[0] || null;
   } catch (error) {
     logger.error('User lookup/creation error:', error);

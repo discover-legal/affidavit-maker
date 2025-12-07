@@ -19,12 +19,25 @@ const getAllowedOrigins = () => {
     }
 
     // Always add discover.legal domains for backward compatibility
-    origins.push('https://discover.legal', 'https://www.discover.legal');
+    // IMPORTANT: Must match CORS config in server.js
+    origins.push(
+      'https://discover.legal',
+      'https://www.discover.legal',
+      'https://ca.discover.legal',
+      'https://canada.discover.legal'
+    );
 
     // Remove duplicates
     return [...new Set(origins)];
   } else {
-    return ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+    // IMPORTANT: Must match CORS config in server.js
+    return [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://ca.localhost:3000',
+      'http://canada.localhost:3000'
+    ];
   }
 };
 

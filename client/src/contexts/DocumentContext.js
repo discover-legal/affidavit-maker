@@ -584,9 +584,10 @@ export const DocumentProvider = ({ children }) => {
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
         },
-        title: fullDocumentData.affiantName
-          ? `Affidavit of ${fullDocumentData.affiantName}`
-          : 'Untitled Affidavit',
+        title: fullDocumentData.documentTitle ||
+          (fullDocumentData.affiantName
+            ? `Affidavit of ${fullDocumentData.affiantName}`
+            : 'Untitled Affidavit'),
         content: JSON.stringify(fullDocumentData)
       };
 

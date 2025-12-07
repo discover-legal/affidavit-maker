@@ -1,8 +1,33 @@
-# Getting Started with Create React App
+# Affidavit Maker Client
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React frontend for the Affidavit Maker application.
 
-## Available Scripts
+## Prerequisites
+
+- Node.js 18 or higher
+- npm
+
+## Setup
+
+### First Time Setup
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+   Note: If you encounter Puppeteer/Chromium download issues, you can skip the Chromium download:
+   ```bash
+   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
+   ```
+
+   Chromium is only needed for production builds with react-snap pre-rendering. For local development, it's not required.
+
+2. Configure environment variables:
+   - Copy `.env.example.sh` to `.env.local`
+   - Fill in your Auth0, Stripe, and API configuration
+
+### Development
 
 In the project directory, you can run:
 

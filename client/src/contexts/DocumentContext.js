@@ -586,7 +586,12 @@ export const DocumentProvider = ({ children }) => {
           documentType: fullDocumentData.documentType || 'general',
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
-        }
+        },
+        title: fullDocumentData.documentTitle ||
+          (fullDocumentData.affiantName
+            ? `Affidavit of ${fullDocumentData.affiantName}`
+            : 'Untitled Affidavit'),
+        content: JSON.stringify(fullDocumentData)
       };
 
       const data = await authFetch('/api/documents/save', {

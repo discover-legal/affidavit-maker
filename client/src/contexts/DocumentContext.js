@@ -577,6 +577,13 @@ export const DocumentProvider = ({ children }) => {
       };
 
       console.log('💾 Saving document:', documentId);
+      console.log('💾 Document title being saved:', fullDocumentData.documentTitle);
+      console.log('💾 Full document data:', {
+        documentTitle: fullDocumentData.documentTitle,
+        firstName: fullDocumentData.firstName,
+        lastName: fullDocumentData.lastName,
+        affiantName: fullDocumentData.affiantName
+      });
 
       // Build payload
       const payload = {
@@ -812,6 +819,19 @@ export const DocumentProvider = ({ children }) => {
     } else {
       // For other updates, schedule auto-save as before
       scheduleAutoSave();
+    }
+
+    // Check if only metadata fields were updated (don't affect preview rendering)
+    const metadataOnlyFields = ['documentTitle'];
+    const changedFields = Object.keys(data);
+    const hasPreviewAffectingChanges = changedFields.some(
+      field => !metadataOnlyFields.includes(field)
+    );
+
+    // Skip preview generation if only metadata changed
+    if (!hasPreviewAffectingChanges) {
+      console.log('📝 Skipping preview generation - metadata-only change:', changedFields);
+      return;
     }
 
     // ✅ FIX: Clear any existing preview debounce timer to prevent multiple preview generations

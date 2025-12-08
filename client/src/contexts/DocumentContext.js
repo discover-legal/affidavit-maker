@@ -1,5 +1,6 @@
-// client/src/contexts/DocumentContext.js - CLEAN ARCHITECTURE
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
+// client/src/contexts/DocumentContext.js - SPLIT CONTEXT ARCHITECTURE
+// Optimized to prevent unnecessary re-renders by splitting state into separate contexts
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useTOS } from './TOSContext';
 
@@ -7,6 +8,13 @@ import { useTOS } from './TOSContext';
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
+
+// Create separate contexts to minimize re-renders
+const DocumentDataContext = createContext();      // Core document data (preview, currentDocument)
+const DocumentListContext = createContext();      // Dashboard documents list
+const SaveMetadataContext = createContext();      // Save state (for SaveButton)
+const UIContext = createContext();                // UI state (loading, errors)
+const DocumentActionsContext = createContext();   // All actions
 
 // Initial state
 const initialState = {
@@ -67,7 +75,8 @@ const ActionTypes = {
   SELECT_DOCUMENT: 'SELECT_DOCUMENT',
   MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
   SET_JUST_SAVED: 'SET_JUST_SAVED',
-  REORDER_FACTS: 'REORDER_FACTS'
+  REORDER_FACTS: 'REORDER_FACTS',
+  SAVE_COMPLETE: 'SAVE_COMPLETE'
 };
 
 // Reducer
@@ -176,6 +185,14 @@ const documentReducer = (state, action) => {
         justSaved: action.payload
       };
 
+    case ActionTypes.SAVE_COMPLETE:
+      return {
+        ...state,
+        isSaving: false,
+        lastSaved: action.payload.lastSaved,
+        justSaved: true
+      };
+
     case ActionTypes.SET_SESSION_INITIALIZED:
       return {
         ...state,
@@ -186,6 +203,7 @@ const documentReducer = (state, action) => {
       return {
         ...state,
         currentDocument: { ...initialState.currentDocument },
+        documents: [], // SECURITY: Clear documents list to prevent data leakage
         preview: null,
         validation: null,
         error: null,
@@ -568,12 +586,22 @@ export const DocumentProvider = ({ children }) => {
       };
 
       console.log('💾 Saving document:', documentId);
+      console.log('💾 Document title being saved:', fullDocumentData.documentTitle);
+      console.log('💾 Full document data:', {
+        documentTitle: fullDocumentData.documentTitle,
+        firstName: fullDocumentData.firstName,
+        lastName: fullDocumentData.lastName,
+        affiantName: fullDocumentData.affiantName
+      });
 
       // Build payload
       const payload = {
         affidavitData: {
           state: fullDocumentData.state || '',
           affiantName: fullDocumentData.affiantName || '',
+          firstName: fullDocumentData.firstName || '',
+          lastName: fullDocumentData.lastName || '',
+          documentTitle: fullDocumentData.documentTitle || '',
           caseNumber: fullDocumentData.caseNumber || '',
           courtName: fullDocumentData.courtName || '',
           plaintiff: fullDocumentData.plaintiff || '',
@@ -584,9 +612,10 @@ export const DocumentProvider = ({ children }) => {
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
         },
-        title: fullDocumentData.affiantName
-          ? `Affidavit of ${fullDocumentData.affiantName}`
-          : 'Untitled Affidavit',
+        title: fullDocumentData.documentTitle ||
+          (fullDocumentData.affiantName
+            ? `Affidavit of ${fullDocumentData.affiantName}`
+            : 'Untitled Affidavit'),
         content: JSON.stringify(fullDocumentData)
       };
 
@@ -598,15 +627,10 @@ export const DocumentProvider = ({ children }) => {
       if (data.success) {
         console.log('💾 Document saved successfully');
 
+        // Batch save completion updates to reduce re-renders
         dispatch({
-          type: ActionTypes.SET_LAST_SAVED,
-          payload: new Date()
-        });
-
-        // Set justSaved flag
-        dispatch({
-          type: ActionTypes.SET_JUST_SAVED,
-          payload: true
+          type: ActionTypes.SAVE_COMPLETE,
+          payload: { lastSaved: new Date() }
         });
 
         // Clear justSaved flag after 2.5 seconds
@@ -625,8 +649,11 @@ export const DocumentProvider = ({ children }) => {
           });
         }
 
-        // Reload documents list
-        loadDocuments();
+        // NOTE: We don't reload the documents list here because:
+        // 1. It causes unnecessary re-renders of DocumentPreview and other components
+        // 2. The dashboard will refresh when user navigates back to it
+        // 3. The current document data is already up-to-date in state
+        // If we need the documents list updated, the dashboard will call loadDocuments on mount
 
         return documentId;
       } else {
@@ -640,9 +667,9 @@ export const DocumentProvider = ({ children }) => {
         payload: 'Failed to save document: ' + error.message
       });
 
-      throw error;
-    } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
+
+      throw error;
     }
   }, [authFetch, loadDocuments, isAuthenticated]);
 
@@ -806,6 +833,19 @@ export const DocumentProvider = ({ children }) => {
       scheduleAutoSave();
     }
 
+    // Check if only metadata fields were updated (don't affect preview rendering)
+    const metadataOnlyFields = ['documentTitle'];
+    const changedFields = Object.keys(data);
+    const hasPreviewAffectingChanges = changedFields.some(
+      field => !metadataOnlyFields.includes(field)
+    );
+
+    // Skip preview generation if only metadata changed
+    if (!hasPreviewAffectingChanges) {
+      console.log('📝 Skipping preview generation - metadata-only change:', changedFields);
+      return;
+    }
+
     // ✅ FIX: Clear any existing preview debounce timer to prevent multiple preview generations
     if (previewDebounceTimer) {
       clearTimeout(previewDebounceTimer);
@@ -878,6 +918,17 @@ export const DocumentProvider = ({ children }) => {
     }
   }, [isAuthenticated, tosVerified, loadDocuments]);
 
+  // SECURITY: Clear all user data when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('[DocumentContext] User logged out, clearing all user data');
+      // Clear documents array to prevent showing previous user's data
+      dispatch({ type: ActionTypes.SET_DOCUMENTS, payload: [] });
+      // Reset current document
+      dispatch({ type: ActionTypes.RESET_DOCUMENT });
+    }
+  }, [isAuthenticated]);
+
   // Clean up timers
   useEffect(() => {
     return () => {
@@ -890,34 +941,100 @@ export const DocumentProvider = ({ children }) => {
     };
   }, [autoSaveTimer, previewDebounceTimer]);
 
+  // Memoize context values to prevent unnecessary re-renders
+  const documentDataValue = useMemo(() => ({
+    currentDocument: state.currentDocument,
+    preview: state.preview,
+    isPreviewLoading: state.isPreviewLoading
+  }), [state.currentDocument, state.preview, state.isPreviewLoading]);
+
+  const documentListValue = useMemo(() => ({
+    documents: state.documents,
+    isDocumentsLoading: state.isDocumentsLoading
+  }), [state.documents, state.isDocumentsLoading]);
+
+  const saveMetadataValue = useMemo(() => ({
+    isSaving: state.isSaving,
+    lastSaved: state.lastSaved,
+    justSaved: state.justSaved,
+    hasUnsavedChanges: state.hasUnsavedChanges
+  }), [state.isSaving, state.lastSaved, state.justSaved, state.hasUnsavedChanges]);
+
+  const uiValue = useMemo(() => ({
+    isLoading: state.isLoading,
+    error: state.error,
+    validation: state.validation,
+    sessionInitialized: state.sessionInitialized
+  }), [state.isLoading, state.error, state.validation, state.sessionInitialized]);
+
+  const actionsValue = useMemo(() => ({
+    loadDocument,
+    loadDocuments,
+    saveDocument,
+    generatePreview,
+    validateDocument,
+    createNewDocument,
+    selectDocument,
+    updateDocumentData,
+    updateDocumentDataWithoutPreview,
+    initializeNewDocument,
+    renderFormattedPreview,
+    mergeProfessionalRewrites,
+    reorderFacts
+  }), [
+    loadDocument,
+    loadDocuments,
+    saveDocument,
+    generatePreview,
+    validateDocument,
+    createNewDocument,
+    selectDocument,
+    updateDocumentData,
+    updateDocumentDataWithoutPreview,
+    initializeNewDocument,
+    renderFormattedPreview,
+    mergeProfessionalRewrites,
+    reorderFacts
+  ]);
+
   return (
-    <DocumentContext.Provider value={state}>
-      <DocumentDispatchContext.Provider
-        value={{
-          loadDocument,
-          loadDocuments,
-          saveDocument,
-          generatePreview,
-          validateDocument,
-          createNewDocument,
-          selectDocument,
-          updateDocumentData,
-          updateDocumentDataWithoutPreview,
-          initializeNewDocument,
-          renderFormattedPreview,
-          mergeProfessionalRewrites,
-          reorderFacts
-        }}
-      >
-        {children}
-      </DocumentDispatchContext.Provider>
-    </DocumentContext.Provider>
+    <DocumentDataContext.Provider value={documentDataValue}>
+      <DocumentListContext.Provider value={documentListValue}>
+        <SaveMetadataContext.Provider value={saveMetadataValue}>
+          <UIContext.Provider value={uiValue}>
+            <DocumentActionsContext.Provider value={actionsValue}>
+              {children}
+            </DocumentActionsContext.Provider>
+          </UIContext.Provider>
+        </SaveMetadataContext.Provider>
+      </DocumentListContext.Provider>
+    </DocumentDataContext.Provider>
   );
 };
 
-// Custom hooks for using the context
-export const useDocumentState = () => useContext(DocumentContext);
-export const useDocumentActions = () => useContext(DocumentDispatchContext);
+// Custom hooks for using split contexts (RECOMMENDED - prevents unnecessary re-renders)
+export const useDocumentData = () => useContext(DocumentDataContext);
+export const useDocumentList = () => useContext(DocumentListContext);
+export const useSaveMetadata = () => useContext(SaveMetadataContext);
+export const useUIState = () => useContext(UIContext);
+export const useDocumentActions = () => useContext(DocumentActionsContext);
+
+// Legacy hook for backward compatibility (DEPRECATED - causes excessive re-renders)
+// Components should migrate to the specific hooks above
+export const useDocumentState = () => {
+  const documentData = useContext(DocumentDataContext);
+  const documentList = useContext(DocumentListContext);
+  const saveMetadata = useContext(SaveMetadataContext);
+  const uiState = useContext(UIContext);
+
+  // Return combined state for backward compatibility
+  return useMemo(() => ({
+    ...documentData,
+    ...documentList,
+    ...saveMetadata,
+    ...uiState
+  }), [documentData, documentList, saveMetadata, uiState]);
+};
 
 // Export for testing
 export { ActionTypes };

@@ -9,7 +9,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 
 // Page configuration for US Letter (8.5" x 11" with 1" margins)
 const PAGE_CONFIG = {
@@ -28,7 +28,7 @@ const PAGE_CONFIG = {
 const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + margin-bottom (12px)
 
 const DocumentPreview = () => {
-  const { currentDocument, preview, isPreviewLoading } = useDocumentState();
+  const { currentDocument, preview, isPreviewLoading } = useDocumentData();
   const { generatePreview } = useDocumentActions();
 
   const [currentPage, setCurrentPage] = useState(1);

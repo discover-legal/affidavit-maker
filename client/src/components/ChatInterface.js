@@ -13,7 +13,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 import DocumentMetadata from './DocumentMetadata';
 import EvidenceUploadModal from './EvidenceUploadModal';
 
@@ -36,8 +36,8 @@ const ChatInterface = () => {
   const currentDocumentIdRef = useRef(null);
   const welcomeMessageShownRef = useRef(false);
 
-  // Use DocumentContext
-  const { currentDocument } = useDocumentState();
+  // Use split contexts to prevent unnecessary re-renders
+  const { currentDocument } = useDocumentData();
   const { updateDocumentData } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 

@@ -705,6 +705,22 @@ router.get('/',
           processedDoc.facts = [];
         }
 
+        // Extract user-related fields from content
+        if (doc.content) {
+          if (doc.content.documentTitle) {
+            processedDoc.documentTitle = doc.content.documentTitle;
+          }
+          if (doc.content.affiantName) {
+            processedDoc.affiantName = doc.content.affiantName;
+          }
+          if (doc.content.firstName) {
+            processedDoc.firstName = doc.content.firstName;
+          }
+          if (doc.content.lastName) {
+            processedDoc.lastName = doc.content.lastName;
+          }
+        }
+
         return processedDoc;
       });
 

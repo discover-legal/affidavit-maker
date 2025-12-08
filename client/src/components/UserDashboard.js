@@ -4,7 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentList, useUIState, useDocumentActions } from '../contexts/DocumentContext';
 import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -16,18 +16,21 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const { getAccessTokenSilently, isLoading } = useAuth0();
   const navigate = useNavigate();
 
-  // Use DocumentContext instead of local state
-  const { documents, isDocumentsLoading, error } = useDocumentState();
+  // Use split contexts to prevent unnecessary re-renders
+  const { documents, isDocumentsLoading } = useDocumentList();
+  const { error } = useUIState();
   const { loadDocuments } = useDocumentActions();
 
   const [renamingDocId, setRenamingDocId] = useState(null);
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
-  // Reset scroll position when dashboard loads
+  // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    // Refresh documents list to show any updates from editor
+    loadDocuments();
+  }, [loadDocuments]);
 
   // ✅ FIXED: Delete handler now properly uses the hook
   const handleDeleteDocument = async (docId) => {

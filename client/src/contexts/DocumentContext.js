@@ -574,6 +574,9 @@ export const DocumentProvider = ({ children }) => {
         affidavitData: {
           state: fullDocumentData.state || '',
           affiantName: fullDocumentData.affiantName || '',
+          firstName: fullDocumentData.firstName || '',
+          lastName: fullDocumentData.lastName || '',
+          documentTitle: fullDocumentData.documentTitle || '',
           caseNumber: fullDocumentData.caseNumber || '',
           courtName: fullDocumentData.courtName || '',
           plaintiff: fullDocumentData.plaintiff || '',
@@ -583,12 +586,7 @@ export const DocumentProvider = ({ children }) => {
           documentType: fullDocumentData.documentType || 'general',
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
-        },
-        title: fullDocumentData.documentTitle ||
-          (fullDocumentData.affiantName
-            ? `Affidavit of ${fullDocumentData.affiantName}`
-            : 'Untitled Affidavit'),
-        content: JSON.stringify(fullDocumentData)
+        }
       };
 
       const data = await authFetch('/api/documents/save', {

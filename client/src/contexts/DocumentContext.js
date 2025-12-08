@@ -195,6 +195,7 @@ const documentReducer = (state, action) => {
       return {
         ...state,
         currentDocument: { ...initialState.currentDocument },
+        documents: [], // SECURITY: Clear documents list to prevent data leakage
         preview: null,
         validation: null,
         error: null,
@@ -908,6 +909,17 @@ export const DocumentProvider = ({ children }) => {
       console.log('[DocumentContext] Waiting for TOS verification before loading documents');
     }
   }, [isAuthenticated, tosVerified, loadDocuments]);
+
+  // SECURITY: Clear all user data when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('[DocumentContext] User logged out, clearing all user data');
+      // Clear documents array to prevent showing previous user's data
+      dispatch({ type: ActionTypes.SET_DOCUMENTS, payload: [] });
+      // Reset current document
+      dispatch({ type: ActionTypes.RESET_DOCUMENT });
+    }
+  }, [isAuthenticated]);
 
   // Clean up timers
   useEffect(() => {

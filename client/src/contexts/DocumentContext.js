@@ -1,5 +1,6 @@
-// client/src/contexts/DocumentContext.js - CLEAN ARCHITECTURE
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
+// client/src/contexts/DocumentContext.js - SPLIT CONTEXT ARCHITECTURE
+// Optimized to prevent unnecessary re-renders by splitting state into separate contexts
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useTOS } from './TOSContext';
 
@@ -7,6 +8,13 @@ import { useTOS } from './TOSContext';
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
+
+// Create separate contexts to minimize re-renders
+const DocumentDataContext = createContext();      // Core document data (preview, currentDocument)
+const DocumentListContext = createContext();      // Dashboard documents list
+const SaveMetadataContext = createContext();      // Save state (for SaveButton)
+const UIContext = createContext();                // UI state (loading, errors)
+const DocumentActionsContext = createContext();   // All actions
 
 // Initial state
 const initialState = {
@@ -933,34 +941,100 @@ export const DocumentProvider = ({ children }) => {
     };
   }, [autoSaveTimer, previewDebounceTimer]);
 
+  // Memoize context values to prevent unnecessary re-renders
+  const documentDataValue = useMemo(() => ({
+    currentDocument: state.currentDocument,
+    preview: state.preview,
+    isPreviewLoading: state.isPreviewLoading
+  }), [state.currentDocument, state.preview, state.isPreviewLoading]);
+
+  const documentListValue = useMemo(() => ({
+    documents: state.documents,
+    isDocumentsLoading: state.isDocumentsLoading
+  }), [state.documents, state.isDocumentsLoading]);
+
+  const saveMetadataValue = useMemo(() => ({
+    isSaving: state.isSaving,
+    lastSaved: state.lastSaved,
+    justSaved: state.justSaved,
+    hasUnsavedChanges: state.hasUnsavedChanges
+  }), [state.isSaving, state.lastSaved, state.justSaved, state.hasUnsavedChanges]);
+
+  const uiValue = useMemo(() => ({
+    isLoading: state.isLoading,
+    error: state.error,
+    validation: state.validation,
+    sessionInitialized: state.sessionInitialized
+  }), [state.isLoading, state.error, state.validation, state.sessionInitialized]);
+
+  const actionsValue = useMemo(() => ({
+    loadDocument,
+    loadDocuments,
+    saveDocument,
+    generatePreview,
+    validateDocument,
+    createNewDocument,
+    selectDocument,
+    updateDocumentData,
+    updateDocumentDataWithoutPreview,
+    initializeNewDocument,
+    renderFormattedPreview,
+    mergeProfessionalRewrites,
+    reorderFacts
+  }), [
+    loadDocument,
+    loadDocuments,
+    saveDocument,
+    generatePreview,
+    validateDocument,
+    createNewDocument,
+    selectDocument,
+    updateDocumentData,
+    updateDocumentDataWithoutPreview,
+    initializeNewDocument,
+    renderFormattedPreview,
+    mergeProfessionalRewrites,
+    reorderFacts
+  ]);
+
   return (
-    <DocumentContext.Provider value={state}>
-      <DocumentDispatchContext.Provider
-        value={{
-          loadDocument,
-          loadDocuments,
-          saveDocument,
-          generatePreview,
-          validateDocument,
-          createNewDocument,
-          selectDocument,
-          updateDocumentData,
-          updateDocumentDataWithoutPreview,
-          initializeNewDocument,
-          renderFormattedPreview,
-          mergeProfessionalRewrites,
-          reorderFacts
-        }}
-      >
-        {children}
-      </DocumentDispatchContext.Provider>
-    </DocumentContext.Provider>
+    <DocumentDataContext.Provider value={documentDataValue}>
+      <DocumentListContext.Provider value={documentListValue}>
+        <SaveMetadataContext.Provider value={saveMetadataValue}>
+          <UIContext.Provider value={uiValue}>
+            <DocumentActionsContext.Provider value={actionsValue}>
+              {children}
+            </DocumentActionsContext.Provider>
+          </UIContext.Provider>
+        </SaveMetadataContext.Provider>
+      </DocumentListContext.Provider>
+    </DocumentDataContext.Provider>
   );
 };
 
-// Custom hooks for using the context
-export const useDocumentState = () => useContext(DocumentContext);
-export const useDocumentActions = () => useContext(DocumentDispatchContext);
+// Custom hooks for using split contexts (RECOMMENDED - prevents unnecessary re-renders)
+export const useDocumentData = () => useContext(DocumentDataContext);
+export const useDocumentList = () => useContext(DocumentListContext);
+export const useSaveMetadata = () => useContext(SaveMetadataContext);
+export const useUIState = () => useContext(UIContext);
+export const useDocumentActions = () => useContext(DocumentActionsContext);
+
+// Legacy hook for backward compatibility (DEPRECATED - causes excessive re-renders)
+// Components should migrate to the specific hooks above
+export const useDocumentState = () => {
+  const documentData = useContext(DocumentDataContext);
+  const documentList = useContext(DocumentListContext);
+  const saveMetadata = useContext(SaveMetadataContext);
+  const uiState = useContext(UIContext);
+
+  // Return combined state for backward compatibility
+  return useMemo(() => ({
+    ...documentData,
+    ...documentList,
+    ...saveMetadata,
+    ...uiState
+  }), [documentData, documentList, saveMetadata, uiState]);
+};
 
 // Export for testing
 export { ActionTypes };

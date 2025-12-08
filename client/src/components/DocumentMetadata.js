@@ -1,13 +1,13 @@
 // client/src/components/DocumentMetadata.js
 import React from 'react';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 import '../styles/DocumentMetadata.css';
 
 /**
  * Component for collecting document metadata including case caption information
  */
 const DocumentMetadata = () => {
-  const { currentDocument } = useDocumentState();
+  const { currentDocument } = useDocumentData();
   const { updateDocumentData } = useDocumentActions();
 
   const handleChange = (field, value) => {

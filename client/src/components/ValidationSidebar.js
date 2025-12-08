@@ -19,7 +19,7 @@ import {
   ChevronDown    // Move down button
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 import EvidenceUploadModal from './EvidenceUploadModal';
 
 // Import evidence helper functions
@@ -467,7 +467,7 @@ const DraggableEvidenceCard = ({
 
 // ✅ Main ValidationSidebar Component
 const ValidationSidebar = () => {
-  const { currentDocument } = useDocumentState();
+  const { currentDocument } = useDocumentData();
   const { updateDocumentData, updateDocumentDataWithoutPreview, saveDocument } = useDocumentActions();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 

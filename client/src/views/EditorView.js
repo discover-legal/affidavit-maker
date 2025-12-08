@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useDocumentState, useDocumentActions } from '../contexts/DocumentContext';
+import { useDocumentData, useSaveMetadata, useUIState, useDocumentActions } from '../contexts/DocumentContext';
 import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
@@ -88,22 +88,11 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
-  // Use DocumentContext for all document-related state
-  const {
-    currentDocument,
-    preview,
-    isSaving,
-    lastSaved,
-    hasUnsavedChanges,
-    sessionInitialized,
-    justSaved
-  } = useDocumentState();
-  
-  const {
-    saveDocument,
-    loadDocument,
-    initializeNewDocument
-  } = useDocumentActions();
+  // Use split contexts to prevent unnecessary re-renders
+  const { currentDocument, preview } = useDocumentData();
+  const { isSaving, lastSaved, hasUnsavedChanges, justSaved } = useSaveMetadata();
+  const { sessionInitialized } = useUIState();
+  const { saveDocument, loadDocument, initializeNewDocument } = useDocumentActions();
 
   // Check for mobile view
   useEffect(() => {

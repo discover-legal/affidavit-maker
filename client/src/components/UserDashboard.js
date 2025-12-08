@@ -24,10 +24,12 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
-  // Reset scroll position when dashboard loads
+  // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    // Refresh documents list to show any updates from editor
+    loadDocuments();
+  }, [loadDocuments]);
 
   // ✅ FIXED: Delete handler now properly uses the hook
   const handleDeleteDocument = async (docId) => {

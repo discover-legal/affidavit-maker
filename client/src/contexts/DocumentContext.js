@@ -67,7 +67,8 @@ const ActionTypes = {
   SELECT_DOCUMENT: 'SELECT_DOCUMENT',
   MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
   SET_JUST_SAVED: 'SET_JUST_SAVED',
-  REORDER_FACTS: 'REORDER_FACTS'
+  REORDER_FACTS: 'REORDER_FACTS',
+  SAVE_COMPLETE: 'SAVE_COMPLETE'
 };
 
 // Reducer
@@ -174,6 +175,14 @@ const documentReducer = (state, action) => {
       return {
         ...state,
         justSaved: action.payload
+      };
+
+    case ActionTypes.SAVE_COMPLETE:
+      return {
+        ...state,
+        isSaving: false,
+        lastSaved: action.payload.lastSaved,
+        justSaved: true
       };
 
     case ActionTypes.SET_SESSION_INITIALIZED:
@@ -602,15 +611,10 @@ export const DocumentProvider = ({ children }) => {
       if (data.success) {
         console.log('💾 Document saved successfully');
 
+        // Batch save completion updates to reduce re-renders
         dispatch({
-          type: ActionTypes.SET_LAST_SAVED,
-          payload: new Date()
-        });
-
-        // Set justSaved flag
-        dispatch({
-          type: ActionTypes.SET_JUST_SAVED,
-          payload: true
+          type: ActionTypes.SAVE_COMPLETE,
+          payload: { lastSaved: new Date() }
         });
 
         // Clear justSaved flag after 2.5 seconds
@@ -644,9 +648,9 @@ export const DocumentProvider = ({ children }) => {
         payload: 'Failed to save document: ' + error.message
       });
 
-      throw error;
-    } finally {
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
+
+      throw error;
     }
   }, [authFetch, loadDocuments, isAuthenticated]);
 

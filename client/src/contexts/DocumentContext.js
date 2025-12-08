@@ -640,8 +640,11 @@ export const DocumentProvider = ({ children }) => {
           });
         }
 
-        // Reload documents list
-        loadDocuments();
+        // NOTE: We don't reload the documents list here because:
+        // 1. It causes unnecessary re-renders of DocumentPreview and other components
+        // 2. The dashboard will refresh when user navigates back to it
+        // 3. The current document data is already up-to-date in state
+        // If we need the documents list updated, the dashboard will call loadDocuments on mount
 
         return documentId;
       } else {

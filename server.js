@@ -39,6 +39,17 @@ app.use((req, res, next) => {
 // ✅ FIXED: Response helpers middleware (second, before any routes)
 app.use(responseMiddleware);
 
+// WWW to non-WWW redirect middleware
+// Redirects www.discover.legal → discover.legal to eliminate duplicate content
+app.use((req, res, next) => {
+  const host = req.get('host');
+  if (host && host.startsWith('www.')) {
+    const newHost = host.replace('www.', '');
+    return res.redirect(301, `${req.protocol}://${newHost}${req.originalUrl}`);
+  }
+  next();
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {

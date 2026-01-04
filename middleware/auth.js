@@ -43,61 +43,108 @@ function getKey(header, callback) {
   });
 }
 
-// Get or create user from Auth0 token
+// Helper function to extract provider from auth0_id
+function extractProvider(auth0Id) {
+  if (!auth0Id) return 'unknown';
+  const parts = auth0Id.split('|');
+  return parts.length > 0 ? parts[0] : 'unknown';
+}
+
+// Helper function to log audit events
+async function logAuditEvent(client, userId, eventType, eventCategory, description, metadata = {}, severity = 'info') {
+  try {
+    await client.query(
+      `INSERT INTO audit_log (user_id, event_type, event_category, description, metadata, severity, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [userId, eventType, eventCategory, description, JSON.stringify(metadata), severity]
+    );
+  } catch (error) {
+    logger.error('Failed to log audit event', { error: error.message, eventType });
+  }
+}
+
+// Get or create user from Auth0 token - SECURE VERSION
 async function getUserFromAuth(pool, authId, decoded) {
   let client;
   try {
     client = await pool.connect();
+    const provider = extractProvider(authId);
 
-    // Try to find existing user by auth0_id first
-    let result = await client.query('SELECT * FROM users WHERE auth0_id = $1', [authId]);
+    // First, try to find user by auth0_id in user_identities table
+    let result = await client.query(
+      `SELECT u.* FROM users u
+       INNER JOIN user_identities ui ON u.id = ui.user_id
+       WHERE ui.auth0_id = $1`,
+      [authId]
+    );
+
+    // Fallback: Check legacy users.auth0_id for backwards compatibility
+    if (result.rows.length === 0) {
+      result = await client.query('SELECT * FROM users WHERE auth0_id = $1', [authId]);
+    }
 
     if (result.rows.length === 0 && decoded) {
-      // User not found by auth0_id - try to create or find by email
+      // User not found - create new user
       const email = decoded.email || '';
       const name = decoded.name || '';
 
-      logger.info('Creating new user:', { email, authId });
+      logger.info('Creating new user:', { email, authId, provider });
 
-      // Use UPSERT pattern to handle race conditions:
-      // - If auth0_id already exists, update the record
-      // - If email already exists (different auth0_id), link the account
-      // This handles both race conditions and account linking scenarios
       try {
+        await client.query('BEGIN');
+
+        // Create user account
         result = await client.query(
           `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
            VALUES ($1, $2, $3, NOW(), NOW(), NOW())
-           ON CONFLICT (auth0_id) DO UPDATE SET
-             last_login = NOW(),
-             updated_at = NOW()
            RETURNING *`,
           [authId, email, name]
         );
-      } catch (insertError) {
-        // Handle duplicate email constraint violation
-        // This happens when user exists with same email but different auth0_id
-        if (insertError.code === '23505' && insertError.constraint === 'users_email_key') {
-          logger.info('User exists with same email, linking auth0_id:', { email, authId });
 
-          // Update existing user with new auth0_id (account linking)
-          result = await client.query(
-            `UPDATE users
-             SET auth0_id = $1, last_login = NOW(), updated_at = NOW()
-             WHERE email = $2
-             RETURNING *`,
-            [authId, email]
+        const newUser = result.rows[0];
+
+        // Create corresponding user_identity record
+        await client.query(
+          `INSERT INTO user_identities (user_id, auth0_id, provider, is_primary, verified)
+           VALUES ($1, $2, $3, true, true)`,
+          [newUser.id, authId, provider]
+        );
+
+        // Log audit event
+        await logAuditEvent(
+          client,
+          newUser.id,
+          'account_created',
+          'authentication',
+          'New user account created',
+          { auth0_id: authId, provider, email },
+          'info'
+        );
+
+        await client.query('COMMIT');
+
+      } catch (insertError) {
+        await client.query('ROLLBACK');
+
+        // SECURITY FIX: Handle duplicate email constraint violation
+        // Do NOT overwrite existing user's auth0_id - this was the vulnerability
+        if (insertError.code === '23505' && insertError.constraint === 'users_email_key') {
+          logger.warn('SECURITY: Blocked signup with existing email:', { email, authId, provider });
+
+          // Log security event
+          await logAuditEvent(
+            client,
+            null,
+            'duplicate_email_signup_blocked',
+            'authentication',
+            'Blocked signup attempt with existing email address',
+            { email, auth0_id: authId, provider },
+            'warning'
           );
 
-          if (result.rows.length === 0) {
-            // Edge case: email was deleted between error and update
-            // Retry the insert
-            result = await client.query(
-              `INSERT INTO users (auth0_id, email, name, created_at, updated_at, last_login)
-               VALUES ($1, $2, $3, NOW(), NOW(), NOW())
-               RETURNING *`,
-              [authId, email, name]
-            );
-          }
+          // Return null to trigger authentication error
+          // The caller should handle this by returning a 409 error to the user
+          throw new Error('DUPLICATE_EMAIL: An account with this email already exists. Please sign in using your original authentication method.');
         } else {
           throw insertError;
         }
@@ -108,10 +155,17 @@ async function getUserFromAuth(pool, authId, decoded) {
         'UPDATE users SET last_login = NOW() WHERE id = $1',
         [result.rows[0].id]
       );
+
+      // Update last_used_at for this identity
+      await client.query(
+        'UPDATE user_identities SET last_used_at = NOW() WHERE auth0_id = $1',
+        [authId]
+      );
     }
 
     return result.rows[0] || null;
   } catch (error) {
+    // Re-throw with context
     logger.error('User lookup/creation error:', error);
     throw error;
   } finally {
@@ -180,19 +234,19 @@ const checkJwt = (req, res, next) => {
     try {
       req.auth = decoded;
       req.userId = decoded.sub;
-      
+
       // Get or create user in database
       const pool = req.app.locals.pool;
       const user = await getUserFromAuth(pool, decoded.sub, decoded);
       req.user = user;
-      
+
       logger.debug('Auth successful', {
         userId: user?.id,
         email: user?.email,
         path: req.path,
         requestId: req.id
       });
-      
+
       next();
     } catch (error) {
       logger.error('User verification failed:', {
@@ -200,9 +254,21 @@ const checkJwt = (req, res, next) => {
         authId: decoded?.sub,
         requestId: req.id
       });
-      
-      return res.status(500).json({ 
-        success: false, 
+
+      // Handle duplicate email error specially
+      if (error.message && error.message.startsWith('DUPLICATE_EMAIL:')) {
+        return res.status(409).json({
+          success: false,
+          error: error.message.replace('DUPLICATE_EMAIL: ', ''),
+          errorType: 'account_exists',
+          errorCode: 'DUPLICATE_EMAIL',
+          requiresLogin: true,
+          requestId: req.id
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
         error: 'User verification failed',
         requestId: req.id
       });

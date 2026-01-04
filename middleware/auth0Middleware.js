@@ -136,6 +136,26 @@ const checkJwt = (req, res, next) => {
   });
 };
 
+// Helper function to extract provider from auth0_id
+const extractProvider = (auth0Id) => {
+  if (!auth0Id) return 'unknown';
+  const parts = auth0Id.split('|');
+  return parts.length > 0 ? parts[0] : 'unknown';
+};
+
+// Helper function to log audit events
+const logAuditEvent = async (pool, userId, eventType, eventCategory, description, metadata = {}, severity = 'info') => {
+  try {
+    await pool.query(
+      `INSERT INTO audit_log (user_id, event_type, event_category, description, metadata, severity, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [userId, eventType, eventCategory, description, JSON.stringify(metadata), severity]
+    );
+  } catch (error) {
+    logger.error('Failed to log audit event', { error: error.message, eventType });
+  }
+};
+
 const loadUser = async (req, res, next) => {
   try {
     if (!req.auth?.sub) {
@@ -150,7 +170,7 @@ const loadUser = async (req, res, next) => {
     }
 
     const pool = req.app.locals.pool;
-    
+
     if (!pool) {
       logger.error('Database pool not available');
       return res.status(503).json({
@@ -163,79 +183,115 @@ const loadUser = async (req, res, next) => {
     }
 
     const auth0Id = req.auth.sub;
-    
+    const provider = extractProvider(auth0Id);
+
     try {
-      const userResult = await pool.query(
-        'SELECT * FROM users WHERE auth0_id = $1',
+      // First, try to find user by auth0_id in user_identities table
+      // This supports multi-provider authentication
+      let userResult = await pool.query(
+        `SELECT u.* FROM users u
+         INNER JOIN user_identities ui ON u.id = ui.user_id
+         WHERE ui.auth0_id = $1`,
         [auth0Id]
       );
 
+      // Fallback: Check legacy users.auth0_id for backwards compatibility
       if (userResult.rows.length === 0) {
-        // Create user if not exists
+        userResult = await pool.query(
+          'SELECT * FROM users WHERE auth0_id = $1',
+          [auth0Id]
+        );
+      }
+
+      if (userResult.rows.length === 0) {
+        // Create new user
         try {
           const email = req.auth.email || req.auth[`${config.auth0.audience}/email`] || null;
           const name = req.auth.name || req.auth.nickname || 'User';
 
-          // Use UPSERT pattern to handle race conditions
-          let createResult = await pool.query(
-            `INSERT INTO users (auth0_id, email, name, created_at, updated_at)
-             VALUES ($1, $2, $3, NOW(), NOW())
-             ON CONFLICT (auth0_id) DO UPDATE SET
-               last_login = NOW(),
-               updated_at = NOW()
-             RETURNING *`,
-            [auth0Id, email, name]
-          );
+          // Start transaction for atomic user creation
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
 
-          req.user = createResult.rows[0];
+            // Create user account
+            const createResult = await client.query(
+              `INSERT INTO users (auth0_id, email, name, created_at, updated_at)
+               VALUES ($1, $2, $3, NOW(), NOW())
+               RETURNING *`,
+              [auth0Id, email, name]
+            );
 
-          logger.info('New user created', {
-            userId: req.user.id,
-            auth0Id: auth0Id,
-            email: email
-          });
+            const newUser = createResult.rows[0];
+
+            // Create corresponding user_identity record
+            await client.query(
+              `INSERT INTO user_identities (user_id, auth0_id, provider, is_primary, verified)
+               VALUES ($1, $2, $3, true, true)`,
+              [newUser.id, auth0Id, provider]
+            );
+
+            // Log audit event
+            await client.query(
+              `INSERT INTO audit_log (user_id, event_type, event_category, description, metadata, severity)
+               VALUES ($1, $2, $3, $4, $5, $6)`,
+              [newUser.id, 'account_created', 'authentication', 'New user account created',
+               JSON.stringify({ auth0_id: auth0Id, provider, email }), 'info']
+            );
+
+            await client.query('COMMIT');
+
+            req.user = newUser;
+
+            logger.info('New user created', {
+              userId: newUser.id,
+              auth0Id: auth0Id,
+              email: email,
+              provider: provider
+            });
+          } catch (txError) {
+            await client.query('ROLLBACK');
+            throw txError;
+          } finally {
+            client.release();
+          }
         } catch (createError) {
-          // Handle duplicate email constraint violation (account linking scenario)
+          // SECURITY FIX: Handle duplicate email constraint violation
+          // Do NOT overwrite existing user's auth0_id - this was the vulnerability
           if (createError.code === '23505' && createError.constraint === 'users_email_key') {
             const email = req.auth.email || req.auth[`${config.auth0.audience}/email`] || null;
-            logger.info('User exists with same email, linking auth0_id:', { email, auth0Id });
 
-            try {
-              const linkResult = await pool.query(
-                `UPDATE users
-                 SET auth0_id = $1, last_login = NOW(), updated_at = NOW()
-                 WHERE email = $2
-                 RETURNING *`,
-                [auth0Id, email]
-              );
+            // Log security event
+            logger.warn('SECURITY: Attempted signup with existing email', {
+              email,
+              newAuth0Id: auth0Id,
+              newProvider: provider,
+              requestId: req.id
+            });
 
-              if (linkResult.rows.length > 0) {
-                req.user = linkResult.rows[0];
-                logger.info('Account linked successfully', {
-                  userId: req.user.id,
-                  auth0Id: auth0Id,
-                  email: email
-                });
-              } else {
-                throw new Error('Failed to link account');
-              }
-            } catch (linkError) {
-              logger.error('Failed to link user account', {
-                error: linkError.message,
-                auth0Id: auth0Id
-              });
+            await logAuditEvent(
+              pool,
+              null, // No user_id since we're blocking the attempt
+              'duplicate_email_signup_blocked',
+              'authentication',
+              'Blocked signup attempt with existing email address',
+              { email, auth0_id: auth0Id, provider },
+              'warning'
+            );
 
-              return res.status(500).json({
-                success: false,
-                error: 'User account setup failed',
-                errorType: 'server_error',
-                timestamp: new Date().toISOString(),
-                requestId: req.id
-              });
-            }
+            // SECURE RESPONSE: Do not overwrite - inform user to use original login method
+            return res.status(409).json({
+              success: false,
+              error: 'An account with this email address already exists. Please sign in using your original authentication method, or contact support to link multiple accounts.',
+              errorType: 'account_exists',
+              errorCode: 'DUPLICATE_EMAIL',
+              timestamp: new Date().toISOString(),
+              requestId: req.id
+            });
           } else {
             logger.error('Failed to create user', {
               error: createError.message,
+              code: createError.code,
               auth0Id: auth0Id
             });
 
@@ -250,12 +306,17 @@ const loadUser = async (req, res, next) => {
         }
       } else {
         req.user = userResult.rows[0];
-        
-        // Update last login
+
+        // Update last login and last_used_at for this identity
         try {
           await pool.query(
             'UPDATE users SET last_login = NOW() WHERE id = $1',
             [req.user.id]
+          );
+
+          await pool.query(
+            'UPDATE user_identities SET last_used_at = NOW() WHERE auth0_id = $1',
+            [auth0Id]
           );
         } catch (updateError) {
           logger.warn('Failed to update last login', {
@@ -264,13 +325,14 @@ const loadUser = async (req, res, next) => {
           });
         }
       }
-      
+
       logger.debug('User loaded successfully', {
         userId: req.user.id,
         email: req.user.email,
+        auth0Id: auth0Id,
         path: req.path
       });
-      
+
       next();
     } catch (dbError) {
       logger.error('Database error during user lookup', {
@@ -278,7 +340,7 @@ const loadUser = async (req, res, next) => {
         auth0Id: auth0Id,
         requestId: req.id
       });
-      
+
       return res.status(500).json({
         success: false,
         error: 'Database error during authentication',
@@ -293,7 +355,7 @@ const loadUser = async (req, res, next) => {
       path: req.path,
       requestId: req.id
     });
-    
+
     return res.status(401).json({
       success: false,
       error: 'Authentication failed',
@@ -344,10 +406,21 @@ const optionalAuth = async (req, res, next) => {
       try {
         const pool = req.app.locals.pool;
         if (pool) {
-          const userResult = await pool.query(
-            'SELECT * FROM users WHERE auth0_id = $1',
+          // Try user_identities table first, then fallback to legacy users.auth0_id
+          let userResult = await pool.query(
+            `SELECT u.* FROM users u
+             INNER JOIN user_identities ui ON u.id = ui.user_id
+             WHERE ui.auth0_id = $1`,
             [decoded.sub]
           );
+
+          if (userResult.rows.length === 0) {
+            userResult = await pool.query(
+              'SELECT * FROM users WHERE auth0_id = $1',
+              [decoded.sub]
+            );
+          }
+
           req.user = userResult.rows[0] || null;
         }
       } catch (error) {

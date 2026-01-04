@@ -23,6 +23,30 @@ const ResourcesPage = () => {
   const pageDescription = 'Free guides and articles to help you understand legal documents and navigate the legal system. Expert advice on affidavits, legal forms, and court procedures.';
   const pageUrl = 'https://discover.legal/resources';
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": pageTitle,
+    "description": pageDescription,
+    "publisher": {
+      "@type": "Organization",
+      "name": "discover.legal",
+      "url": "https://discover.legal"
+    },
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": ARTICLES.map((article, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url": `https://discover.legal/resources/${article.slug}`,
+        "name": article.title
+      }))
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Helmet>
@@ -50,6 +74,11 @@ const ResourcesPage = () => {
         {/* Additional SEO */}
         <meta name="robots" content="index, follow" />
         <meta name="author" content="discover.legal" />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
       </Helmet>
       {/* Navigation Bar */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">

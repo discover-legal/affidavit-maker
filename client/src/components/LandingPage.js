@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ChevronRight, Zap, Shield, Scale } from 'lucide-react';
 
 const LandingPage = ({ onGetStarted }) => {
@@ -92,8 +93,91 @@ const LandingPage = ({ onGetStarted }) => {
 
   const currentConfig = config[country];
 
+  // SEO configuration
+  const pageTitle = country === 'CA'
+    ? 'Create Legal Affidavits Online | AI-Powered Document Generator | discover.legal'
+    : 'Create Legal Affidavits Online | AI-Powered Affidavit Generator | discover.legal';
+
+  const pageDescription = country === 'CA'
+    ? 'Generate professional, court-ready affidavits in minutes with AI assistance. Province-compliant templates for all Canadian provinces. Fast, accurate, and affordable legal document creation.'
+    : 'Generate professional, court-ready affidavits in minutes with AI assistance. State-compliant templates for Texas, Utah, Arizona, and more. Fast, accurate, and affordable legal document creation.';
+
+  const pageUrl = 'https://discover.legal/';
+
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://discover.legal/#organization",
+        "name": "discover.legal",
+        "url": "https://discover.legal",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://discover.legal/logo512.png"
+        },
+        "description": "AI-powered legal document generation platform specializing in professional affidavits and court-ready legal documents.",
+        "sameAs": []
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://discover.legal/#website",
+        "url": "https://discover.legal",
+        "name": "discover.legal",
+        "description": pageDescription,
+        "publisher": {
+          "@id": "https://discover.legal/#organization"
+        }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://discover.legal/#webpage",
+        "url": "https://discover.legal/",
+        "name": pageTitle,
+        "isPartOf": {
+          "@id": "https://discover.legal/#website"
+        },
+        "description": pageDescription
+      }
+    ]
+  };
+
   return (
     <div className={`min-h-screen bg-gradient-to-b from-${currentConfig.colors.primaryLight} to-white`}>
+      <Helmet>
+        {/* Primary Meta Tags */}
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={pageDescription} />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href={pageUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:site_name" content="discover.legal" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+
+        {/* Additional SEO */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="discover.legal" />
+        <meta name="keywords" content="affidavit generator, legal documents, AI affidavit, create affidavit online, court documents, notarized affidavit, legal forms" />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
       {/* Navigation Bar with Branding */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

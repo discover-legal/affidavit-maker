@@ -43,13 +43,37 @@ app.use(responseMiddleware);
 // Redirects www.discover.legal → discover.legal to eliminate duplicate content
 app.use((req, res, next) => {
   const host = req.get('host');
+
+  // Only process if host starts with www.
   if (host && host.startsWith('www.')) {
-    const newHost = host.replace('www.', '');
-    // Use X-Forwarded-Proto header when behind proxy, fallback to req.protocol
-    // This prevents redirect loops when the proxy terminates SSL
-    const protocol = req.get('X-Forwarded-Proto') || req.protocol;
-    return res.redirect(301, `${protocol}://${newHost}${req.originalUrl}`);
+    const newHost = host.replace(/^www\./, '');
+
+    // Protocol detection with multiple fallbacks for reliability
+    // Priority: X-Forwarded-Proto > req.protocol > default to https in production
+    let protocol = req.get('X-Forwarded-Proto') ||
+                   req.get('x-forwarded-proto') ||  // case-insensitive fallback
+                   req.protocol;
+
+    // In production, always use https to prevent http/https redirect loops
+    if (process.env.NODE_ENV === 'production') {
+      protocol = 'https';
+    }
+
+    // Prevent redirect loops by checking if we've already been redirected
+    const redirectCount = parseInt(req.get('X-Redirect-Count') || '0', 10);
+    if (redirectCount >= 3) {
+      logger.error('Redirect loop detected', { host, protocol, redirectCount });
+      return next();
+    }
+
+    const redirectUrl = `${protocol}://${newHost}${req.originalUrl}`;
+    logger.info('WWW redirect', { from: host, to: newHost, protocol, redirectUrl });
+
+    // Set custom header to track redirect count
+    res.setHeader('X-Redirect-Count', (redirectCount + 1).toString());
+    return res.redirect(301, redirectUrl);
   }
+
   next();
 });
 

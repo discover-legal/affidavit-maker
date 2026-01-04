@@ -45,7 +45,10 @@ app.use((req, res, next) => {
   const host = req.get('host');
   if (host && host.startsWith('www.')) {
     const newHost = host.replace('www.', '');
-    return res.redirect(301, `${req.protocol}://${newHost}${req.originalUrl}`);
+    // Use X-Forwarded-Proto header when behind proxy, fallback to req.protocol
+    // This prevents redirect loops when the proxy terminates SSL
+    const protocol = req.get('X-Forwarded-Proto') || req.protocol;
+    return res.redirect(301, `${protocol}://${newHost}${req.originalUrl}`);
   }
   next();
 });

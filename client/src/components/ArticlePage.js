@@ -33,6 +33,36 @@ const ArticlePage = () => {
 
   const pageUrl = `https://discover.legal/resources/${article.slug}`;
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": article.title,
+    "description": article.description,
+    "url": pageUrl,
+    "datePublished": article.publishDate,
+    "dateModified": article.publishDate,
+    "author": {
+      "@type": "Organization",
+      "name": "discover.legal",
+      "url": "https://discover.legal"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "discover.legal",
+      "url": "https://discover.legal",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://discover.legal/logo512.png"
+      }
+    },
+    "articleSection": article.category,
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": pageUrl
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Helmet>
@@ -62,6 +92,11 @@ const ArticlePage = () => {
         {/* Additional SEO */}
         <meta name="robots" content="index, follow" />
         <meta name="author" content="discover.legal" />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
       </Helmet>
       {/* Navigation Bar */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">

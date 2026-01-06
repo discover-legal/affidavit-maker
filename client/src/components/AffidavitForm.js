@@ -186,13 +186,13 @@ function useAutoSave(data, saveFunction, enabled = true, delay = 2000) {
 }
 
 // Main component
-export default function AffidavitForm({ 
-  initialData = {}, 
-  onSave, 
-  validationService 
+export default function AffidavitForm({
+  initialData = {},
+  onSave,
+  validationService
 }) {
   const [state, dispatch] = useReducer(
-    affidavitReducer, 
+    affidavitReducer,
     {
       ...initialState,
       affidavitData: {
@@ -201,8 +201,34 @@ export default function AffidavitForm({
       }
     }
   );
-  
+
   const [newFactInput, setNewFactInput] = React.useState('');
+  const [availableStates, setAvailableStates] = React.useState([]);
+  const [statesLoading, setStatesLoading] = React.useState(true);
+
+  // Fetch available states from API
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const response = await fetch('/api/templates/states');
+        if (response.ok) {
+          const states = await response.json();
+          setAvailableStates(states);
+        } else {
+          console.error('Failed to fetch states:', response.statusText);
+          // Fallback to empty array, will show message
+          setAvailableStates([]);
+        }
+      } catch (error) {
+        console.error('Error fetching states:', error);
+        setAvailableStates([]);
+      } finally {
+        setStatesLoading(false);
+      }
+    };
+
+    fetchStates();
+  }, []);
   
   // Memoized validation service (validation is handled server-side)
   const validator = useMemo(() => {
@@ -434,12 +460,22 @@ export default function AffidavitForm({
             value={state.affidavitData.state}
             onChange={(e) => updateData({ state: e.target.value })}
             className="form-select"
+            disabled={statesLoading}
           >
-            <option value="TX">Texas</option>
-            <option value="CA">California</option>
-            <option value="NY">New York</option>
-            <option value="FL">Florida</option>
-            <option value="IL">Illinois</option>
+            {statesLoading ? (
+              <option value="">Loading states...</option>
+            ) : availableStates.length === 0 ? (
+              <option value="">No states available</option>
+            ) : (
+              <>
+                <option value="">Select a state...</option>
+                {availableStates.map((stateInfo) => (
+                  <option key={stateInfo.stateCode} value={stateInfo.stateCode}>
+                    {stateInfo.stateName}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
         

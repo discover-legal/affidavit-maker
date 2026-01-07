@@ -1,0 +1,37 @@
+{
+  "stateCode": "NY",
+  "stateName": "New York",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "indexNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "INDEX NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "N.Y. C.P.L.R. § 2106",
+      "description": "Affirmations - As of Jan 1, 2024, allows unsworn affirmations with same force as affidavits for court filings (future enhancement)"
+    },
+    {
+      "code": "N.Y. Executive Law § 137",
+      "description": "Powers and duties of notaries public"
+    },
+    {
+      "code": "N.Y. Real Property Law § 309-B",
+      "description": "Uniform forms of certificates of acknowledgment or proof"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Exhibits may be labeled with letters (A, B, C, etc.) or numbers. Cover pages are recommended but not required."
+  }
+}

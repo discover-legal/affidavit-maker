@@ -1,0 +1,38 @@
+{
+  "stateCode": "FL",
+  "stateName": "Florida",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "physicalPresenceOption": true,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase"
+  },
+  "legalCitations": [
+    {
+      "code": "Fla. Stat. § 92.50",
+      "description": "Oaths, affidavits, and acknowledgments - defines who may take affidavits and jurat requirements"
+    },
+    {
+      "code": "Fla. Stat. § 117.05",
+      "description": "Notarial certificates and jurat formats - prescribes certificate language and format, including physical/online presence specification"
+    },
+    {
+      "code": "Fla. Stat. § 92.525",
+      "description": "Verification of documents; perjury by false written declaration"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. The cover page should include a brief description of the exhibit."
+  }
+}

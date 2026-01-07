@@ -1,0 +1,37 @@
+{
+  "stateCode": "IL",
+  "stateName": "Illinois",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "735 ILCS 5/1-109",
+      "description": "Allows certification under penalty of perjury as alternative to sworn affidavits - has same force and effect (future enhancement)"
+    },
+    {
+      "code": "735 ILCS 5/2-1005",
+      "description": "Governs use of affidavits in civil procedure"
+    },
+    {
+      "code": "5 ILCS 312/",
+      "description": "Illinois Notary Public Act - governs notarization requirements and jurat formats"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Exhibits may be labeled with letters (A, B, C, etc.) or numbers. Cover pages are recommended but not required."
+  }
+}

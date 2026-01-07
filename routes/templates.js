@@ -107,20 +107,24 @@ router.post('/validate', asyncHandler(async (req, res) => {
 router.get('/requirements/:state', asyncHandler(async (req, res) => {
   const { state } = req.params;
   const affidavitService = req.app.locals.affidavitService;
-  
-  if (!['TX', 'UT', 'AZ'].includes(state.toUpperCase())) {
+
+  // Dynamically check if state is supported
+  const supportedStates = affidavitService.getSupportedStates();
+  const isSupported = supportedStates.some(s => s.stateCode === state.toUpperCase());
+
+  if (!isSupported) {
     return res.status(400).json({
       success: false,
-      error: 'Invalid state code',
+      error: `State '${state}' is not supported. Supported states: ${supportedStates.map(s => s.stateCode).join(', ')}`,
       requestId: req.id
     });
   }
-  
+
   try {
     const template = affidavitService.templateManager.getTemplate(state);
     const requirements = template.getRequirements();
     const formatRules = template.getFormattingRules();
-    
+
     res.json({
       success: true,
       state: state.toUpperCase(),
@@ -134,7 +138,7 @@ router.get('/requirements/:state', asyncHandler(async (req, res) => {
       state,
       requestId: req.id
     });
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve template requirements',

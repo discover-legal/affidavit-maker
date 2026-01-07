@@ -318,8 +318,8 @@ const LandingPage = ({ onGetStarted }) => {
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
             Ready to Create Your Affidavit?
           </h2>
-          <p className={`text-base sm:text-xl ${country === 'CA' ? 'text-red-100' : 'text-blue-100'} mb-6 sm:mb-8`}>
-            Join thousands of families who have used our platform for their legal document needs
+          <p className="text-base sm:text-xl text-white mb-6 sm:mb-8">
+            Create legally compliant affidavits in minutes
           </p>
           <button
             onClick={handleGetStarted}

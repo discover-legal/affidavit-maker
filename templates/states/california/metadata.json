@@ -1,0 +1,37 @@
+{
+  "stateCode": "CA",
+  "stateName": "California",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase"
+  },
+  "legalCitations": [
+    {
+      "code": "Cal. Civ. Proc. Code § 2015.5",
+      "description": "Allows unsworn declarations under penalty of perjury as alternative to sworn affidavits (future enhancement)"
+    },
+    {
+      "code": "Cal. Gov't Code § 8202",
+      "description": "Jurat requirements - notary must administer oath and verify identity; specific certificate format required with identity verification notice"
+    },
+    {
+      "code": "Cal. Civ. Code § 1189",
+      "description": "Notarial certificate formats and requirements"
+    }
+  ],
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must have a cover page with the exhibit letter (A, B, C, etc.) centered at the top. The cover page should include a brief description of the exhibit."
+  }
+}

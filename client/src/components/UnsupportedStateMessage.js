@@ -22,11 +22,12 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
     fetch('/api/templates/states')
       .then(res => res.json())
       .then(data => {
-        if (data.states) {
+        // API now returns array directly (not wrapped in {states: ...})
+        if (Array.isArray(data)) {
           // Filter by country if needed
           const filtered = country === 'CA'
-            ? data.states.filter(s => s.country === 'CA')
-            : data.states.filter(s => s.country === 'US' || !s.country);
+            ? data.filter(s => s.country === 'CA')
+            : data.filter(s => s.country === 'US' || !s.country);
           setSupportedStates(filtered);
         }
       })
@@ -34,9 +35,9 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
         // Fallback to hardcoded list if API fails
         if (country === 'US') {
           setSupportedStates([
-            { code: 'TX', name: 'Texas' },
-            { code: 'UT', name: 'Utah' },
-            { code: 'AZ', name: 'Arizona' }
+            { stateCode: 'TX', stateName: 'Texas' },
+            { stateCode: 'UT', stateName: 'Utah' },
+            { stateCode: 'AZ', stateName: 'Arizona' }
           ]);
         } else {
           setSupportedStates([]);
@@ -74,11 +75,11 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
             </p>
             <ul className="text-left space-y-1 mb-4">
               {supportedStates.map(state => (
-                <li key={state.code} className="flex items-center">
+                <li key={state.stateCode} className="flex items-center">
                   <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  {state.name} ({state.code})
+                  {state.stateName} ({state.stateCode})
                 </li>
               ))}
             </ul>

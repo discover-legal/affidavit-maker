@@ -6,42 +6,41 @@ const logger = require('../utils/logger');
 
 // Get supported states (public endpoint)
 router.get('/states', asyncHandler(async (req, res) => {
-  const affidavitService = req.app.locals.affidavitService;
-  
+  const templateManager = req.app.locals.templateManager;
+
   try {
-    const states = affidavitService.getSupportedStates();
-    
-    res.json({
-      success: true,
-      states,
-      count: states.length
-    });
+    const states = templateManager.getSupportedStates();
+
+    // Transform to match frontend expectations (stateCode/stateName instead of code/name)
+    const transformedStates = states.map(state => ({
+      stateCode: state.code,
+      stateName: state.name,
+      requirements: state.requirements
+    }));
+
+    // Return array directly (frontend expects array, not wrapped object)
+    res.json(transformedStates);
   } catch (error) {
     logger.error('Failed to get supported states:', {
       error: error.message,
       requestId: req.id
     });
-    
-    // Fallback response
-    res.json({
-      success: true,
-      states: [
-        { code: 'TX', name: 'Texas', requirements: { venue: true, countyRequired: true } },
-        { code: 'UT', name: 'Utah', requirements: { venue: true, countyRequired: true } },
-        { code: 'AZ', name: 'Arizona', requirements: { venue: false, countyRequired: false } }
-      ],
-      count: 3
-    });
+
+    // Fallback response (also return array directly)
+    res.json([
+      { stateCode: 'TX', stateName: 'Texas', requirements: { venue: true, countyRequired: true } },
+      { stateCode: 'UT', stateName: 'Utah', requirements: { venue: true, countyRequired: true } },
+      { stateCode: 'AZ', stateName: 'Arizona', requirements: { venue: false, countyRequired: false } }
+    ]);
   }
 }));
 
 // Get supported document types (public endpoint)
 router.get('/document-types', asyncHandler(async (req, res) => {
-  const affidavitService = req.app.locals.affidavitService;
-  
   try {
-    const documentTypes = affidavitService.getSupportedDocumentTypes();
-    
+    // Document types are currently standard across all states
+    const documentTypes = ['general', 'divorce', 'custody', 'financial', 'property', 'identity'];
+
     res.json({
       success: true,
       documentTypes,
@@ -52,7 +51,7 @@ router.get('/document-types', asyncHandler(async (req, res) => {
       error: error.message,
       requestId: req.id
     });
-    
+
     // Fallback response
     res.json({
       success: true,
@@ -65,8 +64,8 @@ router.get('/document-types', asyncHandler(async (req, res) => {
 // Validate affidavit data (public endpoint)
 router.post('/validate', asyncHandler(async (req, res) => {
   const { affidavitData, state } = req.body;
-  const affidavitService = req.app.locals.affidavitService;
-  
+  const templateManager = req.app.locals.templateManager;
+
   if (!affidavitData || !state) {
     return res.status(400).json({
       success: false,
@@ -74,10 +73,10 @@ router.post('/validate', asyncHandler(async (req, res) => {
       requestId: req.id
     });
   }
-  
+
   try {
-    const validation = affidavitService.validateAffidavitData(affidavitData, state);
-    
+    const validation = templateManager.validateAffidavitData(state, affidavitData);
+
     res.json({
       success: true,
       validation,
@@ -89,7 +88,7 @@ router.post('/validate', asyncHandler(async (req, res) => {
       state,
       requestId: req.id
     });
-    
+
     // Return basic validation result on error
     res.json({
       success: true,
@@ -106,22 +105,22 @@ router.post('/validate', asyncHandler(async (req, res) => {
 // Get template requirements for a state (public endpoint)
 router.get('/requirements/:state', asyncHandler(async (req, res) => {
   const { state } = req.params;
-  const affidavitService = req.app.locals.affidavitService;
+  const templateManager = req.app.locals.templateManager;
 
   // Dynamically check if state is supported
-  const supportedStates = affidavitService.getSupportedStates();
-  const isSupported = supportedStates.some(s => s.stateCode === state.toUpperCase());
+  const supportedStates = templateManager.getSupportedStates();
+  const isSupported = supportedStates.some(s => s.code === state.toUpperCase());
 
   if (!isSupported) {
     return res.status(400).json({
       success: false,
-      error: `State '${state}' is not supported. Supported states: ${supportedStates.map(s => s.stateCode).join(', ')}`,
+      error: `State '${state}' is not supported. Supported states: ${supportedStates.map(s => s.code).join(', ')}`,
       requestId: req.id
     });
   }
 
   try {
-    const template = affidavitService.templateManager.getTemplate(state);
+    const template = templateManager.getTemplate(state);
     const requirements = template.getRequirements();
     const formatRules = template.getFormattingRules();
 

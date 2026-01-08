@@ -53,13 +53,35 @@ class AffidavitService {
     this.templateManager = templateManager;
     this.openAIService = global.openAIService;
     this.processingQueue = new Map();
-    
+
     this.constants = {
       MAX_MESSAGE_LENGTH: 5000,
       MAX_COMPLETION_TOKENS: 2000,
       MAX_CONVERSATION_MESSAGES: 20,
       CHAT_TIMEOUT: 30000
     };
+
+    // Get dynamically supported states from template manager
+    this.supportedStates = this.getSupportedStatesList();
+  }
+
+  /**
+   * Get list of supported states from template manager
+   * @returns {Array} Array of {code, name} objects
+   */
+  getSupportedStatesList() {
+    try {
+      const states = this.templateManager.getSupportedStates();
+      return states.map(s => ({ code: s.code, name: s.name }));
+    } catch (error) {
+      logger.error('Failed to get supported states, using fallback:', error);
+      // Fallback to default states
+      return [
+        { code: 'TX', name: 'Texas' },
+        { code: 'UT', name: 'Utah' },
+        { code: 'AZ', name: 'Arizona' }
+      ];
+    }
   }
 
   /**
@@ -161,10 +183,10 @@ YOUR DUAL ROLE:
 1. EXTRACT structured legal data (names, states, county, case info, NEW facts only) via function calling
 2. PROVIDE a warm, conversational response to keep them sharing
 
-SUPPORTED JURISDICTIONS: Currently available - Texas (TX), Utah (UT), Arizona (AZ)
+SUPPORTED JURISDICTIONS: Currently available - ${this.supportedStates.map(s => `${s.name} (${s.code})`).join(', ')}
 - If user mentions these states → Extract normally
 - If user mentions OTHER states → Set extracted_state to "UNSUPPORTED" and inform them politely
-- Response for unsupported states: "I appreciate you sharing that information! Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve Texas, Utah, and Arizona. Is there anything else I can help you with?"
+- Response for unsupported states: "I appreciate you sharing that information! Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve ${this.supportedStates.map(s => s.name).join(', ')}. Is there anything else I can help you with?"
 
 EXTRACTION RULES:
 - ALWAYS ask for BOTH legal first name AND legal last name separately
@@ -341,8 +363,8 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
             },
             extracted_state: {
               type: "string",
-              enum: ["TX", "UT", "AZ", "UNSUPPORTED", "NONE"],
-              description: "State mentioned: TX=Texas, UT=Utah, AZ=Arizona, UNSUPPORTED=other states, NONE=not mentioned"
+              enum: [...this.supportedStates.map(s => s.code), "UNSUPPORTED", "NONE"],
+              description: `State mentioned: ${this.supportedStates.map(s => `${s.code}=${s.name}`).join(', ')}, UNSUPPORTED=other states, NONE=not mentioned`
             },
             detected_unsupported_state: {
               type: "string",

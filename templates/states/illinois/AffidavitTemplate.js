@@ -160,12 +160,12 @@ My commission expires: ___________`;
   /**
    * Illinois-specific venue format (uppercase)
    *
-   * @param {Object} affidavitData - The affidavit data
+   * @param {string} county - County name
    * @returns {string} Formatted venue
    */
-  generateVenue(affidavitData) {
-    const county = affidavitData.county || '[COUNTY NAME]';
-    return `STATE OF ILLINOIS\nCOUNTY OF ${county.toUpperCase()}`;
+  generateVenue(county) {
+    const countyName = county || '[COUNTY NAME]';
+    return `STATE OF ILLINOIS\nCOUNTY OF ${countyName.toUpperCase()}`;
   }
 }
 

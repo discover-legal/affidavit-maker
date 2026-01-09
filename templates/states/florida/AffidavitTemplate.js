@@ -157,12 +157,12 @@ Type of Identification Produced: _______________________`;
   /**
    * Florida-specific venue format (sentence case)
    *
-   * @param {Object} affidavitData - The affidavit data
+   * @param {string} county - County name
    * @returns {string} Formatted venue
    */
-  generateVenue(affidavitData) {
-    const county = affidavitData.county || '[COUNTY NAME]';
-    return `State of Florida\nCounty of ${county}`;
+  generateVenue(county) {
+    const countyName = county || '[COUNTY NAME]';
+    return `State of Florida\nCounty of ${countyName}`;
   }
 }
 

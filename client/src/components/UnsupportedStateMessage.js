@@ -37,7 +37,8 @@ const UnsupportedStateMessage = ({ detectedState, onClose }) => {
           setSupportedStates([
             { stateCode: 'TX', stateName: 'Texas' },
             { stateCode: 'UT', stateName: 'Utah' },
-            { stateCode: 'AZ', stateName: 'Arizona' }
+            { stateCode: 'AZ', stateName: 'Arizona' },
+            { stateCode: 'CA', stateName: 'California' }
           ]);
         } else {
           setSupportedStates([]);

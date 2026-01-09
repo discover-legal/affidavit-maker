@@ -17,7 +17,7 @@ export interface User {
 export interface AffidavitData {
   documentId?: string;
   affiantName: string;
-  state: 'TX' | 'UT' | 'AZ' | '';
+  state: 'TX' | 'UT' | 'AZ' | 'CA' | '';
   county?: string;
   caseNumber?: string;
   caseType?: string;

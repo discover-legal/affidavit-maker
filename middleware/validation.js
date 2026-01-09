@@ -201,7 +201,7 @@ const validateChatMessage = [
     
   body('currentData.state')
     .optional()
-    .isIn(['TX', 'UT', 'AZ', '', 'Texas', 'Utah', 'Arizona'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', '', 'Texas', 'Utah', 'Arizona', 'California'])
     .withMessage('Invalid state'),
     
   body('currentData.facts')
@@ -278,8 +278,8 @@ const validateAffidavitData = [
     .trim()
     .notEmpty()
     .withMessage('State is required')
-    .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
-    .withMessage('Invalid state. Must be TX, UT, AZ, Texas, Utah, or Arizona'),
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
+    .withMessage('Invalid state. Must be TX, UT, AZ, CA, Texas, Utah, Arizona, or California'),
   
   body('county')
     .optional()
@@ -348,7 +348,7 @@ const validatePreview = [
     
   body('affidavitData.state')
     .optional({ checkFalsy: true })        // ✅ FIXED
-    .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
     .withMessage('Invalid state'),
     
   body('affidavitData.county')
@@ -377,7 +377,7 @@ const validateDocumentGeneration = [
     .withMessage('Affidavit data must be an object'),
     
   body('affidavitData.state')
-    .isIn(['TX', 'UT', 'AZ', 'Texas', 'Utah', 'Arizona'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
     .withMessage('Valid state is required'),
     
   body('affidavitData.affiantName')

@@ -51,7 +51,7 @@ describe('Template System Compatibility', () => {
   });
 
   describe('getTemplate', () => {
-    const stateCodes = ['TX', 'UT', 'AZ'];
+    const stateCodes = ['TX', 'UT', 'AZ', 'CA'];
 
     stateCodes.forEach(stateCode => {
       it(`should return same template type for ${stateCode}`, () => {
@@ -128,7 +128,7 @@ describe('Template System Compatibility', () => {
       facts: ['Fact 1', 'Fact 2', 'Fact 3']
     };
 
-    ['TX', 'UT', 'AZ'].forEach(stateCode => {
+    ['TX', 'UT', 'AZ', 'CA'].forEach(stateCode => {
       describe(`${stateCode} affidavits`, () => {
         it('should generate same document structure', () => {
           const stateData = { ...testData, state: stateCode };

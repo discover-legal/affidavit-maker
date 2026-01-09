@@ -4,6 +4,7 @@
 // Changes: Fixed all critical compliance issues identified in legal audit
 
 const logger = require('../utils/logger');
+const CaliforniaTemplate = require('./states/california/AffidavitTemplate');
 
 /**
  * Base template class for affidavit generation
@@ -890,7 +891,8 @@ class StateTemplateManager {
     this.templates = {
       'TX': new TexasTemplate(),
       'UT': new UtahTemplate(),
-      'AZ': new ArizonaTemplate()
+      'AZ': new ArizonaTemplate(),
+      'CA': new CaliforniaTemplate()
     };
     this.defaultState = 'TX';
     

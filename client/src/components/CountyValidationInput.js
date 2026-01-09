@@ -25,7 +25,7 @@ const CountyValidationInput = ({
 
   // Load available counties for autocomplete
   useEffect(() => {
-    if (state && ['TX', 'UT', 'AZ'].includes(state)) {
+    if (state && ['TX', 'UT', 'AZ', 'CA'].includes(state)) {
       fetch(`${API_BASE}/api/counties/${state}`)
         .then(res => res.json())
         .then(data => {

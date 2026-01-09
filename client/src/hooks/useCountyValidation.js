@@ -83,7 +83,7 @@ export const useCountyValidation = () => {
   }, [isAuthenticated, getAccessTokenSilently, validationCache]);
 
   const getCountiesForState = useCallback(async (state) => {
-    if (!['TX', 'UT', 'AZ'].includes(state)) {
+    if (!['TX', 'UT', 'AZ', 'CA'].includes(state)) {
       return [];
     }
 

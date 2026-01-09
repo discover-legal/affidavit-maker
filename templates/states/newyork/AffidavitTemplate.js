@@ -157,12 +157,12 @@ My commission expires: ___________`;
   /**
    * New York-specific venue format (uppercase with ss.: notation)
    *
-   * @param {Object} affidavitData - The affidavit data
+   * @param {string} county - County name
    * @returns {string} Formatted venue
    */
-  generateVenue(affidavitData) {
-    const county = affidavitData.county || '[COUNTY NAME]';
-    return `STATE OF NEW YORK    )\n                     ) ss.:\nCOUNTY OF ${county.toUpperCase()}  )`;
+  generateVenue(county) {
+    const countyName = county || '[COUNTY NAME]';
+    return `STATE OF NEW YORK    )\n                     ) ss.:\nCOUNTY OF ${countyName.toUpperCase()}  )`;
   }
 }
 

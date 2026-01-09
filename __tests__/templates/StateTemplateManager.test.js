@@ -43,8 +43,8 @@ describe('StateTemplateManager', () => {
   describe('getSupportedStates', () => {
     it('should return all supported states', () => {
       const states = templateManager.getSupportedStates();
-      expect(states).toHaveLength(3);
-      expect(states.map(s => s.code)).toEqual(['TX', 'UT', 'AZ']);
+      expect(states).toHaveLength(4);
+      expect(states.map(s => s.code)).toEqual(['TX', 'UT', 'AZ', 'CA']);
     });
 
     it('should include state names and requirements', () => {

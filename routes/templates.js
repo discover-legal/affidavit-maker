@@ -30,7 +30,8 @@ router.get('/states', asyncHandler(async (req, res) => {
     res.json([
       { stateCode: 'TX', stateName: 'Texas', requirements: { venue: true, countyRequired: true } },
       { stateCode: 'UT', stateName: 'Utah', requirements: { venue: true, countyRequired: true } },
-      { stateCode: 'AZ', stateName: 'Arizona', requirements: { venue: false, countyRequired: false } }
+      { stateCode: 'AZ', stateName: 'Arizona', requirements: { venue: false, countyRequired: false } },
+      { stateCode: 'CA', stateName: 'California', requirements: { venue: true, countyRequired: true } }
     ]);
   }
 }));

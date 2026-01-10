@@ -104,7 +104,7 @@ class FloridaAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `State of Florida
+    return `State of ${this.stateName}
 County of _______________
 
 Sworn to (or affirmed) and subscribed before me by means of
@@ -114,7 +114,7 @@ this _____ day of _______, 20__, by _______________________
 
 
 _________________________________
-Notary Public - State of Florida
+Notary Public - State of ${this.stateName}
 
 [Print, Type, or Stamp Commissioned Name]
 
@@ -162,7 +162,7 @@ Type of Identification Produced: _______________________`;
    */
   generateVenue(county) {
     const countyName = county || '[COUNTY NAME]';
-    return `State of Florida\nCounty of ${countyName}`;
+    return `State of ${this.stateName}\nCounty of ${countyName}`;
   }
 }
 

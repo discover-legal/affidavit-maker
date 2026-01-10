@@ -102,7 +102,7 @@ class TexasAffidavitTemplate extends BaseAffidavitTemplate {
 
 
 _________________________________
-Notary Public, State of Texas
+Notary Public, State of ${this.stateName}
 
 Notary's printed name: _______________________
 

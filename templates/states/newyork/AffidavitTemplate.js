@@ -105,7 +105,7 @@ class NewYorkAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `State of New York    )
+    return `State of ${this.stateName}    )
                      ) ss.:
 County of _________  )
 
@@ -151,7 +151,7 @@ My commission expires: ___________`;
    * @returns {string} Perjury statement text
    */
   generatePerjuryStatement() {
-    return 'I declare under penalty of perjury under the laws of the State of New York that the foregoing is true and correct.';
+    return `I declare under penalty of perjury under the laws of the State of ${this.stateName} that the foregoing is true and correct.`;
   }
 
   /**

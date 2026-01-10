@@ -101,12 +101,7 @@ class CaliforniaAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `┌────────────────────────────────────────────────────────────────────┐
-│ A notary public or other officer completing this certificate      │
-│ verifies only the identity of the individual who signed the       │
-│ document to which this certificate is attached, and not the       │
-│ truthfulness, accuracy, or validity of that document.             │
-└────────────────────────────────────────────────────────────────────┘
+    return `A notary public or other officer completing this certificate verifies only the identity of the individual who signed the document to which this certificate is attached, and not the truthfulness, accuracy, or validity of that document.
 
 State of ${this.stateName}
 County of _______________

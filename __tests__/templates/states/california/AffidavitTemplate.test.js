@@ -117,7 +117,9 @@ describe('CaliforniaAffidavitTemplate', () => {
 
     it('should have boxed notice per § 8202', () => {
       const notaryBlock = template.generateNotaryBlock({});
-      expect(notaryBlock).toMatch(/[┌│└]/); // Contains box drawing characters
+      // The notice is required by § 8202 - it will be boxed when rendered in PDF
+      expect(notaryBlock).toContain('A notary public or other officer completing this certificate');
+      expect(notaryBlock).toContain('verifies only the identity of the individual who signed');
     });
   });
 

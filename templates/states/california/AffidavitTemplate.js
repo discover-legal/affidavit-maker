@@ -101,14 +101,9 @@ class CaliforniaAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `┌────────────────────────────────────────────────────────────────────┐
-│ A notary public or other officer completing this certificate      │
-│ verifies only the identity of the individual who signed the       │
-│ document to which this certificate is attached, and not the       │
-│ truthfulness, accuracy, or validity of that document.             │
-└────────────────────────────────────────────────────────────────────┘
+    return `A notary public or other officer completing this certificate verifies only the identity of the individual who signed the document to which this certificate is attached, and not the truthfulness, accuracy, or validity of that document.
 
-State of California
+State of ${this.stateName}
 County of _______________
 
 Subscribed and sworn to (or affirmed) before me on this _____ day of
@@ -154,7 +149,7 @@ Notary Public Signature
    * @returns {string} Perjury statement text
    */
   generatePerjuryStatement() {
-    return 'I declare under penalty of perjury under the laws of the State of California that the foregoing is true and correct.';
+    return `I declare under penalty of perjury under the laws of the State of ${this.stateName} that the foregoing is true and correct.`;
   }
 
   /**
@@ -165,7 +160,7 @@ Notary Public Signature
    */
   generateVenue(county) {
     const countyName = county || '[COUNTY NAME]';
-    return `State of California\nCounty of ${countyName}`;
+    return `State of ${this.stateName}\nCounty of ${countyName}`;
   }
 }
 

@@ -106,7 +106,7 @@ class IllinoisAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `State of Illinois
+    return `State of ${this.stateName}
 County of _______________
 
 Signed and sworn (or affirmed) to before me on _____________ (date)

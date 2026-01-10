@@ -145,7 +145,7 @@ class ArizonaAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Perjury statement text
    */
   generatePerjuryStatement() {
-    return 'I declare under penalty of perjury under the laws of the State of Arizona that the foregoing is true and correct.';
+    return `I declare under penalty of perjury under the laws of the State of ${this.stateName} that the foregoing is true and correct.`;
   }
 
   /**

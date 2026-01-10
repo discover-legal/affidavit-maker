@@ -153,7 +153,7 @@ by ________________________________.
 
 
 (SEAL)                              _________________________________
-                                    Notary Public, State of Utah
+                                    Notary Public, State of ${this.stateName}
 
 My commission expires: ___________`;
   }

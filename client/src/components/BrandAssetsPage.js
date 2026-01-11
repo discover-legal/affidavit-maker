@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Scale, Download } from 'lucide-react';
 
 const BrandAssetsPage = () => {
@@ -8,6 +9,27 @@ const BrandAssetsPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const pageTitle = 'Brand Assets & Logos | discover.legal';
+  const pageDescription = 'Download official discover.legal logos, brand assets, and design resources. Available in multiple formats and sizes for various use cases.';
+  const pageUrl = 'https://discover.legal/brand';
+
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": pageTitle,
+    "description": pageDescription,
+    "isPartOf": {
+      "@type": "WebSite",
+      "@id": "https://discover.legal/#website",
+      "url": "https://discover.legal",
+      "name": "discover.legal"
+    },
+    "inLanguage": "en-US"
+  };
 
   const logos = [
     {
@@ -42,6 +64,44 @@ const BrandAssetsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <Helmet>
+        {/* Primary Meta Tags */}
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={pageDescription} />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href={pageUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:site_name" content="discover.legal" />
+        <meta property="og:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
+        <meta property="og:image:alt" content="discover.legal - AI-Powered Legal Documents" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta name="twitter:image:alt" content="discover.legal - AI-Powered Legal Documents" />
+
+        {/* Additional SEO */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="discover.legal" />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
       {/* Navigation Bar */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

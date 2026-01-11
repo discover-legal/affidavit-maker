@@ -64,12 +64,18 @@ const ResourcesPage = () => {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:site_name" content="discover.legal" />
+        <meta property="og:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
+        <meta property="og:image:alt" content="discover.legal - AI-Powered Legal Documents" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content={pageUrl} />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta name="twitter:image:alt" content="discover.legal - AI-Powered Legal Documents" />
 
         {/* Additional SEO */}
         <meta name="robots" content="index, follow" />

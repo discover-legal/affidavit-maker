@@ -9,7 +9,7 @@ export const PRIVACY_POLICY = `
 
 ## Introduction
 
-This Privacy Policy explains how discover.legal ("we," "us," or "our") collects, uses, shares, and protects your personal information when you use our service.
+This Privacy Policy explains how 17549903 CANADA LTD. operating as Discover.Legal ("we," "us," or "our") collects, uses, shares, and protects your personal information when you use our service.
 
 Your privacy is critically important to us. We believe in transparency about how we handle your data, and we are committed to protecting your personal information.
 
@@ -158,6 +158,7 @@ Your continued use of our service after changes are posted constitutes your acce
 
 If you have questions, concerns, or requests regarding this Privacy Policy or our privacy practices, please contact us:
 
+**17549903 CANADA LTD. o/a Discover.Legal**
 - **Email:** privacy@discover.legal
 - **Response Time:** We aim to respond to privacy inquiries within 48 hours
 

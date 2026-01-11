@@ -80,6 +80,10 @@ const ArticlePage = () => {
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.description} />
         <meta property="og:site_name" content="discover.legal" />
+        <meta property="og:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
+        <meta property="og:image:alt" content="discover.legal - AI-Powered Legal Documents" />
         <meta property="article:published_time" content={article.publishDate} />
         <meta property="article:section" content={article.category} />
 
@@ -88,6 +92,8 @@ const ArticlePage = () => {
         <meta name="twitter:url" content={pageUrl} />
         <meta name="twitter:title" content={article.title} />
         <meta name="twitter:description" content={article.description} />
+        <meta name="twitter:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta name="twitter:image:alt" content="discover.legal - AI-Powered Legal Documents" />
 
         {/* Additional SEO */}
         <meta name="robots" content="index, follow" />

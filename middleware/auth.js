@@ -63,6 +63,68 @@ async function logAuditEvent(client, userId, eventType, eventCategory, descripti
   }
 }
 
+// Helper function to set RLS context for user
+async function setRLSContext(client, userId, isAdmin = false) {
+  try {
+    // Set session variables for Row Level Security
+    // These variables are used by RLS policies to enforce data isolation
+    // LOCAL scope ensures they only apply to current transaction
+    await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', userId.toString()]);
+    await client.query('SELECT set_config($1, $2, TRUE)', ['app.is_admin', isAdmin.toString()]);
+
+    logger.debug('RLS context set for user', { userId, isAdmin });
+  } catch (error) {
+    logger.error('Failed to set RLS context', {
+      error: error.message,
+      userId,
+      isAdmin
+    });
+    throw new Error('Failed to set security context');
+  }
+}
+
+// Helper function to set RLS bypass (for system operations)
+async function setRLSBypass(client) {
+  try {
+    await client.query('SELECT set_config($1, $2, TRUE)', ['app.bypass_rls', 'true']);
+    logger.debug('RLS bypass enabled for system operation');
+  } catch (error) {
+    logger.error('Failed to set RLS bypass', { error: error.message });
+    throw new Error('Failed to set bypass context');
+  }
+}
+
+// Middleware to clean up database client after request completes
+const cleanupDbClient = (req, res, next) => {
+  // Add cleanup to response finish event
+  res.on('finish', () => {
+    if (req.releaseDbClient) {
+      try {
+        req.releaseDbClient();
+        logger.debug('DB client released', { requestId: req.id });
+      } catch (error) {
+        logger.error('Failed to release DB client', {
+          error: error.message,
+          requestId: req.id
+        });
+      }
+    }
+  });
+
+  // Also clean up on error
+  res.on('close', () => {
+    if (req.releaseDbClient) {
+      try {
+        req.releaseDbClient();
+      } catch (error) {
+        // Ignore errors on close
+      }
+    }
+  });
+
+  next();
+};
+
 // Get or create user from Auth0 token - SECURE VERSION
 async function getUserFromAuth(pool, authId, decoded) {
   let client;
@@ -238,16 +300,54 @@ const checkJwt = (req, res, next) => {
       // Get or create user in database
       const pool = req.app.locals.pool;
       const user = await getUserFromAuth(pool, decoded.sub, decoded);
+
+      if (!user) {
+        logger.error('User verification returned null', {
+          authId: decoded.sub,
+          requestId: req.id
+        });
+        return res.status(401).json({
+          success: false,
+          error: 'User verification failed',
+          requestId: req.id
+        });
+      }
+
       req.user = user;
 
-      logger.debug('Auth successful', {
-        userId: user?.id,
-        email: user?.email,
-        path: req.path,
-        requestId: req.id
-      });
+      // CRITICAL: Set RLS context for this request
+      // This ensures Row Level Security policies enforce data isolation
+      const client = await pool.connect();
+      try {
+        await setRLSContext(client, user.id, user.is_admin || user.subscription_tier === 'admin');
 
-      next();
+        // Store client in request for use by route handlers
+        // This client has the RLS context set
+        req.dbClient = client;
+        req.releaseDbClient = () => client.release();
+
+        logger.debug('Auth successful with RLS context', {
+          userId: user.id,
+          email: user.email,
+          isAdmin: user.is_admin || user.subscription_tier === 'admin',
+          path: req.path,
+          requestId: req.id
+        });
+
+        next();
+      } catch (rlsError) {
+        client.release();
+        logger.error('Failed to set RLS context', {
+          error: rlsError.message,
+          userId: user.id,
+          requestId: req.id
+        });
+        return res.status(500).json({
+          success: false,
+          error: 'Security context initialization failed',
+          requestId: req.id
+        });
+      }
     } catch (error) {
       logger.error('User verification failed:', {
         error: error.message,
@@ -367,5 +467,8 @@ module.exports = {
   checkJwt,
   optionalAuth,
   checkAdmin,
-  getUserFromAuth
+  getUserFromAuth,
+  setRLSContext,
+  setRLSBypass,
+  cleanupDbClient
 };

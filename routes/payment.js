@@ -331,8 +331,36 @@ router.post('/webhook',
     }
 
     const pool = req.app.locals.pool;
+    const { setRLSBypass } = require('../middleware/auth');
+
+    // Get database client with RLS bypass for webhook processing
+    const client = await pool.connect();
 
     try {
+      await client.query('BEGIN');
+
+      // CRITICAL: Set RLS bypass for system operation (webhooks don't have user context)
+      await setRLSBypass(client);
+
+      // IDEMPOTENCY CHECK: Has this event already been processed?
+      const existingEvent = await client.query(
+        'SELECT id, status FROM processed_webhook_events WHERE stripe_event_id = $1',
+        [event.id]
+      );
+
+      if (existingEvent.rows.length > 0) {
+        logger.info('Webhook event already processed (idempotency check)', {
+          eventId: event.id,
+          eventType: event.type,
+          previousStatus: existingEvent.rows[0].status
+        });
+
+        await client.query('COMMIT');
+        client.release();
+        return res.status(200).send('Event already processed');
+      }
+
+      // Process the event
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object;
@@ -353,13 +381,14 @@ router.post('/webhook',
             } : null
           } : null;
 
-          // Update payment status and store minimal billing data
-          const updateResult = await pool.query(
+          // Update payment status and store minimal billing data (using client, not pool)
+          const updateResult = await client.query(
             `UPDATE payments
              SET status = 'succeeded',
                  billing_postal_code = $2,
                  payment_method_details = $3,
                  stripe_customer_id = $4,
+                 succeeded_at = CURRENT_TIMESTAMP,
                  updated_at = CURRENT_TIMESTAMP
              WHERE stripe_payment_intent_id = $1
              RETURNING user_id, amount_cents`,
@@ -378,7 +407,7 @@ router.post('/webhook',
             const documentId = paymentIntent.metadata?.documentId;
             if (documentId && documentId !== 'new') {
               try {
-                await pool.query(
+                await client.query(
                   'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
                   ['paid', documentId]
                 );
@@ -404,9 +433,9 @@ router.post('/webhook',
 
         case 'payment_intent.payment_failed':
           const failedPayment = event.data.object;
-          
-          await pool.query(
-            'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
+
+          await client.query(
+            'UPDATE payments SET status = $1, failed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
             ['failed', failedPayment.id]
           );
 
@@ -418,8 +447,8 @@ router.post('/webhook',
 
         case 'payment_intent.canceled':
           const canceledPayment = event.data.object;
-          
-          await pool.query(
+
+          await client.query(
             'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
             ['canceled', canceledPayment.id]
           );
@@ -436,9 +465,49 @@ router.post('/webhook',
           });
       }
 
+      // Record webhook event as processed (prevents duplicate processing)
+      await client.query(
+        `INSERT INTO processed_webhook_events (stripe_event_id, event_type, status, metadata, processed_at)
+         VALUES ($1, $2, $3, $4, NOW())`,
+        [
+          event.id,
+          event.type,
+          'success',
+          JSON.stringify({
+            processed_at: new Date().toISOString(),
+            event_object: event.data.object?.id || null
+          })
+        ]
+      );
+
+      await client.query('COMMIT');
+      client.release();
+
+      logger.info('Webhook processed successfully', {
+        eventId: event.id,
+        eventType: event.type
+      });
+
       res.status(200).send('Webhook processed');
 
     } catch (error) {
+      // Rollback transaction on error
+      await client.query('ROLLBACK').catch(() => {});
+      client.release();
+
+      // Try to record failed event (without transaction)
+      try {
+        await pool.query(
+          `INSERT INTO processed_webhook_events (stripe_event_id, event_type, status, error_message, processed_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (stripe_event_id) DO UPDATE
+           SET status = 'failed', error_message = $4, processed_at = NOW()`,
+          [event.id, event.type, 'failed', error.message]
+        );
+      } catch (logError) {
+        logger.error('Failed to log webhook error', { error: logError.message });
+      }
+
       logger.logError(error, {
         type: 'stripe_webhook_processing_error',
         eventType: event.type,

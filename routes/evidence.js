@@ -2,6 +2,8 @@
 /**
  * Evidence upload and management routes
  * Handles file uploads, retrieval, and deletion for evidence attachments
+ *
+ * SECURITY: Path traversal protection added
  */
 
 const express = require('express');
@@ -9,10 +11,37 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises;
 const logger = require('../utils/logger');
-const { asyncHandler } = require('../middleware/errorMiddleware');
+const { asyncHandler, ValidationError } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const evidenceStorage = require('../services/evidenceStorage');
+
+/**
+ * SECURITY: Validate file upload inputs to prevent path traversal
+ */
+function validateFileInputs(documentId, evidenceId) {
+  // Validate documentId is positive integer
+  const docIdNum = parseInt(documentId, 10);
+  if (isNaN(docIdNum) || docIdNum < 1 || docIdNum > 2147483647) {
+    throw new ValidationError('Invalid document ID');
+  }
+
+  // Validate evidenceId is safe alphanumeric (prevent path traversal like ../../etc/passwd)
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(evidenceId)) {
+    throw new ValidationError('Invalid evidence ID format. Only alphanumeric characters, hyphens, and underscores allowed.');
+  }
+
+  // Check for path traversal attempts
+  if (evidenceId.includes('..') || evidenceId.includes('/') || evidenceId.includes('\\')) {
+    logger.logSecurity('path_traversal_attempt', {
+      evidenceId,
+      type: 'file_upload'
+    });
+    throw new ValidationError('Invalid evidence ID: path traversal attempt detected');
+  }
+
+  return { documentId: docIdNum, evidenceId };
+}
 
 // Multer configuration will be added after installation
 let upload = null;
@@ -63,6 +92,18 @@ router.post('/upload',
         success: false,
         error: 'documentId and evidenceId are required'
       });
+    }
+
+    // SECURITY: Validate inputs to prevent path traversal
+    let validatedInputs;
+    try {
+      validatedInputs = validateFileInputs(documentId, evidenceId);
+    } catch (validationError) {
+      // Clean up uploaded file on validation error
+      if (req.file?.path) {
+        await fs.unlink(req.file.path).catch(() => {});
+      }
+      throw validationError;
     }
 
     if (!req.file) {

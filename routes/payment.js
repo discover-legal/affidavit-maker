@@ -8,6 +8,12 @@ const { asyncHandler, ValidationError, AuthorizationError } = require('../middle
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validatePayment, validateId } = require('../middleware/validation');
 const { paymentLimiter, strictLimiter } = require('../middleware/rateLimiting');
+const {
+  sendServiceUnavailableError,
+  sendValidationError,
+  sendAuthorizationError,
+  sendServerError
+} = require('../utils/responseHelpers');
 
 // Initialize Stripe
 let stripe;
@@ -331,7 +337,9 @@ router.post('/webhook',
 
     if (!endpointSecret) {
       logger.warn('Stripe webhook secret not configured');
-      return res.status(400).send('Webhook secret not configured');
+      return sendValidationError(res, 'Webhook secret not configured', {
+        type: 'configuration_error'
+      });
     }
 
     let event;
@@ -353,7 +361,9 @@ router.post('/webhook',
         signature: sig?.substring(0, 20) + '...',
         hasRawBody: !!req.rawBody
       });
-      return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
+      return sendValidationError(res, `Webhook signature verification failed: ${error.message}`, {
+        type: 'signature_verification_failed'
+      });
     }
 
     const pool = req.app.locals.pool;
@@ -383,7 +393,14 @@ router.post('/webhook',
 
         await client.query('COMMIT');
         client.release();
-        return res.status(200).send('Event already processed');
+        return res.status(200).json({
+          success: true,
+          message: 'Event already processed',
+          eventId: event.id,
+          eventType: event.type,
+          previousStatus: existingEvent.rows[0].status,
+          timestamp: new Date().toISOString()
+        });
       }
 
       // Process the event
@@ -514,7 +531,13 @@ router.post('/webhook',
         eventType: event.type
       });
 
-      res.status(200).send('Webhook processed');
+      return res.status(200).json({
+        success: true,
+        message: 'Webhook processed successfully',
+        eventId: event.id,
+        eventType: event.type,
+        timestamp: new Date().toISOString()
+      });
 
     } catch (error) {
       // Rollback transaction on error
@@ -540,7 +563,10 @@ router.post('/webhook',
         eventId: event.id
       });
 
-      res.status(500).send('Webhook processing failed');
+      return sendServerError(res, 'Webhook processing failed', {
+        eventType: event?.type,
+        eventId: event?.id
+      });
     }
   })
 );

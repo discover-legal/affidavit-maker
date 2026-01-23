@@ -1,7 +1,7 @@
 // routes/auth.js - Authentication related routes
 const express = require('express');
 const router = express.Router();
-const { checkJwt } = require('../middleware/auth');
+const { checkJwt } = require('../middleware/auth0Middleware');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { authLimiter, strictLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');

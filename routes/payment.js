@@ -331,7 +331,7 @@ router.post('/webhook',
     }
 
     const pool = req.app.locals.pool;
-    const { setRLSBypass } = require('../middleware/auth');
+    const { setRLSBypass } = require('../middleware/auth0Middleware');
 
     // Get database client with RLS bypass for webhook processing
     const client = await pool.connect();

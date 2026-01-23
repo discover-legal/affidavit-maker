@@ -1,7 +1,11 @@
-// middleware/auth0Middleware.js - FIXED VERSION
+// middleware/auth0Middleware.js - ENHANCED WITH RLS SUPPORT
 const jwt = require('jsonwebtoken');
 const jwks = require('jwks-rsa');
 const logger = require('../utils/logger');
+
+// Import RLS helper functions from auth.js
+// These are minimal functions that don't require full middleware setup
+const { setRLSContext, setRLSBypass } = require('./auth');
 
 const config = {
   auth0: {
@@ -333,7 +337,59 @@ const loadUser = async (req, res, next) => {
         path: req.path
       });
 
-      next();
+      // ✅ NEW: Set RLS context for this request
+      // RLS enforces data isolation at database level
+      try {
+        const dbClient = await pool.connect();
+        try {
+          await setRLSContext(
+            dbClient,
+            req.user.id,
+            req.user.is_admin || req.user.subscription_tier === 'admin'
+          );
+
+          // Store client in request for routes to use
+          // Routes should use req.dbClient instead of req.app.locals.pool
+          req.dbClient = dbClient;
+          req.releaseDbClient = () => dbClient.release();
+
+          logger.debug('RLS context set for request', {
+            userId: req.user.id,
+            requestId: req.id
+          });
+
+          next();
+        } catch (rlsError) {
+          dbClient.release();
+          logger.error('Failed to set RLS context', {
+            error: rlsError.message,
+            userId: req.user.id,
+            requestId: req.id
+          });
+
+          return res.status(500).json({
+            success: false,
+            error: 'Security context initialization failed',
+            errorType: 'server_error',
+            timestamp: new Date().toISOString(),
+            requestId: req.id
+          });
+        }
+      } catch (clientError) {
+        logger.error('Failed to acquire database client for RLS', {
+          error: clientError.message,
+          userId: req.user.id,
+          requestId: req.id
+        });
+
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection failed',
+          errorType: 'server_error',
+          timestamp: new Date().toISOString(),
+          requestId: req.id
+        });
+      }
     } catch (dbError) {
       logger.error('Database error during user lookup', {
         error: dbError.message,
@@ -368,22 +424,25 @@ const loadUser = async (req, res, next) => {
 };
 
 // Optional auth for public endpoints
+// ✅ ENHANCED: Also sets up RLS context when user is authenticated
 const optionalAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     req.auth = null;
     req.userId = null;
     req.user = null;
+    req.dbClient = null;
     return next();
   }
 
   const token = authHeader.split(' ')[1];
-  
+
   if (!token || token.split('.').length !== 3) {
     req.auth = null;
     req.userId = null;
     req.user = null;
+    req.dbClient = null;
     return next();
   }
 
@@ -397,12 +456,13 @@ const optionalAuth = async (req, res, next) => {
         req.auth = null;
         req.userId = null;
         req.user = null;
+        req.dbClient = null;
         return next();
       }
-      
+
       req.auth = decoded;
       req.userId = decoded.sub;
-      
+
       try {
         const pool = req.app.locals.pool;
         if (pool) {
@@ -422,17 +482,62 @@ const optionalAuth = async (req, res, next) => {
           }
 
           req.user = userResult.rows[0] || null;
+
+          // ✅ NEW: Set RLS context for authenticated optional auth too
+          if (req.user) {
+            try {
+              const dbClient = await pool.connect();
+              try {
+                await setRLSContext(
+                  dbClient,
+                  req.user.id,
+                  req.user.is_admin || req.user.subscription_tier === 'admin'
+                );
+                req.dbClient = dbClient;
+                req.releaseDbClient = () => dbClient.release();
+
+                logger.debug('RLS context set in optionalAuth', {
+                  userId: req.user.id,
+                  requestId: req.id
+                });
+              } catch (rlsError) {
+                dbClient.release();
+                logger.warn('Failed to set RLS context in optionalAuth', {
+                  error: rlsError.message,
+                  userId: req.user.id
+                });
+                // Don't fail - still authenticate user, just without RLS
+                // This maintains backwards compatibility for optional endpoints
+              }
+            } catch (clientError) {
+              logger.warn('Failed to acquire client for RLS in optionalAuth', {
+                error: clientError.message,
+                userId: req.user?.id
+              });
+              // Don't fail - still authenticate user
+            }
+          }
         }
       } catch (error) {
         req.user = null;
+        req.dbClient = null;
+        logger.debug('Optional auth user lookup failed', {
+          error: error.message,
+          requestId: req.id
+        });
       }
-      
+
       next();
     });
   } catch (error) {
     req.auth = null;
     req.userId = null;
     req.user = null;
+    req.dbClient = null;
+    logger.debug('Optional auth token verification failed', {
+      error: error.message,
+      requestId: req.id
+    });
     next();
   }
 };
@@ -445,9 +550,52 @@ const auth0Middleware = (req, res, next) => {
   });
 };
 
+// ✅ NEW: Cleanup middleware to release database clients
+// Must be registered globally in server.js to ensure proper resource cleanup
+const cleanupDbClient = (req, res, next) => {
+  // Schedule cleanup when response finishes
+  res.on('finish', () => {
+    if (req.releaseDbClient) {
+      try {
+        req.releaseDbClient();
+        logger.debug('DB client released', {
+          requestId: req.id,
+          userId: req.user?.id
+        });
+      } catch (error) {
+        logger.error('Failed to release DB client', {
+          error: error.message,
+          requestId: req.id,
+          userId: req.user?.id
+        });
+      }
+    }
+  });
+
+  // Also clean up on connection close
+  res.on('close', () => {
+    if (req.releaseDbClient) {
+      try {
+        req.releaseDbClient();
+      } catch (error) {
+        // Silently ignore errors on close
+        logger.debug('DB client release error on close (ignored)', {
+          error: error.message,
+          requestId: req.id
+        });
+      }
+    }
+  });
+
+  next();
+};
+
 module.exports = {
   checkJwt,
   loadUser,
   auth0Middleware,  // ✅ Now exports as a single function
-  optionalAuth
+  optionalAuth,
+  cleanupDbClient,  // ✅ NEW: Export cleanup middleware
+  setRLSContext,    // ✅ Re-export from auth.js for convenience
+  setRLSBypass      // ✅ Re-export from auth.js for use in webhooks
 };

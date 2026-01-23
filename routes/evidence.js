@@ -115,8 +115,15 @@ router.post('/upload',
 
     try {
       // Verify user owns the document
-      const pool = req.app.locals.pool;
-      const docResult = await pool.query(
+      const client = req.dbClient;  // ✅ Use RLS-context client
+      if (!client) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection unavailable',
+          errorType: 'server_error'
+        });
+      }
+      const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );
@@ -183,8 +190,15 @@ router.get('/:documentId/:fileKey',
 
     try {
       // Verify user owns the document
-      const pool = req.app.locals.pool;
-      const docResult = await pool.query(
+      const client = req.dbClient;  // ✅ Use RLS-context client
+      if (!client) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection unavailable',
+          errorType: 'server_error'
+        });
+      }
+      const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );
@@ -266,8 +280,15 @@ router.delete('/:documentId/:evidenceId',
 
     try {
       // Verify user owns the document
-      const pool = req.app.locals.pool;
-      const docResult = await pool.query(
+      const client = req.dbClient;  // ✅ Use RLS-context client
+      if (!client) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection unavailable',
+          errorType: 'server_error'
+        });
+      }
+      const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );
@@ -317,8 +338,15 @@ router.get('/document/:documentId',
 
     try {
       // Verify user owns the document
-      const pool = req.app.locals.pool;
-      const docResult = await pool.query(
+      const client = req.dbClient;  // ✅ Use RLS-context client
+      if (!client) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection unavailable',
+          errorType: 'server_error'
+        });
+      }
+      const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );

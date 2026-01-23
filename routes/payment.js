@@ -51,14 +51,24 @@ router.post('/create-intent',
   asyncHandler(async (req, res) => {
     const { documentId, documentType } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+    const pool = req.app.locals.pool;  // Keep for fallback
+
+    // Verify client is available
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // SECURITY: Determine amount server-side based on documentType - never trust client
     const amount = PRICING_CONFIG[documentType] || PRICING_CONFIG.single_affidavit;
 
     // If documentId provided, verify ownership
     if (documentId) {
-      const docResult = await pool.query(
+      const docResult = await client.query(
         'SELECT id, user_id, title FROM documents WHERE id = $1',
         [documentId]
       );
@@ -74,7 +84,7 @@ router.post('/create-intent',
 
     try {
       // Check if user already has a Stripe customer ID
-      const userResult = await pool.query(
+      const userResult = await client.query(
         'SELECT stripe_customer_id FROM users WHERE id = $1',
         [userId]
       );
@@ -94,7 +104,7 @@ router.post('/create-intent',
         customerId = customer.id;
 
         // Store customer ID in database
-        await pool.query(
+        await client.query(
           'UPDATE users SET stripe_customer_id = $1 WHERE id = $2',
           [customerId, userId]
         );
@@ -120,9 +130,9 @@ router.post('/create-intent',
       });
 
       // Store payment intent in database for tracking
-      await pool.query(
+      await client.query(
         `INSERT INTO payments (
-          user_id, stripe_payment_intent_id, amount_cents, currency, 
+          user_id, stripe_payment_intent_id, amount_cents, currency,
           status, metadata, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
         [
@@ -178,10 +188,18 @@ router.get('/status/:paymentIntentId',
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // Verify this payment belongs to the user
-    const paymentResult = await pool.query(
+    const paymentResult = await client.query(
       'SELECT id, status, amount_cents, created_at FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
       [paymentIntentId, userId]
     );
@@ -198,7 +216,7 @@ router.get('/status/:paymentIntentId',
 
       // Update our database if status changed
       if (payment.status !== paymentIntent.status) {
-        await pool.query(
+        await client.query(
           'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
           [paymentIntent.status, paymentIntentId]
         );
@@ -246,21 +264,29 @@ router.get('/history',
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
-    
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
+
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
     const offset = (page - 1) * limit;
 
     // Get total count
-    const countResult = await pool.query(
+    const countResult = await client.query(
       'SELECT COUNT(*) as total FROM payments WHERE user_id = $1',
       [userId]
     );
     const total = parseInt(countResult.rows[0].total);
 
     // Get payments with pagination
-    const paymentsResult = await pool.query(
+    const paymentsResult = await client.query(
       `SELECT 
         stripe_payment_intent_id,
         amount_cents,
@@ -528,10 +554,18 @@ router.post('/cancel/:paymentIntentId',
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // Verify ownership
-    const paymentResult = await pool.query(
+    const paymentResult = await client.query(
       'SELECT id, status FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
       [paymentIntentId, userId]
     );
@@ -550,7 +584,7 @@ router.post('/cancel/:paymentIntentId',
       const canceledPayment = await stripe.paymentIntents.cancel(paymentIntentId);
 
       // Update database
-      await pool.query(
+      await client.query(
         'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
         ['canceled', paymentIntentId]
       );

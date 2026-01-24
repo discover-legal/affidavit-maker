@@ -58,7 +58,6 @@ router.post('/create-intent',
     const { documentId, documentType } = req.body;
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-    const pool = req.app.locals.pool;  // Keep for fallback
 
     // Verify client is available
     if (!client) {

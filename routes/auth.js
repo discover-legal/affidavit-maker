@@ -1,13 +1,13 @@
 // routes/auth.js - Authentication related routes
 const express = require('express');
 const router = express.Router();
-const { checkJwt } = require('../middleware/auth0Middleware');
+const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { authLimiter, strictLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
 
 // Get current user profile
-router.get('/me', checkJwt, asyncHandler(async (req, res) => {
+router.get('/me', auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
 
   if (!user) {
@@ -41,10 +41,10 @@ router.get('/me', checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Accept Terms of Service
-router.post('/accept-tos', authLimiter, checkJwt, asyncHandler(async (req, res) => {
+router.post('/accept-tos', authLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
   const { tosVersion, researchConsent = false } = req.body;
-  const pool = req.app.locals.pool;
+  const client = req.dbClient;  // RLS-protected client from auth0Middleware
 
   if (!tosVersion) {
     return res.status(400).json({
@@ -61,8 +61,6 @@ router.post('/accept-tos', authLimiter, checkJwt, asyncHandler(async (req, res) 
   const userAgent = req.headers['user-agent'] || 'unknown';
 
   // Start transaction
-  const client = await pool.connect();
-
   try {
     await client.query('BEGIN');
 
@@ -113,13 +111,11 @@ router.post('/accept-tos', authLimiter, checkJwt, asyncHandler(async (req, res) 
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
-  } finally {
-    client.release();
   }
 }));
 
 // Get TOS acceptance status
-router.get('/tos-status', checkJwt, asyncHandler(async (req, res) => {
+router.get('/tos-status', auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
 
   res.json({
@@ -131,25 +127,25 @@ router.get('/tos-status', checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Update user profile
-router.put('/me', authLimiter, checkJwt, asyncHandler(async (req, res) => {
+router.put('/me', authLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
   const { name, preferences } = req.body;
-  const pool = req.app.locals.pool;
-  
+  const client = req.dbClient;  // RLS-protected client from auth0Middleware
+
   const updates = [];
   const values = [];
   let paramCount = 1;
-  
+
   if (name !== undefined) {
     updates.push(`name = $${paramCount++}`);
     values.push(name);
   }
-  
+
   if (preferences !== undefined) {
     updates.push(`preferences = $${paramCount++}`);
     values.push(JSON.stringify(preferences));
   }
-  
+
   if (updates.length === 0) {
     return res.status(400).json({
       success: false,
@@ -157,11 +153,11 @@ router.put('/me', authLimiter, checkJwt, asyncHandler(async (req, res) => {
       requestId: req.id
     });
   }
-  
+
   updates.push('updated_at = NOW()');
   values.push(user.id);
-  
-  const result = await pool.query(
+
+  const result = await client.query(
     `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
     values
   );
@@ -185,14 +181,14 @@ router.put('/me', authLimiter, checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Delete user account
-router.delete('/me', strictLimiter, checkJwt, asyncHandler(async (req, res) => {
+router.delete('/me', strictLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
-  const pool = req.app.locals.pool;
-  
+  const client = req.dbClient;  // RLS-protected client from auth0Middleware
+
   // This is a soft delete - we keep the user record but mark it as deleted
-  await pool.query(
-    `UPDATE users SET 
-     subscription_status = 'deleted', 
+  await client.query(
+    `UPDATE users SET
+     subscription_status = 'deleted',
      email = CONCAT('deleted_', id, '_', email),
      auth0_id = CONCAT('deleted_', id, '_', auth0_id),
      updated_at = NOW()
@@ -212,14 +208,14 @@ router.delete('/me', strictLimiter, checkJwt, asyncHandler(async (req, res) => {
 }));
 
 // Get user's subscription status
-router.get('/subscription', checkJwt, asyncHandler(async (req, res) => {
+router.get('/subscription', auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
-  const pool = req.app.locals.pool;
-  
-  const subscription = await pool.query(
-    `SELECT * FROM subscriptions 
-     WHERE user_id = $1 AND status = 'active' 
-     ORDER BY created_at DESC 
+  const client = req.dbClient;  // RLS-protected client from auth0Middleware
+
+  const subscription = await client.query(
+    `SELECT * FROM subscriptions
+     WHERE user_id = $1 AND status = 'active'
+     ORDER BY created_at DESC
      LIMIT 1`,
     [user.id]
   );

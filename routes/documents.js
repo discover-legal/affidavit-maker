@@ -277,13 +277,13 @@ router.post('/generate',
                     });
 
                     // Update the database to reflect successful payment
-                    await pool.query(
+                    await client.query(
                       'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
                       ['paid', documentId]
                     );
 
                     // Update payment record too
-                    await pool.query(
+                    await client.query(
                       'UPDATE payments SET status = $1, succeeded_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
                       ['succeeded', paymentIntentId]
                     );
@@ -414,9 +414,9 @@ router.post('/generate',
       });
 
       // STEP 4: Update document status in database
-      if (pool && documentId) {
+      if (client && documentId) {
         try {
-          await pool.query(
+          await client.query(
             `UPDATE documents
              SET status = 'completed',
                  updated_at = CURRENT_TIMESTAMP,

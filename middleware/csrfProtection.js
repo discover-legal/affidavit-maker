@@ -50,12 +50,20 @@ const getAllowedOrigins = () => {
  *
  * However, we still validate Origin/Referer headers for defense in depth.
  */
+// Explicit whitelist of webhook paths that skip CSRF (they have signature verification)
+const WEBHOOK_PATHS = new Set([
+  '/api/payment/webhook',
+  '/api/auth0-webhooks/user-update',
+  '/api/auth0-webhooks/email-update',
+  '/api/auth0-webhooks/user-delete'
+]);
+
 const csrfProtection = (req, res, next) => {
   // Skip CSRF check for:
   // - GET/HEAD/OPTIONS requests (safe methods)
   // - Webhook endpoints (have their own signature verification)
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
-  const isWebhook = req.path.includes('/webhook') || req.path.includes('/webhooks');
+  const isWebhook = WEBHOOK_PATHS.has(req.path);
 
   if (safeMethods.includes(req.method) || isWebhook) {
     return next();

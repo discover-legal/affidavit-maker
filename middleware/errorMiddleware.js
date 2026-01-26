@@ -336,6 +336,32 @@ const setupGlobalErrorHandlers = () => {
   });
 };
 
+/**
+ * Get a safe error message for client responses
+ * Strips internal details in production, allows known-safe errors through
+ * @param {Error} error - The error object
+ * @param {string} fallback - Fallback message if error message should be hidden
+ * @returns {string} Safe error message
+ */
+const safeErrorMessage = (error, fallback = 'An error occurred') => {
+  // Known safe error classes can pass through their messages
+  if (error instanceof ValidationError ||
+      error instanceof NotFoundError ||
+      error instanceof AuthenticationError ||
+      error instanceof AuthorizationError ||
+      error instanceof RateLimitError) {
+    return error.message;
+  }
+
+  // In production, hide internal error details
+  if (process.env.NODE_ENV === 'production') {
+    return fallback;
+  }
+
+  // In development, show the actual error for debugging
+  return error.message || fallback;
+};
+
 module.exports = {
   // Error classes
   AppError,
@@ -345,15 +371,16 @@ module.exports = {
   NotFoundError,
   RateLimitError,
   ExternalServiceError,
-  
+
   // Middleware
   errorHandler,
   notFoundHandler,
   asyncHandler,
-  
+
   // Setup
   setupGlobalErrorHandlers,
-  
+
   // Utilities
-  sanitizeRequestBody
+  sanitizeRequestBody,
+  safeErrorMessage
 };

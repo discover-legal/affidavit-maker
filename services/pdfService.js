@@ -8,7 +8,9 @@ const fssync = require('fs');
 const path = require('path');
 const previewRenderer = require('./previewRenderer');
 const { prepareFactsForDisplay, isEvidence, evidenceHasFile, getEvidenceItems } = require('../utils/factNormalizer');
+const { validatePath } = require('../utils/pathSecurity');
 const { PDFDocument: PDFLib } = require('pdf-lib');
+const logger = require('../utils/logger');
 
 class PDFService {
   constructor() {
@@ -85,19 +87,11 @@ class PDFService {
         || [];
       const state = document.state || document.metadata?.state || 'TX';
 
-      console.log('🔍 Checking for exhibits:', {
+      logger.debug('Checking for exhibits', {
         userId,
-        factsType: Array.isArray(facts) ? 'array' : typeof facts,
-        factsLength: Array.isArray(facts) ? facts.length : 'N/A',
+        factsCount: Array.isArray(facts) ? facts.length : 0,
         state,
-        hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false,
-        factSample: Array.isArray(facts) && facts.length > 0 ? facts.slice(0, 9).map(f => ({
-          content: f.content?.substring(0, 50),
-          type: f.type,
-          category: f.category,
-          hasEvidenceData: !!f.evidenceData,
-          fileKey: f.evidenceData?.fileKey
-        })) : []
+        hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false
       });
 
       if (userId && Array.isArray(facts) && facts.length > 0) {
@@ -106,7 +100,7 @@ class PDFService {
 
       return result;
     } catch (error) {
-      console.error('PDF generation error:', error);
+      logger.error('PDF generation error', { error: error.message });
       throw error;
     }
   }
@@ -597,25 +591,22 @@ class PDFService {
    * Append exhibits to PDF using pdf-lib
    */
   async appendExhibits(pdfPath, facts, state, userId) {
-    console.log('📎 appendExhibits called:', {
-      pdfPath,
+    logger.debug('Appending exhibits to PDF', {
       factsCount: facts?.length || 0,
       state,
       userId
     });
 
     const allEvidenceItems = getEvidenceItems(facts || []);
-    console.log('📎 Evidence items found:', allEvidenceItems.length, allEvidenceItems.map(e => ({
-      id: e.id,
-      description: e.evidenceData?.description,
-      hasFile: evidenceHasFile(e),
-      fileKey: e.evidenceData?.fileKey
-    })));
-
     const evidenceItems = allEvidenceItems.filter(e => evidenceHasFile(e));
 
+    logger.debug('Evidence items for attachment', {
+      total: allEvidenceItems.length,
+      withFiles: evidenceItems.length
+    });
+
     if (evidenceItems.length === 0) {
-      console.log('❌ No evidence items with files to append');
+      logger.debug('No evidence items with files to append');
       return pdfPath;
     }
 
@@ -626,7 +617,7 @@ class PDFService {
       const template = templateManager.getTemplate(state);
       const exhibitRules = template.getExhibitRules();
 
-      console.log(`📎 Appending ${evidenceItems.length} exhibits with rules:`, exhibitRules);
+      logger.info('Appending exhibits to PDF', { count: evidenceItems.length });
 
       // Load the main PDF
       const mainPdfBytes = await fs.readFile(pdfPath);
@@ -640,28 +631,27 @@ class PDFService {
         const fileKey = evidenceData.fileKey;
 
         if (!fileKey) {
-          console.log(`⚠️ Skipping evidence ${exhibitLabel} - no file key`);
+          logger.debug('Skipping evidence - no file key', { exhibitLabel });
           continue;
         }
 
-        // Construct file path (fileKey is relative path from base, includes userId directory)
+        // Construct file path with path traversal protection
         const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'documents', 'evidence');
-        const filePath = path.join(evidenceBasePath, fileKey);
-
-        console.log(`📎 Processing Exhibit ${exhibitLabel}:`, {
-          description,
-          fileKey,
-          filePath,
-          exists: fssync.existsSync(filePath)
-        });
+        let filePath;
+        try {
+          filePath = validatePath(evidenceBasePath, fileKey);
+        } catch (pathError) {
+          logger.warn('Skipping exhibit - invalid path', { exhibitLabel });
+          continue;
+        }
 
         // Check if file exists
         if (!fssync.existsSync(filePath)) {
-          console.log(`❌ Skipping evidence ${exhibitLabel} - file not found: ${filePath}`);
+          logger.warn('Skipping evidence - file not found', { exhibitLabel });
           continue;
         }
 
-        console.log(`✅ Attaching Exhibit ${exhibitLabel}`);
+        logger.debug('Attaching exhibit', { exhibitLabel });
 
         try {
           // Add cover page if required
@@ -724,7 +714,7 @@ class PDFService {
             });
           }
         } catch (error) {
-          console.error(`Failed to attach exhibit ${exhibitLabel}:`, error.message);
+          logger.error('Failed to attach exhibit', { exhibitLabel, error: error.message });
         }
       }
 
@@ -732,10 +722,10 @@ class PDFService {
       const mergedPdfBytes = await mainPdf.save();
       await fs.writeFile(pdfPath, mergedPdfBytes);
 
-      console.log(`Successfully appended ${evidenceItems.length} exhibits to PDF`);
+      logger.info('Successfully appended exhibits to PDF', { count: evidenceItems.length });
       return pdfPath;
     } catch (error) {
-      console.error('Failed to append exhibits:', error);
+      logger.error('Failed to append exhibits', { error: error.message });
       // Return original PDF if exhibit attachment fails
       return pdfPath;
     }

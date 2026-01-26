@@ -3,6 +3,21 @@
 // Provides common functionality across all states
 
 /**
+ * Escape HTML special characters to prevent XSS/injection
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for HTML
+ */
+const escapeHtml = (str) => {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+/**
  * Base template class for affidavit generation
  * Provides common functionality across all states
  *
@@ -440,7 +455,7 @@ class BaseAffidavitTemplate {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Affidavit - ${this.stateName}</title>
+  <title>Affidavit - ${escapeHtml(this.stateName)}</title>
   <style>
     body {
       font-family: 'Times New Roman', serif;
@@ -510,17 +525,17 @@ class BaseAffidavitTemplate {
   </style>
 </head>
 <body>
-  ${sections.header ? `<div class="header">${sections.header}</div>` : ''}
-  ${sections.venue ? `<div class="venue">${sections.venue}</div>` : ''}
-  ${sections.caseCaption?.formatted ? `<div class="case-caption">${sections.caseCaption.formatted}</div>` : ''}
-  ${sections.title ? `<div class="title">${sections.title}</div>` : ''}
-  ${sections.introduction ? `<p>${sections.introduction}</p>` : ''}
-  ${sections.facts?.items ? sections.facts.items.map(f => `<p class="fact">${f.number}. ${f.content}</p>`).join('\n  ') : ''}
-  ${sections.conclusion ? `<p>${sections.conclusion}</p>` : ''}
-  ${sections.perjuryStatement ? `<p>${sections.perjuryStatement}</p>` : ''}
-  ${sections.signatureBlock?.formatted ? `<div class="signature-block"><pre>${sections.signatureBlock.formatted}</pre></div>` : ''}
-  ${sections.notaryInstruction ? `<div class="notary-instruction">${sections.notaryInstruction}</div>` : ''}
-  ${sections.notaryBlock ? `<div class="notary-block"><pre>${sections.notaryBlock}</pre></div>` : ''}
+  ${sections.header ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
+  ${sections.venue ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
+  ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}
+  ${sections.title ? `<div class="title">${escapeHtml(sections.title)}</div>` : ''}
+  ${sections.introduction ? `<p>${escapeHtml(sections.introduction)}</p>` : ''}
+  ${sections.facts?.items ? sections.facts.items.map(f => `<p class="fact">${f.number}. ${escapeHtml(f.content)}</p>`).join('\n  ') : ''}
+  ${sections.conclusion ? `<p>${escapeHtml(sections.conclusion)}</p>` : ''}
+  ${sections.perjuryStatement ? `<p>${escapeHtml(sections.perjuryStatement)}</p>` : ''}
+  ${sections.signatureBlock?.formatted ? `<div class="signature-block"><pre>${escapeHtml(sections.signatureBlock.formatted)}</pre></div>` : ''}
+  ${sections.notaryInstruction ? `<div class="notary-instruction">${escapeHtml(sections.notaryInstruction)}</div>` : ''}
+  ${sections.notaryBlock ? `<div class="notary-block"><pre>${escapeHtml(sections.notaryBlock)}</pre></div>` : ''}
 </body>
 </html>`;
   }

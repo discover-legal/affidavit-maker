@@ -6,6 +6,16 @@ const { dbService } = require('../services/DatabaseService');
 const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 
+/**
+ * Validate Auth0 ID format
+ * Auth0 IDs are: provider|userid (e.g., "auth0|123abc", "google-oauth2|456def")
+ */
+const isValidAuth0Id = (id) => {
+  if (!id || typeof id !== 'string') return false;
+  // Provider: lowercase alphanumeric with hyphens, followed by pipe, followed by alphanumeric
+  return /^[a-z0-9\-]+\|[a-zA-Z0-9_\-]+$/.test(id) && id.length <= 128;
+};
+
 // Verify Auth0 webhook signature
 const verifyAuth0Webhook = (req, res, next) => {
   const auth0Secret = process.env.AUTH0_WEBHOOK_SECRET;
@@ -78,12 +88,24 @@ router.post('/user-update',
     const { user, updateTime } = req.body;
     
     if (!user || !user.user_id) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid webhook payload' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid webhook payload'
       });
     }
-    
+
+    // Validate Auth0 ID format to prevent injection
+    if (!isValidAuth0Id(user.user_id)) {
+      logger.logSecurity('auth0_webhook_invalid_id_format', {
+        receivedId: String(user.user_id).substring(0, 50),
+        path: req.path
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
+      });
+    }
+
     logger.info('Auth0 user update webhook received', {
       auth0Id: user.user_id,
       updateTime

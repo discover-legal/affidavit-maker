@@ -3,9 +3,11 @@ const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
+const { chatLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
 
-router.post('/', 
+router.post('/',
+  chatLimiter,  // Rate limit LLM-powered validation to prevent cost exhaustion
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { affidavitData } = req.body;

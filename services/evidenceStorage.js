@@ -9,6 +9,19 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const FileType = require('file-type');
+const logger = require('../utils/logger');
+
+// Allowed file types with their MIME types
+const ALLOWED_FILE_TYPES = new Map([
+  ['application/pdf', 'pdf'],
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png']
+]);
+
+// PDF limits for bomb protection
+const PDF_MAX_PAGES = 500;
+const PDF_MIN_BYTES_PER_PAGE = 100;
 
 class EvidenceStorage {
   constructor() {
@@ -29,7 +42,7 @@ class EvidenceStorage {
         await fs.mkdir(this.thumbnailPath, { recursive: true });
       }
     } catch (error) {
-      console.error('Error creating evidence directories:', error);
+      logger.error('Error creating evidence directories:', error);
     }
   }
 
@@ -63,7 +76,10 @@ class EvidenceStorage {
       // Move uploaded file to final location
       await fs.rename(file.path, filepath);
 
-      // Get file metadata
+      // SECURITY: Validate file content via magic bytes (prevents MIME spoofing)
+      await this.validateFileContent(filepath);
+
+      // Get file metadata (includes PDF bomb protection)
       const metadata = await this.getFileMetadata(filepath, ext);
 
       // Generate thumbnail
@@ -79,7 +95,7 @@ class EvidenceStorage {
         uploadedAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Error uploading evidence:', error);
+      logger.error('Error uploading evidence:', error);
       throw new Error(`Failed to upload evidence: ${error.message}`);
     }
   }
@@ -97,16 +113,35 @@ class EvidenceStorage {
       filePages: 1
     };
 
-    // For PDFs, try to count pages (requires pdf-parse)
+    // For PDFs, count pages and apply bomb protection
     if (ext.toLowerCase() === '.pdf') {
       try {
-        // We'll use a simple heuristic: count "/Type /Page" occurrences
+        // Count pages using simple heuristic
         const pdfBuffer = await fs.readFile(filepath);
         const pdfText = pdfBuffer.toString('latin1');
         const pageMatches = pdfText.match(/\/Type\s*\/Page[^s]/g);
         metadata.filePages = pageMatches ? pageMatches.length : 1;
+
+        // PDF bomb protection: check page count
+        if (metadata.filePages > PDF_MAX_PAGES) {
+          await fs.unlink(filepath).catch(() => {});
+          throw new Error(`PDF exceeds maximum allowed pages (${PDF_MAX_PAGES})`);
+        }
+
+        // PDF bomb protection: check for suspiciously low bytes per page (compression bomb)
+        if (metadata.filePages > 1) {
+          const bytesPerPage = metadata.fileSizeBytes / metadata.filePages;
+          if (bytesPerPage < PDF_MIN_BYTES_PER_PAGE) {
+            await fs.unlink(filepath).catch(() => {});
+            throw new Error('PDF structure appears malformed or suspicious');
+          }
+        }
       } catch (error) {
-        console.warn('Could not count PDF pages:', error.message);
+        // Re-throw our own security errors
+        if (error.message.includes('exceeds') || error.message.includes('malformed')) {
+          throw error;
+        }
+        // Log and continue for parsing errors
         metadata.filePages = 1;
       }
     }
@@ -139,7 +174,7 @@ class EvidenceStorage {
 
       return path.relative(this.basePath, thumbnailFullPath);
     } catch (error) {
-      console.warn('Could not generate thumbnail:', error.message);
+      logger.warn('Could not generate thumbnail:', error.message);
       return null;
     }
   }
@@ -181,7 +216,7 @@ class EvidenceStorage {
         exists: true
       };
     } catch (error) {
-      console.error('Error getting evidence:', error);
+      logger.error('Error getting evidence:', error);
       throw new Error(`Evidence file not found: ${error.message}`);
     }
   }
@@ -218,7 +253,7 @@ class EvidenceStorage {
 
       return { success: true };
     } catch (error) {
-      console.error('Error deleting evidence:', error);
+      logger.error('Error deleting evidence:', error);
       throw new Error(`Failed to delete evidence: ${error.message}`);
     }
   }
@@ -259,7 +294,7 @@ class EvidenceStorage {
 
       return evidenceFiles;
     } catch (error) {
-      console.error('Error listing evidence:', error);
+      logger.error('Error listing evidence:', error);
       return [];
     }
   }
@@ -292,6 +327,34 @@ class EvidenceStorage {
       'image/png'
     ];
     return allowed.includes(mimetype);
+  }
+
+  /**
+   * Validate file content by checking magic bytes
+   * This prevents MIME type spoofing attacks
+   * @param {string} filepath - Path to the uploaded file
+   * @returns {object} Detected file type info
+   * @throws {Error} If file type cannot be verified or is not allowed
+   */
+  async validateFileContent(filepath) {
+    const detected = await FileType.fromFile(filepath);
+
+    if (!detected) {
+      // Clean up the invalid file
+      await fs.unlink(filepath).catch(() => {});
+      throw new Error('Could not determine file type from content');
+    }
+
+    if (!ALLOWED_FILE_TYPES.has(detected.mime)) {
+      // Clean up the invalid file
+      await fs.unlink(filepath).catch(() => {});
+      throw new Error(`File type ${detected.mime} is not allowed`);
+    }
+
+    return {
+      mime: detected.mime,
+      ext: ALLOWED_FILE_TYPES.get(detected.mime)
+    };
   }
 
   /**

@@ -194,22 +194,6 @@ ORDER BY event_type, status;
 
 GRANT SELECT ON webhook_processing_stats TO PUBLIC;
 
--- ============================================================================
--- Step 8: Log Migration Success
--- ============================================================================
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'migrations') THEN
-        INSERT INTO migrations (name, executed_at)
-        VALUES ('011_webhook_idempotency', NOW())
-        ON CONFLICT (name) DO NOTHING;
-        RAISE NOTICE 'Migration 011 logged successfully';
-    ELSE
-        RAISE NOTICE 'Migrations table does not exist, skipping log';
-    END IF;
-END $$;
-
 COMMIT;
 
 -- ============================================================================

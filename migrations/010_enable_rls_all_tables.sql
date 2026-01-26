@@ -425,22 +425,6 @@ ORDER BY tablename;
 GRANT SELECT ON rls_status TO PUBLIC;
 
 
--- ============================================================================
--- Step 9: Log Migration Success
--- ============================================================================
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'migrations') THEN
-        INSERT INTO migrations (name, executed_at)
-        VALUES ('010_enable_rls_all_tables', NOW())
-        ON CONFLICT (name) DO NOTHING;
-        RAISE NOTICE 'Migration logged successfully';
-    ELSE
-        RAISE NOTICE 'Migrations table does not exist, skipping log';
-    END IF;
-END $$;
-
 COMMIT;
 
 -- ============================================================================

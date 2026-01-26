@@ -37,7 +37,6 @@ router.post('/preview',
 
     try {
       const templateManager = req.app.locals.templateManager;
-      const pool = req.app.locals.pool;
       const userId = req.user?.id;
 
       // ✅ DEBUG: Log incoming facts for preview
@@ -173,9 +172,18 @@ router.post('/generate',
   asyncHandler(async (req, res) => {
     const { affidavitData, documentId } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
     const pdfService = req.app.locals.pdfService;
     const templateManager = req.app.locals.templateManager;
+
+    // Verify client is available (auth0Middleware should have set it)
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // SECURITY: Only allow payment bypass in development environment
     // Never trust client-provided payment bypass flags
@@ -198,9 +206,9 @@ router.post('/generate',
 
     try {
       // STEP 1: Check payment status (if not skipped)
-      if (!skipPayment && pool) {
+      if (!skipPayment && client) {
         try {
-          const paymentCheck = await pool.query(
+          const paymentCheck = await client.query(
             'SELECT payment_status FROM documents WHERE id = $1 AND user_id = $2',
             [documentId, userId]
           );
@@ -231,7 +239,7 @@ router.post('/generate',
                 logger.info('Payment status not found in DB, checking Stripe directly', { documentId, userId });
 
                 // Find the most recent payment intent for this document
-                const paymentRecord = await pool.query(
+                const paymentRecord = await client.query(
                   `SELECT stripe_payment_intent_id, status, metadata FROM payments
                    WHERE metadata->>'documentId' = $1
                    AND user_id = $2
@@ -269,13 +277,13 @@ router.post('/generate',
                     });
 
                     // Update the database to reflect successful payment
-                    await pool.query(
+                    await client.query(
                       'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
                       ['paid', documentId]
                     );
 
                     // Update payment record too
-                    await pool.query(
+                    await client.query(
                       'UPDATE payments SET status = $1, succeeded_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
                       ['succeeded', paymentIntentId]
                     );
@@ -406,9 +414,9 @@ router.post('/generate',
       });
 
       // STEP 4: Update document status in database
-      if (pool && documentId) {
+      if (client && documentId) {
         try {
-          await pool.query(
+          await client.query(
             `UPDATE documents
              SET status = 'completed',
                  updated_at = CURRENT_TIMESTAMP,
@@ -472,14 +480,23 @@ router.post('/generate',
 /**
  * ✅ Save document endpoint
  */
-router.post('/save', 
+router.post('/save',
   validateDocumentSave,
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { affidavitData, validation, categories } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    // Verify client is available
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
@@ -522,7 +539,7 @@ router.post('/save',
 
       if (affidavitData.documentId) {
         // Update existing document
-        const result = await pool.query(
+        const result = await client.query(
           `UPDATE documents
            SET content = $1,
                title = $2,
@@ -552,7 +569,7 @@ router.post('/save',
         logger.info('Document updated', { documentId: savedDocument.id, userId });
       } else {
         // Create new document
-        const result = await pool.query(
+        const result = await client.query(
           `INSERT INTO documents (
             user_id, title, content, template_state, document_type,
             status, validation_results, created_at, updated_at
@@ -602,17 +619,18 @@ router.post('/save',
 /**
  * ✅ Get user's documents with pagination
  */
-router.get('/', 
+router.get('/',
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
-    
-    if (!pool) {
-      return res.status(503).json({
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
         success: false,
-        error: 'Database service unavailable'
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
       });
     }
 
@@ -685,7 +703,7 @@ router.get('/',
       query += ` ORDER BY updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
       params.push(limitNum, offset);
 
-      const result = await pool.query(query, params);
+      const result = await client.query(query, params);
 
       // Process documents to extract state and facts from content
       const processedDocuments = result.rows.map(doc => {
@@ -740,7 +758,7 @@ router.get('/',
         countParams.push(state);
       }
 
-      const countResult = await pool.query(countQuery, countParams);
+      const countResult = await client.query(countQuery, countParams);
       const totalCount = parseInt(countResult.rows[0].count);
 
       res.json({
@@ -767,23 +785,24 @@ router.get('/',
 /**
  * ✅ Get specific document by ID
  */
-router.get('/:id', 
+router.get('/:id',
   auth0Middleware,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { id: documentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
 
-    if (!pool) {
-      return res.status(503).json({
+    if (!client) {
+      return res.status(500).json({
         success: false,
-        error: 'Database service unavailable'
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
       });
     }
 
     try {
-      const result = await pool.query(
+      const result = await client.query(
         'SELECT * FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );
@@ -848,10 +867,10 @@ router.put('/:id/rename',
     const { id: documentId } = req.params;
     const { newName } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
 
-    if (!pool) {
-      return res.status(503).json({
+    if (!client) {
+      return res.status(500).json({
         success: false,
         error: 'Database service unavailable'
       });
@@ -867,7 +886,7 @@ router.put('/:id/rename',
 
     try {
       // First, get the current document to update the content
-      const docResult = await pool.query(
+      const docResult = await client.query(
         'SELECT content FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
       );
@@ -891,7 +910,7 @@ router.put('/:id/rename',
       // Update both the title and the content with new affiantName
       const newTitle = `Affidavit of ${newName.trim()}`;
 
-      const result = await pool.query(
+      const result = await client.query(
         `UPDATE documents
          SET title = $1, content = $2, updated_at = CURRENT_TIMESTAMP
          WHERE id = $3 AND user_id = $4
@@ -940,17 +959,18 @@ router.delete('/:id',
   asyncHandler(async (req, res) => {
     const { id: documentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
 
-    if (!pool) {
-      return res.status(503).json({
+    if (!client) {
+      return res.status(500).json({
         success: false,
-        error: 'Database service unavailable'
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
       });
     }
 
     try {
-      const result = await pool.query(
+      const result = await client.query(
         'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
         [documentId, userId]
       );

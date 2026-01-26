@@ -208,7 +208,12 @@ class EvidenceStorage {
       // Delete thumbnail
       if (thumbnailKey) {
         const thumbnailPath = path.join(this.basePath, thumbnailKey);
-        await fs.unlink(thumbnailPath).catch(() => {});
+        const expectedThumbnailDir = this.getUserEvidenceDir(userId, documentId);
+
+        // SECURITY: Verify thumbnail is in expected directory (prevent path traversal)
+        if (thumbnailPath.startsWith(expectedThumbnailDir)) {
+          await fs.unlink(thumbnailPath).catch(() => {});
+        }
       }
 
       return { success: true };

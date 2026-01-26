@@ -8,6 +8,12 @@ const { asyncHandler, ValidationError, AuthorizationError } = require('../middle
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validatePayment, validateId } = require('../middleware/validation');
 const { paymentLimiter, strictLimiter } = require('../middleware/rateLimiting');
+const {
+  sendServiceUnavailableError,
+  sendValidationError,
+  sendAuthorizationError,
+  sendServerError
+} = require('../utils/responseHelpers');
 
 // Initialize Stripe
 let stripe;
@@ -51,14 +57,23 @@ router.post('/create-intent',
   asyncHandler(async (req, res) => {
     const { documentId, documentType } = req.body;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    // Verify client is available
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // SECURITY: Determine amount server-side based on documentType - never trust client
     const amount = PRICING_CONFIG[documentType] || PRICING_CONFIG.single_affidavit;
 
     // If documentId provided, verify ownership
     if (documentId) {
-      const docResult = await pool.query(
+      const docResult = await client.query(
         'SELECT id, user_id, title FROM documents WHERE id = $1',
         [documentId]
       );
@@ -74,7 +89,7 @@ router.post('/create-intent',
 
     try {
       // Check if user already has a Stripe customer ID
-      const userResult = await pool.query(
+      const userResult = await client.query(
         'SELECT stripe_customer_id FROM users WHERE id = $1',
         [userId]
       );
@@ -94,7 +109,7 @@ router.post('/create-intent',
         customerId = customer.id;
 
         // Store customer ID in database
-        await pool.query(
+        await client.query(
           'UPDATE users SET stripe_customer_id = $1 WHERE id = $2',
           [customerId, userId]
         );
@@ -120,9 +135,9 @@ router.post('/create-intent',
       });
 
       // Store payment intent in database for tracking
-      await pool.query(
+      await client.query(
         `INSERT INTO payments (
-          user_id, stripe_payment_intent_id, amount_cents, currency, 
+          user_id, stripe_payment_intent_id, amount_cents, currency,
           status, metadata, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
         [
@@ -178,10 +193,18 @@ router.get('/status/:paymentIntentId',
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // Verify this payment belongs to the user
-    const paymentResult = await pool.query(
+    const paymentResult = await client.query(
       'SELECT id, status, amount_cents, created_at FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
       [paymentIntentId, userId]
     );
@@ -198,7 +221,7 @@ router.get('/status/:paymentIntentId',
 
       // Update our database if status changed
       if (payment.status !== paymentIntent.status) {
-        await pool.query(
+        await client.query(
           'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
           [paymentIntent.status, paymentIntentId]
         );
@@ -246,21 +269,29 @@ router.get('/history',
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
-    
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
+
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
     const offset = (page - 1) * limit;
 
     // Get total count
-    const countResult = await pool.query(
+    const countResult = await client.query(
       'SELECT COUNT(*) as total FROM payments WHERE user_id = $1',
       [userId]
     );
     const total = parseInt(countResult.rows[0].total);
 
     // Get payments with pagination
-    const paymentsResult = await pool.query(
+    const paymentsResult = await client.query(
       `SELECT 
         stripe_payment_intent_id,
         amount_cents,
@@ -305,7 +336,9 @@ router.post('/webhook',
 
     if (!endpointSecret) {
       logger.warn('Stripe webhook secret not configured');
-      return res.status(400).send('Webhook secret not configured');
+      return sendValidationError(res, 'Webhook secret not configured', {
+        type: 'configuration_error'
+      });
     }
 
     let event;
@@ -327,12 +360,49 @@ router.post('/webhook',
         signature: sig?.substring(0, 20) + '...',
         hasRawBody: !!req.rawBody
       });
-      return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
+      return sendValidationError(res, `Webhook signature verification failed: ${error.message}`, {
+        type: 'signature_verification_failed'
+      });
     }
 
     const pool = req.app.locals.pool;
+    const { setRLSBypass } = require('../middleware/auth0Middleware');
+
+    // Get database client with RLS bypass for webhook processing
+    const client = await pool.connect();
 
     try {
+      await client.query('BEGIN');
+
+      // CRITICAL: Set RLS bypass for system operation (webhooks don't have user context)
+      await setRLSBypass(client);
+
+      // IDEMPOTENCY CHECK: Has this event already been processed?
+      const existingEvent = await client.query(
+        'SELECT id, status FROM processed_webhook_events WHERE stripe_event_id = $1',
+        [event.id]
+      );
+
+      if (existingEvent.rows.length > 0) {
+        logger.info('Webhook event already processed (idempotency check)', {
+          eventId: event.id,
+          eventType: event.type,
+          previousStatus: existingEvent.rows[0].status
+        });
+
+        await client.query('COMMIT');
+        client.release();
+        return res.status(200).json({
+          success: true,
+          message: 'Event already processed',
+          eventId: event.id,
+          eventType: event.type,
+          previousStatus: existingEvent.rows[0].status,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Process the event
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object;
@@ -353,13 +423,14 @@ router.post('/webhook',
             } : null
           } : null;
 
-          // Update payment status and store minimal billing data
-          const updateResult = await pool.query(
+          // Update payment status and store minimal billing data (using client, not pool)
+          const updateResult = await client.query(
             `UPDATE payments
              SET status = 'succeeded',
                  billing_postal_code = $2,
                  payment_method_details = $3,
                  stripe_customer_id = $4,
+                 succeeded_at = CURRENT_TIMESTAMP,
                  updated_at = CURRENT_TIMESTAMP
              WHERE stripe_payment_intent_id = $1
              RETURNING user_id, amount_cents`,
@@ -378,7 +449,7 @@ router.post('/webhook',
             const documentId = paymentIntent.metadata?.documentId;
             if (documentId && documentId !== 'new') {
               try {
-                await pool.query(
+                await client.query(
                   'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
                   ['paid', documentId]
                 );
@@ -404,9 +475,9 @@ router.post('/webhook',
 
         case 'payment_intent.payment_failed':
           const failedPayment = event.data.object;
-          
-          await pool.query(
-            'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
+
+          await client.query(
+            'UPDATE payments SET status = $1, failed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
             ['failed', failedPayment.id]
           );
 
@@ -418,8 +489,8 @@ router.post('/webhook',
 
         case 'payment_intent.canceled':
           const canceledPayment = event.data.object;
-          
-          await pool.query(
+
+          await client.query(
             'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
             ['canceled', canceledPayment.id]
           );
@@ -436,16 +507,65 @@ router.post('/webhook',
           });
       }
 
-      res.status(200).send('Webhook processed');
+      // Record webhook event as processed (prevents duplicate processing)
+      await client.query(
+        `INSERT INTO processed_webhook_events (stripe_event_id, event_type, status, metadata, processed_at)
+         VALUES ($1, $2, $3, $4, NOW())`,
+        [
+          event.id,
+          event.type,
+          'success',
+          JSON.stringify({
+            processed_at: new Date().toISOString(),
+            event_object: event.data.object?.id || null
+          })
+        ]
+      );
+
+      await client.query('COMMIT');
+      client.release();
+
+      logger.info('Webhook processed successfully', {
+        eventId: event.id,
+        eventType: event.type
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Webhook processed successfully',
+        eventId: event.id,
+        eventType: event.type,
+        timestamp: new Date().toISOString()
+      });
 
     } catch (error) {
+      // Rollback transaction on error
+      await client.query('ROLLBACK').catch(() => {});
+      client.release();
+
+      // Try to record failed event (without transaction)
+      try {
+        await pool.query(
+          `INSERT INTO processed_webhook_events (stripe_event_id, event_type, status, error_message, processed_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (stripe_event_id) DO UPDATE
+           SET status = 'failed', error_message = $4, processed_at = NOW()`,
+          [event.id, event.type, 'failed', error.message]
+        );
+      } catch (logError) {
+        logger.error('Failed to log webhook error', { error: logError.message });
+      }
+
       logger.logError(error, {
         type: 'stripe_webhook_processing_error',
         eventType: event.type,
         eventId: event.id
       });
 
-      res.status(500).send('Webhook processing failed');
+      return sendServerError(res, 'Webhook processing failed', {
+        eventType: event?.type,
+        eventId: event?.id
+      });
     }
   })
 );
@@ -459,10 +579,18 @@ router.post('/cancel/:paymentIntentId',
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const pool = req.app.locals.pool;
+    const client = req.dbClient;  // ✅ Use RLS-context client
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     // Verify ownership
-    const paymentResult = await pool.query(
+    const paymentResult = await client.query(
       'SELECT id, status FROM payments WHERE stripe_payment_intent_id = $1 AND user_id = $2',
       [paymentIntentId, userId]
     );
@@ -481,7 +609,7 @@ router.post('/cancel/:paymentIntentId',
       const canceledPayment = await stripe.paymentIntents.cancel(paymentIntentId);
 
       // Update database
-      await pool.query(
+      await client.query(
         'UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $2',
         ['canceled', paymentIntentId]
       );

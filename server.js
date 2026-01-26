@@ -19,7 +19,8 @@ const EnhancedFactValidationService = require('./services/enhancedFactValidation
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorMiddleware');
-const { responseMiddleware } = require('./utils/responseHelpers'); 
+const { responseMiddleware } = require('./utils/responseHelpers');
+const { cleanupDbClient } = require('./middleware/auth0Middleware'); 
 
 // Initialize Express app
 const app = express();
@@ -38,6 +39,10 @@ app.use((req, res, next) => {
 
 // ✅ FIXED: Response helpers middleware (second, before any routes)
 app.use(responseMiddleware);
+
+// ✅ NEW: Database client cleanup middleware
+// Ensures database connections are properly released after each request
+app.use(cleanupDbClient);
 
 // WWW to non-WWW redirect middleware
 // Redirects www.discover.legal → discover.legal to eliminate duplicate content

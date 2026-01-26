@@ -27,37 +27,61 @@ const rateLimitHandler = (req, res) => {
 
 /**
  * Standard rate limiter - 100 requests per 15 minutes
+ * SECURITY FIX: Uses user ID if authenticated, otherwise IP
+ * This prevents bypassing rate limits via IP rotation
  */
 const standardLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated (prevents IP rotation bypass)
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    // Fall back to IP for unauthenticated requests
+    return `ip:${req.ip}`;
+  },
   handler: rateLimitHandler
 });
 
 /**
  * Strict rate limiter for sensitive endpoints - 20 requests per 15 minutes
+ * SECURITY FIX: Uses user ID if authenticated
  */
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
   handler: rateLimitHandler
 });
 
 /**
  * Chat-specific rate limiter - 50 messages per 15 minutes
+ * SECURITY FIX: Uses user ID to prevent abuse via IP rotation
  */
 const chatLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
   handler: (req, res) => {
     const userId = req.user?.id || 'anonymous';
-    
+
     logger.logSecurity('chat_rate_limit_exceeded', {
       userId,
       ip: req.ip,
@@ -102,15 +126,22 @@ const authLimiter = rateLimit({
 
 /**
  * Payment rate limiter - 5 payment attempts per hour
+ * SECURITY FIX: Uses user ID to prevent abuse
  */
 const paymentLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
   handler: (req, res) => {
     const userId = req.user?.id || 'anonymous';
-    
+
     logger.logSecurity('payment_rate_limit_exceeded', {
       userId,
       ip: req.ip
@@ -128,15 +159,22 @@ const paymentLimiter = rateLimit({
 
 /**
  * PDF generation rate limiter - 10 PDFs per hour
+ * SECURITY FIX: Uses user ID to prevent abuse
  */
 const pdfLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
   handler: (req, res) => {
     const userId = req.user?.id || 'anonymous';
-    
+
     logger.logSecurity('pdf_rate_limit_exceeded', {
       userId,
       ip: req.ip
@@ -154,35 +192,49 @@ const pdfLimiter = rateLimit({
 
 /**
  * Dynamic rate limiter based on user type
+ * SECURITY FIX: Uses user ID for all tiers
  */
 const dynamicLimiter = (req, res, next) => {
   const user = req.user;
-  
+
   // Premium users get higher limits
-  if (user?.subscription_type === 'premium') {
+  if (user?.subscription_type === 'premium' || user?.subscription_tier === 'premium') {
     const premiumLimiter = rateLimit({
       windowMs: 15 * 60 * 1000,
       max: 200, // Double the standard limit
       standardHeaders: true,
       legacyHeaders: false,
+      keyGenerator: (req) => {
+        if (req.user?.id) {
+          return `user:${req.user.id}`;
+        }
+        return `ip:${req.ip}`;
+      },
       handler: rateLimitHandler
     });
-    
+
     return premiumLimiter(req, res, next);
   }
-  
+
   // Standard users
   return standardLimiter(req, res, next);
 };
 
 /**
  * Burst protection - prevents rapid successive requests
+ * SECURITY FIX: Uses user ID to prevent abuse
  */
 const burstLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 10, // Max 10 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `user:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
   handler: (req, res) => {
     logger.logSecurity('burst_limit_exceeded', {
       userId: req.user?.id || 'anonymous',

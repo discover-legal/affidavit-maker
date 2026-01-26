@@ -151,6 +151,118 @@ const createError = (message, statusCode = 500, errorType = null, additionalProp
   return error;
 };
 
+/**
+ * ✅ NEW: Direct error response helper functions (not middleware)
+ * These can be used in route handlers like: return sendNotFoundError(res, 'Document not found');
+ */
+
+/**
+ * Send validation error (400)
+ */
+const sendValidationError = (res, message, metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(400).json({
+    success: false,
+    error: message,
+    errorType: 'validation_error',
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send authentication error (401)
+ */
+const sendAuthError = (res, message = 'Authentication required', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(401).json({
+    success: false,
+    error: message,
+    errorType: 'authentication_error',
+    requiresLogin: true,
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send authorization error (403)
+ */
+const sendAuthorizationError = (res, message = 'Access denied', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(403).json({
+    success: false,
+    error: message,
+    errorType: 'authorization_error',
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send not found error (404)
+ */
+const sendNotFoundError = (res, message = 'Resource not found', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(404).json({
+    success: false,
+    error: message,
+    errorType: 'not_found',
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send rate limit error (429)
+ */
+const sendRateLimitError = (res, retryAfter = 60, message = 'Too many requests. Please try again later.', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(429).json({
+    success: false,
+    error: message,
+    errorType: 'rate_limit_error',
+    retryAfter,
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send server error (500)
+ */
+const sendServerError = (res, message = 'Internal server error', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(500).json({
+    success: false,
+    error: message,
+    errorType: 'server_error',
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
+/**
+ * Send service unavailable error (503)
+ */
+const sendServiceUnavailableError = (res, message = 'Service temporarily unavailable', metadata = {}) => {
+  const requestId = res.req?.id;
+  return res.status(503).json({
+    success: false,
+    error: message,
+    errorType: 'service_unavailable',
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+    ...metadata
+  });
+};
+
 module.exports = {
   successResponse,
   errorResponse,
@@ -158,5 +270,13 @@ module.exports = {
   paginatedResponse,
   responseMiddleware,
   asyncHandler,
-  createError
+  createError,
+  // ✅ NEW: Direct error response helpers
+  sendValidationError,
+  sendAuthError,
+  sendAuthorizationError,
+  sendNotFoundError,
+  sendRateLimitError,
+  sendServerError,
+  sendServiceUnavailableError
 };

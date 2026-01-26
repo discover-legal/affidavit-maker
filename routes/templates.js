@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../middleware/errorMiddleware');
+const { standardLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
 
 // Get supported states (public endpoint)
-router.get('/states', asyncHandler(async (req, res) => {
+router.get('/states', standardLimiter, asyncHandler(async (req, res) => {
   const templateManager = req.app.locals.templateManager;
 
   try {
@@ -37,7 +38,7 @@ router.get('/states', asyncHandler(async (req, res) => {
 }));
 
 // Get supported document types (public endpoint)
-router.get('/document-types', asyncHandler(async (req, res) => {
+router.get('/document-types', standardLimiter, asyncHandler(async (req, res) => {
   try {
     // Document types are currently standard across all states
     const documentTypes = ['general', 'divorce', 'custody', 'financial', 'property', 'identity'];
@@ -63,7 +64,7 @@ router.get('/document-types', asyncHandler(async (req, res) => {
 }));
 
 // Validate affidavit data (public endpoint)
-router.post('/validate', asyncHandler(async (req, res) => {
+router.post('/validate', standardLimiter, asyncHandler(async (req, res) => {
   const { affidavitData, state } = req.body;
   const templateManager = req.app.locals.templateManager;
 

@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Affidavit Maker
 
-**Last Updated**: 2026-01-08
-**Version**: 3.0.0
+**Last Updated**: 2026-01-26
+**Version**: 3.1.0
 **Purpose**: Comprehensive guide for AI assistants working on this codebase
 
 ---
@@ -16,12 +16,42 @@
 6. [Authentication & Authorization](#authentication--authorization)
 7. [Database](#database)
 8. [AI/LLM Integration](#aillm-integration)
-9. [Payment Processing](#payment-processing)
-10. [Security Guidelines](#security-guidelines)
-11. [Testing](#testing)
-12. [Deployment](#deployment)
-13. [Common Tasks](#common-tasks)
-14. [Troubleshooting](#troubleshooting)
+9. [Template System](#template-system)
+10. [Payment Processing](#payment-processing)
+11. [Security Guidelines](#security-guidelines)
+12. [Testing](#testing)
+13. [Deployment](#deployment)
+14. [Common Tasks](#common-tasks)
+15. [Troubleshooting](#troubleshooting)
+
+---
+
+## Quick Reference
+
+**Essential Commands**:
+```bash
+npm run dev           # Start backend (port 3001)
+npm run client        # Start frontend (port 3000)
+npm run dev:full      # Start both concurrently
+npm test              # Run tests with coverage
+npm run db:migrate    # Run database migrations
+npm run lint:fix      # Auto-fix linting issues
+```
+
+**Supported States**: TX, UT, AZ, CA, FL, IL, NY (7 total)
+
+**Key Directories**:
+- `/routes/` - API endpoints
+- `/services/` - Business logic
+- `/middleware/` - Auth, validation, error handling
+- `/templates/states/` - State-specific templates
+- `/client/src/components/` - React components
+
+**Critical Security Notes**:
+- Always use parameterized SQL queries
+- Verify resource ownership (`user_id`) on all operations
+- Server-side pricing only (never trust client prices)
+- RLS enabled at database level for data isolation
 
 ---
 
@@ -31,7 +61,7 @@
 
 A **full-stack web application** that helps users create legally-compliant affidavits using AI assistance. Users can:
 - Chat with an AI assistant to document facts
-- Generate state-specific affidavits (Texas, Utah, Arizona)
+- Generate state-specific affidavits (7 states: Texas, Utah, Arizona, California, Florida, Illinois, New York)
 - Validate facts for legal sufficiency
 - Upload supporting evidence
 - Generate professional PDFs
@@ -51,9 +81,11 @@ A **full-stack web application** that helps users create legally-compliant affid
 - React 18.2.0
 - React Router DOM 7.8.1
 - Tailwind CSS
-- Auth0 React SDK
-- Stripe React SDK
+- Auth0 React SDK 2.2.0
+- Stripe React SDK 2.4.0
 - react-snap (pre-rendering for SEO)
+- React Helmet Async (meta tag management)
+- Lucide React (icons)
 
 **Deployment**:
 - Docker containers on Render.com
@@ -176,24 +208,38 @@ affidavit-maker/
 │   └── previewRenderer.js       # HTML preview rendering
 │
 ├── templates/                   # State-specific legal templates
-│   ├── StateTemplateManager.js  # Legacy template manager
+│   ├── StateTemplateManager.js  # Master template manager
 │   ├── initialize.js            # Auto-discovery loader
 │   ├── core/                    # Base template classes
-│   └── states/                  # State-specific templates
-│       ├── texas/
-│       ├── utah/
-│       └── arizona/
+│   │   ├── BaseAffidavitTemplate.js
+│   │   ├── TemplateRegistry.js
+│   │   ├── TemplateLoader.js
+│   │   └── validateMetadata.js
+│   └── states/                  # State-specific templates (7 states)
+│       ├── texas/               # TX - AffidavitTemplate.js + metadata.json
+│       ├── utah/                # UT - AffidavitTemplate.js + metadata.json
+│       ├── arizona/             # AZ - AffidavitTemplate.js + metadata.json
+│       ├── california/          # CA - AffidavitTemplate.js + metadata.json
+│       ├── florida/             # FL - AffidavitTemplate.js + metadata.json
+│       ├── illinois/            # IL - AffidavitTemplate.js + metadata.json
+│       └── new-york/            # NY - AffidavitTemplate.js + metadata.json
 │
 ├── utils/                       # Shared utilities
 │   ├── logger.js                # Winston structured logging
 │   ├── factNormalizer.js        # Fact format normalization
 │   └── responseHelpers.js       # Standard API responses
 │
-├── migrations/                  # Database migrations
+├── migrations/                  # Database migrations (11 total)
 │   ├── README.md                # Migration guide
 │   ├── 000_initial_schema.sql
 │   ├── 001_add_user_identities_and_audit_log.sql
-│   └── ...
+│   ├── 001_secure_api_keys.sql
+│   ├── 002_defer_billing_to_stripe.sql
+│   ├── 003_add_tos_acceptance.sql
+│   ├── 004_add_payment_status_column.sql
+│   ├── 006_add_research_consent.sql
+│   ├── 010_enable_rls_all_tables.sql  # Row Level Security
+│   └── 011_webhook_idempotency.sql    # Webhook idempotency
 │
 ├── scripts/                     # Utility scripts
 │   ├── migrate.js               # Run database migrations
@@ -201,10 +247,14 @@ affidavit-maker/
 │   └── ...
 │
 ├── __tests__/                   # Backend unit tests
-│   ├── api/
-│   ├── middleware/
-│   ├── services/
-│   └── utils/
+│   ├── api/                     # Route tests (endpoints.test.js)
+│   ├── middleware/              # Auth & validation security tests
+│   ├── security/                # RLS tests (rls.test.js)
+│   ├── services/                # Service tests (pdfService, previewRenderer)
+│   ├── templates/               # Template tests (7 state-specific tests)
+│   │   ├── core/                # TemplateLoader, TemplateRegistry tests
+│   │   └── states/              # State-specific template tests
+│   └── utils/                   # Utility tests (factNormalizer)
 │
 ├── types/                       # TypeScript type definitions
 │   └── index.d.ts
@@ -218,11 +268,17 @@ affidavit-maker/
     └── src/
         ├── index.js             # React entry point
         ├── App.js               # Root component, routing
-        ├── components/          # React components
-        │   ├── AffidavitForm.js
-        │   ├── ChatInterface.js
-        │   ├── DocumentPreview.js
-        │   ├── UserDashboard.js
+        ├── components/          # React components (26+)
+        │   ├── AffidavitForm.js         # Main editor form
+        │   ├── ChatInterface.js         # AI chat interaction
+        │   ├── DocumentPreview.js       # WYSIWYG preview
+        │   ├── UserDashboard.js         # User's documents list
+        │   ├── ArticlePage.js           # Blog/resource articles
+        │   ├── ResourcesPage.js         # Resources hub
+        │   ├── BrandAssetsPage.js       # Brand assets showcase
+        │   ├── ValidationDisplay.js     # Validation results
+        │   ├── EnhancedValidationDisplay.js  # Improved validation UI
+        │   ├── UnsupportedStateMessage.js    # State availability
         │   └── ...
         ├── contexts/            # Global state management
         │   ├── DocumentContext.js
@@ -1009,6 +1065,98 @@ Validates each fact for:
 
 ---
 
+## Template System
+
+### Overview
+
+The template system provides state-specific legal document generation with dynamic discovery of supported states.
+
+### Supported States (7 total)
+
+| State | Code | Features |
+|-------|------|----------|
+| Texas | TX | Standard affidavit, jurat |
+| Utah | UT | Standard affidavit, jurat |
+| Arizona | AZ | Standard affidavit, jurat |
+| California | CA | Standard affidavit, legal citations |
+| Florida | FL | Standard affidavit, jurat requirements |
+| Illinois | IL | Standard affidavit, notary requirements |
+| New York | NY | Standard affidavit, acknowledgment requirements |
+
+### Template Architecture
+
+**Dynamic Discovery**:
+```
+templates/
+├── initialize.js          # Scans states/ directory on startup
+├── StateTemplateManager.js # Coordinates all templates
+├── core/
+│   ├── BaseAffidavitTemplate.js  # Base class for all templates
+│   ├── TemplateRegistry.js       # Registration system
+│   └── TemplateLoader.js         # Auto-discovery loader
+└── states/
+    └── [state-name]/
+        ├── AffidavitTemplate.js  # State-specific implementation
+        └── metadata.json         # Legal requirements & citations
+```
+
+**Template Metadata Structure** (metadata.json):
+```json
+{
+  "stateCode": "CA",
+  "stateName": "California",
+  "documentTypes": ["affidavit"],
+  "version": "2.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "juratRequired": true
+  },
+  "legalCitations": [
+    {
+      "code": "CCP § 2015.5",
+      "description": "California Code of Civil Procedure"
+    }
+  ],
+  "exhibitRules": {
+    "maxExhibits": 50,
+    "maxSizePerExhibit": "10MB"
+  }
+}
+```
+
+### Adding a New State
+
+1. **Create state directory**: `templates/states/[state-name]/`
+2. **Copy template files** from `templates/_template/`
+3. **Implement AffidavitTemplate.js** extending `BaseAffidavitTemplate`
+4. **Create metadata.json** with state requirements
+5. **Add tests** in `__tests__/templates/states/[state-name]/`
+6. **Run template validation**: `npm test -- --grep "template"`
+
+**See**: `/templates/ADDING_A_STATE.md` for detailed guide.
+
+### Template API Endpoints
+
+```javascript
+// Get list of supported states (dynamic)
+GET /api/templates/states
+
+// Get document types for a state
+GET /api/templates/document-types
+
+// Get state-specific requirements
+GET /api/templates/requirements/:state
+
+// Validate affidavit data against state rules
+POST /api/templates/validate
+```
+
+---
+
 ## Payment Processing
 
 ### Stripe Integration
@@ -1208,12 +1356,13 @@ Database tracking:
 - Connection pooling with limits
 - Minimal PII storage
 - Audit logging
+- **Row Level Security (RLS)**: Database-level access control ensuring users can only access their own data (migration 010)
 
 **8. Payment Security**:
 - Server-side pricing
 - Stripe PCI compliance
 - Webhook signature verification
-- Idempotent webhook handling
+- Idempotent webhook handling (migration 011 adds `processed_webhooks` table)
 
 ### Known Security Issues
 
@@ -1228,13 +1377,35 @@ Database tracking:
 ### Test Structure
 
 ```
-__tests__/                # Backend tests
-├── api/                  # Route tests
-├── middleware/           # Middleware tests
-├── services/             # Service tests
-└── utils/                # Utility tests
+__tests__/                          # Backend tests
+├── api/                            # Route tests
+│   └── endpoints.test.js           # API endpoint tests
+├── middleware/                     # Middleware tests
+│   ├── auth.security.test.js       # Auth security tests
+│   └── validation.security.test.js # Validation security tests
+├── security/                       # Security tests
+│   └── rls.test.js                 # Row Level Security tests
+├── services/                       # Service tests
+│   ├── pdfService.test.js          # PDF generation tests
+│   └── previewRenderer.test.js     # Preview rendering tests
+├── templates/                      # Template tests
+│   ├── StateTemplateManager.test.js
+│   ├── compatibility.test.js
+│   ├── core/                       # Core template tests
+│   │   ├── TemplateLoader.test.js
+│   │   └── TemplateRegistry.test.js
+│   └── states/                     # State-specific tests (7 states)
+│       ├── arizona/
+│       ├── california/
+│       ├── florida/
+│       ├── illinois/
+│       ├── new-york/
+│       ├── texas/
+│       └── utah/
+└── utils/                          # Utility tests
+    └── factNormalizer.evidence.test.js
 
-client/src/**/__tests__/  # Frontend component tests
+client/src/**/__tests__/            # Frontend component tests
 ```
 
 ### Running Tests
@@ -1364,6 +1535,29 @@ docker build \
 - Add webhook endpoint: `https://your-app.onrender.com/api/payment/webhook`
 - Listen for: `payment_intent.succeeded`, `payment_intent.payment_failed`
 - Copy webhook secret to `STRIPE_WEBHOOK_SECRET`
+
+### SEO & Analytics
+
+**Pre-rendering for SEO**:
+- Uses `react-snap` with Puppeteer/Chromium
+- Generates static HTML for all routes
+- Configured in `client/package.json` under `reactSnap`
+- Sitemap auto-generated via `client/scripts/generate-sitemap.js`
+
+**Google Analytics / GTM**:
+- Google Tag Manager integration via `client/public/gtm.js`
+- Analytics utility at `client/src/utils/analytics.js`
+- Environment variable: `REACT_APP_GTM_ID`
+
+**Meta Tags**:
+- React Helmet Async for dynamic meta tags
+- Configured per-page for SEO optimization
+- See `GOOGLE_ANALYTICS_STATUS.md` for setup details
+
+**WWW Redirect**:
+- Automatic www to non-www redirect for SEO
+- Configured in Express middleware
+- See `docs/RENDER_WWW_REDIRECT.md` for details
 
 **See**: `DEPLOYMENT.md` for full deployment guide.
 
@@ -1505,6 +1699,53 @@ function App() {
 }
 ```
 
+### Adding a New State Template
+
+1. **Create state directory**:
+```bash
+mkdir -p templates/states/[state-name]
+```
+
+2. **Copy template boilerplate**:
+```bash
+cp templates/_template/AffidavitTemplate.js templates/states/[state-name]/
+cp templates/_template/metadata.json templates/states/[state-name]/
+```
+
+3. **Implement AffidavitTemplate.js**:
+```javascript
+const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
+
+class NewStateAffidavitTemplate extends BaseAffidavitTemplate {
+  constructor() {
+    super('NS', 'New State');
+  }
+
+  generateVenue(data) {
+    return `STATE OF NEW STATE\nCOUNTY OF ${data.county?.toUpperCase() || '________'}`;
+  }
+
+  // Override other methods as needed for state requirements
+}
+
+module.exports = NewStateAffidavitTemplate;
+```
+
+4. **Configure metadata.json** with state-specific legal requirements
+
+5. **Add tests**:
+```bash
+mkdir -p __tests__/templates/states/[state-name]
+# Create AffidavitTemplate.test.js
+```
+
+6. **Verify auto-discovery works**:
+```bash
+npm test -- --grep "template"
+```
+
+**See**: `/templates/ADDING_A_STATE.md` for detailed guide.
+
 ### Working with LLM Providers
 
 **Switching providers**:
@@ -1584,7 +1825,7 @@ app.use((req, res, next) => {
 
 **Checks**:
 - ✅ Facts are normalized (use `factNormalizer.js`)
-- ✅ Template state (TX/UT/AZ) exists
+- ✅ Template state exists (TX/UT/AZ/CA/FL/IL/NY)
 - ✅ `documents/` directory writable
 
 **7. Frontend shows "undefined" for Auth0**
@@ -1661,6 +1902,14 @@ curl -H "Authorization: Bearer $TOKEN" \
 - `/services/ResilientOpenAIService.js` - Circuit breaker
 - `/services/affidavitService.js` - Chat processing
 
+**Template System** (state-specific affidavit templates):
+- `/templates/StateTemplateManager.js` - Master template coordinator
+- `/templates/initialize.js` - Auto-discovery loader
+- `/templates/core/BaseAffidavitTemplate.js` - Base template class
+- `/templates/core/TemplateRegistry.js` - Template registration
+- `/templates/states/*/AffidavitTemplate.js` - State implementations
+- `/templates/states/*/metadata.json` - State legal requirements
+
 **Configuration**:
 - `.env.example.sh` - Environment variables reference
 - `render.yaml` - Deployment config
@@ -1670,6 +1919,10 @@ curl -H "Authorization: Bearer $TOKEN" \
 **Documentation**:
 - `DEPLOYMENT.md` - Deployment guide
 - `SECURITY_ANALYSIS_CRITICAL.md` - Security vulnerability analysis
+- `SECURITY_AUDIT_COMPREHENSIVE.md` - Comprehensive security audit
+- `SECURITY_FIXES_IMPLEMENTED.md` - Summary of implemented fixes
+- `SECURITY_REMEDIATION_PLAN.md` - Security remediation roadmap
+- `RLS_IMPLEMENTATION_GUIDE.md` - Row Level Security implementation guide
 - `CHANGES.md` - Recent changes and fixes
 - `TEMPLATE_REFACTORING_PLAN.md` - Template system refactoring
 
@@ -1717,6 +1970,27 @@ curl -H "Authorization: Bearer $TOKEN" \
 - ✅ Add tests for new functionality
 - ✅ Check logs for errors
 - ✅ Review security implications
+
+---
+
+## Version History
+
+### v3.1.0 (2026-01-26)
+- **State Support**: Expanded from 3 to 7 states (added CA, FL, IL, NY)
+- **Security**: Added Row Level Security (RLS) via migration 010
+- **Security**: Added webhook idempotency via migration 011
+- **SEO**: Added React Helmet Async for meta tag management
+- **SEO**: Added sitemap generation and GTM integration
+- **Tests**: Added RLS security tests and state-specific template tests
+- **Components**: Added BrandAssetsPage, ResourcesPage, ArticlePage
+- **Documentation**: Added comprehensive security audit documentation
+
+### v3.0.0 (2026-01-08)
+- Initial comprehensive CLAUDE.md documentation
+- Dynamic template discovery system
+- Multi-provider LLM support
+- Auth0 integration with duplicate email protection
+- Stripe payment integration with server-side pricing
 
 ---
 

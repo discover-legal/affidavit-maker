@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { asyncHandler } = require('../middleware/errorMiddleware');
+const { asyncHandler, safeErrorMessage } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const { validatePreview, validateDocumentSave, validateDocumentRename } = require('../middleware/validation');
@@ -152,12 +152,12 @@ router.post('/preview',
 
     } catch (error) {
       logger.error('Preview generation failed', { error: error.message });
-      
+
       res.json({
         success: true,
         preview: createFallbackPreview(affidavitData),
         fallback: true,
-        error: error.message
+        error: safeErrorMessage(error, 'Preview generation failed')
       });
     }
   })

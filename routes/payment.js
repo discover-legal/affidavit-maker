@@ -326,9 +326,9 @@ router.get('/history',
 
 /**
  * Stripe webhook handler for payment events
+ * Note: No rate limiting - Stripe has built-in DDoS protection and webhooks have signature verification
  */
 router.post('/webhook',
-  strictLimiter,
   // Note: rawBody is captured by verify middleware in server.js for all webhook routes
   asyncHandler(async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -360,7 +360,7 @@ router.post('/webhook',
         signature: sig?.substring(0, 20) + '...',
         hasRawBody: !!req.rawBody
       });
-      return sendValidationError(res, `Webhook signature verification failed: ${error.message}`, {
+      return sendValidationError(res, 'Webhook signature verification failed', {
         type: 'signature_verification_failed'
       });
     }

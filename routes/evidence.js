@@ -11,10 +11,11 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises;
 const logger = require('../utils/logger');
-const { asyncHandler, ValidationError } = require('../middleware/errorMiddleware');
+const { asyncHandler, ValidationError, safeErrorMessage } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const evidenceStorage = require('../services/evidenceStorage');
+const { isValidFilename, sanitizeFilename } = require('../utils/pathSecurity');
 
 /**
  * SECURITY: Validate file upload inputs to prevent path traversal
@@ -172,7 +173,7 @@ router.post('/upload',
 
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to upload evidence'
+        error: safeErrorMessage(error, 'Failed to upload evidence')
       });
     }
   })
@@ -187,6 +188,12 @@ router.get('/:documentId/:fileKey',
   asyncHandler(async (req, res) => {
     const { documentId, fileKey } = req.params;
     const userId = req.user.id;
+
+    // Validate fileKey to prevent path traversal
+    if (!isValidFilename(fileKey)) {
+      logger.logSecurity('invalid_filekey_attempt', { fileKey: String(fileKey).substring(0, 50), userId });
+      return res.status(400).json({ success: false, error: 'Invalid file key format' });
+    }
 
     try {
       // Verify user owns the document
@@ -230,9 +237,11 @@ router.get('/:documentId/:fileKey',
       };
       const contentType = contentTypeMap[ext] || 'application/octet-stream';
 
-      // Stream file to response
+      // Stream file to response with security headers
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `inline; filename="${path.basename(evidence.filepath)}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${sanitizeFilename(path.basename(evidence.filepath))}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'");
 
       const fileStream = require('fs').createReadStream(evidence.filepath);
       fileStream.pipe(res);
@@ -261,7 +270,7 @@ router.get('/:documentId/:fileKey',
 
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get evidence'
+        error: safeErrorMessage(error, 'Failed to retrieve evidence')
       });
     }
   })

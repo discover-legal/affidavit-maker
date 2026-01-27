@@ -143,3 +143,6 @@ auto-fix.sh
 
 # Generated PDF documents
 documents/
+
+# SECURITY (MED-06): Temp upload directory
+temp/

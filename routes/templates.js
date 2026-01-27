@@ -105,18 +105,30 @@ router.post('/validate', standardLimiter, asyncHandler(async (req, res) => {
 }));
 
 // Get template requirements for a state (public endpoint)
-router.get('/requirements/:state', asyncHandler(async (req, res) => {
+// SECURITY (HIGH-03): Added rate limiting
+// SECURITY (MED-15): Don't echo user-supplied state in error message
+router.get('/requirements/:state', standardLimiter, asyncHandler(async (req, res) => {
   const { state } = req.params;
   const templateManager = req.app.locals.templateManager;
+
+  // SECURITY: Validate state format (2-letter code only)
+  if (!state || !/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid state code format. Must be a 2-letter state code.',
+      requestId: req.id
+    });
+  }
 
   // Dynamically check if state is supported
   const supportedStates = templateManager.getSupportedStates();
   const isSupported = supportedStates.some(s => s.code === state.toUpperCase());
 
   if (!isSupported) {
+    // SECURITY: Don't echo user-supplied state value back
     return res.status(400).json({
       success: false,
-      error: `State '${state}' is not supported. Supported states: ${supportedStates.map(s => s.code).join(', ')}`,
+      error: `State not supported. Supported states: ${supportedStates.map(s => s.code).join(', ')}`,
       requestId: req.id
     });
   }

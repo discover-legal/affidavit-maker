@@ -136,10 +136,13 @@ class DatabaseService {
 }
 
 // Export singleton instance
+// SECURITY (HIGH-05): Added query timeout to prevent slow query DoS
 const dbService = new DatabaseService({
   connectionString: process.env.DATABASE_URL,
   max: parseInt(process.env.DATABASE_POOL_MAX || '20'),
-  idleTimeoutMillis: 30000
+  idleTimeoutMillis: 30000,
+  statement_timeout: 30000, // 30 second query timeout
+  query_timeout: 30000      // 30 second overall query timeout
 });
 
 module.exports = { dbService, DatabaseService };

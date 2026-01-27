@@ -423,7 +423,8 @@ router.post('/webhook',
             } : null
           } : null;
 
-          // Update payment status and store minimal billing data (using client, not pool)
+          // SECURITY FIX (HIGH-01): Both payment and document updates in same transaction
+          // to prevent race condition where payment succeeds but document stays unpaid
           const updateResult = await client.query(
             `UPDATE payments
              SET status = 'succeeded',
@@ -446,20 +447,17 @@ router.post('/webhook',
             const payment = updateResult.rows[0];
 
             // Update document payment_status if documentId is in metadata
+            // SECURITY: This is now inside the same transaction - if it fails, payment update rolls back too
             const documentId = paymentIntent.metadata?.documentId;
             if (documentId && documentId !== 'new') {
-              try {
-                await client.query(
-                  'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-                  ['paid', documentId]
-                );
+              const docUpdateResult = await client.query(
+                'UPDATE documents SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
+                ['paid', documentId]
+              );
+              if (docUpdateResult.rowCount === 0) {
+                logger.warn('Document not found for payment update', { documentId, paymentIntentId: paymentIntent.id });
+              } else {
                 logger.info('Document payment status updated', { documentId, paymentIntentId: paymentIntent.id });
-              } catch (docUpdateError) {
-                logger.error('Failed to update document payment status', {
-                  error: docUpdateError.message,
-                  documentId,
-                  paymentIntentId: paymentIntent.id
-                });
               }
             }
 
@@ -481,9 +479,10 @@ router.post('/webhook',
             ['failed', failedPayment.id]
           );
 
+          // SECURITY (MED-10): Log error code only, not message which may contain sensitive details
           logger.logBusinessEvent('payment_failed', null, {
             paymentIntentId: failedPayment.id,
-            lastPaymentError: failedPayment.last_payment_error?.message
+            errorCode: failedPayment.last_payment_error?.code || 'unknown'
           });
           break;
 
@@ -638,8 +637,9 @@ router.post('/cancel/:paymentIntentId',
 
 /**
  * Get pricing information
+ * SECURITY (HIGH-03): Added rate limiting
  */
-router.get('/pricing', (req, res) => {
+router.get('/pricing', strictLimiter, (req, res) => {
   res.json({
     success: true,
     pricing: {

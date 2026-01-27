@@ -99,7 +99,7 @@ app.use(helmet({
         "https://www.discover.legal",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       frameSrc: ["'self'", "https://js.stripe.com", "https://*.auth0.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -118,8 +118,28 @@ app.use(helmet({
   xssFilter: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // SECURITY: Add Permissions-Policy to restrict browser APIs (MED-03)
+  permissionsPolicy: {
+    features: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: ["'self'"],
+      usb: [],
+      magnetometer: [],
+      gyroscope: [],
+      accelerometer: []
+    }
+  }
 }));
+
+// SECURITY: Global request timeout to prevent Slowloris attacks (HIGH-04)
+const requestTimeout = require('connect-timeout');
+app.use(requestTimeout('30s'));
+app.use((req, res, next) => {
+  if (!req.timedout) next();
+});
 
 // CORS configuration
 // Helper to normalize origin URL (remove trailing slash)
@@ -394,35 +414,16 @@ async function initializeServices() {
 app.locals.pool = dbService.pool;
 
 // Health check endpoint
+// SECURITY: Simplified to not expose internal service details (HIGH-07)
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: dbService ? 'OK' : 'Not Connected',
-      templates: templateManager ? 'OK' : 'Not Initialized',
-      pdfService: pdfService ? 'OK' : 'Not Initialized', // ✅ NEW
-      auth: process.env.AUTH0_DOMAIN ? 'OK' : 'Not Configured',
-      stripe: process.env.STRIPE_SECRET_KEY ? 'OK' : 'Not Connected',
-      openai: openAIService ? 'OK' : 'Not Initialized'
-    }
+    timestamp: new Date().toISOString()
   });
 });
 
-// CORS/CSRF diagnostic endpoint (helps debug domain issues)
-app.get('/api/debug/cors', (req, res) => {
-  res.json({
-    success: true,
-    config: {
-      nodeEnv: process.env.NODE_ENV || 'development',
-      frontendUrl: process.env.FRONTEND_URL || '(not set)',
-      allowedOrigins,
-      requestOrigin: req.headers.origin || '(none)',
-      requestReferer: req.headers.referer || '(none)'
-    },
-    message: 'CORS configuration and request headers'
-  });
-});
+// SECURITY: Debug endpoint removed - was exposing configuration
+// See SECURITY_AUDIT_REVIEW_2026-01-27.md CRIT-03
 
 // Safe router import utility
 const safeImportRouter = (routePath, routeName) => {

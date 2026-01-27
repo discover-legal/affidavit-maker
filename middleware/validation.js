@@ -548,8 +548,9 @@ const validateRateLimit = (req, res, next) => {
  */
 const detectSuspiciousActivity = (req, res, next) => {
   const suspiciousPatterns = [
-    // Script injection patterns (XSS prevention)
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    // SECURITY (MED-02): Simplified script detection regex to avoid ReDoS
+    // Previous pattern had nested quantifiers that could cause catastrophic backtracking
+    /<script\b[^>]*>[\s\S]*?<\/script>/gi,
     // Command injection patterns
     /(\b(ls|cat|pwd|whoami|id|uname|ps|netstat|ifconfig|rm|mv|cp|mkdir|chmod|chown|kill|wget|curl|nc|nmap|sqlmap)\b)/gi
   ];

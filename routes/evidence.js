@@ -182,8 +182,10 @@ router.post('/upload',
 /**
  * GET /api/evidence/:documentId/:fileKey
  * Get evidence file
+ * SECURITY (HIGH-03): Added rate limiting
  */
 router.get('/:documentId/:fileKey',
+  standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { documentId, fileKey } = req.params;
@@ -279,8 +281,10 @@ router.get('/:documentId/:fileKey',
 /**
  * DELETE /api/evidence/:documentId/:evidenceId
  * Delete evidence file
+ * SECURITY (HIGH-03): Added rate limiting
  */
 router.delete('/:documentId/:evidenceId',
+  standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { documentId, evidenceId } = req.params;
@@ -338,8 +342,10 @@ router.delete('/:documentId/:evidenceId',
 /**
  * GET /api/evidence/document/:documentId
  * List all evidence for a document
+ * SECURITY (HIGH-03): Added rate limiting
  */
 router.get('/document/:documentId',
+  standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { documentId } = req.params;

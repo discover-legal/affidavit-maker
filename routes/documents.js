@@ -303,9 +303,9 @@ router.post('/generate',
                   logger.warn('No payment record found for document', { documentId, userId });
                 }
               } catch (stripeError) {
+                // SECURITY (HIGH-08): Don't log stack traces - use error middleware for that
                 logger.error('Stripe payment verification failed', {
                   error: stripeError.message,
-                  stack: stripeError.stack,
                   documentId,
                   userId
                 });
@@ -461,11 +461,11 @@ router.post('/generate',
       });
 
     } catch (error) {
-      logger.error('PDF generation failed', { 
-        error: error.message, 
-        stack: error.stack,
+      // SECURITY (HIGH-08): Don't log stack traces in routes - use error middleware for that
+      logger.error('PDF generation failed', {
+        error: error.message,
         userId,
-        documentId: affidavitData?.documentId 
+        documentId: affidavitData?.documentId
       });
 
       res.status(500).json({

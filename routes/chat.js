@@ -256,14 +256,31 @@ router.post('/',
 
 /**
  * Get chat session info
+ * SECURITY (MED-01): Added session ownership verification
+ * SECURITY (HIGH-03): Added rate limiting
  */
-router.get('/session/:sessionId', 
+router.get('/session/:sessionId',
+  chatLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
-    
-    // In a real implementation, you'd fetch from database
-    // For now, return basic session info
+
+    // SECURITY: Validate session ID format and ownership
+    // Session IDs are formatted as: chat_{timestamp}_{userId}
+    if (!sessionId || sessionId.length > 100) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
+
+    // Verify session belongs to this user (session IDs contain user ID)
+    const expectedSuffix = `_${req.user.id}`;
+    if (!sessionId.endsWith(expectedSuffix) && !sessionId.includes(`_${req.user.id}_`)) {
+      logger.logSecurity('session_ownership_violation', {
+        sessionId: sessionId.substring(0, 50),
+        userId: req.user.id
+      });
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
     res.sendSuccess({
       sessionId,
       userId: req.user.id,
@@ -275,15 +292,32 @@ router.get('/session/:sessionId',
 
 /**
  * Clear chat session (reset conversation)
+ * SECURITY (MED-01): Added session ownership verification
+ * SECURITY (HIGH-03): Added rate limiting
  */
 router.delete('/session/:sessionId',
+  chatLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
-    
+
+    // SECURITY: Validate session ID format and ownership
+    if (!sessionId || sessionId.length > 100) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
+
+    // Verify session belongs to this user
+    const expectedSuffix = `_${req.user.id}`;
+    if (!sessionId.endsWith(expectedSuffix) && !sessionId.includes(`_${req.user.id}_`)) {
+      logger.logSecurity('session_delete_ownership_violation', {
+        sessionId: sessionId.substring(0, 50),
+        userId: req.user.id
+      });
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
     logger.logChat('session_cleared', sessionId, req.user.id);
-    
-    // In a real implementation, you'd clear session data from database
+
     res.sendSuccess({
       message: 'Chat session cleared successfully',
       sessionId
@@ -293,20 +327,21 @@ router.delete('/session/:sessionId',
 
 /**
  * Get chat metrics (for monitoring/debugging)
+ * SECURITY (MED-13): Removed sensitive system info, added rate limiting
  */
 router.get('/metrics',
+  chatLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
+    // SECURITY: Only return non-sensitive configuration, not system metrics
     const metrics = {
-      constants: CHAT_CONSTANTS,
-      memory: {
-        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      limits: {
+        maxConversationMessages: CHAT_CONSTANTS.MAX_CONVERSATION_MESSAGES,
+        requestTimeout: CHAT_CONSTANTS.REQUEST_TIMEOUT
       },
-      uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString()
     };
-    
+
     res.sendSuccess(metrics);
   })
 );

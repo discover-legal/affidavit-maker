@@ -41,8 +41,19 @@ const verifyAuth0Webhook = (req, res, next) => {
   }
 
   try {
-    // Get raw request body (captured by middleware in server.js)
-    const requestBody = req.rawBody || JSON.stringify(req.body);
+    // SECURITY (HIGH-02): Require rawBody - don't fall back to JSON.stringify
+    // which can produce different bytes than the original request
+    const requestBody = req.rawBody;
+    if (!requestBody) {
+      logger.logSecurity('auth0_webhook_missing_rawbody', {
+        path: req.path,
+        ip: req.ip
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request - missing raw body'
+      });
+    }
 
     // Compute HMAC-SHA256 signature
     const expectedSignature = crypto

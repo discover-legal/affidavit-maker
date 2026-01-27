@@ -51,11 +51,11 @@ const getAllowedOrigins = () => {
  * However, we still validate Origin/Referer headers for defense in depth.
  */
 // Explicit whitelist of webhook paths that skip CSRF (they have signature verification)
+// SECURITY (MED-11): Removed '/api/auth0-webhooks/user-delete' - route doesn't exist
 const WEBHOOK_PATHS = new Set([
   '/api/payment/webhook',
   '/api/auth0-webhooks/user-update',
-  '/api/auth0-webhooks/email-update',
-  '/api/auth0-webhooks/user-delete'
+  '/api/auth0-webhooks/email-update'
 ]);
 
 const csrfProtection = (req, res, next) => {

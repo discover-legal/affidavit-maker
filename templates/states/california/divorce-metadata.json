@@ -1,0 +1,241 @@
+{
+  "stateCode": "CA",
+  "stateName": "California",
+  "documentTypes": ["dissolution_petition", "dissolution_judgment", "legal_separation"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition",
+    "decree": "Judgment",
+    "caseNumberLabel": "Case Number:",
+    "custody": "Custody",
+    "visitation": "Visitation",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Community Property"
+  },
+
+  "officialForms": {
+    "petition": {
+      "formNumber": "FL-100",
+      "name": "Petition—Marriage/Domestic Partnership",
+      "required": true
+    },
+    "summons": {
+      "formNumber": "FL-110",
+      "name": "Summons (Family Law)",
+      "required": true,
+      "notes": "Contains Standard Family Law Restraining Orders (ATROs)"
+    },
+    "proofOfService": {
+      "formNumber": "FL-115",
+      "name": "Proof of Service of Summons",
+      "required": true
+    },
+    "acknowledgment": {
+      "formNumber": "FL-117",
+      "name": "Notice and Acknowledgment of Receipt",
+      "required": false,
+      "notes": "Alternative to personal service"
+    },
+    "response": {
+      "formNumber": "FL-120",
+      "name": "Response—Marriage/Domestic Partnership",
+      "required": false,
+      "deadline": "30 days from service"
+    },
+    "disclosure": {
+      "formNumber": "FL-140",
+      "name": "Declaration of Disclosure",
+      "required": true,
+      "notes": "Mandatory disclosure certification"
+    },
+    "disclosureService": {
+      "formNumber": "FL-141",
+      "name": "Declaration Regarding Service of Declaration of Disclosure",
+      "required": true
+    },
+    "assetsDebts": {
+      "formNumber": "FL-142",
+      "name": "Schedule of Assets and Debts",
+      "required": true
+    },
+    "incomeExpense": {
+      "formNumber": "FL-150",
+      "name": "Income and Expense Declaration",
+      "required": true
+    },
+    "uccjea": {
+      "formNumber": "FL-105",
+      "name": "Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA)",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "defaultDeclaration": {
+      "formNumber": "FL-170",
+      "name": "Declaration for Default or Uncontested Dissolution",
+      "required": false
+    },
+    "judgment": {
+      "formNumber": "FL-180",
+      "name": "Judgment",
+      "required": true
+    },
+    "maritalStandard": {
+      "formNumber": "FL-157",
+      "name": "Spousal or Partner Support Declaration Attachment",
+      "required": false,
+      "notes": "For marriages of 10+ years"
+    }
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": 3,
+    "description": "Petitioner must be a California resident for at least 6 months and a county resident for at least 3 months before filing.",
+    "sameSexMarriageException": "Same-sex couples married in California but living in a non-recognition state may file in the county where they were married."
+  },
+
+  "waitingPeriod": {
+    "days": 180,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "California has a mandatory 6-month waiting period. No divorce can be finalized until 6 months after Respondent is served. There are NO exceptions."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences which have caused the irremediable breakdown of the marriage",
+        "statute": "Family Code § 2310(a)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "Permanent legal incapacity to make decisions",
+        "statute": "Family Code § 2310(b)",
+        "notes": "Requires medical proof and competent medical testimony"
+      }
+    ]
+  },
+
+  "automaticRestrainingOrders": {
+    "description": "Standard Family Law Restraining Orders (ATROs) automatically apply when FL-110 Summons is served",
+    "restrictions": [
+      "Cannot remove minor children from state without prior written consent or court order",
+      "Cannot transfer, encumber, conceal, or dispose of property without consent or court order",
+      "Cannot cancel, modify, or change insurance coverage without consent or court order",
+      "Cannot create non-probate transfer of property without consent or court order"
+    ],
+    "statute": "Family Code § 2040"
+  },
+
+  "financialDisclosure": {
+    "mandatory": true,
+    "description": "California requires mandatory financial disclosure. Both parties must exchange preliminary declarations of disclosure.",
+    "forms": ["FL-140", "FL-142", "FL-150"],
+    "deadline": "Within 60 days of filing",
+    "statute": "Family Code § 2100-2113"
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "0.5in",
+      "left": "1.5in",
+      "right": "0.5in"
+    },
+    "font": {
+      "family": "Times New Roman or similar proportionally spaced font",
+      "size": "12pt minimum"
+    },
+    "spacing": "double",
+    "pageNumbers": "bottom center",
+    "notes": "Per California Rules of Court, Rules 2.100-2.119"
+  },
+
+  "legalCitations": [
+    {
+      "code": "California Family Code Division 6",
+      "description": "Nullity, Dissolution, and Legal Separation"
+    },
+    {
+      "code": "Family Code § 2310",
+      "description": "Grounds for dissolution or legal separation"
+    },
+    {
+      "code": "Family Code § 2330-2334",
+      "description": "Procedure for dissolution"
+    },
+    {
+      "code": "Family Code § 2040",
+      "description": "Automatic temporary restraining orders"
+    },
+    {
+      "code": "Family Code § 2100-2113",
+      "description": "Declaration of disclosure requirements"
+    },
+    {
+      "code": "Family Code § 4320",
+      "description": "Factors for spousal support"
+    },
+    {
+      "code": "California Code of Civil Procedure § 2015.5",
+      "description": "Declaration under penalty of perjury"
+    },
+    {
+      "code": "California Rules of Court, Rule 5.12",
+      "description": "Format of family law papers"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$435-450",
+    "varies": true,
+    "notes": "Varies by county. Fee waiver (FW-001) available for qualifying individuals."
+  },
+
+  "childSupport": {
+    "guidelines": "California Statewide Uniform Guideline",
+    "calculationFactors": [
+      "Net disposable income of both parents",
+      "Percentage of time each parent has primary physical custody",
+      "Tax filing status",
+      "Number of children"
+    ],
+    "statute": "Family Code § 4050-4076"
+  },
+
+  "spousalSupport": {
+    "factors": [
+      "Standard of living during the marriage",
+      "Supported party's ability to maintain standard of living",
+      "Supporting party's ability to pay",
+      "Duration of the marriage",
+      "Needs and obligations of each party",
+      "Age and health of parties",
+      "Documented history of domestic violence",
+      "Tax consequences",
+      "Balance of hardships",
+      "Goal of self-sufficiency within reasonable time"
+    ],
+    "duration": {
+      "shortMarriage": "Half the length of marriage (general guideline for marriages under 10 years)",
+      "longMarriage": "Court retains jurisdiction indefinitely for marriages of 10+ years"
+    },
+    "statute": "Family Code § 4320"
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "California is a community property state. All property acquired during marriage is presumed community property and divided equally.",
+    "dateOfSeparation": "Critical date that determines when community property accumulation ends",
+    "statute": "Family Code § 2550"
+  }
+}

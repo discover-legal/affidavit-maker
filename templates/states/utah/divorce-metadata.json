@@ -1,0 +1,247 @@
+{
+  "stateCode": "UT",
+  "stateName": "Utah",
+  "documentTypes": ["divorce_petition", "divorce_decree", "acceptance_of_service"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 90,
+    "description": "Petitioner must have been an actual and bona fide resident of the county for three months immediately prior to filing."
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "filing_date",
+    "exceptions": ["extraordinary_circumstances"],
+    "description": "Divorce may not be granted until 30 days have elapsed from date of filing."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences causing irremediable breakdown of the marriage",
+        "statute": "Utah Code § 30-3-1(3)(h)"
+      },
+      {
+        "code": "living_apart",
+        "name": "Living Separate and Apart",
+        "description": "Parties lived apart under decree of separate maintenance for 3+ consecutive years",
+        "statute": "Utah Code § 30-3-1(3)(g)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "desertion",
+        "name": "Willful Desertion",
+        "description": "Willful desertion for more than one year",
+        "statute": "Utah Code § 30-3-1(3)(b)"
+      },
+      {
+        "code": "neglect",
+        "name": "Willful Neglect",
+        "description": "Willful neglect to provide common necessaries of life",
+        "statute": "Utah Code § 30-3-1(3)(c)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness",
+        "description": "Habitual drunkenness",
+        "statute": "Utah Code § 30-3-1(3)(d)"
+      },
+      {
+        "code": "conviction",
+        "name": "Felony Conviction",
+        "description": "Conviction of a felony",
+        "statute": "Utah Code § 30-3-1(3)(e)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel Treatment",
+        "description": "Cruel treatment causing bodily injury or great mental distress",
+        "statute": "Utah Code § 30-3-1(3)(f)"
+      },
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "Adjudged insane or incurably insane as provided by law",
+        "statute": "Utah Code § 30-3-1(3)(a)"
+      }
+    ]
+  },
+
+  "terminology": {
+    "caseNumberLabel": "Case No.",
+    "custody": "Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Legal Custody",
+    "soleCustody": "Sole Custody",
+    "visitation": "Parent-time",
+    "alimony": "Alimony",
+    "childSupport": "Child Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Utah Courts Cover Sheet for Civil Actions",
+        "description": "Case initiation cover sheet",
+        "required": true
+      },
+      {
+        "name": "Verified Petition for Divorce",
+        "description": "Main divorce petition - must be verified/sworn",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Notice to respondent",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving marriage",
+        "required": true
+      },
+      {
+        "name": "Certificate of Divorce, Dissolution, or Annulment",
+        "description": "Utah Department of Health vital statistics form",
+        "required": true
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Obligation Worksheet",
+        "description": "Calculates child support per Utah guidelines",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Income Verification",
+        "description": "Income disclosure",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Custody and parent-time arrangement",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Acceptance of Service, Appearance, Consent, and Waiver",
+        "description": "Respondent waives formal service and acknowledges receipt",
+        "required": false
+      }
+    ]
+  },
+
+  "mandatoryClasses": {
+    "divorceEducation": {
+      "required": true,
+      "whenRequired": "minor_children",
+      "statute": "Utah Code § 30-3-11.3",
+      "description": "Both parents must complete divorce education class when minor children are involved"
+    }
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "headerFormat": "sentencecase",
+    "venueFormat": "titlecase",
+    "notes": "Per Utah Rules of Civil Procedure Rule 10"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Respondent has 21 days to respond if served in Utah"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent has 30 days to respond if served outside Utah"
+    }
+  },
+
+  "legalCitations": [
+    {
+      "code": "Utah Code Title 30, Chapter 3",
+      "description": "Divorce",
+      "url": "https://le.utah.gov/xcode/Title30/Chapter3/30-3.html"
+    },
+    {
+      "code": "Utah Code § 30-3-1",
+      "description": "Procedure; residence requirements; grounds"
+    },
+    {
+      "code": "Utah Code § 30-3-3",
+      "description": "Verification of complaint"
+    },
+    {
+      "code": "Utah Code § 30-3-5",
+      "description": "Disposition of property; maintenance and health care of parties and children"
+    },
+    {
+      "code": "Utah Code § 30-3-10",
+      "description": "Custody of children"
+    },
+    {
+      "code": "Utah Code § 30-3-11.3",
+      "description": "Mandatory divorce education class"
+    },
+    {
+      "code": "Utah Code § 78B-12",
+      "description": "Child Support Guidelines"
+    },
+    {
+      "code": "Utah Rules of Civil Procedure Rule 10",
+      "description": "Form of pleadings and other papers"
+    },
+    {
+      "code": "Utah Code § 46-1-6.5",
+      "description": "Notarial acts - prescribed format"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$325",
+    "varies": false,
+    "notes": "Fee waiver available for qualifying low-income individuals"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares_model",
+    "worksheet": "Child Support Obligation Worksheet",
+    "statute": "Utah Code § 78B-12-301 et seq."
+  },
+
+  "alimonyFactors": {
+    "statute": "Utah Code § 30-3-5(8)",
+    "factors": [
+      "Financial condition and needs of receiving spouse",
+      "Receiving spouse's earning capacity",
+      "Ability of paying spouse to provide support",
+      "Length of the marriage",
+      "Whether receiving spouse has custody of minor children",
+      "Whether receiving spouse worked in business owned by paying spouse",
+      "Whether receiving spouse contributed to paying spouse's education",
+      "Fault of the parties (in certain circumstances)"
+    ]
+  }
+}

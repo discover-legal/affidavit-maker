@@ -1,0 +1,242 @@
+{
+  "stateCode": "FL",
+  "stateName": "Florida",
+  "documentTypes": ["dissolution_petition", "dissolution_judgment", "simplified_dissolution"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition",
+    "decree": "Final Judgment",
+    "caseNumberLabel": "Case No.:",
+    "custody": "Time-Sharing and Parental Responsibility",
+    "physicalCustody": "Time-Sharing",
+    "jointCustody": "Shared Parental Responsibility",
+    "soleCustody": "Sole Parental Responsibility",
+    "visitation": "Time-Sharing Schedule",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Assets and Liabilities"
+  },
+
+  "officialForms": {
+    "simplifiedJoint": {
+      "formNumber": "12.901(a)",
+      "name": "Joint Petition for Simplified Dissolution of Marriage",
+      "required": false,
+      "eligibility": "No children, not pregnant, no alimony, agreed property division"
+    },
+    "petitionWithChildren": {
+      "formNumber": "12.901(b)(1)",
+      "name": "Petition for Dissolution with Minor Children",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "petitionPropertyNoChildren": {
+      "formNumber": "12.901(b)(2)",
+      "name": "Petition for Dissolution with Property but No Minor Children",
+      "required": true
+    },
+    "petitionNoPropertyNoChildren": {
+      "formNumber": "12.901(b)(3)",
+      "name": "Petition for Dissolution No Property, No Minor Children",
+      "required": true
+    },
+    "financialAffidavitShort": {
+      "formNumber": "12.902(b)",
+      "name": "Family Law Financial Affidavit (Short Form)",
+      "required": true,
+      "incomeThreshold": "Under $50,000 annual gross income"
+    },
+    "financialAffidavitLong": {
+      "formNumber": "12.902(c)",
+      "name": "Family Law Financial Affidavit (Long Form)",
+      "required": true,
+      "incomeThreshold": "$50,000 or more annual gross income"
+    },
+    "uccjea": {
+      "formNumber": "12.902(d)",
+      "name": "Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA) Affidavit",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "settlementChildren": {
+      "formNumber": "12.902(f)(1)",
+      "name": "Marital Settlement Agreement for Dissolution with Children",
+      "required": false
+    },
+    "settlementNoChildren": {
+      "formNumber": "12.902(f)(2)",
+      "name": "Marital Settlement Agreement for Dissolution with Property but No Children",
+      "required": false
+    },
+    "corroboratingWitness": {
+      "formNumber": "12.902(i)",
+      "name": "Affidavit of Corroborating Witness",
+      "required": true,
+      "notes": "Proves residency"
+    },
+    "answerWaiver": {
+      "formNumber": "12.903(a)",
+      "name": "Answer, Waiver, and Request for Copy of Final Judgment",
+      "required": false
+    },
+    "parentingPlan": {
+      "formNumber": "12.995(a)",
+      "name": "Parenting Plan",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "finalJudgmentSimplified": {
+      "formNumber": "12.990(a)",
+      "name": "Final Judgment of Simplified Dissolution of Marriage",
+      "required": true
+    }
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "You or your spouse must have been a Florida resident for at least 6 months before filing.",
+    "proofMethods": [
+      "Florida driver's license (issued 6+ months prior)",
+      "Florida identification card (issued 6+ months prior)",
+      "Voter registration card (issued 6+ months prior)",
+      "Affidavit of corroborating witness"
+    ]
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "simplified": {
+      "days": 0,
+      "finalHearing": "Approximately 30 days after filing"
+    },
+    "description": "Florida has no mandatory waiting period. Simplified dissolutions can be finalized approximately 30 days after filing."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Marriage Irretrievably Broken",
+        "description": "The marriage between the parties is irretrievably broken",
+        "statute": "Florida Statutes § 61.052(1)(a)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "mental_incapacity",
+        "name": "Mental Incapacity",
+        "description": "Mental incapacity of one of the parties for a period of 3 years",
+        "statute": "Florida Statutes § 61.052(1)(b)"
+      }
+    ]
+  },
+
+  "simplifiedDissolutionEligibility": {
+    "requirements": [
+      "Both parties agree the marriage is irretrievably broken",
+      "No minor or dependent children and wife is not pregnant",
+      "Parties have agreed on division of all assets and liabilities",
+      "Neither party seeking alimony",
+      "Both willing to give up right to trial and appeal",
+      "Both willing to appear together at clerk's office to sign petition"
+    ],
+    "formNumber": "12.901(a)"
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt"
+    },
+    "spacing": "double",
+    "notes": "Per Florida Family Law Rules of Procedure"
+  },
+
+  "mandatoryDisclosure": {
+    "rule": "Florida Family Law Rules of Procedure 12.285",
+    "description": "Each party must exchange certain information and documents and file a Family Law Financial Affidavit",
+    "exemption": "Simplified dissolution is exempt from mandatory disclosure requirements"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Florida Statutes Chapter 61",
+      "description": "Dissolution of Marriage; Support; Time-Sharing"
+    },
+    {
+      "code": "Florida Statutes § 61.052",
+      "description": "Dissolution of Marriage"
+    },
+    {
+      "code": "Florida Statutes § 61.075",
+      "description": "Equitable distribution of marital assets and liabilities"
+    },
+    {
+      "code": "Florida Statutes § 61.08",
+      "description": "Alimony"
+    },
+    {
+      "code": "Florida Statutes § 61.13",
+      "description": "Parental responsibility and time-sharing"
+    },
+    {
+      "code": "Florida Statutes § 61.30",
+      "description": "Child support guidelines"
+    },
+    {
+      "code": "Florida Family Law Rules of Procedure",
+      "description": "Procedural rules"
+    },
+    {
+      "code": "Rule 12.285",
+      "description": "Mandatory disclosure"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$409",
+    "varies": true,
+    "notes": "Varies by county. Application for Determination of Civil Indigent Status available for fee waiver."
+  },
+
+  "childSupport": {
+    "guidelines": "Florida Child Support Guidelines",
+    "statute": "Florida Statutes § 61.30",
+    "calculationBasis": "income_shares_model"
+  },
+
+  "alimony": {
+    "types": [
+      "Bridge-the-gap alimony (up to 2 years, non-modifiable)",
+      "Rehabilitative alimony (requires specific plan)",
+      "Durational alimony (based on marriage length)",
+      "Permanent alimony (rare, exceptional circumstances)"
+    ],
+    "factors": [
+      "Standard of living established during the marriage",
+      "Duration of the marriage",
+      "Age and health of each party",
+      "Financial resources of each party",
+      "Earning capacities of each party",
+      "Contribution to the marriage",
+      "Responsibilities for minor children",
+      "Tax treatment of alimony",
+      "All sources of income",
+      "Any other relevant factor"
+    ],
+    "statute": "Florida Statutes § 61.08"
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Florida is an equitable distribution state. Marital assets and liabilities are divided fairly but not necessarily equally.",
+    "statute": "Florida Statutes § 61.075"
+  }
+}

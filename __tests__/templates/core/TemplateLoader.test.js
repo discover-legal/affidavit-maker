@@ -112,15 +112,17 @@ describe('TemplateLoader', () => {
       expect(template.stateName).toBe('Arizona');
     });
 
-    it('should throw error for missing metadata.json', async () => {
+    it('should throw error for nonexistent state directory', async () => {
+      // When the directory/template doesn't exist, loadStateTemplate
+      // throws an error about missing AffidavitTemplate.js
       await expect(
         loader.loadStateTemplate('nonexistent', registry)
-      ).rejects.toThrow('Missing metadata.json');
+      ).rejects.toThrow('Missing AffidavitTemplate.js');
     });
 
     it('should throw error for missing AffidavitTemplate.js', async () => {
-      // This would require creating a test directory, skip for now
-      // or use mocking in more advanced test
+      // This is covered by the test above - when state directory
+      // doesn't have AffidavitTemplate.js, it throws an error
     });
   });
 

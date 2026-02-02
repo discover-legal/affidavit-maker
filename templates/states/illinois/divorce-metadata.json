@@ -1,0 +1,207 @@
+{
+  "stateCode": "IL",
+  "stateName": "Illinois",
+  "documentTypes": ["dissolution_petition", "dissolution_judgment"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition",
+    "decree": "Judgment of Dissolution",
+    "caseNumberLabel": "Case No.",
+    "custody": "Allocation of Parental Responsibilities",
+    "physicalCustody": "Parenting Time",
+    "jointCustody": "Joint Allocation of Significant Decision-Making",
+    "soleCustody": "Sole Allocation of Significant Decision-Making",
+    "visitation": "Parenting Time",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "officialForms": {
+    "petitionNoChildren": {
+      "name": "Petition for Dissolution of Marriage (No Children)",
+      "required": true,
+      "notes": "Statewide Approved Standardized Form"
+    },
+    "petitionWithChildren": {
+      "name": "Petition for Dissolution of Marriage (With Children)",
+      "required": true,
+      "notes": "Statewide Approved Standardized Form"
+    },
+    "summons": {
+      "name": "Divorce Summons",
+      "required": true
+    },
+    "financialAffidavit": {
+      "name": "Financial Affidavit",
+      "required": true,
+      "statute": "750 ILCS 5/501(a)(1)",
+      "notes": "Mandatory per statute"
+    },
+    "certificateOfDissolution": {
+      "name": "Certificate of Dissolution",
+      "required": true,
+      "issuedBy": "Illinois Department of Public Health",
+      "statute": "750 ILCS 5/707"
+    },
+    "appearance": {
+      "name": "Divorce Appearance",
+      "required": false
+    },
+    "parentingPlan": {
+      "name": "Parenting Plan",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "separationAffidavit": {
+      "name": "Joint Affidavit Regarding Separation",
+      "required": false
+    }
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "stateDays": 90,
+    "countyDays": 0,
+    "description": "One or both spouses must be Illinois residents for 90 days. Residency can be established before filing OR before judgment.",
+    "militaryException": "90 days while stationed in Illinois"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "description": "Illinois has no mandatory waiting period, but residency requirement must be met before judgment can be entered."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences have caused the irretrievable breakdown of the marriage",
+        "statute": "750 ILCS 5/401(a)(2)",
+        "notes": "This is the ONLY ground for dissolution in Illinois as of January 1, 2016"
+      }
+    ],
+    "fault": [],
+    "note": "Illinois eliminated all fault-based grounds effective January 1, 2016"
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt"
+    },
+    "spacing": "double",
+    "notes": "Must use Statewide Approved Standardized Forms - all Illinois Circuit Courts must accept these forms"
+  },
+
+  "venue": {
+    "options": [
+      "County where petitioner resides",
+      "County where respondent resides",
+      "Other county by written motion and hearing"
+    ]
+  },
+
+  "legalCitations": [
+    {
+      "code": "750 ILCS 5",
+      "description": "Illinois Marriage and Dissolution of Marriage Act"
+    },
+    {
+      "code": "750 ILCS 5/401",
+      "description": "Dissolution of Marriage"
+    },
+    {
+      "code": "750 ILCS 5/501(a)(1)",
+      "description": "Financial Affidavit requirement"
+    },
+    {
+      "code": "750 ILCS 5/503",
+      "description": "Division of marital property"
+    },
+    {
+      "code": "750 ILCS 5/504",
+      "description": "Maintenance (spousal support)"
+    },
+    {
+      "code": "750 ILCS 5/602.5-602.7",
+      "description": "Allocation of Parental Responsibilities"
+    },
+    {
+      "code": "750 ILCS 5/505",
+      "description": "Child support"
+    },
+    {
+      "code": "750 ILCS 5/707",
+      "description": "Certificate of Dissolution requirement"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$289-388",
+    "varies": true,
+    "notes": "Varies by county. Fee waiver available for qualifying individuals."
+  },
+
+  "childSupport": {
+    "guidelines": "Illinois Child Support Guidelines",
+    "calculationBasis": "income_shares_model",
+    "statute": "750 ILCS 5/505"
+  },
+
+  "maintenance": {
+    "formula": {
+      "description": "Statutory formula for maintenance calculation",
+      "calculation": "(33.33% of payor's net income) - (25% of payee's net income)",
+      "cap": "Combined maintenance and payee's net income cannot exceed 40% of combined net income"
+    },
+    "duration": {
+      "description": "Based on length of marriage",
+      "examples": [
+        "0-5 years: 20% of marriage length",
+        "5-6 years: 24% of marriage length",
+        "6-7 years: 28% of marriage length",
+        "7-8 years: 32% of marriage length",
+        "8-9 years: 36% of marriage length",
+        "9-10 years: 40% of marriage length",
+        "10-11 years: 44% of marriage length",
+        "11-12 years: 48% of marriage length",
+        "12-13 years: 52% of marriage length",
+        "13-14 years: 56% of marriage length",
+        "14-15 years: 60% of marriage length",
+        "15-16 years: 64% of marriage length",
+        "16-17 years: 68% of marriage length",
+        "17-18 years: 72% of marriage length",
+        "18-19 years: 76% of marriage length",
+        "19-20 years: 80% of marriage length",
+        "20+ years: Indefinite or equal to marriage length"
+      ]
+    },
+    "statute": "750 ILCS 5/504"
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Illinois is an equitable distribution state. Marital property is divided in just proportions (not necessarily equal).",
+    "factors": [
+      "Contribution of each party to acquisition of marital property",
+      "Value of property set apart to each spouse",
+      "Duration of the marriage",
+      "Relevant economic circumstances of each spouse",
+      "Obligations from prior marriage",
+      "Antenuptial agreements",
+      "Age, health, station, occupation, income, skills, employability of each party",
+      "Custodial provisions for children",
+      "Whether award is in lieu of or in addition to maintenance",
+      "Reasonable opportunity for future acquisition of assets"
+    ],
+    "statute": "750 ILCS 5/503"
+  }
+}

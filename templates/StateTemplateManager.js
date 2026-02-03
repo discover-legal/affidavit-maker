@@ -882,44 +882,115 @@ My commission expires: ___________`;
 
 /**
  * ==========================================
- * STATE TEMPLATE MANAGER
+ * STATE TEMPLATE MANAGER v3.0
  * ==========================================
- * Main class for managing state-specific affidavit templates
+ * Main class for managing state-specific document templates
+ * Supports multiple document types: affidavit, divorce_petition, divorce_decree
+ *
+ * Can operate in two modes:
+ * 1. Registry mode: Uses TemplateRegistry for full multi-document support
+ * 2. Legacy mode: Uses hardcoded templates (backwards compatibility)
  */
 class StateTemplateManager {
-  constructor() {
-    this.templates = {
+  /**
+   * Create a StateTemplateManager
+   * @param {Object} options - Configuration options
+   * @param {TemplateRegistry} options.registry - Optional pre-initialized registry
+   */
+  constructor(options = {}) {
+    this.registry = options.registry || null;
+    this.defaultState = 'TX';
+    this.defaultDocumentType = 'affidavit';
+
+    // Legacy templates for backwards compatibility when no registry provided
+    this._legacyTemplates = {
       'TX': new TexasTemplate(),
       'UT': new UtahTemplate(),
       'AZ': new ArizonaTemplate(),
       'CA': new CaliforniaTemplate()
     };
-    this.defaultState = 'TX';
-    
-    logger.info('StateTemplateManager initialized (Legal Compliance v2.0)', {
-      states: Object.keys(this.templates),
-      version: '2.0'
+
+    // Valid document types
+    this.validDocumentTypes = ['affidavit', 'divorce_petition', 'divorce_decree'];
+
+    const mode = this.registry ? 'registry' : 'legacy';
+    const stateCount = this.registry
+      ? this.registry.getStateCount()
+      : Object.keys(this._legacyTemplates).length;
+
+    logger.info(`StateTemplateManager initialized (v3.0, ${mode} mode)`, {
+      states: stateCount,
+      documentTypes: this.validDocumentTypes,
+      version: '3.0'
     });
   }
-  
-  getTemplate(stateCode) {
-    if (!stateCode) {
-      logger.warn('No state code provided, using default:', this.defaultState);
-      return this.templates[this.defaultState];
-    }
-    
-    const normalizedCode = stateCode.toUpperCase();
-    
-    if (!this.templates[normalizedCode]) {
-      logger.warn(`Template for state ${normalizedCode} not found, using default:`, this.defaultState);
-      return this.templates[this.defaultState];
-    }
-    
-    return this.templates[normalizedCode];
+
+  /**
+   * Check if using registry mode
+   * @returns {boolean} True if registry is available
+   */
+  isRegistryMode() {
+    return this.registry !== null;
   }
-  
+
+  /**
+   * Get a template for a state and document type
+   * @param {string} stateCode - State code (e.g., 'TX', 'CA')
+   * @param {string} documentType - Document type (default: 'affidavit')
+   * @returns {Object} Template instance
+   */
+  getTemplate(stateCode, documentType = 'affidavit') {
+    const normalizedCode = stateCode ? stateCode.toUpperCase() : this.defaultState;
+    const normalizedType = documentType || this.defaultDocumentType;
+
+    // Registry mode: use registry for all lookups
+    if (this.registry) {
+      const template = this.registry.getTemplate(normalizedCode, normalizedType);
+      if (template) {
+        return template;
+      }
+
+      // Fallback to default state if not found
+      logger.warn(`Template for ${normalizedCode}/${normalizedType} not found, trying default state`);
+      const defaultTemplate = this.registry.getTemplate(this.defaultState, normalizedType);
+      if (defaultTemplate) {
+        return defaultTemplate;
+      }
+
+      // If still not found and asking for affidavit, try legacy
+      if (normalizedType === 'affidavit' && this._legacyTemplates[normalizedCode]) {
+        return this._legacyTemplates[normalizedCode];
+      }
+
+      logger.warn(`No template found for ${normalizedCode}/${normalizedType}, using legacy default`);
+      return this._legacyTemplates[this.defaultState];
+    }
+
+    // Legacy mode: only supports affidavits
+    if (normalizedType !== 'affidavit') {
+      logger.warn(`Legacy mode only supports affidavits. Requested: ${normalizedType}`);
+      return null;
+    }
+
+    if (!this._legacyTemplates[normalizedCode]) {
+      logger.warn(`Template for state ${normalizedCode} not found, using default:`, this.defaultState);
+      return this._legacyTemplates[this.defaultState];
+    }
+
+    return this._legacyTemplates[normalizedCode];
+  }
+
+  /**
+   * Get all supported states
+   * @returns {Array} Array of state objects with code, name, and requirements
+   */
   getSupportedStates() {
-    return Object.values(this.templates).map(template => ({
+    if (this.registry) {
+      return this.registry.getSupportedStates();
+    }
+
+    // Legacy mode
+    return Object.values(this._legacyTemplates).map(template => ({
       code: template.state,
       name: template.stateName,
       requirements: {
@@ -931,21 +1002,157 @@ class StateTemplateManager {
       }
     }));
   }
-  
+
+  /**
+   * Get available document types for a state
+   * @param {string} stateCode - State code
+   * @returns {Array<string>} Array of document type strings
+   */
+  getDocumentTypes(stateCode) {
+    if (!this.registry) {
+      // Legacy mode only supports affidavits
+      return ['affidavit'];
+    }
+
+    const normalizedCode = stateCode ? stateCode.toUpperCase() : this.defaultState;
+    return this.registry.getDocumentTypes(normalizedCode);
+  }
+
+  /**
+   * Check if a document type is available for a state
+   * @param {string} stateCode - State code
+   * @param {string} documentType - Document type to check
+   * @returns {boolean} True if document type is available
+   */
+  hasDocumentType(stateCode, documentType) {
+    if (!this.registry) {
+      return documentType === 'affidavit' && !!this._legacyTemplates[stateCode?.toUpperCase()];
+    }
+
+    const normalizedCode = stateCode ? stateCode.toUpperCase() : this.defaultState;
+    return this.registry.hasDocumentType(normalizedCode, documentType);
+  }
+
+  /**
+   * Get all supported document configurations (state + document type combinations)
+   * @returns {Array} Array of { stateCode, stateName, documentType } objects
+   */
+  getSupportedDocuments() {
+    if (!this.registry) {
+      // Legacy mode
+      return Object.values(this._legacyTemplates).map(template => ({
+        stateCode: template.state,
+        stateName: template.stateName,
+        documentType: 'affidavit'
+      }));
+    }
+
+    return this.registry.getSupportedDocuments();
+  }
+
+  /**
+   * Validate affidavit data (backwards compatible)
+   * @param {string} stateCode - State code
+   * @param {Object} affidavitData - Affidavit data to validate
+   * @returns {Object} Validation result with isValid, errors, warnings
+   */
   validateAffidavitData(stateCode, affidavitData) {
-    const template = this.getTemplate(stateCode);
+    const template = this.getTemplate(stateCode, 'affidavit');
     return template.validateData(affidavitData);
   }
-  
+
+  /**
+   * Validate divorce data
+   * @param {string} stateCode - State code
+   * @param {Object} divorceData - Divorce data to validate
+   * @param {string} documentType - 'divorce_petition' or 'divorce_decree'
+   * @returns {Object} Validation result with isValid, errors, warnings
+   */
+  validateDivorceData(stateCode, divorceData, documentType = 'divorce_petition') {
+    const template = this.getTemplate(stateCode, documentType);
+    if (!template) {
+      return {
+        isValid: false,
+        errors: [`No ${documentType} template available for state ${stateCode}`],
+        warnings: []
+      };
+    }
+    return template.validateData(divorceData);
+  }
+
+  /**
+   * Generate an affidavit (backwards compatible)
+   * @param {string} stateCode - State code
+   * @param {Object} affidavitData - Affidavit data
+   * @returns {Object} Generated document
+   */
   generateAffidavit(stateCode, affidavitData) {
-    const template = this.getTemplate(stateCode);
+    const template = this.getTemplate(stateCode, 'affidavit');
     return template.generateDocument(affidavitData);
   }
 
   /**
+   * Generate a divorce petition
+   * @param {string} stateCode - State code
+   * @param {Object} divorceData - Divorce petition data
+   * @returns {Object} Generated document
+   */
+  generateDivorcePetition(stateCode, divorceData) {
+    const template = this.getTemplate(stateCode, 'divorce_petition');
+    if (!template) {
+      throw new Error(`No divorce petition template available for state ${stateCode}`);
+    }
+    return template.generateDocument(divorceData);
+  }
+
+  /**
+   * Generate a divorce decree
+   * @param {string} stateCode - State code
+   * @param {Object} divorceData - Divorce decree data
+   * @returns {Object} Generated document
+   */
+  generateDivorceDecree(stateCode, divorceData) {
+    const template = this.getTemplate(stateCode, 'divorce_decree');
+    if (!template) {
+      throw new Error(`No divorce decree template available for state ${stateCode}`);
+    }
+    return template.generateDocument(divorceData);
+  }
+
+  /**
+   * Generate any document type
+   * @param {string} stateCode - State code
+   * @param {string} documentType - Document type
+   * @param {Object} data - Document data
+   * @returns {Object} Generated document
+   */
+  generateDocument(stateCode, documentType, data) {
+    const template = this.getTemplate(stateCode, documentType);
+    if (!template) {
+      throw new Error(`No ${documentType} template available for state ${stateCode}`);
+    }
+    return template.generateDocument(data);
+  }
+
+  /**
    * Get legal citation information for a state
+   * @param {string} stateCode - State code
+   * @returns {Object|null} Citation information or null
    */
   getLegalCitations(stateCode) {
+    // Try to get from registry metadata first
+    if (this.registry) {
+      const metadata = this.registry.getMetadata(stateCode?.toUpperCase(), 'affidavit');
+      if (metadata?.legalCitations) {
+        return {
+          primary: metadata.legalCitations[0]?.code || null,
+          secondary: metadata.legalCitations.slice(1).map(c => c.code),
+          notes: metadata.legalCitations[0]?.description || null
+        };
+      }
+    }
+
+    // Fallback to hardcoded citations
     const citations = {
       'TX': {
         primary: 'Tex. Gov\'t Code § 312.011',
@@ -961,10 +1168,55 @@ class StateTemplateManager {
         primary: 'A.R.S. § 13-2702',
         secondary: ['A.R.S. § 41-313', 'Arizona Rule 56', 'Elerick v. Rocklin, 103 Ariz. 76'],
         notes: 'Arizona follows substantial compliance standard with best practice perjury statement'
+      },
+      'CA': {
+        primary: 'CCP § 2015.5',
+        secondary: ['California Evidence Code § 1561', 'CRC Rule 5.12'],
+        notes: 'California allows declaration under penalty of perjury in lieu of notarized affidavit'
+      },
+      'FL': {
+        primary: 'Fla. Stat. § 92.50',
+        secondary: ['Fla. Stat. § 117.05', 'Fla. R. Civ. P. 1.030'],
+        notes: 'Florida requires notarization for sworn affidavits'
+      },
+      'IL': {
+        primary: '735 ILCS 5/1-109',
+        secondary: ['5 ILCS 312/6-102', '735 ILCS 5/2-606'],
+        notes: 'Illinois allows verification under penalty of perjury'
+      },
+      'NY': {
+        primary: 'CPLR § 2106',
+        secondary: ['Executive Law § 135', 'CPLR § 3020'],
+        notes: 'New York allows affirmation under penalty of perjury for many purposes'
       }
     };
-    
-    return citations[stateCode.toUpperCase()] || null;
+
+    return citations[stateCode?.toUpperCase()] || null;
+  }
+
+  /**
+   * Get metadata for a state and document type
+   * @param {string} stateCode - State code
+   * @param {string} documentType - Document type (default: 'affidavit')
+   * @returns {Object|null} Template metadata
+   */
+  getMetadata(stateCode, documentType = 'affidavit') {
+    if (!this.registry) {
+      return null;
+    }
+    return this.registry.getMetadata(stateCode?.toUpperCase(), documentType);
+  }
+
+  /**
+   * Get all metadata for a state (all document types)
+   * @param {string} stateCode - State code
+   * @returns {Object} Map of documentType -> metadata
+   */
+  getAllMetadataForState(stateCode) {
+    if (!this.registry) {
+      return {};
+    }
+    return this.registry.getAllMetadataForState(stateCode?.toUpperCase());
   }
 }
 

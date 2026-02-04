@@ -104,6 +104,289 @@ router.post('/validate', standardLimiter, asyncHandler(async (req, res) => {
   }
 }));
 
+// =============================================
+// DIVORCE DOCUMENT ENDPOINTS
+// =============================================
+
+// Get states that support divorce documents (public endpoint)
+router.get('/divorce/states', standardLimiter, asyncHandler(async (req, res) => {
+  const templateManager = req.app.locals.templateManager;
+
+  try {
+    // Check if registry mode is available with divorce support
+    if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+      const states = templateManager.getSupportedStates();
+
+      // Filter to only states that have divorce document types
+      const divorceStates = states.filter(state => {
+        const docTypes = templateManager.getDocumentTypes(state.code);
+        return docTypes.includes('divorce_petition') || docTypes.includes('divorce_decree');
+      });
+
+      res.json({
+        success: true,
+        data: {
+          states: divorceStates.map(s => s.code),
+          stateDetails: divorceStates.map(s => ({
+            code: s.code,
+            name: s.name
+          })),
+          documentTypes: ['divorce_petition', 'divorce_decree']
+        }
+      });
+    } else {
+      // Legacy mode - return empty (divorce not supported)
+      res.json({
+        success: true,
+        data: {
+          states: [],
+          stateDetails: [],
+          documentTypes: ['divorce_petition', 'divorce_decree']
+        }
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to get divorce states:', {
+      error: error.message,
+      requestId: req.id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve divorce-supported states',
+      requestId: req.id
+    });
+  }
+}));
+
+// Get divorce requirements for a state (public endpoint)
+router.get('/divorce/requirements/:state', standardLimiter, asyncHandler(async (req, res) => {
+  const { state } = req.params;
+  const templateManager = req.app.locals.templateManager;
+
+  // Validate state format
+  if (!state || !/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid state code format. Must be a 2-letter state code.',
+      requestId: req.id
+    });
+  }
+
+  try {
+    const stateCode = state.toUpperCase();
+
+    // Check if state supports divorce documents
+    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Divorce documents not available in this configuration',
+        requestId: req.id
+      });
+    }
+
+    const docTypes = templateManager.getDocumentTypes(stateCode);
+    if (!docTypes.includes('divorce_petition') && !docTypes.includes('divorce_decree')) {
+      return res.status(400).json({
+        success: false,
+        error: `State does not support divorce documents. Supported states: TX, UT, AZ, CA, FL, IL, NY`,
+        requestId: req.id
+      });
+    }
+
+    // Get metadata for divorce petition
+    const metadata = templateManager.getMetadata(stateCode, 'divorce_petition');
+
+    // Get state info
+    const states = templateManager.getSupportedStates();
+    const stateInfo = states.find(s => s.code === stateCode);
+
+    res.json({
+      success: true,
+      data: {
+        stateCode: stateCode,
+        stateName: stateInfo?.name || stateCode,
+        residencyRequirements: metadata?.residencyRequirements || null,
+        waitingPeriod: metadata?.waitingPeriod || null,
+        groundsForDivorce: metadata?.groundsForDivorce || null,
+        requiredForms: metadata?.requiredForms || [],
+        terminology: metadata?.terminology || {},
+        fees: metadata?.fees || null,
+        specialRequirements: metadata?.specialRequirements || [],
+        legalCitations: metadata?.legalCitations || []
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get divorce requirements:', {
+      error: error.message,
+      state,
+      requestId: req.id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve divorce requirements',
+      requestId: req.id
+    });
+  }
+}));
+
+// Get available divorce document types for a state (public endpoint)
+router.get('/divorce/document-types/:state', standardLimiter, asyncHandler(async (req, res) => {
+  const { state } = req.params;
+  const templateManager = req.app.locals.templateManager;
+
+  // Validate state format
+  if (!state || !/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid state code format. Must be a 2-letter state code.',
+      requestId: req.id
+    });
+  }
+
+  try {
+    const stateCode = state.toUpperCase();
+
+    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
+      return res.json({
+        success: true,
+        data: {
+          documentTypes: []
+        }
+      });
+    }
+
+    const allDocTypes = templateManager.getDocumentTypes(stateCode);
+
+    // Filter to only divorce-related document types
+    const divorceDocTypes = allDocTypes.filter(type =>
+      type === 'divorce_petition' || type === 'divorce_decree'
+    );
+
+    // Get metadata for each type
+    const documentTypes = divorceDocTypes.map(type => {
+      const metadata = templateManager.getMetadata(stateCode, type);
+      return {
+        type: type,
+        name: metadata?.documentTitle || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        available: true,
+        description: metadata?.description || null
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        stateCode: stateCode,
+        documentTypes: documentTypes
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get divorce document types:', {
+      error: error.message,
+      state,
+      requestId: req.id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve divorce document types',
+      requestId: req.id
+    });
+  }
+}));
+
+// Validate divorce document data (public endpoint)
+router.post('/divorce/validate', standardLimiter, asyncHandler(async (req, res) => {
+  const { state, documentType, data } = req.body;
+  const templateManager = req.app.locals.templateManager;
+
+  // Validate required fields
+  if (!state || !documentType || !data) {
+    return res.status(400).json({
+      success: false,
+      error: 'state, documentType, and data are required',
+      requestId: req.id
+    });
+  }
+
+  // Validate state format
+  if (!/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid state code format. Must be a 2-letter state code.',
+      requestId: req.id
+    });
+  }
+
+  // Validate document type
+  const validDocTypes = ['divorce_petition', 'divorce_decree'];
+  if (!validDocTypes.includes(documentType)) {
+    return res.status(400).json({
+      success: false,
+      error: `Invalid document type. Must be one of: ${validDocTypes.join(', ')}`,
+      requestId: req.id
+    });
+  }
+
+  try {
+    const stateCode = state.toUpperCase();
+
+    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Divorce document validation not available in this configuration',
+        requestId: req.id
+      });
+    }
+
+    // Validate using StateTemplateManager
+    const validation = templateManager.validateDivorceData(stateCode, data, documentType);
+
+    // Calculate completion percentage
+    const metadata = templateManager.getMetadata(stateCode, documentType);
+    const requiredFields = metadata?.requiredFields || ['petitionerName', 'respondentName', 'state'];
+    const filledRequired = requiredFields.filter(field => data[field] && data[field].toString().trim());
+    const completionPercentage = Math.round((filledRequired.length / requiredFields.length) * 100);
+
+    res.json({
+      success: true,
+      data: {
+        isValid: validation.isValid,
+        errors: validation.errors || [],
+        warnings: validation.warnings || [],
+        completionPercentage: completionPercentage,
+        state: stateCode,
+        documentType: documentType
+      }
+    });
+  } catch (error) {
+    logger.error('Divorce validation error:', {
+      error: error.message,
+      state,
+      documentType,
+      requestId: req.id
+    });
+
+    res.json({
+      success: true,
+      data: {
+        isValid: false,
+        errors: ['Validation service temporarily unavailable'],
+        warnings: [],
+        completionPercentage: 0,
+        state: state.toUpperCase(),
+        documentType: documentType
+      }
+    });
+  }
+}));
+
+// =============================================
+// EXISTING AFFIDAVIT ENDPOINTS
+// =============================================
+
 // Get template requirements for a state (public endpoint)
 // SECURITY (HIGH-03): Added rate limiting
 // SECURITY (MED-15): Don't echo user-supplied state in error message

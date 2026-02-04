@@ -79,7 +79,7 @@ router.post('/preview',
             // Route to appropriate template based on document type
             if (documentType === 'divorce_petition' || documentType === 'divorce_decree') {
               // Use divorce document generation if available
-              if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+              if (templateManager.isRegistryMode?.()) {
                 if (documentType === 'divorce_petition') {
                   document = templateManager.generateDivorcePetition(
                     affidavitData.state,
@@ -379,7 +379,7 @@ router.post('/generate',
           // Route to appropriate template based on document type
           if (documentType === 'divorce_petition' || documentType === 'divorce_decree') {
             // Use divorce document generation if available
-            if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+            if (templateManager.isRegistryMode?.()) {
               if (documentType === 'divorce_petition') {
                 documentStructure = templateManager.generateDivorcePetition(
                   affidavitData.state,

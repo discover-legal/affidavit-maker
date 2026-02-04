@@ -114,7 +114,7 @@ router.get('/divorce/states', standardLimiter, asyncHandler(async (req, res) => 
 
   try {
     // Check if registry mode is available with divorce support
-    if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+    if (templateManager.isRegistryMode?.()) {
       const states = templateManager.getSupportedStates();
 
       // Filter to only states that have divorce document types
@@ -177,7 +177,7 @@ router.get('/divorce/requirements/:state', standardLimiter, asyncHandler(async (
     const stateCode = state.toUpperCase();
 
     // Check if state supports divorce documents
-    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
+    if (!templateManager.isRegistryMode?.()) {
       return res.status(400).json({
         success: false,
         error: 'Divorce documents not available in this configuration',
@@ -248,12 +248,11 @@ router.get('/divorce/document-types/:state', standardLimiter, asyncHandler(async
   try {
     const stateCode = state.toUpperCase();
 
-    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
-      return res.json({
-        success: true,
-        data: {
-          documentTypes: []
-        }
+    if (!templateManager.isRegistryMode?.()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Divorce documents not available in this configuration',
+        requestId: req.id
       });
     }
 
@@ -333,7 +332,7 @@ router.post('/divorce/validate', standardLimiter, asyncHandler(async (req, res) 
   try {
     const stateCode = state.toUpperCase();
 
-    if (!templateManager.isRegistryMode || !templateManager.isRegistryMode()) {
+    if (!templateManager.isRegistryMode?.()) {
       return res.status(400).json({
         success: false,
         error: 'Divorce document validation not available in this configuration',

@@ -201,7 +201,7 @@ const validateChatMessage = [
     
   body('currentData.state')
     .optional()
-    .isIn(['TX', 'UT', 'AZ', 'CA', '', 'Texas', 'Utah', 'Arizona', 'California'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', '', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
     .withMessage('Invalid state'),
     
   body('currentData.facts')
@@ -278,8 +278,8 @@ const validateAffidavitData = [
     .trim()
     .notEmpty()
     .withMessage('State is required')
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
-    .withMessage('Invalid state. Must be TX, UT, AZ, CA, Texas, Utah, Arizona, or California'),
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
+    .withMessage('Invalid state. Supported states: TX, UT, AZ, CA, FL, IL, NY'),
   
   body('county')
     .optional()
@@ -324,7 +324,7 @@ const validateAffidavitData = [
     
   body('documentType')
     .optional()
-    .isIn(['general', 'divorce', 'custody', 'financial', 'property', 'identity'])
+    .isIn(['general', 'divorce', 'custody', 'financial', 'property', 'identity', 'affidavit', 'divorce_petition', 'divorce_decree'])
     .withMessage('Invalid document type'),
   
   checkValidationResult
@@ -348,7 +348,7 @@ const validatePreview = [
     
   body('affidavitData.state')
     .optional({ checkFalsy: true })        // ✅ FIXED
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
     .withMessage('Invalid state'),
     
   body('affidavitData.county')
@@ -377,7 +377,7 @@ const validateDocumentGeneration = [
     .withMessage('Affidavit data must be an object'),
     
   body('affidavitData.state')
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'Texas', 'Utah', 'Arizona', 'California'])
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
     .withMessage('Valid state is required'),
     
   body('affidavitData.affiantName')
@@ -583,6 +583,161 @@ const detectSuspiciousActivity = (req, res, next) => {
   next();
 };
 
+/**
+ * Divorce document data validation
+ */
+const validateDivorceData = [
+  body('state')
+    .trim()
+    .notEmpty()
+    .withMessage('State is required')
+    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY'])
+    .withMessage('Invalid state. Supported states: TX, UT, AZ, CA, FL, IL, NY'),
+
+  body('documentType')
+    .trim()
+    .notEmpty()
+    .withMessage('Document type is required')
+    .isIn(['divorce_petition', 'divorce_decree'])
+    .withMessage('Invalid document type. Must be divorce_petition or divorce_decree'),
+
+  body('data')
+    .isObject()
+    .withMessage('Data must be an object'),
+
+  body('data.petitionerName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage(`Petitioner name must be between 2 and ${LIMITS.NAME_MAX_LENGTH} characters`)
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.]+$/u)
+    .withMessage('Invalid petitioner name format')
+    .customSanitizer(sanitizeText),
+
+  body('data.respondentName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage(`Respondent name must be between 2 and ${LIMITS.NAME_MAX_LENGTH} characters`)
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.]+$/u)
+    .withMessage('Invalid respondent name format')
+    .customSanitizer(sanitizeText),
+
+  body('data.marriageDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Marriage date must be a valid date (ISO 8601 format)')
+    .custom((value) => {
+      const date = new Date(value);
+      const now = new Date();
+      if (date > now) {
+        throw new Error('Marriage date cannot be in the future');
+      }
+      return true;
+    }),
+
+  body('data.separationDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Separation date must be a valid date (ISO 8601 format)')
+    .custom((value, { req }) => {
+      const separationDate = new Date(value);
+      const marriageDate = req.body.data?.marriageDate ? new Date(req.body.data.marriageDate) : null;
+
+      if (marriageDate && separationDate < marriageDate) {
+        throw new Error('Separation date cannot be before marriage date');
+      }
+      return true;
+    }),
+
+  body('data.groundsForDivorce')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Grounds for divorce must be 500 characters or less')
+    .customSanitizer(sanitizeText),
+
+  body('data.hasChildren')
+    .optional()
+    .isBoolean()
+    .withMessage('hasChildren must be a boolean'),
+
+  body('data.children')
+    .optional()
+    .isArray({ max: 20 })
+    .withMessage('Children must be an array with at most 20 entries'),
+
+  body('data.children.*.name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: LIMITS.NAME_MAX_LENGTH })
+    .withMessage('Child name is required')
+    .matches(/^[\p{L}\p{M}\p{N}\s\-'.]+$/u)
+    .withMessage('Invalid child name format')
+    .customSanitizer(sanitizeText),
+
+  body('data.children.*.dateOfBirth')
+    .optional()
+    .isISO8601()
+    .withMessage('Child date of birth must be a valid date'),
+
+  body('data.hasProperty')
+    .optional()
+    .isBoolean()
+    .withMessage('hasProperty must be a boolean'),
+
+  body('data.propertyDetails')
+    .optional()
+    .trim()
+    .isLength({ max: 5000 })
+    .withMessage('Property details must be 5000 characters or less')
+    .customSanitizer(sanitizeText),
+
+  body('data.requestingSpousalSupport')
+    .optional()
+    .isBoolean()
+    .withMessage('requestingSpousalSupport must be a boolean'),
+
+  body('data.spousalSupportDetails')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Spousal support details must be 2000 characters or less')
+    .customSanitizer(sanitizeText),
+
+  body('data.county')
+    .optional()
+    .trim()
+    .isLength({ max: LIMITS.COUNTY_MAX_LENGTH })
+    .withMessage(`County name exceeds maximum length of ${LIMITS.COUNTY_MAX_LENGTH} characters`)
+    .matches(/^[a-zA-Z\s\-'.]+$/)
+    .withMessage('County name contains invalid characters')
+    .customSanitizer(sanitizeText),
+
+  body('data.caseNumber')
+    .optional()
+    .trim()
+    .matches(/^[a-zA-Z0-9\-\/\s]+$/)
+    .withMessage('Invalid case number format'),
+
+  checkValidationResult
+];
+
+/**
+ * Divorce state parameter validation
+ */
+const validateDivorceStateParam = [
+  param('state')
+    .trim()
+    .notEmpty()
+    .withMessage('State is required')
+    .matches(/^[A-Za-z]{2}$/)
+    .withMessage('State must be a 2-letter code')
+    .customSanitizer((value) => value.toUpperCase()),
+
+  checkValidationResult
+];
+
 module.exports = {
   // Validation functions
   validateChatMessage,
@@ -596,18 +751,20 @@ module.exports = {
   validatePagination,
   validateFileUpload,
   validateRateLimit,
-  
+  validateDivorceData,
+  validateDivorceStateParam,
+
   // Security middleware
   helmetConfig,
   detectSuspiciousActivity,
-  
+
   // Utility functions
   checkValidationResult,
   countWords,
   sanitizeText,
   wordCountValidator,
   jsonSizeValidator,
-  
+
   // Constants
   LIMITS
 };

@@ -72,11 +72,40 @@ router.post('/preview',
             logger.info('State not set, using neutral preview');
             preview = createFallbackPreview(affidavitData);
           } else {
-            // Use generateAffidavit with state code and data (same as /generate endpoint)
-            const document = templateManager.generateAffidavit(
-              affidavitData.state,
-              affidavitData
-            );
+            // Determine document type and generate appropriate document
+            const documentType = affidavitData.documentType || 'affidavit';
+            let document;
+
+            // Route to appropriate template based on document type
+            if (documentType === 'divorce_petition' || documentType === 'divorce_decree') {
+              // Use divorce document generation if available
+              if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+                if (documentType === 'divorce_petition') {
+                  document = templateManager.generateDivorcePetition(
+                    affidavitData.state,
+                    affidavitData
+                  );
+                } else {
+                  document = templateManager.generateDivorceDecree(
+                    affidavitData.state,
+                    affidavitData
+                  );
+                }
+              } else {
+                // Fallback to affidavit if divorce not available
+                logger.warn('Divorce document requested but not available, falling back to affidavit');
+                document = templateManager.generateAffidavit(
+                  affidavitData.state,
+                  affidavitData
+                );
+              }
+            } else {
+              // Default: Use affidavit template
+              document = templateManager.generateAffidavit(
+                affidavitData.state,
+                affidavitData
+              );
+            }
 
             // ✅ DEBUG: Log generated document sections
             logger.info('Template generated document', {
@@ -344,15 +373,48 @@ router.post('/generate',
         }
 
         try {
-          // Use generateAffidavit with state code and data
-          documentStructure = templateManager.generateAffidavit(
-            affidavitData.state,
-            affidavitData
-          );
+          // Determine document type and generate appropriate document
+          const documentType = affidavitData.documentType || 'affidavit';
+
+          // Route to appropriate template based on document type
+          if (documentType === 'divorce_petition' || documentType === 'divorce_decree') {
+            // Use divorce document generation if available
+            if (templateManager.isRegistryMode && templateManager.isRegistryMode()) {
+              if (documentType === 'divorce_petition') {
+                documentStructure = templateManager.generateDivorcePetition(
+                  affidavitData.state,
+                  affidavitData
+                );
+              } else {
+                documentStructure = templateManager.generateDivorceDecree(
+                  affidavitData.state,
+                  affidavitData
+                );
+              }
+              logger.info('Generated divorce document', {
+                documentType,
+                state: affidavitData.state
+              });
+            } else {
+              // Return error if divorce not available
+              return res.status(400).json({
+                success: false,
+                error: 'Divorce document generation not available in this configuration',
+                errorType: 'unsupported_document_type'
+              });
+            }
+          } else {
+            // Default: Use affidavit template
+            documentStructure = templateManager.generateAffidavit(
+              affidavitData.state,
+              affidavitData
+            );
+          }
         } catch (templateError) {
           logger.error('Template generation failed', {
             error: templateError.message,
-            state: affidavitData.state
+            state: affidavitData.state,
+            documentType: affidavitData.documentType || 'affidavit'
           });
           return res.status(400).json({
             success: false,
@@ -1163,9 +1225,12 @@ function createFallbackPreview(affidavitData) {
 function getStateName(stateCode) {
   const stateMap = {
     'TX': 'Texas',
-    'UT': 'Utah', 
+    'UT': 'Utah',
     'AZ': 'Arizona',
-    'CA': 'California'
+    'CA': 'California',
+    'FL': 'Florida',
+    'IL': 'Illinois',
+    'NY': 'New York'
   };
   return stateMap[stateCode] || stateCode || 'Unknown';
 }

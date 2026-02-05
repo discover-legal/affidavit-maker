@@ -1,7 +1,7 @@
 // client/src/components/UserDashboard.js - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Gavel, FolderOpen } from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import { useDocumentList, useUIState, useDocumentActions } from '../contexts/DocumentContext';
@@ -117,12 +117,13 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     onContinueDocument(doc);
   };
 
-  const handleNewDocumentClick = () => {
+  const handleNewDocumentClick = (documentType = 'affidavit') => {
     // Track new document creation
     trackEvent('new_document_clicked', {
-      source: 'dashboard'
+      source: 'dashboard',
+      document_type: documentType
     });
-    onNewDocument();
+    onNewDocument(documentType);
   };
 
   const handleBackToDashboard = () => {
@@ -174,20 +175,20 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         <p className="text-sm sm:text-base text-gray-600">Create new affidavits or continue working on your drafts.</p>
       </div>
 
-      {/* ✅ RESTORED: Three Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* Active: Create New Affidavit */}
+      {/* Document Type Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Create New Affidavit */}
         <div className="bg-white rounded-lg shadow-sm border p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-4">
               <FileText className="h-8 w-8 text-blue-600" />
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Available Now</span>
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">$79</span>
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Create New Affidavit</h3>
-            <p className="text-sm text-gray-600">Our AI assistant will guide you through the entire process, ensuring state-specific compliance.</p>
+            <p className="text-sm text-gray-600">Our AI assistant will guide you through creating a state-compliant sworn statement. Perfect for court filings, custody matters, and more.</p>
           </div>
           <button
-            onClick={handleNewDocumentClick}
+            onClick={() => handleNewDocumentClick('affidavit')}
             className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-semibold"
           >
             <PlusCircle className="h-4 w-4 mr-2" />
@@ -195,39 +196,33 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           </button>
         </div>
 
-        {/* Coming Soon: Document Templates */}
-        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70 flex flex-col justify-between">
+        {/* Create Divorce Package */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <FolderOpen className="h-8 w-8 text-gray-400" />
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
+              <div className="flex items-center gap-2">
+                <Scale className="h-8 w-8 text-purple-600" />
+                <Heart className="h-5 w-5 text-purple-400 -ml-3 mt-3" />
+              </div>
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">$249</span>
             </div>
-            <h3 className="font-semibold text-gray-600 mb-2">Document Templates</h3>
-            <p className="text-sm text-gray-500">Access a library of pre-filled templates for common family law scenarios. Save time with ready-to-use formats.</p>
+            <h3 className="font-semibold text-gray-900 mb-2">Create Divorce Package</h3>
+            <p className="text-sm text-gray-600">Get both your Divorce Petition and Divorce Decree in one package. Our AI assistant guides you through documenting all required information.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                Petition Included
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                Decree Included
+              </span>
+            </div>
           </div>
           <button
-            disabled
-            className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
+            onClick={() => handleNewDocumentClick('divorce_package')}
+            className="w-full mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center font-semibold"
           >
-            Coming Soon
-          </button>
-        </div>
-
-        {/* Coming Soon: Motion & Declaration Forms */}
-        <div className="bg-white rounded-lg shadow-sm border border-dashed p-6 opacity-70 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <Gavel className="h-8 w-8 text-gray-400" />
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Coming Soon</span>
-            </div>
-            <h3 className="font-semibold text-gray-600 mb-2">Motion & Declaration Forms</h3>
-            <p className="text-sm text-gray-500">Create court motions, declarations, and other legal documents with the same AI-powered assistance.</p>
-          </div>
-          <button
-            disabled
-            className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-semibold"
-          >
-            Coming Soon
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Get Started
           </button>
         </div>
       </div>
@@ -272,29 +267,36 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                           autoFocus
                           disabled={isSubmittingRename}
                         />
-                        <button 
-                          onClick={() => submitRename(doc.id)} 
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-full" 
+                        <button
+                          onClick={() => submitRename(doc.id)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-full"
                           disabled={isSubmittingRename}
                         >
                           {isSubmittingRename ? <Loader2 className="h-5 w-5 animate-spin"/> : <Check className="h-5 w-5"/>}
                         </button>
-                        <button 
-                          onClick={cancelRename} 
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-full" 
+                        <button
+                          onClick={cancelRename}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-full"
                           disabled={isSubmittingRename}
                         >
                           <X className="h-5 w-5"/>
                         </button>
                       </div>
                     ) : (
-                      <h4
-                        className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline"
-                        title="Click to edit"
-                        onClick={() => startRename(doc)}
-                      >
-                        {doc.documentTitle || (doc.affiantName ? `${doc.affiantName}'s Affidavit` : (doc.firstName && doc.lastName ? `${doc.firstName} ${doc.lastName}'s Affidavit` : `Affidavit #${doc.id}`))}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4
+                          className="text-lg font-semibold text-blue-700 truncate cursor-pointer hover:underline"
+                          title="Click to edit"
+                          onClick={() => startRename(doc)}
+                        >
+                          {doc.documentTitle || (doc.affiantName ? `${doc.affiantName}'s Affidavit` : (doc.firstName && doc.lastName ? `${doc.firstName} ${doc.lastName}'s Affidavit` : `Affidavit #${doc.id}`))}
+                        </h4>
+                        {(doc.documentType === 'divorce_petition' || doc.documentType === 'divorce_decree') && (
+                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                            Divorce Package
+                          </span>
+                        )}
+                      </div>
                     )}
                     <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                       <span>State: <span className='font-medium'>{doc.state || 'N/A'}</span></span>

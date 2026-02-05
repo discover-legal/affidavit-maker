@@ -29,6 +29,7 @@ const initialState = {
     caseType: '',
     county: '',
     documentType: 'general',
+    activeSubDocument: null, // For divorce packages: 'divorce_petition' or 'divorce_decree'
     facts: [],
     documentId: null,
     factSummary: null,      // Cached AI summary of facts
@@ -76,7 +77,8 @@ const ActionTypes = {
   MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
   SET_JUST_SAVED: 'SET_JUST_SAVED',
   REORDER_FACTS: 'REORDER_FACTS',
-  SAVE_COMPLETE: 'SAVE_COMPLETE'
+  SAVE_COMPLETE: 'SAVE_COMPLETE',
+  SWITCH_SUB_DOCUMENT: 'SWITCH_SUB_DOCUMENT'
 };
 
 // Reducer
@@ -273,6 +275,24 @@ const documentReducer = (state, action) => {
         hasUnsavedChanges: true
       };
 
+    case ActionTypes.SWITCH_SUB_DOCUMENT:
+      // Switch between divorce petition and decree views
+      // payload: 'divorce_petition' or 'divorce_decree'
+      const newSubDoc = action.payload;
+      if (newSubDoc !== 'divorce_petition' && newSubDoc !== 'divorce_decree') {
+        return state;
+      }
+      return {
+        ...state,
+        currentDocument: {
+          ...state.currentDocument,
+          activeSubDocument: newSubDoc,
+          documentType: newSubDoc
+        },
+        // Clear preview so it regenerates for the new sub-document
+        preview: null
+      };
+
     default:
       return state;
   }
@@ -455,7 +475,8 @@ export const DocumentProvider = ({ children }) => {
   }, [authFetch, generatePreview]);
 
   // ✅ NEW: Initialize a new document session
-  const initializeNewDocument = useCallback(async (forceNew = false) => {
+  // documentType: 'affidavit' (default) or 'divorce_package'
+  const initializeNewDocument = useCallback(async (forceNew = false, documentType = 'affidavit') => {
     if (!isAuthenticated) {
       console.warn('Cannot initialize document: User not authenticated');
       return null;
@@ -482,8 +503,15 @@ export const DocumentProvider = ({ children }) => {
       return stateRef.current.currentDocument.documentId;
     }
 
+    // Determine if this is a divorce package
+    const isDivorcePackage = documentType === 'divorce_package';
+    const defaultTitle = isDivorcePackage ? 'Untitled Divorce Package' : 'Untitled Affidavit';
+    // For divorce packages, use 'divorce_petition' as the internal documentType
+    // and track activeSubDocument for switching between petition/decree views
+    const internalDocType = isDivorcePackage ? 'divorce_petition' : 'general';
+
     try {
-      console.log('📄 Creating new document...');
+      console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
       // Create empty document
@@ -497,13 +525,16 @@ export const DocumentProvider = ({ children }) => {
           defendant: '',
           county: '',
           caseType: '',
-          documentType: 'general',
+          documentType: internalDocType,
+          activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         },
-        title: 'Untitled Affidavit',
+        title: defaultTitle,
         content: JSON.stringify({
           state: '',
           affiantName: '',
+          documentType: internalDocType,
+          activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         })
       };
@@ -908,6 +939,31 @@ export const DocumentProvider = ({ children }) => {
     setPreviewDebounceTimer(timer);
   }, [generatePreview, scheduleAutoSave]);
 
+  // Switch between divorce petition and decree views (for divorce packages)
+  const switchSubDocument = useCallback((subDocType) => {
+    if (subDocType !== 'divorce_petition' && subDocType !== 'divorce_decree') {
+      console.warn('Invalid sub-document type:', subDocType);
+      return;
+    }
+
+    console.log('📄 Switching to sub-document:', subDocType);
+
+    dispatch({
+      type: ActionTypes.SWITCH_SUB_DOCUMENT,
+      payload: subDocType
+    });
+
+    // Generate preview for the new sub-document type
+    setTimeout(() => {
+      const updatedDoc = {
+        ...stateRef.current.currentDocument,
+        activeSubDocument: subDocType,
+        documentType: subDocType
+      };
+      generatePreview(updatedDoc);
+    }, 100);
+  }, [generatePreview]);
+
   // Load documents on mount - only after TOS is verified
   useEffect(() => {
     if (isAuthenticated && tosVerified) {
@@ -980,7 +1036,8 @@ export const DocumentProvider = ({ children }) => {
     initializeNewDocument,
     renderFormattedPreview,
     mergeProfessionalRewrites,
-    reorderFacts
+    reorderFacts,
+    switchSubDocument
   }), [
     loadDocument,
     loadDocuments,
@@ -994,7 +1051,8 @@ export const DocumentProvider = ({ children }) => {
     initializeNewDocument,
     renderFormattedPreview,
     mergeProfessionalRewrites,
-    reorderFacts
+    reorderFacts,
+    switchSubDocument
   ]);
 
   return (

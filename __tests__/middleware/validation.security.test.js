@@ -90,7 +90,7 @@ describe('Payment Validation Security', () => {
 
   describe('DocumentType validation', () => {
     it('should accept valid document types', async () => {
-      const validTypes = ['single_affidavit', 'family_law_package', 'all_state_access'];
+      const validTypes = ['single_affidavit', 'divorce_package', 'all_state_access'];
       
       for (const type of validTypes) {
         const result = await runValidation({

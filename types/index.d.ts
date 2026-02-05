@@ -7,7 +7,7 @@ export interface User {
   email: string;
   name: string;
   subscription_status: 'active' | 'inactive' | 'cancelled';
-  subscription_tier: 'pay_per_use' | 'family_law_package' | 'all_state_access';
+  subscription_tier: 'pay_per_use' | 'divorce_package' | 'all_state_access';
   created_at: Date;
   updated_at: Date;
   last_login?: Date;
@@ -17,7 +17,7 @@ export interface User {
 export interface AffidavitData {
   documentId?: string;
   affiantName: string;
-  state: 'TX' | 'UT' | 'AZ' | 'CA' | '';
+  state: 'TX' | 'UT' | 'AZ' | 'CA' | 'FL' | 'IL' | 'NY' | '';
   county?: string;
   caseNumber?: string;
   caseType?: string;
@@ -168,7 +168,7 @@ export interface Payment {
   amount_cents: number;
   currency: string;
   status: 'succeeded' | 'failed' | 'pending' | 'refunded';
-  payment_type: 'single_document' | 'family_law_package' | 'all_state_access';
+  payment_type: 'single_document' | 'divorce_package' | 'all_state_access';
   created_at: Date;
 }
 

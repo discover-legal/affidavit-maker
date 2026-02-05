@@ -410,7 +410,7 @@ const validateDocumentGeneration = [
  */
 const validatePayment = [
   body('documentType')
-    .isIn(['single_affidavit', 'family_law_package', 'all_state_access'])
+    .isIn(['single_affidavit', 'divorce_package', 'all_state_access'])
     .withMessage('Invalid document type'),
     
   body('documentId')

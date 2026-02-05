@@ -64,9 +64,10 @@ const AppRoutes = () => {
   };
 
   // ✅ Start new document - Navigate to /editor/new
-  const handleNewDocument = () => {
-    console.log('🚀 Navigating to new document');
-    navigate('/editor/new');
+  // documentType: 'affidavit' (default) or 'divorce_package'
+  const handleNewDocument = (documentType = 'affidavit') => {
+    console.log('🚀 Navigating to new document:', documentType);
+    navigate(`/editor/new?type=${documentType}`);
   };
 
   // ✅ Open existing document

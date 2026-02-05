@@ -7,7 +7,9 @@ import {
   ZoomIn,
   ZoomOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileSignature,
+  ScrollText
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 
@@ -29,7 +31,12 @@ const CONTINUATION_MARKER_HEIGHT = 36; // Based on CSS: margin-top (24px) + marg
 
 const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentData();
-  const { generatePreview } = useDocumentActions();
+  const { generatePreview, switchSubDocument } = useDocumentActions();
+
+  // Check if this is a divorce package
+  const isDivorcePackage = currentDocument.documentType === 'divorce_petition' ||
+                           currentDocument.documentType === 'divorce_decree';
+  const activeSubDocument = currentDocument.activeSubDocument || currentDocument.documentType;
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -699,14 +706,18 @@ const DocumentPreview = () => {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         <div className="p-4 border-b bg-white">
-          <h2 className="text-lg font-semibold text-gray-800">Document Preview</h2>
+          <h2 className="text-lg font-semibold text-gray-800">
+            {isDivorcePackage ? 'Divorce Package Preview' : 'Document Preview'}
+          </h2>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-700 mb-2">Preview will appear shortly!</h3>
             <p className="text-gray-500 mb-4">
-              Once you provide your name and state in the chat, your affidavit preview will appear here with the correct formatting for your jurisdiction.
+              {isDivorcePackage
+                ? 'Once you provide your name and state in the chat, your divorce documents (petition and decree) will appear here with the correct formatting for your jurisdiction.'
+                : 'Once you provide your name and state in the chat, your affidavit preview will appear here with the correct formatting for your jurisdiction.'}
             </p>
           </div>
         </div>
@@ -871,10 +882,42 @@ const DocumentPreview = () => {
       <div className="h-full flex flex-col bg-gray-50">
         {/* Header with controls */}
         <div className="p-4 border-b bg-white">
+          {/* Document Type Switcher for Divorce Packages */}
+          {isDivorcePackage && (
+            <div className="mb-3 flex items-center justify-center">
+              <div className="inline-flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => switchSubDocument('divorce_petition')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    activeSubDocument === 'divorce_petition'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-purple-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <ScrollText className="h-4 w-4" />
+                  Divorce Petition
+                </button>
+                <button
+                  onClick={() => switchSubDocument('divorce_decree')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    activeSubDocument === 'divorce_decree'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-purple-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <FileSignature className="h-4 w-4" />
+                  Divorce Decree
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Document Preview
+              {isDivorcePackage
+                ? (activeSubDocument === 'divorce_petition' ? 'Petition Preview' : 'Decree Preview')
+                : 'Document Preview'}
             </h2>
             <div className="flex items-center gap-4">
               {/* Zoom controls */}

@@ -48,6 +48,46 @@ const LEGAL_CATEGORIES = {
   }
 };
 
+// Divorce-specific categories for divorce package documents
+const DIVORCE_CATEGORIES = {
+  marriage: {
+    name: 'Marriage Information',
+    subcategories: ['marriage_date', 'marriage_location', 'marriage_duration', 'separation'],
+    description: 'Date and place of marriage, separation details',
+    validation_focus: 'exact dates, official records'
+  },
+  grounds: {
+    name: 'Grounds for Divorce',
+    subcategories: ['irreconcilable_differences', 'incompatibility', 'no_fault', 'fault_based'],
+    description: 'Legal grounds for dissolution of marriage',
+    validation_focus: 'state-specific requirements, factual basis'
+  },
+  children: {
+    name: 'Children',
+    subcategories: ['minor_children', 'custody', 'visitation', 'child_support', 'special_needs'],
+    description: 'Minor children of the marriage, custody arrangements',
+    validation_focus: 'names, ages, custody preferences, best interests'
+  },
+  property_division: {
+    name: 'Property Division',
+    subcategories: ['marital_property', 'separate_property', 'real_estate', 'vehicles', 'retirement', 'debts'],
+    description: 'Division of marital assets and debts',
+    validation_focus: 'ownership, valuation, proposed division'
+  },
+  spousal_support: {
+    name: 'Spousal Support',
+    subcategories: ['alimony', 'maintenance', 'duration', 'amount'],
+    description: 'Spousal support/alimony requests',
+    validation_focus: 'income disparity, duration of marriage, need'
+  },
+  residence: {
+    name: 'Residency',
+    subcategories: ['current_residence', 'residency_requirements', 'jurisdiction'],
+    description: 'Residency information for jurisdiction',
+    validation_focus: 'state residency requirements, duration'
+  }
+};
+
 class AffidavitService {
   constructor(templateManager) {
     this.templateManager = templateManager;
@@ -310,11 +350,111 @@ CONVERSATION STYLE:
 - Normalize asking for case info: "This helps ensure your affidavit is properly formatted for court"
 
 LEGAL CATEGORIES for extraction:
-${Object.entries(LEGAL_CATEGORIES).map(([key, cat]) => 
+${Object.entries(LEGAL_CATEGORIES).map(([key, cat]) =>
   `• ${key}: ${cat.description}`
 ).join('\n')}
 
 Remember: Only extract NEW information. Existing facts will be shown to you.`;
+  }
+
+  /**
+   * ✅ DIVORCE PACKAGE: System prompt for divorce petition/decree documents
+   */
+  createDivorceSystemPrompt() {
+    return `You are a legal assistant helping someone create divorce documents (petition and decree) for family court. You MUST ALWAYS use the process_divorce_message function to extract structured data while providing a conversational response.
+
+CRITICAL RULES:
+1. You must ALWAYS call the process_divorce_message function with every response
+2. ONLY extract NEW information - the user will provide you with existing data
+3. If information is already captured, acknowledge it but DON'T extract it again
+4. Ask follow-up questions to get missing details (dates, names, specifics)
+5. Be warm, empathetic, and professional - divorce is emotionally difficult
+
+YOUR DUAL ROLE:
+1. EXTRACT structured divorce data (names, dates, children, property) via function calling
+2. PROVIDE a warm, supportive response to guide them through the process
+
+SUPPORTED JURISDICTIONS: Currently available - ${this.supportedStates.map(s => `${s.name} (${s.code})`).join(', ')}
+- If user mentions these states → Extract normally
+- If user mentions OTHER states → Set extracted_state to "UNSUPPORTED" and inform them politely
+- Response for unsupported states: "I understand this is a difficult time. Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve ${this.supportedStates.map(s => s.name).join(', ')}. Is there anything else I can help you with?"
+
+DIVORCE DOCUMENT COLLECTION ORDER:
+1. **Petitioner Information** (the person filing)
+   - First Name, Last Name
+   - Current Address
+   - How long at current address (for residency requirements)
+
+2. **Respondent Information** (the spouse)
+   - First Name, Last Name
+   - Current Address (if known)
+
+3. **State & County** - Essential for jurisdiction
+   - Which state are you filing in?
+   - Which county do you reside in?
+
+4. **Marriage Information**
+   - Date of marriage (month/day/year)
+   - Place of marriage (city, state, or country)
+   - Date of separation (if applicable)
+
+5. **Children** - CRITICAL
+   - Are there minor children from this marriage?
+   - If yes: names, dates of birth, current living arrangements
+   - Custody preferences (joint, sole, etc.)
+   - Child support considerations
+
+6. **Property & Debts**
+   - Do you own any real estate together?
+   - Vehicles, bank accounts, retirement accounts?
+   - Outstanding debts (mortgage, loans, credit cards)?
+   - Proposed division (if known)
+
+7. **Spousal Support**
+   - Is either party requesting spousal support/alimony?
+   - Duration and amount considerations
+
+8. **Grounds for Divorce**
+   - Most states: No-fault (irreconcilable differences)
+   - Ask: "What are the grounds for this divorce?"
+
+RESIDENCY REQUIREMENTS BY STATE:
+**Texas**: 6 months state, 90 days county
+**Utah**: 90 days residency
+**Arizona**: 90 days residency
+**California**: 6 months state, 3 months county
+**Florida**: 6 months residency
+**Illinois**: 90 days residency
+**New York**: 1 year residency (varies by grounds)
+
+COLLECTION QUESTIONS TO ASK:
+- "When were you and your spouse married?"
+- "When did you separate, if you've already separated?"
+- "Do you have any children together under 18?"
+- "What property or assets do you share?"
+- "Are there any debts from the marriage?"
+- "How long have you lived in [state]?"
+- "What county do you currently reside in?"
+
+CONVERSATION STYLE:
+- Warm, empathetic, professional
+- Acknowledge emotions: "I understand this is a difficult decision"
+- Be encouraging: "You're taking an important step"
+- Guide toward specifics without being pushy
+- Normalize the process: "These are standard questions for divorce filings"
+
+EVIDENCE DETECTION - Same as affidavit:
+When user mentions documents (marriage certificate, property deeds, financial statements):
+- Create evidence items with is_evidence: true
+- One file per evidence item
+- Acknowledge and offer upload buttons
+
+DIVORCE CATEGORIES for extraction:
+${Object.entries(DIVORCE_CATEGORIES).map(([key, cat]) =>
+  `• ${key}: ${cat.description}`
+).join('\n')}
+
+Remember: Only extract NEW information. Existing data will be shown to you. Be sensitive to the emotional nature of divorce proceedings.`;
   }
 
   /**
@@ -335,6 +475,59 @@ CURRENT AFFIDAVIT STATUS:
 ${existingFactsSummary}
 
 CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existing facts list above. If the user is clarifying or expanding on an existing fact, include the additional detail as a new fact with context.`;
+  }
+
+  /**
+   * ✅ DIVORCE PACKAGE: Create user prompt for divorce documents
+   */
+  createDivorceUserPrompt(message, divorceData, existingFactsSummary) {
+    return `USER MESSAGE: "${message}"
+
+CURRENT DIVORCE DOCUMENT STATUS:
+**PETITIONER (Person Filing):**
+- First Name: ${divorceData.petitionerFirstName || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Last Name: ${divorceData.petitionerLastName || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Address: ${divorceData.petitionerAddress || 'Not provided'}
+
+**RESPONDENT (Spouse):**
+- First Name: ${divorceData.respondentFirstName || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Last Name: ${divorceData.respondentLastName || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Address: ${divorceData.respondentAddress || 'Not provided'}
+
+**JURISDICTION:**
+- State: ${divorceData.state || 'Not selected'}
+- County: ${divorceData.county || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Residency Duration: ${divorceData.residencyDuration || 'Not provided'}
+
+**MARRIAGE INFORMATION:**
+- Date of Marriage: ${divorceData.marriageDate || '❌ NOT PROVIDED - ASK FOR IT!'}
+- Place of Marriage: ${divorceData.marriagePlace || 'Not provided'}
+- Date of Separation: ${divorceData.separationDate || 'Not provided'}
+
+**CHILDREN:**
+- Has Minor Children: ${divorceData.hasMinorChildren !== undefined ? (divorceData.hasMinorChildren ? 'Yes' : 'No') : '❌ NOT PROVIDED - ASK!'}
+- Number of Children: ${divorceData.numberOfChildren || 'Not specified'}
+- Children Details: ${divorceData.children && divorceData.children.length > 0 ? divorceData.children.map(c => `${c.name} (${c.age})`).join(', ') : 'Not provided'}
+- Custody Preference: ${divorceData.custodyPreference || 'Not specified'}
+
+**PROPERTY & DEBTS:**
+- Real Estate: ${divorceData.realEstate || 'Not specified'}
+- Vehicles: ${divorceData.vehicles || 'Not specified'}
+- Has Debts: ${divorceData.hasDebts !== undefined ? (divorceData.hasDebts ? 'Yes' : 'No') : 'Not specified'}
+
+**SPOUSAL SUPPORT:**
+- Requesting Support: ${divorceData.requestingSpousalSupport !== undefined ? (divorceData.requestingSpousalSupport ? 'Yes' : 'No') : 'Not specified'}
+
+**GROUNDS:**
+- Grounds for Divorce: ${divorceData.groundsForDivorce || 'Not specified (usually irreconcilable differences)'}
+
+**CASE INFO (if already filed):**
+- Case Number: ${divorceData.caseNumber || 'Not filed yet'}
+- Court Name: ${divorceData.courtName || 'Not specified'}
+
+${existingFactsSummary}
+
+CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured above. Focus on completing the missing fields marked with ❌.`;
   }
 
   /**
@@ -461,7 +654,216 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
   }
 
   /**
-   * ✅ UPDATED: Consolidated LLM call
+   * ✅ DIVORCE PACKAGE: Processing tool for divorce documents
+   */
+  createDivorceProcessingTool() {
+    return {
+      type: "function",
+      function: {
+        name: "process_divorce_message",
+        description: "MANDATORY: Process every user message to extract divorce-related data and provide conversational response. Always call this function.",
+        parameters: {
+          type: "object",
+          properties: {
+            chat_response: {
+              type: "string",
+              description: "REQUIRED: Conversational response to guide user through divorce document creation."
+            },
+            // Petitioner (person filing)
+            petitioner_first_name: {
+              type: "string",
+              description: "Petitioner's first name. Use null if not mentioned."
+            },
+            petitioner_last_name: {
+              type: "string",
+              description: "Petitioner's last name. Use null if not mentioned."
+            },
+            petitioner_address: {
+              type: "string",
+              description: "Petitioner's current address. Use null if not mentioned."
+            },
+            // Respondent (spouse)
+            respondent_first_name: {
+              type: "string",
+              description: "Respondent's (spouse's) first name. Use null if not mentioned."
+            },
+            respondent_last_name: {
+              type: "string",
+              description: "Respondent's (spouse's) last name. Use null if not mentioned."
+            },
+            respondent_address: {
+              type: "string",
+              description: "Respondent's current address. Use null if not mentioned."
+            },
+            // Jurisdiction
+            extracted_state: {
+              type: "string",
+              enum: [...this.supportedStates.map(s => s.code), "UNSUPPORTED", "NONE"],
+              description: `State for filing: ${this.supportedStates.map(s => `${s.code}=${s.name}`).join(', ')}, UNSUPPORTED=other states, NONE=not mentioned`
+            },
+            detected_unsupported_state: {
+              type: "string",
+              description: "Name of unsupported state if extracted_state is UNSUPPORTED"
+            },
+            extracted_county: {
+              type: "string",
+              description: "County name if mentioned. Use null if not mentioned."
+            },
+            residency_duration: {
+              type: "string",
+              description: "How long petitioner has lived in the state (e.g., '2 years', '6 months'). Use null if not mentioned."
+            },
+            // Marriage Information
+            marriage_date: {
+              type: "string",
+              description: "Date of marriage (format: YYYY-MM-DD or as provided). Use null if not mentioned."
+            },
+            marriage_place: {
+              type: "string",
+              description: "City/State/Country where marriage took place. Use null if not mentioned."
+            },
+            separation_date: {
+              type: "string",
+              description: "Date of separation (format: YYYY-MM-DD or as provided). Use null if not mentioned."
+            },
+            // Children
+            has_minor_children: {
+              type: "boolean",
+              description: "True if there are minor children from the marriage, false if none, null if not discussed."
+            },
+            number_of_children: {
+              type: "number",
+              description: "Number of minor children. Use null if not mentioned."
+            },
+            children: {
+              type: "array",
+              description: "Details of minor children",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string", description: "Child's full name" },
+                  date_of_birth: { type: "string", description: "Child's date of birth" },
+                  age: { type: "number", description: "Child's current age" },
+                  lives_with: { type: "string", description: "Who the child currently lives with" }
+                }
+              }
+            },
+            custody_preference: {
+              type: "string",
+              enum: ["joint_legal_physical", "joint_legal_sole_physical", "sole", "other", null],
+              description: "Preferred custody arrangement. Use null if not mentioned."
+            },
+            custody_details: {
+              type: "string",
+              description: "Additional custody arrangement details. Use null if not mentioned."
+            },
+            // Property & Debts
+            real_estate: {
+              type: "string",
+              description: "Description of real estate owned (address, estimated value). Use null if not mentioned."
+            },
+            vehicles: {
+              type: "string",
+              description: "Description of vehicles owned. Use null if not mentioned."
+            },
+            bank_accounts: {
+              type: "string",
+              description: "Description of bank accounts. Use null if not mentioned."
+            },
+            retirement_accounts: {
+              type: "string",
+              description: "Description of retirement/pension accounts. Use null if not mentioned."
+            },
+            other_assets: {
+              type: "string",
+              description: "Description of other significant assets. Use null if not mentioned."
+            },
+            has_debts: {
+              type: "boolean",
+              description: "True if there are marital debts, false if none, null if not discussed."
+            },
+            debts_description: {
+              type: "string",
+              description: "Description of debts (mortgage, loans, credit cards). Use null if not mentioned."
+            },
+            property_division_preference: {
+              type: "string",
+              description: "How petitioner wants to divide property. Use null if not mentioned."
+            },
+            // Spousal Support
+            requesting_spousal_support: {
+              type: "boolean",
+              description: "True if requesting spousal support, false if not, null if not discussed."
+            },
+            spousal_support_details: {
+              type: "string",
+              description: "Details about spousal support request (amount, duration). Use null if not mentioned."
+            },
+            // Grounds
+            grounds_for_divorce: {
+              type: "string",
+              enum: ["irreconcilable_differences", "incompatibility", "living_separate", "other", null],
+              description: "Legal grounds for divorce. Use null if not mentioned."
+            },
+            grounds_details: {
+              type: "string",
+              description: "Additional details about grounds. Use null if not mentioned."
+            },
+            // Case Info (if already filed)
+            case_number: {
+              type: "string",
+              description: "Case number if case has been filed. Use null if not mentioned."
+            },
+            court_name: {
+              type: "string",
+              description: "Name of the court. Use null if not mentioned."
+            },
+            // Additional facts (same structure as affidavit)
+            extracted_facts: {
+              type: "array",
+              description: "Additional legal facts not covered by specific fields above",
+              items: {
+                type: "object",
+                properties: {
+                  content: {
+                    type: "string",
+                    description: "The fact as stated"
+                  },
+                  category: {
+                    type: "string",
+                    enum: [...Object.keys(DIVORCE_CATEGORIES), ...Object.keys(LEGAL_CATEGORIES)],
+                    description: "Category that best fits this fact"
+                  },
+                  subcategory: {
+                    type: "string",
+                    description: "More specific subcategory"
+                  },
+                  is_evidence: {
+                    type: "boolean",
+                    description: "TRUE if this is evidence/document that needs to be uploaded"
+                  },
+                  evidence_description: {
+                    type: "string",
+                    description: "Description of evidence if is_evidence=true"
+                  }
+                },
+                required: ["content", "category"]
+              }
+            },
+            suggestions: {
+              type: "array",
+              items: { type: "string" },
+              description: "Helpful suggestions for completing the divorce documents"
+            }
+          },
+          required: ["chat_response"]
+        }
+      }
+    };
+  }
+
+  /**
+   * ✅ UPDATED: Consolidated LLM call - now supports both affidavit and divorce documents
    */
   async callConsolidatedLLM(message, conversationHistory, affidavitData, existingFactsSummary, sessionId, skipExtraction = false) {
     // If skipExtraction is true, use simple chat without function calling
@@ -492,9 +894,30 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
       }
     }
 
-    // Standard function calling flow
-    const systemPrompt = this.createConsolidatedSystemPrompt();
-    const userPrompt = this.createUserPrompt(message, affidavitData, existingFactsSummary);
+    // Detect document type - check for divorce_petition, divorce_decree, or divorce_package
+    const documentType = affidavitData.documentType || affidavitData.document_type || 'general';
+    const isDivorceDocument = documentType === 'divorce_petition' ||
+                              documentType === 'divorce_decree' ||
+                              documentType === 'divorce_package';
+
+    // Select appropriate prompts and tools based on document type
+    let systemPrompt, userPrompt, tools, functionName;
+
+    if (isDivorceDocument) {
+      systemPrompt = this.createDivorceSystemPrompt();
+      userPrompt = this.createDivorceUserPrompt(message, affidavitData, existingFactsSummary);
+      tools = [this.createDivorceProcessingTool()];
+      functionName = 'process_divorce_message';
+
+      logger.info('Using divorce document processing', { documentType, sessionId });
+    } else {
+      systemPrompt = this.createConsolidatedSystemPrompt();
+      userPrompt = this.createUserPrompt(message, affidavitData, existingFactsSummary);
+      tools = [this.createAffidavitProcessingTool()];
+      functionName = 'process_affidavit_message';
+
+      logger.info('Using affidavit document processing', { documentType, sessionId });
+    }
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -502,13 +925,11 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
       { role: 'user', content: userPrompt }
     ];
 
-    const tools = [this.createAffidavitProcessingTool()];
-
     try {
       const completion = await this.openAIService.chat(messages, {
         model: 'gpt-4o-2024-08-06',
         tools,
-        tool_choice: { type: "function", function: { name: "process_affidavit_message" } },
+        tool_choice: { type: "function", function: { name: functionName } },
         temperature: 0.3,
         max_tokens: this.constants.MAX_COMPLETION_TOKENS
       });
@@ -520,17 +941,34 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
 
       const functionResult = JSON.parse(toolCall.function.arguments);
 
-      logger.info('Function call extraction', {
-        hasFirstName: !!functionResult.extracted_first_name,
-        hasLastName: !!functionResult.extracted_last_name,
-        hasState: !!functionResult.extracted_state,
-        hasCounty: !!functionResult.extracted_county,
-        hasCaseNumber: !!functionResult.case_number,
-        factsCount: functionResult.extracted_facts?.length || 0,
-        sessionId
-      });
+      // Log extraction results based on document type
+      if (isDivorceDocument) {
+        logger.info('Divorce function call extraction', {
+          hasPetitionerFirstName: !!functionResult.petitioner_first_name,
+          hasPetitionerLastName: !!functionResult.petitioner_last_name,
+          hasRespondentFirstName: !!functionResult.respondent_first_name,
+          hasState: !!functionResult.extracted_state,
+          hasCounty: !!functionResult.extracted_county,
+          hasMarriageDate: !!functionResult.marriage_date,
+          hasChildren: !!functionResult.has_minor_children,
+          factsCount: functionResult.extracted_facts?.length || 0,
+          sessionId
+        });
 
-      return this.processToolCall(functionResult, affidavitData);
+        return this.processDivorceToolCall(functionResult, affidavitData);
+      } else {
+        logger.info('Affidavit function call extraction', {
+          hasFirstName: !!functionResult.extracted_first_name,
+          hasLastName: !!functionResult.extracted_last_name,
+          hasState: !!functionResult.extracted_state,
+          hasCounty: !!functionResult.extracted_county,
+          hasCaseNumber: !!functionResult.case_number,
+          factsCount: functionResult.extracted_facts?.length || 0,
+          sessionId
+        });
+
+        return this.processToolCall(functionResult, affidavitData);
+      }
 
     } catch (error) {
       logger.error('LLM call failed:', error);
@@ -678,6 +1116,244 @@ CRITICAL INSTRUCTION: Only extract NEW facts that are NOT already in the existin
       updatedAffidavitData: newData,
       extractedFacts: processedFacts, // ✅ FIX: Return processedFacts with type field, not raw extractedFacts
       validationSummary: args.validation_summary || {},
+      suggestions: args.suggestions || [],
+      hasNewData
+    };
+  }
+
+  /**
+   * ✅ DIVORCE PACKAGE: Process divorce-specific tool call
+   */
+  processDivorceToolCall(args, currentData) {
+    const newData = { ...currentData };
+    let hasNewData = false;
+
+    // Extract Petitioner Information
+    if (args.petitioner_first_name) {
+      newData.petitionerFirstName = String(args.petitioner_first_name).trim();
+      // Also set affiantName for backward compatibility with preview/PDF generation
+      newData.firstName = newData.petitionerFirstName;
+      hasNewData = true;
+    }
+    if (args.petitioner_last_name) {
+      newData.petitionerLastName = String(args.petitioner_last_name).trim();
+      newData.lastName = newData.petitionerLastName;
+      // Update affiantName for backward compatibility
+      if (newData.petitionerFirstName) {
+        newData.affiantName = `${newData.petitionerFirstName} ${newData.petitionerLastName}`;
+      }
+      hasNewData = true;
+    }
+    if (args.petitioner_address) {
+      newData.petitionerAddress = String(args.petitioner_address).trim();
+      hasNewData = true;
+    }
+
+    // Extract Respondent Information
+    if (args.respondent_first_name) {
+      newData.respondentFirstName = String(args.respondent_first_name).trim();
+      hasNewData = true;
+    }
+    if (args.respondent_last_name) {
+      newData.respondentLastName = String(args.respondent_last_name).trim();
+      hasNewData = true;
+    }
+    if (args.respondent_address) {
+      newData.respondentAddress = String(args.respondent_address).trim();
+      hasNewData = true;
+    }
+
+    // Extract Jurisdiction (State & County)
+    if (args.extracted_state && args.extracted_state !== 'NONE') {
+      if (args.extracted_state === 'UNSUPPORTED') {
+        logger.warn('Unsupported state detected for divorce', {
+          detectedState: args.detected_unsupported_state
+        });
+        newData.unsupportedState = args.detected_unsupported_state;
+        hasNewData = true;
+      } else {
+        newData.state = args.extracted_state;
+        hasNewData = true;
+      }
+    }
+    if (args.extracted_county) {
+      newData.county = String(args.extracted_county).trim();
+      hasNewData = true;
+    }
+    if (args.residency_duration) {
+      newData.residencyDuration = String(args.residency_duration).trim();
+      hasNewData = true;
+    }
+
+    // Auto-generate court name from county and state if not manually provided
+    if (newData.county && newData.state && !args.court_name && !currentData.courtName) {
+      const autoCourtName = courtNameService.getDefaultCourtName(
+        newData.state,
+        newData.county
+      );
+      if (autoCourtName) {
+        newData.courtName = autoCourtName;
+        hasNewData = true;
+      }
+    }
+
+    // Extract Marriage Information
+    if (args.marriage_date) {
+      newData.marriageDate = String(args.marriage_date).trim();
+      hasNewData = true;
+    }
+    if (args.marriage_place) {
+      newData.marriagePlace = String(args.marriage_place).trim();
+      hasNewData = true;
+    }
+    if (args.separation_date) {
+      newData.separationDate = String(args.separation_date).trim();
+      hasNewData = true;
+    }
+
+    // Extract Children Information
+    if (args.has_minor_children !== null && args.has_minor_children !== undefined) {
+      newData.hasMinorChildren = Boolean(args.has_minor_children);
+      hasNewData = true;
+    }
+    if (args.number_of_children) {
+      newData.numberOfChildren = Number(args.number_of_children);
+      hasNewData = true;
+    }
+    if (args.children && Array.isArray(args.children) && args.children.length > 0) {
+      // Merge with existing children or replace
+      newData.children = args.children.map(child => ({
+        name: child.name,
+        dateOfBirth: child.date_of_birth,
+        age: child.age,
+        livesWith: child.lives_with
+      }));
+      hasNewData = true;
+    }
+    if (args.custody_preference) {
+      newData.custodyPreference = String(args.custody_preference).trim();
+      hasNewData = true;
+    }
+    if (args.custody_details) {
+      newData.custodyDetails = String(args.custody_details).trim();
+      hasNewData = true;
+    }
+
+    // Extract Property & Debts
+    if (args.real_estate) {
+      newData.realEstate = String(args.real_estate).trim();
+      hasNewData = true;
+    }
+    if (args.vehicles) {
+      newData.vehicles = String(args.vehicles).trim();
+      hasNewData = true;
+    }
+    if (args.bank_accounts) {
+      newData.bankAccounts = String(args.bank_accounts).trim();
+      hasNewData = true;
+    }
+    if (args.retirement_accounts) {
+      newData.retirementAccounts = String(args.retirement_accounts).trim();
+      hasNewData = true;
+    }
+    if (args.other_assets) {
+      newData.otherAssets = String(args.other_assets).trim();
+      hasNewData = true;
+    }
+    if (args.has_debts !== null && args.has_debts !== undefined) {
+      newData.hasDebts = Boolean(args.has_debts);
+      hasNewData = true;
+    }
+    if (args.debts_description) {
+      newData.debtsDescription = String(args.debts_description).trim();
+      hasNewData = true;
+    }
+    if (args.property_division_preference) {
+      newData.propertyDivisionPreference = String(args.property_division_preference).trim();
+      hasNewData = true;
+    }
+
+    // Extract Spousal Support
+    if (args.requesting_spousal_support !== null && args.requesting_spousal_support !== undefined) {
+      newData.requestingSpousalSupport = Boolean(args.requesting_spousal_support);
+      hasNewData = true;
+    }
+    if (args.spousal_support_details) {
+      newData.spousalSupportDetails = String(args.spousal_support_details).trim();
+      hasNewData = true;
+    }
+
+    // Extract Grounds for Divorce
+    if (args.grounds_for_divorce) {
+      newData.groundsForDivorce = String(args.grounds_for_divorce).trim();
+      hasNewData = true;
+    }
+    if (args.grounds_details) {
+      newData.groundsDetails = String(args.grounds_details).trim();
+      hasNewData = true;
+    }
+
+    // Extract Case Info (if already filed)
+    if (args.case_number) {
+      newData.caseNumber = String(args.case_number).trim();
+      hasNewData = true;
+    }
+    if (args.court_name) {
+      newData.courtName = String(args.court_name).trim();
+      hasNewData = true;
+    }
+
+    // Extract additional facts (same as affidavit)
+    const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
+    let processedFacts = [];
+
+    if (extractedFacts.length > 0) {
+      const existingFacts = currentData.facts || [];
+      const { v4: uuidv4 } = require('uuid');
+
+      processedFacts = extractedFacts.map(fact => {
+        if (fact.is_evidence) {
+          const evidenceItem = {
+            ...fact,
+            id: uuidv4(),
+            type: 'evidence',
+            category: 'evidence',
+            evidenceData: {
+              exhibitLabel: '',
+              description: fact.evidence_description || '',
+              fileName: null,
+              fileKey: null,
+              fileType: null,
+              fileSizeBytes: 0,
+              filePages: 1,
+              uploadedAt: null,
+              thumbnailKey: null,
+              requiresUpload: true
+            }
+          };
+
+          logger.info('Divorce evidence item created:', {
+            id: evidenceItem.id,
+            description: evidenceItem.evidenceData.description
+          });
+
+          return evidenceItem;
+        }
+        return {
+          ...fact,
+          id: fact.id || uuidv4(),
+          type: fact.type || 'fact'
+        };
+      });
+
+      newData.facts = [...existingFacts, ...processedFacts];
+      hasNewData = true;
+    }
+
+    return {
+      chatResponse: args.chat_response || "I understand. Please continue sharing the details.",
+      updatedAffidavitData: newData,
+      extractedFacts: processedFacts,
       suggestions: args.suggestions || [],
       hasNewData
     };

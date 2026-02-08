@@ -1,5 +1,5 @@
 // client/src/views/EditorView.js - FIXED VERSION WITH PAYMENT
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical, Scale } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';

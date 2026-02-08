@@ -298,10 +298,6 @@ const documentReducer = (state, action) => {
   }
 };
 
-// Create contexts
-const DocumentContext = createContext();
-const DocumentDispatchContext = createContext();
-
 /**
  * ✅ Document Provider Component - CLEAN ARCHITECTURE
  */
@@ -702,7 +698,7 @@ export const DocumentProvider = ({ children }) => {
 
       throw error;
     }
-  }, [authFetch, loadDocuments, isAuthenticated]);
+  }, [authFetch, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ✅ Auto-save functionality
   const scheduleAutoSave = useCallback(() => {

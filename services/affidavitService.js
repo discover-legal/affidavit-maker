@@ -237,12 +237,16 @@ EXTRACTION RULES:
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
-- ALWAYS extract facts in FIRST PERSON from the affiant's perspective, regardless of how the user phrases their input
-  * User says: "Mike Smith contributed to the business" → Extract: "I contributed to the business"
-  * User says: "He paid $500" → Extract: "I paid $500"
+- ALWAYS extract facts in FIRST PERSON from the affiant's perspective when the affiant is describing their own actions or knowledge
+  * User says: "I paid $500" → Extract: "I paid $500"
   * User says: "The affiant witnessed the incident" → Extract: "I witnessed the incident"
   * Format as direct first-person statements: "I am...", "I reside...", "I witnessed...", "I was informed by..."
   * Write as if the affiant is speaking directly under oath
+- DISAMBIGUATION (CRITICAL): When the user mentions OTHER people using pronouns ("she", "he", "they"), ALWAYS use the person's actual name or role instead of the pronoun
+  * User says: "She moved out" (talking about their spouse Jane Smith) → Extract: "Jane Smith vacated the marital residence" or "My spouse, Jane Smith, vacated the marital residence"
+  * User says: "He earns $5000" (talking about someone else) → Extract: "[Person's name] earns approximately $5,000 per month"
+  * Each fact must be self-contained and understandable without conversational context
+  * If you don't know the person's name yet, use their role: "my spouse", "the respondent", "my former partner"
 
 EVIDENCE DETECTION - CRITICAL:
 When the user mentions documents or attachable evidence, you MUST:
@@ -442,6 +446,21 @@ CONVERSATION STYLE:
 - Be encouraging: "You're taking an important step"
 - Guide toward specifics without being pushy
 - Normalize the process: "These are standard questions for divorce filings"
+
+FACT EXTRACTION - DISAMBIGUATION (CRITICAL):
+When extracting facts into the extracted_facts array, you MUST disambiguate all pronoun references and relative references:
+- NEVER use "she", "he", "they", "her", "his", "their" without identifying the person by name or role
+- ALWAYS use the person's full name or role (Petitioner/Respondent) so each fact is self-contained and understandable on its own
+- Each extracted fact must make sense in isolation - a reader should understand who is being referenced without needing context from the conversation
+
+Examples:
+- User says: "She moved out last year" → Extract: "[Respondent Name] vacated the marital residence in [year]" (use actual name if known)
+- User says: "He earns $5000 a month" → Extract: "[Name] earns approximately $5,000 per month in gross income"
+- User says: "They have two kids" → Extract: "The parties have two minor children of the marriage"
+- User says: "She took the car" → Extract: "[Respondent Name] took possession of the [vehicle description]"
+- If names are not yet known, use "Petitioner" or "Respondent" as placeholders
+
+ALSO: Write facts in formal legal language suitable for a court filing, not conversational language.
 
 EVIDENCE DETECTION - Same as affidavit:
 When user mentions documents (marriage certificate, property deeds, financial statements):
@@ -821,13 +840,13 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             // Additional facts (same structure as affidavit)
             extracted_facts: {
               type: "array",
-              description: "Additional legal facts not covered by specific fields above",
+              description: "Additional legal facts not covered by specific fields above. MUST use full names or roles (Petitioner/Respondent) instead of pronouns. Each fact must be self-contained.",
               items: {
                 type: "object",
                 properties: {
                   content: {
                     type: "string",
-                    description: "The fact as stated"
+                    description: "The fact in formal legal language using full names, not pronouns. Must be understandable in isolation."
                   },
                   category: {
                     type: "string",

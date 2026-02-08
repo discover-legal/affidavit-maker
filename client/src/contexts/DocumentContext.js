@@ -94,12 +94,18 @@ const documentReducer = (state, action) => {
     case ActionTypes.UPDATE_DOCUMENT_DATA:
       // ✅ CRITICAL: documentId is immutable - never allow it to be overwritten
       const updates = { ...action.payload };
-      
+
       // Remove documentId from updates if it's null/undefined
       if (updates.documentId === null || updates.documentId === undefined) {
         delete updates.documentId;
       }
-      
+
+      // Auto-set activeSubDocument for divorce_package if not already set
+      const mergedDoc = { ...state.currentDocument, ...updates };
+      if (mergedDoc.documentType === 'divorce_package' && !mergedDoc.activeSubDocument) {
+        updates.activeSubDocument = 'divorce_petition';
+      }
+
       return {
         ...state,
         currentDocument: {
@@ -282,12 +288,16 @@ const documentReducer = (state, action) => {
       if (newSubDoc !== 'divorce_petition' && newSubDoc !== 'divorce_decree') {
         return state;
       }
+      // Keep the original documentType (e.g., 'divorce_package') intact
+      // Only update activeSubDocument for view switching
+      const originalDocType = state.currentDocument.documentType;
+      const preserveDocType = originalDocType === 'divorce_package';
       return {
         ...state,
         currentDocument: {
           ...state.currentDocument,
           activeSubDocument: newSubDoc,
-          documentType: newSubDoc
+          documentType: preserveDocType ? originalDocType : newSubDoc
         },
         // Clear preview so it regenerates for the new sub-document
         preview: null
@@ -950,11 +960,16 @@ export const DocumentProvider = ({ children }) => {
     });
 
     // Generate preview for the new sub-document type
+    // Keep the original documentType but pass activeSubDocument for the backend to use
     setTimeout(() => {
+      const currentDoc = stateRef.current.currentDocument;
       const updatedDoc = {
-        ...stateRef.current.currentDocument,
+        ...currentDoc,
         activeSubDocument: subDocType,
-        documentType: subDocType
+        // Preserve divorce_package type but signal which sub-doc to render
+        documentType: currentDoc.documentType === 'divorce_package'
+          ? 'divorce_package'
+          : subDocType
       };
       generatePreview(updatedDoc);
     }, 100);

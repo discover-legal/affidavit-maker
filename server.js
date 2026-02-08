@@ -150,35 +150,38 @@ const normalizeOrigin = (origin) => {
 
 // Build allowed origins list
 const getAllowedOrigins = () => {
-  if (process.env.NODE_ENV === 'production') {
-    const origins = [];
+  const origins = [];
 
-    // Add FRONTEND_URL if set (normalized)
-    if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
-      origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
-    }
+  // Production domains
+  origins.push(
+    'https://make.discover.legal',
+    'https://discover.legal',
+    'https://www.discover.legal',
+    'https://ca.discover.legal',
+    'https://canada.discover.legal'
+  );
 
-    // Always add discover.legal domains for backward compatibility
+  // Add FRONTEND_URL if set (normalized)
+  if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
+    origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
+  }
+
+  // Always include localhost for development (safe - these don't resolve in production)
+  if (process.env.NODE_ENV !== 'production' || !process.env.FRONTEND_URL) {
     origins.push(
-      'https://make.discover.legal',
-      'https://discover.legal',
-      'https://www.discover.legal'
-    );
-
-    // Remove duplicates
-    const uniqueOrigins = [...new Set(origins)];
-
-    logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
-    return uniqueOrigins;
-  } else {
-    return [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://ca.localhost:3000',
       'http://canada.localhost:3000'
-    ];
+    );
   }
+
+  // Remove duplicates
+  const uniqueOrigins = [...new Set(origins)];
+
+  logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
+  return uniqueOrigins;
 };
 
 const allowedOrigins = getAllowedOrigins();

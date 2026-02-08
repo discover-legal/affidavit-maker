@@ -151,10 +151,15 @@ router.post('/preview',
             logger.info('StateTemplateManager preview generated successfully');
           }
         } catch (templateError) {
+          const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
+          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
           logger.warn('Template manager preview failed, using fallback', {
-            error: templateError.message
+            error: templateError.message,
+            documentType: docType
           });
-          preview = createFallbackPreview(affidavitData);
+          preview = isDivorceType
+            ? createDivorceFallbackPreview(affidavitData)
+            : createFallbackPreview(affidavitData);
         }
       } else {
         // Use fallback if template manager not available
@@ -1239,6 +1244,52 @@ function createFallbackPreview(affidavitData) {
       fallback: true,
       totalFacts: facts.length,
       completionScore: facts.length > 0 ? Math.min(100, Math.round((facts.length / 3) * 100)) : 0
+    }
+  };
+}
+
+/**
+ * ✅ Helper: Create divorce fallback preview when template generation fails
+ */
+function createDivorceFallbackPreview(affidavitData) {
+  const petitionerName = affidavitData.petitionerName ||
+    [affidavitData.petitionerFirstName, affidavitData.petitionerLastName].filter(Boolean).join(' ') ||
+    '[PETITIONER NAME]';
+  const respondentName = affidavitData.respondentName ||
+    [affidavitData.respondentFirstName, affidavitData.respondentLastName].filter(Boolean).join(' ') ||
+    '[RESPONDENT NAME]';
+  const activeDoc = affidavitData.activeSubDocument || 'divorce_petition';
+  const docTitle = activeDoc === 'divorce_decree'
+    ? 'FINAL DECREE OF DIVORCE'
+    : 'ORIGINAL PETITION FOR DIVORCE';
+
+  return {
+    sections: {
+      header: `STATE OF ${getStateName(affidavitData.state)}`,
+      venue: `COUNTY OF ${(affidavitData.county || '[COUNTY]').toUpperCase()}`,
+      caseCaption: {
+        formatted: `CASE NO. ${affidavitData.caseNumber || '[CASE NUMBER]'}\n\nIN THE MATTER OF THE MARRIAGE OF:\n\n${petitionerName.toUpperCase()}, Petitioner\n\nAND\n\n${respondentName.toUpperCase()}, Respondent`
+      },
+      title: docTitle,
+      parties: {
+        title: 'I. PARTIES',
+        items: [
+          { number: 1, content: `Petitioner: ${petitionerName}`, type: 'party_identification' },
+          { number: 2, content: `Respondent: ${respondentName}`, type: 'party_identification' }
+        ]
+      },
+      jurisdiction: {
+        title: 'II. JURISDICTION AND VENUE',
+        items: [
+          { number: 3, content: 'Continue providing information through the chat to complete this section.', type: 'jurisdiction' }
+        ]
+      }
+    },
+    metadata: {
+      fallback: true,
+      documentType: activeDoc,
+      totalFacts: (affidavitData.facts || []).length,
+      completionScore: 0
     }
   };
 }

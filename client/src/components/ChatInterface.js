@@ -191,7 +191,7 @@ const ChatInterface = () => {
         } else {
           // New user - show welcome message based on document type
           console.log('👋 Showing welcome message for new document');
-          const isDivorcePackage = currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
+          const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
 
           if (isDivorcePackage) {
             setMessages([{
@@ -346,7 +346,7 @@ First, please select your state above. Each state has different legal requiremen
                 onClick={() => {
                   updateDocumentData({ state: state.code });
                   // Add a message confirming state selection
-                  const isDivorcePackage = currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
+                  const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
                   setMessages(prev => [...prev, {
                     type: 'bot',
                     content: `Great! You've selected ${state.name}. ${isDivorcePackage

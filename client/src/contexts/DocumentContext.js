@@ -556,20 +556,12 @@ export const DocumentProvider = ({ children }) => {
 
         console.log('📄 New document created:', documentId);
 
-        // Safely extract affidavit data from the response. The server may return
-        // parsed affidavit data under `document.affidavitData` or as `document.content`.
-        let createdContent = {};
-        const raw = data.document.affidavitData ?? data.document.content;
-        if (raw) {
-          try {
-            createdContent = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          } catch (e) {
-            console.warn('Failed to parse created document content, using raw value', e);
-            createdContent = raw;
-          }
-        }
+        // Use the payload data we sent as the source of truth.
+        // The save response only returns metadata (id, title, status),
+        // not the full document content.
+        const createdContent = payload.affidavitData;
 
-        // Set the document data (do not spread undefined)
+        // Set the document data
         dispatch({
           type: ActionTypes.SET_DOCUMENT_DATA,
           payload: {

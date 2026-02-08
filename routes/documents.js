@@ -100,26 +100,30 @@ router.post('/preview',
                 divorceData.court = divorceData.courtName;
               }
 
-              // Use divorce document generation if available
-              if (templateManager.isRegistryMode?.()) {
-                if (effectiveDocType === 'divorce_petition') {
-                  document = templateManager.generateDivorcePetition(
-                    divorceData.state,
-                    divorceData
-                  );
-                } else {
-                  document = templateManager.generateDivorceDecree(
-                    divorceData.state,
-                    divorceData
-                  );
-                }
-              } else {
-                // Fallback to affidavit if divorce not available
-                logger.warn('Divorce document requested but not available, falling back to affidavit');
-                document = templateManager.generateAffidavit(
-                  affidavitData.state,
-                  affidavitData
+              // Generate divorce document using the appropriate template method
+              // TemplateRegistry (new system) uses generateDocument(state, data, docType)
+              // StateTemplateManager (legacy) uses generateDivorcePetition/generateDivorceDecree
+              if (typeof templateManager.generateDocument === 'function') {
+                // TemplateRegistry: unified method with documentType parameter
+                document = templateManager.generateDocument(
+                  divorceData.state,
+                  divorceData,
+                  effectiveDocType
                 );
+              } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
+                document = templateManager.generateDivorcePetition(
+                  divorceData.state,
+                  divorceData
+                );
+              } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
+                document = templateManager.generateDivorceDecree(
+                  divorceData.state,
+                  divorceData
+                );
+              } else {
+                // Divorce templates not available - use divorce-specific fallback
+                logger.warn('Divorce document requested but templates not available, using fallback');
+                preview = createDivorceFallbackPreview(affidavitData);
               }
             } else {
               // Default: Use affidavit template
@@ -129,24 +133,27 @@ router.post('/preview',
               );
             }
 
-            // ✅ DEBUG: Log generated document sections
-            logger.info('Template generated document', {
-              factItemCount: document.sections?.facts?.items?.length || 0,
-              factItems: document.sections?.facts?.items?.map((f, i) => ({
-                number: f.number,
-                hasContent: !!f.content,
-                contentLength: f.content?.length,
-                contentPreview: f.content?.substring(0, 50)
-              }))
-            });
+            // Only process document if it was generated (not if fallback preview was used)
+            if (document) {
+              // ✅ DEBUG: Log generated document sections
+              logger.info('Template generated document', {
+                factItemCount: document.sections?.facts?.items?.length || 0,
+                factItems: document.sections?.facts?.items?.map((f, i) => ({
+                  number: f.number,
+                  hasContent: !!f.content,
+                  contentLength: f.content?.length,
+                  contentPreview: f.content?.substring(0, 50)
+                }))
+              });
 
-            preview = {
-              sections: document.sections || document,
-              htmlContent: document.htmlContent,
-              metadata: {
-                wordCount: estimateWordCount(affidavitData.facts)
-              }
-            };
+              preview = {
+                sections: document.sections || document,
+                htmlContent: document.htmlContent,
+                metadata: {
+                  wordCount: estimateWordCount(affidavitData.facts)
+                }
+              };
+            }
 
             logger.info('StateTemplateManager preview generated successfully');
           }
@@ -211,9 +218,14 @@ router.post('/preview',
     } catch (error) {
       logger.error('Preview generation failed', { error: error.message });
 
+      const docType = affidavitData?.activeSubDocument || affidavitData?.documentType || 'affidavit';
+      const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
+
       res.json({
         success: true,
-        preview: createFallbackPreview(affidavitData),
+        preview: isDivorceType
+          ? createDivorceFallbackPreview(affidavitData)
+          : createFallbackPreview(affidavitData),
         fallback: true,
         error: safeErrorMessage(error, 'Preview generation failed')
       });
@@ -405,33 +417,57 @@ router.post('/generate',
           // Determine document type and generate appropriate document
           const documentType = affidavitData.documentType || 'affidavit';
 
+          // Resolve effective document type for divorce packages
+          let effectiveDocType = documentType;
+          if (documentType === 'divorce_package') {
+            effectiveDocType = affidavitData.activeSubDocument || 'divorce_petition';
+          }
+
           // Route to appropriate template based on document type
-          if (documentType === 'divorce_petition' || documentType === 'divorce_decree') {
-            // Use divorce document generation if available
-            if (templateManager.isRegistryMode?.()) {
-              if (documentType === 'divorce_petition') {
-                documentStructure = templateManager.generateDivorcePetition(
-                  affidavitData.state,
-                  affidavitData
-                );
-              } else {
-                documentStructure = templateManager.generateDivorceDecree(
-                  affidavitData.state,
-                  affidavitData
-                );
-              }
-              logger.info('Generated divorce document', {
-                documentType,
-                state: affidavitData.state
-              });
+          if (effectiveDocType === 'divorce_petition' || effectiveDocType === 'divorce_decree') {
+            // Map chat-extracted fields to template-expected fields
+            const divorceData = { ...affidavitData };
+            if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
+              divorceData.petitionerName = [divorceData.petitionerFirstName, divorceData.petitionerLastName].filter(Boolean).join(' ');
+            }
+            if (!divorceData.respondentName && (divorceData.respondentFirstName || divorceData.respondentLastName)) {
+              divorceData.respondentName = [divorceData.respondentFirstName, divorceData.respondentLastName].filter(Boolean).join(' ');
+            }
+            if (!divorceData.marriageLocation && divorceData.marriagePlace) {
+              divorceData.marriageLocation = divorceData.marriagePlace;
+            }
+            if (!divorceData.court && divorceData.courtName) {
+              divorceData.court = divorceData.courtName;
+            }
+
+            // Generate divorce document using the appropriate template method
+            if (typeof templateManager.generateDocument === 'function') {
+              documentStructure = templateManager.generateDocument(
+                divorceData.state,
+                divorceData,
+                effectiveDocType
+              );
+            } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
+              documentStructure = templateManager.generateDivorcePetition(
+                divorceData.state,
+                divorceData
+              );
+            } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
+              documentStructure = templateManager.generateDivorceDecree(
+                divorceData.state,
+                divorceData
+              );
             } else {
-              // Return error if divorce not available
               return res.status(400).json({
                 success: false,
                 error: 'Divorce document generation not available in this configuration',
                 errorType: 'unsupported_document_type'
               });
             }
+            logger.info('Generated divorce document', {
+              documentType: effectiveDocType,
+              state: affidavitData.state
+            });
           } else {
             // Default: Use affidavit template
             documentStructure = templateManager.generateAffidavit(
@@ -593,13 +629,6 @@ router.post('/save',
       return res.status(400).json({
         success: false,
         error: 'Valid affidavit data is required to save the document'
-      });
-    }
-
-    if (!pool) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database service unavailable'
       });
     }
 
@@ -1106,6 +1135,13 @@ function enhancePreviewWithCategories(preview, affidavitData) {
   const enhanced = { ...preview };
 
   if (!affidavitData.facts || affidavitData.facts.length === 0) {
+    return enhanced;
+  }
+
+  // Skip facts enhancement for divorce documents - they use different section structures
+  const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
+  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
+  if (isDivorceDoc) {
     return enhanced;
   }
 

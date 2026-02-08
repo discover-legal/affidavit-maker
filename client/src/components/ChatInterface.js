@@ -211,7 +211,7 @@ First, please select your state above. Each state has different legal requiremen
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, currentDocument.documentType, currentDocument.firstName, generateFactSummary]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

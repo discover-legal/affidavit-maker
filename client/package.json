@@ -23,7 +23,7 @@
     "start": "craco start",
     "prebuild": "node scripts/generate-sitemap.js",
     "build": "craco build",
-    "postbuild": "react-snap",
+    "build:seo": "craco build && react-snap",
     "test": "craco test",
     "eject": "react-scripts eject",
     "sitemap": "node scripts/generate-sitemap.js"
@@ -47,8 +47,7 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
-    "react-snap": "^1.23.0"
+    "@craco/craco": "^7.1.0"
   },
   "overrides": {
     "minimist": "^1.2.8",

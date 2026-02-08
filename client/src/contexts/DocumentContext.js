@@ -512,9 +512,10 @@ export const DocumentProvider = ({ children }) => {
     // Determine if this is a divorce package
     const isDivorcePackage = documentType === 'divorce_package';
     const defaultTitle = isDivorcePackage ? 'Untitled Divorce Package' : 'Untitled Affidavit';
-    // For divorce packages, use 'divorce_petition' as the internal documentType
-    // and track activeSubDocument for switching between petition/decree views
-    const internalDocType = isDivorcePackage ? 'divorce_petition' : 'general';
+    // Preserve 'divorce_package' as the document type so the frontend
+    // can detect it and show the petition/decree switcher.
+    // activeSubDocument tracks which sub-document is currently being viewed.
+    const internalDocType = isDivorcePackage ? 'divorce_package' : 'general';
 
     try {
       console.log('📄 Creating new document...', { documentType, isDivorcePackage });
@@ -632,6 +633,10 @@ export const DocumentProvider = ({ children }) => {
       });
 
       // Build payload
+      const isDivorceDoc = fullDocumentData.documentType === 'divorce_package' ||
+        fullDocumentData.documentType === 'divorce_petition' ||
+        fullDocumentData.documentType === 'divorce_decree';
+
       const payload = {
         affidavitData: {
           state: fullDocumentData.state || '',
@@ -646,13 +651,18 @@ export const DocumentProvider = ({ children }) => {
           county: fullDocumentData.county || '',
           caseType: fullDocumentData.caseType || '',
           documentType: fullDocumentData.documentType || 'general',
+          activeSubDocument: fullDocumentData.activeSubDocument || null,
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
         },
         title: fullDocumentData.documentTitle ||
-          (fullDocumentData.affiantName
-            ? `Affidavit of ${fullDocumentData.affiantName}`
-            : 'Untitled Affidavit'),
+          (isDivorceDoc
+            ? (fullDocumentData.affiantName
+              ? `Divorce Package - ${fullDocumentData.affiantName}`
+              : 'Untitled Divorce Package')
+            : (fullDocumentData.affiantName
+              ? `Affidavit of ${fullDocumentData.affiantName}`
+              : 'Untitled Affidavit')),
         content: JSON.stringify(fullDocumentData)
       };
 

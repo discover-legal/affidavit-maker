@@ -664,8 +664,15 @@ const ValidationSidebar = () => {
             };
           }
 
+          // Update UI immediately
           updateDocumentDataWithoutPreview({ facts: updatedFacts });
-          await saveDocument({ facts: updatedFacts });
+
+          // Save is best-effort - don't fail the rewrite if save fails
+          try {
+            await saveDocument({ facts: updatedFacts });
+          } catch (saveError) {
+            console.warn('Auto-save after rewrite failed (rewrite still applied):', saveError.message);
+          }
         } else {
           throw new Error(data.error || 'Failed to generate rewrite');
         }
@@ -730,37 +737,39 @@ const ValidationSidebar = () => {
 
   // Apply professional rewrite
   const applyProfessionalRewrite = async (index, rewrite) => {
-    // Use ref to get LATEST facts and avoid stale closure state
-    const updatedFacts = [...latestDocumentRef.current.facts];
-    const currentFact = updatedFacts[index];
+    try {
+      // Use ref to get LATEST facts and avoid stale closure state
+      const updatedFacts = [...latestDocumentRef.current.facts];
+      const currentFact = updatedFacts[index];
 
-    if (typeof currentFact === 'object' && currentFact !== null) {
-      updatedFacts[index] = {
-        ...currentFact,
-        content: rewrite,
-        professionalRewrite: rewrite,
-        // Preserve originalContent and initialRewrite (never change)
-        originalContent: currentFact.originalContent || currentFact.content,
-        initialRewrite: currentFact.initialRewrite || currentFact.professionalRewrite,
-        lastEdited: new Date().toISOString()
-      };
-    } else {
-      // Handle legacy string facts
-      updatedFacts[index] = {
-        content: rewrite,
-        originalContent: currentFact,
-        initialRewrite: rewrite,
-        professionalRewrite: rewrite,
-        category: 'general',
-        lastEdited: new Date().toISOString()
-      };
+      if (typeof currentFact === 'object' && currentFact !== null) {
+        updatedFacts[index] = {
+          ...currentFact,
+          content: rewrite,
+          professionalRewrite: rewrite,
+          // Preserve originalContent and initialRewrite (never change)
+          originalContent: currentFact.originalContent || currentFact.content,
+          initialRewrite: currentFact.initialRewrite || currentFact.professionalRewrite,
+          lastEdited: new Date().toISOString()
+        };
+      } else {
+        // Handle legacy string facts
+        updatedFacts[index] = {
+          content: rewrite,
+          originalContent: currentFact,
+          initialRewrite: rewrite,
+          professionalRewrite: rewrite,
+          category: 'general',
+          lastEdited: new Date().toISOString()
+        };
+      }
+
+      // updateDocumentData triggers preview regeneration AND an immediate save
+      // for fact changes (inside DocumentContext), so no need to call saveDocument again
+      updateDocumentData({ facts: updatedFacts });
+    } catch (error) {
+      console.error('Failed to apply professional rewrite:', error);
     }
-
-    // ✅ FIX: Update state first
-    updateDocumentData({ facts: updatedFacts });
-
-    // ✅ FIX: Pass the updated facts directly to saveDocument to avoid race condition
-    await saveDocument({ facts: updatedFacts });
   };
 
   // Start editing

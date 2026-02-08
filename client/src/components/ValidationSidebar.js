@@ -481,6 +481,10 @@ const ValidationSidebar = () => {
   const [showEvidenceUpload, setShowEvidenceUpload] = useState(false);
   const [currentEvidence, setCurrentEvidence] = useState(null);
 
+  // Rewrite-all state
+  const [isRewritingAll, setIsRewritingAll] = useState(false);
+  const [rewriteAllProgress, setRewriteAllProgress] = useState({ current: 0, total: 0 });
+
   // Lock to prevent concurrent rewrite operations from racing
   const rewriteLockRef = React.useRef(Promise.resolve());
   // Ref to always get the latest document state
@@ -573,133 +577,161 @@ const ValidationSidebar = () => {
     }
   };
 
-  // Request professional rewrite
-  const requestProfessionalRewrite = async (index) => {
-    // Set loading state immediately (even if queued) so icon changes to spinner
+  // Request professional rewrite for a single fact
+  const requestProfessionalRewrite = (index) => {
+    // Set loading state immediately so icon changes to spinner
     setGeneratingRewrite(prev => new Set(prev).add(index));
 
-    try {
-      // Wait for any previous rewrite operations to complete (prevent race conditions)
-      await rewriteLockRef.current;
+    // Capture the previous lock SYNCHRONOUSLY before any async work
+    // This ensures concurrent calls properly chain (each sees the updated lock)
+    const previousLock = rewriteLockRef.current;
 
-      // Create a promise for this operation and update the lock
-      const operationPromise = (async () => {
+    const operationPromise = (async () => {
+      try {
+        // Wait for previous operation to complete (serializes concurrent calls)
+        await previousLock;
+
         // Read from ref to get the LATEST facts array
         const fact = latestDocumentRef.current.facts[index];
+        if (!fact) {
+          throw new Error(`Fact at index ${index} not found`);
+        }
 
-        try {
-        // Use relative URLs in production (empty string), localhost in development
         const API_BASE = process.env.REACT_APP_API_URL !== undefined
           ? process.env.REACT_APP_API_URL
           : 'http://localhost:3001';
-      
-      let headers = { 'Content-Type': 'application/json' };
-      if (isAuthenticated) {
-        try {
-          const token = await getAccessTokenSilently({
-            authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
-          });
-          headers['Authorization'] = `Bearer ${token}`;
-        } catch (authError) {
-          console.warn('Auth failed for rewrite request');
-        }
-      }
-      
-      const response = await fetch(`${API_BASE}/api/facts/rewrite`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          fact: {
-            content: typeof fact === 'string' ? fact : fact.content,
-            originalContent: typeof fact === 'string' ? fact : (fact.originalContent || fact.content),
-            initialRewrite: typeof fact === 'object' ? fact.initialRewrite : null,
-            category: fact.category || 'general',
-            subcategory: fact.subcategory
-          },
-          allFacts: latestDocumentRef.current.facts.map(f => ({
-            content: typeof f === 'string' ? f : f.content,
-            category: f.category || 'general',
-            subcategory: f.subcategory
-          })),
-          factIndex: index,
-          context: {
-            state: latestDocumentRef.current.state,
-            caseType: latestDocumentRef.current.caseType,
-            affiantName: latestDocumentRef.current.affiantName
+
+        let headers = { 'Content-Type': 'application/json' };
+        if (isAuthenticated) {
+          try {
+            const token = await getAccessTokenSilently({
+              authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
+            });
+            headers['Authorization'] = `Bearer ${token}`;
+          } catch (authError) {
+            console.warn('Auth failed for rewrite request');
           }
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.professionalRewrite) {
-        // Read LATEST facts to avoid race condition
-        const updatedFacts = [...latestDocumentRef.current.facts];
-        const currentFact = updatedFacts[index];
-
-        if (typeof currentFact === 'object' && currentFact !== null) {
-          updatedFacts[index] = {
-            ...currentFact,
-            professionalRewrite: data.professionalRewrite,
-            // Set initialRewrite only if this is the first time (preserve existing initialRewrite)
-            initialRewrite: currentFact.initialRewrite || data.professionalRewrite,
-            // Ensure originalContent is preserved
-            originalContent: currentFact.originalContent || currentFact.content,
-            hasRewrite: true
-          };
-        } else {
-          // Handle legacy string facts
-          updatedFacts[index] = {
-            content: currentFact,
-            originalContent: currentFact,
-            initialRewrite: data.professionalRewrite,
-            professionalRewrite: data.professionalRewrite,
-            category: 'general',
-            hasRewrite: true
-          };
         }
 
-        // ✅ FIX: Update state WITHOUT triggering preview generation
-        // Preview should only update when the rewrite is applied, not when it's generated
-        updateDocumentDataWithoutPreview({ facts: updatedFacts });
+        const response = await fetch(`${API_BASE}/api/facts/rewrite`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            fact: {
+              content: typeof fact === 'string' ? fact : fact.content,
+              originalContent: typeof fact === 'string' ? fact : (fact.originalContent || fact.content),
+              initialRewrite: typeof fact === 'object' ? fact.initialRewrite : null,
+              category: fact.category || 'general',
+              subcategory: fact.subcategory
+            },
+            allFacts: latestDocumentRef.current.facts.map(f => ({
+              content: typeof f === 'string' ? f : f.content,
+              category: f.category || 'general',
+              subcategory: f.subcategory
+            })),
+            factIndex: index,
+            context: {
+              state: latestDocumentRef.current.state,
+              caseType: latestDocumentRef.current.caseType,
+              affiantName: latestDocumentRef.current.affiantName
+            }
+          })
+        });
 
-        // ✅ FIX: Pass the updated facts directly to saveDocument to avoid race condition
-        // This ensures we save the correct data instead of relying on potentially stale state
-        await saveDocument({ facts: updatedFacts });
-      } else {
-        throw new Error(data.error || 'Failed to generate rewrite');
+        const data = await response.json();
+
+        if (data.success && data.professionalRewrite) {
+          // Read LATEST facts to avoid race condition
+          const updatedFacts = [...latestDocumentRef.current.facts];
+          const currentFact = updatedFacts[index];
+
+          if (typeof currentFact === 'object' && currentFact !== null) {
+            updatedFacts[index] = {
+              ...currentFact,
+              professionalRewrite: data.professionalRewrite,
+              initialRewrite: currentFact.initialRewrite || data.professionalRewrite,
+              originalContent: currentFact.originalContent || currentFact.content,
+              hasRewrite: true
+            };
+          } else {
+            updatedFacts[index] = {
+              content: currentFact,
+              originalContent: currentFact,
+              initialRewrite: data.professionalRewrite,
+              professionalRewrite: data.professionalRewrite,
+              category: 'general',
+              hasRewrite: true
+            };
+          }
+
+          updateDocumentDataWithoutPreview({ facts: updatedFacts });
+          await saveDocument({ facts: updatedFacts });
+        } else {
+          throw new Error(data.error || 'Failed to generate rewrite');
+        }
+      } catch (error) {
+        console.error('Professional rewrite failed:', error);
+        alert('Failed to generate professional rewrite. Please try again.');
+      } finally {
+        setGeneratingRewrite(prev => {
+          const next = new Set(prev);
+          next.delete(index);
+          return next;
+        });
       }
-    } catch (error) {
-      console.error('Professional rewrite failed:', error);
-      alert('Failed to generate professional rewrite. Please try again.');
-    } finally {
-      setGeneratingRewrite(prev => {
-        const next = new Set(prev);
-        next.delete(index);
-        return next;
-      });
-    }
-      })();
+    })();
 
-      // Update the lock to this operation's promise
-      rewriteLockRef.current = operationPromise;
+    // Update lock SYNCHRONOUSLY so the next concurrent call chains onto this one
+    rewriteLockRef.current = operationPromise;
 
-      return operationPromise;
-    } catch (error) {
-      // Handle errors that occur before the operation starts (e.g., while waiting for lock)
-      console.error('Failed to queue professional rewrite:', error);
-      setGeneratingRewrite(prev => {
-        const next = new Set(prev);
-        next.delete(index);
-        return next;
-      });
-      throw error;
+    return operationPromise;
+  };
+
+  // Rewrite all facts professionally (sequential, chained)
+  const rewriteAllFacts = async () => {
+    const facts = latestDocumentRef.current.facts || [];
+    // Only rewrite non-evidence facts that don't already have a rewrite
+    const factIndices = facts
+      .map((f, i) => ({ fact: f, index: i }))
+      .filter(({ fact }) => !isEvidence(fact) && !fact.professionalRewrite)
+      .map(({ index }) => index);
+
+    if (factIndices.length === 0) {
+      // All facts already have rewrites - offer to rewrite all anyway
+      const allFactIndices = facts
+        .map((f, i) => ({ fact: f, index: i }))
+        .filter(({ fact }) => !isEvidence(fact))
+        .map(({ index }) => index);
+
+      if (allFactIndices.length === 0) return;
+
+      if (!window.confirm('All facts already have professional rewrites. Regenerate them all?')) {
+        return;
+      }
+      factIndices.push(...allFactIndices);
     }
+
+    setIsRewritingAll(true);
+    setRewriteAllProgress({ current: 0, total: factIndices.length });
+
+    for (let i = 0; i < factIndices.length; i++) {
+      setRewriteAllProgress({ current: i + 1, total: factIndices.length });
+      try {
+        await requestProfessionalRewrite(factIndices[i]);
+      } catch (error) {
+        console.error(`Failed to rewrite fact ${factIndices[i]}:`, error);
+        // Continue with remaining facts
+      }
+    }
+
+    setIsRewritingAll(false);
+    setRewriteAllProgress({ current: 0, total: 0 });
   };
 
   // Apply professional rewrite
   const applyProfessionalRewrite = async (index, rewrite) => {
-    const updatedFacts = [...currentDocument.facts];
+    // Use ref to get LATEST facts and avoid stale closure state
+    const updatedFacts = [...latestDocumentRef.current.facts];
     const currentFact = updatedFacts[index];
 
     if (typeof currentFact === 'object' && currentFact !== null) {
@@ -964,8 +996,29 @@ const ValidationSidebar = () => {
         <p className="text-sm text-gray-600 mt-2">
           {factCount} fact{factCount !== 1 ? 's' : ''} • {evidenceCount} exhibit{evidenceCount !== 1 ? 's' : ''}
         </p>
+        {/* Rewrite All Facts button */}
+        {factCount > 0 && (
+          <button
+            onClick={rewriteAllFacts}
+            disabled={isRewritingAll || generatingRewrite.size > 0}
+            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 text-sm rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Professionally rewrite all facts"
+          >
+            {isRewritingAll ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Rewriting {rewriteAllProgress.current}/{rewriteAllProgress.total}...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Rewrite All Facts
+              </>
+            )}
+          </button>
+        )}
         <p className="text-xs text-gray-500 mt-1">
-          ⚡ Drag to reorder
+          Drag to reorder
         </p>
       </div>
 

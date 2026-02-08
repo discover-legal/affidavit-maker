@@ -33,10 +33,13 @@ const DocumentPreview = () => {
   const { currentDocument, preview, isPreviewLoading } = useDocumentData();
   const { generatePreview, switchSubDocument } = useDocumentActions();
 
-  // Check if this is a divorce package
-  const isDivorcePackage = currentDocument.documentType === 'divorce_petition' ||
+  // Check if this is a divorce package (any divorce document type)
+  const isDivorcePackage = currentDocument.documentType === 'divorce_package' ||
+                           currentDocument.documentType === 'divorce_petition' ||
                            currentDocument.documentType === 'divorce_decree';
-  const activeSubDocument = currentDocument.activeSubDocument || currentDocument.documentType;
+  // For divorce_package, default to petition view if no sub-document selected
+  const activeSubDocument = currentDocument.activeSubDocument ||
+    (currentDocument.documentType === 'divorce_package' ? 'divorce_petition' : currentDocument.documentType);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -158,47 +161,92 @@ const DocumentPreview = () => {
     console.log('📄 DocumentPreview: Processing preview sections:', Object.keys(preview.sections));
     const sections = preview.sections;
     const allContent = [];
-    
-    // Section order for affidavit
-    // Note: 'facts' now includes competency statement as first item
-    // Note: 'notaryInstruction' must come before 'notaryBlock' (Utah requirement)
-    const sectionOrder = [
-      'header', 'venue', 'caseCaption', 'title',
-      'introduction', 'facts', 'conclusion',
-      'perjuryStatement', 'signatureBlock', 'notaryInstruction', 'notaryBlock'
-    ];
-    
+
+    // Determine section order based on document type
+    const docType = currentDocument.activeSubDocument || currentDocument.documentType || 'general';
+
+    const SECTION_ORDERS = {
+      // Affidavit section order
+      affidavit: [
+        'header', 'venue', 'caseCaption', 'title',
+        'introduction', 'facts', 'conclusion',
+        'perjuryStatement', 'signatureBlock', 'notaryInstruction', 'notaryBlock'
+      ],
+      general: [
+        'header', 'venue', 'caseCaption', 'title',
+        'introduction', 'facts', 'conclusion',
+        'perjuryStatement', 'signatureBlock', 'notaryInstruction', 'notaryBlock'
+      ],
+      // Divorce petition section order
+      divorce_petition: [
+        'header', 'venue', 'caseCaption', 'title',
+        'parties', 'jurisdiction', 'marriageInfo', 'grounds',
+        'childrenInfo', 'propertyInfo', 'reliefRequested',
+        'verification', 'signatureBlock', 'footer'
+      ],
+      // Divorce decree section order
+      divorce_decree: [
+        'header', 'venue', 'caseCaption', 'title',
+        'appearances', 'jurisdiction', 'dissolution',
+        'propertyDivision', 'debtAllocation', 'childCustody',
+        'childSupport', 'spousalSupport', 'nameChange',
+        'finalOrders', 'judgmentBlock', 'signatureBlock', 'footer'
+      ]
+    };
+
+    const sectionOrder = SECTION_ORDERS[docType] || SECTION_ORDERS.general;
+
+    // Helper: process a section with title + items (divorce document sections)
+    const processTitledSection = (key, section) => {
+      if (section.title) {
+        allContent.push({
+          type: 'section-title',
+          content: section.title,
+          keepWithNext: true,
+          breakBefore: false,
+          isBlockElement: false
+        });
+      }
+      if (section.items && Array.isArray(section.items)) {
+        section.items.forEach((item, itemIndex) => {
+          const isLast = itemIndex === section.items.length - 1;
+          allContent.push({
+            type: item.type || 'paragraph',
+            content: `${item.number || (itemIndex + 1)}. ${item.content || ''}`,
+            keepWithNext: false,
+            breakBefore: false,
+            isBlockElement: false,
+            isLastFact: false
+          });
+        });
+      }
+    };
+
     // Process sections into content array
     sectionOrder.forEach(key => {
       const section = sections[key];
       if (!section) return;
-      
+
       if (key === 'facts' && section.items && Array.isArray(section.items)) {
-        // FIXED: Handle facts with numbering from StateTemplateManager
-        // Facts array includes competency statement as first item
+        // Handle facts with numbering from StateTemplateManager
         section.items.forEach((fact, factIndex) => {
-          // Use the fact number from the template manager (already correct)
           const factNumber = fact.number || 1;
           const factContent = fact.content || String(fact);
           const factType = fact.type || 'fact';
-
-          // CONVENTION: Last fact must have keepWithNext to prevent orphaning closing sections
-          // Closing sections (conclusion, perjury, signature, notary) must always be with at least one fact
           const isLastFact = factIndex === section.items.length - 1;
           const hasNotaryBlock = sections.notaryBlock || sections.notaryInstruction;
 
           allContent.push({
-            type: factType, // Can be 'competency' or 'fact'
+            type: factType,
             content: `${factNumber}. ${factContent}`,
-            keepWithNext: isLastFact && hasNotaryBlock, // Keep closing sections with at least one fact
+            keepWithNext: isLastFact && hasNotaryBlock,
             breakBefore: false,
             isBlockElement: false,
-            isLastFact: isLastFact  // Track if this is the last fact for special handling
+            isLastFact: isLastFact
           });
         });
       } else if (key === 'caseCaption' && section) {
-        // Handle case caption (object with formatted property)
-        const captionContent = section.formatted || section.content || '';
+        const captionContent = section.formatted || section.content || (typeof section === 'string' ? section : '');
         allContent.push({
           type: 'caseCaption',
           content: captionContent,
@@ -207,17 +255,15 @@ const DocumentPreview = () => {
           isBlockElement: false
         });
       } else if (key === 'signatureBlock' && section) {
-        // Handle signature block (object with formatted property)
-        const signatureContent = section.formatted || section.content || '';
+        const signatureContent = section.formatted || section.content || (typeof section === 'string' ? section : '');
         allContent.push({
           type: 'signature',
           content: signatureContent,
-          keepWithNext: true, // Keep with notary
+          keepWithNext: !!sections.notaryBlock || !!sections.notaryInstruction,
           breakBefore: false,
           isBlockElement: false
         });
       } else if (key === 'notaryBlock' && section) {
-        // Handle notary block (string)
         allContent.push({
           type: 'notary',
           content: typeof section === 'string' ? section : section.content || '',
@@ -226,16 +272,17 @@ const DocumentPreview = () => {
           isBlockElement: true
         });
       } else if (key === 'notaryInstruction' && section) {
-        // Handle notary instruction (Utah-specific)
         allContent.push({
           type: 'notary-instruction',
           content: typeof section === 'string' ? section : section.content || '',
-          keepWithNext: true, // Keep with notary block
+          keepWithNext: true,
           breakBefore: false,
           isBlockElement: false
         });
+      } else if (section && typeof section === 'object' && section.title && section.items) {
+        // Divorce-style sections with title + numbered items
+        processTitledSection(key, section);
       } else if (section && typeof section === 'string') {
-        // Handle string sections (like perjuryStatement, conclusion, etc.)
         const sectionData = {
           type: key,
           content: section,
@@ -244,24 +291,28 @@ const DocumentPreview = () => {
           isBlockElement: key === 'notaryBlock'
         };
 
-        // FIXED: Keep conclusion, perjury statement, and signature together with notary
-        // This ensures the keepWithNext chain is complete from last fact through notary block
         if (key === 'conclusion' || key === 'perjuryStatement') {
           sectionData.keepWithNext = true;
         }
 
         allContent.push(sectionData);
+      } else if (section?.formatted) {
+        // Object with formatted text (like verification blocks)
+        allContent.push({
+          type: key,
+          content: section.formatted,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: false
+        });
       } else if (section?.content) {
-        // Handle object sections with content property
-        const sectionData = {
+        allContent.push({
           type: section.type || key,
           content: section.content,
           keepWithNext: false,
           breakBefore: false,
           isBlockElement: key === 'notaryBlock'
-        };
-
-        allContent.push(sectionData);
+        });
       }
     });
 
@@ -327,6 +378,19 @@ const DocumentPreview = () => {
         case 'introduction':
           // Use actual text measurement with indent
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
+          break;
+        case 'section-title':
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight * 2;
+          break;
+        case 'paragraph':
+        case 'party_identification':
+        case 'jurisdiction':
+        case 'marriage_info':
+        case 'grounds_statement':
+        case 'children_info':
+        case 'property_info':
+        case 'relief':
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
           break;
         case 'fact':
         case 'evidence':
@@ -683,6 +747,36 @@ const DocumentPreview = () => {
           </p>
         );
 
+      case 'section-title':
+        return (
+          <div key={key} className="affidavit-section-title">
+            {section.content}
+          </div>
+        );
+
+      case 'paragraph':
+      case 'party_identification':
+      case 'jurisdiction':
+      case 'marriage_info':
+      case 'grounds_statement':
+      case 'children_info':
+      case 'property_info':
+      case 'relief':
+        return (
+          <p key={key} className="affidavit-fact">
+            {section.content}
+          </p>
+        );
+
+      case 'verification':
+      case 'judgmentBlock':
+      case 'footer':
+        return (
+          <div key={key} className="affidavit-signature">
+            <pre>{section.content}</pre>
+          </div>
+        );
+
       case 'continuation':
         return (
           <div key={key} className="affidavit-continuation">
@@ -859,6 +953,13 @@ const DocumentPreview = () => {
           line-height: 1.85; /* Matches PDF's 10pt + 6pt lineGap = 24px total */
           white-space: pre-wrap;
           color: #0066cc;
+        }
+
+        .affidavit-section-title {
+          font-weight: bold;
+          text-decoration: underline;
+          margin-top: ${PAGE_CONFIG.lineHeight * 1.5}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight / 2}px;
         }
 
         .affidavit-continuation {

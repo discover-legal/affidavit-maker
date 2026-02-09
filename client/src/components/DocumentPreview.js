@@ -320,9 +320,10 @@ const DocumentPreview = () => {
     const paginatedPages = [];
     let currentPageContent = [];
     let currentPageHeight = 0;
-    // Available writable height: 879px
-    // This allows optimal content per page while maintaining readability
-    const maxPageHeight = 879;
+    // Available writable height: page is 1056px (11in @ 96DPI), minus 96px top + 96px bottom padding
+    // With box-sizing: border-box, content area = 1056 - 192 = 864px
+    // Use slightly less to prevent edge-case overflow
+    const maxPageHeight = 850;
 
     console.log(`📄 Total sections to paginate: ${allContent.length}`);
     allContent.forEach((section, idx) => {
@@ -344,10 +345,11 @@ const DocumentPreview = () => {
           break;
         case 'caseCaption':
         case 'case-caption':
-          // Use actual text measurement for multi-line captions
+          // Use actual text measurement for multi-line captions (rendered with white-space: pre-line)
+          // Divorce captions have many \n newlines that must be counted
           // PDF: text + moveDown(1.5) + border + moveDown(1.0)
           // Preview: text + padding-bottom(20px) + border(2px) + margin-bottom(16px) = text + 38px
-          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 38;
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + 38;
           break;
         case 'notary':
         case 'notaryBlock':
@@ -385,11 +387,18 @@ const DocumentPreview = () => {
         case 'paragraph':
         case 'party_identification':
         case 'jurisdiction':
+        case 'venue':
         case 'marriage_info':
         case 'grounds_statement':
+        case 'grounds':
         case 'children_info':
+        case 'child_detail':
         case 'property_info':
+        case 'property_request':
+        case 'debt_info':
         case 'relief':
+        case 'relief_intro':
+        case 'relief_item':
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
           break;
         case 'fact':
@@ -757,11 +766,18 @@ const DocumentPreview = () => {
       case 'paragraph':
       case 'party_identification':
       case 'jurisdiction':
+      case 'venue':
       case 'marriage_info':
       case 'grounds_statement':
+      case 'grounds':
       case 'children_info':
+      case 'child_detail':
       case 'property_info':
+      case 'property_request':
+      case 'debt_info':
       case 'relief':
+      case 'relief_intro':
+      case 'relief_item':
         return (
           <p key={key} className="affidavit-fact">
             {section.content}

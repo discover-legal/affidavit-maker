@@ -209,9 +209,8 @@ const DocumentPreview = () => {
       }
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach((item, itemIndex) => {
-          const isLast = itemIndex === section.items.length - 1;
           allContent.push({
-            type: item.type || 'paragraph',
+            type: 'paragraph',
             content: `${item.number || (itemIndex + 1)}. ${item.content || ''}`,
             keepWithNext: false,
             breakBefore: false,
@@ -338,7 +337,7 @@ const DocumentPreview = () => {
       switch(section.type) {
         case 'header':
         case 'venue':
-          sectionHeight = 60; // Reduced: 0.5 moveDown in PDF (12pt = 16px) + text height
+          sectionHeight = 40; // One line (~24px) + margin-bottom (16px) = 40px
           break;
         case 'title':
           sectionHeight = 80; // Title with border and 1.5 moveDown (PDF uses ~60 points = 80px)
@@ -385,20 +384,6 @@ const DocumentPreview = () => {
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight * 2;
           break;
         case 'paragraph':
-        case 'party_identification':
-        case 'jurisdiction':
-        case 'venue':
-        case 'marriage_info':
-        case 'grounds_statement':
-        case 'grounds':
-        case 'children_info':
-        case 'child_detail':
-        case 'property_info':
-        case 'property_request':
-        case 'debt_info':
-        case 'relief':
-        case 'relief_intro':
-        case 'relief_item':
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
           break;
         case 'fact':
@@ -764,20 +749,6 @@ const DocumentPreview = () => {
         );
 
       case 'paragraph':
-      case 'party_identification':
-      case 'jurisdiction':
-      case 'venue':
-      case 'marriage_info':
-      case 'grounds_statement':
-      case 'grounds':
-      case 'children_info':
-      case 'child_detail':
-      case 'property_info':
-      case 'property_request':
-      case 'debt_info':
-      case 'relief':
-      case 'relief_intro':
-      case 'relief_item':
         return (
           <p key={key} className="affidavit-fact">
             {section.content}

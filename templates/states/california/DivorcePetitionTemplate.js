@@ -14,19 +14,6 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - California Code of Civil Procedure § 2015.5 (Declarations)
  * - California Rules of Court, Rule 5.12 (Format of papers)
  *
- * Official Forms:
- * - FL-100: Petition—Marriage/Domestic Partnership
- * - FL-110: Summons (Family Law)
- * - FL-115: Proof of Service of Summons
- * - FL-105: Declaration Under UCCJEA (if children)
- *
- * Formatting Requirements (California Rules of Court, Rule 2.100-2.119):
- * - 8.5" x 11" paper
- * - 1" margins (left 1.5" for binding)
- * - 12-point font minimum (proportionally spaced)
- * - Double-spaced text
- * - Page numbers at bottom
- *
  * California-Specific Notes:
  * - 6-month residency requirement (state) + 3-month (county)
  * - 6-month mandatory waiting period (longest in US)
@@ -79,25 +66,8 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       fontSize: '12pt',
       fontFamily: 'Times New Roman',
       lineHeight: '2',
-      marginTop: '1in',
-      marginBottom: '0.5in',
-      marginLeft: '1.5in', // Extra for binding
-      marginRight: '0.5in',
-      paperSize: '8.5in x 11in',
-      pageNumbers: true
-    };
-
-    // California uses specific form numbers
-    this.relatedForms = {
-      petition: 'FL-100',
-      summons: 'FL-110',
-      proofOfService: 'FL-115',
-      response: 'FL-120',
-      disclosure: 'FL-140',
-      scheduleOfAssets: 'FL-142',
-      incomeExpense: 'FL-150',
-      uccjea: 'FL-105',
-      judgment: 'FL-180'
+      margin: '1in',
+      paperSize: '8.5in x 11in'
     };
   }
 
@@ -136,291 +106,193 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Generate California case caption (follows Judicial Council format)
+   * Get California jurisdiction statement
    * @param {Object} divorceData - Divorce data
-   * @returns {Object} Case caption
+   * @returns {string} Jurisdiction statement
    */
-  generateCaseCaption(divorceData) {
-    let caption = '';
-
-    // Attorney/Self-Rep info (left side header on actual form)
-    const petitionerAddress = divorceData.petitionerAddress || '[ADDRESS]\n[CITY, STATE ZIP]';
-    const phone = divorceData.petitionerPhone || '[PHONE]';
-
-    caption += `PETITIONER (Self-Represented):\n`;
-    caption += `${divorceData.petitionerName || '[PETITIONER NAME]'}\n`;
-    caption += `${petitionerAddress}\n`;
-    caption += `Telephone: ${phone}\n\n`;
-
-    // Court
-    caption += `SUPERIOR COURT OF CALIFORNIA, COUNTY OF ${(divorceData.county || '[COUNTY]').toUpperCase()}\n`;
-    caption += `Street Address: ${divorceData.courtAddress || '[COURT ADDRESS]'}\n`;
-    caption += `Mailing Address: ${divorceData.courtMailingAddress || '[SAME]'}\n\n`;
-
-    // Case number
-    caption += `CASE NUMBER: ${divorceData.caseNumber || '____________________'}\n\n`;
-
-    // Parties
-    caption += `PETITIONER: ${(divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase()}\n`;
-    caption += `RESPONDENT: ${(divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase()}\n\n`;
-
-    // Form title with number
-    caption += `PETITION FOR\n`;
-    caption += `☐ Dissolution (Divorce) of: ☒ Marriage ☐ Domestic Partnership\n`;
-    caption += `☐ Legal Separation of: ☐ Marriage ☐ Domestic Partnership\n`;
-    caption += `☐ Nullity of: ☐ Marriage ☐ Domestic Partnership\n`;
-    caption += `                                                    ${this.formNumber}`;
-
-    return {
-      courtName: `Superior Court of California, County of ${divorceData.county}`,
-      caseNumber: divorceData.caseNumber,
-      petitioner: divorceData.petitionerName,
-      respondent: divorceData.respondentName,
-      formatted: caption
-    };
+  getJurisdictionStatement(divorceData) {
+    return `Petitioner has been a resident of the State of California for at least six months and of ${divorceData.county || '[COUNTY]'} County for at least three months immediately preceding the filing of this Petition. (Family Code § 2320)`;
   }
 
   /**
-   * Generate complete California petition following FL-100 structure
+   * Get California venue reason
    * @param {Object} divorceData - Divorce data
-   * @returns {Object} Complete document
+   * @returns {string} Venue reason
    */
-  generateDocument(divorceData = {}) {
-    const validation = this.validateData(divorceData);
-    const { v4: uuidv4 } = require('uuid');
-    const id = uuidv4();
-
-    // California FL-100 specific sections
-    const sections = this.generateFL100Sections(divorceData);
-
-    return {
-      id,
-      state: this.state,
-      documentType: this.documentType,
-      formNumber: this.formNumber,
-      timestamp: new Date(),
-      sections,
-      fullText: this.generateFullText(sections),
-      htmlContent: this.generateHTMLContent(sections),
-      validation,
-      formatting: this.formatting,
-      relatedForms: this.relatedForms
-    };
+  getVenueReason(divorceData) {
+    return `Petitioner resides in this county`;
   }
 
   /**
-   * Generate FL-100 specific sections
+   * Generate California marriage information section
+   * Includes separation date (required in California)
    * @param {Object} divorceData - Divorce data
-   * @returns {Object} All sections
+   * @returns {Object} Marriage information section
    */
-  generateFL100Sections(divorceData) {
+  generateMarriageInformationSection(divorceData) {
     const items = [];
+    let paragraphNum = divorceData._paragraphNum || 5;
 
-    // Item 1: Residence
     items.push({
-      number: 1,
-      title: 'RESIDENCE REQUIREMENTS',
-      content: this.getResidenceText(divorceData),
-      type: 'residence'
+      number: paragraphNum++,
+      content: `Petitioner and Respondent were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}.`,
+      type: 'marriage_info'
     });
 
-    // Item 2: Statistical Facts
+    // California requires date of separation
     items.push({
-      number: 2,
-      title: 'STATISTICAL FACTS',
-      content: this.getStatisticalFacts(divorceData),
-      type: 'statistical'
+      number: paragraphNum++,
+      content: `The parties separated on or about ${this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]'}.`,
+      type: 'marriage_info'
     });
 
-    // Item 3: Declaration regarding minor children
     items.push({
-      number: 3,
-      title: 'MINOR CHILDREN',
-      content: this.getChildrenDeclaration(divorceData),
-      type: 'children'
+      number: paragraphNum++,
+      content: `The marriage has become irretrievably broken due to irreconcilable differences. (Family Code § 2310(a))`,
+      type: 'marriage_info'
     });
 
-    // Item 4: Spousal support
-    items.push({
-      number: 4,
-      title: 'SPOUSAL OR DOMESTIC PARTNER SUPPORT',
-      content: this.getSpousalSupportRequest(divorceData),
-      type: 'support'
-    });
+    return {
+      title: 'III. MARRIAGE INFORMATION',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
 
-    // Item 5: Separate property
-    items.push({
-      number: 5,
-      title: 'SEPARATE PROPERTY',
-      content: 'There is separate property to be confirmed or there is no separate property to be confirmed.',
-      type: 'property'
-    });
+  /**
+   * Generate California grounds section
+   * California only allows irreconcilable differences or incurable insanity
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Grounds section
+   */
+  generateGroundsSection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 8;
 
-    // Item 6: Community and quasi-community property
     items.push({
-      number: 6,
-      title: 'COMMUNITY AND QUASI-COMMUNITY PROPERTY',
-      content: this.getCommunityPropertyText(divorceData),
-      type: 'property'
-    });
-
-    // Item 7: Legal grounds
-    items.push({
-      number: 7,
-      title: 'LEGAL GROUNDS',
-      content: this.getLegalGroundsText(divorceData),
+      number: paragraphNum++,
+      content: `Irreconcilable differences have caused the irremediable breakdown of the marriage. (Family Code § 2310(a))`,
       type: 'grounds'
     });
 
-    // Item 8: Attorney fees
-    items.push({
-      number: 8,
-      title: "ATTORNEY'S FEES",
-      content: divorceData.requestAttorneyFees
-        ? 'Petitioner requests that the court order Respondent to pay attorney fees and costs.'
-        : 'Each party will pay their own attorney fees and costs.',
-      type: 'fees'
-    });
-
     return {
-      header: this.generateHeader(),
-      venue: this.generateVenue(divorceData.county),
-      caseCaption: this.generateCaseCaption(divorceData),
-      title: this.documentTitle,
-      formNumber: this.formNumber,
+      title: 'IV. GROUNDS FOR DISSOLUTION',
       items,
-      declaration: this.generateDeclaration(divorceData),
-      signatureBlock: this.generateSignatureBlock(divorceData.petitionerName),
-      footer: this.generateFooter()
+      nextParagraphNumber: paragraphNum
     };
   }
 
   /**
-   * Get residence requirement text for Item 1
+   * Generate California children section with FL-105 reference
    * @param {Object} divorceData - Divorce data
-   * @returns {string} Residence text
+   * @returns {Object} Children section
    */
-  getResidenceText(divorceData) {
-    const county = divorceData.county || '[COUNTY]';
-    const petitioner = divorceData.petitionerName || 'Petitioner';
+  generateChildrenSection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 9;
 
-    return `a. ☒ ${petitioner} has been a resident of this state for at least six months and of this county for at least three months immediately preceding the filing of this Petition.\n\n` +
-           `b. ☐ We are the same sex, were married in California, and do not live in a state that will dissolve our marriage. This case is filed in the county where we married.`;
-  }
-
-  /**
-   * Get statistical facts for Item 2
-   * @param {Object} divorceData - Divorce data
-   * @returns {string} Statistical facts text
-   */
-  getStatisticalFacts(divorceData) {
-    const marriageDate = this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]';
-    const marriagePlace = divorceData.marriageLocation || '[CITY, STATE/COUNTRY]';
-    const separationDate = this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]';
-
-    return `a. Date of marriage: ${marriageDate}\n` +
-           `b. Place of marriage: ${marriagePlace}\n` +
-           `c. Date of separation: ${separationDate}\n` +
-           `d. Time from date of marriage to date of separation:\n` +
-           `   Years: ${divorceData.marriageLengthYears || '___'}  Months: ${divorceData.marriageLengthMonths || '___'}`;
-  }
-
-  /**
-   * Get children declaration for Item 3
-   * @param {Object} divorceData - Divorce data
-   * @returns {string} Children declaration text
-   */
-  getChildrenDeclaration(divorceData) {
     if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) {
-      return '☒ a. There are no minor children.\n' +
-             '☐ b. The minor children are: [N/A]\n' +
-             '☐ c. Continued on Attachment 3c.\n' +
-             '☐ d. If there are minor children, a completed Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA) (form FL-105) must be attached.';
+      items.push({
+        number: paragraphNum++,
+        content: `No children were born or adopted of this marriage, and none are expected.`,
+        type: 'children_info'
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: `The minor children of this marriage are as listed. A completed Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA) (Form FL-105) is attached.`,
+        type: 'children_info'
+      });
+
+      if (divorceData.children && Array.isArray(divorceData.children)) {
+        divorceData.children.forEach(child => {
+          const name = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
+          const birthDate = typeof child === 'object' && child.birthDate ? this.formatDate(child.birthDate) : '[BIRTH DATE]';
+          items.push({
+            number: paragraphNum++,
+            content: `${name}, born ${birthDate}`,
+            type: 'child_detail'
+          });
+        });
+      }
     }
-
-    let childrenList = divorceData.children.map((child, index) => {
-      const name = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-      const birthDate = typeof child === 'object' && child.birthDate ? this.formatDate(child.birthDate) : '[BIRTH DATE]';
-      return `   ${name}, born ${birthDate}`;
-    }).join('\n');
-
-    return '☐ a. There are no minor children.\n' +
-           '☒ b. The minor children are:\n' +
-           childrenList + '\n' +
-           '☐ c. Continued on Attachment 3c.\n' +
-           '☒ d. If there are minor children, a completed Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA) (form FL-105) must be attached.';
-  }
-
-  /**
-   * Get spousal support request for Item 4
-   * @param {Object} divorceData - Divorce data
-   * @returns {string} Spousal support text
-   */
-  getSpousalSupportRequest(divorceData) {
-    if (divorceData.requestSpousalSupport) {
-      return '☒ Petitioner requests spousal support from Respondent.\n' +
-             '☐ Respondent requests spousal support from Petitioner.\n' +
-             '☐ The court terminate (end) the court\'s ability to award support to Petitioner.\n' +
-             '☐ The court terminate (end) the court\'s ability to award support to Respondent.';
-    } else if (divorceData.waiveSpousalSupport) {
-      return '☐ Petitioner requests spousal support from Respondent.\n' +
-             '☐ Respondent requests spousal support from Petitioner.\n' +
-             '☒ The court terminate (end) the court\'s ability to award support to Petitioner.\n' +
-             '☒ The court terminate (end) the court\'s ability to award support to Respondent.';
-    }
-    return '☐ Petitioner requests spousal support from Respondent.\n' +
-           '☐ Respondent requests spousal support from Petitioner.\n' +
-           '☐ The court terminate (end) the court\'s ability to award support to Petitioner.\n' +
-           '☐ The court terminate (end) the court\'s ability to award support to Respondent.';
-  }
-
-  /**
-   * Get community property text for Item 6
-   * @param {Object} divorceData - Divorce data
-   * @returns {string} Community property text
-   */
-  getCommunityPropertyText(divorceData) {
-    if (divorceData.hasProperty === false) {
-      return '☒ There are no such assets or debts that I know of to be divided by the court.';
-    }
-    return '☐ There are no such assets or debts that I know of to be divided by the court.\n' +
-           '☒ Determine rights to community and quasi-community assets and debts. All such assets and debts are listed\n' +
-           '   ☐ in Property Declaration (form FL-160).    ☐ in Attachment 6.\n' +
-           '   ☒ below (specify):  To be determined';
-  }
-
-  /**
-   * Get legal grounds text for Item 7
-   * @param {Object} divorceData - Divorce data
-   * @returns {string} Legal grounds text
-   */
-  getLegalGroundsText(divorceData) {
-    // California only has irreconcilable differences or incurable insanity as grounds
-    return '☒ a. Irreconcilable differences (Family Code § 2310(a))\n' +
-           '☐ b. Incurable insanity (Family Code § 2310(b))';
-  }
-
-  /**
-   * Generate California declaration under penalty of perjury
-   * @param {Object} divorceData - Divorce data
-   * @returns {Object} Declaration section
-   */
-  generateDeclaration(divorceData) {
-    const name = divorceData.petitionerName || '[PETITIONER NAME]';
-    const county = divorceData.county || '[COUNTY]';
 
     return {
-      title: 'DECLARATION',
-      text: `I declare under penalty of perjury under the laws of the State of California that the foregoing is true and correct.
+      title: 'V. MINOR CHILDREN',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
 
-Date: ___________________
+  /**
+   * Generate California property section (community property state)
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Property section
+   */
+  generatePropertySection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 14;
 
-_________________________________
-${name}
-(TYPE OR PRINT NAME)                                    (SIGNATURE OF PETITIONER)
+    items.push({
+      number: paragraphNum++,
+      content: `Petitioner and Respondent will agree to a division of community property and debts, or alternatively, Petitioner requests the Court to determine rights to community and quasi-community assets and debts.`,
+      type: 'property_info'
+    });
 
-☐ Number of pages attached: ___`,
-      type: 'declaration'
+    items.push({
+      number: paragraphNum++,
+      content: `There exists community property owned by the parties, the nature and extent of which will be proven at trial or set forth in a Property Declaration (Form FL-160).`,
+      type: 'property_info'
+    });
+
+    if (divorceData.hasSeparateProperty !== false) {
+      items.push({
+        number: paragraphNum++,
+        content: `Petitioner requests the Court to confirm separate property to each party as their sole and separate property.`,
+        type: 'property_request'
+      });
+    }
+
+    return {
+      title: 'VI. PROPERTY',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
+
+  /**
+   * Generate California relief section
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Relief section
+   */
+  generateReliefSection(divorceData) {
+    const items = [];
+    let paragraphNum = 1;
+
+    items.push({
+      number: paragraphNum++,
+      content: `Petitioner prays that the Court grant a dissolution of the marriage and all other relief requested in this petition.`,
+      type: 'relief'
+    });
+
+    if (divorceData.requestSpousalSupport) {
+      items.push({
+        number: paragraphNum++,
+        content: `Petitioner requests spousal support from Respondent.`,
+        type: 'relief'
+      });
+    }
+
+    items.push({
+      number: paragraphNum++,
+      content: `Each party to pay their own attorney fees and costs, unless the Court determines otherwise. (Family Code § 2030)`,
+      type: 'relief'
+    });
+
+    return {
+      title: 'PRAYER',
+      items,
+      nextParagraphNumber: paragraphNum
     };
   }
 
@@ -458,12 +330,6 @@ ${name}
     // California requires date of separation
     if (!divorceData.separationDate) {
       errors.push('Date of separation is required for California dissolution petitions');
-    }
-
-    // California only allows two grounds
-    if (divorceData.groundsForDivorce &&
-        !['irreconcilable_differences', 'incurable_insanity', 'no_fault'].includes(divorceData.groundsForDivorce)) {
-      warnings.push('California only recognizes "irreconcilable differences" or "incurable insanity" as grounds for dissolution.');
     }
 
     // Warning about 6-month waiting period

@@ -202,15 +202,8 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         borderRadius: '6px',
       },
     },
-    // Disable "save payment method" checkbox to reduce modal height
-    paymentMethodSave: 'disabled',
-    // Optimize layout for mobile
-    layout: {
-      type: 'accordion',
-      defaultCollapsed: false,
-      radios: false,
-      spacedAccordionItems: false,
-    },
+    // Note: layout and paymentMethodSave are PaymentElement options, not Elements provider options.
+    // They are already configured in the PaymentElement component (PaymentForm).
   };
 
   return (

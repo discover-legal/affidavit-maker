@@ -349,7 +349,7 @@ class BaseDivorceDecreeTemplate {
     if (!dateStr) return null;
     const date = new Date(dateStr);
     if (isNaN(date)) return dateStr;
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
     return date.toLocaleDateString('en-US', options);
   }
 

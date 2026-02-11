@@ -209,17 +209,23 @@ class BaseDivorcePetitionTemplate {
     const validation = this.validateData(divorceData);
     const id = uuidv4();
 
-    // Generate all sections
+    // Generate all sections, threading paragraph numbers between them
     const header = this.generateHeader();
     const venue = this.generateVenue(divorceData.county);
     const caseCaption = this.generateCaseCaption(divorceData);
     const title = this.generateTitle();
     const parties = this.generatePartiesSection(divorceData);
+    divorceData._paragraphNum = parties.nextParagraphNumber;
     const jurisdiction = this.generateJurisdictionSection(divorceData);
+    divorceData._paragraphNum = jurisdiction.nextParagraphNumber;
     const marriageInfo = this.generateMarriageInformationSection(divorceData);
+    divorceData._paragraphNum = marriageInfo.nextParagraphNumber;
     const grounds = this.generateGroundsSection(divorceData);
+    divorceData._paragraphNum = grounds.nextParagraphNumber;
     const childrenInfo = this.generateChildrenSection(divorceData);
+    divorceData._paragraphNum = childrenInfo.nextParagraphNumber;
     const propertyInfo = this.generatePropertySection(divorceData);
+    divorceData._paragraphNum = propertyInfo.nextParagraphNumber;
     const reliefRequested = this.generateReliefSection(divorceData);
     const verification = this.generateVerificationSection(divorceData);
     const signatureBlock = this.generateSignatureBlock(divorceData.petitionerName);
@@ -478,7 +484,7 @@ class BaseDivorcePetitionTemplate {
     const date = new Date(dateStr);
     if (isNaN(date)) return dateStr;
 
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
     return date.toLocaleDateString('en-US', options);
   }
 

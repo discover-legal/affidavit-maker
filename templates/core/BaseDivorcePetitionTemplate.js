@@ -460,12 +460,6 @@ class BaseDivorcePetitionTemplate {
       });
     }
 
-    items.push({
-      number: paragraphNum++,
-      content: `The marriage has become insupportable because of discord or conflict of personalities that destroys the legitimate ends of the marriage relationship and prevents any reasonable expectation of reconciliation.`,
-      type: 'marriage_info'
-    });
-
     return {
       title: 'III. MARRIAGE INFORMATION',
       items,

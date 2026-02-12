@@ -18,6 +18,67 @@ try {
   logger.warn('Stripe not initialized in documents.js', { error: err.message });
 }
 
+/**
+ * Map chat-extracted divorce fields to template-expected field names
+ * @param {Object} divorceData - The divorce data object to map in-place
+ */
+function mapDivorceDataFields(divorceData) {
+  // Map party names
+  if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
+    divorceData.petitionerName = [divorceData.petitionerFirstName, divorceData.petitionerLastName].filter(Boolean).join(' ');
+  }
+  if (!divorceData.respondentName && (divorceData.respondentFirstName || divorceData.respondentLastName)) {
+    divorceData.respondentName = [divorceData.respondentFirstName, divorceData.respondentLastName].filter(Boolean).join(' ');
+  }
+  if (!divorceData.marriageLocation && divorceData.marriagePlace) {
+    divorceData.marriageLocation = divorceData.marriagePlace;
+  }
+  if (!divorceData.court && divorceData.courtName) {
+    divorceData.court = divorceData.courtName;
+  }
+
+  // Map children field names: chat uses dateOfBirth, template expects birthDate
+  if (Array.isArray(divorceData.children)) {
+    divorceData.children = divorceData.children.map(child => ({
+      ...child,
+      birthDate: child.birthDate || child.dateOfBirth || child.date_of_birth,
+      name: child.name || [child.firstName, child.lastName].filter(Boolean).join(' ')
+    }));
+  }
+
+  // Map grounds: normalize common variations to template-expected values
+  if (divorceData.groundsForDivorce) {
+    const groundsMap = {
+      'infidelity': 'adultery',
+      'cheating': 'adultery',
+      'unfaithful': 'adultery',
+      'abuse': 'cruelty',
+      'domestic_violence': 'cruelty',
+      'no_fault': 'insupportability',
+      'irreconcilable': 'irreconcilable_differences',
+      'separation': 'living_apart'
+    };
+    const normalized = divorceData.groundsForDivorce.toLowerCase().trim();
+    divorceData.groundsForDivorce = groundsMap[normalized] || divorceData.groundsForDivorce;
+  }
+
+  // Map custody fields
+  if (!divorceData.custodyType && divorceData.custodyPreference) {
+    divorceData.custodyType = divorceData.custodyPreference;
+  }
+
+  // Map spousal support fields
+  if (divorceData.requestingSpousalSupport) {
+    divorceData.requestSpousalSupport = true;
+    divorceData.spousalSupportAwarded = true;
+  }
+
+  // Map child support from extracted data
+  if (divorceData.childSupportMonthly) {
+    divorceData.childSupportAmount = divorceData.childSupportMonthly;
+  }
+}
+
 // Fixed preview route for routes/documents.js
 // Add this to your routes/documents.js file, replacing the existing /preview route
 
@@ -87,18 +148,7 @@ router.post('/preview',
             if (effectiveDocType === 'divorce_petition' || effectiveDocType === 'divorce_decree') {
               // Map chat-extracted fields to template-expected fields
               const divorceData = { ...affidavitData };
-              if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
-                divorceData.petitionerName = [divorceData.petitionerFirstName, divorceData.petitionerLastName].filter(Boolean).join(' ');
-              }
-              if (!divorceData.respondentName && (divorceData.respondentFirstName || divorceData.respondentLastName)) {
-                divorceData.respondentName = [divorceData.respondentFirstName, divorceData.respondentLastName].filter(Boolean).join(' ');
-              }
-              if (!divorceData.marriageLocation && divorceData.marriagePlace) {
-                divorceData.marriageLocation = divorceData.marriagePlace;
-              }
-              if (!divorceData.court && divorceData.courtName) {
-                divorceData.court = divorceData.courtName;
-              }
+              mapDivorceDataFields(divorceData);
 
               // Generate divorce document using the appropriate template method
               // TemplateRegistry (new system) uses generateDocument(state, data, docType)
@@ -427,18 +477,7 @@ router.post('/generate',
           if (effectiveDocType === 'divorce_petition' || effectiveDocType === 'divorce_decree') {
             // Map chat-extracted fields to template-expected fields
             const divorceData = { ...affidavitData };
-            if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
-              divorceData.petitionerName = [divorceData.petitionerFirstName, divorceData.petitionerLastName].filter(Boolean).join(' ');
-            }
-            if (!divorceData.respondentName && (divorceData.respondentFirstName || divorceData.respondentLastName)) {
-              divorceData.respondentName = [divorceData.respondentFirstName, divorceData.respondentLastName].filter(Boolean).join(' ');
-            }
-            if (!divorceData.marriageLocation && divorceData.marriagePlace) {
-              divorceData.marriageLocation = divorceData.marriagePlace;
-            }
-            if (!divorceData.court && divorceData.courtName) {
-              divorceData.court = divorceData.courtName;
-            }
+            mapDivorceDataFields(divorceData);
 
             // Generate divorce document using the appropriate template method
             if (typeof templateManager.generateDocument === 'function') {

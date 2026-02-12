@@ -208,15 +208,28 @@ const DocumentPreview = () => {
         });
       }
       if (section.items && Array.isArray(section.items)) {
-        section.items.forEach((item, itemIndex) => {
+        section.items.forEach((item) => {
+          // Only add number prefix for items that have an explicit number
+          const numberPrefix = item.number != null ? `${item.number}. ` : '';
           allContent.push({
             type: 'paragraph',
-            content: `${item.number || (itemIndex + 1)}. ${item.content || ''}`,
+            content: `${numberPrefix}${item.content || ''}`,
             keepWithNext: false,
             breakBefore: false,
             isBlockElement: false,
             isLastFact: false
           });
+        });
+      }
+      // Handle sections with text content (e.g., appearances, jurisdiction in decree)
+      if (section.text && !section.items) {
+        allContent.push({
+          type: 'paragraph',
+          content: section.text,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: false,
+          isLastFact: false
         });
       }
     };
@@ -278,8 +291,8 @@ const DocumentPreview = () => {
           breakBefore: false,
           isBlockElement: false
         });
-      } else if (section && typeof section === 'object' && section.title && section.items) {
-        // Divorce-style sections with title + numbered items
+      } else if (section && typeof section === 'object' && section.title && (section.items || section.text)) {
+        // Divorce-style sections with title + items or title + text
         processTitledSection(key, section);
       } else if (section && typeof section === 'string') {
         const sectionData = {
@@ -311,6 +324,15 @@ const DocumentPreview = () => {
           keepWithNext: false,
           breakBefore: false,
           isBlockElement: key === 'notaryBlock'
+        });
+      } else if (section?.text && typeof section.text === 'string') {
+        // Object with text property (e.g., judgmentBlock, decree text sections without title)
+        allContent.push({
+          type: section.type || key,
+          content: section.text,
+          keepWithNext: false,
+          breakBefore: false,
+          isBlockElement: false
         });
       }
     });

@@ -983,6 +983,11 @@ const ValidationSidebar = () => {
     setShowEvidenceUpload(false);
   };
 
+  // Detect divorce document type (read-only order, no reorder/rewrite)
+  const isDivorceDocument = currentDocument.documentType === 'divorce_package' ||
+    currentDocument.documentType === 'divorce_petition' ||
+    currentDocument.documentType === 'divorce_decree';
+
   // Count facts and evidence separately
   const factCount = currentDocument.facts?.filter(f => !isEvidence(f)).length || 0;
   const evidenceCount = currentDocument.facts?.filter(f => isEvidence(f)).length || 0;
@@ -992,21 +997,28 @@ const ValidationSidebar = () => {
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Facts & Evidence</h3>
-          <button
-            onClick={addNewEvidence}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-            title="Add evidence"
-          >
-            <FilePlus className="h-4 w-4" />
-            Add Evidence
-          </button>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {isDivorceDocument ? 'Divorce Facts' : 'Facts & Evidence'}
+          </h3>
+          {!isDivorceDocument && (
+            <button
+              onClick={addNewEvidence}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              title="Add evidence"
+            >
+              <FilePlus className="h-4 w-4" />
+              Add Evidence
+            </button>
+          )}
         </div>
         <p className="text-sm text-gray-600 mt-2">
-          {factCount} fact{factCount !== 1 ? 's' : ''} • {evidenceCount} exhibit{evidenceCount !== 1 ? 's' : ''}
+          {isDivorceDocument
+            ? `${factCount} fact${factCount !== 1 ? 's' : ''}`
+            : `${factCount} fact${factCount !== 1 ? 's' : ''} • ${evidenceCount} exhibit${evidenceCount !== 1 ? 's' : ''}`
+          }
         </p>
-        {/* Rewrite All Facts button */}
-        {factCount > 0 && (
+        {/* Rewrite All Facts button - not for divorce docs */}
+        {!isDivorceDocument && factCount > 0 && (
           <button
             onClick={rewriteAllFacts}
             disabled={isRewritingAll || generatingRewrite.size > 0}
@@ -1026,14 +1038,91 @@ const ValidationSidebar = () => {
             )}
           </button>
         )}
-        <p className="text-xs text-gray-500 mt-1">
-          Drag to reorder
-        </p>
+        {!isDivorceDocument && (
+          <p className="text-xs text-gray-500 mt-1">
+            Drag to reorder
+          </p>
+        )}
       </div>
 
       {/* Facts & Evidence List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {currentDocument.facts && currentDocument.facts.length > 0 ? (
+          isDivorceDocument ? (
+            /* Divorce documents: simple read-only list (no drag/reorder) */
+            currentDocument.facts.filter(f => !isEvidence(f)).map((item, index) => {
+              const content = typeof item === 'string' ? item : item?.content || '';
+              const category = typeof item === 'object' && item?.category ? item.category : null;
+              const actualIndex = currentDocument.facts.indexOf(item);
+              const isEditing = editingFactIndex === actualIndex;
+
+              return (
+                <div
+                  key={item.id || `divorce-fact-${index}`}
+                  className="p-3 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500">
+                        #{index + 1}
+                      </span>
+                      {category && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                          {category}
+                        </span>
+                      )}
+                    </div>
+                    {!isEditing && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditingFact(actualIndex)}
+                          className="p-1 text-gray-500 hover:text-blue-600 rounded transition-colors"
+                          title="Edit fact"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteFact(actualIndex)}
+                          className="p-1 text-gray-500 hover:text-red-600 rounded transition-colors"
+                          title="Delete fact"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editedFactContent}
+                        onChange={(e) => setEditedFactContent(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveEditedFact}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                        >
+                          <Save className="h-3 w-3" />
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEditingFact}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 flex items-center gap-1"
+                        >
+                          <X className="h-3 w-3" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-800">{content}</p>
+                  )}
+                </div>
+              );
+            })
+          ) : (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1096,11 +1185,12 @@ const ValidationSidebar = () => {
               })}
             </SortableContext>
           </DndContext>
+          )
         ) : (
           <div className="text-center text-gray-500 py-8">
             <Info className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No facts or evidence added yet</p>
-            <p className="text-xs mt-1">Start chatting to add facts, or click "Add Evidence" to attach exhibits</p>
+            <p className="text-sm">{isDivorceDocument ? 'No divorce facts added yet' : 'No facts or evidence added yet'}</p>
+            <p className="text-xs mt-1">{isDivorceDocument ? 'Start chatting to add facts about your divorce' : 'Start chatting to add facts, or click "Add Evidence" to attach exhibits'}</p>
           </div>
         )}
       </div>

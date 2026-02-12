@@ -674,11 +674,13 @@ class BaseDivorcePetitionTemplate {
     reliefItems.push('Grant such other and further relief to which Petitioner may be entitled.');
 
     reliefItems.forEach((relief, index) => {
+      const letter = String.fromCharCode(97 + index); // a, b, c format
       items.push({
-        number: index + 1,
+        number: null,
         content: relief,
         type: 'relief_item',
-        style: 'letter' // a, b, c format
+        style: 'letter',
+        letter: letter
       });
     });
 

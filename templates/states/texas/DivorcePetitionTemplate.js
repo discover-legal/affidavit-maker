@@ -383,11 +383,13 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     reliefItems.push('Such other and further relief, general and special, to which Petitioner may be justly entitled.');
 
     reliefItems.forEach((relief, index) => {
+      const letter = String.fromCharCode(97 + index); // a, b, c format
       items.push({
-        number: index + 1,
+        number: null,
         content: relief,
         type: 'relief_item',
-        style: 'number'
+        style: 'letter',
+        letter: letter
       });
     });
 

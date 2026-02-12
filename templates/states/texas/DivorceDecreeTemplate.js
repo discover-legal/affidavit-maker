@@ -221,20 +221,27 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
+    const petitionerName = divorceData.petitionerName || 'Petitioner';
+    const respondentName = divorceData.respondentName || 'Respondent';
+
     if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
       divorceData.petitionerProperty.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
       items.push({
-        content: '• All personal property in Petitioner\'s possession or subject to Petitioner\'s sole control',
+        content: `• All personal property currently in ${petitionerName}'s possession or subject to ${petitionerName}'s sole control, including but not limited to clothing, jewelry, and personal effects`,
+        type: 'property_item'
+      });
+      items.push({
+        content: `• All funds in accounts in ${petitionerName}'s sole name`,
         type: 'property_item'
       });
     }
 
     // Property to Respondent
     items.push({
-      content: `IT IS ORDERED AND DECREED that ${divorceData.respondentName || 'Respondent'} is awarded the following as ${divorceData.respondentName || 'Respondent'}'s sole and separate property, and ${divorceData.petitionerName || 'Petitioner'} is divested of all right, title, interest, and claim in and to that property:`,
+      content: `IT IS ORDERED AND DECREED that ${respondentName} is awarded the following as ${respondentName}'s sole and separate property, and ${petitionerName} is divested of all right, title, interest, and claim in and to that property:`,
       type: 'order'
     });
 
@@ -244,7 +251,11 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     } else {
       items.push({
-        content: '• All personal property in Respondent\'s possession or subject to Respondent\'s sole control',
+        content: `• All personal property currently in ${respondentName}'s possession or subject to ${respondentName}'s sole control, including but not limited to clothing, jewelry, and personal effects`,
+        type: 'property_item'
+      });
+      items.push({
+        content: `• All funds in accounts in ${respondentName}'s sole name`,
         type: 'property_item'
       });
     }

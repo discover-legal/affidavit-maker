@@ -97,6 +97,10 @@ app.use(helmet({
         "https://affidavit-maker.onrender.com",
         "https://discover.legal",
         "https://www.discover.legal",
+        // Dynamically include FRONTEND_URL so staging/other deployments work
+        process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()
+          ? process.env.FRONTEND_URL.trim()
+          : "",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com"],

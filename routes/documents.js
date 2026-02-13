@@ -77,6 +77,157 @@ function mapDivorceDataFields(divorceData) {
   if (divorceData.childSupportMonthly) {
     divorceData.childSupportAmount = divorceData.childSupportMonthly;
   }
+
+  // Extract structured data from facts text when structured fields are not set
+  // This ensures facts carry context across jurisdiction changes
+  extractStructuredDataFromFacts(divorceData);
+}
+
+/**
+ * Extract structured divorce data from fact text content.
+ * When users enter facts via chat, the AI produces fact text like
+ * "The parties have one minor child" but doesn't always populate
+ * structured fields like hasMinorChildren, children[], etc.
+ * This function scans facts and populates those fields so templates
+ * can render the correct sections.
+ *
+ * @param {Object} divorceData - The divorce data object to enhance in-place
+ */
+function extractStructuredDataFromFacts(divorceData) {
+  if (!Array.isArray(divorceData.facts) || divorceData.facts.length === 0) {
+    return;
+  }
+
+  const factsText = divorceData.facts
+    .map(f => (typeof f === 'string' ? f : f.content || ''))
+    .join(' ')
+    .toLowerCase();
+
+  // --- Children detection ---
+  if (divorceData.hasMinorChildren === undefined || divorceData.hasMinorChildren === null) {
+    const childPatterns = [
+      /(?:have|has|born|adopted)\s+(?:one|two|three|four|five|six|\d+)\s+(?:minor\s+)?child/i,
+      /minor\s+child(?:ren)?\s+(?:of|born|from)/i,
+      /child(?:ren)?\s+(?:were|was)\s+born/i,
+      /(?:the|a)\s+child\s+of\s+(?:the|this)\s+marriage/i,
+      /custody\s+(?:of|arrangement|shall)/i,
+      /conservatorship/i
+    ];
+
+    const noChildPatterns = [
+      /no\s+(?:minor\s+)?child(?:ren)?\s+(?:of|born|were born|from)/i,
+      /no\s+children\s+(?:of|from)\s+(?:the|this)\s+marriage/i,
+      /without\s+(?:minor\s+)?child(?:ren)?/i
+    ];
+
+    const hasChildMention = childPatterns.some(p => p.test(factsText));
+    const hasNoChildMention = noChildPatterns.some(p => p.test(factsText));
+
+    if (hasNoChildMention) {
+      divorceData.hasMinorChildren = false;
+    } else if (hasChildMention) {
+      divorceData.hasMinorChildren = true;
+
+      // Try to extract child count and names from facts if children array not set
+      if (!divorceData.children || divorceData.children.length === 0) {
+        const children = [];
+        const fullFactsText = divorceData.facts
+          .map(f => (typeof f === 'string' ? f : f.content || ''))
+          .join(' ');
+
+        // Match patterns like "child named X" or "X, born DATE" or "minor child, X"
+        const childNamePatterns = [
+          /child(?:ren)?\s+named?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+          /minor\s+child(?:ren)?,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+          /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+born\s+(?:on\s+)?(\w+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/g
+        ];
+
+        for (const pattern of childNamePatterns) {
+          let match;
+          while ((match = pattern.exec(fullFactsText)) !== null) {
+            const childName = match[1].trim();
+            // Avoid matching generic words that aren't names
+            if (childName.length > 1 && !['The', 'This', 'That', 'And', 'For'].includes(childName)) {
+              const child = { name: childName };
+              if (match[2]) {
+                child.birthDate = match[2].trim();
+              }
+              // Avoid duplicates
+              if (!children.some(c => c.name === childName)) {
+                children.push(child);
+              }
+            }
+          }
+        }
+
+        if (children.length > 0) {
+          divorceData.children = children;
+        } else {
+          // Count children mentioned numerically
+          const countMatch = factsText.match(/(?:have|has)\s+(one|two|three|four|five|six|\d+)\s+(?:minor\s+)?child/i);
+          if (countMatch) {
+            const numWords = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+            const count = numWords[countMatch[1].toLowerCase()] || parseInt(countMatch[1]) || 1;
+            divorceData.children = Array.from({ length: count }, (_, i) => ({
+              name: `[CHILD ${i + 1} NAME]`
+            }));
+          }
+        }
+      }
+    }
+  }
+
+  // --- Grounds for divorce detection ---
+  if (!divorceData.groundsForDivorce) {
+    const groundsPatterns = [
+      { pattern: /insupportab/i, grounds: 'insupportability' },
+      { pattern: /irreconcilable\s+differences/i, grounds: 'irreconcilable_differences' },
+      { pattern: /adultery|unfaithful|affair/i, grounds: 'adultery' },
+      { pattern: /cruel(?:ty|treatment)|domestic\s+violence|abuse/i, grounds: 'cruelty' },
+      { pattern: /abandon(?:ment|ed)/i, grounds: 'abandonment' },
+      { pattern: /lived?\s+(?:separate|apart)/i, grounds: 'living_apart' },
+      { pattern: /no[\s-]fault/i, grounds: 'insupportability' }
+    ];
+
+    for (const { pattern, grounds } of groundsPatterns) {
+      if (pattern.test(factsText)) {
+        divorceData.groundsForDivorce = grounds;
+        break;
+      }
+    }
+  }
+
+  // --- Custody type detection ---
+  if (!divorceData.custodyType) {
+    if (/joint\s+(?:managing\s+)?conservator|joint\s+custody|shared\s+custody/i.test(factsText)) {
+      divorceData.custodyType = 'joint';
+    } else if (/sole\s+(?:managing\s+)?conservator|sole\s+custody|full\s+custody/i.test(factsText)) {
+      divorceData.custodyType = 'sole';
+    }
+  }
+
+  // --- Spousal support detection ---
+  if (!divorceData.requestSpousalSupport && !divorceData.spousalSupportAwarded) {
+    if (/spousal\s+(?:support|maintenance)|alimony/i.test(factsText)) {
+      divorceData.requestSpousalSupport = true;
+      divorceData.spousalSupportAwarded = true;
+    }
+  }
+
+  // --- Child support amount detection ---
+  if (!divorceData.childSupportAmount) {
+    const supportMatch = factsText.match(/child\s+support\s+(?:of\s+)?\$?([\d,]+(?:\.\d{2})?)\s*(?:per\s+month|monthly|\/\s*(?:mo|month))/i);
+    if (supportMatch) {
+      divorceData.childSupportAmount = supportMatch[1].replace(/,/g, '');
+    }
+  }
+
+  // --- Property detection ---
+  if (divorceData.hasProperty === undefined || divorceData.hasProperty === null) {
+    if (/(?:community|marital)\s+property|(?:real\s+)?estate|(?:the\s+)?(?:family\s+)?home|mortgage/i.test(factsText)) {
+      divorceData.hasProperty = true;
+    }
+  }
 }
 
 // Fixed preview route for routes/documents.js

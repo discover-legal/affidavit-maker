@@ -209,11 +209,16 @@ const DocumentPreview = () => {
       }
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach((item) => {
-          // Only add number prefix for items that have an explicit number
-          const numberPrefix = item.number != null ? `${item.number}. ` : '';
+          // Use letter prefix for relief items, number prefix for numbered items
+          let prefix = '';
+          if (item.letter) {
+            prefix = `${item.letter}. `;
+          } else if (item.number != null) {
+            prefix = `${item.number}. `;
+          }
           allContent.push({
-            type: 'paragraph',
-            content: `${numberPrefix}${item.content || ''}`,
+            type: item.type === 'relief_item' ? 'relief_item' : 'paragraph',
+            content: `${prefix}${item.content || ''}`,
             keepWithNext: false,
             breakBefore: false,
             isBlockElement: false,
@@ -223,8 +228,13 @@ const DocumentPreview = () => {
       }
       // Handle sections with text content (e.g., appearances, jurisdiction in decree)
       if (section.text && !section.items) {
+        // Detect if text contains newlines that need pre-formatted rendering
+        const hasNewlines = section.text.includes('\n');
+        const sectionType = (section.type === 'verification' || key === 'verification')
+          ? 'verification'
+          : hasNewlines ? 'preformatted-text' : 'paragraph';
         allContent.push({
-          type: 'paragraph',
+          type: sectionType,
           content: section.text,
           keepWithNext: false,
           breakBefore: false,
@@ -402,11 +412,20 @@ const DocumentPreview = () => {
           // Use actual text measurement with indent
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 24; // Account for indent
           break;
+        case 'verification':
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + PAGE_CONFIG.lineHeight * 2;
+          break;
+        case 'preformatted-text':
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth, true) + PAGE_CONFIG.lineHeight;
+          break;
         case 'section-title':
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + PAGE_CONFIG.lineHeight * 2;
           break;
         case 'paragraph':
           sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth) + 30;
+          break;
+        case 'relief_item':
+          sectionHeight = getTextHeight(section.content || '', PAGE_CONFIG.fontSize, '"Times New Roman", Times, serif', contentWidth - 48) + 10;
           break;
         case 'fact':
         case 'evidence':
@@ -539,7 +558,7 @@ const DocumentPreview = () => {
     });
 
     return paginatedPages.length > 0 ? paginatedPages : [{ content: [], pageNumber: 1 }];
-  }, [preview]); // Removed currentDocument.facts dependency - not needed
+  }, [preview, currentDocument.activeSubDocument, currentDocument.documentType]);
 
   const totalPages = pages.length;
 
@@ -777,7 +796,27 @@ const DocumentPreview = () => {
           </p>
         );
 
+      case 'relief_item':
+        return (
+          <p key={key} className="affidavit-relief-item">
+            {section.content}
+          </p>
+        );
+
       case 'verification':
+        return (
+          <div key={key} className="affidavit-verification">
+            <pre>{section.content}</pre>
+          </div>
+        );
+
+      case 'preformatted-text':
+        return (
+          <div key={key} className="affidavit-preformatted">
+            {section.content}
+          </div>
+        );
+
       case 'judgmentBlock':
       case 'footer':
         return (
@@ -969,6 +1008,31 @@ const DocumentPreview = () => {
           text-decoration: underline;
           margin-top: ${PAGE_CONFIG.lineHeight * 1.5}px;
           margin-bottom: ${PAGE_CONFIG.lineHeight / 2}px;
+        }
+
+        .affidavit-relief-item {
+          margin-left: 0.5in;
+          margin-bottom: 5px;
+          text-align: justify;
+        }
+
+        .affidavit-verification {
+          margin-top: ${PAGE_CONFIG.lineHeight * 2}px;
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+        }
+
+        .affidavit-verification pre {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: ${PAGE_CONFIG.fontSize}px;
+          margin: 0;
+          white-space: pre-wrap;
+          line-height: ${PAGE_CONFIG.lineHeight}px;
+        }
+
+        .affidavit-preformatted {
+          margin-bottom: ${PAGE_CONFIG.lineHeight}px;
+          white-space: pre-line;
+          text-align: justify;
         }
 
         .affidavit-continuation {

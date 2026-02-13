@@ -512,69 +512,56 @@ const ValidationSidebar = () => {
   }
 
   // ✅ Handle drag end - supports both facts and evidence
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = (event) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      const oldIndex = currentDocument.facts.findIndex(
-        (fact, idx) => {
-          const factId = fact.id || `fact-${idx}`;
-          const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
-          return factId === active.id || evidenceId === active.id;
-        }
-      );
-      const newIndex = currentDocument.facts.findIndex(
-        (fact, idx) => {
-          const factId = fact.id || `fact-${idx}`;
-          const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
-          return factId === over.id || evidenceId === over.id;
-        }
-      );
+    if (!over || active.id === over.id) return;
 
-      let reorderedFacts = arrayMove(currentDocument.facts, oldIndex, newIndex);
-
-      // ✅ Recalculate exhibit labels after reordering
-      reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
-
-      updateDocumentData({ facts: reorderedFacts });
-
-      try {
-        await saveDocument();
-      } catch (error) {
-        console.error('Failed to save reordered facts:', error);
+    const oldIndex = currentDocument.facts.findIndex(
+      (fact, idx) => {
+        const factId = fact.id || `fact-${idx}`;
+        const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
+        return factId === active.id || evidenceId === active.id;
       }
-    }
+    );
+    const newIndex = currentDocument.facts.findIndex(
+      (fact, idx) => {
+        const factId = fact.id || `fact-${idx}`;
+        const evidenceId = isEvidence(fact) ? (fact.id || `evidence-${idx}`) : null;
+        return factId === over.id || evidenceId === over.id;
+      }
+    );
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    let reorderedFacts = arrayMove(currentDocument.facts, oldIndex, newIndex);
+
+    // Recalculate exhibit labels after reordering
+    reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
+
+    // updateDocumentData handles preview regeneration and auto-save for facts
+    updateDocumentData({ facts: reorderedFacts });
   };
 
-  // ✅ Handle move up/down with arrow buttons (mobile-friendly)
-  const handleMoveUp = async (index) => {
+  // Handle move up/down with arrow buttons (mobile-friendly)
+  const handleMoveUp = (index) => {
     if (index === 0) return; // Already at top
 
     let reorderedFacts = arrayMove(currentDocument.facts, index, index - 1);
     reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
 
+    // updateDocumentData handles preview regeneration and auto-save for facts
     updateDocumentData({ facts: reorderedFacts });
-
-    try {
-      await saveDocument();
-    } catch (error) {
-      console.error('Failed to save reordered facts:', error);
-    }
   };
 
-  const handleMoveDown = async (index) => {
+  const handleMoveDown = (index) => {
     if (index === currentDocument.facts.length - 1) return; // Already at bottom
 
     let reorderedFacts = arrayMove(currentDocument.facts, index, index + 1);
     reorderedFacts = calculateExhibitLabels(reorderedFacts, { style: 'letters' });
 
+    // updateDocumentData handles preview regeneration and auto-save for facts
     updateDocumentData({ facts: reorderedFacts });
-
-    try {
-      await saveDocument();
-    } catch (error) {
-      console.error('Failed to save reordered facts:', error);
-    }
   };
 
   // Request professional rewrite for a single fact

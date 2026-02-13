@@ -1,0 +1,163 @@
+# render-staging.yaml - Render Blueprint for STAGING environment
+#
+# How to use:
+#   1. In Render Dashboard, go to Blueprints > New Blueprint Instance
+#   2. Select this repo and set the blueprint file to: render-staging.yaml
+#   3. Render will create the staging web service + database
+#   4. Set the secret environment variables in the Render Dashboard (marked sync: false below)
+#
+# IMPORTANT: After deploying, update FRONTEND_URL to match your actual Render staging URL.
+# The staging URL will be: https://affidavit-maker-staging.onrender.com (or your custom name)
+
+services:
+  # Staging Web Service (Backend + Frontend)
+  - type: web
+    name: affidavit-maker-staging
+    env: docker
+    plan: starter # or 'free' for initial testing
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    branch: main # Point to your staging/release branch
+
+    # Run migrations before starting the server
+    preDeployCommand: node scripts/migrate.js
+
+    # Health check endpoint
+    healthCheckPath: /health
+
+    # Auto-deploy on git push to the configured branch
+    autoDeploy: true
+
+    # Environment variables
+    envVars:
+      # Server Configuration
+      - key: NODE_ENV
+        value: production # Keep as production so security settings are enforced
+
+      - key: LOG_LEVEL
+        value: debug # More verbose logging for staging
+
+      # Database (auto-populated from Render PostgreSQL)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: affidavit-staging-db
+          property: connectionString
+
+      - key: DATABASE_POOL_MAX
+        value: 10 # Smaller pool for staging
+
+      # Auth0 - SET THESE IN RENDER DASHBOARD
+      # Use a SEPARATE Auth0 application for staging (recommended)
+      # or share the production one with staging callback URLs added
+      - key: AUTH0_DOMAIN
+        sync: false
+
+      - key: AUTH0_CLIENT_ID
+        sync: false
+
+      - key: AUTH0_CLIENT_SECRET
+        sync: false
+
+      - key: AUTH0_AUDIENCE
+        sync: false
+
+      - key: AUTH0_ISSUER_BASE_URL
+        sync: false
+
+      - key: AUTH0_WEBHOOK_SECRET
+        sync: false
+
+      # Auth0 Frontend (React) - REQUIRED for build
+      - key: REACT_APP_AUTH0_DOMAIN
+        sync: false
+
+      - key: REACT_APP_AUTH0_CLIENT_ID
+        sync: false
+
+      - key: REACT_APP_AUTH0_AUDIENCE
+        sync: false
+
+      # OpenAI - SET THESE IN RENDER DASHBOARD
+      # Can share the same API key as production
+      - key: OPENAI_API_KEY
+        sync: false
+
+      - key: OPENAI_MODEL
+        value: gpt-4-turbo
+
+      - key: OPENAI_MAX_TOKENS
+        value: 2000
+
+      - key: OPENAI_TEMPERATURE
+        value: 0.3
+
+      # Stripe - SET THESE IN RENDER DASHBOARD
+      # IMPORTANT: Use Stripe TEST keys for staging (sk_test_..., pk_test_...)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
+        sync: false
+
+      # Frontend Configuration
+      # UPDATE THIS after your staging service is created
+      - key: FRONTEND_URL
+        value: https://affidavit-maker-staging.onrender.com
+
+      # API URL for React app - Empty = use relative URLs (works with any domain)
+      - key: REACT_APP_API_URL
+        value: ""
+
+      # Security
+      - key: SESSION_SECRET
+        generateValue: true
+
+      - key: BCRYPT_ROUNDS
+        value: 10
+
+      - key: JWT_EXPIRES_IN
+        value: 24h
+
+      - key: TRUSTED_PROXIES
+        value: 1
+
+      # Rate Limiting (relaxed for staging/testing)
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 500 # Higher limit for testing
+
+      - key: RATE_LIMIT_AUTH_ATTEMPTS
+        value: 20 # Higher limit for testing
+
+      # File Storage (ephemeral on staging is fine)
+      - key: DOCUMENTS_PATH
+        value: ./documents
+
+      - key: MAX_FILE_SIZE
+        value: 10485760
+
+      # Feature Flags
+      - key: ENABLE_WEBHOOKS
+        value: true
+
+      - key: ENABLE_EMAIL_NOTIFICATIONS
+        value: false
+
+      - key: ENABLE_ANALYTICS
+        value: false # Disable analytics on staging
+
+      - key: MAINTENANCE_MODE
+        value: false
+
+databases:
+  # Separate PostgreSQL database for staging
+  - name: affidavit-staging-db
+    plan: free
+    databaseName: affidavit_maker_staging
+    user: affidavit_staging_user
+    region: oregon

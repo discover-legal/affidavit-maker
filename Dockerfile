@@ -29,6 +29,9 @@ RUN apt-get update && apt-get install -y \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# Cache bust: change this value to force rebuild of all layers below
+ARG CACHE_BUST=1
+
 # Accept build arguments for React environment variables
 # These must be provided during docker build via --build-arg
 ARG REACT_APP_AUTH0_DOMAIN

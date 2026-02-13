@@ -311,10 +311,13 @@ class ArizonaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     reliefItems.push('Grant such other and further relief as the Court deems just and proper.');
 
     reliefItems.forEach((relief, index) => {
+      const letter = String.fromCharCode(97 + index); // a, b, c format
       items.push({
-        number: index + 1,
+        number: null,
         content: relief,
-        type: 'relief_item'
+        type: 'relief_item',
+        style: 'letter',
+        letter: letter
       });
     });
 

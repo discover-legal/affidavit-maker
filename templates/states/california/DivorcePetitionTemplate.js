@@ -267,32 +267,51 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   generateReliefSection(divorceData) {
     const items = [];
-    let paragraphNum = 1;
 
     items.push({
-      number: paragraphNum++,
-      content: `Petitioner prays that the Court grant a dissolution of the marriage and all other relief requested in this petition.`,
-      type: 'relief'
+      number: null,
+      content: 'Petitioner prays that the Court:',
+      type: 'relief_intro'
     });
 
-    if (divorceData.requestSpousalSupport) {
-      items.push({
-        number: paragraphNum++,
-        content: `Petitioner requests spousal support from Respondent.`,
-        type: 'relief'
-      });
+    const reliefItems = [];
+
+    reliefItems.push('Grant a dissolution of the marriage and all other relief requested in this petition;');
+    reliefItems.push('Divide the community property equally between the parties (Family Code § 2550);');
+    reliefItems.push('Confirm each party\'s separate property to that party;');
+
+    // Add child-related relief if applicable
+    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+      reliefItems.push('Determine custody and visitation of the minor child(ren) in their best interests;');
+      reliefItems.push('Order child support per the California Statewide Uniform Guideline (Family Code § 4050-4076);');
     }
 
-    items.push({
-      number: paragraphNum++,
-      content: `Each party to pay their own attorney fees and costs, unless the Court determines otherwise. (Family Code § 2030)`,
-      type: 'relief'
+    if (divorceData.requestSpousalSupport) {
+      reliefItems.push('Order spousal support from Respondent to Petitioner (Family Code § 4320);');
+    }
+
+    if (divorceData.requestNameChange && divorceData.previousName) {
+      reliefItems.push(`Restore Petitioner's former name to: ${divorceData.previousName};`);
+    }
+
+    reliefItems.push('Each party to pay their own attorney fees and costs, unless the Court determines otherwise (Family Code § 2030);');
+    reliefItems.push('Grant such other and further relief as the Court deems just and proper.');
+
+    reliefItems.forEach((relief, index) => {
+      const letter = String.fromCharCode(97 + index); // a, b, c format
+      items.push({
+        number: null,
+        content: relief,
+        type: 'relief_item',
+        style: 'letter',
+        letter: letter
+      });
     });
 
     return {
       title: 'PRAYER',
       items,
-      nextParagraphNumber: paragraphNum
+      nextParagraphNumber: null
     };
   }
 

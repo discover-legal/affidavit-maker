@@ -70,8 +70,9 @@ const EditorView = ({ isNew = false, onBack }) => {
   const { documentId } = useParams(); // ✅ Get documentId from URL
   const [searchParams] = useSearchParams(); // ✅ Get query params
 
-  // ✅ Get document type from URL query params (for new documents)
+  // ✅ Get document type and case type from URL query params (for new documents)
   const documentTypeFromUrl = searchParams.get('type') || 'affidavit';
+  const caseTypeFromUrl = searchParams.get('caseType') || 'family';
   const isDivorcePackage = documentTypeFromUrl === 'divorce_package';
 
   // ✅ FIX: Track if initialization was done for a specific documentId
@@ -200,11 +201,12 @@ const EditorView = ({ isNew = false, onBack }) => {
         initializationDone.current = true;
 
         try {
-          await initializeNewDocument(true, documentTypeFromUrl);
+          await initializeNewDocument(true, documentTypeFromUrl, caseTypeFromUrl);
           // Track new document editor opened
           trackEvent('editor_opened', {
             is_new_document: true,
-            document_type: documentTypeFromUrl
+            document_type: documentTypeFromUrl,
+            case_type: caseTypeFromUrl
           });
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);

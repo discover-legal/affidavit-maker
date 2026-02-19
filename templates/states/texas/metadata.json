@@ -1,7 +1,15 @@
 {
   "stateCode": "TX",
   "stateName": "Texas",
-  "documentTypes": ["affidavit"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree",
+    "indigency_affidavit",
+    "waiver_of_service",
+    "cert_last_known_address",
+    "military_status_affidavit"
+  ],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],

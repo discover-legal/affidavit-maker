@@ -296,7 +296,13 @@ router.post('/preview',
             }
 
             // Route to appropriate template based on document type
-            if (effectiveDocType === 'divorce_petition' || effectiveDocType === 'divorce_decree') {
+            const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
+            const DIVORCE_SUPPORTING_TYPES = [
+              'indigency_affidavit', 'waiver_of_service',
+              'cert_last_known_address', 'military_status_affidavit'
+            ];
+
+            if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
               // Map chat-extracted fields to template-expected fields
               const divorceData = { ...affidavitData };
               mapDivorceDataFields(divorceData);
@@ -305,26 +311,30 @@ router.post('/preview',
               // TemplateRegistry (new system) uses generateDocument(state, data, docType)
               // StateTemplateManager (legacy) uses generateDivorcePetition/generateDivorceDecree
               if (typeof templateManager.generateDocument === 'function') {
-                // TemplateRegistry: unified method with documentType parameter
                 document = templateManager.generateDocument(
                   divorceData.state,
                   divorceData,
                   effectiveDocType
                 );
               } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
-                document = templateManager.generateDivorcePetition(
-                  divorceData.state,
-                  divorceData
-                );
+                document = templateManager.generateDivorcePetition(divorceData.state, divorceData);
               } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
-                document = templateManager.generateDivorceDecree(
-                  divorceData.state,
-                  divorceData
-                );
+                document = templateManager.generateDivorceDecree(divorceData.state, divorceData);
               } else {
-                // Divorce templates not available - use divorce-specific fallback
                 logger.warn('Divorce document requested but templates not available, using fallback');
                 preview = createDivorceFallbackPreview(affidavitData);
+              }
+            } else if (DIVORCE_SUPPORTING_TYPES.includes(effectiveDocType)) {
+              // Supporting divorce documents — route through generic generateDocument
+              if (typeof templateManager.generateDocument === 'function') {
+                document = templateManager.generateDocument(
+                  affidavitData.state,
+                  affidavitData,
+                  effectiveDocType
+                );
+              } else {
+                // Fallback: generate as standard affidavit
+                document = templateManager.generateAffidavit(affidavitData.state, affidavitData);
               }
             } else {
               // Default: Use affidavit template
@@ -360,7 +370,7 @@ router.post('/preview',
           }
         } catch (templateError) {
           const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
+          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit'].includes(docType);
           logger.warn('Template manager preview failed, using fallback', {
             error: templateError.message,
             documentType: docType
@@ -625,12 +635,17 @@ router.post('/generate',
           }
 
           // Route to appropriate template based on document type
-          if (effectiveDocType === 'divorce_petition' || effectiveDocType === 'divorce_decree') {
+          const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
+          const DIVORCE_SUPPORTING_TYPES = [
+            'indigency_affidavit', 'waiver_of_service',
+            'cert_last_known_address', 'military_status_affidavit'
+          ];
+
+          if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
             // Map chat-extracted fields to template-expected fields
             const divorceData = { ...affidavitData };
             mapDivorceDataFields(divorceData);
 
-            // Generate divorce document using the appropriate template method
             if (typeof templateManager.generateDocument === 'function') {
               documentStructure = templateManager.generateDocument(
                 divorceData.state,
@@ -638,15 +653,9 @@ router.post('/generate',
                 effectiveDocType
               );
             } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
-              documentStructure = templateManager.generateDivorcePetition(
-                divorceData.state,
-                divorceData
-              );
+              documentStructure = templateManager.generateDivorcePetition(divorceData.state, divorceData);
             } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
-              documentStructure = templateManager.generateDivorceDecree(
-                divorceData.state,
-                divorceData
-              );
+              documentStructure = templateManager.generateDivorceDecree(divorceData.state, divorceData);
             } else {
               return res.status(400).json({
                 success: false,
@@ -654,10 +663,19 @@ router.post('/generate',
                 errorType: 'unsupported_document_type'
               });
             }
-            logger.info('Generated divorce document', {
-              documentType: effectiveDocType,
-              state: affidavitData.state
-            });
+            logger.info('Generated divorce main document', { documentType: effectiveDocType, state: affidavitData.state });
+          } else if (DIVORCE_SUPPORTING_TYPES.includes(effectiveDocType)) {
+            // Supporting divorce documents
+            if (typeof templateManager.generateDocument === 'function') {
+              documentStructure = templateManager.generateDocument(
+                affidavitData.state,
+                affidavitData,
+                effectiveDocType
+              );
+            } else {
+              documentStructure = templateManager.generateAffidavit(affidavitData.state, affidavitData);
+            }
+            logger.info('Generated divorce supporting document', { documentType: effectiveDocType, state: affidavitData.state });
           } else {
             // Default: Use affidavit template
             documentStructure = templateManager.generateAffidavit(
@@ -1330,7 +1348,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 
   // Skip facts enhancement for divorce documents - they use different section structures
   const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
+  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit'].includes(docType);
   if (isDivorceDoc) {
     return enhanced;
   }
@@ -1494,7 +1512,7 @@ function createDivorceFallbackPreview(affidavitData) {
       header: `STATE OF ${getStateName(affidavitData.state)}`,
       venue: `COUNTY OF ${(affidavitData.county || '[COUNTY]').toUpperCase()}`,
       caseCaption: {
-        formatted: `CASE NO. ${affidavitData.caseNumber || '[CASE NUMBER]'}\n\nIN THE MATTER OF THE MARRIAGE OF:\n\n${petitionerName.toUpperCase()}, Petitioner\n\nAND\n\n${respondentName.toUpperCase()}, Respondent`
+        formatted: `CAUSE NO. ${affidavitData.caseNumber || '[CAUSE NUMBER]'}\n\nIN THE MATTER OF THE MARRIAGE OF:\n\n${petitionerName.toUpperCase()}, Petitioner\n\nAND\n\n${respondentName.toUpperCase()}, Respondent`
       },
       title: docTitle,
       parties: {

@@ -9,6 +9,27 @@ const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
 
+// TX divorce orchestrator (phase-based interview agent)
+let txDivorceOrchestrator = null;
+try {
+  txDivorceOrchestrator = require('../services/agents/TXDivorceOrchestrator');
+} catch (err) {
+  logger.warn('TXDivorceOrchestrator not available, falling back to standard divorce processing', { error: err.message });
+}
+
+/**
+ * Determine if this message should be handled by the TX divorce orchestrator.
+ * Routes TX divorce_package documents to the phase-based agent.
+ */
+function shouldUseOrchestrator(affidavitData) {
+  if (!txDivorceOrchestrator) return false;
+  const docType = affidavitData.documentType || affidavitData.document_type || '';
+  if (docType !== 'divorce_package') return false;
+  // Use orchestrator for TX or when state not yet set (orchestrator will ask for it)
+  const state = (affidavitData.state || '').toUpperCase();
+  return state === 'TX' || state === '';
+}
+
 /**
  * Constants for chat stability
  */
@@ -138,14 +159,35 @@ router.post('/',
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
 
-          result = await req.app.locals.affidavitService.processMessage(
-            message,
-            chunkedHistory,
-            affidavitData,
-            req.user.id,
-            req.sessionId,
-            skipExtraction
-          );
+          if (shouldUseOrchestrator(affidavitData)) {
+            // TX divorce: use phase-based orchestrator
+            logger.info('Routing to TXDivorceOrchestrator', {
+              phase: affidavitData.orchestratorState?.currentPhase || 'INTAKE',
+              sessionId: req.sessionId
+            });
+            const orchResult = await txDivorceOrchestrator.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response: orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts: orchResult.newFacts || []
+            };
+          } else {
+            // Standard affidavit or non-TX divorce: use existing service
+            result = await req.app.locals.affidavitService.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId,
+              skipExtraction
+            );
+          }
 
           // Monitor memory usage after processing
           const memAfter = process.memoryUsage();
@@ -213,6 +255,7 @@ router.post('/',
         response: result.response,
         affidavitData: result.affidavitData || affidavitData,
         newFacts: result.newFacts || [],
+        orchestratorState: (result.affidavitData || affidavitData).orchestratorState || null,
         processingTime,
         sessionId: req.sessionId,
         timestamp: new Date().toISOString()

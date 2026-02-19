@@ -507,6 +507,11 @@ if (evidenceRouter) {
   app.use('/api/evidence', evidenceRouter);
 }
 
+const casesRouter = safeImportRouter('./routes/cases', 'Cases');
+if (casesRouter) {
+  app.use('/api/cases', casesRouter);
+}
+
 // Basic fallback routes for critical endpoints if files are missing
 if (!documentsRouter) {
   app.get('/api/documents', (req, res) => {

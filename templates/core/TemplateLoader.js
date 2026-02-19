@@ -36,6 +36,35 @@ const DOCUMENT_TYPE_CONFIGS = [
     metadataFile: 'divorce-metadata.json', // Shares metadata with petition
     baseClass: 'BaseDivorceDecreeTemplate',
     required: false
+  },
+  // TX divorce supporting documents — use main metadata.json (no separate metadata needed)
+  {
+    documentType: 'indigency_affidavit',
+    templateFile: 'IndigencyAffidavitTemplate.js',
+    metadataFile: 'metadata.json',
+    baseClass: 'BaseAffidavitTemplate',
+    required: false
+  },
+  {
+    documentType: 'waiver_of_service',
+    templateFile: 'WaiverOfServiceTemplate.js',
+    metadataFile: 'metadata.json',
+    baseClass: 'BaseAffidavitTemplate',
+    required: false
+  },
+  {
+    documentType: 'cert_last_known_address',
+    templateFile: 'CertLastKnownAddressTemplate.js',
+    metadataFile: 'metadata.json',
+    baseClass: 'BaseAffidavitTemplate',
+    required: false
+  },
+  {
+    documentType: 'military_status_affidavit',
+    templateFile: 'MilitaryStatusAffidavitTemplate.js',
+    metadataFile: 'metadata.json',
+    baseClass: 'BaseAffidavitTemplate',
+    required: false
   }
 ];
 
@@ -91,15 +120,17 @@ class TemplateLoader {
   async loadAllTemplates(registry) {
     logger.info('Starting template discovery (multi-document type support)...');
 
+    // Build byDocumentType map dynamically from DOCUMENT_TYPE_CONFIGS
+    const byDocumentType = {};
+    for (const config of DOCUMENT_TYPE_CONFIGS) {
+      byDocumentType[config.documentType] = { loaded: [], failed: [] };
+    }
+
     const summary = {
       loaded: [],
       failed: [],
       total: 0,
-      byDocumentType: {
-        affidavit: { loaded: [], failed: [] },
-        divorce_petition: { loaded: [], failed: [] },
-        divorce_decree: { loaded: [], failed: [] }
-      }
+      byDocumentType
     };
 
     try {
@@ -166,14 +197,13 @@ class TemplateLoader {
       }
 
       // Log summary
-      const affidavitCount = summary.byDocumentType.affidavit.loaded.length;
-      const divorceCount = summary.byDocumentType.divorce_petition.loaded.length;
-      const decreeCount = summary.byDocumentType.divorce_decree.loaded.length;
-
       logger.info(`Template loading complete: ${summary.loaded.length} states loaded`);
-      logger.info(`  - Affidavits: ${affidavitCount}`);
-      logger.info(`  - Divorce petitions: ${divorceCount}`);
-      logger.info(`  - Divorce decrees: ${decreeCount}`);
+      for (const config of DOCUMENT_TYPE_CONFIGS) {
+        const count = summary.byDocumentType[config.documentType].loaded.length;
+        if (count > 0) {
+          logger.info(`  - ${config.documentType}: ${count}`);
+        }
+      }
 
       if (summary.failed.length > 0) {
         logger.warn(`  - Failed: ${summary.failed.length}`);

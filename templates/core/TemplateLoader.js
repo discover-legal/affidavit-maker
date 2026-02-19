@@ -65,6 +65,13 @@ const DOCUMENT_TYPE_CONFIGS = [
     metadataFile: 'metadata.json',
     baseClass: 'BaseAffidavitTemplate',
     required: false
+  },
+  {
+    documentType: 'prove_up_affidavit',
+    templateFile: 'ProveUpAffidavitTemplate.js',
+    metadataFile: 'metadata.json',
+    baseClass: 'BaseAffidavitTemplate',
+    required: false
   }
 ];
 

@@ -299,7 +299,7 @@ router.post('/preview',
             const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
             const DIVORCE_SUPPORTING_TYPES = [
               'indigency_affidavit', 'waiver_of_service',
-              'cert_last_known_address', 'military_status_affidavit'
+              'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'
             ];
 
             if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
@@ -370,7 +370,7 @@ router.post('/preview',
           }
         } catch (templateError) {
           const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit'].includes(docType);
+          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'].includes(docType);
           logger.warn('Template manager preview failed, using fallback', {
             error: templateError.message,
             documentType: docType
@@ -638,7 +638,7 @@ router.post('/generate',
           const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
           const DIVORCE_SUPPORTING_TYPES = [
             'indigency_affidavit', 'waiver_of_service',
-            'cert_last_known_address', 'military_status_affidavit'
+            'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'
           ];
 
           if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
@@ -1348,7 +1348,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 
   // Skip facts enhancement for divorce documents - they use different section structures
   const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit'].includes(docType);
+  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'].includes(docType);
   if (isDivorceDoc) {
     return enhanced;
   }

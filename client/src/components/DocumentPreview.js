@@ -13,6 +13,17 @@ import {
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 
+// Metadata for each TX divorce sub-document tab
+const DIVORCE_DOC_TABS = {
+  divorce_petition:        { label: 'Petition',       icon: ScrollText },
+  divorce_decree:          { label: 'Decree',         icon: FileSignature },
+  waiver_of_service:       { label: 'Waiver',         icon: FileText },
+  prove_up_affidavit:      { label: 'Prove-Up',       icon: FileText },
+  cert_last_known_address: { label: 'Last Address',   icon: FileText },
+  military_status_affidavit: { label: 'Military',     icon: FileText },
+  indigency_affidavit:     { label: 'Fee Waiver',     icon: FileText },
+};
+
 // Page configuration for US Letter (8.5" x 11" with 1" margins)
 const PAGE_CONFIG = {
   width: 8.5,      // inches
@@ -191,7 +202,13 @@ const DocumentPreview = () => {
         'propertyDivision', 'debtAllocation', 'childCustody',
         'childSupport', 'spousalSupport', 'nameChange',
         'finalOrders', 'judgmentBlock', 'signatureBlock', 'footer'
-      ]
+      ],
+      // TX supporting documents — all use affidavit-style section order
+      indigency_affidavit:       ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'perjuryStatement', 'signatureBlock', 'notaryBlock'],
+      waiver_of_service:         ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'signatureBlock', 'notaryBlock'],
+      cert_last_known_address:   ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'signatureBlock', 'notaryBlock'],
+      military_status_affidavit: ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'signatureBlock', 'notaryBlock'],
+      prove_up_affidavit:        ['header', 'venue', 'caseCaption', 'title', 'introduction', 'facts', 'conclusion', 'signatureBlock', 'notaryBlock'],
     };
 
     const sectionOrder = SECTION_ORDERS[docType] || SECTION_ORDERS.general;
@@ -1056,32 +1073,30 @@ const DocumentPreview = () => {
       <div className="h-full flex flex-col bg-gray-50">
         {/* Header with controls */}
         <div className="p-4 border-b bg-white">
-          {/* Document Type Switcher for Divorce Packages */}
+          {/* Document Type Switcher for Divorce Packages — shows only docs this user needs */}
           {isDivorcePackage && (
-            <div className="mb-3 flex items-center justify-center">
-              <div className="inline-flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => switchSubDocument('divorce_petition')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeSubDocument === 'divorce_petition'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <ScrollText className="h-4 w-4" />
-                  Divorce Petition
-                </button>
-                <button
-                  onClick={() => switchSubDocument('divorce_decree')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeSubDocument === 'divorce_decree'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <FileSignature className="h-4 w-4" />
-                  Divorce Decree
-                </button>
+            <div className="mb-3 overflow-x-auto">
+              <div className="inline-flex bg-gray-100 rounded-lg p-1 min-w-full sm:min-w-0">
+                {(currentDocument.requiredDocuments || ['divorce_petition', 'divorce_decree']).map((docType) => {
+                  const tab = DIVORCE_DOC_TABS[docType];
+                  if (!tab) return null;
+                  const Icon = tab.icon;
+                  const isActive = activeSubDocument === docType;
+                  return (
+                    <button
+                      key={docType}
+                      onClick={() => switchSubDocument(docType)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                        isActive
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-purple-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1090,7 +1105,7 @@ const DocumentPreview = () => {
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <FileText className="h-5 w-5" />
               {isDivorcePackage
-                ? (activeSubDocument === 'divorce_petition' ? 'Petition Preview' : 'Decree Preview')
+                ? `${DIVORCE_DOC_TABS[activeSubDocument]?.label || 'Document'} Preview`
                 : 'Document Preview'}
             </h2>
             <div className="flex items-center gap-4">

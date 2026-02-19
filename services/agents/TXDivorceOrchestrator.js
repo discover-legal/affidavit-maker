@@ -245,6 +245,9 @@ class TXDivorceOrchestrator {
     // Persist orchestrator state in divorceData
     updatedData.orchestratorState = state;
 
+    // Compute which documents this user needs based on collected answers
+    updatedData.requiredDocuments = this._computeRequiredDocuments(updatedData);
+
     return {
       response,
       affidavitData: updatedData,
@@ -417,6 +420,50 @@ class TXDivorceOrchestrator {
       severity: 'success',
       timestamp: new Date().toISOString()
     }));
+  }
+
+  /**
+   * Determine which TX divorce documents this specific user needs, based on the
+   * answers collected so far. The result is stored in divorceData.requiredDocuments
+   * and drives the sub-document tabs shown in DocumentPreview.
+   *
+   * Rules (aligned with TX Supreme Court Divorce Set 1):
+   *   divorce_petition + divorce_decree — always
+   *   waiver_of_service                — spouse agreed to sign (serviceMethod === 'waiver')
+   *   prove_up_affidavit               — agreed divorce (waiver path) → skip court appearance
+   *   cert_last_known_address          — formal/unknown service → respondent not appeared
+   *   military_status_affidavit        — respondent not appeared OR military status uncertain
+   *   indigency_affidavit              — user requested fee waiver
+   *
+   * @param {Object} d - Current divorceData
+   * @returns {Array<string>} ordered list of document type keys
+   */
+  _computeRequiredDocuments(d) {
+    const docs = ['divorce_petition', 'divorce_decree'];
+
+    const serviceKnown = !!d.serviceMethod;
+
+    if (d.serviceMethod === 'waiver') {
+      // Agreed divorce — spouse signed a waiver
+      docs.push('waiver_of_service');
+      // Prove-up lets them skip the courthouse hearing
+      docs.push('prove_up_affidavit');
+      // If military status isn't confirmed "not military", still include affidavit
+      if (d.respondentMilitaryStatus && d.respondentMilitaryStatus !== 'not_military') {
+        docs.push('military_status_affidavit');
+      }
+    } else if (serviceKnown) {
+      // Formal or last-known-address service — respondent hasn't appeared
+      docs.push('cert_last_known_address');
+      docs.push('military_status_affidavit');
+    }
+    // If service method not yet known, don't show supporting docs yet
+
+    if (d.indigencyRequested === true) {
+      docs.push('indigency_affidavit');
+    }
+
+    return docs;
   }
 
   /**

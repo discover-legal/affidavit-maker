@@ -1086,6 +1086,7 @@ const DocumentPreview = () => {
                     <button
                       key={docType}
                       onClick={() => switchSubDocument(docType)}
+                      title={currentDocument.selectionReasons?.[docType]}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
                         isActive
                           ? 'bg-purple-600 text-white shadow-sm'

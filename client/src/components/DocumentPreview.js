@@ -13,15 +13,40 @@ import {
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 
-// Metadata for each TX divorce sub-document tab
+// Metadata for all divorce sub-document tabs across all supported states.
+// Orchestrators return `requiredDocuments` — only those keys present here are shown.
 const DIVORCE_DOC_TABS = {
-  divorce_petition:        { label: 'Petition',       icon: ScrollText },
-  divorce_decree:          { label: 'Decree',         icon: FileSignature },
-  waiver_of_service:       { label: 'Waiver',         icon: FileText },
-  prove_up_affidavit:      { label: 'Prove-Up',       icon: FileText },
-  cert_last_known_address: { label: 'Last Address',   icon: FileText },
-  military_status_affidavit: { label: 'Military',     icon: FileText },
-  indigency_affidavit:     { label: 'Fee Waiver',     icon: FileText },
+  // ── TX / UT core ──
+  divorce_petition:          { label: 'Petition',         icon: ScrollText },
+  divorce_decree:            { label: 'Decree',           icon: FileSignature },
+  waiver_of_service:         { label: 'Waiver',           icon: FileText },
+  prove_up_affidavit:        { label: 'Prove-Up',         icon: FileText },
+  cert_last_known_address:   { label: 'Last Address',     icon: FileText },
+  military_status_affidavit: { label: 'Military',         icon: FileText },
+  indigency_affidavit:       { label: 'Fee Waiver',       icon: FileText },
+
+  // ── AZ ──
+  parenting_plan:            { label: 'Parenting Plan',   icon: FileText },
+
+  // ── CA ──
+  petition_dissolution:      { label: 'Petition',         icon: ScrollText },
+  judgment_dissolution:      { label: 'Judgment',         icon: FileSignature },
+  child_custody_order:       { label: 'Custody',          icon: FileText },
+  spousal_support_order:     { label: 'Support',          icon: FileText },
+  acknowledgment_of_receipt: { label: 'Ack. Receipt',     icon: FileText },
+
+  // ── FL ──
+  final_judgment:            { label: 'Final Judgment',   icon: FileSignature },
+  child_support_worksheet:   { label: 'Support Calc.',    icon: FileText },
+
+  // ── IL ──
+  child_support_order:       { label: 'Child Support',    icon: FileText },
+
+  // ── NY ──
+  summons_with_notice:       { label: 'Summons',          icon: ScrollText },
+  verified_complaint:        { label: 'Complaint',        icon: FileText },
+  proposed_judgment:         { label: 'Proposed Judgment',icon: FileSignature },
+  acknowledgment_of_service: { label: 'Ack. Service',     icon: FileText },
 };
 
 // Page configuration for US Letter (8.5" x 11" with 1" margins)

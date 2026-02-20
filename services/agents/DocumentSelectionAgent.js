@@ -119,6 +119,216 @@ function selectTX_family(data) {
 
 HANDLERS['TX:family'] = selectTX_family;
 
+// ─── Arizona – Family Law ──────────────────────────────────────────────────────
+
+function selectAZ_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('divorce_petition');
+  reasons['divorce_petition'] = 'Required to open your dissolution of marriage case in Arizona Superior Court.';
+
+  docs.push('divorce_decree');
+  reasons['divorce_decree'] = 'The final court decree dissolving the marriage and resolving all issues.';
+
+  if (data.children?.length > 0 || data.hasMinorChildren) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'Arizona requires a parenting plan specifying legal decision-making and parenting time for each child.';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('waiver_of_service');
+    reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service, which avoids the cost and delay of a process server.';
+  } else if (data.serviceMethod) {
+    docs.push('cert_last_known_address');
+    reasons['cert_last_known_address'] = 'Since your spouse has not signed an acceptance of service, you\'ll need to certify their last known address.';
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'Federal law (SCRA) requires confirming your spouse\'s military status before a default judgment can be entered.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['AZ:family'] = selectAZ_family;
+
+// ─── California – Family Law ──────────────────────────────────────────────────
+
+function selectCA_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_dissolution');
+  reasons['petition_dissolution'] = 'The FL-100 Petition for Dissolution of Marriage is the required opening document for your case.';
+
+  docs.push('judgment_dissolution');
+  reasons['judgment_dissolution'] = 'The final Judgment of Dissolution (FL-180/FL-190) officially ends the marriage after the 6-month waiting period.';
+
+  if (data.children?.length > 0 || data.hasMinorChildren) {
+    docs.push('child_custody_order');
+    reasons['child_custody_order'] = 'A formal child custody and visitation order is required when minor children are involved.';
+  }
+
+  if (data.spousalSupportRequested) {
+    docs.push('spousal_support_order');
+    reasons['spousal_support_order'] = 'A spousal support order documents the agreed or court-ordered maintenance terms.';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('acknowledgment_of_receipt');
+    reasons['acknowledgment_of_receipt'] = 'Your spouse agreed to sign an Acknowledgment of Receipt of service, which avoids formal service costs.';
+  } else if (data.serviceMethod) {
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'California courts require confirmation of military status (SCRA) before entering a default judgment.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['CA:family'] = selectCA_family;
+
+// ─── Florida – Family Law ─────────────────────────────────────────────────────
+
+function selectFL_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_dissolution');
+  reasons['petition_dissolution'] = 'The FL-101 Petition for Dissolution of Marriage is required to open your case in the Circuit Court.';
+
+  docs.push('final_judgment');
+  reasons['final_judgment'] = 'The Final Judgment of Dissolution resolves all issues and officially ends the marriage.';
+
+  if (data.children?.length > 0 || data.hasMinorChildren) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'Florida requires a Parenting Plan detailing time-sharing and parental responsibility for each child (§ 61.13 F.S.).';
+
+    docs.push('child_support_worksheet');
+    reasons['child_support_worksheet'] = 'Florida requires a Child Support Guidelines Worksheet to calculate support under the statutory formula.';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('waiver_of_service');
+    reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service.';
+  } else if (data.serviceMethod) {
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['FL:family'] = selectFL_family;
+
+// ─── Illinois – Family Law ────────────────────────────────────────────────────
+
+function selectIL_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_dissolution');
+  reasons['petition_dissolution'] = 'The Petition for Dissolution of Marriage opens your case in the Circuit Court.';
+
+  docs.push('judgment_dissolution');
+  reasons['judgment_dissolution'] = 'The Judgment for Dissolution of Marriage (Marital Settlement Agreement or contested order) finalizes the divorce.';
+
+  if (data.children?.length > 0 || data.hasMinorChildren) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'Illinois requires an Allocation Judgment specifying parental responsibilities and parenting time (750 ILCS 5/602.10).';
+
+    docs.push('child_support_order');
+    reasons['child_support_order'] = 'A Child Support Order is required to document support obligations under Illinois statutory guidelines.';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('waiver_of_service');
+    reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service.';
+  } else if (data.serviceMethod) {
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['IL:family'] = selectIL_family;
+
+// ─── New York – Family Law ────────────────────────────────────────────────────
+
+function selectNY_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('summons_with_notice');
+  reasons['summons_with_notice'] = 'New York requires a Summons with Notice to initiate the divorce action in Supreme Court. You\'ll receive an Index Number when you file.';
+
+  docs.push('verified_complaint');
+  reasons['verified_complaint'] = 'The Verified Complaint (or Summons and Complaint) sets out the grounds and relief sought in your divorce action.';
+
+  docs.push('proposed_judgment');
+  reasons['proposed_judgment'] = 'A Proposed Judgment of Divorce is required for the court to finalize the divorce and equitable distribution.';
+
+  if (data.children?.length > 0 || data.hasMinorChildren) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'A custody and parenting time agreement is required when minor children are involved (DRL § 240).';
+
+    docs.push('child_support_worksheet');
+    reasons['child_support_worksheet'] = 'New York requires a Child Support Standards Act (CSSA) worksheet to document the support calculation (FCA § 413).';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('acknowledgment_of_service');
+    reasons['acknowledgment_of_service'] = 'Your spouse agreed to sign an Acknowledgment of Service, which is the fastest way to effect service in New York.';
+  } else if (data.serviceMethod) {
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['NY:family'] = selectNY_family;
+
+// ─── Utah – Family Law ────────────────────────────────────────────────────────
+
+function selectUT_family(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('divorce_petition');
+  reasons['divorce_petition'] = 'Required to open your divorce case in Utah District Court.';
+
+  docs.push('divorce_decree');
+  reasons['divorce_decree'] = 'The Decree of Divorce is the final court order dissolving the marriage.';
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('waiver_of_service');
+    reasons['waiver_of_service'] = 'Your spouse agreed to waive formal service, which saves time and cost.';
+
+    docs.push('prove_up_affidavit');
+    reasons['prove_up_affidavit'] = 'In an agreed Utah divorce, this sworn statement allows the judge to approve the divorce without a court appearance.';
+
+    if (data.respondentMilitaryStatus && data.respondentMilitaryStatus !== 'not_military') {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'The court needs confirmation of your spouse\'s military status even in an agreed divorce.';
+    }
+  } else if (data.serviceMethod) {
+    docs.push('cert_last_known_address');
+    reasons['cert_last_known_address'] = 'Since your spouse hasn\'t signed a waiver, you\'ll need to certify their last known address.';
+
+    docs.push('military_status_affidavit');
+    reasons['military_status_affidavit'] = 'Federal law (SCRA) requires confirming your spouse\'s military status before a default judgment can be entered.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Motion to Waive Fees will allow the court to waive the filing fee based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+}
+
+HANDLERS['UT:family'] = selectUT_family;
+
 // ─── Fallback — generic affidavit ─────────────────────────────────────────────
 
 /**

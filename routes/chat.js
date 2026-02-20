@@ -9,25 +9,53 @@ const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
 
-// TX divorce orchestrator (phase-based interview agent)
-let txDivorceOrchestrator = null;
-try {
-  txDivorceOrchestrator = require('../services/agents/TXDivorceOrchestrator');
-} catch (err) {
-  logger.warn('TXDivorceOrchestrator not available, falling back to standard divorce processing', { error: err.message });
+// ─── Divorce orchestrators (one per supported state) ──────────────────────────
+// Each is a thin BaseDivorceOrchestrator instance with state-specific prompts.
+// Graceful degradation: if any fails to load we fall back to affidavitService.
+
+const divorceOrchestrators = {};
+
+for (const [stateCode, modulePath] of [
+  ['TX', '../services/agents/TXDivorceOrchestrator'],
+  ['AZ', '../services/agents/AZDivorceOrchestrator'],
+  ['CA', '../services/agents/CADivorceOrchestrator'],
+  ['FL', '../services/agents/FLDivorceOrchestrator'],
+  ['IL', '../services/agents/ILDivorceOrchestrator'],
+  ['NY', '../services/agents/NYDivorceOrchestrator'],
+  ['UT', '../services/agents/UTDivorceOrchestrator'],
+]) {
+  try {
+    divorceOrchestrators[stateCode] = require(modulePath);
+    logger.info(`DivorceOrchestrator loaded: ${stateCode}`);
+  } catch (err) {
+    logger.warn(`DivorceOrchestrator not available for ${stateCode}, will fall back`, { error: err.message });
+  }
 }
 
+/** States that have a phase-based divorce orchestrator. */
+const ORCHESTRATED_STATES = new Set(Object.keys(divorceOrchestrators));
+
 /**
- * Determine if this message should be handled by the TX divorce orchestrator.
- * Routes TX divorce_package documents to the phase-based agent.
+ * Return the appropriate divorce orchestrator for this document, or null.
+ * Returns null if the document type is not a divorce_package, or if no
+ * orchestrator is registered for the state.
+ *
+ * When state is not yet set (INTAKE phase), we default to TX — the INTAKE
+ * prompt confirms the state and the orchestratorState.stateCode is set when
+ * the user confirms their state.
  */
-function shouldUseOrchestrator(affidavitData) {
-  if (!txDivorceOrchestrator) return false;
-  const docType = affidavitData.documentType || affidavitData.document_type || '';
-  if (docType !== 'divorce_package') return false;
-  // Use orchestrator for TX or when state not yet set (orchestrator will ask for it)
+function getOrchestrator(affidavitData) {
+  const docType = (affidavitData.documentType || affidavitData.document_type || '').toLowerCase();
+  if (docType !== 'divorce_package') return null;
+
   const state = (affidavitData.state || '').toUpperCase();
-  return state === 'TX' || state === '';
+
+  if (state && ORCHESTRATED_STATES.has(state)) return divorceOrchestrators[state];
+
+  // State not yet set (beginning of INTAKE) — use TX as initial entry point
+  if (!state && divorceOrchestrators['TX']) return divorceOrchestrators['TX'];
+
+  return null; // Unsupported state → fall through to affidavitService
 }
 
 /**
@@ -159,13 +187,16 @@ router.post('/',
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
 
-          if (shouldUseOrchestrator(affidavitData)) {
-            // TX divorce: use phase-based orchestrator
-            logger.info('Routing to TXDivorceOrchestrator', {
+          const orchestrator = getOrchestrator(affidavitData);
+          if (orchestrator) {
+            // Divorce package: route to the state-specific phase-based orchestrator
+            const state = (affidavitData.state || 'TX').toUpperCase();
+            logger.info('Routing to DivorceOrchestrator', {
+              state,
               phase: affidavitData.orchestratorState?.currentPhase || 'INTAKE',
               sessionId: req.sessionId
             });
-            const orchResult = await txDivorceOrchestrator.processMessage(
+            const orchResult = await orchestrator.processMessage(
               message,
               chunkedHistory,
               affidavitData,

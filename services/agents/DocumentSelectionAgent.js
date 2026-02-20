@@ -412,6 +412,88 @@ function selectDefault(data) {
 HANDLERS['*:family']  = selectDefault;
 HANDLERS['*:general'] = selectDefault;
 
+// ─── General affidavit types — universal ──────────────────────────────────────
+// These produce a single affidavit document. The affidavit_type is passed as
+// the practiceArea from GeneralAffidavitOrchestrator so keys match typeId.
+
+function selectSingleAffidavit(reason) {
+  return function(data) {
+    return {
+      documents: ['affidavit'],
+      reasons: { affidavit: reason }
+    };
+  };
+}
+
+HANDLERS['*:general_affidavit'] = selectSingleAffidavit(
+  'A general-purpose sworn affidavit documenting your statement of facts.'
+);
+
+HANDLERS['*:affidavit_of_residency'] = selectSingleAffidavit(
+  'A sworn affidavit certifying your current place of residence.'
+);
+
+HANDLERS['*:affidavit_of_identity'] = selectSingleAffidavit(
+  'A sworn affidavit confirming your legal name and identity.'
+);
+
+HANDLERS['*:financial_affidavit'] = selectSingleAffidavit(
+  'A sworn financial disclosure documenting income, expenses, assets, and liabilities.'
+);
+
+HANDLERS['*:affidavit_of_support'] = selectSingleAffidavit(
+  'A sworn affidavit vouching for another person\'s housing, finances, or character.'
+);
+
+HANDLERS['*:affidavit_of_no_divorce'] = selectSingleAffidavit(
+  'A sworn affidavit certifying you have never been divorced and no proceedings are pending.'
+);
+
+HANDLERS['*:affidavit_of_lost_document'] = selectSingleAffidavit(
+  'A sworn affidavit attesting that an original document has been lost and requesting a replacement.'
+);
+
+HANDLERS['*:affidavit_of_no_lien'] = selectSingleAffidavit(
+  'A sworn affidavit certifying the property is free and clear of all liens.'
+);
+
+HANDLERS['*:affidavit_of_domicile'] = selectSingleAffidavit(
+  'A sworn affidavit certifying the deceased person\'s state of legal domicile at time of death.'
+);
+
+HANDLERS['*:affidavit_of_survivorship'] = selectSingleAffidavit(
+  'A sworn affidavit establishing your right as surviving joint tenant to the property.'
+);
+
+// Estate types produce their own named document sets
+
+HANDLERS['*:affidavit_of_heirship'] = function(data) {
+  return {
+    documents: ['affidavit_of_heirship'],
+    reasons: {
+      affidavit_of_heirship: 'An Affidavit of Heirship establishing the rightful heirs without formal probate.'
+    }
+  };
+};
+
+HANDLERS['*:small_estate_affidavit'] = function(data) {
+  return {
+    documents: ['small_estate_affidavit'],
+    reasons: {
+      small_estate_affidavit: 'A Small Estate Affidavit allowing you to collect the deceased\'s assets without formal probate proceedings.'
+    }
+  };
+};
+
+HANDLERS['*:vehicle_transfer_affidavit'] = function(data) {
+  return {
+    documents: ['vehicle_transfer_affidavit'],
+    reasons: {
+      vehicle_transfer_affidavit: 'A Vehicle Transfer Affidavit required by the DMV to transfer the vehicle title.'
+    }
+  };
+};
+
 // ─── DocumentSelectionAgent class ─────────────────────────────────────────────
 
 class DocumentSelectionAgent {

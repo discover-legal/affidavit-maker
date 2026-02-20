@@ -18,6 +18,50 @@ try {
   logger.warn('Stripe not initialized in documents.js', { error: err.message });
 }
 
+// DivorceDocumentGenerator — generates sections objects for all divorce doc types
+let divorceDocumentGenerator = null;
+try {
+  divorceDocumentGenerator = require('../services/documents/DivorceDocumentGenerator');
+  logger.info('DivorceDocumentGenerator loaded');
+} catch (err) {
+  logger.warn('DivorceDocumentGenerator not available', { error: err.message });
+}
+
+// All document type IDs routed through DivorceDocumentGenerator.
+// This is the complete set across all 7 states.
+const ALL_DIVORCE_DOCUMENT_TYPES = new Set([
+  // Core filing documents
+  'divorce_petition', 'petition_dissolution',
+  'divorce_decree', 'judgment_dissolution', 'final_judgment', 'proposed_judgment',
+  // Service documents
+  'waiver_of_service', 'acknowledgment_of_receipt', 'acknowledgment_of_service',
+  'cert_last_known_address',
+  // Affidavit documents
+  'prove_up_affidavit', 'military_status_affidavit', 'indigency_affidavit',
+  // Child & support
+  'parenting_plan', 'child_support_worksheet', 'child_support_order',
+  'spousal_support_order', 'child_custody_order',
+  // NY-specific
+  'summons_with_notice', 'verified_complaint',
+]);
+
+/**
+ * Generate a divorce document using DivorceDocumentGenerator.
+ * Returns a {sections, metadata} object compatible with pdfService and the preview endpoint.
+ * Falls through to null if the generator is unavailable.
+ */
+function generateDivorceDocument(state, docType, data) {
+  if (!divorceDocumentGenerator) return null;
+  try {
+    return divorceDocumentGenerator.generate(state, docType, data);
+  } catch (err) {
+    logger.error('DivorceDocumentGenerator.generate failed', {
+      state, docType, error: err.message
+    });
+    return null;
+  }
+}
+
 /**
  * Map chat-extracted divorce fields to template-expected field names
  * @param {Object} divorceData - The divorce data object to map in-place
@@ -295,49 +339,28 @@ router.post('/preview',
               effectiveDocType = affidavitData.activeSubDocument || 'divorce_petition';
             }
 
-            // Route to appropriate template based on document type
-            const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
-            const DIVORCE_SUPPORTING_TYPES = [
-              'indigency_affidavit', 'waiver_of_service',
-              'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'
-            ];
-
-            if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
-              // Map chat-extracted fields to template-expected fields
+            // Route to appropriate generator based on document type
+            if (ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveDocType)) {
+              // Divorce / dissolution document — use DivorceDocumentGenerator first, then
+              // fall back to templateManager if the generator is not yet available.
               const divorceData = { ...affidavitData };
               mapDivorceDataFields(divorceData);
 
-              // Generate divorce document using the appropriate template method
-              // TemplateRegistry (new system) uses generateDocument(state, data, docType)
-              // StateTemplateManager (legacy) uses generateDivorcePetition/generateDivorceDecree
-              if (typeof templateManager.generateDocument === 'function') {
-                document = templateManager.generateDocument(
-                  divorceData.state,
-                  divorceData,
-                  effectiveDocType
-                );
+              const generated = generateDivorceDocument(divorceData.state, effectiveDocType, divorceData);
+              if (generated) {
+                document = generated;
+              } else if (typeof templateManager.generateDocument === 'function') {
+                document = templateManager.generateDocument(divorceData.state, divorceData, effectiveDocType);
               } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
                 document = templateManager.generateDivorcePetition(divorceData.state, divorceData);
               } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
                 document = templateManager.generateDivorceDecree(divorceData.state, divorceData);
               } else {
-                logger.warn('Divorce document requested but templates not available, using fallback');
+                logger.warn('No divorce document generator available, using fallback preview');
                 preview = createDivorceFallbackPreview(affidavitData);
               }
-            } else if (DIVORCE_SUPPORTING_TYPES.includes(effectiveDocType)) {
-              // Supporting divorce documents — route through generic generateDocument
-              if (typeof templateManager.generateDocument === 'function') {
-                document = templateManager.generateDocument(
-                  affidavitData.state,
-                  affidavitData,
-                  effectiveDocType
-                );
-              } else {
-                // Fallback: generate as standard affidavit
-                document = templateManager.generateAffidavit(affidavitData.state, affidavitData);
-              }
             } else {
-              // Default: Use affidavit template
+              // Standard affidavit (general, general_affidavit, financial_affidavit, etc.)
               document = templateManager.generateAffidavit(
                 affidavitData.state,
                 affidavitData
@@ -370,7 +393,7 @@ router.post('/preview',
           }
         } catch (templateError) {
           const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-          const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'].includes(docType);
+          const isDivorceType = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
           logger.warn('Template manager preview failed, using fallback', {
             error: templateError.message,
             documentType: docType
@@ -390,7 +413,7 @@ router.post('/preview',
 
       // ✅ SAFETY CHECK: Ensure notaryBlock is present for affidavit documents (not divorce)
       const effectiveType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-      const isDivorcePreview = effectiveType === 'divorce_petition' || effectiveType === 'divorce_decree' || effectiveType === 'divorce_package';
+      const isDivorcePreview = effectiveType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveType);
       if (!isDivorcePreview && !enhancedPreview.sections?.notaryBlock) {
         logger.warn('NotaryBlock missing from preview, adding default', {
           state: affidavitData.state,
@@ -430,7 +453,7 @@ router.post('/preview',
       logger.error('Preview generation failed', { error: error.message });
 
       const docType = affidavitData?.activeSubDocument || affidavitData?.documentType || 'affidavit';
-      const isDivorceType = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docType);
+      const isDivorceType = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
 
       res.json({
         success: true,
@@ -634,24 +657,17 @@ router.post('/generate',
             effectiveDocType = affidavitData.activeSubDocument || 'divorce_petition';
           }
 
-          // Route to appropriate template based on document type
-          const DIVORCE_MAIN_TYPES = ['divorce_petition', 'divorce_decree'];
-          const DIVORCE_SUPPORTING_TYPES = [
-            'indigency_affidavit', 'waiver_of_service',
-            'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'
-          ];
-
-          if (DIVORCE_MAIN_TYPES.includes(effectiveDocType)) {
-            // Map chat-extracted fields to template-expected fields
+          // Route to appropriate generator based on document type
+          if (ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveDocType)) {
+            // Divorce / dissolution document — DivorceDocumentGenerator first, then fallbacks
             const divorceData = { ...affidavitData };
             mapDivorceDataFields(divorceData);
 
-            if (typeof templateManager.generateDocument === 'function') {
-              documentStructure = templateManager.generateDocument(
-                divorceData.state,
-                divorceData,
-                effectiveDocType
-              );
+            const generated = generateDivorceDocument(divorceData.state, effectiveDocType, divorceData);
+            if (generated) {
+              documentStructure = generated;
+            } else if (typeof templateManager.generateDocument === 'function') {
+              documentStructure = templateManager.generateDocument(divorceData.state, divorceData, effectiveDocType);
             } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
               documentStructure = templateManager.generateDivorcePetition(divorceData.state, divorceData);
             } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
@@ -659,25 +675,13 @@ router.post('/generate',
             } else {
               return res.status(400).json({
                 success: false,
-                error: 'Divorce document generation not available in this configuration',
+                error: 'Divorce document generation not available — please try again later',
                 errorType: 'unsupported_document_type'
               });
             }
-            logger.info('Generated divorce main document', { documentType: effectiveDocType, state: affidavitData.state });
-          } else if (DIVORCE_SUPPORTING_TYPES.includes(effectiveDocType)) {
-            // Supporting divorce documents
-            if (typeof templateManager.generateDocument === 'function') {
-              documentStructure = templateManager.generateDocument(
-                affidavitData.state,
-                affidavitData,
-                effectiveDocType
-              );
-            } else {
-              documentStructure = templateManager.generateAffidavit(affidavitData.state, affidavitData);
-            }
-            logger.info('Generated divorce supporting document', { documentType: effectiveDocType, state: affidavitData.state });
+            logger.info('Generated divorce document', { documentType: effectiveDocType, state: affidavitData.state });
           } else {
-            // Default: Use affidavit template
+            // Standard affidavit
             documentStructure = templateManager.generateAffidavit(
               affidavitData.state,
               affidavitData
@@ -1348,7 +1352,7 @@ function enhancePreviewWithCategories(preview, affidavitData) {
 
   // Skip facts enhancement for divorce documents - they use different section structures
   const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
-  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree', 'indigency_affidavit', 'waiver_of_service', 'cert_last_known_address', 'military_status_affidavit', 'prove_up_affidavit'].includes(docType);
+  const isDivorceDoc = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
   if (isDivorceDoc) {
     return enhanced;
   }

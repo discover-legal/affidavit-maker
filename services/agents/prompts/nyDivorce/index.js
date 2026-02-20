@@ -188,6 +188,28 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
+const INDIGENCY = `You are a legal document assistant helping someone file for divorce in New York.
+You are determining whether the plaintiff qualifies for poor person status to waive court fees.
+
+Under CPLR § 1101, a court may permit a person to proceed as a "poor person" and waive
+the Index Number fee (typically $210) and other filing fees. The application is made by
+filing a motion with an affidavit of financial circumstances.
+
+COLLECT:
+1. "Do you want to ask the court to waive your filing fees because you cannot afford them?"
+   - If NO: phase complete — do not generate fee waiver document
+2. If YES:
+   a. "What is your total monthly income from all sources?"
+   b. "What are your approximate monthly expenses?"
+   c. "Do you own significant assets beyond a home and basic vehicle?"
+   d. "How many people are financially dependent on you?"
+
+NOTE: New York's poor person standard considers whether paying fees would deprive the person of
+the necessities of life. The Index Number fee for a divorce action is currently $210.
+
+REQUIRED FIELDS: indigency_confirmed, and if yes: monthly_income, monthly_expenses, assets_description, dependents_count
+${SHARED_RULES}`;
+
 const REVIEW = `You are a legal document assistant helping someone file for divorce in New York.
 Final review phase.
 
@@ -199,17 +221,18 @@ user_confirmed_review: true
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1, prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'New York Residency', order: 2, prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3, prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
-  CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',           order: 4, prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
-  PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',   order: 5, prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
-  SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',        order: 6, prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },
-  SERVICE:   { name: 'SERVICE',   displayName: 'Serving Your Spouse',order: 7, prompt: SERVICE,   requiredFields: ['serviceMethod'],                            optional: false },
-  MILITARY:  { name: 'MILITARY',  displayName: 'Military Status',    order: 8, prompt: MILITARY,  requiredFields: ['militaryStatusConfirmed'],                  optional: false },
-  REVIEW:    { name: 'REVIEW',    displayName: 'Review & Confirm',   order: 9, prompt: REVIEW,    requiredFields: ['userConfirmedReview'],                      optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'New York Residency', order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',           order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
+  PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',   order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
+  SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',        order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },
+  SERVICE:   { name: 'SERVICE',   displayName: 'Serving Your Spouse',order: 7,  prompt: SERVICE,   requiredFields: ['serviceMethod'],                            optional: false },
+  INDIGENCY: { name: 'INDIGENCY', displayName: 'Court Costs',        order: 8,  prompt: INDIGENCY, requiredFields: ['indigencyConfirmed'],                       optional: true  },
+  MILITARY:  { name: 'MILITARY',  displayName: 'Military Status',    order: 9,  prompt: MILITARY,  requiredFields: ['militaryStatusConfirmed'],                  optional: false },
+  REVIEW:    { name: 'REVIEW',    displayName: 'Review & Confirm',   order: 10, prompt: REVIEW,    requiredFields: ['userConfirmedReview'],                      optional: false },
 };
 
-const PHASE_ORDER = ['INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY', 'SUPPORT', 'SERVICE', 'MILITARY', 'REVIEW'];
+const PHASE_ORDER = ['INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY', 'SUPPORT', 'SERVICE', 'INDIGENCY', 'MILITARY', 'REVIEW'];
 
 module.exports = { PHASES, PHASE_ORDER };

@@ -47,39 +47,51 @@ const logger = require('../../utils/logger');
 
 const HANDLERS = {};
 
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+/**
+ * True when the interview has confirmed minor children exist.
+ *
+ * childrenConfirmed semantics (from tool definition):
+ *   true  = "confirmed NO minor children"   ← confusing name, but that's the schema
+ *   false = "confirmed YES, children exist"
+ * children array populated by LLM when children exist.
+ *
+ * So children are present when EITHER the array has entries OR childrenConfirmed === false.
+ * hasMinorChildren is never set by FIELD_MAP so we never rely on it.
+ */
+function hasChildren(data) {
+  return (data.children?.length > 0) || (data.childrenConfirmed === false);
+}
+
+/**
+ * True when a military-status affidavit is needed on the WAIVER path.
+ * Even in an agreed divorce the court needs military confirmation if status
+ * isn't affirmatively confirmed as not_military (SCRA is federal, applies everywhere).
+ */
+function needsMilitaryOnWaiverPath(data) {
+  return data.respondentMilitaryStatus && data.respondentMilitaryStatus !== 'not_military';
+}
+
 // ─── Texas – Family Law ────────────────────────────────────────────────────────
 
 /**
  * Texas family-law divorce document selection.
- *
- * Follows the Texas Supreme Court Divorce Set 1 packet logic:
- * https://www.txcourts.gov/programs-services/self-help/divorce/
- *
- * Core documents:
- *   divorce_petition        — always (initiates the case)
- *   divorce_decree          — always (final order dissolving marriage)
- *
- * Conditional supporting documents:
- *   waiver_of_service       — spouse agreed to sign (cooperative divorce)
- *   prove_up_affidavit      — agreed divorce → skip courthouse hearing
- *   cert_last_known_address — respondent hasn't appeared / can't be located
- *   military_status_affidavit — respondent hasn't appeared OR military status uncertain
- *   indigency_affidavit     — user requests filing fee waiver
+ * Follows TX Supreme Court Divorce Set 1: txcourts.gov/programs-services/self-help/divorce/
+ * TX decree absorbs the Standard Possession Order & child support provisions internally,
+ * so no separate parenting_plan document is needed for uncontested TX divorces.
  */
 function selectTX_family(data) {
   const docs = [];
   const reasons = {};
 
-  // ── Core ──
   docs.push('divorce_petition');
   reasons['divorce_petition'] = 'Required to open your divorce case with the court.';
 
   docs.push('divorce_decree');
   reasons['divorce_decree'] = 'The final court order that officially ends the marriage.';
 
-  // ── Service path ──
   if (data.serviceMethod === 'waiver') {
-    // Agreed divorce — spouse is cooperative and will sign
     docs.push('waiver_of_service');
     reasons['waiver_of_service'] =
       'Your spouse agreed to waive formal service, which avoids the cost and delay of a process server.';
@@ -88,15 +100,13 @@ function selectTX_family(data) {
     reasons['prove_up_affidavit'] =
       'Since both parties agree on all terms, this sworn statement lets the judge approve your divorce without requiring you to appear in court.';
 
-    // Military status still needed if not confirmed non-military
-    if (data.respondentMilitaryStatus && data.respondentMilitaryStatus !== 'not_military') {
+    if (needsMilitaryOnWaiverPath(data)) {
       docs.push('military_status_affidavit');
       reasons['military_status_affidavit'] =
         'Even in an agreed divorce, the court needs confirmation of your spouse\'s military status before finalizing.';
     }
 
   } else if (data.serviceMethod) {
-    // Formal service or last-known-address — respondent hasn't appeared
     docs.push('cert_last_known_address');
     reasons['cert_last_known_address'] =
       'Since your spouse hasn\'t signed a waiver, you\'ll need to certify their last known address so the court can verify service was attempted.';
@@ -105,9 +115,7 @@ function selectTX_family(data) {
     reasons['military_status_affidavit'] =
       'Federal law (SCRA) requires confirming whether your spouse is on active military duty before the court can enter a default judgment.';
   }
-  // If service method not yet collected, only core docs shown (interview still in progress)
 
-  // ── Fee waiver ──
   if (data.indigencyRequested === true) {
     docs.push('indigency_affidavit');
     reasons['indigency_affidavit'] =
@@ -131,7 +139,7 @@ function selectAZ_family(data) {
   docs.push('divorce_decree');
   reasons['divorce_decree'] = 'The final court decree dissolving the marriage and resolving all issues.';
 
-  if (data.children?.length > 0 || data.hasMinorChildren) {
+  if (hasChildren(data)) {
     docs.push('parenting_plan');
     reasons['parenting_plan'] = 'Arizona requires a parenting plan specifying legal decision-making and parenting time for each child.';
   }
@@ -139,11 +147,22 @@ function selectAZ_family(data) {
   if (data.serviceMethod === 'waiver') {
     docs.push('waiver_of_service');
     reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service, which avoids the cost and delay of a process server.';
+
+    if (needsMilitaryOnWaiverPath(data)) {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'Even in an agreed dissolution, the court needs confirmation of your spouse\'s military status (SCRA).';
+    }
   } else if (data.serviceMethod) {
     docs.push('cert_last_known_address');
     reasons['cert_last_known_address'] = 'Since your spouse has not signed an acceptance of service, you\'ll need to certify their last known address.';
+
     docs.push('military_status_affidavit');
     reasons['military_status_affidavit'] = 'Federal law (SCRA) requires confirming your spouse\'s military status before a default judgment can be entered.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Application to Defer or Waive Court Fees (Form AOCFD111) will allow the court to waive the filing fee under A.R.S. § 12-302.';
   }
 
   return { documents: docs, reasons };
@@ -161,11 +180,14 @@ function selectCA_family(data) {
   reasons['petition_dissolution'] = 'The FL-100 Petition for Dissolution of Marriage is the required opening document for your case.';
 
   docs.push('judgment_dissolution');
-  reasons['judgment_dissolution'] = 'The final Judgment of Dissolution (FL-180/FL-190) officially ends the marriage after the 6-month waiting period.';
+  reasons['judgment_dissolution'] = 'The final Judgment of Dissolution (FL-180/FL-190) officially ends the marriage after the mandatory 6-month waiting period.';
 
-  if (data.children?.length > 0 || data.hasMinorChildren) {
+  if (hasChildren(data)) {
     docs.push('child_custody_order');
-    reasons['child_custody_order'] = 'A formal child custody and visitation order is required when minor children are involved.';
+    reasons['child_custody_order'] = 'A formal child custody and visitation order (FL-341) is required when minor children are involved.';
+
+    docs.push('child_support_order');
+    reasons['child_support_order'] = 'California requires a separate Child Support Information and Order Attachment (FL-342) documenting the support calculation.';
   }
 
   if (data.spousalSupportRequested) {
@@ -176,9 +198,19 @@ function selectCA_family(data) {
   if (data.serviceMethod === 'waiver') {
     docs.push('acknowledgment_of_receipt');
     reasons['acknowledgment_of_receipt'] = 'Your spouse agreed to sign an Acknowledgment of Receipt of service, which avoids formal service costs.';
+
+    if (needsMilitaryOnWaiverPath(data)) {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'Even with an acknowledgment of service, the court needs military status confirmation (SCRA) before finalizing.';
+    }
   } else if (data.serviceMethod) {
     docs.push('military_status_affidavit');
     reasons['military_status_affidavit'] = 'California courts require confirmation of military status (SCRA) before entering a default judgment.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Request to Waive Court Fees (FW-001) will allow the court to waive the ~$435–450 filing fee under Cal. Rules of Court, rules 3.50–3.58.';
   }
 
   return { documents: docs, reasons };
@@ -193,12 +225,12 @@ function selectFL_family(data) {
   const reasons = {};
 
   docs.push('petition_dissolution');
-  reasons['petition_dissolution'] = 'The FL-101 Petition for Dissolution of Marriage is required to open your case in the Circuit Court.';
+  reasons['petition_dissolution'] = 'The Petition for Dissolution of Marriage is required to open your case in the Circuit Court.';
 
   docs.push('final_judgment');
   reasons['final_judgment'] = 'The Final Judgment of Dissolution resolves all issues and officially ends the marriage.';
 
-  if (data.children?.length > 0 || data.hasMinorChildren) {
+  if (hasChildren(data)) {
     docs.push('parenting_plan');
     reasons['parenting_plan'] = 'Florida requires a Parenting Plan detailing time-sharing and parental responsibility for each child (§ 61.13 F.S.).';
 
@@ -209,9 +241,19 @@ function selectFL_family(data) {
   if (data.serviceMethod === 'waiver') {
     docs.push('waiver_of_service');
     reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service.';
+
+    if (needsMilitaryOnWaiverPath(data)) {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'Even in an agreed dissolution, the court needs military status confirmation (SCRA) before finalizing.';
+    }
   } else if (data.serviceMethod) {
     docs.push('military_status_affidavit');
     reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Application for Determination of Civil Indigent Status will allow the court to waive the ~$400–410 filing fee under § 57.082 F.S.';
   }
 
   return { documents: docs, reasons };
@@ -231,7 +273,7 @@ function selectIL_family(data) {
   docs.push('judgment_dissolution');
   reasons['judgment_dissolution'] = 'The Judgment for Dissolution of Marriage (Marital Settlement Agreement or contested order) finalizes the divorce.';
 
-  if (data.children?.length > 0 || data.hasMinorChildren) {
+  if (hasChildren(data)) {
     docs.push('parenting_plan');
     reasons['parenting_plan'] = 'Illinois requires an Allocation Judgment specifying parental responsibilities and parenting time (750 ILCS 5/602.10).';
 
@@ -242,9 +284,19 @@ function selectIL_family(data) {
   if (data.serviceMethod === 'waiver') {
     docs.push('waiver_of_service');
     reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service.';
+
+    if (needsMilitaryOnWaiverPath(data)) {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'Even in an agreed dissolution, the court needs military status confirmation (SCRA) before finalizing.';
+    }
   } else if (data.serviceMethod) {
     docs.push('military_status_affidavit');
     reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Application for Waiver of Court Fees will allow the court to waive the filing fee under 735 ILCS 5/5-105.';
   }
 
   return { documents: docs, reasons };
@@ -262,12 +314,12 @@ function selectNY_family(data) {
   reasons['summons_with_notice'] = 'New York requires a Summons with Notice to initiate the divorce action in Supreme Court. You\'ll receive an Index Number when you file.';
 
   docs.push('verified_complaint');
-  reasons['verified_complaint'] = 'The Verified Complaint (or Summons and Complaint) sets out the grounds and relief sought in your divorce action.';
+  reasons['verified_complaint'] = 'The Verified Complaint sets out the grounds and relief sought in your divorce action.';
 
   docs.push('proposed_judgment');
   reasons['proposed_judgment'] = 'A Proposed Judgment of Divorce is required for the court to finalize the divorce and equitable distribution.';
 
-  if (data.children?.length > 0 || data.hasMinorChildren) {
+  if (hasChildren(data)) {
     docs.push('parenting_plan');
     reasons['parenting_plan'] = 'A custody and parenting time agreement is required when minor children are involved (DRL § 240).';
 
@@ -278,9 +330,19 @@ function selectNY_family(data) {
   if (data.serviceMethod === 'waiver') {
     docs.push('acknowledgment_of_service');
     reasons['acknowledgment_of_service'] = 'Your spouse agreed to sign an Acknowledgment of Service, which is the fastest way to effect service in New York.';
+
+    if (needsMilitaryOnWaiverPath(data)) {
+      docs.push('military_status_affidavit');
+      reasons['military_status_affidavit'] = 'Even with an acknowledgment of service, the court needs military status confirmation (SCRA) before finalizing.';
+    }
   } else if (data.serviceMethod) {
     docs.push('military_status_affidavit');
     reasons['military_status_affidavit'] = 'SCRA requires confirming military status before a default judgment can be entered.';
+  }
+
+  if (data.indigencyRequested === true) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'Your Poor Person affidavit (CPLR § 1101) will allow the court to waive the $210 Index Number fee and other filing costs.';
   }
 
   return { documents: docs, reasons };
@@ -300,6 +362,11 @@ function selectUT_family(data) {
   docs.push('divorce_decree');
   reasons['divorce_decree'] = 'The Decree of Divorce is the final court order dissolving the marriage.';
 
+  if (hasChildren(data)) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'Utah requires a Parenting Plan filed with the court specifying custody and parent-time for each child (Utah Code § 30-3-10.8).';
+  }
+
   if (data.serviceMethod === 'waiver') {
     docs.push('waiver_of_service');
     reasons['waiver_of_service'] = 'Your spouse agreed to waive formal service, which saves time and cost.';
@@ -307,9 +374,9 @@ function selectUT_family(data) {
     docs.push('prove_up_affidavit');
     reasons['prove_up_affidavit'] = 'In an agreed Utah divorce, this sworn statement allows the judge to approve the divorce without a court appearance.';
 
-    if (data.respondentMilitaryStatus && data.respondentMilitaryStatus !== 'not_military') {
+    if (needsMilitaryOnWaiverPath(data)) {
       docs.push('military_status_affidavit');
-      reasons['military_status_affidavit'] = 'The court needs confirmation of your spouse\'s military status even in an agreed divorce.';
+      reasons['military_status_affidavit'] = 'The court needs confirmation of your spouse\'s military status even in an agreed divorce (SCRA).';
     }
   } else if (data.serviceMethod) {
     docs.push('cert_last_known_address');
@@ -321,7 +388,7 @@ function selectUT_family(data) {
 
   if (data.indigencyRequested === true) {
     docs.push('indigency_affidavit');
-    reasons['indigency_affidavit'] = 'Your Motion to Waive Fees will allow the court to waive the filing fee based on financial hardship.';
+    reasons['indigency_affidavit'] = 'Your Motion to Waive Fees will allow the court to waive the filing fee based on financial hardship (Utah Code of Judicial Administration Rule 4-202.02).';
   }
 
   return { documents: docs, reasons };

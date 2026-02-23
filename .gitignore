@@ -141,8 +141,8 @@ repomix-output.xml
 repomix-output.xml
 auto-fix.sh
 
-# Generated PDF documents
-documents/
+# Generated PDF documents (top-level only — services/documents/ must NOT be ignored)
+/documents/
 
 # SECURITY (MED-06): Temp upload directory
 temp/

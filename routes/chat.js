@@ -9,6 +9,92 @@ const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
 
+// ─── General affidavit orchestrator ──────────────────────────────────────────
+// Handles all non-divorce affidavit types via a 4-phase interview engine.
+
+let generalAffidavitOrchestrator = null;
+try {
+  generalAffidavitOrchestrator = require('../services/agents/GeneralAffidavitOrchestrator');
+  logger.info('GeneralAffidavitOrchestrator loaded');
+} catch (err) {
+  logger.warn('GeneralAffidavitOrchestrator not available, will fall back', { error: err.message });
+}
+
+// Affidavit type IDs routed to GeneralAffidavitOrchestrator (all non-divorce types).
+// Loaded from AffidavitTypeRegistry so the source of truth is one place.
+let GENERAL_AFFIDAVIT_TYPES = new Set();
+try {
+  const registry = require('../services/affidavits/AffidavitTypeRegistry');
+  GENERAL_AFFIDAVIT_TYPES = new Set(
+    Object.values(registry.all)
+      .filter(t => t.routesTo !== 'divorce_orchestrator')
+      .map(t => t.id)
+  );
+} catch (err) {
+  logger.warn('AffidavitTypeRegistry not available for type routing', { error: err.message });
+}
+
+// ─── Divorce orchestrators (one per supported state) ──────────────────────────
+// Each is a thin BaseDivorceOrchestrator instance with state-specific prompts.
+// Graceful degradation: if any fails to load we fall back to affidavitService.
+
+const divorceOrchestrators = {};
+
+for (const [stateCode, modulePath] of [
+  ['TX', '../services/agents/TXDivorceOrchestrator'],
+  ['AZ', '../services/agents/AZDivorceOrchestrator'],
+  ['CA', '../services/agents/CADivorceOrchestrator'],
+  ['FL', '../services/agents/FLDivorceOrchestrator'],
+  ['IL', '../services/agents/ILDivorceOrchestrator'],
+  ['NY', '../services/agents/NYDivorceOrchestrator'],
+  ['UT', '../services/agents/UTDivorceOrchestrator'],
+]) {
+  try {
+    divorceOrchestrators[stateCode] = require(modulePath);
+    logger.info(`DivorceOrchestrator loaded: ${stateCode}`);
+  } catch (err) {
+    logger.warn(`DivorceOrchestrator not available for ${stateCode}, will fall back`, { error: err.message });
+  }
+}
+
+/** States that have a phase-based divorce orchestrator. */
+const ORCHESTRATED_STATES = new Set(Object.keys(divorceOrchestrators));
+
+/**
+ * Return the appropriate divorce orchestrator for this document, or null.
+ * Returns null if the document type is not a divorce_package, or if no
+ * orchestrator is registered for the state.
+ *
+ * When state is not yet set (INTAKE phase), we default to TX — the INTAKE
+ * prompt confirms the state and the orchestratorState.stateCode is set when
+ * the user confirms their state.
+ */
+function getOrchestrator(affidavitData) {
+  const docType = (affidavitData.documentType || affidavitData.document_type || '').toLowerCase();
+  if (docType !== 'divorce_package') return null;
+
+  const state = (affidavitData.state || '').toUpperCase();
+
+  if (state && ORCHESTRATED_STATES.has(state)) return divorceOrchestrators[state];
+
+  // State not yet set (beginning of INTAKE) — use TX as initial entry point
+  if (!state && divorceOrchestrators['TX']) return divorceOrchestrators['TX'];
+
+  return null; // Unsupported state → fall through to affidavitService
+}
+
+/**
+ * Return the GeneralAffidavitOrchestrator when the document type is a recognized
+ * non-divorce affidavit type. Returns null otherwise.
+ */
+function getGeneralOrchestrator(affidavitData) {
+  if (!generalAffidavitOrchestrator) return null;
+  const docType = (affidavitData.documentType || affidavitData.document_type || affidavitData.affidavitType || '').toLowerCase();
+  if (!docType) return null;
+  if (docType === 'divorce_package') return null; // handled by divorce orchestrators
+  return GENERAL_AFFIDAVIT_TYPES.has(docType) ? generalAffidavitOrchestrator : null;
+}
+
 /**
  * Constants for chat stability
  */
@@ -138,14 +224,60 @@ router.post('/',
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
 
-          result = await req.app.locals.affidavitService.processMessage(
-            message,
-            chunkedHistory,
-            affidavitData,
-            req.user.id,
-            req.sessionId,
-            skipExtraction
-          );
+          const divorceOrchestrator = getOrchestrator(affidavitData);
+          const generalOrchestrator = !divorceOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
+
+          if (divorceOrchestrator) {
+            // Divorce package: route to the state-specific phase-based orchestrator
+            const state = (affidavitData.state || 'TX').toUpperCase();
+            logger.info('Routing to DivorceOrchestrator', {
+              state,
+              phase: affidavitData.orchestratorState?.currentPhase || 'INTAKE',
+              sessionId: req.sessionId
+            });
+            const orchResult = await divorceOrchestrator.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response: orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts: orchResult.newFacts || []
+            };
+          } else if (generalOrchestrator) {
+            // Recognized non-divorce affidavit type: route to GeneralAffidavitOrchestrator
+            const docType = affidavitData.documentType || affidavitData.affidavitType || '';
+            logger.info('Routing to GeneralAffidavitOrchestrator', {
+              docType,
+              phase: affidavitData.orchestratorState?.currentPhase || 'CLASSIFY',
+              sessionId: req.sessionId
+            });
+            const orchResult = await generalOrchestrator.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response: orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts: orchResult.newFacts || []
+            };
+          } else {
+            // Unrecognized type or no type set: use legacy affidavitService
+            result = await req.app.locals.affidavitService.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId,
+              skipExtraction
+            );
+          }
 
           // Monitor memory usage after processing
           const memAfter = process.memoryUsage();
@@ -213,6 +345,7 @@ router.post('/',
         response: result.response,
         affidavitData: result.affidavitData || affidavitData,
         newFacts: result.newFacts || [],
+        orchestratorState: (result.affidavitData || affidavitData).orchestratorState || null,
         processingTime,
         sessionId: req.sessionId,
         timestamp: new Date().toISOString()

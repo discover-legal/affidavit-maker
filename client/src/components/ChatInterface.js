@@ -18,6 +18,24 @@ import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext
 import DocumentMetadata from './DocumentMetadata';
 import EvidenceUploadModal from './EvidenceUploadModal';
 
+// TX Divorce phase metadata (mirrors services/agents/prompts/txDivorce/index.js)
+const TX_DIVORCE_PHASE_ORDER = [
+  'INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY',
+  'SUPPORT', 'SERVICE', 'INDIGENCY', 'MILITARY', 'REVIEW'
+];
+const TX_DIVORCE_PHASE_NAMES = {
+  INTAKE:    'Getting Started',
+  RESIDENCY: 'Texas Residency',
+  GROUNDS:   'Grounds & Marriage',
+  CHILDREN:  'Children',
+  PROPERTY:  'Property & Assets',
+  SUPPORT:   'Support & Finances',
+  SERVICE:   'Service of Process',
+  INDIGENCY: 'Filing Fees',
+  MILITARY:  'Military Status',
+  REVIEW:    'Final Review'
+};
+
 // Supported states for document creation
 const SUPPORTED_STATES = [
   { code: 'TX', name: 'Texas' },
@@ -329,6 +347,15 @@ First, please select your state above. Each state has different legal requiremen
     }
   };
 
+  // TX Divorce phase progress
+  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(currentDocument.documentType);
+  const isTXDivorce = isDivorceDoc && (!currentDocument.state || currentDocument.state === 'TX');
+  const orchestratorPhase = currentDocument.orchestratorState?.currentPhase;
+  const currentPhaseIndex = orchestratorPhase ? TX_DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
+  const phaseProgress = currentPhaseIndex >= 0
+    ? Math.round(((currentPhaseIndex + 1) / TX_DIVORCE_PHASE_ORDER.length) * 100)
+    : 0;
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* State Selector - Shows prominently when no state is selected */}
@@ -360,6 +387,25 @@ First, please select your state above. Each state has different legal requiremen
                 {state.code} - {state.name}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* TX Divorce Phase Progress Strip */}
+      {isTXDivorce && orchestratorPhase && (
+        <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-indigo-700">
+              Step {currentPhaseIndex + 1} of {TX_DIVORCE_PHASE_ORDER.length}:{' '}
+              {TX_DIVORCE_PHASE_NAMES[orchestratorPhase] || orchestratorPhase}
+            </span>
+            <span className="text-xs text-indigo-400">{phaseProgress}% complete</span>
+          </div>
+          <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${phaseProgress}%` }}
+            />
           </div>
         </div>
       )}

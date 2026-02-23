@@ -5,6 +5,84 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
 
+// AffidavitTypeRegistry — canonical bank of all supported affidavit types
+let affidavitTypeRegistry = null;
+try {
+  affidavitTypeRegistry = require('../services/affidavits/AffidavitTypeRegistry');
+} catch (err) {
+  logger.warn('AffidavitTypeRegistry not available', { error: err.message });
+}
+
+// ─── Affidavit type endpoints (powered by AffidavitTypeRegistry) ──────────────
+
+/**
+ * GET /api/templates/affidavit-types
+ * Returns all available affidavit types, optionally filtered by ?state=TX
+ * and ?includeFamily=true to include divorce_package.
+ */
+router.get('/affidavit-types', standardLimiter, asyncHandler(async (req, res) => {
+  const { state, includeFamily } = req.query;
+
+  if (state && !/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({ success: false, error: 'Invalid state code format.' });
+  }
+
+  if (!affidavitTypeRegistry) {
+    return res.json({ success: true, types: [], count: 0 });
+  }
+
+  const types = affidavitTypeRegistry.getTypes(
+    state || null,
+    includeFamily === 'true'
+  );
+
+  res.json({ success: true, types, count: types.length });
+}));
+
+/**
+ * GET /api/templates/affidavit-types/by-category
+ * Returns all types grouped by category for the type-picker UI.
+ * Optional ?state=TX to filter to state-applicable types.
+ */
+router.get('/affidavit-types/by-category', standardLimiter, asyncHandler(async (req, res) => {
+  const { state } = req.query;
+
+  if (state && !/^[A-Za-z]{2}$/.test(state)) {
+    return res.status(400).json({ success: false, error: 'Invalid state code format.' });
+  }
+
+  if (!affidavitTypeRegistry) {
+    return res.json({ success: true, categories: {} });
+  }
+
+  const categories = affidavitTypeRegistry.getTypesByCategory(state || null);
+  res.json({ success: true, categories });
+}));
+
+/**
+ * GET /api/templates/affidavit-types/:typeId
+ * Returns metadata for a single affidavit type.
+ */
+router.get('/affidavit-types/:typeId', standardLimiter, asyncHandler(async (req, res) => {
+  const { typeId } = req.params;
+
+  // Basic validation: only alphanumeric and underscores
+  if (!/^[a-z_]{1,60}$/.test(typeId)) {
+    return res.status(400).json({ success: false, error: 'Invalid type ID format.' });
+  }
+
+  if (!affidavitTypeRegistry) {
+    return res.status(503).json({ success: false, error: 'Registry not available.' });
+  }
+
+  const type = affidavitTypeRegistry.getType(typeId);
+  if (!type) {
+    return res.status(404).json({ success: false, error: 'Affidavit type not found.' });
+  }
+
+  res.json({ success: true, type });
+}));
+
 // Get supported states (public endpoint)
 router.get('/states', standardLimiter, asyncHandler(async (req, res) => {
   const templateManager = req.app.locals.templateManager;
@@ -40,8 +118,15 @@ router.get('/states', standardLimiter, asyncHandler(async (req, res) => {
 // Get supported document types (public endpoint)
 router.get('/document-types', standardLimiter, asyncHandler(async (req, res) => {
   try {
-    // Document types are currently standard across all states
-    const documentTypes = ['general', 'divorce', 'custody', 'financial', 'property', 'identity'];
+    let documentTypes;
+
+    if (affidavitTypeRegistry) {
+      // Use registry as canonical source — return all type IDs (including divorce)
+      documentTypes = Object.keys(affidavitTypeRegistry.all);
+    } else {
+      // Legacy fallback
+      documentTypes = ['general', 'divorce', 'custody', 'financial', 'property', 'identity'];
+    }
 
     res.json({
       success: true,
@@ -54,7 +139,6 @@ router.get('/document-types', standardLimiter, asyncHandler(async (req, res) => 
       requestId: req.id
     });
 
-    // Fallback response
     res.json({
       success: true,
       documentTypes: ['general', 'divorce', 'custody', 'financial', 'property', 'identity'],

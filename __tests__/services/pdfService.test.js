@@ -50,6 +50,13 @@ jest.mock('pdfkit', () => {
       count: stream._pageBuffer.length
     }));
 
+    // PDF graphics state methods
+    stream.save = jest.fn(() => stream);
+    stream.restore = jest.fn(() => stream);
+    stream.translate = jest.fn(() => stream);
+    stream.rotate = jest.fn(() => stream);
+    stream.scale = jest.fn(() => stream);
+
     return stream;
   });
 });

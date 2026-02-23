@@ -482,7 +482,8 @@ export const DocumentProvider = ({ children }) => {
 
   // ✅ NEW: Initialize a new document session
   // documentType: 'affidavit' (default) or 'divorce_package'
-  const initializeNewDocument = useCallback(async (forceNew = false, documentType = 'affidavit') => {
+  // practiceArea: 'family' (default) or 'civil'
+  const initializeNewDocument = useCallback(async (forceNew = false, documentType = 'affidavit', practiceArea = 'family') => {
     if (!isAuthenticated) {
       console.warn('Cannot initialize document: User not authenticated');
       return null;
@@ -533,6 +534,7 @@ export const DocumentProvider = ({ children }) => {
           county: '',
           caseType: '',
           documentType: internalDocType,
+          practiceArea: practiceArea,
           activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         },
@@ -541,6 +543,7 @@ export const DocumentProvider = ({ children }) => {
           state: '',
           affiantName: '',
           documentType: internalDocType,
+          practiceArea: practiceArea,
           activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         })

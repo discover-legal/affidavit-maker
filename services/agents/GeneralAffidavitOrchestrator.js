@@ -16,8 +16,11 @@
  * The CLASSIFY phase is skipped when the document type is already known
  * (e.g., user selected it from the type-picker in the UI).
  *
- * The FACTS phase prompt is selected dynamically from FACTS_BY_TYPE based on
- * the affidavitType collected during CLASSIFY (or already known at start).
+ * The FACTS phase prompt is built dynamically: AffidavitRequirementsChecker
+ * evaluates the current data/facts state against the type's requirements spec
+ * and injects only the still-missing topics into a generic template.
+ * The checker also gates phase advancement — the LLM cannot mark FACTS complete
+ * until all required topics are symbolically satisfied.
  *
  * ── Usage ─────────────────────────────────────────────────────────────────────
  *   const orchestrator = require('./GeneralAffidavitOrchestrator');
@@ -27,7 +30,8 @@
 const logger = require('../../utils/logger');
 const { organizeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
-const { PHASES, PHASE_ORDER, FACTS_BY_TYPE } = require('./prompts/generalAffidavit/index');
+const { PHASES, PHASE_ORDER, buildFactsPrompt } = require('./prompts/generalAffidavit/index');
+const requirementsChecker = require('./AffidavitRequirementsChecker');
 
 // ─── LLM tool definition ──────────────────────────────────────────────────────
 
@@ -129,7 +133,7 @@ class GeneralAffidavitOrchestrator {
       sessionId
     });
 
-    const systemPrompt = this._getSystemPrompt(state.currentPhase, affidavitData);
+    const systemPrompt = this._getSystemPrompt(state.currentPhase, affidavitData, affidavitData.facts || []);
     const userPrompt   = this._buildUserPrompt(message, affidavitData, state);
 
     const messages = [
@@ -169,8 +173,37 @@ class GeneralAffidavitOrchestrator {
       updatedData.facts = organizeFacts(updatedData.facts);
     }
 
+    // ── Symbolic phase-completion gate (FACTS phase only) ─────────────────────
+    // The requirements checker has the final say on whether FACTS is complete.
+    // This prevents the LLM from advancing past FACTS while required topics are
+    // still outstanding, regardless of what it returns for phase_complete.
+    let resolvedPhaseComplete = phase_complete;
+    if (state.currentPhase === 'FACTS') {
+      const typeId      = updatedData.affidavitType || 'general_affidavit';
+      const checkResult = requirementsChecker.check(typeId, updatedData, updatedData.facts || []);
+
+      if (phase_complete && !checkResult.isComplete) {
+        // LLM tried to advance but requirements not met — block it
+        resolvedPhaseComplete = false;
+        logger.info('GeneralAffidavitOrchestrator: checker blocked premature phase_complete', {
+          typeId,
+          completeness:   checkResult.completeness,
+          missingTopics:  checkResult.missingTopics.map(t => t.id),
+          missingFields:  checkResult.missingFields,
+          factCount:      checkResult.factCount,
+          minimumFacts:   checkResult.minimumFacts,
+        });
+      } else if (!phase_complete && checkResult.isComplete) {
+        // Checker says we're done even though LLM didn't flag it — advance anyway
+        resolvedPhaseComplete = true;
+        logger.info('GeneralAffidavitOrchestrator: checker promoted phase_complete', {
+          typeId, completeness: checkResult.completeness
+        });
+      }
+    }
+
     // Phase advancement
-    if (phase_complete) {
+    if (resolvedPhaseComplete) {
       state.completedPhases = [...(state.completedPhases || []), state.currentPhase];
       state.phaseHistory    = [
         ...(state.phaseHistory || []),
@@ -221,13 +254,18 @@ class GeneralAffidavitOrchestrator {
 
   /**
    * Get the system prompt for a given phase.
-   * For FACTS, the prompt is dynamically selected based on the current affidavitType.
+   * For FACTS, runs the requirements checker and injects missing/satisfied topics
+   * into a generic template — no per-type prose prompts.
    */
-  _getSystemPrompt(phaseName, data) {
+  _getSystemPrompt(phaseName, data, facts = []) {
     if (phaseName === 'FACTS') {
-      const typeId = data.affidavitType || 'general_affidavit';
-      const prompt = FACTS_BY_TYPE[typeId] || FACTS_BY_TYPE['general_affidavit'];
-      return prompt;
+      const typeId    = data.affidavitType || 'general_affidavit';
+      const checkResult = requirementsChecker.check(typeId, data, facts);
+      return buildFactsPrompt(
+        checkResult.displayName,
+        requirementsChecker.formatMissingForPrompt(checkResult),
+        requirementsChecker.formatSatisfiedForPrompt(checkResult)
+      );
     }
     return PHASES[phaseName]?.prompt || PHASES['CLASSIFY'].prompt;
   }

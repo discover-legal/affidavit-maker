@@ -294,7 +294,8 @@ const DocumentPreview = () => {
       if (key === 'facts' && section.items && Array.isArray(section.items)) {
         // Handle facts with numbering from StateTemplateManager
         section.items.forEach((fact, factIndex) => {
-          const factNumber = fact.number || 1;
+          // Use ?? (nullish coalescing) so fact.number = 0 doesn't incorrectly fall back to 1
+          const factNumber = fact.number ?? (factIndex + 1);
           const factContent = fact.content || String(fact);
           const factType = fact.type || 'fact';
           const isLastFact = factIndex === section.items.length - 1;
@@ -883,8 +884,14 @@ const DocumentPreview = () => {
     }
   };
 
-  // Empty state - Don't show preview until we have at least a name or state
-  const hasMinimalData = currentDocument.affiantName || currentDocument.state;
+  // Empty state - Don't show preview until we have at least a name or state.
+  // Check all name field formats: legacy (affiantName/petitionerName), split (affiantFirstName/
+  // petitionerFirstName), and state — covers documents from both old and new orchestrators.
+  const hasMinimalData = currentDocument.affiantName ||
+                         currentDocument.affiantFirstName ||
+                         currentDocument.petitionerName ||
+                         currentDocument.petitionerFirstName ||
+                         currentDocument.state;
 
   if (!hasMinimalData) {
     return (

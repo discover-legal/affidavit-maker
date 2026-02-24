@@ -305,7 +305,10 @@ class BaseDivorceOrchestrator {
   }
 
   _determineStartingPhase(divorceData) {
-    if (divorceData.petitionerFirstName && divorceData.respondentFirstName) {
+    // Accept both split fields (new orchestrator) and combined name (legacy documents)
+    const hasPetitioner = divorceData.petitionerFirstName || divorceData.petitionerName;
+    const hasRespondent = divorceData.respondentFirstName || divorceData.respondentName;
+    if (hasPetitioner && hasRespondent) {
       if (divorceData.state && divorceData.county) {
         if (divorceData.marriageDate) return 'CHILDREN';
         return 'GROUNDS';

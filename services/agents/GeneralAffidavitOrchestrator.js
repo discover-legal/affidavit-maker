@@ -242,12 +242,16 @@ class GeneralAffidavitOrchestrator {
   }
 
   /**
-   * Skip CLASSIFY if the affidavitType is already known (user selected it from the UI type-picker).
-   * Skip PARTIES if both affiantFirstName and state are already set.
+   * Skip CLASSIFY if the affidavitType is already known (user selected it from the UI type-picker,
+   * or documentType maps to a known registry type for documents created before affidavitType was set).
+   * Skip PARTIES if affiant name (any format) and state are already set.
    */
   _determineStartingPhase(data) {
-    if (!data.affidavitType) return 'CLASSIFY';
-    if (!data.affiantFirstName || !data.state) return 'PARTIES';
+    // Accept affidavitType (set by AI) OR documentType (set by UI) to skip the type-selection phase
+    if (!data.affidavitType && !data.documentType) return 'CLASSIFY';
+    // Accept split fields (affiantFirstName, new format) OR combined name (affiantName, legacy format)
+    const hasName = data.affiantFirstName || data.affiantName;
+    if (!hasName || !data.state) return 'PARTIES';
     if (!data.facts?.length) return 'FACTS';
     return 'REVIEW';
   }

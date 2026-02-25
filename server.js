@@ -139,8 +139,15 @@ app.use(helmet({
 }));
 
 // SECURITY: Global request timeout to prevent Slowloris attacks (HIGH-04)
+// Chat/LLM routes need longer timeouts (handled by their own middleware)
 const requestTimeout = require('connect-timeout');
-app.use(requestTimeout('30s'));
+app.use((req, res, next) => {
+  // Skip global timeout for chat routes — they have their own 60s timeout
+  if (req.path.startsWith('/api/chat')) {
+    return next();
+  }
+  requestTimeout('30s')(req, res, next);
+});
 app.use((req, res, next) => {
   if (!req.timedout) next();
 });

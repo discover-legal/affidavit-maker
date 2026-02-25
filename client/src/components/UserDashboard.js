@@ -102,8 +102,11 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
   // New document creation flow: null → 'caseType' → 'documentType'
+  // Persist case type so the user doesn't re-pick every time
   const [newDocStep, setNewDocStep] = useState(null);
-  const [selectedCaseType, setSelectedCaseType] = useState(null);
+  const [selectedCaseType, setSelectedCaseType] = useState(() => {
+    try { return localStorage.getItem('preferredCaseType') || null; } catch { return null; }
+  });
 
   // Cases loaded from /api/cases
   const [cases, setCases] = useState([]);
@@ -234,11 +237,12 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const handleCaseTypeSelect = (caseType) => {
     setSelectedCaseType(caseType);
     setNewDocStep('documentType');
+    try { localStorage.setItem('preferredCaseType', caseType); } catch { /* ignore */ }
   };
 
   const handleCancelNewDoc = () => {
     setNewDocStep(null);
-    setSelectedCaseType(null);
+    // Keep selectedCaseType from localStorage so next open skips to document type
   };
 
   const handleBackToDashboard = () => {
@@ -292,7 +296,14 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         </div>
         {newDocStep === null && (
           <button
-            onClick={() => setNewDocStep('caseType')}
+            onClick={() => {
+              // Skip case type step if user already has a preference
+              if (selectedCaseType) {
+                setNewDocStep('documentType');
+              } else {
+                setNewDocStep('caseType');
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
           >
             <PlusCircle className="h-4 w-4" />
@@ -350,7 +361,11 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { setNewDocStep('caseType'); setSelectedCaseType(null); }}
+                onClick={() => {
+                  setNewDocStep('caseType');
+                  setSelectedCaseType(null);
+                  try { localStorage.removeItem('preferredCaseType'); } catch { /* ignore */ }
+                }}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -484,7 +499,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
             <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 mb-4">You haven't created any documents yet</p>
             <button
-              onClick={() => setNewDocStep('caseType')}
+              onClick={() => setNewDocStep(selectedCaseType ? 'documentType' : 'caseType')}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Your First Document

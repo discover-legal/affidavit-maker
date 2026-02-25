@@ -116,39 +116,55 @@ const estimateTokens = (text) => {
 };
 
 /**
- * Helper function to chunk conversation history when it gets too long
+ * Helper: normalize a single message to OpenAI { role, content } format.
+ * The client sends { type: 'user'|'bot', content } while the backend
+ * expects { role: 'user'|'assistant'|'system', content }.
+ */
+const normalizeMessage = (msg) => {
+  if (msg.role) return { role: msg.role, content: msg.content || '' };
+  // Client ChatInterface uses `type` instead of `role`
+  const role = msg.type === 'user' ? 'user' : 'assistant';
+  return { role, content: msg.content || '' };
+};
+
+/**
+ * Helper function to chunk conversation history when it gets too long.
+ * Also normalizes message format from client (type → role).
  */
 const chunkConversation = (messages) => {
   if (!Array.isArray(messages)) return [];
-  
+
+  // Normalize all messages to { role, content } first
+  const normalized = messages.map(normalizeMessage);
+
   let totalTokens = 0;
   const chunkedMessages = [];
-  
+
   // Keep system message if present
-  const systemMessage = messages.find(msg => msg.role === 'system');
+  const systemMessage = normalized.find(msg => msg.role === 'system');
   if (systemMessage) {
     chunkedMessages.push(systemMessage);
     totalTokens += estimateTokens(systemMessage.content);
   }
-  
+
   // Process messages in reverse order (most recent first)
-  const userMessages = messages.filter(msg => msg.role !== 'system').reverse();
-  
+  const userMessages = normalized.filter(msg => msg.role !== 'system').reverse();
+
   for (const message of userMessages) {
     const messageTokens = estimateTokens(message.content);
-    
+
     if (totalTokens + messageTokens > CHAT_CONSTANTS.MAX_CONVERSATION_TOKENS) {
       break;
     }
-    
+
     chunkedMessages.unshift(message);
     totalTokens += messageTokens;
-    
+
     if (chunkedMessages.length >= CHAT_CONSTANTS.MAX_CONVERSATION_MESSAGES) {
       break;
     }
   }
-  
+
   return chunkedMessages;
 };
 
@@ -168,8 +184,8 @@ const createSessionContext = (req) => {
  * Chat endpoint with comprehensive error handling and stability features
  */
 router.post('/',
-  // Apply chat-specific timeout (shorter than OpenAI timeout)
-  timeout('45s'),
+  // Apply chat-specific timeout (allows headroom for LLM function-calling requests)
+  timeout('60s'),
 
   // Rate limiting specific to chat
   chatLimiter,
@@ -314,6 +330,17 @@ router.post('/',
           const delay = Math.min(1000 * Math.pow(2, attempts - 1), 5000);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
+      }
+
+      // Handle both orchestrator format { response } and legacy format { chatResponse }
+      if (result && !result.response && result.chatResponse) {
+        result.response = result.chatResponse;
+      }
+
+      // If the service returned a structured error (success: false), surface its message
+      if (result && result.success === false) {
+        result.response = result.response || result.chatResponse || result.error ||
+          'Sorry, I encountered an error processing your message. Please try again.';
       }
 
       if (!result || !result.response) {

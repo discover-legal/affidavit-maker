@@ -1,4 +1,4 @@
-// templates/states/new-york/DivorcePetitionTemplate.js
+// templates/states/newyork/DivorcePetitionTemplate.js
 // New York-specific divorce petition (Verified Complaint) template
 // Complies with New York Domestic Relations Law and CPLR
 

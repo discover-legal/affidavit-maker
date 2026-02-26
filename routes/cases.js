@@ -16,8 +16,17 @@ router.get('/',
   standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
-    const client = req.app.locals.pool;
+    const client = req.dbClient;
     const userId = req.user.id;
+
+    // Verify RLS-context client is available (set by auth0Middleware)
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     const result = await client.query(
       `SELECT
@@ -52,9 +61,17 @@ router.get('/:id',
   standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
-    const client = req.app.locals.pool;
+    const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     if (!caseId || isNaN(caseId)) {
       throw new ValidationError('Invalid case ID');
@@ -96,8 +113,16 @@ router.post('/',
   standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
-    const client = req.app.locals.pool;
+    const client = req.dbClient;
     const userId = req.user.id;
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     const {
       practice_area = 'family',
@@ -152,9 +177,17 @@ router.put('/:id',
   standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
-    const client = req.app.locals.pool;
+    const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     if (!caseId || isNaN(caseId)) {
       throw new ValidationError('Invalid case ID');
@@ -232,10 +265,18 @@ router.post('/:id/documents',
   standardLimiter,
   auth0Middleware,
   asyncHandler(async (req, res) => {
-    const client = req.app.locals.pool;
+    const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
     const { document_id } = req.body;
+
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection unavailable',
+        errorType: 'server_error'
+      });
+    }
 
     if (!caseId || isNaN(caseId)) throw new ValidationError('Invalid case ID');
     if (!document_id) throw new ValidationError('document_id is required');

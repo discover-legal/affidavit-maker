@@ -1,4 +1,4 @@
-// templates/states/new-york/DivorceDecreeTemplate.js
+// templates/states/newyork/DivorceDecreeTemplate.js
 // New York-specific Judgment of Divorce template
 // Complies with New York Domestic Relations Law and CPLR
 

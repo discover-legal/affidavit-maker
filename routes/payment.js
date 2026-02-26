@@ -404,7 +404,7 @@ router.post('/webhook',
 
       // Process the event
       switch (event.type) {
-        case 'payment_intent.succeeded':
+        case 'payment_intent.succeeded': {
           const paymentIntent = event.data.object;
 
           // Extract postal code from billing details (if available)
@@ -470,8 +470,9 @@ router.post('/webhook',
             });
           }
           break;
+        }
 
-        case 'payment_intent.payment_failed':
+        case 'payment_intent.payment_failed': {
           const failedPayment = event.data.object;
 
           await client.query(
@@ -485,8 +486,9 @@ router.post('/webhook',
             errorCode: failedPayment.last_payment_error?.code || 'unknown'
           });
           break;
+        }
 
-        case 'payment_intent.canceled':
+        case 'payment_intent.canceled': {
           const canceledPayment = event.data.object;
 
           await client.query(
@@ -498,6 +500,7 @@ router.post('/webhook',
             paymentIntentId: canceledPayment.id
           });
           break;
+        }
 
         default:
           logger.info('Unhandled Stripe webhook event', {

@@ -553,39 +553,31 @@ const auth0Middleware = (req, res, next) => {
 // ✅ NEW: Cleanup middleware to release database clients
 // Must be registered globally in server.js to ensure proper resource cleanup
 const cleanupDbClient = (req, res, next) => {
-  // Schedule cleanup when response finishes
-  res.on('finish', () => {
-    if (req.releaseDbClient) {
-      try {
-        req.releaseDbClient();
-        logger.debug('DB client released', {
-          requestId: req.id,
-          userId: req.user?.id
-        });
-      } catch (error) {
-        logger.error('Failed to release DB client', {
-          error: error.message,
-          requestId: req.id,
-          userId: req.user?.id
-        });
-      }
-    }
-  });
+  let released = false;
 
-  // Also clean up on connection close
-  res.on('close', () => {
-    if (req.releaseDbClient) {
-      try {
-        req.releaseDbClient();
-      } catch (error) {
-        // Silently ignore errors on close
-        logger.debug('DB client release error on close (ignored)', {
-          error: error.message,
-          requestId: req.id
-        });
-      }
+  const releaseOnce = () => {
+    if (released || !req.releaseDbClient) return;
+    released = true;
+    try {
+      req.releaseDbClient();
+      logger.debug('DB client released', {
+        requestId: req.id,
+        userId: req.user?.id
+      });
+    } catch (error) {
+      logger.error('Failed to release DB client', {
+        error: error.message,
+        requestId: req.id,
+        userId: req.user?.id
+      });
     }
-  });
+  };
+
+  // Schedule cleanup when response finishes
+  res.on('finish', releaseOnce);
+
+  // Also clean up on connection close (e.g. client disconnect)
+  res.on('close', releaseOnce);
 
   next();
 };

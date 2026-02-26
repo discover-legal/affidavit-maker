@@ -319,9 +319,9 @@ const validateAffidavitData = [
   body('caseNumber')
     .optional()
     .trim()
-    .matches(/^[a-zA-Z0-9\-\/]+$/)
+    .matches(/^[a-zA-Z0-9\-/]+$/)
     .withMessage('Invalid case number format'),
-    
+
   body('documentType')
     .optional()
     .isIn(['general', 'divorce', 'custody', 'financial', 'property', 'identity', 'affidavit', 'divorce_petition', 'divorce_decree'])
@@ -362,7 +362,7 @@ const validatePreview = [
   body('affidavitData.caseNumber')
     .optional({ checkFalsy: true })        // ✅ KEY FIX
     .trim()
-    .matches(/^[a-zA-Z0-9\-\/]*$/)         // ✅ * allows empty
+    .matches(/^[a-zA-Z0-9\-/]*$/)         // ✅ * allows empty
     .withMessage('Invalid case number format'),
   
   checkValidationResult
@@ -717,7 +717,7 @@ const validateDivorceData = [
   body('data.caseNumber')
     .optional()
     .trim()
-    .matches(/^[a-zA-Z0-9\-\/\s]+$/)
+    .matches(/^[a-zA-Z0-9\-/\s]+$/)
     .withMessage('Invalid case number format'),
 
   checkValidationResult

@@ -156,6 +156,16 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Payment success redirect (Stripe return_url for 3D Secure flows) */}
+      <Route
+        path="/payment-success"
+        element={
+          <TOSGuard>
+            <Navigate to="/dashboard" replace />
+          </TOSGuard>
+        }
+      />
+
       {/* Catch-all redirect */}
       <Route
         path="*"

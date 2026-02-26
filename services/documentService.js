@@ -1,4 +1,6 @@
 // services/documentService.js - Enhanced document saving service
+const logger = require('../utils/logger');
+
 class DocumentService {
   constructor(apiBase, getAccessToken) {
     this.apiBase = apiBase;
@@ -52,7 +54,7 @@ class DocumentService {
         documentId: result.document.id
       };
     } catch (error) {
-      console.error('Create document error:', error);
+      logger.error('Create document error', { error: error.message });
       return {
         success: false,
         error: error.message
@@ -87,7 +89,7 @@ class DocumentService {
         document: result.document
       };
     } catch (error) {
-      console.error('Update document error:', error);
+      logger.error('Update document error', { error: error.message });
       return {
         success: false,
         error: error.message
@@ -115,7 +117,7 @@ class DocumentService {
         documents: result.documents || []
       };
     } catch (error) {
-      console.error('Load documents error:', error);
+      logger.error('Load documents error', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -141,7 +143,7 @@ class DocumentService {
 
       return { success: true };
     } catch (error) {
-      console.error('Delete document error:', error);
+      logger.error('Delete document error', { error: error.message });
       return {
         success: false,
         error: error.message
@@ -180,7 +182,7 @@ class DocumentService {
             return result.documentId;
           }
         } catch (error) {
-          console.error('Auto-save failed:', error);
+          logger.error('Auto-save failed', { error: error.message });
         } finally {
           this.isProcessingSave = false;
         }

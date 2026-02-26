@@ -212,27 +212,4 @@ class DocumentService {
   }
 }
 
-// React hook for document operations
-export const useDocumentService = () => {
-  const { getAccessTokenSilently } = useAuth0();
-  const documentServiceRef = useRef(null);
-
-  if (!documentServiceRef.current) {
-    documentServiceRef.current = new DocumentService(
-      process.env.REACT_APP_API_URL || 'http://localhost:3001',
-      getAccessTokenSilently
-    );
-  }
-
-  useEffect(() => {
-    return () => {
-      if (documentServiceRef.current) {
-        documentServiceRef.current.cleanup();
-      }
-    };
-  }, []);
-
-  return documentServiceRef.current;
-};
-
-export default DocumentService;
+module.exports = DocumentService;

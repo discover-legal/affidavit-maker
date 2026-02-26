@@ -53,7 +53,7 @@ function isValidFilename(filename, maxLength = 200) {
   }
 
   // Allow only safe characters
-  return /^[\w.\-\/]+$/.test(filename);
+  return /^[\w.\-/]+$/.test(filename);
 }
 
 /**
@@ -70,7 +70,7 @@ function sanitizeFilename(filename, maxLength = 100) {
   }
 
   return filename
-    .replace(/[^\w.\-]/g, '_')  // Replace unsafe chars with underscore
+    .replace(/[^\w.-]/g, '_')  // Replace unsafe chars with underscore
     .replace(/_{2,}/g, '_')     // Collapse multiple underscores
     .substring(0, maxLength);
 }

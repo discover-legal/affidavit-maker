@@ -13,7 +13,7 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const isValidAuth0Id = (id) => {
   if (!id || typeof id !== 'string') return false;
   // Provider: lowercase alphanumeric with hyphens, followed by pipe, followed by alphanumeric
-  return /^[a-z0-9\-]+\|[a-zA-Z0-9_\-]+$/.test(id) && id.length <= 128;
+  return /^[a-z0-9-]+\|[a-zA-Z0-9_-]+$/.test(id) && id.length <= 128;
 };
 
 // Verify Auth0 webhook signature

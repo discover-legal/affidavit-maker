@@ -519,6 +519,11 @@ if (casesRouter) {
   app.use('/api/cases', casesRouter);
 }
 
+const catalogRouter = safeImportRouter('./routes/catalog', 'Catalog');
+if (catalogRouter) {
+  app.use('/api/catalog', catalogRouter);
+}
+
 // Basic fallback routes for critical endpoints if files are missing
 if (!documentsRouter) {
   app.get('/api/documents', (req, res) => {

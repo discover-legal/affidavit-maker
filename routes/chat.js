@@ -34,6 +34,51 @@ try {
   logger.warn('AffidavitTypeRegistry not available for type routing', { error: err.message });
 }
 
+// ─── Matter orchestrators (one per matter type, state-agnostic) ──────────────
+// Each is a thin BaseMatterOrchestrator instance with matter-specific prompts.
+// Graceful degradation: if any fails to load we skip routing to that matter.
+
+const matterOrchestrators = {};
+
+for (const [matterCode, modulePath] of [
+  ['custody',            '../services/agents/CustodyOrchestrator'],
+  ['child_support',      '../services/agents/ChildSupportOrchestrator'],
+  ['dvro',               '../services/agents/DVROOrchestrator'],
+  ['paternity',          '../services/agents/PaternityOrchestrator'],
+  ['legal_separation',   '../services/agents/LegalSeparationOrchestrator'],
+  ['annulment',          '../services/agents/AnnulmentOrchestrator'],
+  ['guardianship_minor', '../services/agents/GuardianshipOrchestrator'],
+  ['adoption',           '../services/agents/AdoptionOrchestrator'],
+  ['emancipation',       '../services/agents/EmancipationOrchestrator'],
+  ['small_claims',       '../services/agents/SmallClaimsOrchestrator'],
+  ['name_change',        '../services/agents/NameChangeOrchestrator'],
+  ['debt_defense',       '../services/agents/DebtDefenseOrchestrator'],
+  ['landlord_tenant',    '../services/agents/LandlordTenantOrchestrator'],
+  ['civil_harassment',   '../services/agents/CivilHarassmentOrchestrator'],
+  ['general_civil',      '../services/agents/GeneralCivilOrchestrator'],
+  ['probate',            '../services/agents/ProbateOrchestrator'],
+]) {
+  try {
+    matterOrchestrators[matterCode] = require(modulePath);
+    logger.info(`MatterOrchestrator loaded: ${matterCode}`);
+  } catch (err) {
+    logger.warn(`MatterOrchestrator not available for ${matterCode}, will fall back`, { error: err.message });
+  }
+}
+
+/** The set of matter type codes that have a dedicated orchestrator. */
+const ORCHESTRATED_MATTERS = new Set(Object.keys(matterOrchestrators));
+
+/**
+ * Return the appropriate matter orchestrator for this document, or null.
+ * Routes by affidavitData.matterTypeCode (e.g. 'custody', 'small_claims').
+ */
+function getMatterOrchestrator(affidavitData) {
+  const matterCode = (affidavitData.matterTypeCode || '').toLowerCase();
+  if (!matterCode) return null;
+  return matterOrchestrators[matterCode] || null;
+}
+
 // ─── Divorce orchestrators (one per supported state) ──────────────────────────
 // Each is a thin BaseDivorceOrchestrator instance with state-specific prompts.
 // Graceful degradation: if any fails to load we fall back to affidavitService.
@@ -241,7 +286,8 @@ router.post('/',
           const memBefore = process.memoryUsage();
 
           const divorceOrchestrator = getOrchestrator(affidavitData);
-          const generalOrchestrator = !divorceOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
+          const matterOrchestrator  = !divorceOrchestrator ? getMatterOrchestrator(affidavitData) : null;
+          const generalOrchestrator = !divorceOrchestrator && !matterOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
 
           if (divorceOrchestrator) {
             // Divorce package: route to the state-specific phase-based orchestrator
@@ -252,6 +298,26 @@ router.post('/',
               sessionId: req.sessionId
             });
             const orchResult = await divorceOrchestrator.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response: orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts: orchResult.newFacts || []
+            };
+          } else if (matterOrchestrator) {
+            // Matter type with a dedicated orchestrator (custody, small_claims, etc.)
+            const matterCode = affidavitData.matterTypeCode;
+            logger.info('Routing to MatterOrchestrator', {
+              matterCode,
+              phase: affidavitData.orchestratorState?.currentPhase || 'INTAKE',
+              sessionId: req.sessionId
+            });
+            const orchResult = await matterOrchestrator.processMessage(
               message,
               chunkedHistory,
               affidavitData,

@@ -81,9 +81,16 @@ class TriageOrchestrator {
     if (phase_complete && matter_type_code) {
       updatedData.matterTypeCode = matter_type_code;
 
-      // Map general_affidavit back to the existing affidavit flow
+      // Divorce: the divorce orchestrators are keyed by documentType, not matterTypeCode.
+      // Setting documentType here ensures getOrchestrator() picks them up correctly.
+      if (matter_type_code === 'divorce') {
+        updatedData.documentType = 'divorce_package';
+      }
+
+      // general_affidavit: route to GeneralAffidavitOrchestrator. The registry
+      // uses 'general_affidavit' as the ID (not 'affidavit'), so set that value.
       if (matter_type_code === 'general_affidavit') {
-        updatedData.documentType = updatedData.documentType || 'affidavit';
+        updatedData.documentType = updatedData.documentType || 'general_affidavit';
       }
 
       logger.info('TriageOrchestrator: matter type classified', {

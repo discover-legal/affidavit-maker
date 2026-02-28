@@ -94,7 +94,7 @@ app.use(helmet({
         "https://www.google-analytics.com",
         "https://www.googletagmanager.com",
         "https://analytics.google.com",
-        "https://affidavit-maker.onrender.com",
+        "https://app.discover.legal",
         "https://discover.legal",
         "https://www.discover.legal",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
@@ -160,10 +160,9 @@ const getAllowedOrigins = () => {
 
     // Always add discover.legal domains for backward compatibility
     origins.push(
+      'https://app.discover.legal',
       'https://discover.legal',
-      'https://www.discover.legal',
-      'https://ca.discover.legal',
-      'https://canada.discover.legal'
+      'https://www.discover.legal'
     );
 
     // Remove duplicates

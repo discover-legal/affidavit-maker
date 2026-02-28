@@ -21,10 +21,9 @@ const getAllowedOrigins = () => {
     // Always add discover.legal domains for backward compatibility
     // IMPORTANT: Must match CORS config in server.js
     origins.push(
+      'https://app.discover.legal',
       'https://discover.legal',
-      'https://www.discover.legal',
-      'https://ca.discover.legal',
-      'https://canada.discover.legal'
+      'https://www.discover.legal'
     );
 
     // Remove duplicates

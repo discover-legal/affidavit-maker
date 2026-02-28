@@ -3,35 +3,35 @@
 
   <!-- Main Pages -->
   <url>
-    <loc>https://discover.legal/</loc>
+    <loc>https://app.discover.legal/</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources</loc>
+    <loc>https://app.discover.legal/resources</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/privacy</loc>
+    <loc>https://app.discover.legal/privacy</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/tos</loc>
+    <loc>https://app.discover.legal/tos</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/brand</loc>
+    <loc>https://app.discover.legal/brand</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -39,42 +39,42 @@
 
   <!-- Resource Articles -->
   <url>
-    <loc>https://discover.legal/resources/how-to-write-an-affidavit</loc>
+    <loc>https://app.discover.legal/resources/how-to-write-an-affidavit</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources/persuasive-legal-writing-guide</loc>
+    <loc>https://app.discover.legal/resources/persuasive-legal-writing-guide</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources/texas-family-law-affidavits</loc>
+    <loc>https://app.discover.legal/resources/texas-family-law-affidavits</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources/notarization-explained</loc>
+    <loc>https://app.discover.legal/resources/notarization-explained</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources/utah-legal-documents-guide</loc>
+    <loc>https://app.discover.legal/resources/utah-legal-documents-guide</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://discover.legal/resources/arizona-affidavit-requirements</loc>
+    <loc>https://app.discover.legal/resources/arizona-affidavit-requirements</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

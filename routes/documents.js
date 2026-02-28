@@ -66,6 +66,89 @@ function generateDivorceDocument(state, docType, data) {
  * Map chat-extracted divorce fields to template-expected field names
  * @param {Object} divorceData - The divorce data object to map in-place
  */
+// ─── Matter type display names (for document titles) ─────────────────────────
+const MATTER_TYPE_TITLES = {
+  custody:            'PETITION FOR CHILD CUSTODY AND VISITATION',
+  child_support:      'PETITION FOR CHILD SUPPORT',
+  dvro:               'PETITION FOR DOMESTIC VIOLENCE RESTRAINING ORDER',
+  paternity:          'PETITION TO ESTABLISH PATERNITY',
+  legal_separation:   'PETITION FOR LEGAL SEPARATION',
+  annulment:          'PETITION FOR ANNULMENT OF MARRIAGE',
+  guardianship_minor: 'PETITION FOR APPOINTMENT OF GUARDIAN OF A MINOR',
+  adoption:           'PETITION FOR ADOPTION',
+  emancipation:       'PETITION FOR EMANCIPATION OF A MINOR',
+  small_claims:       'SMALL CLAIMS COMPLAINT',
+  name_change:        'PETITION FOR CHANGE OF NAME',
+  debt_defense:       'ANSWER TO COMPLAINT — DEBT COLLECTION DEFENSE',
+  landlord_tenant:    'COMPLAINT — LANDLORD/TENANT MATTER',
+  civil_harassment:   'PETITION FOR CIVIL HARASSMENT RESTRAINING ORDER',
+  general_civil:      'CIVIL COMPLAINT',
+  probate:            'PETITION FOR PROBATE AND ESTATE ADMINISTRATION',
+};
+
+// Matter types that don't require state-specific templates
+// (they still need a state/county for filing, but any state's affidavit format works)
+const STATE_AGNOSTIC_MATTER_TYPES = new Set([
+  'name_change', 'small_claims', 'debt_defense', 'general_civil', 'probate',
+  'emancipation', 'civil_harassment', 'landlord_tenant',
+]);
+
+/**
+ * Map matter orchestrator output fields → affidavit template fields.
+ * Called before generating a preview or PDF for any non-divorce matter type.
+ * Mutates data in place (same pattern as mapDivorceDataFields).
+ */
+function mapMatterDataFields(data) {
+  // Set affiantName from petitioner/plaintiff if not already set
+  if (!data.affiantName) {
+    if (data.petitionerName) {
+      data.affiantName = data.petitionerName;
+    } else if (data.petitionerFirstName || data.petitionerLastName) {
+      data.affiantName = [data.petitionerFirstName, data.petitionerLastName].filter(Boolean).join(' ');
+    } else if (data.plaintiffName) {
+      data.affiantName = data.plaintiffName;
+    } else if (data.plaintiffFirstName || data.plaintiffLastName) {
+      data.affiantName = [data.plaintiffFirstName, data.plaintiffLastName].filter(Boolean).join(' ');
+    } else if (data.currentFirstName || data.currentLastName) {
+      // Name change: petitioner's current name
+      data.affiantName = [data.currentFirstName, data.currentMiddleName, data.currentLastName].filter(Boolean).join(' ');
+    } else if (data.defendantFirstName || data.defendantLastName) {
+      // Debt defense: the defendant is the affiant
+      data.affiantName = [data.defendantFirstName, data.defendantLastName].filter(Boolean).join(' ');
+    }
+  }
+
+  // Derive combined name fields for template compatibility
+  if (!data.petitionerName && (data.petitionerFirstName || data.petitionerLastName)) {
+    data.petitionerName = [data.petitionerFirstName, data.petitionerLastName].filter(Boolean).join(' ');
+  }
+  if (!data.respondentName && (data.respondentFirstName || data.respondentLastName)) {
+    data.respondentName = [data.respondentFirstName, data.respondentLastName].filter(Boolean).join(' ');
+  }
+  if (!data.plaintiffName && (data.plaintiffFirstName || data.plaintiffLastName)) {
+    data.plaintiffName = [data.plaintiffFirstName, data.plaintiffLastName].filter(Boolean).join(' ');
+  }
+  if (!data.defendantName && (data.defendantFirstName || data.defendantLastName)) {
+    data.defendantName = [data.defendantFirstName, data.defendantLastName].filter(Boolean).join(' ');
+  }
+
+  // Map children field: ensure birthDate field exists alongside dob
+  if (Array.isArray(data.children)) {
+    data.children = data.children.map(child => ({
+      ...child,
+      birthDate: child.birthDate || child.dateOfBirth || child.dob || child.date_of_birth,
+      name: child.name || [child.firstName, child.lastName].filter(Boolean).join(' ')
+    }));
+  }
+
+  // Set document title from matter type
+  if (data.matterTypeCode && MATTER_TYPE_TITLES[data.matterTypeCode]) {
+    data.documentTitle = data.documentTitle || MATTER_TYPE_TITLES[data.matterTypeCode];
+  }
+
+  return data;
+}
+
 function mapDivorceDataFields(divorceData) {
   // Map party names
   if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
@@ -360,10 +443,13 @@ router.post('/preview',
                 preview = createDivorceFallbackPreview(affidavitData);
               }
             } else {
-              // Standard affidavit (general, general_affidavit, financial_affidavit, etc.)
+              // Non-divorce document: map matter orchestrator fields → affidavit template fields,
+              // then render using the standard affidavit template for the state.
+              const matterData = { ...affidavitData };
+              if (matterData.matterTypeCode) mapMatterDataFields(matterData);
               document = templateManager.generateAffidavit(
-                affidavitData.state,
-                affidavitData
+                matterData.state,
+                matterData
               );
             }
 
@@ -681,17 +767,21 @@ router.post('/generate',
             }
             logger.info('Generated divorce document', { documentType: effectiveDocType, state: affidavitData.state });
           } else {
-            // Standard affidavit
+            // Non-divorce document: map matter orchestrator fields → affidavit template fields,
+            // then render using the standard affidavit template for the state.
+            const matterData = { ...affidavitData };
+            if (matterData.matterTypeCode) mapMatterDataFields(matterData);
             documentStructure = templateManager.generateAffidavit(
-              affidavitData.state,
-              affidavitData
+              matterData.state,
+              matterData
             );
           }
         } catch (templateError) {
           logger.error('Template generation failed', {
             error: templateError.message,
             state: affidavitData.state,
-            documentType: affidavitData.documentType || 'affidavit'
+            documentType: affidavitData.documentType || 'affidavit',
+            matterTypeCode: affidavitData.matterTypeCode || null
           });
           return res.status(400).json({
             success: false,

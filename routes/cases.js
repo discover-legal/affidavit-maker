@@ -101,6 +101,7 @@ router.post('/',
 
     const {
       practice_area = 'family',
+      matter_type_code,
       title,
       cause_number,
       court_name,
@@ -111,7 +112,9 @@ router.post('/',
       respondent_first_name,
       respondent_last_name,
       children = [],
-      case_metadata = {}
+      case_metadata = {},
+      interview_phase = 'INTAKE',
+      interview_data = {}
     } = req.body;
 
     if (!['family', 'civil'].includes(practice_area)) {
@@ -120,23 +123,25 @@ router.post('/',
 
     const result = await client.query(
       `INSERT INTO cases (
-         user_id, practice_area, title, cause_number, court_name,
+         user_id, practice_area, matter_type_code, title, cause_number, court_name,
          state, county,
          petitioner_first_name, petitioner_last_name,
          respondent_first_name, respondent_last_name,
-         children, case_metadata
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+         children, case_metadata, interview_phase, interview_data
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
-        userId, practice_area, title || null, cause_number || null, court_name || null,
+        userId, practice_area, matter_type_code || null,
+        title || null, cause_number || null, court_name || null,
         state || null, county || null,
         petitioner_first_name || null, petitioner_last_name || null,
         respondent_first_name || null, respondent_last_name || null,
-        JSON.stringify(children), JSON.stringify(case_metadata)
+        JSON.stringify(children), JSON.stringify(case_metadata),
+        interview_phase, JSON.stringify(interview_data)
       ]
     );
 
-    logger.info('Case created', { userId, caseId: result.rows[0].id, practice_area });
+    logger.info('Case created', { userId, caseId: result.rows[0].id, practice_area, matter_type_code });
 
     res.status(201).sendSuccess({ case: result.rows[0] });
   })
@@ -169,6 +174,7 @@ router.put('/:id',
     if (existing.rows[0].user_id !== userId) throw new AuthorizationError('Access denied');
 
     const {
+      matter_type_code,
       title,
       cause_number,
       court_name,
@@ -180,7 +186,9 @@ router.put('/:id',
       respondent_last_name,
       children,
       case_metadata,
-      status
+      status,
+      interview_phase,
+      interview_data
     } = req.body;
 
     // Build dynamic SET clause — only update provided fields
@@ -195,6 +203,7 @@ router.put('/:id',
       }
     };
 
+    addField('matter_type_code', matter_type_code);
     addField('title', title);
     addField('cause_number', cause_number);
     addField('court_name', court_name);
@@ -207,6 +216,8 @@ router.put('/:id',
     if (children !== undefined) addField('children', JSON.stringify(children));
     if (case_metadata !== undefined) addField('case_metadata', JSON.stringify(case_metadata));
     addField('status', status);
+    addField('interview_phase', interview_phase);
+    if (interview_data !== undefined) addField('interview_data', JSON.stringify(interview_data));
 
     if (updates.length === 0) {
       throw new ValidationError('No fields provided to update');

@@ -9,6 +9,19 @@ const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
 
+// ─── Triage orchestrator ──────────────────────────────────────────────────────
+// Entry point when no matter type is known. Classifies the user's need through
+// conversation and sets affidavitData.matterTypeCode. Subsequent messages then
+// route to the correct matter orchestrator automatically.
+
+let triageOrchestrator = null;
+try {
+  triageOrchestrator = require('../services/agents/TriageOrchestrator');
+  logger.info('TriageOrchestrator loaded');
+} catch (err) {
+  logger.warn('TriageOrchestrator not available', { error: err.message });
+}
+
 // ─── General affidavit orchestrator ──────────────────────────────────────────
 // Handles all non-divorce affidavit types via a 4-phase interview engine.
 
@@ -126,6 +139,29 @@ function getOrchestrator(affidavitData) {
   if (!state && divorceOrchestrators['TX']) return divorceOrchestrators['TX'];
 
   return null; // Unsupported state → fall through to affidavitService
+}
+
+/**
+ * Return the TriageOrchestrator when no matter type or document type has been
+ * established yet and triage has not already completed.
+ *
+ * Conditions that bypass triage:
+ *   - A matterTypeCode is already set
+ *   - A documentType (divorce_package, affidavit, etc.) is already set
+ *   - Triage already ran and classified (orchestratorState.triageComplete)
+ */
+function getTriageOrchestrator(affidavitData) {
+  if (!triageOrchestrator) return null;
+
+  // Already routed by explicit matter or document type
+  const matterCode = (affidavitData.matterTypeCode || '').trim();
+  const docType    = (affidavitData.documentType || affidavitData.document_type || affidavitData.affidavitType || '').trim();
+  if (matterCode || docType) return null;
+
+  // Triage already completed
+  if (affidavitData.orchestratorState?.triageComplete) return null;
+
+  return triageOrchestrator;
 }
 
 /**
@@ -285,11 +321,27 @@ router.post('/',
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
 
-          const divorceOrchestrator = getOrchestrator(affidavitData);
-          const matterOrchestrator  = !divorceOrchestrator ? getMatterOrchestrator(affidavitData) : null;
-          const generalOrchestrator = !divorceOrchestrator && !matterOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
+          const triageOrch          = getTriageOrchestrator(affidavitData);
+          const divorceOrchestrator = !triageOrch ? getOrchestrator(affidavitData) : null;
+          const matterOrchestrator  = !triageOrch && !divorceOrchestrator ? getMatterOrchestrator(affidavitData) : null;
+          const generalOrchestrator = !triageOrch && !divorceOrchestrator && !matterOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
 
-          if (divorceOrchestrator) {
+          if (triageOrch) {
+            // No matter type known yet — triage to figure out what the person needs
+            logger.info('Routing to TriageOrchestrator', { sessionId: req.sessionId });
+            const orchResult = await triageOrch.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response:      orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts:      orchResult.newFacts || []
+            };
+          } else if (divorceOrchestrator) {
             // Divorce package: route to the state-specific phase-based orchestrator
             const state = (affidavitData.state || 'TX').toUpperCase();
             logger.info('Routing to DivorceOrchestrator', {

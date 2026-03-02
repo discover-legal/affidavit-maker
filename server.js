@@ -162,7 +162,9 @@ const getAllowedOrigins = () => {
     origins.push(
       'https://make.discover.legal',
       'https://discover.legal',
-      'https://www.discover.legal'
+      'https://www.discover.legal',
+      'https://ca.discover.legal',
+      'https://canada.discover.legal'
     );
 
     // Remove duplicates

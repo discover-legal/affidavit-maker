@@ -396,6 +396,445 @@ function selectUT_family(data) {
 
 HANDLERS['UT:family'] = selectUT_family;
 
+// ─── Family Law Matter Types ──────────────────────────────────────────────────
+
+// Custody
+HANDLERS['*:custody'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_custody');
+  reasons['petition_for_custody'] = 'A petition to establish or modify custody and visitation arrangements.';
+
+  if (data.custodyTypeRequested === 'modification') {
+    docs.push('motion_to_modify_custody');
+    reasons['motion_to_modify_custody'] = 'A motion to modify an existing custody order based on changed circumstances.';
+  }
+
+  if (data.proposedSchedule) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'A detailed parenting plan specifying the custody schedule and decision-making responsibilities.';
+  }
+
+  if (data.safetyConcernsConfirmed) {
+    docs.push('declaration_in_support');
+    reasons['declaration_in_support'] = 'A sworn declaration documenting safety concerns that support your custody request.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Child Support
+HANDLERS['*:child_support'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  if (data.isModification) {
+    docs.push('motion_to_modify_support');
+    reasons['motion_to_modify_support'] = 'A motion to modify an existing child support order based on changed circumstances.';
+  } else {
+    docs.push('petition_for_child_support');
+    reasons['petition_for_child_support'] = 'A petition to establish a child support order.';
+  }
+
+  docs.push('financial_declaration');
+  reasons['financial_declaration'] = 'A sworn financial disclosure required by the court to calculate support under state guidelines.';
+
+  if (data.arrearsAmount > 0) {
+    docs.push('motion_for_arrears');
+    reasons['motion_for_arrears'] = 'A motion to collect unpaid child support arrears.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// DVRO (Domestic Violence Restraining Order)
+HANDLERS['*:dvro'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  if (data.wantsTro) {
+    docs.push('request_for_tro');
+    reasons['request_for_tro'] = 'An emergency Temporary Restraining Order for immediate protection — typically granted the same day.';
+  }
+
+  docs.push('petition_for_dvro');
+  reasons['petition_for_dvro'] = 'A Domestic Violence Restraining Order petition for ongoing protection.';
+
+  docs.push('dv_declaration');
+  reasons['dv_declaration'] = 'A sworn declaration describing the incidents of domestic violence that support your request for protection.';
+
+  if (data.children && data.children.length > 0) {
+    docs.push('child_custody_dv_order');
+    reasons['child_custody_dv_order'] = 'A custody and visitation order to protect children and establish safe arrangements.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Paternity
+HANDLERS['*:paternity'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  if (data.actionType === 'establish') {
+    docs.push('petition_to_establish_paternity');
+    reasons['petition_to_establish_paternity'] = 'A petition to legally establish parentage.';
+
+    if (data.onBirthCertificate === false) {
+      docs.push('motion_to_amend_birth_certificate');
+      reasons['motion_to_amend_birth_certificate'] = 'A motion to add the father\'s name to the birth certificate once paternity is established.';
+    }
+  } else if (data.actionType === 'disestablish') {
+    docs.push('petition_to_disestablish_paternity');
+    reasons['petition_to_disestablish_paternity'] = 'A petition to remove a man\'s legal paternity when DNA evidence shows he is not the biological father.';
+  }
+
+  if (data.reliefRequested && data.reliefRequested.includes('support')) {
+    docs.push('petition_for_child_support');
+    reasons['petition_for_child_support'] = 'A child support order is being sought along with paternity establishment.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Legal Separation
+HANDLERS['*:legal_separation'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_legal_separation');
+  reasons['petition_for_legal_separation'] = 'A petition to legally separate while remaining married.';
+
+  docs.push('separation_agreement');
+  reasons['separation_agreement'] = 'A marital separation agreement documenting terms for living separately.';
+
+  if (data.children && (data.children.length > 0 || data.childrenConfirmed === false)) {
+    docs.push('parenting_plan');
+    reasons['parenting_plan'] = 'A parenting plan establishing custody and visitation during the separation.';
+  }
+
+  if (data.spousalSupportRequested) {
+    docs.push('spousal_support_order');
+    reasons['spousal_support_order'] = 'A temporary spousal support order during the separation period.';
+  }
+
+  if (data.serviceMethod === 'waiver') {
+    docs.push('waiver_of_service');
+    reasons['waiver_of_service'] = 'Your spouse agreed to voluntarily accept service of the separation papers.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Annulment
+HANDLERS['*:annulment'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_annulment');
+  reasons['petition_for_annulment'] = 'A petition to declare the marriage void or voidable based on legal grounds.';
+
+  docs.push('declaration_supporting_annulment');
+  reasons['declaration_supporting_annulment'] = 'A sworn declaration detailing the specific grounds (fraud, bigamy, incapacity, etc.) that justify annulment.';
+
+  if (data.childrenOfMarriage) {
+    docs.push('custody_order');
+    reasons['custody_order'] = 'Even in an annulled marriage, children are legitimate and a custody order is required.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Guardianship of Minor
+HANDLERS['*:guardianship_minor'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_guardianship');
+  reasons['petition_for_guardianship'] = 'A petition to be appointed as legal guardian of the minor child.';
+
+  docs.push('guardian_declaration');
+  reasons['guardian_declaration'] = 'A declaration describing your relationship to the child and the circumstances requiring guardianship.';
+
+  docs.push('notice_to_parents');
+  reasons['notice_to_parents'] = 'Courts require notice to be given to the child\'s parents (even if their location is unknown, you must attempt service).';
+
+  if (data.childHasEstate || data.guardianshipType === 'general' || data.guardianshipType === 'estate_only') {
+    docs.push('petition_for_guardian_of_estate');
+    reasons['petition_for_guardian_of_estate'] = 'Since the child has assets, a separate petition for guardianship of the estate is required.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Adoption
+HANDLERS['*:adoption'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_adoption');
+  reasons['petition_for_adoption'] = 'The core adoption petition filed with the court.';
+
+  if (data.adoptionType === 'stepparent') {
+    docs.push('consent_to_adoption');
+    reasons['consent_to_adoption'] = 'The other biological parent\'s written consent to the adoption (or documentation of terminated parental rights).';
+
+    docs.push('stepparent_adoption_declaration');
+    reasons['stepparent_adoption_declaration'] = 'A declaration describing your relationship with the child and the circumstances of the adoption.';
+  } else if (data.adoptionType === 'adult') {
+    docs.push('adult_adoptee_consent');
+    reasons['adult_adoptee_consent'] = 'The adult adoptee\'s written consent to the adoption.';
+  } else if (data.adoptionType === 'relative') {
+    docs.push('consent_to_adoption');
+    reasons['consent_to_adoption'] = 'Written consent from the biological parents or documentation of terminated parental rights.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Emancipation
+HANDLERS['*:emancipation'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_emancipation');
+  reasons['petition_for_emancipation'] = 'A petition to the court requesting legal emancipation from parental control.';
+
+  docs.push('emancipation_declaration');
+  reasons['emancipation_declaration'] = 'A sworn declaration demonstrating financial self-sufficiency and the reasons emancipation is in your best interest.';
+
+  docs.push('financial_statement');
+  reasons['financial_statement'] = 'A financial statement showing your income and ability to support yourself.';
+
+  return { documents: docs, reasons };
+};
+
+// ─── Civil Law Matter Types ───────────────────────────────────────────────────
+
+// Small Claims
+HANDLERS['*:small_claims'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('small_claims_complaint');
+  reasons['small_claims_complaint'] = 'The complaint form to file your small claims case.';
+
+  if (data.demandSent === false) {
+    docs.push('demand_letter');
+    reasons['demand_letter'] = 'A formal demand letter sent before filing shows the court you tried to resolve this first.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request for the filing fee (typically $30–100).';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Name Change
+HANDLERS['*:name_change'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('petition_for_name_change');
+  reasons['petition_for_name_change'] = 'A petition to the court requesting a legal name change.';
+
+  if (!data.publicationWaiverRequested) {
+    docs.push('notice_of_petition_name_change');
+    reasons['notice_of_petition_name_change'] = 'Most states require publication of the name change petition in a local newspaper.';
+  }
+
+  if (data.isForMinor) {
+    docs.push('minor_name_change_declaration');
+    reasons['minor_name_change_declaration'] = 'A declaration explaining why the name change is in the minor child\'s best interest.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Debt Defense
+HANDLERS['*:debt_defense'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('answer_to_complaint');
+  reasons['answer_to_complaint'] = 'Your formal Answer to the debt collection lawsuit — must be filed before the deadline.';
+
+  if (data.hasCounterclaim) {
+    docs.push('counterclaim');
+    reasons['counterclaim'] = 'A counterclaim for FDCPA violations or other improper debt collection practices.';
+  }
+
+  if (data.statuteExpired) {
+    docs.push('motion_to_dismiss');
+    reasons['motion_to_dismiss'] = 'A motion to dismiss based on the expired statute of limitations.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Landlord-Tenant
+HANDLERS['*:landlord_tenant'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  const matterType = data.matterType;
+
+  if (matterType === 'eviction') {
+    if (!data.noticeServed) {
+      docs.push('notice_to_vacate');
+      reasons['notice_to_vacate'] = 'A written notice to vacate is required before filing for eviction in all states.';
+    }
+    docs.push('eviction_complaint');
+    reasons['eviction_complaint'] = 'An unlawful detainer complaint to begin the eviction process.';
+
+  } else if (matterType === 'deposit_dispute') {
+    docs.push('small_claims_complaint');
+    reasons['small_claims_complaint'] = 'A small claims complaint to recover your wrongfully withheld security deposit.';
+    docs.push('demand_letter');
+    reasons['demand_letter'] = 'A formal demand letter to the landlord requesting return of the deposit.';
+
+  } else if (matterType === 'habitability') {
+    docs.push('habitability_complaint');
+    reasons['habitability_complaint'] = 'A complaint documenting the uninhabitable conditions and requesting repairs or rent reduction.';
+    docs.push('repair_demand_letter');
+    reasons['repair_demand_letter'] = 'A written demand for repairs documenting your notice to the landlord.';
+
+  } else if (matterType === 'wrongful_eviction') {
+    docs.push('answer_to_eviction');
+    reasons['answer_to_eviction'] = 'Your answer defending against the eviction complaint.';
+    docs.push('tenant_declaration');
+    reasons['tenant_declaration'] = 'A declaration documenting the facts supporting your defense.';
+
+  } else {
+    docs.push('lease_dispute_complaint');
+    reasons['lease_dispute_complaint'] = 'A complaint for breach of lease terms.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Civil Harassment Restraining Order
+HANDLERS['*:civil_harassment'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  if (data.wantsTro) {
+    docs.push('request_for_tro');
+    reasons['request_for_tro'] = 'An emergency Temporary Restraining Order — typically granted same-day without a hearing.';
+  }
+
+  docs.push('petition_for_chro');
+  reasons['petition_for_chro'] = 'A Civil Harassment Restraining Order petition for court protection against the harasser.';
+
+  docs.push('chro_declaration');
+  reasons['chro_declaration'] = 'A sworn declaration detailing the specific incidents of harassment, stalking, or threats.';
+
+  return { documents: docs, reasons };
+};
+
+// General Civil
+HANDLERS['*:general_civil'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  docs.push('civil_complaint');
+  reasons['civil_complaint'] = 'A civil complaint setting out your legal claims and the damages you are seeking.';
+
+  if (data.demandSent === false) {
+    docs.push('demand_letter');
+    reasons['demand_letter'] = 'A formal pre-suit demand letter showing the court you tried to resolve this first.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
+// Probate
+HANDLERS['*:probate'] = function(data) {
+  const docs = [];
+  const reasons = {};
+
+  const type = data.proceedingType;
+
+  if (type === 'full_probate') {
+    docs.push('petition_for_probate');
+    reasons['petition_for_probate'] = 'A petition to open probate and be appointed as administrator or executor of the estate.';
+
+    if (data.hadWill) {
+      docs.push('petition_to_admit_will');
+      reasons['petition_to_admit_will'] = 'A petition to admit the will to probate and have it recognized by the court.';
+    }
+
+    docs.push('notice_to_creditors');
+    reasons['notice_to_creditors'] = 'Required notice to potential creditors of the estate.';
+
+  } else if (type === 'small_estate_affidavit') {
+    docs.push('small_estate_affidavit');
+    reasons['small_estate_affidavit'] = 'A Small Estate Affidavit allowing collection of assets without formal probate.';
+
+  } else if (type === 'affidavit_of_heirship') {
+    docs.push('affidavit_of_heirship');
+    reasons['affidavit_of_heirship'] = 'An Affidavit of Heirship to transfer real property to the legal heirs without probate.';
+
+  } else if (type === 'muniment_of_title') {
+    docs.push('application_for_muniment_of_title');
+    reasons['application_for_muniment_of_title'] = 'A Texas Muniment of Title application — a simplified process to transfer real estate title when there are no debts.';
+
+  } else if (type === 'summary_admin') {
+    docs.push('petition_for_summary_administration');
+    reasons['petition_for_summary_administration'] = 'A petition for summary administration when the estate qualifies for expedited processing.';
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
 // ─── Fallback — generic affidavit ─────────────────────────────────────────────
 
 /**

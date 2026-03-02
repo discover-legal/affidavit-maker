@@ -189,7 +189,14 @@ const validateChatMessage = [
     .isObject()
     .withMessage('Affidavit data must be an object')
     .custom(jsonSizeValidator(1024 * 1024)), // 1MB limit for affidavit data
-  
+
+  // Matter type code for new civil/family law matter orchestrators
+  body('affidavitData.matterTypeCode')
+    .optional()
+    .trim()
+    .matches(/^[a-z_]+$/)
+    .withMessage('matterTypeCode must be lowercase letters and underscores'),
+
   // Legacy support for currentData from securityMiddleware
   body('currentData.affiantName')
     .optional({ checkFalsy: true })
@@ -324,7 +331,9 @@ const validateAffidavitData = [
 
   body('documentType')
     .optional()
-    .isIn(['general', 'divorce', 'custody', 'financial', 'property', 'identity', 'affidavit', 'divorce_petition', 'divorce_decree'])
+    .trim()
+    .matches(/^[a-z0-9_\-\/]+$/)
+    .isLength({ max: 80 })
     .withMessage('Invalid document type'),
   
   checkValidationResult

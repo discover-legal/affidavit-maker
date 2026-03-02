@@ -47,7 +47,7 @@ const helmetConfig = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://*.auth0.com", "https://api.stripe.com", "https://api.openai.com", "https://affidavit-maker.onrender.com", "https://discover.legal", "https://www.discover.legal", "wss://localhost:*"],
+      connectSrc: ["'self'", "https://*.auth0.com", "https://api.stripe.com", "https://api.openai.com", "https://affidavit-maker.onrender.com", "https://discover.legal", "https://www.discover.legal", "https://make.discover.legal", "wss://localhost:*"],
       frameSrc: ["https://js.stripe.com", "https://*.auth0.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,

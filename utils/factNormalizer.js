@@ -3,6 +3,23 @@
  * Fact Normalization Utilities
  * Provides standardized fact structure across the application
  *
+ * ── Supported fact categories ─────────────────────────────────────────────────
+ * general      - General background facts
+ * event        - Specific events or incidents (time, place, action)
+ * financial    - Financial facts (income, assets, debts, amounts)
+ * property     - Real or personal property facts
+ * relational   - Facts about the relationship between parties
+ * children     - Facts about minor children and their wellbeing
+ * safety       - Safety concerns, threats, or history of violence
+ * pattern      - Pattern of behavior (for DV, harassment, debt collection)
+ * injury       - Physical or emotional injuries and medical facts
+ * evidence     - Documentary evidence being attached as an exhibit
+ * habitability - Property conditions (landlord-tenant habitability disputes)
+ * exemption    - Legal exemptions or defenses (debt defense, bankruptcy)
+ * heirship     - Estate, inheritance, and family tree facts (probate)
+ * identity     - Identity, name, and relationship status facts
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
  * Canonical Fact Structure (Option B):
  * {
  *   content: string,                      // Current displayed content
@@ -372,6 +389,37 @@ function createEvidencePlaceholder(options = {}) {
   });
 }
 
+/**
+ * Valid fact categories across all matter types.
+ * Used for validation and UI display labels.
+ */
+const VALID_CATEGORIES = {
+  general:      'General',
+  event:        'Event',
+  financial:    'Financial',
+  property:     'Property',
+  relational:   'Relationship',
+  children:     'Children',
+  safety:       'Safety',
+  pattern:      'Pattern of Behavior',
+  injury:       'Injury / Harm',
+  evidence:     'Evidence',
+  habitability: 'Habitability',
+  exemption:    'Defense / Exemption',
+  heirship:     'Heirship / Estate',
+  identity:     'Identity',
+};
+
+/**
+ * Get the display label for a fact category.
+ *
+ * @param {string} category
+ * @returns {string}
+ */
+function getCategoryLabel(category) {
+  return VALID_CATEGORIES[category] || category || 'General';
+}
+
 module.exports = {
   normalizeFact,
   normalizeFacts,
@@ -386,5 +434,8 @@ module.exports = {
   evidenceHasFile,
   getEvidenceItems,
   calculateExhibitLabels,
-  createEvidencePlaceholder
+  createEvidencePlaceholder,
+  // Category utilities
+  VALID_CATEGORIES,
+  getCategoryLabel
 };

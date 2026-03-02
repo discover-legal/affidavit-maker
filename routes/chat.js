@@ -9,6 +9,19 @@ const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
 
+// ─── Triage orchestrator ──────────────────────────────────────────────────────
+// Entry point when no matter type is known. Classifies the user's need through
+// conversation and sets affidavitData.matterTypeCode. Subsequent messages then
+// route to the correct matter orchestrator automatically.
+
+let triageOrchestrator = null;
+try {
+  triageOrchestrator = require('../services/agents/TriageOrchestrator');
+  logger.info('TriageOrchestrator loaded');
+} catch (err) {
+  logger.warn('TriageOrchestrator not available', { error: err.message });
+}
+
 // ─── General affidavit orchestrator ──────────────────────────────────────────
 // Handles all non-divorce affidavit types via a 4-phase interview engine.
 
@@ -32,6 +45,51 @@ try {
   );
 } catch (err) {
   logger.warn('AffidavitTypeRegistry not available for type routing', { error: err.message });
+}
+
+// ─── Matter orchestrators (one per matter type, state-agnostic) ──────────────
+// Each is a thin BaseMatterOrchestrator instance with matter-specific prompts.
+// Graceful degradation: if any fails to load we skip routing to that matter.
+
+const matterOrchestrators = {};
+
+for (const [matterCode, modulePath] of [
+  ['custody',            '../services/agents/CustodyOrchestrator'],
+  ['child_support',      '../services/agents/ChildSupportOrchestrator'],
+  ['dvro',               '../services/agents/DVROOrchestrator'],
+  ['paternity',          '../services/agents/PaternityOrchestrator'],
+  ['legal_separation',   '../services/agents/LegalSeparationOrchestrator'],
+  ['annulment',          '../services/agents/AnnulmentOrchestrator'],
+  ['guardianship_minor', '../services/agents/GuardianshipOrchestrator'],
+  ['adoption',           '../services/agents/AdoptionOrchestrator'],
+  ['emancipation',       '../services/agents/EmancipationOrchestrator'],
+  ['small_claims',       '../services/agents/SmallClaimsOrchestrator'],
+  ['name_change',        '../services/agents/NameChangeOrchestrator'],
+  ['debt_defense',       '../services/agents/DebtDefenseOrchestrator'],
+  ['landlord_tenant',    '../services/agents/LandlordTenantOrchestrator'],
+  ['civil_harassment',   '../services/agents/CivilHarassmentOrchestrator'],
+  ['general_civil',      '../services/agents/GeneralCivilOrchestrator'],
+  ['probate',            '../services/agents/ProbateOrchestrator'],
+]) {
+  try {
+    matterOrchestrators[matterCode] = require(modulePath);
+    logger.info(`MatterOrchestrator loaded: ${matterCode}`);
+  } catch (err) {
+    logger.warn(`MatterOrchestrator not available for ${matterCode}, will fall back`, { error: err.message });
+  }
+}
+
+/** The set of matter type codes that have a dedicated orchestrator. */
+const ORCHESTRATED_MATTERS = new Set(Object.keys(matterOrchestrators));
+
+/**
+ * Return the appropriate matter orchestrator for this document, or null.
+ * Routes by affidavitData.matterTypeCode (e.g. 'custody', 'small_claims').
+ */
+function getMatterOrchestrator(affidavitData) {
+  const matterCode = (affidavitData.matterTypeCode || '').toLowerCase();
+  if (!matterCode) return null;
+  return matterOrchestrators[matterCode] || null;
 }
 
 // ─── Divorce orchestrators (one per supported state) ──────────────────────────
@@ -81,6 +139,29 @@ function getOrchestrator(affidavitData) {
   if (!state && divorceOrchestrators['TX']) return divorceOrchestrators['TX'];
 
   return null; // Unsupported state → fall through to affidavitService
+}
+
+/**
+ * Return the TriageOrchestrator when no matter type or document type has been
+ * established yet and triage has not already completed.
+ *
+ * Conditions that bypass triage:
+ *   - A matterTypeCode is already set
+ *   - A documentType (divorce_package, affidavit, etc.) is already set
+ *   - Triage already ran and classified (orchestratorState.triageComplete)
+ */
+function getTriageOrchestrator(affidavitData) {
+  if (!triageOrchestrator) return null;
+
+  // Already routed by explicit matter or document type
+  const matterCode = (affidavitData.matterTypeCode || '').trim();
+  const docType    = (affidavitData.documentType || affidavitData.document_type || affidavitData.affidavitType || '').trim();
+  if (matterCode || docType) return null;
+
+  // Triage already completed
+  if (affidavitData.orchestratorState?.triageComplete) return null;
+
+  return triageOrchestrator;
 }
 
 /**
@@ -240,10 +321,27 @@ router.post('/',
           // Monitor memory usage before processing
           const memBefore = process.memoryUsage();
 
-          const divorceOrchestrator = getOrchestrator(affidavitData);
-          const generalOrchestrator = !divorceOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
+          const triageOrch          = getTriageOrchestrator(affidavitData);
+          const divorceOrchestrator = !triageOrch ? getOrchestrator(affidavitData) : null;
+          const matterOrchestrator  = !triageOrch && !divorceOrchestrator ? getMatterOrchestrator(affidavitData) : null;
+          const generalOrchestrator = !triageOrch && !divorceOrchestrator && !matterOrchestrator ? getGeneralOrchestrator(affidavitData) : null;
 
-          if (divorceOrchestrator) {
+          if (triageOrch) {
+            // No matter type known yet — triage to figure out what the person needs
+            logger.info('Routing to TriageOrchestrator', { sessionId: req.sessionId });
+            const orchResult = await triageOrch.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response:      orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts:      orchResult.newFacts || []
+            };
+          } else if (divorceOrchestrator) {
             // Divorce package: route to the state-specific phase-based orchestrator
             const state = (affidavitData.state || 'TX').toUpperCase();
             logger.info('Routing to DivorceOrchestrator', {
@@ -252,6 +350,26 @@ router.post('/',
               sessionId: req.sessionId
             });
             const orchResult = await divorceOrchestrator.processMessage(
+              message,
+              chunkedHistory,
+              affidavitData,
+              req.user.id,
+              req.sessionId
+            );
+            result = {
+              response: orchResult.response,
+              affidavitData: orchResult.affidavitData,
+              newFacts: orchResult.newFacts || []
+            };
+          } else if (matterOrchestrator) {
+            // Matter type with a dedicated orchestrator (custody, small_claims, etc.)
+            const matterCode = affidavitData.matterTypeCode;
+            logger.info('Routing to MatterOrchestrator', {
+              matterCode,
+              phase: affidavitData.orchestratorState?.currentPhase || 'INTAKE',
+              sessionId: req.sessionId
+            });
+            const orchResult = await matterOrchestrator.processMessage(
               message,
               chunkedHistory,
               affidavitData,

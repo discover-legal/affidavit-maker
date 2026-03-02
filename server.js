@@ -94,7 +94,7 @@ app.use(helmet({
         "https://www.google-analytics.com",
         "https://www.googletagmanager.com",
         "https://analytics.google.com",
-        "https://affidavit-maker.onrender.com",
+        "https://make.discover.legal",
         "https://discover.legal",
         "https://www.discover.legal",
         // Dynamically include FRONTEND_URL so staging/other deployments work
@@ -165,6 +165,7 @@ const getAllowedOrigins = () => {
 
   // Production domains
   origins.push(
+    'https://make.discover.legal',
     'https://discover.legal',
     'https://www.discover.legal',
     'https://ca.discover.legal',

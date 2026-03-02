@@ -14,7 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = 'https://app.discover.legal';
+const BASE_URL = 'https://make.discover.legal';
 const OUTPUT_PATH = path.join(__dirname, '../public/sitemap.xml');
 
 // Static routes with their SEO properties

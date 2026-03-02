@@ -86,7 +86,7 @@ services:
       # Frontend Configuration
       # Frontend URL (will be your Render URL)
       - key: FRONTEND_URL
-        value: https://app.discover.legal
+        value: https://make.discover.legal
 
       # API URL for React app - Empty = use relative URLs (works with any domain)
       - key: REACT_APP_API_URL

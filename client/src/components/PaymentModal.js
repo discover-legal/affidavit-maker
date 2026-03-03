@@ -11,17 +11,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
-// Detect if we're in a pre-rendering environment (react-snap, SSR, etc.)
-const isPrerendering = () => {
-  if (typeof navigator === 'undefined') return true;
-  return /ReactSnap|Prerender|HeadlessChrome/.test(navigator.userAgent);
-};
-
-// Load Stripe only when NOT in pre-rendering mode
-// During pre-rendering, external scripts fail to load and can crash the build
-const stripePromise = isPrerendering()
-  ? Promise.resolve(null)
-  : loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 // Payment Form Component (inside Elements provider)
 const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) => {

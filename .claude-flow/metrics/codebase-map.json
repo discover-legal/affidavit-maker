@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-03T17:34:51.450Z",
+  "timestamp": "2026-03-03T17:49:51.453Z",
   "projectRoot": "C:\\Users\\hordr\\Documents\\GitHub\\affidavit-maker",
   "structure": {
     "hasPackageJson": true,
     "hasTsConfig": false,
-    "hasClaudeConfig": false,
+    "hasClaudeConfig": true,
     "hasClaudeFlow": true
   },
-  "scannedAt": 1772559291451
+  "scannedAt": 1772560191453
 }

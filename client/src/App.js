@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import { HelmetProvider } from 'react-helmet-async';
 import { DocumentProvider } from './contexts/DocumentContext';
 import { TOSProvider } from './contexts/TOSContext';
-import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';
 import EditorView from './views/EditorView';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -58,11 +57,6 @@ const AnalyticsTracker = () => {
 const AppRoutes = () => {
   const navigate = useNavigate();
 
-  // Navigate to dashboard
-  const handleGetStarted = () => {
-    navigate('/dashboard');
-  };
-
   // ✅ Start new document - Navigate to /editor/new
   // documentType: 'affidavit' (default) or 'divorce_package'
   // caseType: 'family' (default) or 'civil'
@@ -86,10 +80,10 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Public Landing Page - No auth required */}
+        {/* Root redirects straight to dashboard (landing page lives on Webflow) */}
         <Route
           path="/"
-          element={<LandingPage onGetStarted={handleGetStarted} />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
       {/* Public Policy Pages - No auth required */}
@@ -169,7 +163,7 @@ const AppRoutes = () => {
       {/* Catch-all redirect */}
       <Route
         path="*"
-        element={<Navigate to="/" replace />}
+        element={<Navigate to="/dashboard" replace />}
       />
       </Routes>
     </>

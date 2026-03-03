@@ -1,0 +1,66 @@
+{
+  "stateCode": "AB",
+  "stateName": "Alberta",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true,
+    "usesJudicialDistrict": true
+  },
+  "courtSystem": {
+    "trialCourt": "Court of King's Bench of Alberta",
+    "familyCourt": "Court of King's Bench of Alberta",
+    "appealCourt": "Court of Appeal of Alberta"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Matrimonial Property Act, RSA 2000, c. M-8"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Matrimonial Property Act, RSA 2000, c. M-8",
+      "description": "Alberta statute — division of matrimonial property between spouses"
+    },
+    {
+      "code": "Family Law Act, SA 2003, c. F-4.5",
+      "description": "Alberta statute — parentage, guardianship, parenting, contact, and support"
+    },
+    {
+      "code": "Alberta Rules of Court, Alta Reg 124/2010",
+      "description": "Procedural rules for Court of King's Bench proceedings"
+    },
+    {
+      "code": "Oaths Act, RSA 2000, c. O-1",
+      "description": "Alberta affidavit requirements — commissioner for oaths"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the [City/Town] of ___, in the Province of Alberta, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths\nin and for the Province of Alberta",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and signed by the deponent and the commissioner for oaths."
+  }
+}

@@ -99,6 +99,7 @@ function getMatterOrchestrator(affidavitData) {
 const divorceOrchestrators = {};
 
 for (const [stateCode, modulePath] of [
+  // US states
   ['TX', '../services/agents/TXDivorceOrchestrator'],
   ['AZ', '../services/agents/AZDivorceOrchestrator'],
   ['CA', '../services/agents/CADivorceOrchestrator'],
@@ -106,6 +107,11 @@ for (const [stateCode, modulePath] of [
   ['IL', '../services/agents/ILDivorceOrchestrator'],
   ['NY', '../services/agents/NYDivorceOrchestrator'],
   ['UT', '../services/agents/UTDivorceOrchestrator'],
+  // Canadian provinces — federal Divorce Act (RSC 1985, c. 3)
+  ['ON', '../services/agents/ONDivorceOrchestrator'],
+  ['BC', '../services/agents/BCDivorceOrchestrator'],
+  ['AB', '../services/agents/ABDivorceOrchestrator'],
+  ['QC', '../services/agents/QCDivorceOrchestrator'],
 ]) {
   try {
     divorceOrchestrators[stateCode] = require(modulePath);

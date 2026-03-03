@@ -68,12 +68,15 @@ const DOCS_BY_MATTER = {
   probate:            ['petition_for_probate', 'petition_to_admit_will', 'notice_to_creditors', 'small_estate_affidavit', 'affidavit_of_heirship', 'application_for_muniment_of_title', 'petition_for_summary_administration', 'indigency_affidavit'],
 };
 
-// States that have full support for each matter type
-// divorce is supported in all 7 states; others are state-agnostic (supported everywhere)
+// States/provinces that have full support for each matter type.
+// Canadian provinces (ON, BC, AB, QC) are supported for divorce under the federal Divorce Act.
+// Matter types other than divorce are state/province-agnostic (document templates available everywhere).
 const SUPPORTED_STATES = {
-  divorce: ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT'],
+  divorce: ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT', 'ON', 'BC', 'AB', 'QC'],
 };
 const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT'];
+const ALL_PROVINCES = ['ON', 'BC', 'AB', 'QC'];
+const ALL_JURISDICTIONS = [...ALL_STATES, ...ALL_PROVINCES];
 
 // ─── GET /api/catalog/matters ─────────────────────────────────────────────────
 
@@ -137,8 +140,8 @@ router.get('/states/:state/matters',
   asyncHandler(async (req, res) => {
     const state = req.params.state.toUpperCase();
 
-    if (!ALL_STATES.includes(state)) {
-      throw new NotFoundError(`State "${state}" is not currently supported. Supported states: ${ALL_STATES.join(', ')}`);
+    if (!ALL_JURISDICTIONS.includes(state)) {
+      throw new NotFoundError(`"${state}" is not currently supported. Supported jurisdictions: ${ALL_JURISDICTIONS.join(', ')}`);
     }
 
     const matters = MATTER_TYPES.filter(m => {

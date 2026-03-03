@@ -48,6 +48,12 @@ services:
       - key: AUTH0_AUDIENCE
         sync: false
 
+      - key: AUTH0_ISSUER_BASE_URL
+        sync: false # e.g. https://your-tenant.auth0.com
+
+      - key: AUTH0_WEBHOOK_SECRET
+        sync: false
+
       # Auth0 Frontend (React) - REQUIRED for build
       # These must be set for the React build to work
       - key: REACT_APP_AUTH0_DOMAIN

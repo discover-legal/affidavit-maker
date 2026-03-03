@@ -332,7 +332,7 @@ const validateAffidavitData = [
   body('documentType')
     .optional()
     .trim()
-    .matches(/^[a-z0-9_\-\/]+$/)
+    .matches(/^[a-z0-9_\-/]+$/)
     .isLength({ max: 80 })
     .withMessage('Invalid document type'),
   

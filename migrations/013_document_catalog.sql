@@ -164,7 +164,7 @@ INSERT INTO matter_types (code, practice_area, category, display_name, short_nam
 ('custody',            'family', 'custody',      'Child Custody & Visitation',        'Custody',        'Establish or modify who your children live with',                 true,  40),
 ('child_support',      'family', 'custody',      'Child Support',                     'Child Support',  'Establish, modify, or enforce child support payments',            true,  50),
 ('paternity',          'family', 'parentage',    'Paternity / Parentage',             'Paternity',      'Legally establish who is a child''s parent',                      true,  60),
-('domestic_violence',  'family', 'protection',   'Domestic Violence Restraining Order','DV Order',      'Get legal protection from an abusive or threatening person',      true,  70),
+('dvro',               'family', 'protection',   'Domestic Violence Restraining Order','DVRO',          'Get a protective order against domestic violence',                true,  70),
 ('guardianship_minor', 'family', 'guardianship', 'Guardianship of a Minor',           'Guardianship',   'Become the legal guardian of a child who needs you',              true,  80),
 ('adoption',           'family', 'adoption',     'Stepparent / Relative Adoption',    'Adoption',       'Legally adopt a child you are already raising',                   true,  90),
 ('emancipation',       'family', 'emancipation', 'Emancipation of a Minor',           'Emancipation',   'Become legally independent before turning 18',                    true, 100),
@@ -176,7 +176,7 @@ INSERT INTO matter_types (code, practice_area, category, display_name, short_nam
 ('civil_harassment',   'civil',  'protection',   'Civil Harassment Restraining Order','Harassment Order','Get a court order to stop harassment by a non-family member',    true, 140),
 ('name_change',        'civil',  'identity',     'Name Change',                       'Name Change',    'Legally change your name or your child''s name',                  true, 150),
 ('general_civil',      'civil',  'litigation',   'General Civil Litigation',          'Civil Case',     'File or defend a civil lawsuit in your state',                    true, 160),
-('probate_small_estate','civil', 'probate',      'Probate / Small Estate',            'Small Estate',   'Transfer a loved one''s property without full probate court',      true, 170)
+('probate',             'civil',  'probate',      'Probate & Estate Administration',   'Probate',        'Administer a loved one''s estate after death',                    true, 170)
 
 ON CONFLICT (code) DO NOTHING;
 
@@ -241,11 +241,11 @@ VALUES
 ('paternity','parentage_order',       'Order Establishing Parentage',                  'order',       false, 'petitioner', 5,  '["relational","children"]',           '["petitionerName","respondentName","state","county"]'),
 
 -- DOMESTIC VIOLENCE
-('domestic_violence','dvro_petition', 'Request for DV Restraining Order',              'pleading',    true,  'petitioner', 1,  '["injury","temporal","pattern"]',     '["petitionerName","respondentName","state","county"]'),
-('domestic_violence','dvro_declaration','Declaration Re: Domestic Violence',           'declaration', false, 'petitioner', 2,  '["injury","temporal","pattern","witness"]','["affiantName","state"]'),
-('domestic_violence','dvro_response', 'Response to DV Restraining Order',              'pleading',    false, 'respondent', 3,  '["relational"]',                      '["respondentName","state"]'),
-('domestic_violence','dvro_final',    'Domestic Violence Restraining Order After Hearing','order',    false, 'petitioner', 4,  '[]',                                  '["petitionerName","respondentName","state","county"]'),
-('domestic_violence','dvro_renewal',  'Request for Renewal of Restraining Order',      'motion',      false, 'petitioner', 5,  '["temporal","pattern"]',              '["affiantName","state","county"]'),
+('dvro','dvro_petition', 'Request for DV Restraining Order',              'pleading',    true,  'petitioner', 1,  '["injury","temporal","pattern"]',     '["petitionerName","respondentName","state","county"]'),
+('dvro','dvro_declaration','Declaration Re: Domestic Violence',           'declaration', false, 'petitioner', 2,  '["injury","temporal","pattern","witness"]','["affiantName","state"]'),
+('dvro','dvro_response', 'Response to DV Restraining Order',              'pleading',    false, 'respondent', 3,  '["relational"]',                      '["respondentName","state"]'),
+('dvro','dvro_final',    'Domestic Violence Restraining Order After Hearing','order',    false, 'petitioner', 4,  '[]',                                  '["petitionerName","respondentName","state","county"]'),
+('dvro','dvro_renewal',  'Request for Renewal of Restraining Order',      'motion',      false, 'petitioner', 5,  '["temporal","pattern"]',              '["affiantName","state","county"]'),
 
 -- GUARDIANSHIP MINOR
 ('guardianship_minor','guardianship_petition','Petition for Appointment of Guardian of Minor','pleading',true,'petitioner',1,'["relational","children"]',            '["petitionerName","state","county"]'),
@@ -315,10 +315,10 @@ VALUES
 ('general_civil','request_dismissal',     'Request for Dismissal',                     'motion',      false, 'plaintiff',  5,  '[]',                                  '["petitionerName","state","county"]'),
 
 -- PROBATE / SMALL ESTATE
-('probate_small_estate','small_estate_affidavit','Small Estate Affidavit',             'affidavit',   true,  'petitioner', 1,  '["relational","property","temporal"]','["affiantName","state","county"]'),
-('probate_small_estate','heirship_affidavit',    'Affidavit of Heirship',              'affidavit',   true,  'petitioner', 1,  '["relational","property","temporal","heirship"]','["affiantName","state","county"]'),
-('probate_small_estate','inventory_affidavit',   'Inventory and Appraisal Affidavit', 'affidavit',   false, 'petitioner', 2,  '["property"]',                        '["affiantName","state","county"]'),
-('probate_small_estate','successor_affidavit',   'Affidavit of Successor',            'affidavit',   false, 'petitioner', 2,  '["relational","property"]',           '["affiantName","state","county"]')
+('probate','small_estate_affidavit','Small Estate Affidavit',             'affidavit',   true,  'petitioner', 1,  '["relational","property","temporal"]','["affiantName","state","county"]'),
+('probate','heirship_affidavit',    'Affidavit of Heirship',              'affidavit',   true,  'petitioner', 1,  '["relational","property","temporal","heirship"]','["affiantName","state","county"]'),
+('probate','inventory_affidavit',   'Inventory and Appraisal Affidavit', 'affidavit',   false, 'petitioner', 2,  '["property"]',                        '["affiantName","state","county"]'),
+('probate','successor_affidavit',   'Affidavit of Successor',            'affidavit',   false, 'petitioner', 2,  '["relational","property"]',           '["affiantName","state","county"]')
 
 ON CONFLICT (matter_type_code, code) DO NOTHING;
 
@@ -337,8 +337,30 @@ CROSS JOIN (VALUES
 ) AS dt(code)
 ON CONFLICT (state_code, matter_type_code, document_type_code) DO NOTHING;
 
--- General affidavit: all 7 states already supported
+-- General affidavit: all 7 US states already supported
 INSERT INTO state_document_support (state_code, matter_type_code, document_type_code, is_supported, is_verified, template_version)
 SELECT s.state_code, 'general_civil' AS matter_type_code, 'general_declaration', true, true, '2.0'
 FROM (VALUES ('TX'),('UT'),('AZ'),('CA'),('FL'),('IL'),('NY')) AS s(state_code)
+ON CONFLICT (state_code, matter_type_code, document_type_code) DO NOTHING;
+
+-- ─── SEED: Canadian provinces — divorce documents (Divorce Act, RSC 1985, c. 3) ─
+-- Core divorce documents supported for ON, BC, AB, QC.
+-- US-specific documents (military affidavit, prove-up, cert of last known address,
+-- indigency affidavit) are NOT applicable in Canadian provinces.
+
+INSERT INTO state_document_support (state_code, matter_type_code, document_type_code, is_supported, is_verified, template_version, notes)
+SELECT p.province_code, 'divorce' AS matter_type_code, dt.code, true, true, '1.0',
+       'Canadian provincial divorce under federal Divorce Act (RSC 1985, c. 3)'
+FROM (VALUES ('ON'),('BC'),('AB'),('QC')) AS p(province_code)
+CROSS JOIN (VALUES
+  ('divorce_petition'),('divorce_decree'),('parenting_plan'),
+  ('financial_disclosure'),('waiver_of_service')
+) AS dt(code)
+ON CONFLICT (state_code, matter_type_code, document_type_code) DO NOTHING;
+
+-- General affidavit: Canadian provinces
+INSERT INTO state_document_support (state_code, matter_type_code, document_type_code, is_supported, is_verified, template_version, notes)
+SELECT p.province_code, 'general_civil' AS matter_type_code, 'general_declaration', true, true, '1.0',
+       'General affidavit / declaration for Canadian provincial proceedings'
+FROM (VALUES ('ON'),('BC'),('AB'),('QC')) AS p(province_code)
 ON CONFLICT (state_code, matter_type_code, document_type_code) DO NOTHING;

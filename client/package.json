@@ -23,7 +23,6 @@
     "start": "craco start",
     "prebuild": "node scripts/generate-sitemap.js",
     "build": "craco build",
-    "build:seo": "craco build && react-snap",
     "test": "craco test",
     "eject": "react-scripts eject",
     "sitemap": "node scripts/generate-sitemap.js"
@@ -52,34 +51,5 @@
   "overrides": {
     "minimist": "^1.2.8",
     "mkdirp": "^1.0.4"
-  },
-  "reactSnap": {
-    "include": [
-      "/",
-      "/resources",
-      "/resources/how-to-write-an-affidavit",
-      "/resources/persuasive-legal-writing-guide",
-      "/resources/texas-family-law-affidavits",
-      "/resources/notarization-explained",
-      "/resources/utah-legal-documents-guide",
-      "/resources/arizona-affidavit-requirements",
-      "/privacy",
-      "/tos",
-      "/brand"
-    ],
-    "skipThirdPartyRequests": true,
-    "cacheAjaxRequests": false,
-    "puppeteerArgs": [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--single-process"
-    ],
-    "minifyHtml": {
-      "collapseWhitespace": true,
-      "removeComments": true
-    }
   }
 }

@@ -9,8 +9,9 @@ const API_BASE = process.env.REACT_APP_API_URL !== undefined
 
 // Module-level flag to prevent multiple simultaneous loginWithRedirect calls.
 // Without this, parallel API calls that all get 401 would each trigger a redirect,
-// compounding the login loop.
+// compounding the login loop. Resets after 5s to allow retry if redirect didn't navigate away.
 let isRedirectingToLogin = false;
+let redirectResetTimer = null;
 
 // Custom hook for authenticated API calls
 export const useAuthenticatedApi = () => {
@@ -50,6 +51,9 @@ export const useAuthenticatedApi = () => {
         if (response.status === 401) {
           if (!isRedirectingToLogin) {
             isRedirectingToLogin = true;
+            // Reset after 5s in case redirect didn't navigate away (e.g., popup blocked)
+            clearTimeout(redirectResetTimer);
+            redirectResetTimer = setTimeout(() => { isRedirectingToLogin = false; }, 5000);
             loginWithRedirect();
           }
           throw new Error('Authentication required');
@@ -74,6 +78,8 @@ export const useAuthenticatedApi = () => {
 
         if (error.error === 'login_required' && !isRedirectingToLogin) {
           isRedirectingToLogin = true;
+          clearTimeout(redirectResetTimer);
+          redirectResetTimer = setTimeout(() => { isRedirectingToLogin = false; }, 5000);
           loginWithRedirect();
         }
         throw error;

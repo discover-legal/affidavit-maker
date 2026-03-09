@@ -16,7 +16,7 @@ import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
 import { trackPageView } from './utils/analytics';
 
-// Environment configuration
+// Environment configuration (onRedirectCallback is set inside Auth0ProviderWithNavigate)
 const AUTH0_CONFIG = {
   domain: process.env.REACT_APP_AUTH0_DOMAIN,
   clientId: process.env.REACT_APP_AUTH0_CLIENT_ID,
@@ -30,15 +30,24 @@ const AUTH0_CONFIG = {
   useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
   useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
   authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
-  onRedirectCallback: (appState) => {
-    // After Auth0 redirects back, navigate to the page the user was on
-    // or default to the dashboard
-    window.history.replaceState(
-      {},
-      document.title,
-      appState?.returnTo || '/dashboard'
-    );
-  }
+};
+
+// Wrapper that puts Auth0Provider inside Router so onRedirectCallback can use navigate
+const Auth0ProviderWithNavigate = ({ children }) => {
+  const navigate = useNavigate();
+
+  const onRedirectCallback = (appState) => {
+    // Use React Router navigate instead of window.history.replaceState
+    // replaceState doesn't notify React Router of the URL change, which caused
+    // TOSGuard to see stale route state and trigger loginWithRedirect again
+    navigate(appState?.returnTo || '/dashboard', { replace: true });
+  };
+
+  return (
+    <Auth0Provider {...AUTH0_CONFIG} onRedirectCallback={onRedirectCallback}>
+      {children}
+    </Auth0Provider>
+  );
 };
 
 // Google Analytics page tracking component
@@ -165,15 +174,15 @@ const App = () => {
   return (
     <ErrorBoundary>
       <HelmetProvider>
-        <Auth0Provider {...AUTH0_CONFIG}>
-          <TOSProvider>
-            <DocumentProvider>
-              <Router>
+        <Router>
+          <Auth0ProviderWithNavigate>
+            <TOSProvider>
+              <DocumentProvider>
                 <AppRoutes />
-              </Router>
-            </DocumentProvider>
-          </TOSProvider>
-        </Auth0Provider>
+              </DocumentProvider>
+            </TOSProvider>
+          </Auth0ProviderWithNavigate>
+        </Router>
       </HelmetProvider>
     </ErrorBoundary>
   );

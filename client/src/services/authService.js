@@ -7,6 +7,11 @@ const API_BASE = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
+// Module-level flag to prevent multiple simultaneous loginWithRedirect calls.
+// Without this, parallel API calls that all get 401 would each trigger a redirect,
+// compounding the login loop.
+let isRedirectingToLogin = false;
+
 // Custom hook for authenticated API calls
 export const useAuthenticatedApi = () => {
   const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
@@ -43,8 +48,10 @@ export const useAuthenticatedApi = () => {
         });
 
         if (response.status === 401) {
-          // Token expired or invalid, redirect to login
-          loginWithRedirect();
+          if (!isRedirectingToLogin) {
+            isRedirectingToLogin = true;
+            loginWithRedirect();
+          }
           throw new Error('Authentication required');
         }
 
@@ -65,7 +72,8 @@ export const useAuthenticatedApi = () => {
           return makeRequest(1); // Retry once
         }
 
-        if (error.error === 'login_required') {
+        if (error.error === 'login_required' && !isRedirectingToLogin) {
+          isRedirectingToLogin = true;
           loginWithRedirect();
         }
         throw error;

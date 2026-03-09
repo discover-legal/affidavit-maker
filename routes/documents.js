@@ -505,13 +505,6 @@ router.post('/save',
       });
     }
 
-    if (!pool) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database service unavailable'
-      });
-    }
-
     try {
       const normalizedFacts = affidavitData.facts 
         ? prepareFactsForStorage(affidavitData.facts)

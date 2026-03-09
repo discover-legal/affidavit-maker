@@ -1,6 +1,6 @@
 // client/src/App.js - COMPLETE INTEGRATION
 import React, { useEffect } from 'react';
-import { Auth0Provider } from '@auth0/auth0-react';
+import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { DocumentProvider } from './contexts/DocumentContext';
@@ -62,6 +62,27 @@ const AnalyticsTracker = () => {
   return null;
 };
 
+// Handles root route and /callback — waits for Auth0 to finish processing
+// the callback (code/state query params) before redirecting to /dashboard.
+// Without this, <Navigate> fires before Auth0Provider reads the params,
+// stripping them from the URL and causing an infinite login loop.
+const AuthCallbackHandler = () => {
+  const { isLoading } = useAuth0();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <Navigate to="/dashboard" replace />;
+};
+
 // Main routing component
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -87,10 +108,18 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Root redirects straight to dashboard (landing page lives on Webflow) */}
+        {/* Root route: must wait for Auth0 callback processing before redirecting.
+            Auth0 redirects back here with ?code=...&state=... query params.
+            Immediately navigating away would strip those params before Auth0 reads them. */}
         <Route
           path="/"
-          element={<Navigate to="/dashboard" replace />}
+          element={<AuthCallbackHandler />}
+        />
+
+        {/* Explicit callback route for Auth0 redirect (matches Auth0 dashboard config) */}
+        <Route
+          path="/callback"
+          element={<AuthCallbackHandler />}
         />
 
       {/* Public Policy Pages - No auth required */}
@@ -157,10 +186,10 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Catch-all redirect */}
+      {/* Catch-all redirect — also uses AuthCallbackHandler to be safe */}
       <Route
         path="*"
-        element={<Navigate to="/dashboard" replace />}
+        element={<AuthCallbackHandler />}
       />
       </Routes>
     </>

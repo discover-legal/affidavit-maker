@@ -295,6 +295,36 @@ class PDFService {
       });
     }
 
+    // Keep closing sections together: conclusion, perjury, signature, and notary block
+    // Estimate the combined height so they don't get split across pages
+    {
+      let closingHeight = 0;
+      if (sections.conclusion) {
+        closingHeight += this.estimateTextHeight(doc, sections.conclusion, 12) + 36; // text + spacing
+      }
+      if (sections.perjuryStatement) {
+        closingHeight += this.estimateTextHeight(doc, sections.perjuryStatement, 12) + 54; // text + moveDown(1.5)*3
+      }
+      if (sections.signatureBlock) {
+        closingHeight += 100 + 18; // signature lines + spacing
+      }
+      if (sections.notaryInstruction) {
+        closingHeight += this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 50;
+      }
+      if (sections.notaryBlock) {
+        closingHeight += this.estimateTextHeight(doc, sections.notaryBlock, 12) + 40;
+      }
+
+      const availableSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
+      if (closingHeight > 0 && closingHeight > availableSpace) {
+        // If the entire closing block won't fit, start a new page
+        // (unless we're already at the top of a page)
+        if (doc.y > doc.page.margins.top + 20) {
+          this.addPageWithFooter(doc);
+        }
+      }
+    }
+
     // Conclusion
     if (sections.conclusion) {
       this.checkPageBreak(doc, 60);

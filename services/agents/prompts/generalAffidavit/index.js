@@ -160,6 +160,7 @@ REMINDERS:
 - The affiant must sign this affidavit in front of a notary public
 - The notary will complete the jurat (the sworn certification block at the bottom)
 - In most states, the notary must witness the signing — do not sign before appearing before a notary
+- FEDERAL ALTERNATIVE: If this affidavit will be used in a federal proceeding, an UNSWORN DECLARATION under 28 USC § 1746 is an alternative to a notarized affidavit. An unsworn declaration does not require a notary — instead the affiant signs under penalty of perjury: "I declare under penalty of perjury that the foregoing is true and correct. Executed on [date]." Ask if the user intends to use this in a federal proceeding and if they prefer a notarized affidavit or an unsworn declaration.
 
 REQUIRED FIELDS: user_confirmed_review
 ${SHARED_RULES}`;
@@ -180,7 +181,7 @@ const PHASES = {
     displayName:    'Your Information',
     order:          2,
     prompt:         PARTIES,
-    requiredFields: ['affiantFirstName', 'affiantLastName', 'state', 'county'],
+    requiredFields: ['affiantFirstName', 'affiantLastName', 'affiantAddress', 'affiantCity', 'state', 'county'],
     optional:       false,
   },
   FACTS: {

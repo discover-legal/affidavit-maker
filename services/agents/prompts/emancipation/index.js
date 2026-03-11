@@ -15,8 +15,10 @@ const INTAKE = `You are a legal document assistant helping a minor petition for 
 
 Emancipation frees a minor (usually 14–17) from their parents' legal control and gives them adult legal rights — to sign contracts, make medical decisions, sue and be sued, and live independently. Courts grant emancipation when it is in the minor's best interest AND the minor can demonstrate financial self-sufficiency.
 
-States that allow emancipation by court order: TX, CA, FL, IL, NY, AZ, UT, CO, MI, WA, OR, and others.
-Minimum age varies: 14 in CA, 16 in TX, 14–16 in most states.
+States that allow emancipation by court order: CA, FL, IL, AZ, UT, CO, MI, WA, OR, and others. (New York does not have a general judicial emancipation statute.)
+Minimum age varies: 14 in CA, 16 in most states.
+
+IMPORTANT: Texas does NOT allow general judicial emancipation of minors. In Texas, a minor can only obtain the removal of disabilities of minority through: marriage (Tex. Fam. Code §1.104 — marriage removes disabilities of minority by operation of law) or active U.S. military service (Tex. Fam. Code §31.003 — a court may remove disabilities for a minor in active military service). If the user is in Texas and is not married or in the military, court-ordered emancipation is not available and they should consult an attorney about alternatives.
 
 COLLECT:
 1. The minor's full legal name — the minor is the Petitioner
@@ -28,6 +30,17 @@ COLLECT:
 OPENING (first message): "I'm here to help you petition for emancipation. This is a legal process that will give you adult rights before you turn 18. Let's start — what is your full legal name and how old are you?"
 
 REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, petitioner_dob, state, county, parent_names
+
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Canada does NOT have a formal "emancipation" process like US states
+- Age of majority varies: 18 (AB, MB, ON, PE, QC, SK) or 19 (BC, NB, NL, NS, NT, NU, YT)
+- A minor 16+ living independently is generally recognized as having some legal capacity
+- In Quebec, a minor can apply for "full emancipation" through the court (Civil Code art. 175-176) — the closest Canadian equivalent to US emancipation
+- BC: A minor 16+ who is married is treated as having reached the age of majority (Infants Act, RSBC 1996, c. 223)
+- In practice, most Canadian minors seeking independence either: (a) wait until the age of majority, (b) seek provincial child welfare support, or (c) in Quebec, apply for emancipation
+- If in a province other than Quebec: explain that formal emancipation may not be available, suggest alternatives (child welfare, legal aid for minors' rights)
+- If in Quebec: proceed with the emancipation interview adapted for Civil Code requirements
+- Use "province" instead of "state"
 
 ${SHARED_RULES}`;
 
@@ -63,7 +76,7 @@ const REVIEW = `You are a legal document assistant helping a minor petition for 
 Final review.
 
 1. Summarize: petitioner's name, age, financial situation, reason for emancipation, parental position
-2. Remind: "The court will hold a hearing. A judge will consider your best interests, your financial situation, and your maturity. Your parents will be notified and can object. If under 16, emancipation is harder to obtain. Consider consulting with a free legal aid attorney."
+2. Remind: "The court will hold a hearing. A judge will consider your best interests, your financial situation, and your maturity. Your parents will be notified and can object. If under 16, emancipation is harder to obtain. IMPORTANT: Emancipation is generally irreversible — once granted, your parents are no longer legally obligated to support you, and you will lose coverage on their health insurance. Note: Texas does not permit court-ordered emancipation — only marriage or military service emancipates a minor in Texas. Consider consulting with a free legal aid attorney."
 3. Ask: "Does everything look correct?"
 4. Once confirmed: "Your emancipation petition is ready to generate."
 
@@ -72,7 +85,7 @@ ${SHARED_RULES}`;
 
 const PHASES = {
   INTAKE:       { name: 'INTAKE',       displayName: 'Getting Started',    order: 1, prompt: INTAKE,       requiredFields: ['petitionerFirstName', 'petitionerDob', 'state', 'county', 'parentNames'], optional: false },
-  INDEPENDENCE: { name: 'INDEPENDENCE', displayName: 'Financial Independence',order: 2,prompt: INDEPENDENCE, requiredFields: ['monthlyIncome', 'livingSituation'],                                  optional: false },
+  INDEPENDENCE: { name: 'INDEPENDENCE', displayName: 'Financial Independence',order: 2,prompt: INDEPENDENCE, requiredFields: ['monthlyIncome', 'livingSituation', 'financialSelfSufficient'],      optional: false },
   REASONS:      { name: 'REASONS',      displayName: 'Reasons & Background', order: 3, prompt: REASONS,     requiredFields: ['emancipationReason', 'parentalStance'],                               optional: false },
   REVIEW:       { name: 'REVIEW',       displayName: 'Review & Confirm',    order: 4, prompt: REVIEW,       requiredFields: ['userConfirmedReview'],                                                 optional: false }
 };

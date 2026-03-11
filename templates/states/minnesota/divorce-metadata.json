@@ -1,0 +1,205 @@
+{
+  "stateCode": "MN",
+  "stateName": "Minnesota",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Judgment and Decree",
+    "caseNumberLabel": "COURT FILE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "At least one party must have resided in Minnesota for at least 180 days (approximately 6 months) immediately preceding the commencement of the proceeding. There is no separate county residency requirement.",
+    "statute": "Minn. Stat. § 518.07"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Minnesota has no mandatory post-filing waiting period. The dissolution may be finalized as soon as all requirements are met and the court holds a hearing or approves the stipulation."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "There has been an irretrievable breakdown of the marriage relationship. There is no reasonable prospect of reconciliation.",
+        "statute": "Minn. Stat. § 518.06"
+      }
+    ],
+    "fault": [],
+    "notes": "Minnesota is a pure no-fault state. The only ground for dissolution of marriage is irretrievable breakdown. Fault is not considered in granting the dissolution or in determining property division or maintenance."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Minnesota divides marital property in a 'just and equitable' manner. The court considers the length of the marriage, any prior marriages, the age, health, station, occupation, amount and sources of income, vocational skills, employability, estate, liabilities, needs, and opportunity for future acquisition of capital assets and income. There is a presumption that each spouse made a substantial contribution to the acquisition of marital property.",
+    "separateProperty": "Non-marital (separate) property includes property acquired before marriage, property acquired by gift or inheritance during marriage, property excluded by a valid prenuptial agreement, and the increase in value of non-marital property.",
+    "statute": "Minn. Stat. § 518.58"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Minn. Stat. § 518.06",
+      "description": "Dissolution of marriage — irretrievable breakdown as sole ground"
+    },
+    {
+      "code": "Minn. Stat. § 518.07",
+      "description": "Jurisdiction — 180-day residency requirement"
+    },
+    {
+      "code": "Minn. Stat. § 518.003",
+      "description": "Definitions — legal custody, physical custody, joint custody, parenting time"
+    },
+    {
+      "code": "Minn. Stat. § 518.58",
+      "description": "Disposition of marital property — equitable distribution"
+    },
+    {
+      "code": "Minn. Stat. § 518.552",
+      "description": "Spousal maintenance — factors for award and amount"
+    },
+    {
+      "code": "Minn. Stat. § 518.17",
+      "description": "Best interests of the child — custody determination factors"
+    },
+    {
+      "code": "Minn. Stat. § 518A.26 et seq.",
+      "description": "Child support guidelines — income shares model"
+    },
+    {
+      "code": "Minn. Stat. § 609.48",
+      "description": "Perjury — criminal penalty for false sworn statements"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$390-$425",
+    "varies": true,
+    "notes": "Minnesota filing fees for dissolution of marriage are approximately $390-$425 depending on the county. Fee waivers are available for qualifying low-income individuals via In Forma Pauperis (Minn. Stat. § 563.01)."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Confidential Information Form",
+        "description": "Identifying information (SSN, DOB) filed under seal",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit (Form 11.1)",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Judgment and Decree",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent by sheriff or process server",
+        "required": true,
+        "alternatives": ["Admission/Acknowledgment of Service"]
+      },
+      {
+        "name": "Admission/Acknowledgment of Service",
+        "description": "Respondent voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by respondent"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and parenting time arrangement",
+        "required": true,
+        "notes": "Required when minor children are involved"
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Income shares calculation per Minn. Stat. § 518A.26",
+        "required": true
+      },
+      {
+        "name": "ICMC Statement and Scheduling Information",
+        "description": "Initial Case Management Conference statement",
+        "required": true,
+        "notes": "Required in most Minnesota counties"
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Minnesota Rules of Civil Procedure and General Rules of Practice"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must serve and file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside Minnesota must serve and file an answer within 30 days of service"
+    },
+    "statute": "Minn. R. Civ. P. 12.01"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Minnesota uses an income shares model. Both parents' gross incomes are combined to determine the basic child support obligation based on the number of children. The obligation is apportioned between the parents based on their proportional share of the combined income. Adjustments may be made for parenting time, childcare costs, and health insurance.",
+    "statute": "Minn. Stat. § 518A.26 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_maintenance",
+    "description": "Minnesota courts may award spousal maintenance (not alimony) when one spouse lacks sufficient property to provide for reasonable needs or is unable to provide adequate self-support through appropriate employment. There are no statutory formulas — the court exercises broad discretion based on the statutory factors.",
+    "eligibility": "Any spouse may seek maintenance. The court considers: financial resources of the party seeking maintenance, time needed to acquire education/training, standard of living during marriage, duration of marriage, loss of earnings/employment opportunities due to homemaking, age, physical and emotional condition of the party seeking maintenance, and the ability of the paying spouse to meet their needs while paying maintenance.",
+    "statute": "Minn. Stat. § 518.552"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Dissolution of marriage is filed in the District Court (Family Court Division) in the county where either party resides."
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "stateCode": "WA",
+  "stateName": "Washington",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "RCW 9A.72.085",
+      "description": "Unsworn statements — allows declarations under penalty of perjury as alternative to sworn affidavits; perjury statement required"
+    },
+    {
+      "code": "RCW 42.44",
+      "description": "Washington Uniform Notarial Acts — notary public authority, notarial acts, and certificate requirements"
+    },
+    {
+      "code": "RCW 5.28.020",
+      "description": "Oaths and affidavits — authority to administer; form of oath"
+    }
+  ],
+  "affidavitJurat": "SUBSCRIBED AND SWORN to before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public in and for the State of Washington\n\nPrinted Name: ___________________\n\nResiding at: ___________________\n\nMy appointment expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each exhibit in the body of the affidavit. Attach all exhibits at the end of the document after the notary block."
+  }
+}

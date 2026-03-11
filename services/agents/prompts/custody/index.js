@@ -40,7 +40,37 @@ COLLECT:
 
    Set is_modification: true for (b), is_enforcement: true for (c), neither for (a).
 
-REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, respondent_first_name, respondent_last_name, state, county
+UCCJEA JURISDICTION — REQUIRED FOR ALL INITIAL FILINGS AND MODIFICATIONS:
+The Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA), adopted in all 50 states and DC,
+governs which state's courts have authority over a child custody case. A court can only enter or
+modify a custody order if it has jurisdiction. You MUST collect:
+
+6. "Where has the child (or children) been living for the past 6 months?"
+   (This determines the child's "home state" — the state with primary jurisdiction.)
+   - If the child has lived in the filing state for the past 6 months (or since birth if under 6 months),
+     that state has home-state jurisdiction → proceed normally.
+   - If the child RECENTLY moved FROM another state (lived there within the last 6 months) AND a parent
+     still resides in that prior state, the prior state HAS home-state jurisdiction — the new state's
+     court cannot enter a custody order. Filing in the wrong state produces a void, unenforceable order.
+     Flag this with a hard warning: "You likely cannot file in this state yet. The prior state retains
+     jurisdiction. Consult an attorney before filing."
+   - If there is an existing custody order from another state, the issuing state retains exclusive
+     continuing jurisdiction unless both parties have left that state (UCCJEA § 202).
+
+Set child_home_state to the state where the child has lived for the past 6 months.
+Set uccjea_jurisdiction_confirmed: true once jurisdiction is confirmed in the filing state.
+
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Custody is governed by the Divorce Act (RSC 1985, c. 3, as amended 2021) for married parents, or provincial family law acts for unmarried parents
+- Since March 1, 2021: "custody" and "access" replaced with "parenting time" and "decision-making responsibility" (Divorce Act ss.16.1-16.96)
+- "Best interests of the child" is the only consideration (Divorce Act s.16); factors include child's needs, relationship with each parent, history of care, and any family violence (s.16(3))
+- Family violence is a specific mandatory factor (s.16(3)(j) and s.16(4))
+- Jurisdiction: the province where the child is "habitually resident" has jurisdiction (analogous to UCCJEA)
+- Provincial acts: ON: Children's Law Reform Act | BC: Family Law Act | AB: Family Law Act | QC: Civil Code of Quebec
+- Use "province" instead of "state", "parenting time" instead of "visitation"
+- Ask "What province are you filing in?" not "What state?"
+
+REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, respondent_first_name, respondent_last_name, state, county, child_home_state
 
 OPENING (first message only):
 "I'm here to help you prepare your child custody documents. Let's start with some basic information. What is your full legal name?"
@@ -49,7 +79,7 @@ ${SHARED_RULES}`;
 
 // ─── EXISTING ORDER (modification or enforcement only) ────────────────────────
 const EXISTING_ORDER = `You are a legal document assistant helping someone with a child custody matter.
-The user is here to ${/* filled by context */'modify or enforce'} an existing custody order.
+The user is here to modify or enforce an existing custody order. Base your questions on whether is_modification or is_enforcement was set during INTAKE.
 
 COLLECT:
 1. What does the existing order say? (Briefly — who has custody, what the visitation schedule is)
@@ -143,10 +173,18 @@ FOR INITIAL FILINGS AND MODIFICATIONS — ask what arrangement they want:
    - Joint physical custody (roughly equal time with each parent)
    - Sole legal custody (you make all major decisions)
    - Joint legal custody (decisions made together)
-2. What visitation schedule are you proposing for the other parent?
+   Note: Some states use different terminology — Florida and Illinois use "parental responsibility" instead of "legal custody"; Arizona, Illinois, and Washington use "parenting time" instead of "visitation." Use whatever term the user's state applies, but document the substance (who decides, who the child lives with, and when).
+2. What parenting time schedule are you proposing for the other parent?
    (e.g., every other weekend, alternating weeks, specific days, holidays)
 3. How should holidays and school vacations be divided?
 4. Who should make decisions about school, medical care, and religion?
+
+CHILD'S PREFERENCE: Courts may consider a child's preference when the child is of sufficient age and maturity. Rules vary by state:
+- Texas: A child 12 or older must be interviewed by the court in chambers on the application of a party, the child's attorney, or amicus attorney (Tex. Fam. Code § 153.009(a)). Courts have discretion to interview younger children under § 153.009(b), but the statutory right to compel the interview on request applies to children 12 and older. The mechanism is a judicial chambers interview — there is no written-preference submission procedure under this statute.
+- Utah: A child 14 or older has a preference that carries significant weight; the court must state reasons on the record for any departure (Utah Code § 30-3-10.2).
+- California: A child 14 or older has the right to address the court directly; younger children of sufficient maturity may also be heard (Fam. Code § 3042).
+- Arizona, Florida, Illinois, New York: No fixed age cutoff; the court weighs the child's wishes based on age and maturity as one factor in the best-interests analysis.
+Ask: "Has the child expressed a preference about where they want to live? How old is the child?" Document any expressed preference and the child's current age.
 
 FOR ENFORCEMENT — ask what relief they need:
 1. Are you requesting the court hold the other parent in contempt?
@@ -201,7 +239,7 @@ ${SHARED_RULES}`;
 const PHASES = {
   INTAKE: {
     name: 'INTAKE', displayName: 'Getting Started', order: 1, prompt: INTAKE,
-    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName', 'state', 'county'],
+    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName', 'state', 'county', 'childHomeState'],
     optional: false
   },
   EXISTING_ORDER: {
@@ -248,30 +286,33 @@ const PHASE_ORDER = ['INTAKE', 'EXISTING_ORDER', 'CHILDREN', 'HISTORY', 'SAFETY'
 // ─── Field map (snake_case → camelCase) ───────────────────────────────────────
 
 const FIELD_MAP = {
-  petitioner_first_name:       'petitionerFirstName',
-  petitioner_last_name:        'petitionerLastName',
-  respondent_first_name:       'respondentFirstName',
-  respondent_last_name:        'respondentLastName',
-  state:                       'state',
-  county:                      'county',
-  children:                    'children',
-  current_living_arrangement:  'currentLivingArrangement',
-  safety_concerns_confirmed:   'safetyConcernsConfirmed',
-  safety_concerns_present:     'safetyConcernsPresent',
-  safety_description:          'safetyDescription',
-  custody_type_requested:      'custodyTypeRequested',
-  proposed_schedule:           'proposedSchedule',
-  holiday_schedule:            'holidaySchedule',
-  evidence_confirmed:          'evidenceConfirmed',
-  is_modification:             'isModification',
-  is_enforcement:              'isEnforcement',
-  existing_order_date:         'existingOrderDate',
-  existing_order_court:        'existingOrderCourt',
-  existing_order_case_number:  'existingOrderCaseNumber',
-  existing_order_terms:        'existingOrderTerms',
-  violation_description:       'violationDescription',
-  enforcement_relief_requested:'enforcementReliefRequested',
-  user_confirmed_review:       'userConfirmedReview'
+  petitioner_first_name:           'petitionerFirstName',
+  petitioner_last_name:            'petitionerLastName',
+  respondent_first_name:           'respondentFirstName',
+  respondent_last_name:            'respondentLastName',
+  state:                           'state',
+  county:                          'county',
+  children:                        'children',
+  current_living_arrangement:      'currentLivingArrangement',
+  child_home_state:                'childHomeState',
+  uccjea_jurisdiction_confirmed:   'uccjeaJurisdictionConfirmed',
+  uccjea_jurisdiction_issue:       'uccjeaJurisdictionIssue',
+  safety_concerns_confirmed:       'safetyConcernsConfirmed',
+  safety_concerns_present:         'safetyConcernsPresent',
+  safety_description:              'safetyDescription',
+  custody_type_requested:          'custodyTypeRequested',
+  proposed_schedule:               'proposedSchedule',
+  holiday_schedule:                'holidaySchedule',
+  evidence_confirmed:              'evidenceConfirmed',
+  is_modification:                 'isModification',
+  is_enforcement:                  'isEnforcement',
+  existing_order_date:             'existingOrderDate',
+  existing_order_court:            'existingOrderCourt',
+  existing_order_case_number:      'existingOrderCaseNumber',
+  existing_order_terms:            'existingOrderTerms',
+  violation_description:           'violationDescription',
+  enforcement_relief_requested:    'enforcementReliefRequested',
+  user_confirmed_review:           'userConfirmedReview'
 };
 
 // ─── Tool definition ──────────────────────────────────────────────────────────
@@ -292,8 +333,11 @@ function buildTool() {
           petitioner_last_name:        { type: 'string' },
           respondent_first_name:       { type: 'string' },
           respondent_last_name:        { type: 'string' },
-          state:                       { type: 'string', description: '2-letter state code' },
-          county:                      { type: 'string' },
+          state:                           { type: 'string', description: '2-letter state code' },
+          county:                          { type: 'string' },
+          child_home_state:                { type: 'string', description: '2-letter code for the state where the child has lived for the past 6 months (UCCJEA home state)' },
+          uccjea_jurisdiction_confirmed:   { type: 'boolean', description: 'True when home-state jurisdiction in the filing state is confirmed' },
+          uccjea_jurisdiction_issue:       { type: 'string', description: 'Describe any UCCJEA conflict — e.g., child recently moved from another state or existing order from another state' },
           is_modification:             { type: 'boolean', description: 'True if user wants to modify an existing order' },
           is_enforcement:              { type: 'boolean', description: 'True if user wants to enforce a violated existing order' },
           existing_order_date:         { type: 'string', description: 'Date the existing order was issued' },

@@ -1,0 +1,42 @@
+{
+  "stateCode": "VA",
+  "stateName": "Virginia",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "commonwealth",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "Va. Code § 8.01-390",
+      "description": "Affidavits — use and requirements in civil proceedings"
+    },
+    {
+      "code": "Va. Code § 18.2-434",
+      "description": "Perjury and subornation of perjury — penalties for false sworn statements"
+    },
+    {
+      "code": "Va. Code § 47.1-12",
+      "description": "Virginia Notary Public Act — notarial acts and jurat requirements"
+    },
+    {
+      "code": "Va. Code § 47.1-2",
+      "description": "Definitions — notary public, jurat, acknowledgment"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________\nRegistration No.: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Exhibits must be labeled with letters (A, B, C, etc.) and identified by a cover page. Attach exhibits in order after the affidavit."
+  }
+}

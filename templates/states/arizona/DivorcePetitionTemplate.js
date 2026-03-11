@@ -263,7 +263,7 @@ class ArizonaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     items.push({
       number: paragraphNum++,
-      content: 'Petitioner requests that the Court divide the community property and debts equitably between the parties.',
+      content: 'Petitioner requests that the Court divide the community property and debts equally between the parties. (A.R.S. § 25-318)',
       type: 'property_request'
     });
 
@@ -291,7 +291,7 @@ class ArizonaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const reliefItems = [];
 
     reliefItems.push('Dissolve the marriage between Petitioner and Respondent;');
-    reliefItems.push('Divide the community property and debts equitably;');
+    reliefItems.push('Divide the community property and debts equally (A.R.S. § 25-318);');
     reliefItems.push('Confirm each party\'s separate property to that party;');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

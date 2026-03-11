@@ -55,6 +55,7 @@ COLLECT:
    → This determines which Circuit Court has jurisdiction
 
 REQUIRED FIELDS: state (IL), county, residency_state_months
+NOTE: Illinois requires 90 days (3 months). Store the duration in months (e.g., if user says "4 months" store 4; if user says "90 days" store 3).
 ${SHARED_RULES}`;
 
 const GROUNDS = `You are a legal document assistant helping someone file for dissolution of marriage in Illinois.
@@ -66,8 +67,16 @@ irreconcilable differences (750 ILCS 5/401(a)(2)).
 
 All fault-based grounds (adultery, mental cruelty, etc.) were eliminated.
 
-There is a rebuttable presumption that irreconcilable differences have caused the irretrievable
-breakdown if the parties have lived separate and apart for 6 continuous months.
+There is an irrebuttable presumption that irreconcilable differences have caused the irretrievable
+breakdown if the parties have lived separate and apart for 6 continuous months (750 ILCS 5/401(a)(2)).
+The court may not challenge or overcome this presumption once the 6-month separation is established.
+
+IMPORTANT: The 6-month separation period creates an irrebuttable presumption but is NOT a mandatory
+waiting period before filing. If BOTH spouses stipulate (agree) that irreconcilable differences
+exist, the court may grant dissolution without requiring that 6 months have elapsed. Ask:
+"Have you and your spouse both lived separate and apart for at least 6 months?" If yes, document
+the separation date. If no, ask: "Do both of you agree that the marriage has broken down due to
+irreconcilable differences?" — If both agree, proceed; no waiting period is required.
 
 COLLECT:
 1. Date of marriage and place (city, state)
@@ -125,10 +134,12 @@ const SUPPORT = `You are a legal document assistant helping someone file for dis
 Collecting maintenance (spousal support) information.
 
 ILLINOIS MAINTENANCE — 750 ILCS 5/504:
-Courts may award maintenance based on a statutory formula for marriages under 20 years:
-- Amount: 33.3% of payor's net income minus 25% of payee's net income
-  (but combined income of both spouses after support payment cannot exceed 40% of combined net income)
-- Duration: based on marriage length (e.g., 20% of marriage length for marriages of 0-5 years)
+Courts may award maintenance based on a statutory formula for guideline-eligible cases:
+- Amount (§ 504(b-1)(1)(a)): 33.3% of payor's net income minus 25% of payee's net income
+  (combined income of both spouses after support cannot exceed 40% of combined net income)
+  — this amount formula applies regardless of marriage length
+- Duration (§ 504(b-1)(1)(b)): based on marriage length (e.g., 20% for marriages of 0–5 years);
+  for marriages of 20+ years, the court may award maintenance for an indefinite period
 
 COLLECT:
 1. "Are you requesting maintenance from your spouse?"
@@ -196,9 +207,9 @@ user_confirmed_review: true
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',       order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Illinois Residency',    order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',    order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',       order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Illinois Residency',    order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'],   optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',    order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',              order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',      order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',           order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

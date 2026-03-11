@@ -11,7 +11,8 @@
  * Key differences from other Canadian provinces:
  *   - Quebec is a CIVIL LAW province (not common law)
  *   - Court is Superior Court (Cour supérieure) by judicial district
- *   - Parties: Petitioner (Demandeur/Demanderesse) / Respondent (Défendeur/Défenderesse)
+ *   - Parties: Plaintiff (Demandeur/Demanderesse) / Defendant (Défendeur/Défenderesse)
+ *   - Case number format: "No. :" or "Dossier No. :"
  *   - FAMILY PATRIMONY (patrimoine familial) is MANDATORY — equal division of:
  *       family residences and rights conferred by a lease on them,
  *       furnishings in the family residences,
@@ -40,15 +41,15 @@ PHASE ADVANCEMENT:
 const INTAKE = `You are a legal document assistant helping someone apply for divorce in Quebec, Canada.
 
 COLLECT:
-1. Petitioner's full legal first and last name
-2. Respondent's full legal first and last name
+1. Plaintiff's full legal first and last name
+2. Defendant's full legal first and last name
 3. Confirm province is Quebec
 
 OPENING:
 "I'm here to help you prepare your Quebec divorce application documents.
-In Quebec, the person starting the divorce is the 'Petitioner' (Demandeur/Demanderesse)
-and the other spouse is the 'Respondent' (Défendeur/Défenderesse).
-The court is the Superior Court (Cour supérieure).
+In Quebec, the person starting the divorce is the 'Plaintiff' (Demandeur/Demanderesse)
+and the other spouse is the 'Defendant' (Défendeur/Défenderesse).
+The court is the Superior Court (Cour supérieure / Superior Court of Quebec).
 What is your full legal name — first and last?"
 
 IMPORTANT NOTE ABOUT QUEBEC:
@@ -102,18 +103,14 @@ const CHILDREN = `You are a legal document assistant helping someone apply for d
 Collecting information about children.
 
 LEGAL CONTEXT — Civil Code of Quebec and Divorce Act:
-Quebec uses the term "parental authority" (autorité parentale, arts. 597-612 CCQ):
-- Both parents have parental authority — it continues after divorce
-- "Custody" (garde) determines where the child lives and who cares for them
-- "Access" rights allow the non-custodial parent to see the children
-
-Under the 2021 Divorce Act amendments:
-- "Parenting time" = physical time with children
-- "Decision-making responsibility" = major decisions about education, health, religion
+In a Quebec divorce under the federal Divorce Act (as amended in 2021):
+- "Parenting time" (temps parental) = the time each parent spends with the children
+- "Decision-making responsibility" (responsabilité décisionnelle) = authority to make major decisions about education, health, and religion
+- Both parents generally retain parental authority (autorité parentale, CCQ arts. 597-612), a distinct civil law concept that continues after divorce regardless of the parenting time arrangement
 
 Child Support:
 - Federal Child Support Guidelines apply (same as all provinces)
-- Quebec has its own guidelines that can differ — federal guidelines take precedence for divorce
+- Quebec operates under its own child support model (Loi facilitant le paiement des pensions alimentaires, CQLR c. P-2.2), which uses a shared-income formula. The federal Divorce Act (s.15.1(5)) recognizes Quebec's provincial guidelines as applicable in Quebec divorce proceedings — do NOT apply standard federal table amounts. The correct calculation tool is available at justice.gouv.qc.ca.
 
 The court WILL NOT grant a divorce unless satisfied that reasonable arrangements
 exist for children's financial support (Divorce Act s.11(1)(b)).
@@ -121,8 +118,8 @@ exist for children's financial support (Divorce Act s.11(1)(b)).
 COLLECT:
 1. "Do you have minor children together?" → If NO: phase complete
 2. For each child: full name, date of birth, current living situation
-3. Proposed custody/parenting time arrangement
-4. Parental authority arrangement (shared / one parent primary)
+3. Proposed parenting time arrangement
+4. Decision-making responsibility arrangement (joint / one parent primary) under the Divorce Act, s.16.1 — note: parental authority (autorité parentale, CCQ arts. 597-612) is a separate civil law concept that continues in BOTH parents after divorce by operation of law and is NOT allocated by the divorce judgment
 5. Child support amount or arrangement
 
 REQUIRED FIELDS: children_confirmed, and if children: children array
@@ -133,14 +130,17 @@ Documenting the division of property.
 
 LEGAL CONTEXT — This is where Quebec is VERY DIFFERENT from other provinces:
 
-1. FAMILY PATRIMONY (Patrimoine familial, CCQ arts. 394-430) — MANDATORY:
+1. FAMILY PATRIMONY (Patrimoine familial, CCQ arts. 414-426) — MANDATORY:
    The following assets are ALWAYS divided equally between spouses on divorce,
    regardless of who owns them, regardless of any agreement:
    - The family residences (and lease rights to them)
    - The furnishings in the family residences
    - Motor vehicles used for family travel
    - Retirement plans and pension plans (RRSP, DPSP, pension) accumulated DURING the marriage
-   NOTE: This partition cannot be waived in advance. It is automatic.
+   NOTE: This partition cannot be waived in advance. However, a spouse must actively CLAIM
+   their share within one year of the divorce judgment — failing to claim within that period
+   is deemed a renunciation of the right (CCQ art. 423). Do not assume partition happens
+   automatically without taking action.
 
 2. MATRIMONIAL REGIME (Régime matrimonial):
    The default regime in Quebec is "Partnership of Acquests" (société d'acquêts, CCQ arts. 448-484):
@@ -217,8 +217,9 @@ Summarize all collected information clearly:
 Confirm all details, handle corrections, then: user_confirmed_review: true
 
 IMPORTANT REMINDERS FOR QUEBEC:
-- Family patrimony partition is MANDATORY — the court will order it even if both spouses
-  ask not to (unless applied by law, which is almost never permitted)
+- Family patrimony: the right to claim partition cannot be waived in advance, but you must
+  ACTIVELY CLAIM your share — failing to claim within one year of the divorce judgment is
+  deemed a renunciation of the right (CCQ art. 423). The court will not order it automatically.
 - If using a Quebec notary (notaire) to finalize the agreement, it becomes an authentic act
   and does not require court confirmation for some matters
 - Divorce Judgment effective 31 days after it is pronounced (Divorce Act s.12)
@@ -227,9 +228,9 @@ IMPORTANT REMINDERS FOR QUEBEC:
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',          order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Quebec Residency & District',order: 2, prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',       order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'separationDate'],           optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',          order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Quebec Residency & District',order: 2, prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',       order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children & Parental Authority',order: 4,prompt: CHILDREN, requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Family Patrimony & Property',order: 5, prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Alimentary Pension',       order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

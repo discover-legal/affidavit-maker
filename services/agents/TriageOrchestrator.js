@@ -48,8 +48,14 @@ class TriageOrchestrator {
       messageLength: message.length
     });
 
+    // Inject country context so the LLM uses the right legal references
+    const countryCode = matterData.countryCode || 'US';
+    const countryHint = countryCode === 'CA'
+      ? '\n[CONTEXT: This user is accessing from Canada. Use Canadian legal references, terminology, and resources.]'
+      : '';
+
     const messages = [
-      { role: 'system', content: TRIAGE_PROMPT },
+      { role: 'system', content: TRIAGE_PROMPT + countryHint },
       ...conversationHistory.slice(-10),
       { role: 'user', content: message }
     ];

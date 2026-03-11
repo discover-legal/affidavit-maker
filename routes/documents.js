@@ -825,21 +825,33 @@ router.post('/generate',
         };
       }
 
-      // STEP 3: Generate PDF using pdfService
-      const result = await pdfService.generatePDF(documentStructure, {
-        documentId: documentId || Date.now(),
-        userId
-      });
+      // STEP 3: Generate document (PDF or Word) using pdfService
+      const format = (req.query.format || req.body.format || 'pdf').toLowerCase();
+      let result;
 
-      if (!result.success || !result.filepath) {
-        throw new Error('PDF generation failed - no filepath returned');
+      if (format === 'docx' || format === 'word') {
+        result = await pdfService.generateWordDoc(documentStructure, {
+          documentId: documentId || Date.now(),
+          userId
+        });
+      } else {
+        result = await pdfService.generatePDF(documentStructure, {
+          documentId: documentId || Date.now(),
+          userId
+        });
       }
 
-      logger.info('PDF generated successfully', {
+      if (!result.success || !result.filepath) {
+        throw new Error(`${format.toUpperCase()} generation failed - no filepath returned`);
+      }
+
+      logger.info('Document generated successfully', {
         documentId,
         userId,
+        format,
         filepath: result.filepath,
-        pages: result.pages
+        pages: result.pages,
+        documentType: result.documentType
       });
 
       // STEP 4: Update document status in database
@@ -855,7 +867,7 @@ router.post('/generate',
                    $1::text::jsonb
                  )
              WHERE id = $2 AND user_id = $3`,
-            [result.pages, documentId, userId]
+            [result.pages || 0, documentId, userId]
           );
         } catch (dbError) {
           logger.warn('Failed to update document status', {
@@ -864,26 +876,29 @@ router.post('/generate',
         }
       }
 
-      // STEP 5: Stream PDF file to client
+      // STEP 5: Stream file to client
       const fs = require('fs');
       const stat = await fs.promises.stat(result.filepath);
-      
-      res.setHeader('Content-Type', 'application/pdf');
+      const isDocx = format === 'docx' || format === 'word';
+
+      res.setHeader('Content-Type', isDocx
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/pdf');
       res.setHeader('Content-Length', stat.size);
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      
+
       const fileStream = fs.createReadStream(result.filepath);
       fileStream.pipe(res);
 
-      // STEP 6: Clean up PDF file after streaming
+      // STEP 6: Clean up file after streaming
       fileStream.on('end', async () => {
         setTimeout(async () => {
           try {
             await fs.promises.unlink(result.filepath);
-            logger.info('Cleaned up PDF file', { filepath: result.filepath });
+            logger.info('Cleaned up generated file', { filepath: result.filepath });
           } catch (cleanupError) {
-            logger.warn('Failed to cleanup PDF file', { 
-              error: cleanupError.message 
+            logger.warn('Failed to cleanup generated file', {
+              error: cleanupError.message
             });
           }
         }, 60 * 60 * 1000); // 1 hour

@@ -77,10 +77,11 @@
   },
 
   "residencyRequirements": {
-    "stateMonths": 0,
+    "stateMonths": 3,
     "stateDays": 90,
     "countyDays": 0,
-    "description": "At least one spouse must have been domiciled in Arizona for at least 90 days before filing."
+    "statute": "A.R.S. § 25-312(1)",
+    "description": "At least one spouse must have been domiciled in Arizona for at least 90 days (3 months) immediately preceding the commencement of the action. There is no separate county residency requirement."
   },
 
   "waitingPeriod": {
@@ -230,7 +231,8 @@
 
   "propertyDivision": {
     "type": "community_property",
-    "description": "Arizona is a community property state. Court shall divide community property equitably.",
+    "equalDivision": true,
+    "description": "Arizona is a community property state. The court shall divide community property equally (50/50), with narrow judicial authority to deviate upon a showing of sound reason. This is NOT equitable distribution — equal division is the presumption.",
     "statute": "A.R.S. § 25-318"
   }
 }

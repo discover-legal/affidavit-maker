@@ -1,0 +1,73 @@
+{
+  "stateCode": "SK",
+  "stateName": "Saskatchewan",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Court of King's Bench for Saskatchewan",
+    "familyDivision": "Court of King's Bench for Saskatchewan — Family Law Division",
+    "appealCourt": "Court of Appeal for Saskatchewan"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "The Family Property Act, SS 1997, c. F-6.3 (deferred community of property — equal division of family property)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "The Family Property Act, SS 1997, c. F-6.3",
+      "description": "Saskatchewan statute — equal division of family property on marriage breakdown"
+    },
+    {
+      "code": "The Family Maintenance Act, 1997, SS 1997, c. F-6.2",
+      "description": "Saskatchewan statute — spousal and child support obligations"
+    },
+    {
+      "code": "The Evidence Act, 2006, SS 2006, c. E-11.2",
+      "description": "Saskatchewan affidavit requirements — oath before commissioner for oaths"
+    },
+    {
+      "code": "The Commissioners for Oaths Act, 2012, SS 2012, c. C-16.001",
+      "description": "Saskatchewan statute governing commissioners for oaths"
+    },
+    {
+      "code": "Oaths Act, RSS 1978, c. O-4",
+      "description": "Saskatchewan statute governing the form and administration of oaths and solemn affirmations"
+    },
+    {
+      "code": "King's Bench Rules",
+      "description": "Procedural rules for Court of King's Bench for Saskatchewan (formerly Queen's Bench Rules; renamed September 2022 upon accession of King Charles III)"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the City/Town of ___, in the Province of Saskatchewan, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths\nin and for the Province of Saskatchewan",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for oaths."
+  }
+}

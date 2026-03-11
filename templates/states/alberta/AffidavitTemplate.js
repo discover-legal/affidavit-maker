@@ -13,8 +13,9 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * - Sworn before a Commissioner for Oaths in Alberta
  * - Uses "Province of Alberta" not "State of"
  * - Court of King's Bench uses judicial district (Calgary, Edmonton, Red Deer, etc.)
- * - Court File No. instead of Case No.
- * - Family proceedings use "Petitioner" / "Respondent"
+ * - Court File No. for general filings; divorce actions use "Action No."
+ * - Divorce proceedings use "Plaintiff" / "Defendant" (Statement of Claim for Divorce)
+ * - Family Law Act proceedings (guardianship, parenting) use "Applicant" / "Respondent"
  * - Body opens: "I, [name], of [city], in the Province of Alberta, [occupation], make oath and say:"
  *
  * @class AlbertaAffidavitTemplate
@@ -34,29 +35,48 @@ class AlbertaAffidavitTemplate extends BaseAffidavitTemplate {
   }
 
   /**
+   * Alberta header uses province designation.
+   */
+  generateHeader() {
+    return 'PROVINCE OF ALBERTA';
+  }
+
+  /**
+   * Alberta venue — judicial district of filing.
+   */
+  generateVenue(county) {
+    const district = (county || '[JUDICIAL DISTRICT]').toUpperCase();
+    return `JUDICIAL DISTRICT OF ${district}`;
+  }
+
+  /**
    * Alberta case caption.
    * Court of King's Bench uses judicial district and "Court File No."
    */
   generateCaseCaption(affidavitData) {
     const district = (affidavitData.county || affidavitData.city || '[JUDICIAL DISTRICT]').toUpperCase();
     const fileNo = affidavitData.caseNumber || '[FILE NUMBER]';
-    const petitioner = affidavitData.plaintiff || affidavitData.petitionerName || '[PETITIONER NAME]';
-    const respondent = affidavitData.defendant || affidavitData.respondentName || '[RESPONDENT NAME]';
+    // Alberta divorce: Statement of Claim for Divorce uses Plaintiff / Defendant (Alberta Rules of Court, AR 124/2010)
+    // Family Law Act proceedings use Applicant / Respondent
+    const plaintiff = affidavitData.plaintiff || affidavitData.petitionerName || '[PLAINTIFF NAME]';
+    const defendant = affidavitData.defendant || affidavitData.respondentName || '[DEFENDANT NAME]';
 
     const formatted =
       `COURT OF KING'S BENCH OF ALBERTA\n` +
       `JUDICIAL DISTRICT OF ${district}\n\n` +
-      `Court File No. ${fileNo}\n\n` +
-      `IN THE MATTER OF:\n\n` +
-      `${petitioner.toUpperCase()}, Petitioner\n\n` +
+      `Action No. ${fileNo}\n\n` +
+      `BETWEEN:\n\n` +
+      `${plaintiff.toUpperCase()}\n` +
+      `Plaintiff\n\n` +
       `— and —\n\n` +
-      `${respondent.toUpperCase()}, Respondent`;
+      `${defendant.toUpperCase()}\n` +
+      `Defendant`;
 
     return {
       courtName: `Court of King's Bench of Alberta — Judicial District of ${district}`,
       caseNumber: affidavitData.caseNumber,
-      plaintiff: petitioner,
-      defendant: respondent,
+      plaintiff: plaintiff,
+      defendant: defendant,
       formatted
     };
   }

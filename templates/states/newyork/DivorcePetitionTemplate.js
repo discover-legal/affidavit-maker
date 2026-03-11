@@ -202,18 +202,22 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getJurisdictionStatement(divorceData) {
     const plaintiff = divorceData.petitionerName || 'Plaintiff';
 
-    // Determine which residency basis applies
-    if (divorceData.residencyBasis === 'two_years') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least two years immediately preceding the commencement of this action.`;
+    // Determine which residency basis applies.
+    // Values match what nyDivorce orchestrator collects (DRL § 230 bases).
+    if (divorceData.residencyBasis === '2yr_residence' || divorceData.residencyBasis === 'two_years') {
+      return `${plaintiff} has resided in the State of New York for a continuous period of at least two years immediately preceding the commencement of this action. (Domestic Relations Law § 230(5))`;
     }
-    if (divorceData.residencyBasis === 'one_year_married_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties were married in New York.`;
+    if (divorceData.residencyBasis === 'married_in_ny_1yr' || divorceData.residencyBasis === 'one_year_married_in_ny') {
+      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties were married in New York. (Domestic Relations Law § 230(2))`;
     }
-    if (divorceData.residencyBasis === 'one_year_lived_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties have resided in this State as husband and wife.`;
+    if (divorceData.residencyBasis === 'last_lived_together_1yr' || divorceData.residencyBasis === 'one_year_lived_in_ny') {
+      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties last lived together as husband and wife in New York. (Domestic Relations Law § 230(3))`;
     }
-    if (divorceData.residencyBasis === 'one_year_cause_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the cause of action arose in New York.`;
+    if (divorceData.residencyBasis === 'grounds_arose_1yr' || divorceData.residencyBasis === 'one_year_cause_in_ny') {
+      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the cause of action arose in New York. (Domestic Relations Law § 230(4))`;
+    }
+    if (divorceData.residencyBasis === 'both_residents') {
+      return `Both parties are residents of the State of New York when this action is commenced. (Domestic Relations Law § 230(1))`;
     }
     // Default
     return `The parties meet the residency requirements set forth in Domestic Relations Law § 230.`;

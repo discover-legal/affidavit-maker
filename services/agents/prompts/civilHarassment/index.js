@@ -23,12 +23,24 @@ Civil harassment restraining orders protect against harassment by someone who is
 
 (For domestic violence by a spouse, partner, or parent of your child, use the Domestic Violence Restraining Order process instead.)
 
+NOTE: The availability of civil non-domestic harassment restraining order procedures varies by state. California (CCP § 527.6) and Florida (Fla. Stat. § 784.046) have dedicated general civil harassment statutory frameworks. Illinois does NOT have a general civil harassment statute — 740 ILCS 22/ is the Stalking No Contact Order Act (requires proof of stalking, not general harassment) and 740 ILCS 21/ covers sexual assault victims only; Illinois users with non-stalking harassment should consult a local attorney about equitable remedies. Texas does not have a general civil non-domestic harassment restraining order equivalent — Texas users in stalking situations may instead pursue a protective order under Tex. Code Crim. Proc. Art. 7B.001. Document the user's state and note it for document generation.
+
 COLLECT:
 1. Your full legal name — you are the Petitioner
 2. The harasser's full name — the Respondent
 3. Your relationship to the respondent (neighbor, coworker, acquaintance, etc.)
 4. What state and county?
-5. Do you want an Emergency Protective Order TODAY (TRO) or just a permanent order? (TRO is usually granted same day without a hearing if you show immediate danger)
+5. Do you want a Temporary Restraining Order (TRO) today, or just a final order? (A TRO is usually granted the same day without a hearing if you show immediate danger. Note: civil harassment proceedings under CCP § 527.6 do not have an "Emergency Protective Order" — that term applies only to domestic violence cases.)
+
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Canada does NOT have a direct equivalent to a US "civil harassment restraining order" (like California's CH-100)
+- Options for non-domestic harassment:
+  1. Peace bond (Criminal Code s.810): any person who fears another will cause personal injury can apply — the court may order the defendant to keep the peace, stay away, and have no contact
+  2. Provincial protection orders: some provinces extend protection orders beyond intimate relationships (e.g., AB Protection Against Family Violence Act; ON Courts of Justice Act s.46(1))
+  3. Civil lawsuit for tort of harassment, nuisance, or invasion of privacy (common law + provincial privacy acts)
+  4. Criminal charges: criminal harassment (stalking) under Criminal Code s.264 — contact police
+- For workplace harassment: provincial occupational health and safety legislation may apply
+- Key difference: Canadians typically seek a peace bond (s.810) rather than a civil restraining order for non-domestic harassment
 
 SAFETY FIRST: Are you in immediate danger right now? If yes, please call 911 before proceeding.
 
@@ -98,7 +110,7 @@ const REVIEW = `You are a legal document assistant helping someone seek a civil 
 Final review.
 
 1. Summarize: petitioner, respondent, harassment history, relief requested
-2. Remind: "For a Temporary Restraining Order (TRO), you can often get same-day protection without the respondent present. A hearing will then be scheduled (usually within 15–25 days) where the respondent can respond. There is no filing fee for protective orders in most states."
+2. Remind: "For a Temporary Restraining Order (TRO), you can often get same-day protection without the respondent present. A hearing will then be scheduled (typically within 3–21 days depending on your state) where the respondent can respond. California: 21 days from TRO grant (CCP § 527.6(d)); Florida: 15 days (§ 784.046 F.S.). Note: New York has no general civil harassment restraining order statute for non-domestic situations (neighbors, coworkers, strangers) — New York users should consult a local attorney about available equitable remedies. There is no filing fee for protective orders in most states."
 3. Ask: "Does everything look correct?"
 4. Once confirmed: "Your civil harassment restraining order documents are ready to generate."
 

@@ -1,0 +1,199 @@
+{
+  "stateCode": "OR",
+  "stateName": "Oregon",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Judgment of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "marriedInOregon": {
+      "stateMonths": 0,
+      "description": "If the marriage was solemnized in Oregon, at least one party must be a resident of Oregon at the time of filing. No minimum duration is required."
+    },
+    "marriedOutsideOregon": {
+      "stateMonths": 6,
+      "description": "If the marriage was not solemnized in Oregon, at least one party must have been a resident of Oregon continuously for at least 6 months immediately preceding the filing."
+    },
+    "statute": "ORS §107.075"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": null,
+    "exceptions": [],
+    "description": "Oregon has NO mandatory waiting period. The 90-day waiting period was repealed in 2011. A dissolution can be finalized as soon as the court is ready to enter judgment."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences that have caused the irremediable breakdown of the marriage",
+        "statute": "ORS §107.025"
+      }
+    ],
+    "fault": [],
+    "notes": "Oregon is a purely no-fault state. The only ground for dissolution is irreconcilable differences that have caused the irremediable breakdown of the marriage. ORS §107.025."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Oregon divides marital property in a manner that is 'just and proper in all the circumstances.' There is a rebuttable presumption that both spouses contributed equally to the acquisition of property during the marriage, regardless of which spouse actually earned the income.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance during the marriage may be treated as separate property, but the court has broad discretion to divide all property.",
+    "statute": "ORS §107.105(1)(f)"
+  },
+
+  "legalCitations": [
+    {
+      "code": "ORS §107.075",
+      "description": "Residency requirements — conditional on where marriage was solemnized"
+    },
+    {
+      "code": "ORS §107.025",
+      "description": "Grounds for dissolution — irreconcilable differences only (no-fault)"
+    },
+    {
+      "code": "ORS §107.105(1)(f)",
+      "description": "Property division — equitable distribution with rebuttable presumption of equal contribution"
+    },
+    {
+      "code": "ORS §107.105(1)(d)",
+      "description": "Spousal support — transitional, compensatory, and spousal maintenance"
+    },
+    {
+      "code": "ORS §107.169",
+      "description": "Joint custody — requires agreement of both parents"
+    },
+    {
+      "code": "ORS §107.102",
+      "description": "Parenting plan — required for cases involving minor children"
+    },
+    {
+      "code": "ORS §25.275",
+      "description": "Oregon Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$301",
+    "varies": true,
+    "notes": "Oregon filing fees are approximately $301 for a dissolution of marriage petition. Fee waivers or deferrals are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding (or Co-Petition if filed jointly)",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent (not required for co-petitions)",
+        "required": true
+      },
+      {
+        "name": "Certificate of Readiness",
+        "description": "Filed when the case is ready for judgment",
+        "required": true
+      },
+      {
+        "name": "Judgment of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage (Oregon calls this a 'Judgment')",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Acceptance of Service", "Service by Publication"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Respondent voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by respondent"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Required plan detailing minimum parenting time for each parent (ORS §107.102)",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheets",
+        "description": "Calculation per Oregon Child Support Guidelines (ORS §25.275)",
+        "required": true
+      },
+      {
+        "name": "Uniform Support Declaration",
+        "description": "Income and expense declaration for child support calculation",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Oregon Uniform Trial Court Rules (UTCR)"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside Oregon must file a response within 30 days of service (additional time may apply per ORCP 7)"
+    },
+    "statute": "ORCP 7 C(2)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Oregon uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Oregon Child Support Guidelines schedule based on combined adjusted income and the number of children.",
+    "statute": "ORS §25.275",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Parenting time adjustments may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "Oregon provides three types of spousal support: (1) Transitional support — to help a spouse become self-supporting through education, training, or work experience; (2) Compensatory support — to compensate a spouse who contributed to the other's education, training, or earning capacity; (3) Spousal maintenance — ongoing support for a spouse who cannot meet basic needs through full-time employment at a standard of living not overly disproportionate to that enjoyed during the marriage.",
+    "eligibility": "The court considers the duration of the marriage, the age and health of the parties, the standard of living during the marriage, the relative income and earning capacity of each party, and the extent to which one spouse contributed to the education or career of the other.",
+    "statute": "ORS §107.105(1)(d)"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Dissolution of marriage is filed in the Circuit Court in the county where either party resides."
+  }
+}

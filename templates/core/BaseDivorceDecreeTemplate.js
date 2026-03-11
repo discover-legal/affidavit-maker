@@ -287,11 +287,13 @@ class BaseDivorceDecreeTemplate {
 
   /**
    * Get the default court name for a county
+   * Override in state-specific templates — each state uses its own court name convention
+   * (e.g., Texas: District Court; California: Superior Court; New York: Supreme Court)
    * @param {string} county - County name
    * @returns {string} Default court name
    */
   getDefaultCourt(county) {
-    return `DISTRICT COURT OF ${(county || '[COUNTY]').toUpperCase()} COUNTY`;
+    return `COURT OF ${(county || '[COUNTY]').toUpperCase()} COUNTY`;
   }
 
   /**
@@ -335,7 +337,7 @@ class BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'JURISDICTION',
-      text: `The Court finds that it has jurisdiction over this case and the parties, and that the jurisdictional prerequisites for this divorce have been satisfied. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and ceased to live together as husband and wife on or about ${this.formatDate(divorceData.separationDate) || '[DATE]'}.`,
+      text: `The Court finds that it has jurisdiction over this case and the parties, and that the jurisdictional prerequisites for this divorce have been satisfied. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and ceased to live together as spouses on or about ${this.formatDate(divorceData.separationDate) || '[DATE]'}.`,
       type: 'jurisdiction'
     };
   }
@@ -521,25 +523,29 @@ class BaseDivorceDecreeTemplate {
     });
 
     // Custody arrangement
+    // Generic language applicable across jurisdictions.
+    // State subclasses should override this method to use jurisdiction-specific
+    // terminology (e.g., Texas uses "Joint Managing Conservator"/"Possessory Conservator";
+    // Arizona uses "legal decision-making authority"; Illinois uses "parental responsibilities").
     const custodyType = divorceData.custodyType || 'joint';
     if (custodyType === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are appointed Joint Managing Conservators of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are awarded joint legal custody of the minor child(ren).`,
         type: 'order'
       });
 
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have the exclusive right to designate the primary residence of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have primary physical custody and the right to designate the primary residence of the child(ren).`,
         type: 'order'
       });
     } else {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is appointed Sole Managing Conservator of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is awarded sole legal and physical custody of the minor child(ren).`,
         type: 'order'
       });
 
       items.push({
-        content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} is appointed Possessory Conservator of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} shall have reasonable visitation/parenting time with the minor child(ren) as agreed by the parties or as ordered by the Court.`,
         type: 'order'
       });
     }
@@ -551,7 +557,7 @@ class BaseDivorceDecreeTemplate {
     });
 
     return {
-      title: 'CONSERVATORSHIP AND POSSESSION OF CHILD(REN)',
+      title: 'CHILD CUSTODY AND VISITATION',
       items,
       type: 'custody'
     };

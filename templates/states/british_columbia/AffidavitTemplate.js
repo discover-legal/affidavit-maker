@@ -10,14 +10,14 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * British Columbia Affidavit Template
  *
  * Key compliance notes:
- * - Sworn before a Commissioner for Taking Oaths or Notary Public in BC
+ * - Sworn before a Commissioner for Taking Affidavits or Notary Public in BC
  * - Uses "Province of British Columbia" not "State of"
  * - Supreme Court uses registry names (Vancouver, Victoria, Kelowna, etc.)
  * - Court File No. instead of Case No.
  * - Family proceedings use "Claimant" / "Respondent" (BC Supreme Court Family Rules)
  * - BC Form F30 is the standard Affidavit — body starts with "I, [name], of [address], [occupation]"
  *
- * @class BCAfidavitTemplate
+ * @class BCAffidavitTemplate
  * @extends BaseAffidavitTemplate
  */
 class BCAffidavitTemplate extends BaseAffidavitTemplate {
@@ -31,6 +31,21 @@ class BCAffidavitTemplate extends BaseAffidavitTemplate {
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;
+  }
+
+  /**
+   * BC header uses province designation.
+   */
+  generateHeader() {
+    return 'PROVINCE OF BRITISH COLUMBIA';
+  }
+
+  /**
+   * BC venue — registry location (city) of filing.
+   */
+  generateVenue(county) {
+    const registry = (county || '[REGISTRY]').toUpperCase();
+    return `${registry} REGISTRY`;
   }
 
   /**
@@ -75,7 +90,8 @@ class BCAffidavitTemplate extends BaseAffidavitTemplate {
   }
 
   /**
-   * BC jurat — sworn before Commissioner for Taking Oaths or Notary Public.
+   * BC jurat — sworn before Commissioner for Taking Affidavits or Notary Public.
+   * Authority: Evidence Act, RSBC 1996, c. 124, s.60
    */
   generateNotaryBlock(affidavitData) {
     const city = affidavitData.county || affidavitData.city || '_______________';
@@ -84,7 +100,7 @@ class BCAffidavitTemplate extends BaseAffidavitTemplate {
       `in the Province of British Columbia,\n` +
       `this _____ day of _________________, _______.\n\n` +
       `________________________________\n` +
-      `A Commissioner for Taking Oaths\n` +
+      `A Commissioner for Taking Affidavits\n` +
       `in and for British Columbia`
     );
   }

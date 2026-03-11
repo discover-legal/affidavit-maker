@@ -1,0 +1,232 @@
+{
+  "stateCode": "ND",
+  "stateName": "North Dakota",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Primary Residential Responsibility / Decision-Making Responsibility",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "description": "The plaintiff must have been a resident of North Dakota for at least six months before the commencement of the action.",
+    "statute": "NDCC §14-05-17"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": null,
+    "exceptions": [],
+    "description": "North Dakota has no mandatory waiting period."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences have caused the irremediable breakdown of the marriage",
+        "statute": "NDCC §14-05-03"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by the defendant",
+        "statute": "NDCC §14-05-03"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Extreme cruelty",
+        "statute": "NDCC §14-05-05"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion",
+        "description": "Willful desertion for one year",
+        "statute": "NDCC §14-05-06"
+      },
+      {
+        "code": "willful_neglect",
+        "name": "Willful Neglect",
+        "description": "Willful neglect to provide the common necessities of life",
+        "statute": "NDCC §14-05-07"
+      },
+      {
+        "code": "habitual_intemperance",
+        "name": "Habitual Intemperance",
+        "description": "Habitual intemperance",
+        "statute": "NDCC §14-05-09"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Conviction of a Felony",
+        "description": "Conviction of a felony after the marriage",
+        "statute": "NDCC §14-05-08"
+      },
+      {
+        "code": "insanity",
+        "name": "Insanity",
+        "description": "Insanity for a period of five years with confinement in a state institution",
+        "statute": "NDCC §14-05-09.1"
+      }
+    ],
+    "notes": "North Dakota allows both fault and no-fault grounds. Irreconcilable differences is the most common ground."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "North Dakota follows equitable distribution. The court divides all property of the parties, whether acquired before or during the marriage, in a just and equitable manner. The court considers the respective ages, earning abilities, duration of the marriage, conduct, station in life, and circumstances and necessities of each party.",
+    "separateProperty": "North Dakota does not strictly distinguish between marital and separate property. All property is subject to distribution, though the court considers how and when it was acquired.",
+    "statute": "NDCC §14-05-24"
+  },
+
+  "legalCitations": [
+    {
+      "code": "NDCC §14-05-17",
+      "description": "Residency requirements — 6 months state residency"
+    },
+    {
+      "code": "NDCC §14-05-03",
+      "description": "Grounds for divorce — irreconcilable differences and fault grounds"
+    },
+    {
+      "code": "NDCC §14-05-24",
+      "description": "Property division — equitable distribution of all property"
+    },
+    {
+      "code": "NDCC §14-05-24.1",
+      "description": "Spousal support"
+    },
+    {
+      "code": "NDCC §14-09-06.2",
+      "description": "Custody — primary residential responsibility and decision-making responsibility; parenting time"
+    },
+    {
+      "code": "NDCC §14-09-09.7",
+      "description": "North Dakota Child Support Guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$160",
+    "varies": false,
+    "notes": "North Dakota filing fee for a divorce complaint is $160. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Financial Statement",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Judgment",
+        "description": "Final court order dissolving the marriage (Findings of Fact, Conclusions of Law, and Order for Judgment)",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via sheriff or process server",
+        "required": true,
+        "alternatives": ["Admission of Service"]
+      },
+      {
+        "name": "Admission of Service",
+        "description": "Defendant admits service and waives formal service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Court order establishing residential responsibility, decision-making, and parenting time",
+        "required": true
+      },
+      {
+        "name": "Child Support Obligation Worksheet",
+        "description": "Calculation per North Dakota Child Support Guidelines (NDCC §14-09-09.7)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per North Dakota Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Defendant must file an answer within 21 days of service"
+    },
+    "outOfState": {
+      "days": 21,
+      "description": "Defendant served outside North Dakota must file an answer within 21 days of service"
+    },
+    "statute": "NDRCP Rule 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "North Dakota uses an income shares model. Both parents' net incomes are combined and child support is determined from the North Dakota Child Support Guidelines schedule based on combined income and the number of children.",
+    "statute": "NDCC §14-09-09.7",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "North Dakota courts may award spousal support (not alimony) considering factors including the disadvantages of each party from the marriage, the ability of the supported spouse to engage in gainful employment, the financial needs and ability of each party, and the duration of the marriage.",
+    "eligibility": "Either party may request spousal support. The court has discretion to determine the amount and duration based on equitable principles.",
+    "statute": "NDCC §14-05-24.1"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Divorce is filed in the District Court in the county where either party resides."
+  }
+}

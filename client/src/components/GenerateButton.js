@@ -1,7 +1,7 @@
 // client/src/components/GenerateButton.js - NEW COMPONENT (CREATE THIS FILE)
 import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Download, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { Download, FileText, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -36,20 +36,27 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
     await handleGenerate();
   };
   
-  const handleGenerate = async () => {
+  /**
+   * Generate and download a document in the given format ('pdf' or 'docx').
+   */
+  const handleGenerate = async (format = 'pdf') => {
     try {
       setGenerateStatus('generating');
 
-      // Track PDF generation attempt
-      trackEvent('pdf_generation_started', {
+      const docType = affidavitData.documentType || 'affidavit';
+      const ext = format === 'docx' ? 'docx' : 'pdf';
+
+      trackEvent('document_generation_started', {
         document_id: affidavitData.documentId,
         state: affidavitData.state,
-        facts_count: affidavitData.facts?.length || 0
+        facts_count: affidavitData.facts?.length || 0,
+        format,
+        document_type: docType
       });
 
       const token = await getAccessTokenSilently();
 
-      const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
+      const response = await fetch(`${API_BASE_URL}/api/documents/generate?format=${format}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,19 +65,24 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
         body: JSON.stringify({
           affidavitData,
           documentId: affidavitData.documentId,
-          skipPayment: process.env.NODE_ENV === 'development' // Skip payment in development
+          skipPayment: process.env.NODE_ENV === 'development'
         })
       });
 
       if (response.ok) {
-        // Handle PDF download
         const blob = await response.blob();
-
-        // Create download link
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `affidavit-${affidavitData.affiantName?.replace(/[^a-zA-Z0-9]/g, '_') || 'document'}.pdf`;
+
+        // Name file based on document type + person name
+        const nameSlug = (affidavitData.affiantName || affidavitData.petitionerName || 'document')
+          .replace(/[^a-zA-Z0-9]/g, '_');
+        const prefix = docType.includes('petition') ? 'petition'
+          : docType.includes('decree') ? 'decree'
+          : 'affidavit';
+        a.download = `${prefix}-${nameSlug}.${ext}`;
+
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -78,25 +90,23 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
 
         setGenerateStatus('success');
 
-        // Track successful PDF generation
-        trackEvent('pdf_generated_successfully', {
+        trackEvent('document_generated_successfully', {
           document_id: affidavitData.documentId,
           state: affidavitData.state,
-          facts_count: affidavitData.facts?.length || 0
+          format,
+          document_type: docType
         });
 
         if (onGenerate) {
-          onGenerate({ success: true, message: 'PDF downloaded successfully' });
+          onGenerate({ success: true, message: `${ext.toUpperCase()} downloaded successfully` });
         }
 
       } else {
-        // Handle error response
         const errorData = await response.json().catch(() => ({ error: 'Generation failed' }));
 
         if (response.status === 402) {
-          // Payment required
           setGenerateStatus('payment-required');
-          trackEvent('pdf_generation_payment_required', {
+          trackEvent('document_generation_payment_required', {
             document_id: affidavitData.documentId
           });
         } else {
@@ -108,8 +118,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
       console.error('Generate failed:', error);
       setGenerateStatus('error');
 
-      // Track PDF generation failure
-      trackEvent('pdf_generation_failed', {
+      trackEvent('document_generation_failed', {
         document_id: affidavitData.documentId,
         error_message: error.message
       });
@@ -119,18 +128,24 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
       }
     }
 
-    // Reset status after showing result
     setTimeout(() => setGenerateStatus('idle'), 3000);
   };
   
+  const docLabel = (() => {
+    const dt = affidavitData?.documentType || 'affidavit';
+    if (dt.includes('petition')) return 'Petition';
+    if (dt.includes('decree')) return 'Decree';
+    return 'Affidavit';
+  })();
+
   const getButtonText = () => {
     switch (generateStatus) {
-      case 'generating': return 'Generating PDF...';
+      case 'generating': return 'Generating...';
       case 'success': return 'Download Complete!';
       case 'error': return 'Generation Failed - Try Again';
       case 'validation-error': return 'Complete Required Fields First';
       case 'payment-required': return 'Payment Required';
-      default: return canGenerate ? 'Generate Affidavit PDF' : 'Complete Document First';
+      default: return canGenerate ? `Download ${docLabel} PDF` : 'Complete Document First';
     }
   };
   
@@ -173,14 +188,29 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
   
   return (
     <div className="space-y-3">
-      <button
-        onClick={handleGenerateClick}
-        disabled={generateStatus === 'generating'}
-        className={getButtonClass()}
-      >
-        {getIcon()}
-        {getButtonText()}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleGenerateClick}
+          disabled={generateStatus === 'generating'}
+          className={getButtonClass()}
+          style={{ flex: 1 }}
+        >
+          {getIcon()}
+          {getButtonText()}
+        </button>
+
+        {canGenerate && generateStatus !== 'generating' && (
+          <button
+            onClick={() => handleGenerate('docx')}
+            disabled={generateStatus === 'generating'}
+            className="px-4 py-3 rounded-lg font-semibold transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center"
+            title={`Download ${docLabel} as Word document`}
+          >
+            <FileText className="h-5 w-5 mr-1" />
+            .docx
+          </button>
+        )}
+      </div>
       
       {/* Validation Requirements */}
       {!canGenerate && validation && (
@@ -202,7 +232,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
         <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
           <div className="flex items-center">
             <CheckCircle className="h-4 w-4 mr-2" />
-            <span>Your affidavit PDF has been downloaded successfully!</span>
+            <span>Your {docLabel.toLowerCase()} has been downloaded successfully!</span>
           </div>
         </div>
       )}
@@ -228,7 +258,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
       {/* Development Note */}
       {process.env.NODE_ENV === 'development' && canGenerate && (
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-          <p>💡 Development Mode: PDF generation is free for testing</p>
+          <p>Development Mode: PDF/Word generation is free for testing</p>
         </div>
       )}
     </div>

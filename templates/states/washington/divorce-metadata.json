@@ -1,0 +1,219 @@
+{
+  "stateCode": "WA",
+  "stateName": "Washington",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "NO.",
+    "custody": "Parenting Plan",
+    "visitation": "Residential Schedule",
+    "alimony": "Spousal Maintenance",
+    "maritalProperty": "Community Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "Washington has no minimum residency period prior to filing. However, at least one party must be a resident of Washington at the time of filing with the intent to remain. The action is filed in the county where either party resides.",
+    "statute": "RCW 26.09.020"
+  },
+
+  "waitingPeriod": {
+    "days": 90,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Washington requires a mandatory 90-day waiting period from the date the petition is filed before a decree can be entered. (RCW 26.09.030)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "RCW 26.09.030"
+      }
+    ],
+    "fault": [],
+    "notes": "Washington is a pure no-fault state. The only ground for dissolution of marriage is that the marriage is irretrievably broken. Fault or misconduct is not relevant to the dissolution."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Washington is a community property state. All property acquired during the marriage is presumed to be community property. The court shall make a just and equitable disposition of the property and liabilities, considering all relevant factors. In practice, courts generally divide community property equally.",
+    "statute": "RCW 26.09.080"
+  },
+
+  "parentingPlan": {
+    "description": "Washington requires the parties to submit a proposed Parenting Plan. The court enters a final Parenting Plan that includes a Residential Schedule specifying where the children will reside, and a decision-making allocation.",
+    "statute": "RCW 26.09.181"
+  },
+
+  "legalCitations": [
+    {
+      "code": "RCW 26.09",
+      "description": "Dissolution of Marriage, Legal Separation — Washington's dissolution statutes"
+    },
+    {
+      "code": "RCW 26.09.010",
+      "description": "Jurisdiction — Superior Court has jurisdiction over dissolution proceedings"
+    },
+    {
+      "code": "RCW 26.09.020",
+      "description": "Residency — at least one party must be a resident of Washington at time of filing with intent to remain"
+    },
+    {
+      "code": "RCW 26.09.030",
+      "description": "Irretrievable breakdown — sole ground for dissolution; 90-day waiting period from date of filing"
+    },
+    {
+      "code": "RCW 26.09.080",
+      "description": "Disposition of property — just and equitable distribution; community property"
+    },
+    {
+      "code": "RCW 26.09.090",
+      "description": "Maintenance — factors for award of spousal maintenance"
+    },
+    {
+      "code": "RCW 26.09.181",
+      "description": "Parenting plan — required for all cases involving minor children"
+    },
+    {
+      "code": "RCW 26.19",
+      "description": "Washington State Child Support Schedule — economic table model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$314",
+    "varies": true,
+    "notes": "Washington's dissolution filing fee is approximately $314 and varies by county. A fee waiver may be available for low-income petitioners."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage (FL Dissolution 201)",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons (FL All Family 100)",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Confidential Information Form (FL All Family 001)",
+        "description": "Required confidential information form filed separately under seal",
+        "required": true
+      },
+      {
+        "name": "Decree of Dissolution of Marriage (FL Dissolution 611)",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      },
+      {
+        "name": "Vital Statistics Form",
+        "description": "Certificate of Dissolution required by the Department of Health",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Respondent accepts service without formal process",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Proposed Parenting Plan (FL All Family 140)",
+        "description": "Required residential schedule and decision-making allocation for minor children",
+        "required": true
+      },
+      {
+        "name": "Washington State Child Support Worksheets",
+        "description": "Calculation per Washington State Child Support Schedule (RCW 26.19)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order (FL All Family 130)",
+        "description": "Court order setting child support obligations",
+        "required": true
+      },
+      {
+        "name": "Financial Declaration (FL All Family 131)",
+        "description": "Required financial disclosure for support determination",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Washington Superior Court Civil Rules (CR). Mandatory court forms are available from the Washington Courts website."
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 60,
+      "description": "Respondent served outside Washington must file a response within 60 days of service"
+    },
+    "statute": "CR 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Washington uses the Washington State Child Support Schedule, an income shares model based on an economic table. Both parents' combined monthly net incomes are matched to the economic table to determine the basic support obligation. The obligation is then apportioned based on each parent's share of combined net income. Adjustments apply for health insurance, daycare, special child-rearing expenses, and the residential schedule.",
+    "statute": "RCW 26.19; Washington State Child Support Schedule",
+    "notes": "The economic table is reviewed and updated periodically by the legislature. The court may deviate from the standard calculation upon written findings."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_maintenance",
+    "description": "Washington has no statutory formula for spousal maintenance. The court considers the financial resources of the maintenance-seeking party, the time necessary to acquire education or training, the standard of living during the marriage, the duration of the marriage, the age, physical and emotional condition, and financial obligations of the spouse seeking maintenance, and the ability of the supporting spouse to meet their own needs while paying maintenance.",
+    "factors": [
+      "Financial resources of the party seeking maintenance",
+      "Time necessary to acquire education or training for appropriate employment",
+      "Standard of living established during the marriage",
+      "Duration of the marriage",
+      "Age, physical and emotional condition, and financial obligations of the spouse seeking maintenance",
+      "Ability of the spouse from whom maintenance is sought to meet own needs while paying maintenance"
+    ],
+    "statute": "RCW 26.09.090"
+  },
+
+  "court": {
+    "name": "Superior Court",
+    "description": "Dissolution of marriage is filed in the Superior Court of the county where either party resides."
+  }
+}

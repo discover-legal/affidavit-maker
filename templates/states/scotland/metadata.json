@@ -1,0 +1,70 @@
+{
+  "stateCode": "SCO",
+  "stateName": "Scotland",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "paperSize": "A4",
+  "currency": "GBP",
+  "emergencyNumber": "999",
+  "dvHotline": "0800 027 1234",
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "statementOfTruth": false,
+    "caseNumberLabel": "Court Ref. No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Sheriff Court",
+    "familyDivision": "Sheriff Court (Family)",
+    "courtOfSession": "Court of Session",
+    "appealCourt": "Sheriff Appeal Court / Inner House of the Court of Session"
+  },
+  "divorceTerminology": {
+    "parties": ["Pursuer", "Defender"],
+    "grounds": "Family Law (Scotland) Act 2006; Divorce (Scotland) Act 1976",
+    "primaryGround": "Irretrievable breakdown shown by separation or fault",
+    "propertyDivision": "Family Law (Scotland) Act 1985 — fair sharing of matrimonial property"
+  },
+  "legalCitations": [
+    {
+      "code": "Family Law (Scotland) Act 2006",
+      "description": "Modernised grounds for divorce in Scotland — reduced separation periods"
+    },
+    {
+      "code": "Divorce (Scotland) Act 1976",
+      "description": "Foundational divorce statute — as amended by the 2006 Act"
+    },
+    {
+      "code": "Family Law (Scotland) Act 1985",
+      "description": "Financial provision on divorce — fair sharing of matrimonial property, s.9-10 principles"
+    },
+    {
+      "code": "Children (Scotland) Act 1995",
+      "description": "Parental responsibilities and rights (PRRs), s.1-2; welfare of the child, s.11"
+    },
+    {
+      "code": "Ordinary Cause Rules, Chapter 33 (Family Actions)",
+      "description": "Procedural rules for family actions in the Sheriff Court"
+    }
+  ],
+  "affidavitJurat": "SWORN at _________________, Scotland,\nthis _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\nNotary Public / Commissioner for Oaths\n________________________________\n[Name and designation]",
+  "exhibitRules": {
+    "labelStyle": "numbers",
+    "requireCoverPage": false,
+    "instructions": "Each production (exhibit) must be numbered and listed in an inventory of productions lodged with the court."
+  }
+}

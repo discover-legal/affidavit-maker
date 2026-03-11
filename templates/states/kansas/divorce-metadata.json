@@ -1,0 +1,200 @@
+{
+  "stateCode": "KS",
+  "stateName": "Kansas",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Residency",
+    "visitation": "Parenting Time",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 2,
+    "countyMonths": 0,
+    "description": "At least one party must have been a bona fide resident of Kansas for at least sixty (60) days immediately preceding the filing of the petition.",
+    "statute": "K.S.A. §23-2703"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "No decree of divorce shall be entered until at least sixty (60) days after the date the petition is filed. K.S.A. §23-2709."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility",
+        "description": "The parties are incompatible",
+        "statute": "K.S.A. §23-2701(a)"
+      },
+      {
+        "code": "failure_of_marital_duty",
+        "name": "Failure to Perform Marital Duty or Obligation",
+        "description": "Failure of a party to perform a marital duty or obligation",
+        "statute": "K.S.A. §23-2701(b)"
+      }
+    ],
+    "fault": [],
+    "notes": "Kansas is a no-fault state. The two recognized grounds are incompatibility and failure to perform a marital duty or obligation. K.S.A. §23-2701."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Kansas uses equitable distribution. All property owned by either spouse is subject to division, including property acquired before the marriage. The court divides property in a just and reasonable manner considering the age of the parties, duration of the marriage, property owned, present and future earning capacities, time and manner of acquisition, family ties and obligations, allowance of maintenance, dissipation of assets, and tax consequences.",
+    "separateProperty": "Kansas does not have a traditional separate property classification. All property of either party is subject to equitable division, though the court considers when and how property was acquired.",
+    "statute": "K.S.A. §23-2802"
+  },
+
+  "legalCitations": [
+    {
+      "code": "K.S.A. §23-2703",
+      "description": "Residency requirements — 60 days"
+    },
+    {
+      "code": "K.S.A. §23-2701",
+      "description": "Grounds for divorce — incompatibility, failure of marital duty"
+    },
+    {
+      "code": "K.S.A. §23-2709",
+      "description": "60-day waiting period from filing"
+    },
+    {
+      "code": "K.S.A. §23-2802",
+      "description": "Property division — equitable distribution of all property"
+    },
+    {
+      "code": "K.S.A. §23-2902",
+      "description": "Maintenance"
+    },
+    {
+      "code": "K.S.A. §23-3222",
+      "description": "Child custody — legal custody, residency, parenting time"
+    },
+    {
+      "code": "K.S.A. §23-3001 et seq.",
+      "description": "Kansas Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$195",
+    "varies": true,
+    "notes": "Kansas filing fees are approximately $195 for a petition for divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Poverty Affidavit."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Domestic Relations Affidavit",
+        "description": "Mandatory disclosure of income, assets, expenses, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Service on respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Voluntary Entry of Appearance"]
+      },
+      {
+        "name": "Voluntary Entry of Appearance",
+        "description": "Respondent voluntarily enters an appearance and waives formal service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody, residency, and parenting time arrangement (required per K.S.A. §23-3222)",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Kansas Child Support Guidelines (K.S.A. §23-3001 et seq.)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Kansas Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Respondent must file a response within 21 days of service"
+    },
+    "outOfState": {
+      "days": 21,
+      "description": "Respondent served outside Kansas must file a response within 21 days of service (additional time may be granted)"
+    },
+    "statute": "K.S.A. §60-212(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Kansas uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Kansas Child Support Guidelines schedule based on combined income and the number of children.",
+    "statute": "K.S.A. §23-3001 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be unjust. Parenting time adjustments may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "maintenance",
+    "description": "Kansas allows court-ordered maintenance (not called alimony). The court may award maintenance in an amount the court finds fair, just, and equitable. Maintenance is generally limited to 121 months. Factors include the age and earning capacity of both parties, the duration of the marriage, the property owned, and the ability of the paying spouse to meet both parties' needs.",
+    "eligibility": "The court has discretion but maintenance is not automatic. It is more common in longer marriages with significant income disparity.",
+    "statute": "K.S.A. §23-2902"
+  },
+
+  "court": {
+    "name": "District Court, Division of Domestic Relations",
+    "description": "Divorce cases are filed in the District Court, Division of Domestic Relations, in the county where the petitioner or respondent resides."
+  }
+}

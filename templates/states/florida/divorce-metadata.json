@@ -107,12 +107,20 @@
   },
 
   "waitingPeriod": {
-    "days": 0,
+    "days": 20,
+    "startsFrom": "filing_date",
+    "exceptions": [
+      {
+        "type": "injustice",
+        "description": "Court may waive 20-day period upon finding that an earlier judgment is necessary to avoid injustice (e.g., military deployment)"
+      }
+    ],
     "simplified": {
-      "days": 0,
+      "days": 20,
       "finalHearing": "Approximately 30 days after filing"
     },
-    "description": "Florida has no mandatory waiting period. Simplified dissolutions can be finalized approximately 30 days after filing."
+    "description": "Florida requires a mandatory 20-day waiting period from the date of filing before the court may enter a final judgment of dissolution. (Fla. Stat. § 61.19)",
+    "statute": "Fla. Stat. § 61.19"
   },
 
   "groundsForDissolution": {
@@ -216,9 +224,10 @@
     "types": [
       "Bridge-the-gap alimony (up to 2 years, non-modifiable)",
       "Rehabilitative alimony (requires specific plan)",
-      "Durational alimony (based on marriage length)",
-      "Permanent alimony (rare, exceptional circumstances)"
+      "Durational alimony (based on marriage length, cap of 50%/60%/75% of marriage length for short/moderate/long marriages)",
+      "Lump sum alimony"
     ],
+    "note": "Permanent alimony was abolished in Florida effective July 1, 2023 (SB 1416). Durational alimony is now the maximum form available. Durational alimony may not exceed the lesser of the obligee's reasonable need or 35% of the difference between the parties' net incomes (Fla. Stat. 61.08(8)).",
     "factors": [
       "Standard of living established during the marriage",
       "Duration of the marriage",

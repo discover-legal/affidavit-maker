@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:make.discover.legal)"
+      "WebFetch(domain:make.discover.legal)",
+      "Bash(npm test:*)",
+      "Bash(npx:*)",
+      "WebSearch",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(do sed:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "claude-flow"
+  ]
 }

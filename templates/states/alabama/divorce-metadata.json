@@ -1,0 +1,262 @@
+{
+  "stateCode": "AL",
+  "stateName": "Alabama",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Final Judgment of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Custody / Sole Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "bothResidents": "No minimum residency when both spouses are bona fide residents of Alabama.",
+    "oneNonResident": "When the defendant is a non-resident, the plaintiff must have been a bona fide resident of Alabama for at least 6 months before filing.",
+    "stateMonths": 6,
+    "countyMonths": null,
+    "description": "If both parties reside in Alabama, there is no minimum residency period. If the defendant is a non-resident, the plaintiff must be a bona fide resident of Alabama for at least 6 months preceding the filing. (Ala. Code §30-2-5)",
+    "statute": "Ala. Code §30-2-5"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Alabama has a mandatory 30-day waiting period. No final judgment of divorce may be entered until at least 30 days have elapsed from the date the complaint is filed. (Ala. Code §30-2-8.1)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility of Temperament",
+        "description": "The parties have an incompatibility of temperament such that they can no longer live together",
+        "statute": "Ala. Code §30-2-1(a)(9)"
+      },
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "Ala. Code §30-2-1(a)(10)"
+      },
+      {
+        "code": "voluntary_separation",
+        "name": "Voluntary Separation",
+        "description": "Voluntary abandonment from bed and board for two or more years prior to filing, with complete separation maintained",
+        "statute": "Ala. Code §30-2-1(a)(4)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "physical_incapacity",
+        "name": "Physical Incapacity",
+        "description": "Incapacity of body or mind at the time of marriage which permanently prevents the consummation of the marriage",
+        "statute": "Ala. Code §30-2-1(a)(1)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Commission of adultery",
+        "statute": "Ala. Code §30-2-1(a)(2)"
+      },
+      {
+        "code": "abandonment",
+        "name": "Voluntary Abandonment",
+        "description": "Voluntary abandonment from bed and board for one year",
+        "statute": "Ala. Code §30-2-1(a)(4)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Imprisonment in the penitentiary for two years, where the sentence is seven years or longer",
+        "statute": "Ala. Code §30-2-1(a)(5)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness or Drug Addiction",
+        "description": "Habitual drunkenness or habitual use of drugs contracted after marriage",
+        "statute": "Ala. Code §30-2-1(a)(6)"
+      },
+      {
+        "code": "cruelty",
+        "name": "Cruelty",
+        "description": "Commission of actual violence on the person of the other, attended with danger to life or health, or reasonable apprehension thereof",
+        "statute": "Ala. Code §30-2-1(a)(3)"
+      },
+      {
+        "code": "insanity",
+        "name": "Incurable Insanity",
+        "description": "Incurable insanity with confinement to an institution for at least five successive years",
+        "statute": "Ala. Code §30-2-1(a)(7)"
+      }
+    ],
+    "notes": "Alabama recognizes both fault and no-fault grounds. 'Incompatibility of temperament' is the most commonly used no-fault ground. The 'irretrievable breakdown' ground was added more recently. Fault grounds may affect the court's division of property and alimony decisions."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Alabama follows equitable distribution. The court divides marital property in a manner it considers equitable (fair), which is not necessarily equal. The court considers factors including the length of the marriage, each spouse's contribution, the value of each spouse's estate, the age and health of the parties, and the future prospects of each party.",
+    "separateProperty": "Property owned before the marriage or acquired by gift or inheritance during the marriage is generally considered separate property. However, Alabama courts have broad discretion and may include separate property in the division if equity requires.",
+    "statute": "Ala. Code §30-2-51"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Ala. Code §30-2-5",
+      "description": "Residency requirements — both residents: no minimum; defendant non-resident: plaintiff 6 months"
+    },
+    {
+      "code": "Ala. Code §30-2-1",
+      "description": "Grounds for divorce — fault and no-fault"
+    },
+    {
+      "code": "Ala. Code §30-2-8.1",
+      "description": "30-day waiting period from filing"
+    },
+    {
+      "code": "Ala. Code §30-2-51",
+      "description": "Division of property and alimony — equitable distribution"
+    },
+    {
+      "code": "Ala. Code §30-2-51 through §30-2-57",
+      "description": "Alimony — periodic, gross (lump-sum), and rehabilitative"
+    },
+    {
+      "code": "Ala. Code §30-3-150 et seq.",
+      "description": "Joint custody — best interest of the child standard"
+    },
+    {
+      "code": "Rule 32, ARJA",
+      "description": "Alabama Rules of Judicial Administration — child support guidelines (income shares model)"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$274–$350",
+    "varies": true,
+    "notes": "Alabama filing fees for a complaint for divorce are approximately $274 to $350, varying by county. Fee waivers are available for qualifying low-income individuals via an Affidavit of Substantial Hardship (in forma pauperis)."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding — Alabama uses 'Complaint' rather than 'Petition'",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Answer",
+        "description": "Defendant's responsive pleading",
+        "required": false
+      },
+      {
+        "name": "VS-12 Vital Statistics Form",
+        "description": "Required by the Alabama Center for Health Statistics for recording the divorce",
+        "required": true
+      },
+      {
+        "name": "Child Support Obligation Income Statement/Affidavit (CS-41)",
+        "description": "Required if children are involved — Rule 32 ARJA",
+        "required": false,
+        "notes": "Required when minor children are involved"
+      },
+      {
+        "name": "Final Judgment of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Waiver of Service", "Acceptance of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Defendant waives formal service and enters a voluntary appearance",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Obligation Income Statement/Affidavit (CS-41)",
+        "description": "Both parties' income information for child support calculation per Rule 32 ARJA",
+        "required": true
+      },
+      {
+        "name": "Child Support Guidelines Form (CS-42)",
+        "description": "Calculation worksheet per Rule 32 of the Alabama Rules of Judicial Administration",
+        "required": true
+      },
+      {
+        "name": "Custody and Visitation Order",
+        "description": "Court order establishing custody and visitation schedule",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Alabama Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Alabama must file a response within 30 days of service"
+    },
+    "statute": "Ala. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Alabama uses an income shares model under Rule 32 of the Alabama Rules of Judicial Administration (ARJA). Both parents' gross incomes are combined and the child support obligation is determined from the schedule based on combined adjusted gross income and the number of children. The obligation is then apportioned between parents based on their respective income shares.",
+    "statute": "Rule 32, ARJA",
+    "notes": "The court may deviate from the guidelines if application would be manifestly unjust or inequitable. A CS-41 (income affidavit) and CS-42 (guidelines form) must be completed."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Alabama recognizes three types of alimony: (1) Periodic alimony — ongoing payments based on need and ability to pay, (2) Alimony in gross (lump-sum) — a fixed amount that is non-modifiable, and (3) Rehabilitative alimony — temporary support to allow a spouse to gain education, training, or employment skills. The court considers factors including the length of the marriage, the standard of living during the marriage, the age and health of the parties, the future earning capacity of each party, and the contribution of each spouse to the marriage.",
+    "eligibility": "Either spouse may request alimony. Fault in the breakdown of the marriage may be considered by the court. Alabama has no fixed formula for calculating alimony amounts.",
+    "statute": "Ala. Code §30-2-51 through §30-2-57"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Divorce cases in Alabama are filed in the Circuit Court, Domestic Relations Division, in the county where the defendant resides, or the county where the plaintiff resides if the defendant is a non-resident."
+  }
+}

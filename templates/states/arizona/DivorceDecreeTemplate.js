@@ -31,7 +31,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "Legal Decision-Making" instead of "Custody"
  * - "Parenting Time" instead of "Visitation"
  * - "Spousal Maintenance" instead of "Alimony"
- * - Community Property state (equitable division)
+ * - Community Property state (equal division — A.R.S. § 25-318)
  * - 60-day waiting period from service
  */
 class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
@@ -215,7 +215,7 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const items = [];
 
     items.push({
-      content: 'Pursuant to A.R.S. § 25-318, the Court divides the community property equitably as follows:',
+      content: 'Pursuant to A.R.S. § 25-318, the Court divides the community property equally as follows:',
       type: 'finding'
     });
 

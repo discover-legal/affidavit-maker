@@ -1,7 +1,7 @@
 {
   "stateCode": "NY",
   "stateName": "New York",
-  "documentTypes": ["affidavit"],
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -17,18 +17,27 @@
   },
   "legalCitations": [
     {
+      "code": "NY Penal Law § 210.15",
+      "description": "Perjury in the first degree — material false sworn statement in a written instrument"
+    },
+    {
+      "code": "NY Penal Law § 210.10",
+      "description": "Perjury in the second degree — false sworn statement in a written instrument"
+    },
+    {
       "code": "N.Y. C.P.L.R. § 2106",
       "description": "Affirmations - As of Jan 1, 2024, allows unsworn affirmations with same force as affidavits for court filings (future enhancement)"
     },
     {
       "code": "N.Y. Executive Law § 137",
-      "description": "Powers and duties of notaries public"
+      "description": "Powers and duties of notaries public — NY notaries must state their name, 'Notary Public, State of New York', and the county in which they are qualified"
     },
     {
       "code": "N.Y. Real Property Law § 309-B",
       "description": "Uniform forms of certificates of acknowledgment or proof"
     }
   ],
+  "affidavitJurat": "Subscribed and sworn to before me this _____ day of _________, 20__.\n\n\n_________________________________\nNotary Public, State of New York\nQualified in _______________ County\nMy commission expires: ___________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": false,

@@ -1,0 +1,271 @@
+{
+  "stateCode": "OK",
+  "stateName": "Oklahoma",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Custody / Sole Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Jointly-Acquired Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 30,
+    "description": "The petitioner must have been a resident and actual inhabitant of the State of Oklahoma for at least six (6) months immediately preceding the filing and a resident of the county of filing for at least thirty (30) days. (43 O.S. \u00a7102)",
+    "statute": "43 O.S. \u00a7102"
+  },
+
+  "waitingPeriod": {
+    "daysWithChildren": 90,
+    "daysWithoutChildren": 10,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Oklahoma has a mandatory 90-day waiting period if the parties have minor children born of the marriage, or a 10-day waiting period if there are no minor children. (43 O.S. \u00a7107.1)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility",
+        "description": "The parties are incompatible",
+        "statute": "43 O.S. \u00a7101"
+      }
+    ],
+    "fault": [
+      {
+        "code": "abandonment",
+        "name": "Abandonment",
+        "description": "Abandonment for one (1) year",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "impotency",
+        "name": "Impotency",
+        "description": "Impotency",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "wife_pregnant_at_marriage",
+        "name": "Wife Pregnant at Marriage by Another",
+        "description": "When the wife at the time of marriage was pregnant by another person",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Extreme cruelty",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "fraudulent_contract",
+        "name": "Fraudulent Contract",
+        "description": "Fraudulent contract",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness",
+        "description": "Habitual drunkenness",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "gross_neglect_of_duty",
+        "name": "Gross Neglect of Duty",
+        "description": "Gross neglect of duty",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Imprisonment of the other party in a state or federal penal institution under a sentence thereto at the time the petition is filed",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "insanity",
+        "name": "Insanity",
+        "description": "Insanity for a period of five (5) years, the insane person having been an inmate of a state institution for the insane for such period",
+        "statute": "43 O.S. \u00a7101"
+      },
+      {
+        "code": "living_apart",
+        "name": "Living Apart",
+        "description": "The husband and wife have lived separate and apart without cohabitation for a continuous period of two (2) years by reason of incompatibility",
+        "statute": "43 O.S. \u00a7101"
+      }
+    ],
+    "notes": "Oklahoma recognizes both fault and no-fault grounds. Incompatibility is the most commonly used ground. The full list of grounds is set forth in 43 O.S. \u00a7101."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Oklahoma courts divide jointly-acquired property in a just and reasonable manner. Property acquired by either spouse during the marriage through joint industry is subject to equitable division. Property owned before the marriage, or acquired by gift or inheritance, is generally separate property.",
+    "separateProperty": "Property owned before the marriage or acquired by gift or inheritance is separate property and is not subject to division, although commingling or use during the marriage may change its character.",
+    "statute": "43 O.S. \u00a7121"
+  },
+
+  "legalCitations": [
+    {
+      "code": "43 O.S. \u00a7102",
+      "description": "Residency requirements \u2014 6 months state, 30 days county"
+    },
+    {
+      "code": "43 O.S. \u00a7101",
+      "description": "Grounds for divorce \u2014 incompatibility (no-fault) plus fault grounds"
+    },
+    {
+      "code": "43 O.S. \u00a7107.1",
+      "description": "Waiting period \u2014 90 days with children, 10 days without"
+    },
+    {
+      "code": "43 O.S. \u00a7121",
+      "description": "Equitable division of jointly-acquired property; alimony"
+    },
+    {
+      "code": "43 O.S. \u00a7109",
+      "description": "Custody of children \u2014 joint custody and sole custody"
+    },
+    {
+      "code": "43 O.S. \u00a7112",
+      "description": "Best interests of the child \u2014 custody determination factors"
+    },
+    {
+      "code": "43 O.S. \u00a7118D",
+      "description": "Oklahoma Child Support Guidelines \u2014 income shares model"
+    },
+    {
+      "code": "43 O.S. \u00a7119",
+      "description": "Child support computation \u2014 income shares schedule"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$183\u2013$273",
+    "varies": true,
+    "notes": "Oklahoma filing fees for divorce range from approximately $183 to $273 depending on the county. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Entry of Appearance / Waiver",
+        "description": "Respondent waives formal service and enters an appearance",
+        "required": false
+      },
+      {
+        "name": "Domestic Relations Cover Sheet",
+        "description": "Required in most Oklahoma counties",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Waiver of Service / Entry of Appearance"]
+      },
+      {
+        "name": "Waiver of Service / Entry of Appearance",
+        "description": "Respondent waives formal service and enters an appearance",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody, visitation, and decision-making arrangement",
+        "required": true
+      },
+      {
+        "name": "Child Support Computation",
+        "description": "Calculation per Oklahoma Child Support Guidelines (43 O.S. \u00a7118D, \u00a7119)",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Income and Expenses",
+        "description": "Sworn statement of each party's income and expenses for support calculation",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Oklahoma District Court rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file an answer within 20 days of service within Oklahoma"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside Oklahoma must file an answer within 30 days of service"
+    },
+    "statute": "12 O.S. \u00a72012"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Oklahoma uses an income shares model. Both parents' gross monthly incomes are combined and the child support obligation is determined from the Oklahoma Child Support Guidelines schedule based on combined adjusted gross income and the number of children.",
+    "statute": "43 O.S. \u00a7118D, \u00a7119",
+    "notes": "The court may deviate from the guidelines upon a finding that application would be unjust or inappropriate. Credits may apply for overnight visitation."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Oklahoma courts may award alimony (support and maintenance) to either party. The court considers factors including the duration of the marriage, the earning capacity of each party, the standard of living during the marriage, the age and health of the parties, and the ability of the supporting spouse to pay. Alimony may be awarded as a lump sum, periodic payments, or both.",
+    "eligibility": "Either party may request alimony. The court has broad discretion in determining the amount and duration based on the circumstances of the case.",
+    "statute": "43 O.S. \u00a7121"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Divorce is filed in the District Court in the county where the petitioner has resided for at least 30 days."
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "stateCode": "NJ",
+  "stateName": "New Jersey",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "N.J. Court Rule 1:4-4(b)",
+      "description": "Certification in lieu of oath — 'I certify that the foregoing statements made by me are true. I am aware that if any of the foregoing statements made by me are willfully false, I am subject to punishment.' Accepted for court submissions in lieu of a notarized affidavit."
+    },
+    {
+      "code": "N.J.S.A. 2B:3-1",
+      "description": "Affidavits — requirements for sworn affidavits in court proceedings; oath or affirmation administered to affiant before an authorized officer"
+    },
+    {
+      "code": "N.J.S.A. 2C:28-1",
+      "description": "Perjury — knowingly making a false statement under oath or equivalent affirmation when the statement is material to the proceeding; criminal penalty for false affidavit statements"
+    },
+    {
+      "code": "N.J.S.A. 2A:84A-29.1",
+      "description": "Affidavits — oath or affirmation administered to affiant; written and signed under penalty of perjury"
+    },
+    {
+      "code": "N.J.S.A. 52:7-10 et seq.",
+      "description": "Notary public authority — power to administer oaths, take affidavits, and take acknowledgments; notary must include county of commission and expiration date"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public of New Jersey\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and attach a cover page for each exhibit identifying the exhibit letter and description. Exhibits must be referenced in the body of the affidavit or certification."
+  }
+}

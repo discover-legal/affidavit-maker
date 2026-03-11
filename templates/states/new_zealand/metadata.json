@@ -1,0 +1,80 @@
+{
+  "stateCode": "NZ",
+  "stateName": "New Zealand",
+  "countryCode": "NZ",
+  "countryName": "New Zealand",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "FAM No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "paperSize": "A4",
+    "currency": "NZD",
+    "solicitorOrJP": true
+  },
+  "courtSystem": {
+    "trialCourt": "Family Court of New Zealand",
+    "highCourt": "High Court of New Zealand",
+    "appealCourt": "Court of Appeal of New Zealand"
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Family Proceedings Act 1980",
+    "primaryGround": "two-year separation (s.39)",
+    "propertyDivision": "Property (Relationships) Act 1976 — equal sharing of relationship property"
+  },
+  "legalCitations": [
+    {
+      "code": "Family Proceedings Act 1980",
+      "description": "Governs dissolution of marriage — sole ground is 2-year separation (s.39)"
+    },
+    {
+      "code": "Property (Relationships) Act 1976",
+      "description": "Division of relationship property — equal sharing is the starting point"
+    },
+    {
+      "code": "Care of Children Act 2004",
+      "description": "Governs guardianship, day-to-day care, and contact arrangements for children"
+    },
+    {
+      "code": "Family Proceedings Act 1980, ss.63-74",
+      "description": "Spousal maintenance provisions"
+    },
+    {
+      "code": "Child Support Act 1991",
+      "description": "Child support assessment and collection — administered by Inland Revenue"
+    },
+    {
+      "code": "Family Violence Act 2018",
+      "description": "Governs protection orders and the legal response to family violence (replaced the Domestic Violence Act 1995)"
+    },
+    {
+      "code": "Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024",
+      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 18 October 2025)"
+    },
+    {
+      "code": "Oaths and Declarations Act 1957",
+      "description": "Governs sworn affidavits and statutory declarations in New Zealand"
+    }
+  ],
+  "affidavitJurat": "Sworn/Affirmed at [City] this ___ day of ___, [Year]\n\nBefore me:\n________________________________\n[Name]\nSolicitor / Justice of the Peace / Registrar",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the person before whom the affidavit is sworn."
+  },
+  "emergencyNumber": "111",
+  "dvHotline": "0800 456 450"
+}

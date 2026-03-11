@@ -1,0 +1,145 @@
+{
+  "stateCode": "SG",
+  "stateName": "Singapore",
+  "countryCode": "SG",
+  "countryName": "Singapore",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "personalLawNote": "This metadata covers non-Muslim divorces under the Women's Charter 1961 (previously cited as Cap 353 under the Revised Edition). Muslim marriages are governed by the Administration of Muslim Law Act (AMLA) and processed through the Syariah Court.",
+  "residencyRequirements": {
+    "stateMonths": 36,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in Singapore at the time of filing, OR either party must have been habitually resident in Singapore for at least 3 years immediately before the filing of the writ (Women's Charter, s.93)."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. However, a divorce cannot be filed within 3 years of the date of marriage unless leave of court is obtained on grounds of exceptional hardship or exceptional depravity (Women's Charter, s.94). After the Interim Judgment is granted, a minimum of 3 months must elapse before the Certificate of Making Interim Judgment Final may be applied for (s.99(3))."
+  },
+  "threeYearBar": {
+    "years": 3,
+    "description": "No party shall file a writ for divorce within 3 years of the date of marriage unless the court grants leave on grounds of exceptional hardship suffered by the plaintiff or exceptional depravity on the part of the defendant (Women's Charter, s.94).",
+    "exceptions": ["exceptional hardship", "exceptional depravity"]
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_consent",
+        "name": "3-Year Separation with Consent",
+        "description": "The parties have lived apart for a continuous period of at least 3 years immediately preceding the filing of the writ, and the defendant consents to a judgment being granted.",
+        "statute": "Women's Charter, s.95(3)(d)"
+      },
+      {
+        "code": "separation_no_consent",
+        "name": "4-Year Separation without Consent",
+        "description": "The parties have lived apart for a continuous period of at least 4 years immediately preceding the filing of the writ.",
+        "statute": "Women's Charter, s.95(3)(e)"
+      },
+      {
+        "code": "mutual_agreement",
+        "name": "Divorce by Mutual Agreement",
+        "description": "Both parties agree that the marriage has broken down irretrievably. Available from 1 July 2024. No separation period or fault required.",
+        "statute": "Women's Charter, s.95A"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "The defendant has committed adultery and the plaintiff finds it intolerable to live with the defendant.",
+        "statute": "Women's Charter, s.95(3)(a)"
+      },
+      {
+        "code": "unreasonable_behaviour",
+        "name": "Unreasonable Behaviour",
+        "description": "The defendant has behaved in such a way that the plaintiff cannot reasonably be expected to live with the defendant.",
+        "statute": "Women's Charter, s.95(3)(b)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion for 2 Years",
+        "description": "The defendant has deserted the plaintiff for a continuous period of at least 2 years immediately preceding the filing of the writ.",
+        "statute": "Women's Charter, s.95(3)(c)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Divorce Suit No.",
+    "custody": "Custody, Care and Control",
+    "physicalCustody": "Care and Control",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Maintenance of Children",
+    "maritalProperty": "Matrimonial Assets (Women's Charter, s.112)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Writ for Divorce",
+        "description": "Initiates divorce proceedings in the Family Justice Courts",
+        "required": true
+      },
+      {
+        "name": "Statement of Claim",
+        "description": "Filed together with the Writ — sets out the facts relied upon for the divorce",
+        "required": true
+      },
+      {
+        "name": "Statement of Particulars",
+        "description": "Details the particulars of the facts supporting the ground of divorce",
+        "required": true
+      },
+      {
+        "name": "Proposed Parenting Plan",
+        "description": "Required where there are children under 21 — sets out proposed custody, care and control, and access arrangements",
+        "required": false
+      },
+      {
+        "name": "Agreed Matrimonial Property Plan (if simplified track)",
+        "description": "For uncontested cases on the simplified track — agreed division of matrimonial assets",
+        "required": false
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Women's Charter 1961",
+      "description": "Primary statute (formerly cited as Cap 353) — Part X governs divorce; s.112 governs division of matrimonial assets; s.113-114 governs maintenance"
+    },
+    {
+      "code": "Administration of Muslim Law Act (AMLA, Cap 3)",
+      "description": "Muslim marriages — divorced through the Syariah Court, not Family Justice Courts"
+    },
+    {
+      "code": "Guardianship of Infants Act (Cap 122)",
+      "description": "Welfare of the child is the paramount consideration in custody matters"
+    },
+    {
+      "code": "Family Justice Rules 2024",
+      "description": "Procedural rules governing family proceedings (replaced the Family Justice Rules 2014, effective 15 October 2024)"
+    },
+    {
+      "code": "Family Justice (Maintenance and Child Welfare) Rules 2024",
+      "description": "Rules for maintenance proceedings and child welfare in family proceedings"
+    }
+  ],
+  "filingFees": {
+    "approximate": "SGD $50-$200",
+    "varies": true,
+    "notes": "Filing fees vary depending on type of filing and track: SGD $50 (simplified track), up to SGD $200+ (contested). Fee waiver may be available through legal aid (Legal Aid Bureau). Verify current fees at the Family Justice Courts website."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "notes": "Singapore does not use a formula-based child support guideline system. The court considers the financial needs of the child, the standard of living, and the means of the parents (Women's Charter, s.69). Children are entitled to maintenance until age 21."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "guidelines": "Women's Charter, s.113-114",
+    "notes": "Only a wife (or incapacitated husband) may claim maintenance from the other spouse. The court considers the financial needs, earning capacity, standard of living, age, physical/mental disability, contributions to the family, and any agreement between the parties."
+  },
+  "mandatoryCoParentingProgramme": "Since 1 July 2024, all parents with children under 21 must attend the mandatory co-parenting programme before filing for divorce.",
+  "maintenanceGenderNote": "Under the Women's Charter, s.113, only a wife may claim maintenance from the husband (or a former wife from a former husband). A husband cannot claim maintenance from the wife unless he is incapacitated. This is a gender-specific provision unique to Singapore law.",
+  "effectiveDateRule": "The Interim Judgment (formerly Decree Nisi) does not dissolve the marriage. The parties must apply for the Certificate of Making Interim Judgment Final (formerly Decree Absolute) after a minimum of 3 months. The marriage is dissolved only when the Final Judgment is made (Women's Charter, s.99).",
+  "certificateNote": "The marriage is only dissolved upon the making of the Certificate of Making Interim Judgment Final. Either party may apply for this certificate no earlier than 3 months after the Interim Judgment (Women's Charter, s.99(3))."
+}

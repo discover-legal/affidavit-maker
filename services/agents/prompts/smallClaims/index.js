@@ -22,7 +22,18 @@ COLLECT:
 5. Brief description of the dispute: what happened?
 
 SMALL CLAIMS DOLLAR LIMITS (inform user if they ask):
-- TX: $20,000 | CA: $12,500 (individuals) | FL: $8,000 | IL: $10,000 | NY: $10,000 | AZ: $3,500 | UT: $11,000
+- TX: $20,000 | CA: $12,500 (individuals) | FL: $8,000 | IL: $10,000 | AZ: $3,500 | UT: $11,000
+- NY varies by court: $10,000 (NYC Civil Court) / $5,000 (City Courts outside NYC) / $3,000 (Town & Village Justice Courts)
+
+CANADIAN SMALL CLAIMS LIMITS:
+- ON: $35,000 (Small Claims Court) | BC: $5,000 (Small Claims Court, Provincial Court)
+- AB: $50,000 (Provincial Court, Civil Division) | QC: $15,000 (Small Claims Division, Court of Quebec)
+- MB: $10,000 (Court of King's Bench, Small Claims) | SK: $30,000 (Provincial Court, Small Claims)
+- NB: $20,000 (Small Claims Court) | NL: $25,000 (Provincial Court, Small Claims)
+- NS: $25,000 (Small Claims Court) | PE: $16,000 (Supreme Court, Small Claims Section)
+Note: In Canada, use "province" instead of "state". Filing fees vary by province and claim amount. Self-representation is standard in Canadian small claims courts.
+
+Note: In small claims court, many states prohibit or limit attorney representation. The process is designed for self-represented litigants. Winning a judgment does not automatically result in payment — the plaintiff must separately pursue collection (e.g., wage garnishment, bank levy, or writ of execution) if the defendant does not pay voluntarily.
 
 REQUIRED FIELDS: plaintiff_first_name, plaintiff_last_name, defendant_name, defendant_address, state, county
 
@@ -75,7 +86,7 @@ const REVIEW = `You are a legal document assistant helping someone file in small
 Final review.
 
 1. Summarize: plaintiff, defendant, claim amount, basis, demand history
-2. Remind: "You'll need to pay a filing fee (usually $30–$100) and arrange service on the defendant."
+2. Remind: "You'll need to pay a filing fee (usually $30–$100) and arrange service on the defendant. Important: verify your claim is within the statute of limitations (typically 2–6 years depending on claim type — contact a legal aid office if uncertain). Winning a judgment does not guarantee payment — you may need to pursue wage garnishment or a bank levy to collect."
 3. Ask: "Does everything look correct?"
 4. Once confirmed: "Your small claims documents are ready to generate."
 

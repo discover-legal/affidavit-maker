@@ -1,0 +1,229 @@
+{
+  "stateCode": "SC",
+  "stateName": "South Carolina",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Final Decree of Divorce",
+    "caseNumberLabel": "CIVIL ACTION NO.",
+    "custody": "Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "bothResidentMonths": 3,
+    "oneNonResidentMonths": 12,
+    "description": "If both parties are residents of South Carolina, the plaintiff must have resided in the state for at least 3 months before filing. If the defendant is a non-resident, the plaintiff must have resided in the state for at least 1 year before filing.",
+    "statute": "S.C. Code \u00a720-3-30"
+  },
+
+  "waitingPeriod": {
+    "noFault": {
+      "separationYears": 1,
+      "description": "For a no-fault divorce, the parties must have lived separate and apart without cohabitation for at least one (1) year before filing."
+    },
+    "faultBased": {
+      "daysAfterFiling": 90,
+      "description": "For fault-based grounds, there is no waiting period to file, but the court cannot enter a final decree until at least 90 days after filing and service."
+    },
+    "statute": "S.C. Code \u00a720-3-80"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "one_year_separation",
+        "name": "One Year Continuous Separation",
+        "description": "The parties have lived separate and apart without cohabitation for a period of at least one year",
+        "statute": "S.C. Code \u00a720-3-10(5)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery committed by one of the parties",
+        "statute": "S.C. Code \u00a720-3-10(1)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion for One Year",
+        "description": "Desertion for a period of one year",
+        "statute": "S.C. Code \u00a720-3-10(2)"
+      },
+      {
+        "code": "physical_cruelty",
+        "name": "Physical Cruelty",
+        "description": "Physical cruelty committed by one of the parties",
+        "statute": "S.C. Code \u00a720-3-10(3)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness or Narcotics Use",
+        "description": "Habitual drunkenness or habitual use of narcotics, provided such habit has been in existence and of such duration that reasonable hope of reformation is precluded",
+        "statute": "S.C. Code \u00a720-3-10(4)"
+      }
+    ],
+    "notes": "South Carolina has both fault-based and no-fault grounds. No-fault requires one year of continuous separation without cohabitation. Fault-based grounds allow filing without a separation period, but a 90-day cooling-off period applies before a final decree can be entered."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "South Carolina follows equitable distribution. The Family Court divides marital property in a fair manner, considering factors including the duration of the marriage, each party's contributions (including homemaking), the value of marital property, income and earning capacity, and the conduct of each party. The division need not be equal but must be equitable.",
+    "separateProperty": "Non-marital (separate) property includes property acquired before the marriage, property acquired by gift or inheritance, and property excluded by a valid prenuptial agreement. Separate property is not subject to equitable distribution.",
+    "statute": "S.C. Code \u00a720-3-620"
+  },
+
+  "legalCitations": [
+    {
+      "code": "S.C. Code \u00a720-3-30",
+      "description": "Residency requirements \u2014 3 months if both resident, 1 year if defendant non-resident"
+    },
+    {
+      "code": "S.C. Code \u00a720-3-10",
+      "description": "Grounds for divorce \u2014 adultery, desertion, physical cruelty, habitual drunkenness, one-year separation"
+    },
+    {
+      "code": "S.C. Code \u00a720-3-80",
+      "description": "Waiting period \u2014 90 days from filing for fault-based; 1 year separation for no-fault"
+    },
+    {
+      "code": "S.C. Code \u00a720-3-620",
+      "description": "Equitable apportionment of marital property"
+    },
+    {
+      "code": "S.C. Code \u00a720-3-130",
+      "description": "Alimony \u2014 periodic, lump-sum, rehabilitative, and reimbursement"
+    },
+    {
+      "code": "S.C. Code \u00a763-15-230",
+      "description": "Child custody determination \u2014 best interest of the child"
+    },
+    {
+      "code": "S.C. Code \u00a763-17-470",
+      "description": "South Carolina Child Support Guidelines \u2014 income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$150",
+    "varies": true,
+    "notes": "South Carolina filing fees are approximately $150 for a divorce action but may vary by county. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce action (South Carolina uses 'Complaint' not 'Petition')",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to the defendant",
+        "required": true
+      },
+      {
+        "name": "Answer",
+        "description": "Defendant's response to the complaint",
+        "required": false
+      },
+      {
+        "name": "Financial Declaration / Affidavit",
+        "description": "Mandatory disclosure of income, assets, and debts per Family Court Rule 20",
+        "required": true
+      },
+      {
+        "name": "Final Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons and Complaint",
+        "description": "Formal service on defendant via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody and Visitation Agreement or Motion",
+        "description": "Court order establishing custody and visitation schedule",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per South Carolina Child Support Guidelines (S.C. Code \u00a763-17-470)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per South Carolina Rules of Civil Procedure and Family Court Rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside South Carolina must file a response within 30 days of service"
+    },
+    "statute": "S.C. Rules of Civil Procedure, Rule 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "South Carolina uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the South Carolina Child Support Guidelines schedule based on combined gross income and the number of children.",
+    "statute": "S.C. Code \u00a763-17-470",
+    "notes": "The court may deviate from the guidelines upon a written finding that application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "South Carolina provides for multiple types of alimony: (1) periodic alimony \u2014 ongoing payments based on need and ability to pay; (2) lump-sum alimony \u2014 a fixed total payable in one or more installments; (3) rehabilitative alimony \u2014 for a limited period to enable the recipient to become self-supporting; (4) reimbursement alimony \u2014 to reimburse a spouse who supported the other through education or career advancement.",
+    "eligibility": "The court considers the duration of the marriage, physical and emotional condition of each party, educational background, employment history, earning capacity, standard of living established during the marriage, current and reasonably anticipated income, marital misconduct, and other factors.",
+    "statute": "S.C. Code \u00a720-3-130"
+  },
+
+  "court": {
+    "name": "Family Court",
+    "description": "Divorce actions are filed in the Family Court for the county where the plaintiff or defendant resides. (S.C. Code \u00a763-3-510)"
+  }
+}

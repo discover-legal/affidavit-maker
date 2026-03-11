@@ -1,0 +1,249 @@
+{
+  "stateCode": "ID",
+  "stateName": "Idaho",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment and Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Spousal Maintenance",
+    "maritalProperty": "Community Property"
+  },
+
+  "residencyRequirements": {
+    "stateWeeks": 6,
+    "countyMonths": 0,
+    "description": "The plaintiff must have been a resident of Idaho for a full six (6) weeks immediately preceding the filing of the complaint. There is no separate county residency requirement, but the complaint must be filed in the county where the defendant resides or, if the defendant is not a resident, in the county where the plaintiff resides.",
+    "statute": "Idaho Code \u00a732-701"
+  },
+
+  "waitingPeriod": {
+    "days": 21,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "A divorce cannot be granted until at least twenty-one (21) days after service of the summons and complaint on the defendant. Idaho Code \u00a732-716."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences have caused the irremediable breakdown of the marriage",
+        "statute": "Idaho Code \u00a732-603(7)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery committed by the defendant",
+        "statute": "Idaho Code \u00a732-603(1)"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Extreme cruelty by the defendant",
+        "statute": "Idaho Code \u00a732-603(2)"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion",
+        "description": "Willful desertion by the defendant",
+        "statute": "Idaho Code \u00a732-603(3)"
+      },
+      {
+        "code": "willful_neglect",
+        "name": "Willful Neglect",
+        "description": "Willful neglect by the defendant",
+        "statute": "Idaho Code \u00a732-603(4)"
+      },
+      {
+        "code": "habitual_intemperance",
+        "name": "Habitual Intemperance",
+        "description": "Habitual intemperance (habitual drunkenness) of the defendant",
+        "statute": "Idaho Code \u00a732-603(5)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Conviction of a Felony",
+        "description": "Conviction of a felony by the defendant",
+        "statute": "Idaho Code \u00a732-603(6)"
+      },
+      {
+        "code": "permanent_insanity",
+        "name": "Permanent Insanity",
+        "description": "Permanent insanity of the defendant, established by competent medical testimony",
+        "statute": "Idaho Code \u00a732-603(8)"
+      }
+    ],
+    "separation": [
+      {
+        "code": "living_separate_5_years",
+        "name": "Living Separate and Apart for 5+ Years",
+        "description": "The spouses have been living separate and apart without cohabitation for a period of five (5) years or more",
+        "statute": "Idaho Code \u00a732-610"
+      }
+    ],
+    "notes": "Idaho is both a fault and no-fault state. Approximately 99% of Idaho divorces are filed on the no-fault ground of irreconcilable differences. Fault grounds are available but rarely used."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Idaho is a community property state. The court shall divide the community property substantially equally, unless there are compelling reasons to make an unequal division. The court must consider all relevant factors, including the duration of the marriage, any prenuptial agreement, the age, health, and earning capacity of each party, and the desirability of awarding the family home to the spouse with physical custody of children.",
+    "separateProperty": "Separate property (property acquired before marriage, by gift, or by inheritance) is confirmed to the spouse who owns it. Separate property is not subject to community property division unless commingled.",
+    "statute": "Idaho Code \u00a732-712"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Idaho Code \u00a732-701",
+      "description": "Residency requirement \u2014 six full weeks"
+    },
+    {
+      "code": "Idaho Code \u00a732-603",
+      "description": "Grounds for divorce"
+    },
+    {
+      "code": "Idaho Code \u00a732-716",
+      "description": "Twenty-day waiting period after service"
+    },
+    {
+      "code": "Idaho Code \u00a732-712",
+      "description": "Division of community property \u2014 substantially equal"
+    },
+    {
+      "code": "Idaho Code \u00a732-705",
+      "description": "Spousal maintenance"
+    },
+    {
+      "code": "Idaho Code \u00a732-717B",
+      "description": "Child custody \u2014 joint custody"
+    },
+    {
+      "code": "Idaho Code \u00a732-717",
+      "description": "Custody of children \u2014 best interest standard"
+    },
+    {
+      "code": "Idaho Code \u00a732-706",
+      "description": "Idaho Child Support Guidelines \u2014 income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$207",
+    "varies": true,
+    "notes": "Idaho filing fees are approximately $207 for a complaint for divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Motion and Affidavit for Fee Waiver (Idaho Court Administrative Rule 9)."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Family Law Case Information Sheet",
+        "description": "Required information sheet filed with all family law cases",
+        "required": true
+      },
+      {
+        "name": "Judgment and Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via sheriff or process server",
+        "required": true,
+        "alternatives": ["Waiver of Service", "Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant accepts service voluntarily",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Custody / Visitation Order",
+        "description": "Court order establishing custody and visitation schedule",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Idaho Child Support Guidelines (Idaho Code \u00a732-706)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Idaho Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Defendant must file a response within 21 days of service"
+    },
+    "outOfState": {
+      "days": 21,
+      "description": "Defendant served outside Idaho must file a response within 21 days of service"
+    },
+    "statute": "Idaho Rules of Civil Procedure, Rule 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Idaho uses an income shares model. Both parents' gross incomes are considered and the child support obligation is determined from the Idaho Child Support Guidelines schedule based on combined gross income and the number of children.",
+    "statute": "Idaho Code \u00a732-706",
+    "notes": "The court may deviate from the guidelines upon a showing that application of the guidelines would be unjust or inappropriate. Factors include the best interests of the children and the financial resources of the parties."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "discretionary_maintenance",
+    "description": "Idaho courts may award spousal maintenance where the spouse seeking maintenance: (a) lacks sufficient property to provide for reasonable needs, and (b) is unable to support themselves through appropriate employment or is the custodian of a child whose condition or circumstances make it appropriate not to require the parent to seek employment. The court considers the financial resources of the spouse seeking maintenance, the time necessary to acquire education or training, the duration of the marriage, the age and health of the spouse seeking maintenance, and the ability of the paying spouse to meet their own needs while paying maintenance.",
+    "eligibility": "Available at court discretion based on need and ability to pay. Idaho does not use a formula; the award is based on the totality of the circumstances.",
+    "statute": "Idaho Code \u00a732-705"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Divorce actions are filed in the District Court in the county where the defendant resides, or if the defendant is not a resident of Idaho, in the county where the plaintiff resides."
+  }
+}

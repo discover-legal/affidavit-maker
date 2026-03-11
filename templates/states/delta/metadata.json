@@ -1,0 +1,17 @@
+{
+  "stateCode": "DT", "stateName": "Delta", "countryCode": "NG", "countryName": "Nigeria",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"], "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": { "perjuryStatement": false, "notaryBlock": true, "notaryInstruction": false, "caseNumberLabel": "Suit No.", "caseNumberRequired": false, "headerFormat": "uppercase", "venueFormat": "uppercase", "personalLawSystem": true, "commissionerForOaths": true },
+  "courtSystem": { "trialCourt": "High Court of Delta State", "familyDivision": "High Court of Delta State", "appealCourt": "Court of Appeal, Benin Division" },
+  "divorceTerminology": { "parties": ["Petitioner", "Respondent"], "grounds": "Matrimonial Causes Act 1970, Cap M7 LFN 2004", "primaryGround": "irretrievable breakdown (MCA s.15)", "propertyDivision": "Ancillary orders under MCA s.70-73" },
+  "legalCitations": [
+    { "code": "Matrimonial Causes Act 1970, Cap M7 LFN 2004", "description": "Federal divorce statute" },
+    { "code": "Marriage Act, Cap M6 LFN 2004", "description": "Statutory marriages" },
+    { "code": "Child Rights Law of Delta State 2008", "description": "Child welfare" },
+    { "code": "Oaths Act, Cap O1 LFN 2004", "description": "Affidavits" },
+    { "code": "Evidence Act 2011", "description": "Evidence admissibility" }
+  ],
+  "affidavitJurat": "Sworn to at the __________ Registry\nthis _____ day of __________, _______\n\nBefore me:\n________________________________\nCommissioner for Oaths",
+  "exhibitRules": { "labelStyle": "letters", "requireCoverPage": false, "instructions": "Each exhibit must be marked and endorsed by the Commissioner for Oaths." }
+}

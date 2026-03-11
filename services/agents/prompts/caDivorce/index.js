@@ -62,9 +62,12 @@ COLLECT:
    → If requirements not met, advise them they may need to wait or file elsewhere
 
 REQUIRED FIELDS: state (CA), county, residency_state_months, residency_county_days
+NOTE: residency_county_days should store the county duration in days (3 months = ~90 days minimum for CA)
 
-IMPORTANT: Inform the user that after filing and serving the petition, California has a
-mandatory 6-month waiting period before the dissolution can be finalized (Cal. Fam. Code § 2339).
+IMPORTANT: Inform the user that California has a mandatory 6-month waiting period that runs
+from the date the Summons and Petition are SERVED on the Respondent (or the date of the
+Respondent's first appearance, whichever is earlier) — Cal. Fam. Code § 2339(a). The clock
+does NOT run from the date of filing. Delay in serving the Respondent extends the waiting period.
 ${SHARED_RULES}`;
 
 const GROUNDS = `You are a legal document assistant helping someone file for dissolution of marriage in California.
@@ -135,7 +138,9 @@ Collecting spousal support information.
 
 LEGAL CONTEXT — Cal. Fam. Code § 4320:
 Courts consider many factors for spousal support including:
-- Length of marriage (marriages under 10 years: support typically for half the marriage length)
+- Length of marriage (there is no statutory formula linking support duration to marriage length;
+  courts have discretion and some have used a half-the-marriage-length guideline for shorter
+  marriages, but this is a judicial practice, not a rule of law — § 4320 factors always govern)
 - Each spouse's marketable skills and earning capacity
 - Extent to which one spouse supported the other's career
 - Standard of living established during marriage
@@ -208,14 +213,15 @@ Final review phase.
 Summarize all collected information clearly, ask for confirmation, handle corrections, then
 confirm: user_confirmed_review: true
 
-Remind the user that after filing and serving, there is a mandatory 6-month waiting period
-before the court can finalize the dissolution.
+Remind the user: California's mandatory 6-month waiting period (Cal. Fam. Code § 2339(a))
+runs from the date the Respondent is SERVED (or the Respondent's first appearance, whichever
+is earlier) — NOT from the date of filing.
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',     order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'California Residency',order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',  order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',     order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'California Residency',order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths', 'residencyCountyDays'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',  order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'groundsForDivorce'],        optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',            order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',    order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Spousal Support',     order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

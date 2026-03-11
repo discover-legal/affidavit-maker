@@ -1,0 +1,135 @@
+{
+  "stateCode": "HK",
+  "stateName": "Hong Kong",
+  "countryCode": "HK",
+  "countryName": "Hong Kong SAR",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 36,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in Hong Kong OR have been habitually resident in Hong Kong for a continuous period of at least 3 years immediately before the presentation of the petition (Matrimonial Causes Ordinance, s.3)."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. However, a petition cannot be presented within the first year of marriage (s.12 MCO — the 1-year bar). After Decree Nisi, a minimum of 6 weeks must pass before applying for Decree Absolute."
+  },
+  "oneYearBar": {
+    "months": 12,
+    "description": "No petition for divorce shall be presented before the expiration of 1 year from the date of the marriage (s.12 MCO). The court may grant leave in exceptional circumstances of hardship or depravity."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_consent",
+        "name": "1-Year Separation with Consent",
+        "description": "The parties have lived apart for a continuous period of at least 1 year immediately before presentation of the petition, and the Respondent consents to the divorce.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11A(2)(d)"
+      },
+      {
+        "code": "separation_no_consent",
+        "name": "2-Year Separation without Consent",
+        "description": "The parties have lived apart for a continuous period of at least 2 years immediately before presentation of the petition (no consent of Respondent required).",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11A(2)(e)"
+      },
+      {
+        "code": "mutual_agreement",
+        "name": "Joint Application by Mutual Agreement",
+        "description": "Both parties jointly apply for divorce by mutual agreement. Available from 1 July 2024 under the Matrimonial Causes (Amendment) Ordinance 2024. Requires filing a notice of intention and a 3-month reflection period before the joint application can proceed.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11B (as inserted by Matrimonial Causes (Amendment) Ordinance 2024)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "The Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11A(2)(a)"
+      },
+      {
+        "code": "unreasonable_behaviour",
+        "name": "Unreasonable Behaviour",
+        "description": "The Respondent has behaved in such a way that the Petitioner cannot reasonably be expected to live with the Respondent.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11A(2)(b)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion for 1 Year",
+        "description": "The Respondent has deserted the Petitioner for a continuous period of at least 1 year immediately before the presentation of the petition.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11A(2)(c)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Case No.",
+    "custody": "Custody, Care and Control",
+    "physicalCustody": "Care and Control",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Matrimonial Property (Matrimonial Proceedings and Property Ordinance, Cap 192, s.7)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Form 2 — Petition for Divorce",
+        "description": "Initiates the divorce proceeding under the Matrimonial Causes Rules",
+        "required": true
+      },
+      {
+        "name": "Form 4 — Statement of Arrangements for Children",
+        "description": "Required if there are children of the family under 18",
+        "required": false
+      },
+      {
+        "name": "Form 2A — Acknowledgment of Service",
+        "description": "Respondent's acknowledgment of receipt of the petition",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Ordinance (Cap 179)",
+      "description": "Primary divorce statute — grounds, procedure, bars to divorce"
+    },
+    {
+      "code": "Matrimonial Proceedings and Property Ordinance (Cap 192)",
+      "description": "Financial provision, property adjustment, maintenance orders"
+    },
+    {
+      "code": "Guardianship of Minors Ordinance (Cap 13)",
+      "description": "Custody, care and control of minor children"
+    },
+    {
+      "code": "Matrimonial Causes Rules (Cap 179A)",
+      "description": "Procedural rules for divorce proceedings — prescribed forms"
+    }
+  ],
+  "filingFees": {
+    "approximate": "HKD $630 (uncontested) / HKD $1,045 (contested)",
+    "varies": true,
+    "currency": "HKD",
+    "notes": "HKD $630 for cases on the special procedure list (uncontested). HKD $1,045 for cases on the defended list (contested). Fee waiver available for financially eligible applicants."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "No statutory formula — court exercises discretion under Guardianship of Minors Ordinance (Cap 13) and Matrimonial Proceedings and Property Ordinance (Cap 192)",
+    "notes": "The court considers the needs of the child, the income and financial resources of each parent, any physical or mental disability of the child, and the manner in which the child is being or is expected to be educated."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "Matrimonial Proceedings and Property Ordinance (Cap 192), ss.3-4 and s.7",
+    "notes": "The court considers income, earning capacity, financial needs, standard of living during the marriage, age, duration of marriage, disabilities, contributions to the welfare of the family, and conduct."
+  },
+  "decreeProcess": {
+    "step1": "Decree Nisi — provisional order dissolving the marriage",
+    "step2": "6-week waiting period after Decree Nisi",
+    "step3": "Decree Absolute — final order making the divorce effective",
+    "description": "The Petitioner (or Respondent after an additional 3 months) may apply for the Decree Nisi to be made Absolute not earlier than 6 weeks after it is pronounced."
+  },
+  "effectiveDateRule": "The marriage is dissolved on the date the Decree Absolute is granted. There is a mandatory 6-week interval between Decree Nisi and Decree Absolute.",
+  "certificateNote": "A Certificate of Decree Absolute may be obtained from the Family Court Registry after the Decree Absolute is granted."
+}

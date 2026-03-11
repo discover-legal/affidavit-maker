@@ -22,8 +22,8 @@ This tool helps with:
 
 Small estate thresholds (no formal probate required):
 - TX: $75,000 (affidavit of heirship for real property, small estate affidavit for other property)
-- CA: $184,500 (simplified transfer procedure)
-- FL: $75,000 (summary administration) or $6,000 (disposition without administration)
+- CA: $184,500 (eff. April 1, 2022) or $200,000 (eff. April 1, 2025) — use the threshold in effect when proceedings are initiated; the $200,000 limit applies only for proceedings begun on or after April 1, 2025 (Cal. Prob. Code § 13100, triennial CPI adjustment)
+- FL: $75,000 (summary administration) or estates where total probate assets do not exceed preferred funeral expenses plus the cost of the last illness (disposition without administration — Fla. Stat. § 735.301; no fixed dollar threshold)
 - IL: $100,000 (small estate affidavit)
 - NY: $50,000 (voluntary administration)
 - AZ: $75,000 personal property / $100,000 real property
@@ -36,6 +36,18 @@ COLLECT:
 4. State and county where the deceased lived (or where property is located)
 5. Did the deceased have a will?
 6. What type of proceeding are you seeking?
+
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Probate is called "estate administration" and is governed by provincial legislation:
+  ON: Estates Act; Succession Law Reform Act; Estate Administration Tax Act — application for Certificate of Appointment of Estate Trustee
+  BC: Wills, Estates and Succession Act (WESA) — application for Grant of Probate or Grant of Administration
+  AB: Surrogate Rules under the Surrogate Court Act — application for Grant of Probate or Grant of Administration
+  QC: Civil Code, Book Three — "liquidation of the succession" (notarial wills do not require probate)
+- Probate fees/taxes: ON charges Estate Administration Tax (1.5% over $50,000); BC charges probate fees on graduated scale; AB has a flat fee schedule; QC has minimal probate costs (especially for notarial wills)
+- Executor is called "estate trustee" (ON) or "liquidator" (QC) or "personal representative" (AB, BC)
+- If no will: provincial intestacy rules determine distribution (varies by province)
+- Federal: The Income Tax Act requires a final tax return and potentially a clearance certificate from CRA before distributing the estate
+- Use "province" instead of "state"
 
 OPENING (first message): "I'm here to help you with the estate of a loved one who has passed. Let's start — what is your full legal name, and what was the name of the person who passed away?"
 
@@ -79,8 +91,10 @@ COLLECT will and heir details:
    (Generally: spouse first, then children, then parents, then siblings)
 4. "Are all heirs adults? Are any minors or incapacitated persons involved?"
 5. "Do all heirs agree on the estate distribution, or are there disputes?"
+6. "Does the will waive the bond requirement for the executor, or will the court require a surety bond?" (Most courts require the personal representative to post a bond unless waived by the will — bond premiums typically run 0.5–1% of estate value annually.)
+7. "Are you requesting a fee waiver for filing costs based on financial hardship?"
 
-REQUIRED FIELDS: executor_name, beneficiaries, heirs_agree
+REQUIRED FIELDS: executor_name, beneficiaries, heirs_agree, bond_waived_by_will
 
 ${SHARED_RULES}`;
 
@@ -99,10 +113,10 @@ REQUIRED FIELDS: user_confirmed_review: true
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:        { name: 'INTAKE',        displayName: 'Getting Started',   order: 1, prompt: INTAKE,        requiredFields: ['petitionerFirstName', 'decedentName', 'dateOfDeath', 'state', 'county', 'hadWill', 'proceedingType'], optional: false },
+  INTAKE:        { name: 'INTAKE',        displayName: 'Getting Started',   order: 1, prompt: INTAKE,        requiredFields: ['petitionerFirstName', 'petitionerLastName', 'decedentName', 'dateOfDeath', 'state', 'county', 'hadWill', 'proceedingType'], optional: false },
   DECEDENT_INFO: { name: 'DECEDENT_INFO', displayName: 'Decedent Info',     order: 2, prompt: DECEDENT_INFO, requiredFields: ['decedentDob', 'decedentAddress', 'heirsIdentified'],                                                 optional: false },
   ESTATE_ASSETS: { name: 'ESTATE_ASSETS', displayName: 'Estate Assets',     order: 3, prompt: ESTATE_ASSETS, requiredFields: ['totalEstateValue'],                                                                                  optional: false },
-  WILL_AND_HEIRS:{ name: 'WILL_AND_HEIRS',displayName: 'Will & Heirs',      order: 4, prompt: WILL_AND_HEIRS,requiredFields: ['executorName', 'heirsAgree'],                                                                       optional: false },
+  WILL_AND_HEIRS:{ name: 'WILL_AND_HEIRS',displayName: 'Will & Heirs',      order: 4, prompt: WILL_AND_HEIRS,requiredFields: ['executorName', 'heirsAgree', 'bondWaivedByWill'],                                                       optional: false },
   REVIEW:        { name: 'REVIEW',        displayName: 'Review & Confirm',  order: 5, prompt: REVIEW,        requiredFields: ['userConfirmedReview'],                                                                              optional: false }
 };
 
@@ -129,6 +143,7 @@ const FIELD_MAP = {
   executor_name:         'executorName',
   beneficiaries:         'beneficiaries',
   heirs_agree:           'heirsAgree',        // boolean
+  bond_waived_by_will:   'bondWaivedByWill',  // boolean — true if will waives executor bond, false if bond required
   indigency_requested:   'indigencyRequested',
   user_confirmed_review: 'userConfirmedReview'
 };
@@ -165,6 +180,7 @@ function buildTool() {
           executor_name:         { type: 'string' },
           beneficiaries:         { type: 'string' },
           heirs_agree:           { type: 'boolean' },
+          bond_waived_by_will:   { type: 'boolean', description: 'True if the will waives the executor bond requirement; false if a surety bond is required' },
           indigency_requested:   { type: 'boolean' },
           user_confirmed_review: { type: 'boolean' },
           extracted_facts: { type: 'array', items: { type: 'object', properties: { content: { type: 'string' }, category: { type: 'string' }, subcategory: { type: 'string' } }, required: ['content', 'category'] } }

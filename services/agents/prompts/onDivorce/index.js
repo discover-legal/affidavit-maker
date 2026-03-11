@@ -6,7 +6,7 @@
  * Ontario divorce proceedings under:
  * - Divorce Act, RSC 1985, c. 3 (federal — grounds, custody, support)
  * - Family Law Act, RSO 1990, c. F.3 (provincial — equalization, spousal support)
- * - Family Law Rules, O. Reg. 114/99 (procedure — Form 8)
+ * - Family Law Rules, O. Reg. 114/99 (procedure — Form 8A for divorce application)
  * - Children's Law Reform Act, RSO 1990, c. C.12 (custody/access)
  *
  * Key differences from US states:
@@ -49,7 +49,8 @@ KEY FACTS TO SHARE:
 - Ontario uses the term "Applicant" (not "Petitioner") for the person starting the case
 - The other spouse is the "Respondent"
 - The court is the Superior Court of Justice
-- The standard form is Form 8 (Application) under the Family Law Rules
+- The standard form is Form 8A (Application for Divorce) under the Family Law Rules
+- Form 8 is used when claiming divorce AND other relief (property, support) together
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in Ontario, Canada.
@@ -79,7 +80,8 @@ Canada recognizes three grounds for divorce:
    - Spouses must have lived "separate and apart" for at least 1 year
    - They can live under the same roof and still be separated (different bedrooms, no shared duties)
    - The 1-year period can be running — it must be complete by the time the court grants the order
-2. ADULTERY (s.8(2)(b)(i)) — requires proof; the adulterous spouse cannot use this as their own ground
+2. ADULTERY (s.8(2)(b)(i)) — requires proof; the ground is defined as the OTHER spouse's adultery
+   (a spouse cannot make their own adultery the ground, but may still file on 1-year separation)
 3. PHYSICAL OR MENTAL CRUELTY (s.8(2)(b)(ii)) — requires evidence of intolerable cruelty
 
 COLLECT:
@@ -118,13 +120,12 @@ Documenting the division of property.
 
 LEGAL CONTEXT:
 Ontario uses "Equalization of Net Family Property" (NOT community property):
-- NFP = [property value on separation date] minus [property value on marriage date] minus debts
+- NFP = [property value on separation date minus s.4(2) exclusions] minus [property value on marriage date] minus debts at separation
 - The spouse with the HIGHER NFP pays HALF the difference to the lower-NFP spouse
-- Certain property is EXCLUDED from NFP: gifts/inheritances, personal injury damages, life insurance
+- Certain property is EXCLUDED from NFP (FLA s.4(2)): gifts and inheritances received during the marriage, damages for personal injury (except loss of income replacement), death-benefit proceeds from life insurance payable on death of the insured — NOT the policy's cash surrender value or other life insurance interests
 
-IMPORTANT EXCLUSIONS:
-- The matrimonial home is treated DIFFERENTLY — its full value at separation (not just the increase)
-  is included in NFP; and both spouses have equal possession rights regardless of who owns it
+IMPORTANT — MATRIMONIAL HOME SPECIAL RULE (FLA s.4(1)(b)):
+- The matrimonial home is treated DIFFERENTLY from other pre-marriage property. For most property owned before marriage, a spouse may deduct its marriage-date value from NFP. For the matrimonial home, NO marriage-date deduction is permitted — the full separation-date value enters NFP without any offset for pre-marriage ownership. Both spouses also have equal possession rights regardless of who holds legal title.
 
 COLLECT:
 1. Real estate (matrimonial home and any other properties)
@@ -140,7 +141,7 @@ const SUPPORT = `You are a legal document assistant helping someone apply for di
 Collecting information about spousal support.
 
 LEGAL CONTEXT — Family Law Act, s.33 and Divorce Act s.15.2:
-Spousal support (alimony) in Ontario depends on:
+Spousal support in Ontario depends on:
 - Length of marriage / cohabitation
 - Roles during the marriage (e.g., one spouse gave up career to care for children)
 - Economic disadvantage or self-sufficiency
@@ -195,13 +196,13 @@ IMPORTANT REMINDERS TO SHARE:
 - If uncontested: no hearing required — the judge reviews the papers and grants the order
 - The Divorce Order is effective 31 days after it is made
 - Either party can apply for a Certificate of Divorce after the effective date
-- For divorce only (without other issues), a Joint Application (Form 8A) may be faster
+- For divorce only (without other issues), a Joint Application uses Form 8A — this is simpler when both spouses agree
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Ontario Residency',      order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',     order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'separationDate'],           optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Ontario Residency',      order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',     order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',               order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property Division',      order: 5,  prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Spousal Support',        order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

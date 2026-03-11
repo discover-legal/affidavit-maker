@@ -1,0 +1,258 @@
+{
+  "stateCode": "CT",
+  "stateName": "Connecticut",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Complaint for Dissolution of Marriage",
+    "decree": "Judgment of Dissolution of Marriage",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation / Access",
+    "alimony": "Alimony",
+    "maritalProperty": "All Property (marital and separate subject to division)"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyMonths": null,
+    "description": "One spouse must have been a resident of Connecticut for at least 12 months before the divorce is granted, OR the parties were married in Connecticut and one spouse returned with the intent to permanently reside. (Conn. Gen. Stat. \u00a746b-44)",
+    "statute": "Conn. Gen. Stat. \u00a746b-44"
+  },
+
+  "waitingPeriod": {
+    "days": 90,
+    "startsFrom": "return_date_of_service",
+    "exceptions": [],
+    "description": "Connecticut has a mandatory 90-day waiting period. The court cannot enter a judgment of dissolution until at least 90 days after the return date. (Conn. Gen. Stat. \u00a746b-67)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage has broken down irretrievably; either party may assert this ground",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(1)"
+      },
+      {
+        "code": "living_apart_18_months",
+        "name": "Living Apart for 18 Months",
+        "description": "The parties have lived apart for a continuous period of at least 18 months with no reasonable prospect of reconciliation",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(2)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by either spouse",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(3)"
+      },
+      {
+        "code": "fraudulent_contract",
+        "name": "Fraudulent Contract",
+        "description": "Fraudulent contract of marriage (fraud in the inducement of the marriage)",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(4)"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion for One Year",
+        "description": "Willful desertion for one year with total neglect of duty",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(5)"
+      },
+      {
+        "code": "seven_years_absence",
+        "name": "Seven Years' Absence",
+        "description": "Seven years' absence during which the absent party has not been heard from",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(6)"
+      },
+      {
+        "code": "habitual_intemperance",
+        "name": "Habitual Intemperance",
+        "description": "Habitual intemperance (substance abuse)",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(7)"
+      },
+      {
+        "code": "intolerable_cruelty",
+        "name": "Intolerable Cruelty",
+        "description": "Intolerable cruelty by either spouse",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(8)"
+      },
+      {
+        "code": "life_imprisonment",
+        "name": "Sentence to Imprisonment for Life",
+        "description": "Sentence of either party to imprisonment for life",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(9)"
+      },
+      {
+        "code": "infamous_crime",
+        "name": "Infamous Crime Involving Conjugal Duty",
+        "description": "Commission of any infamous crime involving a violation of conjugal duty punishable by imprisonment for more than one year",
+        "statute": "Conn. Gen. Stat. \u00a746b-40(c)(10)"
+      }
+    ],
+    "notes": "Connecticut offers both no-fault and fault-based grounds. The most common ground is irretrievable breakdown. Connecticut also allows dissolution when the parties have lived apart for 18 continuous months with no reasonable prospect of reconciliation."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Connecticut courts may assign to either spouse ALL or any part of the estate of the other spouse. Unlike most states, Connecticut does not distinguish between marital and separate property — ALL property is subject to equitable division, including property acquired before the marriage, inherited property, and gifts. The court considers the length of the marriage, the causes for the dissolution, the age, health, station, occupation, amount and sources of income, vocational skills, employability, estate, liabilities, and needs of each of the parties.",
+    "separateProperty": "Connecticut does NOT have a separate property exclusion. The court has broad equitable powers to divide ALL property owned by either spouse, regardless of when or how it was acquired. This is a key distinction from most other states.",
+    "statute": "Conn. Gen. Stat. \u00a746b-81"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-44",
+      "description": "Residency requirements \u2014 12 months in Connecticut"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-40",
+      "description": "Grounds for dissolution of marriage (no-fault and fault)"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-67",
+      "description": "90-day waiting period from return date"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-81",
+      "description": "Assignment of property \u2014 equitable distribution of ALL property"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-82",
+      "description": "Alimony \u2014 factors for award"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-56",
+      "description": "Custody and visitation \u2014 legal custody, physical custody, and access"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-84",
+      "description": "Child support obligations"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a746b-215a-1 et seq.",
+      "description": "Connecticut Child Support and Arrearage Guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$350",
+    "varies": false,
+    "notes": "Connecticut filing fee for a dissolution of marriage is $350. Fee waivers are available for qualifying low-income individuals by filing an Application for Waiver of Fees."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding (referred to as a 'Complaint' in Connecticut)",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant; served by a state marshal",
+        "required": true
+      },
+      {
+        "name": "Appearance Form",
+        "description": "Filed by each party appearing in the case",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit",
+        "description": "Mandatory sworn disclosure of income, expenses, assets, and liabilities (short form or long form depending on income)",
+        "required": true
+      },
+      {
+        "name": "Judgment of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Service by State Marshal",
+        "description": "Service via state marshal (Connecticut does not use sheriffs for civil process)",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and visitation schedule",
+        "required": true
+      },
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Calculation per Connecticut Child Support and Arrearage Guidelines (Conn. Gen. Stat. \u00a746b-215a-1 et seq.)",
+        "required": true
+      },
+      {
+        "name": "Affidavit Concerning Children",
+        "description": "Information about children of the marriage",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Connecticut Practice Book rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": null,
+      "description": "Connecticut uses a return date system. The defendant must file an appearance within two days after the return date."
+    },
+    "outOfState": {
+      "days": null,
+      "description": "Service on out-of-state defendant follows Connecticut long-arm statute procedures."
+    },
+    "statute": "Conn. Gen. Stat. \u00a746b-45, Connecticut Practice Book \u00a710-12"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Connecticut uses an income shares model. Both parents' net incomes are combined and the child support obligation is determined from the Connecticut Child Support and Arrearage Guidelines schedule based on combined net weekly income and the number of children.",
+    "statute": "Conn. Gen. Stat. \u00a746b-84, \u00a746b-215a-1 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be inequitable or inappropriate. Health insurance and childcare costs are factored in."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Connecticut courts may award alimony to either spouse. The court considers the length of the marriage, the causes for the dissolution, the age, health, station, occupation, amount and sources of income, vocational skills, employability, estate, liabilities, and needs of each party, and the property division. Connecticut recognizes periodic, lump-sum, rehabilitative, and nominal alimony.",
+    "eligibility": "Either spouse may request alimony. The court has broad discretion to award alimony based on multiple statutory factors. There is no formula; the court balances the needs of the requesting party against the ability of the other party to pay.",
+    "statute": "Conn. Gen. Stat. \u00a746b-82"
+  },
+
+  "court": {
+    "name": "Superior Court, Family Division",
+    "description": "Dissolution of marriage is filed in the Superior Court, Family Division, in the judicial district where one of the parties resides."
+  }
+}

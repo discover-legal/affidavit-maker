@@ -1,0 +1,315 @@
+{
+  "stateCode": "PA",
+  "stateName": "Pennsylvania",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint",
+    "decree": "Decree in Divorce",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Custody",
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Shared Legal Custody",
+    "soleCustody": "Sole Legal Custody",
+    "visitation": "Partial Physical Custody",
+    "alimony": "Alimony",
+    "alimonyPendenteLite": "Alimony Pendente Lite",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "At least one party must have been a bona fide resident of Pennsylvania for at least six months before filing the divorce complaint.",
+    "statute": "23 Pa.C.S. § 3104(b)"
+  },
+
+  "waitingPeriod": {
+    "mutualConsent": {
+      "days": 90,
+      "description": "90-day waiting period from date of service of complaint (mutual consent divorce under § 3301(c)). Both parties must file Affidavits of Consent after 90 days.",
+      "statute": "23 Pa.C.S. § 3301(c)"
+    },
+    "separation": {
+      "years": 1,
+      "description": "1-year separation period for unilateral no-fault divorce under § 3301(d) (as amended effective December 2016, reduced from 2 years to 1 year). One party may file unilaterally after 1 year of separation.",
+      "statute": "23 Pa.C.S. § 3301(d)"
+    }
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "mutual_consent",
+        "name": "Mutual Consent",
+        "description": "Both parties consent to the divorce by filing Affidavits of Consent after 90 days from service of the complaint.",
+        "statute": "23 Pa.C.S. § 3301(c)",
+        "notes": "Most common and fastest ground in Pennsylvania"
+      },
+      {
+        "code": "separation",
+        "name": "One-Year Separation",
+        "description": "The parties have lived separate and apart for at least one year and the marriage is irretrievably broken. (As amended effective December 2016; prior law required 2-year separation.)",
+        "statute": "23 Pa.C.S. § 3301(d)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "desertion",
+        "name": "Willful and Malicious Desertion",
+        "description": "Respondent willfully and maliciously deserted Petitioner for one or more years.",
+        "statute": "23 Pa.C.S. § 3301(a)(1)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Respondent has committed adultery.",
+        "statute": "23 Pa.C.S. § 3301(a)(2)"
+      },
+      {
+        "code": "cruelty",
+        "name": "Cruel and Barbarous Treatment",
+        "description": "Respondent has by cruel and barbarous treatment endangered the life or health of Petitioner.",
+        "statute": "23 Pa.C.S. § 3301(a)(3)"
+      },
+      {
+        "code": "bigamy",
+        "name": "Bigamy",
+        "description": "Respondent has knowingly entered into a bigamous marriage while a former marriage is still subsisting.",
+        "statute": "23 Pa.C.S. § 3301(a)(4)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment for Crime",
+        "description": "Respondent has been sentenced to imprisonment for a term of two or more years upon conviction of a crime.",
+        "statute": "23 Pa.C.S. § 3301(a)(5)"
+      },
+      {
+        "code": "indignities",
+        "name": "Indignities to the Person",
+        "description": "Respondent has offered such indignities to the person of Petitioner as to render Petitioner's condition intolerable and life burdensome.",
+        "statute": "23 Pa.C.S. § 3301(a)(6)"
+      },
+      {
+        "code": "institutionalization",
+        "name": "Institutionalization for Serious Mental Disorder",
+        "description": "Respondent has been adjudged mentally ill and institutionalized for 18 or more months and there is no reasonable prospect of discharge within 18 months.",
+        "statute": "23 Pa.C.S. § 3301(b)"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "communityProperty": false,
+    "description": "Pennsylvania is an equitable distribution state. Marital property is divided equitably, not necessarily equally. The court considers 11 statutory factors.",
+    "statute": "23 Pa.C.S. § 3502",
+    "factors": [
+      "Length of the marriage",
+      "Prior marriage of either party",
+      "Age, health, station, amount and sources of income, vocational skills, employability, estate, liabilities and needs of each of the parties",
+      "Contribution by one party to the education, training or increased earning power of the other party",
+      "Opportunity of each party for future acquisitions of capital assets and income",
+      "Sources of income of both parties",
+      "Contribution of each party to the acquisition, preservation, depreciation or appreciation of marital property",
+      "Value of the property set apart to each party",
+      "Standard of living of the parties established during the marriage",
+      "Economic circumstances of each party at the time the division of property is to become effective",
+      "Tax ramifications associated with the proposed property division"
+    ]
+  },
+
+  "alimony": {
+    "type": "alimony",
+    "statute": "23 Pa.C.S. § 3701",
+    "description": "The court may award alimony to either party. Pennsylvania also provides for Alimony Pendente Lite (APL) during the divorce proceedings.",
+    "alimonyPendenteLite": {
+      "description": "Temporary support paid during divorce proceedings",
+      "statute": "23 Pa.C.S. § 3702"
+    }
+  },
+
+  "custody": {
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "statute": "Pa. R.C.P. 1915.1 et seq. / 23 Pa.C.S. § 5321 et seq.",
+    "standard": "Best interests of the child",
+    "description": "Pennsylvania uses 'Legal Custody' and 'Physical Custody' terminology. Shared physical custody (equal time) is distinct from primary physical custody."
+  },
+
+  "childSupport": {
+    "guidelines": "Pennsylvania Child Support Guidelines",
+    "statute": "23 Pa.C.S. § 4322",
+    "description": "Child support is calculated using the income shares model under Pennsylvania's statewide support guidelines."
+  },
+
+  "officialForms": {
+    "complaint": {
+      "name": "Complaint in Divorce",
+      "required": true
+    },
+    "affidavitOfConsent": {
+      "name": "Affidavit of Consent (mutual consent divorce)",
+      "required": true,
+      "whenRequired": "mutual_consent",
+      "notes": "Both parties must file after 90-day waiting period"
+    },
+    "waiver": {
+      "name": "Waiver of Notice and Service",
+      "required": false
+    },
+    "inventoryAndAppraisement": {
+      "name": "Inventory and Appraisement",
+      "required": false,
+      "notes": "Required in some counties when property is contested"
+    },
+    "incomeAndExpenseStatement": {
+      "name": "Income and Expense Statement",
+      "required": false,
+      "notes": "Required for support claims"
+    }
+  },
+
+  "filingFees": {
+    "approximate": "$200-350",
+    "varies": true,
+    "notes": "Varies by county. Fee waiver available for qualifying low-income individuals."
+  },
+
+  "legalCitations": [
+    {
+      "code": "23 Pa.C.S. § 3101 et seq.",
+      "description": "Pennsylvania Divorce Code — general provisions"
+    },
+    {
+      "code": "23 Pa.C.S. § 3104",
+      "description": "Jurisdiction — residency requirement of 6 months"
+    },
+    {
+      "code": "23 Pa.C.S. § 3301",
+      "description": "Grounds for divorce — no-fault (mutual consent § 3301(c); 1-year separation § 3301(d) as amended Dec. 2016) and fault-based grounds (§ 3301(a))"
+    },
+    {
+      "code": "23 Pa.C.S. § 3502",
+      "description": "Equitable division of marital property"
+    },
+    {
+      "code": "23 Pa.C.S. § 3701",
+      "description": "Alimony — awards and factors"
+    },
+    {
+      "code": "23 Pa.C.S. § 3702",
+      "description": "Alimony Pendente Lite — temporary support during proceedings"
+    },
+    {
+      "code": "23 Pa.C.S. § 4322",
+      "description": "Child support guidelines"
+    },
+    {
+      "code": "23 Pa.C.S. § 5321 et seq.",
+      "description": "Child custody — legal and physical custody provisions"
+    }
+  ],
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt"
+    },
+    "spacing": "double",
+    "notes": "Pennsylvania Court of Common Pleas follows local rules which may vary by county."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint in Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Notice to Defend and Claim Rights",
+        "description": "Required notice informing defendant of rights and obligations",
+        "required": true
+      },
+      {
+        "name": "Vital Statistics Certificate",
+        "description": "Required statistical information for the Department of Health",
+        "required": true
+      },
+      {
+        "name": "Decree in Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Original Process (Service of Complaint)",
+        "description": "Formal service of the divorce complaint on defendant",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant accepts service without formal process",
+        "required": false,
+        "notes": "Must be in writing and signed by defendant"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Income and Expense Statement",
+        "description": "Required financial disclosure for support claims",
+        "required": true
+      },
+      {
+        "name": "Child Support Guidelines Calculation (Pa. R.C.P. 1910.16-4)",
+        "description": "Income shares calculation per Pennsylvania Child Support Guidelines",
+        "required": true
+      },
+      {
+        "name": "Custody Complaint / Parenting Plan",
+        "description": "Separate action or agreement for custody arrangement",
+        "required": false,
+        "notes": "Custody is a separate proceeding in Pennsylvania; may be filed concurrently"
+      }
+    ]
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file a responsive pleading within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Defendant served outside Pennsylvania must file a responsive pleading within 20 days of service; additional time may be granted by the court"
+    },
+    "statute": "Pa. R.C.P. 1026(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Pennsylvania uses an income shares model. Both parents' net monthly incomes are combined and matched to a basic support schedule. The obligation is then apportioned based on each parent's share of the combined net income. Adjustments are made for health insurance, childcare, mortgage/rent, and extraordinary expenses.",
+    "statute": "Pa. R.C.P. 1910.16-1 et seq.; 23 Pa.C.S. § 4322",
+    "notes": "The guidelines are updated periodically by the Pennsylvania Supreme Court Domestic Relations Procedural Rules Committee."
+  },
+
+  "venue": {
+    "options": [
+      "County where petitioner resides",
+      "County where respondent resides",
+      "County where the parties last cohabited"
+    ],
+    "statute": "23 Pa.C.S. § 3104(a)"
+  }
+}

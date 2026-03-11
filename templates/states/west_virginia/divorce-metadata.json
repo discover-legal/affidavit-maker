@@ -1,0 +1,238 @@
+{
+  "stateCode": "WV",
+  "stateName": "West Virginia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Final Divorce Order",
+    "caseNumberLabel": "CIVIL ACTION NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Custodial Responsibility / Parenting Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyMonths": 0,
+    "description": "At least one party must have been an actual bona fide resident of West Virginia for one year. However, if the parties were married in West Virginia and one party still resides there, no minimum residency duration is required. (W. Va. Code §48-5-105)",
+    "statute": "W. Va. Code §48-5-105"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "not_applicable",
+    "exceptions": [],
+    "description": "West Virginia has no mandatory post-filing waiting period. However, for no-fault divorce based on irreconcilable differences, either both parties must consent or the parties must have lived separate and apart for one year prior to filing. (W. Va. Code §48-5-201 et seq.)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences exist between the parties (requires consent of both parties or one-year separation)",
+        "statute": "W. Va. Code §48-5-201"
+      },
+      {
+        "code": "voluntary_separation",
+        "name": "Voluntary Separation (1 Year)",
+        "description": "The parties have lived separate and apart without cohabitation for one year",
+        "statute": "W. Va. Code §48-5-201(a)(8)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery committed after the marriage",
+        "statute": "W. Va. Code §48-5-201(a)(1)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Felony Conviction",
+        "description": "Conviction of a felony or infamous offense after the marriage",
+        "statute": "W. Va. Code §48-5-201(a)(2)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel or Inhuman Treatment",
+        "description": "Cruel or inhuman treatment, including false accusations of adultery",
+        "statute": "W. Va. Code §48-5-201(a)(3)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion",
+        "description": "Desertion for six months",
+        "statute": "W. Va. Code §48-5-201(a)(4)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness or Drug Addiction",
+        "description": "Habitual drunkenness or habitual addiction to drugs",
+        "statute": "W. Va. Code §48-5-201(a)(5)"
+      },
+      {
+        "code": "abuse_neglect_child",
+        "name": "Abuse or Neglect of a Child",
+        "description": "Abuse or neglect of a child of the parties",
+        "statute": "W. Va. Code §48-5-201(a)(6)"
+      }
+    ],
+    "notes": "West Virginia allows both fault and no-fault divorce. For no-fault based on irreconcilable differences, both parties must consent, or the parties must have been separated for one year."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "West Virginia is an equitable distribution state. The court divides marital property equitably, considering the length of the marriage, contributions of each spouse (including homemaking), the income and earning capacity of each party, and other relevant factors.",
+    "separateProperty": "Separate property includes property acquired before the marriage and property acquired by gift or inheritance. Separate property is generally not subject to division unless it was commingled with marital property.",
+    "statute": "W. Va. Code §48-7-101 et seq."
+  },
+
+  "legalCitations": [
+    {
+      "code": "W. Va. Code §48-5-105",
+      "description": "Residency requirement — 1 year (or no minimum if married in WV)"
+    },
+    {
+      "code": "W. Va. Code §48-5-201",
+      "description": "Grounds for divorce — fault and no-fault"
+    },
+    {
+      "code": "W. Va. Code §48-7-101 et seq.",
+      "description": "Equitable distribution of marital property"
+    },
+    {
+      "code": "W. Va. Code §48-6-301 et seq.",
+      "description": "Spousal support"
+    },
+    {
+      "code": "W. Va. Code §48-9-101 et seq.",
+      "description": "Child custody — allocation of custodial responsibility"
+    },
+    {
+      "code": "W. Va. Code §48-13-101 et seq.",
+      "description": "West Virginia Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$135-$200",
+    "varies": true,
+    "notes": "West Virginia filing fees range from approximately $135 to $200 depending on the county. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Answer or Waiver",
+        "description": "Respondent's response or waiver of service",
+        "required": false
+      },
+      {
+        "name": "Financial Statement",
+        "description": "Disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Final Divorce Order",
+        "description": "Final court order granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Personal Service",
+        "description": "Service by sheriff or process server",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Respondent accepts service voluntarily",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Required plan detailing allocation of custodial responsibility and parenting time",
+        "required": true
+      },
+      {
+        "name": "Child Support Calculation Worksheet",
+        "description": "Calculation per West Virginia Child Support Guidelines (W. Va. Code §48-13-101)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per West Virginia court filing requirements"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside West Virginia must file a response within 30 days of service"
+    },
+    "statute": "W. Va. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "West Virginia uses an income shares model. Both parents' adjusted gross incomes are combined and the child support obligation is determined from the Child Support Guidelines schedule based on combined monthly income and the number of children.",
+    "statute": "W. Va. Code §48-13-101 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Shared custody adjustments may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "West Virginia courts may award spousal support based on the needs of the requesting spouse and the ability of the other spouse to pay, considering the length of the marriage, the standard of living during the marriage, the age and health of the parties, the income and earning capacity of each spouse, the education and training of each party, and other relevant factors.",
+    "eligibility": "Either party may request spousal support. The court has broad discretion in determining the amount and duration.",
+    "statute": "W. Va. Code §48-6-301 et seq."
+  },
+
+  "court": {
+    "name": "Family Court",
+    "description": "Divorce cases are filed in the Family Court of the county where either party resides. (W. Va. Code §51-2A)"
+  }
+}

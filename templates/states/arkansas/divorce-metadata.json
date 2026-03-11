@@ -1,0 +1,242 @@
+{
+  "stateCode": "AR",
+  "stateName": "Arkansas",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Custody / Sole Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 2,
+    "countyMonths": 0,
+    "description": "At least one party must have been a resident of Arkansas for at least 60 days before filing and for 3 months before the final decree is entered.",
+    "statute": "Ark. Code §9-12-307"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "No final decree of divorce shall be granted until at least 30 days after the date the complaint is filed. Ark. Code §9-12-307(b)."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "separation_18_months",
+        "name": "18-Month Separation",
+        "description": "The parties have lived separate and apart for eighteen (18) consecutive months without cohabitation",
+        "statute": "Ark. Code §9-12-301(b)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by the respondent",
+        "statute": "Ark. Code §9-12-301(a)(1)"
+      },
+      {
+        "code": "impotency",
+        "name": "Impotency",
+        "description": "Impotency at the time of marriage",
+        "statute": "Ark. Code §9-12-301(a)(2)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Felony or Infamous Crime",
+        "description": "Conviction of a felony or other infamous crime",
+        "statute": "Ark. Code §9-12-301(a)(3)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness",
+        "description": "Habitual drunkenness for one year",
+        "statute": "Ark. Code §9-12-301(a)(4)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel and Barbarous Treatment",
+        "description": "Cruel and barbarous treatment endangering the life of the other party",
+        "statute": "Ark. Code §9-12-301(a)(5)"
+      },
+      {
+        "code": "personal_indignities",
+        "name": "Personal Indignities",
+        "description": "Personal indignities rendering the other party's condition intolerable",
+        "statute": "Ark. Code §9-12-301(a)(6)"
+      },
+      {
+        "code": "insanity",
+        "name": "Incurable Insanity",
+        "description": "Incurable insanity of either party for at least three years",
+        "statute": "Ark. Code §9-12-301(a)(7)"
+      }
+    ],
+    "notes": "Arkansas has both fault and no-fault grounds. The no-fault ground requires 18 months of continuous separation. Fault grounds are frequently used when the waiting period is not met."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Arkansas uses equitable distribution. Marital property is divided equitably. The court considers the length of the marriage, age and health of the parties, occupation, amount and sources of income, vocational skills, employability, and the contribution of each party to the acquisition of property.",
+    "separateProperty": "Arkansas distinguishes between marital and non-marital property. Non-marital property includes property acquired before the marriage, by gift, or by inheritance, and remains with the owning spouse unless commingled.",
+    "statute": "Ark. Code §9-12-315"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Ark. Code §9-12-307",
+      "description": "Residency requirements — 60 days before filing, 3 months before decree"
+    },
+    {
+      "code": "Ark. Code §9-12-301",
+      "description": "Grounds for divorce — fault and no-fault"
+    },
+    {
+      "code": "Ark. Code §9-12-307(b)",
+      "description": "30-day waiting period from filing"
+    },
+    {
+      "code": "Ark. Code §9-12-315",
+      "description": "Property division — equitable distribution"
+    },
+    {
+      "code": "Ark. Code §9-12-312",
+      "description": "Alimony"
+    },
+    {
+      "code": "Ark. Code §9-13-101",
+      "description": "Child custody — joint custody presumption (Act 906 of 2021)"
+    },
+    {
+      "code": "Ark. Admin. Order No. 10",
+      "description": "Arkansas Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$165",
+    "varies": true,
+    "notes": "Arkansas filing fees are approximately $165 for a complaint for divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via an In Forma Pauperis motion."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Domestic Relations Cover Sheet",
+        "description": "Court administrative form",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Financial Means",
+        "description": "Disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Service on defendant via sheriff or process server",
+        "required": true,
+        "alternatives": ["Waiver and Acceptance of Service"]
+      },
+      {
+        "name": "Waiver and Acceptance of Service",
+        "description": "Defendant voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody and Visitation Plan",
+        "description": "Proposed custody and visitation arrangement",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Ark. Admin. Order No. 10 (income shares model)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Arkansas Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Arkansas must file a response within 30 days of service"
+    },
+    "statute": "Ark. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Arkansas uses an income shares model per Administrative Order No. 10. Both parents' net incomes are combined and the child support obligation is determined from the Arkansas Family Support Chart based on combined income and the number of children.",
+    "statute": "Ark. Admin. Order No. 10",
+    "notes": "The court may deviate from the guidelines if application would be unjust. Credits for overnight visitation may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Arkansas allows alimony based on the need of one spouse and the ability of the other to pay. The court considers the financial circumstances, earning capacity, length of the marriage, and other relevant factors. Alimony may be temporary, rehabilitative, or permanent.",
+    "eligibility": "There is no formula; the court has broad discretion. Alimony is generally not awarded in short marriages without significant disparity.",
+    "statute": "Ark. Code §9-12-312"
+  },
+
+  "court": {
+    "name": "Circuit Court, Domestic Relations Division",
+    "description": "Divorce cases are filed in the Circuit Court, Domestic Relations Division, in the county where the plaintiff resides."
+  }
+}

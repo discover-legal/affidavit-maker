@@ -18,6 +18,7 @@ const router  = express.Router();
 const { asyncHandler, NotFoundError, ValidationError } = require('../middleware/errorMiddleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
 const logger  = require('../utils/logger');
+const { isInternationalEnabled } = require('../config/jurisdictions');
 
 // ─── In-memory catalog (single source of truth, no DB dependency) ─────────────
 // Keeps the catalog fast and available even before DB migrations run.
@@ -69,14 +70,57 @@ const DOCS_BY_MATTER = {
 };
 
 // States/provinces that have full support for each matter type.
-// Canadian provinces (ON, BC, AB, QC) are supported for divorce under the federal Divorce Act.
+// Canadian provinces are supported for divorce under the federal Divorce Act.
 // Matter types other than divorce are state/province-agnostic (document templates available everywhere).
 const SUPPORTED_STATES = {
-  divorce: ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT', 'ON', 'BC', 'AB', 'QC'],
+  divorce: [
+    // US states
+    'TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT',
+    'CO', 'GA', 'MA', 'MI', 'NC', 'NJ', 'OH', 'PA', 'VA', 'WA',
+    'IN', 'TN', 'MO', 'MD', 'MN', 'KY',
+    'WI', 'SC', 'AL', 'OR', 'OK',
+    'LA', 'CT', 'NV', 'NM', 'ID',
+    'IA', 'AR', 'KS', 'MS', 'NE', 'WV', 'HI', 'ME', 'NH', 'RI', 'MT', 'DE', 'DC',
+    'AK', 'ND', 'SD', 'VT', 'WY',
+    // Canadian provinces and territories
+    'ON', 'BC', 'AB', 'QC', 'MB', 'NB', 'NL', 'NS', 'PE', 'SK',
+    'NT', 'YT', 'NU',
+  ],
 };
-const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT'];
-const ALL_PROVINCES = ['ON', 'BC', 'AB', 'QC'];
-const ALL_JURISDICTIONS = [...ALL_STATES, ...ALL_PROVINCES];
+const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT', 'CO', 'GA', 'MA', 'MI', 'NC', 'NJ', 'OH', 'PA', 'VA', 'WA', 'IN', 'TN', 'MO', 'MD', 'MN', 'KY', 'WI', 'SC', 'AL', 'OR', 'OK', 'LA', 'CT', 'NV', 'NM', 'ID', 'IA', 'AR', 'KS', 'MS', 'NE', 'WV', 'HI', 'ME', 'NH', 'RI', 'MT', 'DE', 'DC', 'AK', 'ND', 'SD', 'VT', 'WY'];
+const ALL_PROVINCES = ['ON', 'BC', 'AB', 'QC', 'MB', 'NB', 'NL', 'NS', 'PE', 'SK', 'NT', 'YT', 'NU'];
+// International jurisdiction arrays
+const ALL_UK = ['ENG', 'SCO', 'NIR'];
+const ALL_IE = ['IRL'];
+const ALL_AU = ['NSW', 'VIC', 'QLD', 'WA_AU', 'SA_AU', 'TAS', 'ACT', 'NT_AU'];
+const ALL_NZ = ['NZ'];
+const ALL_IN = ['IN_DL', 'IN_MH', 'IN_KA', 'IN_TN', 'IN_GJ', 'IN_UP', 'IN_WB', 'IN_TS', 'IN_RJ', 'IN_KL', 'IN_PB', 'IN_HR', 'IN_MP', 'IN_BR', 'IN_OD', 'IN_AP'];
+const ALL_PK = ['PK_PB', 'PK_SD', 'PK_KP', 'PK_BA', 'PK_IS'];
+const ALL_BD = ['BD'];
+const ALL_LK = ['LK'];
+const ALL_ZA = ['ZA'];
+const ALL_NG = ['LA_NG', 'FC', 'RV', 'CR', 'ED', 'DT', 'OY', 'OG', 'AN', 'EN', 'IM', 'AB_NG'];
+const ALL_AFRICA = ['KE', 'GH', 'UG', 'TZ', 'ZM', 'ZW', 'BW', 'MW', 'NA_NM'];
+const ALL_SE_ASIA = ['SG', 'HK', 'MY'];
+const ALL_CARIBBEAN = ['JM', 'TT', 'BB', 'BS', 'BM', 'GY', 'BZ', 'AG', 'DM', 'GD', 'KN', 'VC'];
+const ALL_PACIFIC = ['FJ', 'PG'];
+const ALL_MEDITERRANEAN = ['CY'];
+// All jurisdictions (full list — used when ENABLE_INTERNATIONAL=true)
+const _ALL_JURISDICTIONS_FULL = [
+  ...ALL_STATES, ...ALL_PROVINCES,
+  ...ALL_UK, ...ALL_IE, ...ALL_AU, ...ALL_NZ,
+  ...ALL_IN, ...ALL_PK, ...ALL_BD, ...ALL_LK,
+  ...ALL_ZA, ...ALL_NG, ...ALL_AFRICA,
+  ...ALL_SE_ASIA, ...ALL_CARIBBEAN, ...ALL_PACIFIC, ...ALL_MEDITERRANEAN,
+];
+
+// NA-only jurisdictions (used when ENABLE_INTERNATIONAL=false)
+const _ALL_JURISDICTIONS_NA = [...ALL_STATES, ...ALL_PROVINCES];
+
+/** Active jurisdiction list, gated by ENABLE_INTERNATIONAL feature flag. */
+function getAllJurisdictions() {
+  return isInternationalEnabled() ? _ALL_JURISDICTIONS_FULL : _ALL_JURISDICTIONS_NA;
+}
 
 // ─── GET /api/catalog/matters ─────────────────────────────────────────────────
 
@@ -110,7 +154,7 @@ router.get('/matters/:code',
     }
 
     const documents       = DOCS_BY_MATTER[code] || [];
-    const supported_states = SUPPORTED_STATES[code] || ALL_STATES;
+    const supported_states = SUPPORTED_STATES[code] || getAllJurisdictions();
 
     res.sendSuccess({ matter: { ...matter, documents, supported_states } });
   })
@@ -140,8 +184,9 @@ router.get('/states/:state/matters',
   asyncHandler(async (req, res) => {
     const state = req.params.state.toUpperCase();
 
-    if (!ALL_JURISDICTIONS.includes(state)) {
-      throw new NotFoundError(`"${state}" is not currently supported. Supported jurisdictions: ${ALL_JURISDICTIONS.join(', ')}`);
+    const activeJurisdictions = getAllJurisdictions();
+    if (!activeJurisdictions.includes(state)) {
+      throw new NotFoundError(`"${state}" is not currently supported. Supported jurisdictions: ${activeJurisdictions.join(', ')}`);
     }
 
     const matters = MATTER_TYPES.filter(m => {

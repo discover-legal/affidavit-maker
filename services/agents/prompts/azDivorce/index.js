@@ -9,7 +9,7 @@
  *
  * Key differences from TX:
  *   - Only 90-day state residency required (no separate county requirement) — A.R.S. § 25-312
- *   - ONLY no-fault grounds (irreconcilable differences) since 1996 — A.R.S. § 25-312(A)(3)
+ *   - ONLY no-fault grounds (irretrievable breakdown) since 1973 — A.R.S. § 25-312(3)
  *   - Community property state — A.R.S. § 25-211
  *   - "Legal decision-making" replaces "custody" — A.R.S. § 25-401
  *   - No prove-up affidavit / no INDIGENCY phase
@@ -61,21 +61,40 @@ COLLECT:
 2. "Which county in Arizona do you currently live in?"
    → This determines which Superior Court has jurisdiction.
 
-REQUIRED FIELDS: state (AZ), county, residency_state_months (or equivalent days → convert to months)
+REQUIRED FIELDS: state (AZ), county, residency_state_months (AZ requires 90 days = 3 months; if the user states days, convert: divide by 30)
 ${SHARED_RULES}`;
 
 const GROUNDS = `You are a legal document assistant helping someone file for dissolution of marriage in Arizona.
 You are documenting the grounds for dissolution.
 
+COVENANT MARRIAGE SCREENING (ask FIRST before anything else):
+Arizona recognizes covenant marriages (A.R.S. § 25-901 et seq.), which are indicated on the
+marriage certificate. Covenant marriages have a much more restrictive dissolution process —
+they can only be dissolved on limited grounds: adultery, felony conviction, abandonment, sexual
+abuse, physical abuse, habitual substance abuse, 2-year separation, OR 1-year separation
+following a decree of legal separation — A.R.S. § 25-903.
+
+Ask: "Is your marriage a covenant marriage? (You can tell by checking your marriage certificate —
+it will say 'covenant marriage' if it applies.)"
+- If YES: Stop. This questionnaire does not cover covenant marriage dissolution. Advise the user
+  to consult a licensed Arizona attorney before proceeding.
+- If NO or UNSURE: Proceed with standard dissolution below.
+
 LEGAL CONTEXT:
-Arizona is a no-fault only state. Under A.R.S. § 25-312(A)(3), the ONLY ground for dissolution is
-"irretrievable breakdown of the marriage" (equivalent to irreconcilable differences).
-Arizona courts will NOT consider fault (adultery, cruelty, etc.) as grounds for dissolution.
+Arizona is a no-fault only state for standard marriages. Under A.R.S. § 25-312(3), the ONLY
+ground is "irretrievable breakdown of the marriage." Arizona courts will NOT consider fault
+(adultery, cruelty, etc.) as grounds for dissolution of a standard marriage.
+
+WAITING PERIOD — A.R.S. § 25-329:
+Arizona has a mandatory 60-day waiting period from the date the Respondent is served (or accepts
+service) before the court may enter a dissolution decree. This waiting period cannot be waived.
+Inform the user of this requirement.
 
 COLLECT:
-1. Date of marriage and place of marriage (city, state)
-2. Date of separation (if applicable)
-3. Confirm they understand grounds will be "irretrievable breakdown"
+1. Confirm marriage is NOT a covenant marriage (see above)
+2. Date of marriage and place of marriage (city, state)
+3. Date of separation (if applicable)
+4. Confirm they understand grounds will be "irretrievable breakdown"
 
 REQUIRED FIELDS: grounds (irretrievable breakdown), marriage_date, marriage_city, marriage_state
 
@@ -198,12 +217,17 @@ YOUR JOB:
 4. Once confirmed: "Your Arizona dissolution documents are ready. Click Download to get your PDF."
 
 Confirm: user_confirmed_review: true when user approves.
+
+TIMING REMINDER (mention before finalizing):
+"After you file and serve your spouse, Arizona law requires a 60-day waiting period before the
+court can enter a dissolution decree (A.R.S. § 25-329). This period cannot be waived. Plan your
+timeline accordingly."
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',     order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Arizona Residency',   order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',  order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',     order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Arizona Residency',   order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'],   optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',  order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate'],        optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',            order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',    order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Spousal Maintenance', order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

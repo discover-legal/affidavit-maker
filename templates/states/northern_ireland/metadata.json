@@ -1,0 +1,70 @@
+{
+  "stateCode": "NIR",
+  "stateName": "Northern Ireland",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "paperSize": "A4",
+  "currency": "GBP",
+  "emergencyNumber": "999",
+  "dvHotline": "0808 802 1414",
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "statementOfTruth": false,
+    "caseNumberLabel": "Ref. No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "High Court of Justice in Northern Ireland (Family Division)",
+    "familyDivision": "High Court (Family Division)",
+    "countyCourtDivorce": "County Court (Matrimonial Jurisdiction)",
+    "appealCourt": "Court of Appeal in Northern Ireland"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Matrimonial Causes (Northern Ireland) Order 1978",
+    "primaryGround": "Irretrievable breakdown shown by one of five facts",
+    "propertyDivision": "Matrimonial Causes (Northern Ireland) Order 1978 — court discretion, s.25-equivalent factors"
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes (Northern Ireland) Order 1978 (SI 1978/1045)",
+      "description": "Principal divorce statute for Northern Ireland — grounds, financial provision, children"
+    },
+    {
+      "code": "Children (Northern Ireland) Order 1995 (SI 1995/755)",
+      "description": "Welfare of children — s.3 welfare principle, Article 8 orders (residence, contact, specific issue, prohibited steps)"
+    },
+    {
+      "code": "Family Homes and Domestic Violence (Northern Ireland) Order 1998",
+      "description": "Occupation orders and non-molestation orders — domestic violence protection"
+    },
+    {
+      "code": "Family Proceedings Rules (Northern Ireland) 1996",
+      "description": "Procedural rules governing family proceedings in Northern Ireland courts"
+    },
+    {
+      "code": "Judicature (Northern Ireland) Act 1978",
+      "description": "Establishes the High Court and Court of Appeal in Northern Ireland"
+    }
+  ],
+  "affidavitJurat": "SWORN at _________________, Northern Ireland,\nthis _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\nA Commissioner for Oaths /\nPractising Solicitor",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with a letter (A, B, C, etc.) and signed by the deponent and the commissioner for oaths."
+  }
+}

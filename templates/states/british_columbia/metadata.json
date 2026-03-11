@@ -49,11 +49,11 @@
       "description": "Procedural rules for Supreme Court family law proceedings in BC"
     },
     {
-      "code": "Evidence Act, RSBC 1996, c. 124, s.63",
-      "description": "BC affidavit requirements — oath before commissioner for taking oaths or notary public"
+      "code": "Evidence Act, RSBC 1996, c. 124, s.60",
+      "description": "BC affidavit requirements — oath before commissioner for taking affidavits or notary public"
     }
   ],
-  "affidavitJurat": "SWORN (or AFFIRMED) before me at the City/Town of ___, in the Province of British Columbia, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Oaths\nin and for British Columbia",
+  "affidavitJurat": "SWORN (or AFFIRMED) before me at the City/Town of ___, in the Province of British Columbia, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Affidavits\nin and for British Columbia",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

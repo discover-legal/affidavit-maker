@@ -1,0 +1,61 @@
+{
+  "stateCode": "RV",
+  "stateName": "Rivers",
+  "countryCode": "NG",
+  "countryName": "Nigeria",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in Nigeria at the time of filing (MCA s.2(1)). Alternatively, a wife who has been ordinarily resident in Nigeria for at least 3 years preceding the petition may file based on residency (MCA s.2(2)). The Rivers State High Court has jurisdiction if either party resides within the state."
+  },
+  "waitingPeriod": { "days": 0, "description": "No mandatory waiting period after filing. Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage without leave (MCA s.30)." },
+  "twoYearBar": { "years": 2, "description": "A petition for dissolution shall not be filed within two years of the date of marriage unless the court grants leave on grounds of exceptional hardship or exceptional depravity (MCA s.30)." },
+  "groundsForDivorce": {
+    "noFault": [
+      { "code": "separation_consent", "name": "2-Year Separation with Consent", "description": "Lived apart 2+ years, respondent does not object.", "statute": "Matrimonial Causes Act s.15(2)(e)" },
+      { "code": "separation_no_consent", "name": "3-Year Separation without Consent", "description": "Lived apart 3+ years.", "statute": "Matrimonial Causes Act s.15(2)(f)" }
+    ],
+    "fault": [
+      { "code": "wilful_refusal", "name": "Wilful Refusal to Consummate", "description": "Respondent has wilfully and persistently refused to consummate.", "statute": "Matrimonial Causes Act s.15(2)(a)" },
+      { "code": "adultery", "name": "Adultery", "description": "Respondent committed adultery; petitioner finds it intolerable.", "statute": "Matrimonial Causes Act s.15(2)(b)" },
+      { "code": "intolerable_behaviour", "name": "Intolerable Behaviour", "description": "Respondent behaved such that petitioner cannot reasonably live with them.", "statute": "Matrimonial Causes Act s.15(2)(c)" },
+      { "code": "desertion", "name": "Desertion for One Year", "description": "Respondent deserted for at least 1 continuous year.", "statute": "Matrimonial Causes Act s.15(2)(d)" },
+      { "code": "restitution", "name": "Failure to Comply with Restitution Order", "description": "Respondent failed to comply with conjugal rights order.", "statute": "Matrimonial Causes Act s.15(2)(g)" },
+      { "code": "presumption_of_death", "name": "Presumption of Death (Absent 7 Years)", "description": "Other party absent for 7+ years, petitioner has no reason to believe them alive.", "statute": "Matrimonial Causes Act s.15(2)(h)" }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Suit No.",
+    "custody": "Custody of the Child(ren)",
+    "physicalCustody": "Custody and Care",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Ancillary Orders (MCA s.70-73)"
+  },
+  "requiredForms": {
+    "basic": [
+      { "name": "Petition for Dissolution of Marriage", "description": "Initiates the divorce proceeding under the Matrimonial Causes Act", "required": true },
+      { "name": "Affidavit in Support of Petition", "description": "Sworn affidavit verifying the facts stated in the petition", "required": true },
+      { "name": "Marriage Certificate", "description": "Original or certified true copy of the marriage certificate under the Marriage Act", "required": true }
+    ]
+  },
+  "legalCitations": [
+    { "code": "Matrimonial Causes Act 1970, Cap M7 LFN 2004", "description": "Federal statute — governs dissolution of marriages contracted under the Marriage Act" },
+    { "code": "Marriage Act, Cap M6 LFN 2004", "description": "Governs statutory (Act) marriages in Nigeria" },
+    { "code": "Child Rights Act 2003", "description": "Welfare of the child — adopted by Rivers State" },
+    { "code": "Oaths Act, Cap O1 LFN 2004", "description": "Governs affidavits and sworn statements" }
+  ],
+  "filingFees": { "approximate": "NGN 15,000-40,000", "varies": true, "notes": "Filing fees vary by court registry." },
+  "childSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "Matrimonial Causes Act s.71; Child Rights Act 2003", "notes": "No statutory formula — court discretion." },
+  "spousalSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "Matrimonial Causes Act s.70", "notes": "Court may order maintenance for either spouse." },
+  "decreeProcess": { "decreeNisi": "Court grants Decree Nisi after hearing.", "decreeAbsolute": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58).", "waitingMonths": 3 },
+  "paperSize": "A4",
+  "currency": "NGN",
+  "emergencyNumber": "112",
+  "dvHotline": "0800 72 73 2255"
+}

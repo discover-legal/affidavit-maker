@@ -1,0 +1,38 @@
+{
+  "stateCode": "GA",
+  "stateName": "Georgia",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CIVIL ACTION FILE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "O.C.G.A. § 16-10-71",
+      "description": "Perjury — false swearing by a person who has taken an oath — makes perjury statement required in sworn affidavits"
+    },
+    {
+      "code": "O.C.G.A. § 45-17-8",
+      "description": "Notary public authority to administer oaths and take affidavits; jurat requirements"
+    },
+    {
+      "code": "O.C.G.A. § 24-9-901",
+      "description": "Authentication of documents; affidavit requirements for court use"
+    }
+  ],
+  "affidavitJurat": "Sworn to and subscribed before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, _______________ County, Georgia\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be labeled sequentially (Exhibit A, Exhibit B, etc.) and referenced in the body of the affidavit. Attach exhibits after the signature and notary block."
+  }
+}

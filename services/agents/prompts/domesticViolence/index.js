@@ -48,6 +48,17 @@ If the user is safe, proceed warmly:
 
 Set is_contempt: true for (b), is_renewal: true for (c), neither for (a)."
 
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Provincial protection orders (NOT "restraining orders" or "DVRO"):
+  ON: Family Law Act, Part IV (Restraining Order) + Courts of Justice Act s.46 (exclusive possession)
+  BC: Family Law Act, Part 9 (Protection Orders)
+  AB: Protection Against Family Violence Act (Emergency Protection Order or Queen's Bench Protection Order)
+  QC: Civil Code art. 394-400 (safeguard orders)
+- Criminal peace bond (Criminal Code s.810) available in all provinces for reasonable fear of personal injury
+- If immediate danger: call 911 first, then Assaulted Women's Helpline 1-866-863-0511 or provincial crisis line
+- Family violence is defined broadly: physical, sexual, psychological, financial abuse; threats; harassment; failure to provide necessities
+- Police can lay criminal charges for assault, uttering threats, criminal harassment (stalking) — separate from civil protection orders
+
 REQUIRED FIELDS: user_is_safe — set true once user confirms safety
 
 ${SHARED_RULES}`;
@@ -169,7 +180,7 @@ FOR INITIAL FILINGS AND RENEWALS:
    - Your children's school
    - Other locations
 2. "What distance should the restrained person stay away from you?"
-   (100 yards is typical; 500 yards near schools)
+   (The court will set the distance — common requests are 100 yards, 300 feet, or 500 feet; this varies by state and the court has discretion)
 3. "Do you need the court to order no contact — no calls, texts, or messages?"
 4. "Do you need the restrained person to move out of a shared home?"
 5. "Do you need temporary custody of any children?"
@@ -182,6 +193,9 @@ FOR CONTEMPT (violation of existing order):
 3. "Do you want to modify or strengthen the existing order?"
    (e.g., increase stay-away distance, add locations, extend duration)
 4. "Do you want any additional protection going forward?"
+
+IMPORTANT — FIREARMS NOTE (for ALL case types):
+Federal law (18 U.S.C. § 922(g)(8)) prohibits a person subject to a qualifying domestic violence restraining order from possessing firearms or ammunition. If a restraining order is granted, the restrained person may be required to surrender any firearms. Ask: "Does the restrained person have access to firearms?" and document the answer — courts can include a firearms surrender order as part of the restraining order.
 
 REQUIRED FIELDS: relief_items — set when user has identified what protection they need
 
@@ -206,7 +220,9 @@ FOR CONTEMPT — focus on documenting the violations:
 4. "Do you have police reports from when you reported the violations?"
 5. "Are there any neighbors, coworkers, or others who witnessed the violations?"
 
-Evidence is not required for a TRO (temporary order), but it significantly strengthens the case for a permanent order or contempt finding.
+Evidence is not required for an initial temporary order — these are typically granted on the petitioner's sworn declaration alone. However, evidence significantly strengthens the case for a permanent order or a contempt finding at the full hearing.
+
+NOTE: In California, there are TWO distinct pre-hearing orders: (1) an Emergency Protective Order (EPO), issued by law enforcement at the scene under Fam. Code § 6250, lasting approximately 5-7 days — obtained through police; and (2) a Temporary Restraining Order (TRO), issued by the court ex parte under Fam. Code § 6320, lasting until the full hearing (typically 20-25 days). A California victim may need to pursue BOTH separately. Other states use terms such as EPO, TPO (Temporary Protective Order), or emergency protective order for the law-enforcement-issued order, and TRO or similar for the court-issued order.
 
 REQUIRED FIELDS: evidence_section_confirmed — set true when complete
 
@@ -222,7 +238,8 @@ FOR INITIAL FILING:
 1. Petitioner, respondent, relationship, state/county
 2. Incidents (list each one briefly with date and what happened)
 3. Protection requested (stay-away distance, locations, no contact, move-out, temp custody)
-4. Remind: "A Temporary Restraining Order (TRO) can often be granted the same day you file, before a hearing."
+4. Remind: "An initial temporary protective order can often be granted the same day you file, before a full hearing. In California, if police respond to an incident they can issue an Emergency Protective Order (EPO) on the spot lasting ~5-7 days; separately, you can file with the court to obtain a Temporary Restraining Order (TRO) lasting until the full hearing (typically 20-25 days). Other states use terms such as EPO, TPO, or emergency protective order."
+5. Remind: "If you are in the US: under federal law (18 U.S.C. § 2265), your protective order must be honored in all 50 states — if you travel or move, the order is still valid. If you are in Canada: your provincial restraining order is enforceable across Canadian provinces under the Criminal Code and provincial enforcement legislation."
 
 FOR CONTEMPT:
 1. Existing order details and case number
@@ -340,6 +357,8 @@ const FIELD_MAP = {
   move_out_needed:              'moveOutNeeded',
   temp_custody_needed:          'tempCustodyNeeded',
   contempt_arrest_warrant:      'contemptArrestWarrant',
+  respondent_has_firearms:      'respondentHasFirearms',
+  firearms_description:         'firearmsDescription',
   evidence_section_confirmed:   'evidenceSectionConfirmed',
   police_reports_exist:         'policeReportsExist',
   user_confirmed_review:        'userConfirmedReview'
@@ -394,6 +413,8 @@ function buildTool() {
           move_out_needed:              { type: 'boolean' },
           temp_custody_needed:          { type: 'boolean' },
           contempt_arrest_warrant:      { type: 'boolean', description: 'True if user wants an arrest warrant issued for violations' },
+          respondent_has_firearms:      { type: 'boolean', description: 'True if the restrained person has access to firearms or other weapons — triggers firearms surrender order request' },
+          firearms_description:         { type: 'string', description: 'Description of firearms or weapons the restrained person has access to' },
           evidence_section_confirmed:   { type: 'boolean' },
           police_reports_exist:         { type: 'boolean' },
           user_confirmed_review:        { type: 'boolean' },

@@ -1,0 +1,121 @@
+{
+  "stateCode": "SCO",
+  "stateName": "Scotland",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 40,
+    "description": "Either party must be domiciled in Scotland at the date the action is raised, OR have been habitually resident in Scotland for at least 40 days immediately before the action (Domicile and Matrimonial Proceedings Act 1973, s.7)."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing beyond the required separation periods (1 year with consent or 2 years without consent). Fault-based divorces (adultery, unreasonable behaviour) have no separation period requirement."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_1yr_consent",
+        "name": "1-Year Separation with Consent",
+        "description": "Spouses have not cohabited for a continuous period of at least one year, and the defender consents to the granting of decree of divorce.",
+        "statute": "Divorce (Scotland) Act 1976, s.1(2)(d), as amended by Family Law (Scotland) Act 2006"
+      },
+      {
+        "code": "separation_2yr",
+        "name": "2-Year Separation without Consent",
+        "description": "Spouses have not cohabited for a continuous period of at least two years. No consent from the defender is required.",
+        "statute": "Divorce (Scotland) Act 1976, s.1(2)(e), as amended by Family Law (Scotland) Act 2006"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "The defender has committed adultery. The pursuer must not have cohabited with the defender after becoming aware of the adultery (condonation bars the ground).",
+        "statute": "Divorce (Scotland) Act 1976, s.1(2)(a)"
+      },
+      {
+        "code": "unreasonable_behaviour",
+        "name": "Unreasonable Behaviour",
+        "description": "The defender has behaved in such a way that the pursuer cannot reasonably be expected to cohabit with the defender.",
+        "statute": "Divorce (Scotland) Act 1976, s.1(2)(b)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Court Ref. No.",
+    "custody": "Parental Responsibilities and Rights (PRRs)",
+    "physicalCustody": "Residence",
+    "jointCustody": "Shared Parental Responsibilities and Rights",
+    "soleCustody": "Sole Parental Responsibilities and Rights",
+    "alimony": "Periodical Allowance / Aliment",
+    "childSupport": "Child Maintenance / Aliment",
+    "maritalProperty": "Matrimonial Property (Family Law (Scotland) Act 1985)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Initial Writ (Ordinary Cause)",
+        "description": "Initiates the divorce action in the Sheriff Court under Ordinary Cause Rules, Chapter 33",
+        "required": true
+      },
+      {
+        "name": "Form F26 (Simplified Divorce Application — 1 year with consent)",
+        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 1-year separation with consent",
+        "required": false
+      },
+      {
+        "name": "Form F28 (Simplified Divorce Application — 2 years)",
+        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 2-year separation without consent",
+        "required": false
+      },
+      {
+        "name": "Affidavit in Support",
+        "description": "Sworn affidavit supporting the grounds for divorce — required for undefended actions",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce (Scotland) Act 1976",
+      "description": "Foundational divorce statute — grounds for divorce (as amended by 2006 Act)"
+    },
+    {
+      "code": "Family Law (Scotland) Act 2006",
+      "description": "Modernised divorce law — reduced separation periods, cohabitation provisions"
+    },
+    {
+      "code": "Family Law (Scotland) Act 1985",
+      "description": "Financial provision on divorce — 5 principles of fair sharing (s.9-10)"
+    },
+    {
+      "code": "Children (Scotland) Act 1995",
+      "description": "Parental responsibilities and rights — welfare of the child"
+    },
+    {
+      "code": "Child Support Act 1991",
+      "description": "Statutory child maintenance framework — CMS applies in Scotland"
+    }
+  ],
+  "filingFees": {
+    "approximate": "GBP £185",
+    "varies": true,
+    "notes": "GBP 185 ordinary cause / GBP 151 simplified (fees increased November 2024). Fee exemption may apply for certain benefits recipients."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "cms_formula",
+    "guidelines": "Child Maintenance Service (CMS) — same UK-wide formula",
+    "notes": "CMS uses gross income from HMRC. Parents may agree private arrangements instead. Court can make 'top-up' orders for high earners."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "section_9_principles",
+    "guidelines": "Family Law (Scotland) Act 1985, s.9-10",
+    "notes": "Five principles of financial provision: (1) fair sharing of matrimonial property, (2) fair account of economic advantage/disadvantage, (3) fair sharing of burden of caring for children, (4) adjustment from dependency, (5) clean break where possible."
+  },
+  "effectiveDateRule": "The decree of divorce takes effect immediately when granted. There is no waiting period after the decree (unlike England).",
+  "certificateNote": "An extract decree of divorce can be obtained from the court and serves as proof that the marriage has been dissolved."
+}

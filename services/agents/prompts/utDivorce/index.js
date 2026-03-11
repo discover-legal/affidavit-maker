@@ -80,6 +80,16 @@ FAULT-BASED:
 - Cruel treatment to the extent of causing bodily injury or grievous mental distress
 - Incurable insanity
 
+WAITING PERIOD — Utah Code § 30-3-18:
+Utah imposes a mandatory 30-day waiting period from the date the complaint is filed
+before the court may grant a divorce decree (changed from 90 days effective May 8, 2018).
+The waiting period applies to ALL cases regardless of whether minor children are involved.
+The court may waive the 30-day period upon a showing of extraordinary circumstances
+(e.g., domestic violence, bigamy, or multiyear legal separation).
+Note: Parents with minor children must also complete Utah's mandatory divorce education
+course before a decree will be signed — this is a separate requirement.
+Inform the user of this requirement.
+
 COLLECT:
 1. Date of marriage and place (city, state)
 2. Date of separation (if applicable)
@@ -198,12 +208,19 @@ This is the final review phase.
 
 Summarize all collected information clearly, ask for confirmation, handle corrections,
 then confirm: user_confirmed_review: true
+
+TIMING REMINDER (mention before finalizing):
+"Utah requires a mandatory 30-day waiting period after filing before a divorce can be granted
+(Utah Code § 30-3-18). This applies to all cases regardless of whether children are involved.
+The court may waive this period only for extraordinary circumstances (e.g., domestic violence).
+If you have minor children, you must also complete Utah's mandatory divorce education course
+before the decree will be signed. Plan your timeline accordingly."
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',   order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Utah Residency',    order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',   order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Utah Residency',    order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'],   optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate'],        optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',          order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',  order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Alimony',           order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

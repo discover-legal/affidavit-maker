@@ -1,0 +1,206 @@
+{
+  "stateCode": "CO",
+  "stateName": "Colorado",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Parental Responsibilities",
+    "visitation": "Parenting Time",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 3,
+    "stateDays": 91,
+    "countyDays": 0,
+    "description": "At least one party must have been domiciled in Colorado for at least 91 days before the petition is filed. There is no separate county residency requirement.",
+    "statute": "C.R.S. § 14-10-106(1)(a)(III)"
+  },
+
+  "waitingPeriod": {
+    "days": 91,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "Colorado has a mandatory 91-day waiting period. The decree cannot be entered until at least 91 days after the respondent is served or service is waived. C.R.S. § 14-10-106(1)(a)."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "C.R.S. § 14-10-106(1)(a)"
+      }
+    ],
+    "fault": [],
+    "notes": "Colorado is a pure no-fault state. The only ground for dissolution of marriage is irretrievable breakdown. Fault is not relevant to divorce proceedings."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Colorado divides marital property equitably, considering the contribution of each spouse to acquisition of marital property, the value of property set apart to each spouse, and the economic circumstances of each spouse at the time of dissolution.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance during marriage is separate property and not subject to division.",
+    "statute": "C.R.S. § 14-10-113"
+  },
+
+  "parentalResponsibilities": {
+    "description": "Colorado uses the term 'parental responsibilities' instead of 'custody.' The court allocates decision-making responsibility and parenting time based on the best interests of the child.",
+    "statute": "C.R.S. § 14-10-124"
+  },
+
+  "legalCitations": [
+    {
+      "code": "C.R.S. § 14-10-101 et seq.",
+      "description": "Uniform Dissolution of Marriage Act — Colorado's divorce statutes"
+    },
+    {
+      "code": "C.R.S. § 14-10-106",
+      "description": "Dissolution of marriage — irretrievable breakdown ground; 91-day domicile requirement"
+    },
+    {
+      "code": "C.R.S. § 14-10-107",
+      "description": "Petition for dissolution of marriage — required contents"
+    },
+    {
+      "code": "C.R.S. § 14-10-113",
+      "description": "Disposition of property — equitable distribution principles"
+    },
+    {
+      "code": "C.R.S. § 14-10-114",
+      "description": "Maintenance — factors for award and amount"
+    },
+    {
+      "code": "C.R.S. § 14-10-124",
+      "description": "Best interests of child — parental responsibilities factors"
+    },
+    {
+      "code": "C.R.S. § 14-10-115",
+      "description": "Child support — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$230-$260",
+    "varies": true,
+    "notes": "Colorado filing fees range from approximately $230 to $260 for a dissolution of marriage depending on the county. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding (JDF 1101)",
+        "required": true
+      },
+      {
+        "name": "Summons for Dissolution of Marriage",
+        "description": "Formal notice to respondent (JDF 1102)",
+        "required": true
+      },
+      {
+        "name": "Case Information Sheet",
+        "description": "Court administrative form",
+        "required": true
+      },
+      {
+        "name": "Sworn Financial Statement",
+        "description": "Mandatory disclosure of income, assets, and debts (JDF 1111)",
+        "required": true
+      },
+      {
+        "name": "Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent",
+        "required": true,
+        "alternatives": ["Waiver and Acceptance of Service"]
+      },
+      {
+        "name": "Waiver and Acceptance of Service",
+        "description": "Respondent waives formal service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed allocation of parental responsibilities and parenting time (JDF 1113)",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Income shares calculation per C.R.S. § 14-10-115",
+        "required": true
+      },
+      {
+        "name": "Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Colorado Rules of Civil Procedure (CRCP)"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Respondent must file a response within 21 days of service"
+    },
+    "outOfState": {
+      "days": 35,
+      "description": "Respondent served outside Colorado must file a response within 35 days of service"
+    },
+    "statute": "CRCP 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Colorado uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from a schedule based on the combined adjusted gross income and the number of children.",
+    "statute": "C.R.S. § 14-10-115",
+    "notes": "The court may deviate from the guidelines if application would be inequitable, unjust, or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "advisory_guidelines",
+    "description": "Colorado has statutory advisory maintenance guidelines. For marriages of 3+ years, the suggested amount is 40% of the higher earner's monthly adjusted gross income minus 50% of the lower earner's monthly adjusted gross income. The suggested duration is based on a percentage of the length of the marriage.",
+    "eligibility": "The combined adjusted gross income of the parties must not exceed $240,000 annually for the advisory guidelines to apply.",
+    "durationFormula": "Duration ranges from 11 months (36-month marriage) up to 50% of the marriage length for marriages of 20+ years",
+    "statute": "C.R.S. § 14-10-114"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Dissolution of marriage is filed in the District Court in the county where either party resides."
+  }
+}

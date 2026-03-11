@@ -15,7 +15,7 @@
  *   - Unilateral: Form F8 (Notice of Family Claim)
  *   - Property: Family Law Act (SBC 2011) divides "family property" equally unless excluded
  *   - BC uses "excluded property" concept (pre-marriage property, gifts, inheritances)
- *   - Parenting: "parenting time" and "parental responsibilities" (modernized 2013)
+ *   - Parenting: "parenting time" and "decision-making responsibility" (Divorce Act terminology, as amended 2021); BC FLA (SBC 2011) uses the provincial term "parental responsibilities" for non-divorce family law matters
  *   - 1-year separation + residency are the key requirements
  */
 
@@ -95,7 +95,7 @@ Collecting information about children.
 LEGAL CONTEXT — Family Law Act (SBC 2011, c. 25), Part 4:
 BC uses modern terminology:
 - "PARENTING TIME": The time a child spends with each guardian
-- "PARENTAL RESPONSIBILITIES": Decision-making for the child (education, healthcare, religion)
+- "DECISION-MAKING RESPONSIBILITY": Decision-making for the child (education, healthcare, religion) — Divorce Act, s.16.1 (2021 federal terminology)
 - Both parents are usually "guardians" of their children
 - BC courts follow the "best interests of the child" principle
 
@@ -107,7 +107,7 @@ COLLECT:
 1. "Do you have minor children together?" → If NO: phase complete
 2. For each child: full name, date of birth, current living situation
 3. "What parenting time schedule are you proposing?"
-4. "How will you divide parental responsibilities? (shared / one parent primary)"
+4. "How will you divide decision-making responsibility? (shared / one parent primary)"
 5. "Have you agreed on child support?"
 
 REQUIRED FIELDS: children_confirmed, and if children: children array, parenting_plan
@@ -122,12 +122,15 @@ BC divides "FAMILY PROPERTY" equally between spouses unless:
 - The property is "excluded property"
 
 EXCLUDED PROPERTY (not divided):
-- Property owned before the marriage (only the increase in value is family property)
+- Property owned before the relationship began (only the increase in value during the relationship is family property) — s.85(1)(a) FLA
 - Gifts and inheritances
 - Court settlements for personal injury
 - Property excluded by a valid agreement
 
-THE FAMILY HOME is special: it is ALWAYS family property — even if owned before marriage.
+NOTE: In BC, the family home follows the SAME exclusion rules as other property — if owned before
+the relationship began, the pre-relationship value is excluded property under s.85(1)(a), and only
+the INCREASE in value during the relationship is family property. (This differs from Ontario, where
+the matrimonial home has special rules.) Do not assume the family home is always fully divisible.
 
 COLLECT:
 1. Real estate (especially the family home)
@@ -199,9 +202,9 @@ IMPORTANT REMINDERS:
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'BC Residency & Registry',order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',     order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'separationDate'],           optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'BC Residency & Registry',order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',     order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',               order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Family Property',        order: 5,  prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Spousal Support',        order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

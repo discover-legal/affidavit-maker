@@ -1,0 +1,34 @@
+{
+  "stateCode": "VT",
+  "stateName": "Vermont",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "26 V.S.A. § 5341 et seq.",
+      "description": "Vermont Notarial Acts — authority to administer oaths and take affidavits"
+    },
+    {
+      "code": "13 V.S.A. § 2901",
+      "description": "Perjury — false statement under oath"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Vermont\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit."
+  }
+}

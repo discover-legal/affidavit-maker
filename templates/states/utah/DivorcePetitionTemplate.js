@@ -25,6 +25,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - 30-day waiting period
  * - 3-month county residency
  * - Mandatory divorce education class (with children)
+ * - 90-day waiting period from service of complaint (Utah Code § 30-3-18); court may waive for good cause
  */
 class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   constructor() {
@@ -60,10 +61,10 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     // Utah waiting period
     this.waitingPeriod = {
-      days: 30,
-      startsFrom: 'filing_date',
-      exceptions: ['extraordinary_circumstances'],
-      description: 'Divorce may not be granted until 30 days after filing. Court may waive for extraordinary circumstances.'
+      days: 90,
+      startsFrom: 'service_date',
+      exceptions: ['good_cause'],
+      description: 'Divorce may not be granted until 90 days after service of the complaint on Respondent. Court may waive for good cause. (Utah Code § 30-3-18)'
     };
 
     // Utah formatting requirements (URCP Rule 10)
@@ -86,11 +87,15 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Get default court for Utah county
+   * Different counties fall under different judicial districts (1st through 8th).
+   * The generic caption format used by Utah courts is:
+   * "IN THE DISTRICT COURT OF THE STATE OF UTAH / IN AND FOR [COUNTY] COUNTY"
    * @param {string} county - County name
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
-    return `Third Judicial District Court, ${county || '[COUNTY]'} County, State of Utah`;
+    const countyName = county || '[COUNTY]';
+    return `District Court of the State of Utah, In and For ${countyName} County`;
   }
 
   /**

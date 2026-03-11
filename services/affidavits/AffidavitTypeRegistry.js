@@ -22,7 +22,7 @@
  */
 
 // ─── State codes supported by this platform ───────────────────────────────────
-const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT'];
+const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT', 'CO', 'GA', 'MA', 'MI', 'NC', 'NJ', 'OH', 'PA', 'VA', 'WA'];
 
 // ─── Type definitions ──────────────────────────────────────────────────────────
 

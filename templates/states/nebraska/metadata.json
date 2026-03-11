@@ -1,0 +1,34 @@
+{
+  "stateCode": "NE",
+  "stateName": "Nebraska",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "Neb. Rev. Stat. §64-101 et seq.",
+      "description": "Nebraska Notarial Acts — notary public authority to administer oaths, take acknowledgments, and perform notarial acts"
+    },
+    {
+      "code": "Neb. Rev. Stat. §28-915",
+      "description": "Perjury — criminal penalty for false statements under oath"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

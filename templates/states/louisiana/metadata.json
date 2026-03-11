@@ -1,0 +1,36 @@
+{
+  "stateCode": "LA",
+  "stateName": "Louisiana",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "parish"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant", "county"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase",
+    "usesParish": true
+  },
+  "legalCitations": [
+    {
+      "code": "La. R.S. 35:1 et seq.",
+      "description": "Louisiana Notarial Act — notary public authority to administer oaths, take affidavits, and execute authentic acts; Louisiana notaries are quasi-judicial officers with unique powers under civil law"
+    },
+    {
+      "code": "La. R.S. 14:123",
+      "description": "False swearing — criminal penalty for making a false statement under oath, including in affidavits"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Louisiana\n\nMy commission expires: ___________\nParish of: _______________________\nBar Roll / Notary ID: ____________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  },
+  "notes": "Louisiana is the only U.S. civil law jurisdiction. Its legal system derives from the French Napoleonic Code, not English common law. Louisiana uses PARISHES, not counties. Louisiana notaries are quasi-judicial officers and notarial acts carry special evidentiary weight."
+}

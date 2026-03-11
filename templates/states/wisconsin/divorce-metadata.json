@@ -1,0 +1,206 @@
+{
+  "stateCode": "WI",
+  "stateName": "Wisconsin",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Judgment of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Placement",
+    "visitation": "Periods of Physical Placement",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property / Community Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 30,
+    "description": "At least one party must have been a resident of Wisconsin for at least 6 months and a resident of the county where the petition is filed for at least 30 days immediately preceding the filing.",
+    "statute": "Wis. Stat. §767.301"
+  },
+
+  "waitingPeriod": {
+    "days": 120,
+    "startsFrom": "service_or_joint_filing",
+    "exceptions": [],
+    "description": "Wisconsin has a mandatory 120-day waiting period. No final hearing may be held until at least 120 days after service of the summons and petition on the respondent, or after the filing of a joint petition. Wis. Stat. §767.335."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "Wis. Stat. §767.315"
+      }
+    ],
+    "fault": [],
+    "notes": "Wisconsin is a pure no-fault divorce state. The only ground for divorce is irretrievable breakdown of the marriage. There are no fault-based grounds."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Wisconsin is a community property (marital property) state. There is a presumption that all marital property will be divided equally (50/50). The court may deviate from equal division after considering the length of the marriage, the property brought to the marriage by each party, whether one party has substantial assets not subject to division, the contribution of each party to the marriage, the age and health of the parties, the contribution by one party to the education, training, or increased earning power of the other, the earning capacity of each party, the desirability of awarding the family home to the party with primary physical placement, and other relevant factors.",
+    "separateProperty": "Property acquired before the marriage, by gift, or by inheritance may be considered individual property, but the court has broad discretion to divide all property.",
+    "statute": "Wis. Stat. §767.61"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Wis. Stat. §767.301",
+      "description": "Residency requirements — 6 months state, 30 days county"
+    },
+    {
+      "code": "Wis. Stat. §767.315",
+      "description": "Grounds for divorce — irretrievable breakdown (no-fault only)"
+    },
+    {
+      "code": "Wis. Stat. §767.335",
+      "description": "120-day waiting period from service or joint filing"
+    },
+    {
+      "code": "Wis. Stat. §767.61",
+      "description": "Property division — community property, presumption of equal division"
+    },
+    {
+      "code": "Wis. Stat. §767.56",
+      "description": "Maintenance — factors for awarding spousal maintenance"
+    },
+    {
+      "code": "Wis. Stat. §767.41",
+      "description": "Legal custody and physical placement of children"
+    },
+    {
+      "code": "Wis. Stat. §767.511",
+      "description": "Child support — percentage of income standard"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$185-$195",
+    "varies": true,
+    "notes": "Wisconsin filing fees are approximately $185-$195 for a divorce action but may vary by county. Fee waivers are available for qualifying low-income individuals by filing a Petition for Waiver of Fees and Costs."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Confidential Petition Addendum",
+        "description": "Contains sensitive personal information (SSN, DOB) filed separately",
+        "required": true
+      },
+      {
+        "name": "Financial Disclosure Statement",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Judgment of Divorce",
+        "description": "Final court order granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Waiver of Service / Joint Petition"]
+      },
+      {
+        "name": "Voluntary Acceptance of Service",
+        "description": "Respondent voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Proposed Parenting Plan",
+        "description": "Court order establishing legal custody and physical placement schedule per Wis. Stat. §767.41",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Wisconsin percentage of income standard (Wis. Stat. §767.511)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Wisconsin Circuit Court rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 40,
+      "description": "Respondent served outside Wisconsin must file a response within 40 days of service"
+    },
+    "statute": "Wis. Stat. §801.09"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "percentage_of_income",
+    "description": "Wisconsin uses a percentage of income model. The percentage is based on the number of children: 17% for 1 child, 25% for 2 children, 29% for 3 children, 31% for 4 children, and 34% for 5 or more children. The percentage is applied to the paying parent's gross income.",
+    "percentages": {
+      "1": "17%",
+      "2": "25%",
+      "3": "29%",
+      "4": "31%",
+      "5_or_more": "34%"
+    },
+    "statute": "Wis. Stat. §767.511",
+    "notes": "The court may deviate from the percentage standard if application would be unfair to the child or any of the parties. Shared-placement formulas apply when each parent has placement at least 25% of the time."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "discretionary_maintenance",
+    "description": "Wisconsin maintenance is discretionary. The court considers the length of the marriage, the age and physical and emotional health of both parties, the division of property, the educational level of each party at the time of marriage and at the time of the action, the earning capacity of the party seeking maintenance, the feasibility of the party seeking maintenance becoming self-supporting at a standard of living reasonably comparable to that during the marriage, tax consequences, any mutual agreement, the contribution by one party to the education, training, or increased earning power of the other, and other factors the court deems relevant.",
+    "eligibility": "Either party may request maintenance. There is no formula; courts have broad discretion.",
+    "statute": "Wis. Stat. §767.56"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Divorce actions are filed in the Circuit Court in the county where either party resides."
+  }
+}

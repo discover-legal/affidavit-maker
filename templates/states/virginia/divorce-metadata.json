@@ -1,0 +1,303 @@
+{
+  "stateCode": "VA",
+  "stateName": "Virginia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Bill of Complaint",
+    "decree": "Final Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Custody",
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Legal Custody",
+    "soleCustody": "Sole Legal Custody",
+    "visitation": "Visitation",
+    "alimony": "Spousal Support and Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "One of the parties must have been domiciled in Virginia, or been a bona fide resident of Virginia, for at least six months immediately preceding the filing of the suit.",
+    "statute": "Va. Code § 20-97"
+  },
+
+  "waitingPeriod": {
+    "withAgreementNoChildren": {
+      "months": 6,
+      "description": "6-month separation required if there are no minor children AND the parties have a signed separation agreement.",
+      "statute": "Va. Code § 20-91(9)(a)"
+    },
+    "otherwise": {
+      "years": 1,
+      "description": "1-year separation required if the parties have minor children OR do not have a signed separation agreement.",
+      "statute": "Va. Code § 20-91(9)(b)"
+    }
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_6mo",
+        "name": "Six-Month Separation (No Children + Separation Agreement)",
+        "description": "The parties have lived separate and apart without any cohabitation for six months, there are no minor children of the marriage, and the parties have a signed property settlement or separation agreement.",
+        "statute": "Va. Code § 20-91(9)(a)"
+      },
+      {
+        "code": "separation_1yr",
+        "name": "One-Year Separation",
+        "description": "The parties have lived separate and apart without any cohabitation and without interruption for one year.",
+        "statute": "Va. Code § 20-91(9)(b)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery, Sodomy, or Buggery",
+        "description": "Respondent has committed adultery, sodomy, or buggery outside the marriage.",
+        "statute": "Va. Code § 20-91(1)",
+        "notes": "Adultery as grounds may affect spousal support eligibility"
+      },
+      {
+        "code": "felony",
+        "name": "Conviction of Felony",
+        "description": "Respondent has been convicted of a felony, sentenced to confinement for more than one year, and confined pursuant to such sentence.",
+        "statute": "Va. Code § 20-91(2-4)"
+      },
+      {
+        "code": "cruelty_desertion",
+        "name": "Cruelty, Desertion, or Abandonment",
+        "description": "Respondent has been guilty of cruelty, caused reasonable apprehension of bodily hurt, or willfully deserted or abandoned Petitioner.",
+        "statute": "Va. Code § 20-91(6)",
+        "notes": "Requires one-year waiting period after the act of cruelty or desertion"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "communityProperty": false,
+    "description": "Virginia is an equitable distribution state. Property is classified as separate, marital, or hybrid. The court equitably divides marital property considering 11 statutory factors. Separate property is generally not subject to division.",
+    "statute": "Va. Code § 20-107.3",
+    "propertyClassification": {
+      "maritalProperty": "Property acquired during the marriage, other than by gift or inheritance from a third party",
+      "separateProperty": "Property acquired before marriage, or during marriage by inheritance or gift from a third party",
+      "hybridProperty": "Property that is part marital and part separate (transmutation principles apply)"
+    },
+    "factors": [
+      "Contributions, monetary and nonmonetary, of each party to the well-being of the family",
+      "Contributions, monetary and nonmonetary, of each party to the acquisition and care and maintenance of marital property",
+      "Duration of the marriage",
+      "Ages and physical and mental condition of the parties",
+      "Circumstances and factors which contributed to the dissolution of the marriage",
+      "How and when specific items of marital property were acquired",
+      "Debts and liabilities of each spouse",
+      "Liquid or nonliquid character of all marital property",
+      "Tax consequences to each party",
+      "Use or expenditure of marital property by either of the parties for a nonmarital separate purpose or the dissipation of such funds",
+      "Such other factors as the court deems necessary or appropriate"
+    ]
+  },
+
+  "spousalSupport": {
+    "type": "spousal_support_and_maintenance",
+    "statute": "Va. Code § 20-107.1",
+    "description": "The court may award spousal support and maintenance to either party. Adultery by the receiving party may bar alimony. The award may be permanent, limited, or rehabilitative.",
+    "factors": [
+      "Obligations, needs and financial resources of the parties",
+      "Standard of living established during the marriage",
+      "Duration of the marriage",
+      "Age and physical and mental condition of the parties",
+      "Extent to which the age, physical or mental condition, or special circumstances of any child would affect a party's ability to work",
+      "Contributions, monetary and nonmonetary, of each party to the well-being of the family",
+      "Property interests of the parties",
+      "Provisions made with regard to the marital property under § 20-107.3",
+      "Earning capacity of each party",
+      "Education and training of the parties and the time and costs to acquire sufficient education or training to enable the party seeking support to find appropriate employment",
+      "Decisions regarding employment, career, economics, education and parenting arrangements made by the parties during the marriage",
+      "Contributions, monetary and nonmonetary, of each party to the care and wellbeing of minor children during the marriage and any changes in circumstances subsequent to the entry of a final decree",
+      "Such other factors as are necessary to consider the equities between the parties"
+    ]
+  },
+
+  "custody": {
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "statute": "Va. Code § 20-124.1 et seq.",
+    "standard": "Best interests of the child",
+    "description": "Virginia courts apply a best-interests-of-the-child standard with 10 statutory factors. Courts may award joint or sole legal and physical custody."
+  },
+
+  "childSupport": {
+    "guidelines": "Virginia Child Support Guidelines",
+    "statute": "Va. Code § 20-108.2",
+    "description": "Child support is calculated under Virginia's income shares guidelines."
+  },
+
+  "officialForms": {
+    "billOfComplaint": {
+      "name": "Bill of Complaint for Divorce",
+      "required": true,
+      "notes": "Filed in Virginia Circuit Court"
+    },
+    "summons": {
+      "name": "Summons",
+      "required": true
+    },
+    "affidavitOfComplainant": {
+      "name": "Affidavit of Complainant (for no-fault divorce)",
+      "required": true,
+      "notes": "Required when proceeding without ore tenus hearing"
+    },
+    "financialStatement": {
+      "name": "Financial Statement",
+      "required": false,
+      "notes": "Required when spousal support or child support is at issue"
+    },
+    "separationAgreement": {
+      "name": "Property Settlement Agreement",
+      "required": false,
+      "notes": "Strongly recommended to resolve property, support, and custody"
+    }
+  },
+
+  "filingFees": {
+    "approximate": "$86",
+    "varies": true,
+    "notes": "Virginia state filing fee is approximately $86. Additional fees for service of process. Some localities assess additional fees."
+  },
+
+  "legalCitations": [
+    {
+      "code": "Va. Code § 20-91",
+      "description": "Grounds for divorce from the bond of matrimony — no-fault and fault-based grounds"
+    },
+    {
+      "code": "Va. Code § 20-97",
+      "description": "Residency requirement — domicile in Virginia for 6 months"
+    },
+    {
+      "code": "Va. Code § 20-107.1",
+      "description": "Spousal support and maintenance"
+    },
+    {
+      "code": "Va. Code § 20-107.3",
+      "description": "Equitable distribution of marital property — separate and marital property"
+    },
+    {
+      "code": "Va. Code § 20-107.4",
+      "description": "Name change upon divorce"
+    },
+    {
+      "code": "Va. Code § 20-108.2",
+      "description": "Child support guidelines"
+    },
+    {
+      "code": "Va. Code § 20-124.1 et seq.",
+      "description": "Child custody — legal and physical custody"
+    }
+  ],
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt"
+    },
+    "spacing": "double",
+    "notes": "Divorce is filed in Virginia Circuit Court. Virginia uses 'Bill of Complaint' for the initiating pleading and 'Final Decree of Divorce' for the judgment."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Bill of Complaint for Divorce",
+        "description": "Initiates the divorce proceeding in Virginia Circuit Court",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "VS-4 Report of Divorce",
+        "description": "Vital statistics report required by the Virginia Department of Health",
+        "required": true
+      },
+      {
+        "name": "Final Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent (personal service or service by publication)",
+        "required": true,
+        "alternatives": ["Acceptance/Waiver of Service"]
+      },
+      {
+        "name": "Acceptance/Waiver of Service",
+        "description": "Respondent waives formal service",
+        "required": false,
+        "notes": "Must be in writing and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Calculation per Virginia Child Support Guidelines (Va. Code § 20-108.2)",
+        "required": true
+      },
+      {
+        "name": "Income and Expense Declaration",
+        "description": "Financial disclosure for support determination",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan / Custody and Visitation Agreement",
+        "description": "Proposed custody and visitation arrangement",
+        "required": false,
+        "notes": "Required when custody or visitation is contested"
+      }
+    ]
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Respondent must file a responsive pleading within 21 days of service"
+    },
+    "outOfState": {
+      "days": 21,
+      "description": "Respondent served outside Virginia must file a responsive pleading within 21 days of service; additional time may be granted"
+    },
+    "statute": "Va. Sup. Ct. R. 3:5"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Virginia uses an income shares model. Both parents' gross incomes are combined and matched to a statutory schedule. The basic support obligation is then divided between the parents in proportion to their incomes. Adjustments are made for health insurance, childcare, and extraordinary medical/dental expenses.",
+    "statute": "Va. Code § 20-108.2",
+    "notes": "The guidelines are presumptive. The court may deviate upon a written finding that application of the guidelines would be unjust or inappropriate."
+  },
+
+  "venue": {
+    "options": [
+      "County or city where the parties last cohabited",
+      "County or city where the respondent resides",
+      "County or city where the complainant resides if the respondent is a non-resident or cannot be found"
+    ],
+    "statute": "Va. Code § 20-98"
+  }
+}

@@ -17,7 +17,8 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * - Uses "Province de Québec / Province of Quebec"
  * - Superior Court uses judicial districts (Montréal, Québec, Longueuil, etc.)
  * - No. de dossier / Court File No. instead of Case No.
- * - Family proceedings: Petitioner (Demandeur/Demanderesse) / Respondent (Défendeur/Défenderesse)
+ * - Family proceedings: Plaintiff (Demandeur/Demanderesse) / Defendant (Défendeur/Défenderesse)
+ *   (Quebec civil law terminology — not "Petitioner/Respondent" as in common-law provinces)
  *
  * @class QuebecAffidavitTemplate
  * @extends BaseAffidavitTemplate
@@ -36,14 +37,30 @@ class QuebecAffidavitTemplate extends BaseAffidavitTemplate {
   }
 
   /**
+   * Quebec header uses province designation.
+   */
+  generateHeader() {
+    return 'PROVINCE OF QUEBEC';
+  }
+
+  /**
+   * Quebec venue — judicial district of filing.
+   * Quebec uses judicial districts, not counties.
+   */
+  generateVenue(county) {
+    const district = (county || '[JUDICIAL DISTRICT]').toUpperCase();
+    return `DISTRICT OF ${district}`;
+  }
+
+  /**
    * Quebec case caption.
    * Superior Court (Cour supérieure) uses judicial district and "No. :" file number.
    */
   generateCaseCaption(affidavitData) {
     const district = (affidavitData.county || affidavitData.city || '[JUDICIAL DISTRICT]').toUpperCase();
     const fileNo = affidavitData.caseNumber || '[FILE NUMBER]';
-    const petitioner = affidavitData.plaintiff || affidavitData.petitionerName || '[PETITIONER / DEMANDEUR]';
-    const respondent = affidavitData.defendant || affidavitData.respondentName || '[RESPONDENT / DÉFENDEUR]';
+    const plaintiff = affidavitData.plaintiff || affidavitData.petitionerName || '[PLAINTIFF / DEMANDEUR]';
+    const defendant = affidavitData.defendant || affidavitData.respondentName || '[DEFENDANT / DÉFENDEUR]';
 
     const formatted =
       `SUPERIOR COURT\n` +
@@ -51,17 +68,17 @@ class QuebecAffidavitTemplate extends BaseAffidavitTemplate {
       `PROVINCE OF QUEBEC\n` +
       `DISTRICT OF ${district}\n\n` +
       `No. : ${fileNo}\n\n` +
-      `${petitioner.toUpperCase()},\n` +
-      `Petitioner (Demandeur/Demanderesse)\n\n` +
+      `${plaintiff.toUpperCase()},\n` +
+      `Plaintiff (Demandeur/Demanderesse)\n\n` +
       `v.\n\n` +
-      `${respondent.toUpperCase()},\n` +
-      `Respondent (Défendeur/Défenderesse)`;
+      `${defendant.toUpperCase()},\n` +
+      `Defendant (Défendeur/Défenderesse)`;
 
     return {
       courtName: `Superior Court — District of ${district}`,
       caseNumber: affidavitData.caseNumber,
-      plaintiff: petitioner,
-      defendant: respondent,
+      plaintiff: plaintiff,
+      defendant: defendant,
       formatted
     };
   }

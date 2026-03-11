@@ -15,9 +15,45 @@
   "properties": {
     "stateCode": {
       "type": "string",
-      "description": "Two-letter state code (e.g., TX, UT, AZ)",
-      "pattern": "^[A-Z]{2}$",
-      "examples": ["TX", "UT", "AZ"]
+      "description": "Jurisdiction code (e.g., TX, ENG, NSW, IN_DL, LA_NG)",
+      "pattern": "^[A-Z]{2,5}(_[A-Z]{2,5})?$",
+      "examples": ["TX", "UT", "ENG", "NSW", "IN_DL", "LA_NG", "WA_AU"]
+    },
+    "countryCode": {
+      "type": "string",
+      "description": "ISO-style country code (US, CA, UK, AU, IN, etc.)",
+      "pattern": "^[A-Z]{2,3}$",
+      "examples": ["US", "CA", "UK", "AU", "IN", "ZA", "NG"]
+    },
+    "currency": {
+      "type": "string",
+      "description": "Currency code for filing fees and financial references",
+      "pattern": "^[A-Z]{3}$",
+      "examples": ["USD", "CAD", "GBP", "EUR", "AUD", "INR", "ZAR"]
+    },
+    "paperSize": {
+      "type": "string",
+      "description": "Paper size for PDF generation",
+      "enum": ["letter", "A4"],
+      "default": "letter"
+    },
+    "emergencyNumber": {
+      "type": "string",
+      "description": "Emergency telephone number (e.g., 911, 999, 000, 112)"
+    },
+    "dvHotline": {
+      "type": "string",
+      "description": "Domestic violence crisis hotline number"
+    },
+    "personalLawSystem": {
+      "type": "boolean",
+      "description": "Whether family law varies by religion (India, Sri Lanka, Pakistan, etc.)",
+      "default": false
+    },
+    "stampPaperRequired": {
+      "type": "boolean",
+      "description": "Whether affidavits must be on judicial stamp paper (India, Pakistan, Bangladesh)",
+      "default": false
     },
     "stateName": {
       "type": "string",
@@ -30,10 +66,22 @@
       "description": "Types of documents this template supports",
       "items": {
         "type": "string",
-        "enum": ["affidavit", "petition", "motion", "notice"]
+        "enum": [
+          "affidavit",
+          "divorce_petition",
+          "divorce_decree",
+          "indigency_affidavit",
+          "waiver_of_service",
+          "cert_last_known_address",
+          "military_status_affidavit",
+          "prove_up_affidavit",
+          "petition",
+          "motion",
+          "notice"
+        ]
       },
       "minItems": 1,
-      "examples": [["affidavit"]]
+      "examples": [["affidavit"], ["affidavit", "divorce_petition", "divorce_decree"]]
     },
     "version": {
       "type": "string",
@@ -89,13 +137,13 @@
         "headerFormat": {
           "type": "string",
           "description": "Format for document header",
-          "enum": ["uppercase", "sentencecase", "titlecase"],
-          "examples": ["uppercase", "sentencecase"]
+          "enum": ["uppercase", "sentencecase", "titlecase", "commonwealth"],
+          "examples": ["uppercase", "sentencecase", "commonwealth"]
         },
         "venueFormat": {
           "type": "string",
           "description": "Format for venue section",
-          "enum": ["uppercase", "sentencecase", "titlecase"],
+          "enum": ["uppercase", "sentencecase", "titlecase", "commonwealth"],
           "examples": ["uppercase", "sentencecase"]
         }
       },

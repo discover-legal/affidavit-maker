@@ -1,0 +1,73 @@
+{
+  "stateCode": "QLD",
+  "stateName": "Queensland",
+  "countryCode": "AU",
+  "countryName": "Australia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "Either spouse must be an Australian citizen, domiciled in Australia, or ordinarily resident in Australia for at least 12 months immediately before the application (Family Law Act 1975 (Cth), s.39(3))."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No waiting period after filing. Divorce Order takes effect 1 month and 1 day after it is made (Family Law Act 1975 (Cth), s.55)."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation",
+        "name": "Irretrievable Breakdown (12-Month Separation)",
+        "description": "The marriage has broken down irretrievably, demonstrated by 12 months of continuous separation.",
+        "statute": "Family Law Act 1975 (Cth), s.48(1)"
+      }
+    ],
+    "fault": []
+  },
+  "terminology": {
+    "caseNumberLabel": "File Number",
+    "custody": "Parenting Orders",
+    "physicalCustody": "Time Spent with Child",
+    "jointCustody": "Parental Responsibility (shared)",
+    "soleCustody": "Sole Parental Responsibility",
+    "alimony": "Spousal Maintenance",
+    "childSupport": "Child Support",
+    "maritalProperty": "Property Settlement (Family Law Act 1975 (Cth), s.79)"
+  },
+  "requiredForms": {
+    "basic": [
+      { "name": "Application for Divorce", "description": "Initiates divorce proceedings under the Family Law Act 1975 (Cth)", "required": true },
+      { "name": "Affidavit — Proof of Separation", "description": "Supporting affidavit confirming the 12-month separation period", "required": true },
+      { "name": "Marriage Certificate", "description": "Certified copy of the marriage certificate", "required": true }
+    ]
+  },
+  "legalCitations": [
+    { "code": "Family Law Act 1975 (Cth)", "description": "Federal statute — sole ground for divorce is irretrievable breakdown (s.48)" },
+    { "code": "Family Law Rules 2004 (Cth)", "description": "Procedural rules for family law proceedings" },
+    { "code": "Child Support (Assessment) Act 1989 (Cth)", "description": "Federal legislation governing child support" },
+    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting and property provisions (in force 6 May 2024)" }
+  ],
+  "filingFees": {
+    "approximate": "AUD $1125",
+    "varies": false,
+    "notes": "Fee effective 1 July 2025. Reduced fee of AUD $375 available for financial hardship."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "formula",
+    "federalGuidelines": "Child Support (Assessment) Act 1989 (Cth)",
+    "notes": "Assessed by Services Australia (Child Support)."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "Family Law Act 1975 (Cth), ss.72-75",
+    "notes": "Discretionary — court considers s.75(2) factors."
+  },
+  "effectiveDateRule": "The Divorce Order takes effect 1 month and 1 day after the order is made (Family Law Act 1975 (Cth), s.55).",
+  "certificateNote": "A sealed Divorce Order can be obtained from the court registry after the order takes effect.",
+  "registryLocations": {
+    "primary": "Brisbane",
+    "others": ["Cairns", "Townsville", "Rockhampton"]
+  }
+}

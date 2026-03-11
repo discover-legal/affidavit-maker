@@ -11,7 +11,8 @@
  *   - Grounds: "irretrievably broken" or mental incapacity — § 61.052 F.S.
  *   - Equitable distribution (NOT community property) — § 61.075 F.S.
  *   - "Parenting plan" and "time-sharing" replace custody/visitation — § 61.13 F.S.
- *   - Multiple alimony types: bridge-the-gap, rehabilitative, durational, permanent — § 61.08 F.S.
+ *   - Alimony types (post-SB 1416, effective July 1, 2023): bridge-the-gap, rehabilitative, durational — § 61.08 F.S.
+ *   - PERMANENT alimony ABOLISHED effective July 1, 2023 (SB 1416)
  *   - Mandatory financial disclosure (FL Form 12.902) — Rule 12.285 Fla. Fam. Law R. P.
  */
 
@@ -124,11 +125,16 @@ ${SHARED_RULES}`;
 const SUPPORT = `You are a legal document assistant helping someone file for dissolution of marriage in Florida.
 Collecting alimony information.
 
-FLORIDA ALIMONY TYPES — § 61.08 F.S.:
+FLORIDA ALIMONY TYPES — § 61.08 F.S. (as amended by SB 1416, effective July 1, 2023):
 1. BRIDGE-THE-GAP: Short-term support for transition to single life (max 2 years)
-2. REHABILITATIVE: Supports spouse getting education/training (requires specific plan)
-3. DURATIONAL: For marriages < 17 years; set period not to exceed length of marriage
-4. PERMANENT: Rare; for long marriages where recipient cannot self-support
+2. REHABILITATIVE: Supports spouse getting education/training (requires specific written plan)
+3. DURATIONAL: Provides support for a set period — § 61.08(7) F.S.:
+   - Short-term marriage (under 10 years): term cannot exceed 50% of the length of the marriage
+   - Moderate-term marriage (10 to less than 20 years): term cannot exceed 60% of the length of the marriage
+   - Long-term marriage (20 years or more): term cannot exceed 75% of the length of the marriage
+
+IMPORTANT: Permanent alimony was ABOLISHED effective July 1, 2023. Do NOT suggest or discuss
+permanent alimony as an available option under Florida law.
 
 Factors: length of marriage, standard of living, earning capacity, age/health, contributions
 
@@ -201,9 +207,9 @@ and file them with the court.
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Florida Residency',  order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Florida Residency',  order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'],   optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate'],        optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',           order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',   order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Alimony',            order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

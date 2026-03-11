@@ -85,7 +85,9 @@ of reconciliation. Tex. Fam. Code § 6.001.
 
 COLLECT:
 1. "Have you and your spouse separated? If so, when did you separate?" (date or approximate)
-2. "Are you filing on no-fault grounds — that is, irreconcilable differences or insupportability?"
+2. "Are you filing on no-fault grounds — that is, insupportability?"
+   NOTE: Texas uses the term "insupportability" (Tex. Fam. Code § 6.001), not "irreconcilable differences."
+   These are not interchangeable; only "insupportability" is the correct Texas statutory ground.
 3. If they mention fault grounds (adultery, cruelty, abandonment, etc.): document those clearly
 4. Date of marriage and place of marriage (city, state) — needed for the petition
 
@@ -115,8 +117,13 @@ COLLECT:
 
 REQUIRED FIELDS (if children exist): children array with name/dob for each child
 
-IMPORTANT: Under Tex. Fam. Code § 153.005, Texas courts prefer Joint Managing Conservatorship
-unless it would harm the child. Inform the user of this briefly if they ask about custody.
+IMPORTANT: Under Tex. Fam. Code § 153.131, there is a rebuttable presumption that appointing
+the parents as Joint Managing Conservators (JMC) is in the best interest of the child.
+If the user asks about custody, briefly explain:
+- Joint Managing Conservatorship (JMC): both parents share rights and duties
+- Sole Managing Conservator (SMC): one parent has primary authority
+- Possessory Conservator (PC): the non-primary parent with scheduled possession
+Section 153.005 addresses parents as managing conservators generally.
 ${SHARED_RULES}`;
 
 const PROPERTY = `You are a legal document assistant helping someone file for divorce in Texas.
@@ -144,10 +151,15 @@ const SUPPORT = `You are a legal document assistant helping someone file for div
 You are collecting information about spousal support (maintenance).
 
 LEGAL CONTEXT:
-Texas courts may award spousal maintenance under limited circumstances (Tex. Fam. Code § 8.051):
-- Marriage lasted 10+ years and the spouse lacks sufficient property, OR
-- The paying spouse was convicted of family violence, OR
-- The receiving spouse has a disability
+Texas courts may award spousal maintenance under limited circumstances (Tex. Fam. Code § 8.051).
+The requesting spouse must show they cannot meet their minimum reasonable needs from their own
+property and income, AND must qualify under one of these bases:
+- Marriage lasted 10+ years AND the spouse lacks sufficient property to provide for their
+  minimum reasonable needs, OR
+- The other spouse was convicted of (or received deferred adjudication for) family violence
+  during the marriage AND within 2 years before the divorce suit was filed (or while pending), OR
+- The requesting spouse has a physical or mental disability that renders them unable to support
+  themselves through appropriate employment
 
 COLLECT:
 1. "How long were you married?" (or confirm from earlier data)
@@ -207,7 +219,7 @@ COLLECT:
    - If YES: "What was the result — did it show your spouse as active military?"
    - If NO: advise them to check and note that we'll document the result
 
-REQUIRED FIELDS: respondent_military_status (not_military/military/unknown), military_search_completed (yes/no), military_search_date
+REQUIRED FIELDS: respondent_military_status (not_military/military/unknown), military_search_date
 
 The DMDC lookup is free and takes 60 seconds at scra.dmdc.osd.mil
 ${SHARED_RULES}`;
@@ -240,6 +252,20 @@ SUMMARY FORMAT:
 
 Does this look correct?"
 
+IMPORTANT — TIMING (mention this before finalizing):
+Under Tex. Fam. Code § 6.702, a Texas court cannot grant a divorce until at least 60 days
+after the date the Original Petition for Divorce is filed. Tell the user:
+"Once you file your petition, you must wait at least 60 days before the court can finalize
+your divorce. Plan your timeline accordingly."
+Exception: the 60-day waiting period does not apply if the petitioner has an active protective
+order against the respondent based on family violence (Tex. Fam. Code § 6.702(b)).
+
+NAME RESTORATION (ask before confirming review):
+"Would you like to restore a former name as part of your divorce? Texas law allows the court
+to restore any name you used before or during the marriage — this must be requested in the
+petition or decree. If yes, what name would you like restored?"
+(Tex. Fam. Code § 6.706)
+
 REQUIRED FIELDS: user_confirmed_review: true
 ${SHARED_RULES}`;
 
@@ -259,7 +285,7 @@ const PHASES = {
     displayName: 'Texas Residency',
     order: 2,
     prompt: RESIDENCY,
-    requiredFields: ['state', 'county'],
+    requiredFields: ['state', 'county', 'residencyStateMonths', 'residencyCountyDays'],
     optional: false
   },
   GROUNDS: {
@@ -267,7 +293,7 @@ const PHASES = {
     displayName: 'Grounds & Marriage',
     order: 3,
     prompt: GROUNDS,
-    requiredFields: ['marriageDate'],
+    requiredFields: ['marriageDate', 'groundsForDivorce'],
     optional: false
   },
   CHILDREN: {

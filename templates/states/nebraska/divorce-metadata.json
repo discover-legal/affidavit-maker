@@ -1,0 +1,195 @@
+{
+  "stateCode": "NE",
+  "stateName": "Nebraska",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Complaint for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyMonths": 0,
+    "description": "At least one party must have been a bona fide resident of Nebraska for at least one year, or must have been stationed in Nebraska as a member of the military for one year, immediately preceding the filing of the complaint. (Neb. Rev. Stat. §42-349)",
+    "statute": "Neb. Rev. Stat. §42-349"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_or_service",
+    "exceptions": [],
+    "description": "No decree may be entered until at least 60 days after the filing or service of the complaint, whichever is later. (Neb. Rev. Stat. §42-372)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Irretrievably Broken",
+        "description": "The marriage is irretrievably broken",
+        "statute": "Neb. Rev. Stat. §42-361"
+      }
+    ],
+    "fault": [],
+    "notes": "Nebraska is a no-fault only state. The sole ground for dissolution is that the marriage is irretrievably broken. (Neb. Rev. Stat. §42-361)"
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Nebraska courts divide marital property equitably (not necessarily equally). The court considers contributions of each spouse, the duration of the marriage, the circumstances of the parties, interruptions to careers or education, and the ability of a supported spouse to engage in gainful employment without interfering with the interests of a minor child.",
+    "separateProperty": "Property owned before the marriage or acquired by gift or inheritance may be considered separate, but the court has broad discretion to include all property in the division.",
+    "statute": "Neb. Rev. Stat. §42-365"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Neb. Rev. Stat. §42-349",
+      "description": "Residency requirement — 1 year state residency or 1 year military stationing"
+    },
+    {
+      "code": "Neb. Rev. Stat. §42-361",
+      "description": "Grounds for dissolution — marriage is irretrievably broken (no-fault only)"
+    },
+    {
+      "code": "Neb. Rev. Stat. §42-372",
+      "description": "60-day waiting period from filing or service"
+    },
+    {
+      "code": "Neb. Rev. Stat. §42-365",
+      "description": "Property division and alimony — equitable distribution"
+    },
+    {
+      "code": "Neb. Rev. Stat. §42-364",
+      "description": "Child custody and parenting time"
+    },
+    {
+      "code": "Neb. Rev. Stat. §42-364.16",
+      "description": "Nebraska Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$164",
+    "varies": true,
+    "notes": "Nebraska filing fees are approximately $164 for a complaint for dissolution of marriage but may vary by county. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Voluntary Appearance",
+        "description": "Respondent's voluntary entry of appearance",
+        "required": false
+      },
+      {
+        "name": "Financial Affidavit",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Voluntary Appearance"]
+      },
+      {
+        "name": "Voluntary Appearance",
+        "description": "Respondent waives formal service and enters appearance",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Required parenting plan detailing custody and parenting time arrangements",
+        "required": true
+      },
+      {
+        "name": "Child Support Calculation Worksheet",
+        "description": "Calculation per Nebraska Child Support Guidelines (Neb. Rev. Stat. §42-364.16)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Nebraska court filing requirements"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside Nebraska must file an answer within 30 days of service"
+    },
+    "statute": "Neb. Rev. Stat. §25-1012"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Nebraska uses an income shares model. Both parents' monthly net incomes are combined and the child support obligation is determined from the Nebraska Child Support Guidelines schedule based on combined monthly net income and the number of children.",
+    "statute": "Neb. Rev. Stat. §42-364.16",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Parenting time credits may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Nebraska courts may award alimony based on the circumstances of the parties, the duration of the marriage, the contributions of each spouse to the marriage, the ability of the supported spouse to engage in gainful employment, and the ability of the other spouse to pay.",
+    "eligibility": "There is no formula. The court considers the needs of the requesting spouse and the paying spouse's ability to pay, along with the factors in Neb. Rev. Stat. §42-365.",
+    "statute": "Neb. Rev. Stat. §42-365"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Dissolution of marriage is filed in the District Court of the county where either party resides."
+  }
+}

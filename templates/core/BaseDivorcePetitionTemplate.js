@@ -338,13 +338,14 @@ class BaseDivorcePetitionTemplate {
 
   /**
    * Get the default court name for a county
-   * Override in state-specific templates
+   * Override in state-specific templates — each state uses its own court name convention
+   * (e.g., Texas: District Court; California: Superior Court; New York: Supreme Court)
    *
    * @param {string} county - County name
    * @returns {string} Default court name
    */
   getDefaultCourt(county) {
-    return `DISTRICT COURT OF ${(county || '[COUNTY]').toUpperCase()} COUNTY`;
+    return `COURT OF ${(county || '[COUNTY]').toUpperCase()} COUNTY`;
   }
 
   /**
@@ -519,18 +520,26 @@ class BaseDivorcePetitionTemplate {
   getGroundsText(grounds, divorceData) {
     switch (grounds) {
       case 'irreconcilable_differences':
+        // Generic no-fault language suitable for most dissolution states.
+        // Texas-specific "insupportability" phrasing must be handled in the TX state subclass.
+        return 'The marriage has suffered an irreconcilable breakdown, and there is no reasonable prospect of reconciliation.';
       case 'insupportability':
+        // Texas Family Code § 6.001 language — only use in TX subclass override.
+        // Retained here so callers who explicitly pass this grounds value receive
+        // the correct TX statutory language, but state subclasses should override
+        // this method rather than relying on this default.
         return 'The marriage has become insupportable because of discord or conflict of personalities that destroys the legitimate ends of the marriage relationship and prevents any reasonable expectation of reconciliation.';
       case 'separation':
         return `The parties have lived separate and apart without cohabitation for a period of at least ${divorceData.separationPeriod || '[PERIOD]'}.`;
       case 'abandonment':
         return `Respondent voluntarily left Petitioner with intention of abandonment and remained away for at least ${divorceData.abandonmentPeriod || 'one year'}.`;
       case 'cruelty':
-        return 'Respondent has been guilty of cruel treatment toward Petitioner of such nature as to render further living together insupportable.';
+        return 'Respondent has been guilty of cruel treatment toward Petitioner of a nature that renders further cohabitation insupportable.';
       case 'adultery':
         return 'Respondent has committed adultery.';
       default:
-        return 'The marriage has become insupportable because of discord or conflict of personalities that destroys the legitimate ends of the marriage relationship and prevents any reasonable expectation of reconciliation.';
+        // Generic fallback — does not use Texas-specific "insupportability" language.
+        return 'The marriage has suffered an irreconcilable breakdown, and there is no reasonable prospect of reconciliation.';
     }
   }
 
@@ -655,8 +664,8 @@ class BaseDivorcePetitionTemplate {
 
     // Add child-related relief if applicable
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Determine conservatorship/custody of the minor child(ren);');
-      reliefItems.push('Determine possession and access to the minor child(ren);');
+      reliefItems.push('Determine custody and parenting time/visitation arrangements for the minor child(ren);');
+      reliefItems.push('Order appropriate parenting time/visitation for the non-custodial parent;');
       reliefItems.push('Order child support in accordance with state guidelines;');
     }
 

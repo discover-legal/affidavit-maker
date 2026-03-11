@@ -1,0 +1,199 @@
+{
+  "stateCode": "VT",
+  "stateName": "Vermont",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Final Divorce Order",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Legal Responsibility / Physical Responsibility",
+    "visitation": "Parent-Child Contact",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "One party must have resided in the State of Vermont for at least six (6) months immediately preceding the filing of the Complaint for Divorce.",
+    "statute": "15 V.S.A. § 592"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Vermont has no mandatory statutory waiting period between filing and entry of the Final Divorce Order, though the process typically takes several months."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "lived_apart",
+        "name": "Living Apart",
+        "description": "The parties have lived apart for six (6) consecutive months and the resumption of marital relations is not reasonably probable",
+        "statute": "15 V.S.A. § 551"
+      },
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "15 V.S.A. § 551"
+      }
+    ],
+    "fault": [],
+    "notes": "Vermont is a no-fault only state since 1969. The two no-fault grounds are (1) the parties have lived apart for six consecutive months and resumption of marital relations is not reasonably probable, or (2) the marriage is irretrievably broken."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Vermont courts divide marital property equitably, considering the length of the marriage, the age and health of the parties, the occupation, source and amount of income of each spouse, vocational skills, employability, and the contribution of each spouse to the acquisition, preservation, and depreciation or appreciation of the respective estates.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance during marriage may be considered separate property, though Vermont courts have broad discretion to divide all property regardless of title.",
+    "statute": "15 V.S.A. § 751"
+  },
+
+  "parentalResponsibilities": {
+    "description": "Vermont uses 'Legal Responsibility' (decision-making authority) and 'Physical Responsibility' (where the child lives) instead of 'legal custody' and 'physical custody.' Time with the non-residential parent is called 'Parent-Child Contact' rather than 'visitation.' The court determines allocation based on the best interests of the child.",
+    "statute": "15 V.S.A. § 665"
+  },
+
+  "legalCitations": [
+    {
+      "code": "15 V.S.A. § 551",
+      "description": "Grounds for divorce — no-fault: lived apart six months or irretrievable breakdown"
+    },
+    {
+      "code": "15 V.S.A. § 592",
+      "description": "Residency requirement — six months in Vermont before filing"
+    },
+    {
+      "code": "15 V.S.A. § 665",
+      "description": "Legal Responsibility and Physical Responsibility — best interests of the child factors; Parent-Child Contact"
+    },
+    {
+      "code": "15 V.S.A. § 656",
+      "description": "Child support guidelines — income shares model"
+    },
+    {
+      "code": "15 V.S.A. § 751",
+      "description": "Property disposition — equitable distribution of marital property"
+    },
+    {
+      "code": "15 V.S.A. § 752",
+      "description": "Maintenance — factors for award, amount, and duration"
+    },
+    {
+      "code": "4 V.S.A. § 31",
+      "description": "Family Division of the Superior Court — jurisdiction over divorce proceedings"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$90 (stipulated) / $295 (contested)",
+    "varies": false,
+    "notes": "Vermont filing fee is $90 for a stipulated (uncontested) Complaint for Divorce or $295 for a contested divorce. Fee waivers are available for qualifying low-income individuals by filing an Application to Waive Filing Fees and Service Costs."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to the defendant (respondent)",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit (Form 813A)",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Final Divorce Order",
+        "description": "Court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on the defendant",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by the defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed allocation of Legal Responsibility, Physical Responsibility, and Parent-Child Contact",
+        "required": true
+      },
+      {
+        "name": "Child Support Guideline Worksheet",
+        "description": "Income shares calculation per 15 V.S.A. § 656",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Vermont Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Vermont must file an answer within 30 days of service"
+    },
+    "statute": "V.R.C.P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Vermont uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Vermont Child Support Guidelines based on the combined adjusted gross income and the number of children.",
+    "statute": "15 V.S.A. § 656",
+    "notes": "The court may deviate from the guidelines if application would be inequitable or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "discretionary",
+    "description": "Vermont courts may award maintenance to either party. The court considers the financial resources of the requesting party, the time and expense needed for education or training, the standard of living during the marriage, the duration of the marriage, the age and health of the parties, and the ability of the payor to meet their own needs while paying maintenance.",
+    "statute": "15 V.S.A. § 752"
+  },
+
+  "court": {
+    "name": "Family Division of the Superior Court",
+    "description": "Divorce proceedings are filed in the Family Division of the Superior Court in the unit where either party resides."
+  }
+}

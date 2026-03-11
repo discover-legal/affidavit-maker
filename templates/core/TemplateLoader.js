@@ -6,6 +6,7 @@ const path = require('path');
 const logger = require('../../utils/logger');
 const { validateMetadata } = require('./validateMetadata');
 const BaseAffidavitTemplate = require('./BaseAffidavitTemplate');
+const { isAllowedJurisdiction } = require('../../config/jurisdictions');
 
 // Lazy load divorce templates to avoid circular dependencies
 let BaseDivorcePetitionTemplate = null;
@@ -164,6 +165,25 @@ class TemplateLoader {
           continue;
         }
 
+        // Pre-check: read any metadata file to get stateCode and skip early
+        // if this jurisdiction is gated by the international feature flag
+        const preCheckMeta = path.join(this.statesDir, stateName, 'metadata.json');
+        const preCheckDivorce = path.join(this.statesDir, stateName, 'divorce-metadata.json');
+        let stateCodeFromMeta = null;
+        for (const metaPath of [preCheckMeta, preCheckDivorce]) {
+          if (await this.fileExists(metaPath)) {
+            try {
+              const raw = await fs.readFile(metaPath, 'utf8');
+              const parsed = JSON.parse(raw);
+              if (parsed.stateCode) { stateCodeFromMeta = parsed.stateCode; break; }
+            } catch { /* ignore parse errors here — caught later */ }
+          }
+        }
+        if (stateCodeFromMeta && !isAllowedJurisdiction(stateCodeFromMeta)) {
+          logger.debug(`Skipping ${stateName} (${stateCodeFromMeta}) — international jurisdictions disabled`);
+          continue;
+        }
+
         summary.total++;
 
         // Track if any template loaded successfully for this state
@@ -234,7 +254,7 @@ class TemplateLoader {
    */
   async loadStateDocumentType(stateName, registry, config) {
     const stateDir = path.join(this.statesDir, stateName);
-    const { documentType, templateFile, metadataFile, baseClassName } = config;
+    const { documentType, templateFile, metadataFile } = config;
 
     const metadataPath = path.join(stateDir, metadataFile);
     const templatePath = path.join(stateDir, templateFile);
@@ -260,6 +280,12 @@ class TemplateLoader {
       metadata = JSON.parse(metadataContent);
     } catch (error) {
       throw new Error(`Invalid JSON in ${metadataFile}: ${error.message}`);
+    }
+
+    // Feature flag: skip international jurisdictions when ENABLE_INTERNATIONAL !== 'true'
+    if (!isAllowedJurisdiction(metadata.stateCode)) {
+      logger.debug(`Skipping international jurisdiction ${metadata.stateCode} (ENABLE_INTERNATIONAL is off)`);
+      return false;
     }
 
     // Validate metadata against schema (use relaxed validation for divorce templates)

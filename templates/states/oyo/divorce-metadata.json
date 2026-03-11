@@ -1,0 +1,15 @@
+{
+  "stateCode": "OY", "stateName": "Oyo", "countryCode": "NG", "countryName": "Nigeria",
+  "documentTypes": ["divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true,
+  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "MCA s.2(1)–(2) — either party domiciled in Nigeria; or wife ordinarily resident for 3 years. Oyo State High Court if either party resides in the state." },
+  "waitingPeriod": { "days": 0, "description": "Decree Nisi -> Decree Absolute after 3 months (MCA s.58). 2-year bar (MCA s.30)." },
+  "twoYearBar": { "years": 2, "description": "MCA s.30." },
+  "groundsForDivorce": {
+    "noFault": [{ "code": "separation_consent", "name": "2-Year Separation with Consent", "statute": "MCA s.15(2)(e)", "description": "Lived apart 2+ years." }, { "code": "separation_no_consent", "name": "3-Year Separation", "statute": "MCA s.15(2)(f)", "description": "Lived apart 3+ years." }],
+    "fault": [{ "code": "wilful_refusal", "name": "Wilful Refusal to Consummate", "statute": "MCA s.15(2)(a)", "description": "Wilful refusal." }, { "code": "adultery", "name": "Adultery", "statute": "MCA s.15(2)(b)", "description": "Adultery." }, { "code": "intolerable_behaviour", "name": "Intolerable Behaviour", "statute": "MCA s.15(2)(c)", "description": "Intolerable behaviour." }, { "code": "desertion", "name": "Desertion", "statute": "MCA s.15(2)(d)", "description": "1+ year." }, { "code": "restitution", "name": "Restitution Failure", "statute": "MCA s.15(2)(g)", "description": "Failed restitution." }, { "code": "presumption_of_death", "name": "Presumption of Death", "statute": "MCA s.15(2)(h)", "description": "Absent 7+ years." }]
+  },
+  "terminology": { "caseNumberLabel": "Suit No.", "custody": "Custody", "alimony": "Maintenance", "childSupport": "Child Maintenance", "maritalProperty": "Ancillary Orders" },
+  "requiredForms": { "basic": [{ "name": "Petition for Dissolution", "required": true, "description": "Initiates divorce" }, { "name": "Affidavit in Support", "required": true, "description": "Sworn affidavit" }, { "name": "Marriage Certificate", "required": true, "description": "Original or certified" }] },
+  "filingFees": { "approximate": "NGN 10,000-30,000", "varies": true }, "decreeProcess": { "waitingMonths": 3 },
+  "paperSize": "A4", "currency": "NGN", "emergencyNumber": "112", "dvHotline": "0800 72 73 2255"
+}

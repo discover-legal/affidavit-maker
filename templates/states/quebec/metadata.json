@@ -31,10 +31,10 @@
     "appealCourt": "Court of Appeal of Quebec (Cour d'appel du Québec)"
   },
   "divorceTerminology": {
-    "parties": ["Petitioner (Demandeur/Demanderesse)", "Respondent (Défendeur/Défenderesse)"],
+    "parties": ["Plaintiff (Demandeur/Demanderesse)", "Defendant (Défendeur/Défenderesse)"],
     "grounds": "Divorce Act (RSC 1985, c. 3)",
     "primaryGround": "separation of one year (s.8(2)(a))",
-    "propertyDivision": "Civil Code of Quebec, arts. 414-430 (Family Patrimony); arts. 462.1-462.14 (Partnership of Acquests)"
+    "propertyDivision": "Civil Code of Quebec, arts. 414-426 (Family Patrimony / Patrimoine familial); arts. 448-484 (Partnership of Acquests / Société d'acquêts)"
   },
   "legalCitations": [
     {
@@ -46,8 +46,8 @@
       "description": "Quebec provisions on divorce — incorporates federal Divorce Act grounds"
     },
     {
-      "code": "Civil Code of Quebec, arts. 394-430",
-      "description": "Quebec family patrimony — mandatory equal division of certain assets on breakdown of marriage"
+      "code": "Civil Code of Quebec, arts. 380-430",
+      "description": "Quebec family law — marriage and its effects, family patrimony (arts. 414-426) — mandatory equal division of certain assets on breakdown of marriage"
     },
     {
       "code": "Code of Civil Procedure, CQLR c. C-25.01",

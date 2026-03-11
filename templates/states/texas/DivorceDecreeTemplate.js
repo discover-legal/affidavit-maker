@@ -9,7 +9,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *
  * Legal References:
  * - Texas Family Code Chapter 6 (Suit for Dissolution of Marriage)
- * - Texas Family Code § 6.501 (Waiting Period)
+ * - Texas Family Code § 6.702 (Waiting Period - 60 days)
  * - Texas Family Code § 7.001 (Property Division)
  * - Texas Family Code Chapter 153 (Conservatorship, Possession, Access)
  * - Texas Family Code Chapter 154 (Child Support)

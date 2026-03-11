@@ -1,0 +1,281 @@
+{
+  "stateCode": "OH",
+  "stateName": "Ohio",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment Entry Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Parental Rights and Responsibilities",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property",
+    "noFaultAlternative": "Dissolution of Marriage"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 90,
+    "description": "The plaintiff or defendant must have been a resident of Ohio for at least 6 months immediately before filing AND a resident of the county in which the action is filed for at least 90 days immediately before filing.",
+    "statute": "R.C. § 3105.03"
+  },
+
+  "waitingPeriod": {
+    "days": 42,
+    "startsFrom": "service_of_process",
+    "exceptions": ["dissolution_of_marriage"],
+    "description": "For a Divorce, the court cannot hear the matter sooner than 42 days after service of process on the respondent. For Dissolution of Marriage (mutual consent, R.C. § 3105.61 et seq.), there is no mandatory waiting period after filing."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation",
+        "name": "Living Separate and Apart",
+        "description": "The parties have lived separate and apart for a continuous period of one year.",
+        "statute": "R.C. § 3105.01(J)"
+      },
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility",
+        "description": "The parties are incompatible, unless denied by either party.",
+        "statute": "R.C. § 3105.01(K)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "prior_undissolved_marriage",
+        "name": "Prior Undissolved Marriage (Bigamy)",
+        "description": "Either party had a husband or wife living at the time of the marriage from which the divorce is sought.",
+        "statute": "R.C. § 3105.01(A)"
+      },
+      {
+        "code": "willful_absence",
+        "name": "Willful Absence for One Year",
+        "description": "Willful absence of the adverse party for one year.",
+        "statute": "R.C. § 3105.01(B)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "statute": "R.C. § 3105.01(C)"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "statute": "R.C. § 3105.01(D)"
+      },
+      {
+        "code": "fraudulent_contract",
+        "name": "Fraudulent Contract",
+        "statute": "R.C. § 3105.01(E)"
+      },
+      {
+        "code": "gross_neglect",
+        "name": "Gross Neglect of Duty",
+        "statute": "R.C. § 3105.01(F)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness",
+        "statute": "R.C. § 3105.01(G)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment in State or Federal Correctional Institution",
+        "description": "Imprisonment of the adverse party in a state or federal correctional institution at the time of filing.",
+        "statute": "R.C. § 3105.01(H)"
+      },
+      {
+        "code": "out_of_state_divorce",
+        "name": "Procurement of Out-of-State Divorce",
+        "description": "Procurement of a divorce outside the State of Ohio by the other spouse.",
+        "statute": "R.C. § 3105.01(I)"
+      }
+    ],
+    "notes": "Ohio also provides Dissolution of Marriage (R.C. § 3105.61 et seq.) as a no-fault alternative requiring a separation agreement and mutual consent. It is a separate proceeding from divorce."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Ohio divides marital property equitably — not necessarily equally. The court considers many factors including the duration of the marriage, the assets and liabilities of the parties, and the liquidity of marital property.",
+    "separateProperty": "Separate property includes property acquired before the marriage, by inheritance or gift from a third party, excluded by valid antenuptial agreement, or compensation for personal injury (except lost wages).",
+    "statute": "R.C. § 3105.171"
+  },
+
+  "spousalSupport": {
+    "description": "Ohio uses the term 'Spousal Support' (not alimony). The court may award spousal support for a definite or indefinite period, or in a lump sum, based on the factors in R.C. § 3105.18.",
+    "statute": "R.C. § 3105.18"
+  },
+
+  "parentalRights": {
+    "description": "Ohio uses 'Parental Rights and Responsibilities.' The court may designate one parent as the residential parent and legal custodian or allocate rights between the parties through Shared Parenting.",
+    "statute": "R.C. § 3109.04"
+  },
+
+  "legalCitations": [
+    {
+      "code": "R.C. § 3105.01",
+      "description": "Grounds for divorce in Ohio — lists all fault and no-fault grounds"
+    },
+    {
+      "code": "R.C. § 3105.03",
+      "description": "Residency requirements — 6 months state, 90 days county"
+    },
+    {
+      "code": "R.C. § 3105.10",
+      "description": "Waiting period — court may not hear divorce sooner than 42 days after service"
+    },
+    {
+      "code": "R.C. § 3105.171",
+      "description": "Division and distribution of marital and separate property — equitable distribution"
+    },
+    {
+      "code": "R.C. § 3105.18",
+      "description": "Spousal support — factors for award, amount, and duration"
+    },
+    {
+      "code": "R.C. § 3109.04",
+      "description": "Parental rights and responsibilities — custody and shared parenting"
+    },
+    {
+      "code": "R.C. § 3119.021",
+      "description": "Ohio Child Support Guidelines — basic child support schedule"
+    },
+    {
+      "code": "R.C. § 3105.61 et seq.",
+      "description": "Dissolution of Marriage — no-fault alternative to divorce requiring separation agreement and mutual consent"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$250-$475",
+    "varies": true,
+    "notes": "Filing fees vary by county. The Domestic Relations Division of the Court of Common Pleas sets local fees. Fee waivers (in forma pauperis) are available for qualifying individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Domestic Relations Information Sheet",
+        "description": "Required administrative form providing basic case information",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Income and Expenses",
+        "description": "Financial disclosure of income, expenses, assets, and liabilities",
+        "required": true
+      },
+      {
+        "name": "Judgment Entry Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      },
+      {
+        "name": "Health Insurance Affidavit",
+        "description": "Required disclosure of health insurance coverage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant (personal service, certified mail, or service by publication)",
+        "required": true,
+        "alternatives": ["Waiver of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Defendant waives formal service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Computation Worksheet",
+        "description": "Calculation per Ohio Child Support Guidelines (R.C. § 3119)",
+        "required": true
+      },
+      {
+        "name": "Shared Parenting Plan",
+        "description": "If seeking shared parenting, both parents must submit a proposed shared parenting plan",
+        "required": false,
+        "notes": "Required only if requesting shared parenting under R.C. § 3109.04"
+      },
+      {
+        "name": "Parenting Proceeding Affidavit (UCCJEA)",
+        "description": "Required disclosure of custody proceedings in other states",
+        "required": true
+      },
+      {
+        "name": "Health Insurance Affidavit for Children",
+        "description": "Disclosure of health insurance availability for minor children",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Ohio Rules of Civil Procedure and local court rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 28,
+      "description": "Defendant must file an answer within 28 days of service"
+    },
+    "outOfState": {
+      "days": 28,
+      "description": "Defendant served outside Ohio must file an answer within 28 days of service; additional time may be granted"
+    },
+    "statute": "Ohio Civ.R. 12(A)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Ohio uses an income shares model. Both parents' gross incomes are combined and matched to a basic child support schedule. The obligation is then apportioned between the parents based on their share of combined income. Adjustments apply for health insurance, childcare, and extraordinary expenses.",
+    "statute": "R.C. § 3119.021 et seq.",
+    "notes": "Ohio's child support worksheets are mandatory. The court may deviate from the guidelines upon a finding that the guideline amount would be unjust or inappropriate."
+  },
+
+  "spousalSupportGuidelines": {
+    "type": "spousal_support",
+    "description": "Ohio has no statutory formula for spousal support. The court considers the factors listed in R.C. § 3105.18, including the income of the parties, the relative earning abilities of the parties, the ages and health of the parties, the duration of the marriage, the standard of living established during the marriage, the education of the parties, the contribution of each party to the education or earning ability of the other, the tax consequences of spousal support, and any other relevant factors.",
+    "durationalGuidelines": "Some Ohio courts use local advisory guidelines (e.g., 1/3 of the marriage duration for marriages under 20 years; indefinite for marriages over 25 years), but these are advisory only and not statutory.",
+    "statute": "R.C. § 3105.18"
+  },
+
+  "court": {
+    "name": "Court of Common Pleas, Domestic Relations Division",
+    "description": "Divorce actions in Ohio are filed in the Domestic Relations Division of the Court of Common Pleas in the county where the plaintiff or defendant resides. Some counties consolidate this with the Juvenile Court."
+  }
+}

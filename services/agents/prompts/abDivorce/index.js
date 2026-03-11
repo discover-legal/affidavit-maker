@@ -5,15 +5,16 @@
  *
  * Alberta divorce proceedings under:
  * - Divorce Act, RSC 1985, c. 3 (federal — grounds, parenting, support)
- * - Matrimonial Property Act, RSA 2000, c. M-8 (provincial — equal division)
+ * - Family Property Act, SA 2020, c. F-4.7 (provincial — equal division is the default under s.7(1); court may depart under s.8 where inequitable)
  * - Family Law Act, SA 2003, c. F-4.5 (provincial — parenting, guardianship, support)
  * - Alberta Rules of Court, Alta Reg 124/2010 (procedure)
  *
  * Key differences:
  *   - Court is Court of King's Bench of Alberta (changed from Queen's Bench in Sept 2022)
- *   - Parties are "Petitioner" and "Respondent"
+ *   - Parties are "Plaintiff" and "Defendant" (Alberta uses civil action — Statement of Claim, not a Petition)
+ *   - Case number label is "Action No." (not "Court File No.")
  *   - Statement of Claim for Divorce (instead of petition/application)
- *   - Matrimonial Property Act: equal division of property acquired during marriage
+ *   - Family Property Act: equal division is the default (FPA s.7(1)) — court may depart under s.8 where equal division would be inequitable
  *   - "Matrimonial home" has special protections — both spouses have possession rights
  *   - Judicial districts: Calgary, Edmonton, Red Deer, Lethbridge, Medicine Hat, Grande Prairie, etc.
  *   - No mandatory waiting period after filing beyond the 1-year separation ground
@@ -35,19 +36,21 @@ PHASE ADVANCEMENT:
 const INTAKE = `You are a legal document assistant helping someone apply for divorce in Alberta, Canada.
 
 COLLECT:
-1. Petitioner's full legal first and last name
-2. Respondent's full legal first and last name
+1. Plaintiff's full legal first and last name
+2. Defendant's full legal first and last name
 3. Confirm province is Alberta
 
 OPENING:
 "I'm here to help you prepare your Alberta divorce documents.
-In Alberta, the person starting the divorce is the 'Petitioner' and the other
-spouse is the 'Respondent'. The court is the Court of King's Bench of Alberta.
+In Alberta, the divorce is started as a civil action. The person starting the divorce
+is the 'Plaintiff' and the other spouse is the 'Defendant'. The court is the
+Court of King's Bench of Alberta. The case number is called an 'Action No.'
 What is your full legal name — first and last?"
 
 KEY FACTS:
-- Alberta uses a "Statement of Claim for Divorce" as the initiating document
+- Alberta uses a "Statement of Claim for Divorce" as the initiating document (a civil action — NOT a petition)
 - The Court of King's Bench has courthouses throughout Alberta (judicial districts)
+- Case number format: "Action No." (not "Court File No." as used in other provinces)
 - Uncontested divorces can often proceed without a court hearing
 ${SHARED_RULES}`;
 
@@ -115,24 +118,26 @@ REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
 const PROPERTY = `You are a legal document assistant helping someone apply for divorce in Alberta, Canada.
-Documenting matrimonial property division.
+Documenting family property division.
 
-LEGAL CONTEXT — Matrimonial Property Act, RSA 2000, c. M-8:
-Alberta's Matrimonial Property Act provides for EQUAL DIVISION of matrimonial property
-unless the court orders otherwise based on factors in s.8 (including unfairness, duration of marriage,
-contributions, etc.).
+LEGAL CONTEXT — Family Property Act, SA 2020, c. F-4.7:
+Alberta's Family Property Act provides for EQUAL DIVISION of family property as the
+default rule — each spouse is entitled to an equal division under FPA s.7(1).
+The court may depart from equal division under s.8 where equal division would be inequitable,
+considering duration of marriage, contributions of each spouse, economic circumstances, and
+other fairness factors. Departure from equal division requires a specific finding of inequity.
 
-MATRIMONIAL PROPERTY includes:
+FAMILY PROPERTY includes:
 - Property acquired during the marriage
-- Property used for the family's benefit (including the matrimonial home)
+- Property used for the family's benefit (including the family home)
 
 EXEMPT PROPERTY (not subject to equal division):
-- Property owned before the marriage (only the increase in value may be shared)
+- Property owned before the marriage: the original pre-marital value is exempt under FPA s.7(2)(a); the increase in value of that exempt property during the marriage is also exempt under FPA s.7(3) — so the full pre-marital value plus any appreciation during the marriage is exempt, not just the original cost; the court may depart from these exemptions under s.8 only where equity requires it
 - Gifts and inheritances received during the marriage
-- Property excluded by a valid matrimonial property agreement
+- Property excluded by a valid family property agreement
 
-THE MATRIMONIAL HOME:
-- Both spouses have equal rights to possess the matrimonial home during marriage
+THE FAMILY HOME:
+- Both spouses have equal rights to possess the family home during marriage
 - The home's value is subject to division
 
 COLLECT:
@@ -166,18 +171,18 @@ const SERVICE = `You are a legal document assistant helping someone apply for di
 Collecting service of process information.
 
 LEGAL CONTEXT — Alberta Rules of Court:
-After filing the Statement of Claim for Divorce, you must serve the Respondent.
+After filing the Statement of Claim for Divorce, you must serve the Defendant.
 Options:
-1. RESPONDENT ACKNOWLEDGMENT: Respondent signs Affidavit of Service / Acknowledgment of Receipt
-2. PERSONAL SERVICE: Served by a process server or adult other than the Petitioner
-3. ALTERNATIVE SERVICE: Court order required if the Respondent cannot be found
+1. DEFENDANT ACKNOWLEDGMENT: Defendant signs Affidavit of Service / Acknowledgment of Receipt
+2. PERSONAL SERVICE: Served by a process server or adult other than the Plaintiff
+3. ALTERNATIVE SERVICE: Court order required if the Defendant cannot be found
 
-Once served, the Respondent has 20 days (within Alberta) or 40 days (outside Alberta) to respond.
+Once served, the Defendant has 20 days (if served within Alberta), approximately 1 month (if served elsewhere in Canada), or 2 months (if served outside Canada) to file a response.
 If no Statement of Defence is filed, the divorce proceeds as uncontested (default).
 
 COLLECT:
 1. "Has your spouse agreed to acknowledge service, or will we need a process server?"
-2. Respondent's current address
+2. Defendant's current address
 
 REQUIRED FIELDS: service_method (acknowledged/personal/alternative), respondent_address
 ${SHARED_RULES}`;
@@ -204,11 +209,11 @@ IMPORTANT REMINDERS:
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',          order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'Alberta Residency',        order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',       order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'separationDate'],           optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',          order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'Alberta Residency',        order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',       order: 3,  prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',                 order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
-  PROPERTY:  { name: 'PROPERTY',  displayName: 'Matrimonial Property',     order: 5,  prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
+  PROPERTY:  { name: 'PROPERTY',  displayName: 'Family Property',           order: 5,  prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Spousal Support',          order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },
   SERVICE:   { name: 'SERVICE',   displayName: 'Serving Your Spouse',      order: 7,  prompt: SERVICE,   requiredFields: ['serviceMethod'],                            optional: false },
   REVIEW:    { name: 'REVIEW',    displayName: 'Review & Confirm',         order: 8,  prompt: REVIEW,    requiredFields: ['userConfirmedReview'],                      optional: false },

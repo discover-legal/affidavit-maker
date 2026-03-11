@@ -1,0 +1,273 @@
+{
+  "stateCode": "TN",
+  "stateName": "Tennessee",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce / Petition for Divorce",
+    "decree": "Final Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Primary Residential Parent / Alternate Residential Parent",
+    "visitation": "Parenting Time (Residential Schedule)",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "At least one spouse must have been a bona fide resident of Tennessee for at least 6 months immediately preceding the filing. There is no separate county residency requirement. The case is filed in the county where the parties last lived together, or where the defendant resides.",
+    "statute": "TCA 36-4-104"
+  },
+
+  "waitingPeriod": {
+    "daysNoChildren": 60,
+    "daysWithChildren": 90,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Tennessee has a mandatory waiting period of 60 days from filing if no minor children, or 90 days if there are minor children. TCA 36-4-101(b)."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Both parties agree the marriage has irreconcilable differences; or parties have lived apart for 2+ years with no minor children",
+        "statute": "TCA 36-4-101(a)(13)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Either party committed adultery",
+        "statute": "TCA 36-4-101(a)(4)"
+      },
+      {
+        "code": "desertion",
+        "name": "Willful Desertion",
+        "description": "Willful or malicious desertion for one full year without reasonable cause",
+        "statute": "TCA 36-4-101(a)(3)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Felony Conviction",
+        "description": "Conviction of a felony and sentence to confinement in a penitentiary",
+        "statute": "TCA 36-4-101(a)(5)"
+      },
+      {
+        "code": "attempted_murder",
+        "name": "Attempted Murder of Spouse",
+        "description": "Attempting to take the life of the other spouse by poison or other means",
+        "statute": "TCA 36-4-101(a)(2)"
+      },
+      {
+        "code": "bigamy",
+        "name": "Bigamy",
+        "description": "A prior marriage that has not been dissolved",
+        "statute": "TCA 36-4-101(a)(1)"
+      },
+      {
+        "code": "alcohol_drug_addiction",
+        "name": "Habitual Drunkenness or Drug Addiction",
+        "description": "Habitual drunkenness or abuse of narcotic drugs contracted after marriage",
+        "statute": "TCA 36-4-101(a)(6)"
+      },
+      {
+        "code": "impotence",
+        "name": "Impotence",
+        "description": "Impotence and inability to procreate at the time of marriage",
+        "statute": "TCA 36-4-101(a)(8)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel and Inhuman Treatment",
+        "description": "Cruel and inhuman treatment or conduct toward the spouse as renders cohabitation unsafe",
+        "statute": "TCA 36-4-101(a)(10)"
+      },
+      {
+        "code": "indignities",
+        "name": "Indignities",
+        "description": "Such indignities as to render the other's position intolerable and force withdrawal",
+        "statute": "TCA 36-4-101(a)(11)"
+      },
+      {
+        "code": "abandonment_refusal",
+        "name": "Abandonment or Refusal to Provide",
+        "description": "Abandonment or refusal or neglect to provide for spouse when able to do so",
+        "statute": "TCA 36-4-101(a)(12)"
+      },
+      {
+        "code": "pregnancy_by_another",
+        "name": "Pregnancy by Another",
+        "description": "Wife was pregnant by another person at the time of the marriage without the husband's knowledge",
+        "statute": "TCA 36-4-101(a)(9)"
+      },
+      {
+        "code": "two_year_separation",
+        "name": "Two-Year Separation",
+        "description": "The parties have lived apart for two consecutive years with no minor children of the marriage",
+        "statute": "TCA 36-4-101(a)(7)"
+      }
+    ],
+    "notes": "Tennessee allows both no-fault (irreconcilable differences) and fault grounds. For irreconcilable differences, both parties must agree to the divorce or have been separated for 2+ years with no minor children. Fault may affect alimony awards."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Tennessee divides marital property equitably, considering the duration of the marriage, each party's age, health, earning capacity, financial needs, contributions to the marriage (including homemaking), value of separate property, economic circumstances, and tax consequences.",
+    "separateProperty": "Property acquired before marriage, by gift or inheritance during marriage, and pain and suffering awards are separate property and not subject to division.",
+    "statute": "TCA 36-4-121"
+  },
+
+  "legalCitations": [
+    {
+      "code": "TCA 36-4-101",
+      "description": "Grounds for divorce — fault and no-fault"
+    },
+    {
+      "code": "TCA 36-4-104",
+      "description": "Residency requirements — 6 months state residency"
+    },
+    {
+      "code": "TCA 36-4-121",
+      "description": "Equitable division of marital property"
+    },
+    {
+      "code": "TCA 36-5-121",
+      "description": "Alimony — types, factors, and termination"
+    },
+    {
+      "code": "TCA 36-6-402",
+      "description": "Custody — primary and alternate residential parent"
+    },
+    {
+      "code": "TCA 36-6-404",
+      "description": "Parenting plan requirement"
+    },
+    {
+      "code": "TCA 36-5-101",
+      "description": "Tennessee Child Support Guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$300",
+    "varies": true,
+    "notes": "Tennessee filing fees are approximately $300 for a divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Uniform Civil Affidavit of Indigency (TCA 20-12-127)."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce / Petition for Divorce",
+        "description": "Initiates the divorce proceeding; 'Complaint' for fault, 'Petition' for irreconcilable differences",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent/defendant",
+        "required": true
+      },
+      {
+        "name": "Civil Cover Sheet",
+        "description": "Court administrative form",
+        "required": true
+      },
+      {
+        "name": "Financial Statement / Income and Expense Statement",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Final Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant/respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Acceptance/Waiver of Service"]
+      },
+      {
+        "name": "Acceptance/Waiver of Service",
+        "description": "Respondent waives formal service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Permanent Parenting Plan",
+        "description": "Required in all cases with minor children — details residential schedule, decision-making, and child support (TCA 36-6-404)",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Income shares calculation per Tennessee Child Support Guidelines",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Tennessee Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Tennessee must file an answer within 30 days of service"
+    },
+    "statute": "Tenn. R. Civ. P. 12.01"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Tennessee uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Tennessee Child Support Guidelines schedule based on combined adjusted gross income and the number of children.",
+    "statute": "TCA 36-5-101",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Parenting time credits may apply based on the number of days with each parent."
+  },
+
+  "alimonyGuidelines": {
+    "type": "multiple_types",
+    "description": "Tennessee recognizes four types of alimony: rehabilitative (preferred — to allow education or training), transitional (to adjust to economic consequences), alimony in futuro (long-term periodic — disfavored), and alimony in solido (lump sum). Fault may affect alimony awards. The court considers earning capacity, financial needs, education, marriage duration, age, health, standard of living, and contributions.",
+    "eligibility": "Either spouse may be awarded alimony. The court considers the disadvantaged spouse's need and the other spouse's ability to pay.",
+    "statute": "TCA 36-5-121"
+  },
+
+  "court": {
+    "name": "Circuit Court or Chancery Court",
+    "description": "Divorce may be filed in either Circuit Court or Chancery Court depending on the county. Some counties have designated which court hears divorce cases."
+  }
+}

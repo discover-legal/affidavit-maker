@@ -1,0 +1,143 @@
+{
+  "stateCode": "ZA",
+  "stateName": "South Africa",
+  "countryCode": "ZA",
+  "countryName": "South Africa",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "Either spouse must be domiciled in South Africa at the time of issuing the summons (Divorce Act 70 of 1979, s.2). There is no minimum residency period — domicile (permanent home) is the jurisdictional requirement."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. The court must be satisfied that proper provision has been made for minor children before granting the decree."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage relationship has broken down irretrievably with no reasonable prospect of restoration of a normal marriage relationship. There are no specific enumerated facts required — the court examines the totality of the evidence. Factors the court may consider include continuous unconsciousness, the parties having lived apart, and the nature of the marital relationship.",
+        "statute": "Divorce Act 70 of 1979, s.4(1)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "mental_illness",
+        "name": "Mental Illness or Continuous Unconsciousness",
+        "description": "The defendant has been admitted to a psychiatric hospital or similar institution for a continuous period of at least 2 years, or has been in a state of continuous unconsciousness for at least 6 months, and there is no reasonable prospect of recovery.",
+        "statute": "Divorce Act 70 of 1979, s.5"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Case No.",
+    "custody": "Care and Contact",
+    "physicalCustody": "Primary Care",
+    "jointCustody": "Shared Care and Contact",
+    "soleCustody": "Sole Care",
+    "guardianship": "Guardianship",
+    "alimony": "Maintenance (Spousal)",
+    "childSupport": "Maintenance (Child)",
+    "maritalProperty": "Matrimonial Property (Matrimonial Property Act 88 of 1984)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Combined Summons",
+        "description": "Initiates the divorce action — contains the Particulars of Claim setting out the grounds and relief sought",
+        "required": true
+      },
+      {
+        "name": "Particulars of Claim",
+        "description": "Annexed to the Combined Summons — details the factual basis for the divorce and relief claimed",
+        "required": true
+      },
+      {
+        "name": "Settlement Agreement (if applicable)",
+        "description": "Written agreement between the parties on all ancillary matters — filed with the court if the divorce is undefended",
+        "required": false
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act 70 of 1979",
+      "description": "Primary statute governing divorce proceedings in South Africa"
+    },
+    {
+      "code": "Matrimonial Property Act 88 of 1984",
+      "description": "Governs the proprietary consequences of marriage — community of property, accrual system, and antenuptial contracts"
+    },
+    {
+      "code": "Children's Act 38 of 2005",
+      "description": "Governs parental responsibilities and rights — guardianship, care, contact, and maintenance of children"
+    },
+    {
+      "code": "Maintenance Act 99 of 1998",
+      "description": "Governs spousal and child maintenance orders and enforcement"
+    },
+    {
+      "code": "Recognition of Customary Marriages Act 120 of 1998",
+      "description": "Recognises customary marriages — default property regime is in community of property"
+    },
+    {
+      "code": "Mediation in Certain Divorce Matters Act 24 of 1987",
+      "description": "Requires the Family Advocate's involvement in divorce proceedings where there are minor or dependent children (s.4)"
+    },
+    {
+      "code": "Pension Funds Act 24 of 1956",
+      "description": "Governs pension interest sharing on divorce — Divorce Act s.7(7)-(8) allows court to order a pension fund to pay a portion of the member's pension interest to the non-member spouse"
+    },
+    {
+      "code": "Divorce Amendment Act 1 of 2024",
+      "description": "Effective 14 May 2024 — amends the Divorce Act to recognise Muslim marriages, extending all divorce provisions (dissolution, children's welfare, asset redistribution, forfeiture of benefits) to marriages entered into in accordance with the tenets of Islam"
+    }
+  ],
+  "filingFees": {
+    "approximate": "ZAR varies by tariff schedule",
+    "varies": true,
+    "notes": "High Court filing fees are set by the Rules Board tariff schedule and are updated periodically. Additional costs apply for service by the sheriff. Parties may apply for exemption from fees on grounds of indigence. Check the current High Court Fee Tariffs for the applicable amount."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "proportional_income",
+    "guidelines": "Maintenance Act 99 of 1998; Children's Act 38 of 2005, s.18(2)(d)",
+    "notes": "South Africa has no fixed child support table. Maintenance is calculated based on the needs of the child and the means of both parents, proportionally to their respective incomes."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "rehabilitative_and_needs",
+    "guidelines": "Divorce Act 70 of 1979, s.7(2)",
+    "notes": "Spousal maintenance is discretionary. The court considers: existing or prospective means, earning capacity, financial obligations, age, duration of marriage, standard of living, and conduct insofar as it is relevant to the breakdown. South African courts favour 'rehabilitative' maintenance (time-limited) over indefinite maintenance."
+  },
+  "propertyRegimes": {
+    "inCommunityOfProperty": {
+      "description": "Default regime for civil marriages entered into after 1 November 1984 without an antenuptial contract. All assets and liabilities are shared 50/50.",
+      "statute": "Matrimonial Property Act 88 of 1984"
+    },
+    "outOfCommunityWithAccrual": {
+      "description": "Requires an antenuptial contract. Each spouse retains own property during the marriage. On dissolution, the spouse with the smaller accrual claims half the difference in accruals.",
+      "statute": "Matrimonial Property Act 88 of 1984, s.3"
+    },
+    "outOfCommunityWithoutAccrual": {
+      "description": "Requires an antenuptial contract that expressly excludes the accrual system. Each spouse retains own property absolutely — no sharing on dissolution.",
+      "statute": "Matrimonial Property Act 88 of 1984"
+    },
+    "customaryMarriage": {
+      "description": "Customary marriages registered under the Recognition of Customary Marriages Act 120 of 1998 are in community of property by default, unless an antenuptial contract is registered.",
+      "statute": "Recognition of Customary Marriages Act 120 of 1998, s.7"
+    },
+    "pensionSharing": {
+      "description": "On divorce, the court may order a pension fund to pay a portion of the member spouse's 'pension interest' to the non-member spouse. This applies regardless of the matrimonial property regime.",
+      "statute": "Divorce Act 70 of 1979, s.7(7)-(8); Pension Funds Act 24 of 1956"
+    },
+    "redistributionOrder": {
+      "description": "For marriages out of community of property, the court may order a redistribution of assets where one spouse made direct or indirect contributions (including homemaking and child-rearing) to the other's estate.",
+      "statute": "Divorce Act 70 of 1979, s.7(3)-(6)"
+    }
+  },
+  "effectiveDateRule": "The decree of divorce takes effect immediately upon being granted by the court. There is no statutory waiting period after the decree is issued.",
+  "certificateNote": "A decree of divorce is the final order. A certified copy may be obtained from the Registrar of the High Court. There is no separate 'Certificate of Divorce' — the decree itself is the proof of dissolution."
+}

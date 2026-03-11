@@ -1,0 +1,73 @@
+{
+  "stateCode": "NB",
+  "stateName": "New Brunswick",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Court of King's Bench of New Brunswick",
+    "familyDivision": "Court of King's Bench of New Brunswick — Family Division",
+    "appealCourt": "Court of Appeal of New Brunswick"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Marital Property Act, RSNB 2012, c. 107 (equalization of marital property)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Marital Property Act, RSNB 2012, c. 107",
+      "description": "New Brunswick statute — equalization of marital property on marriage breakdown"
+    },
+    {
+      "code": "Family Services Act, SNB 1980, c. F-2.2",
+      "description": "New Brunswick statute — spousal and child support, protection of persons"
+    },
+    {
+      "code": "Evidence Act, SNB 2016, c. 19",
+      "description": "New Brunswick affidavit requirements — oath before commissioner for taking affidavits (replaced the former Evidence Act, SNB 1971, c. E-11)"
+    },
+    {
+      "code": "Commissioners Taking Affidavits Act, RSNB 1973, c. C-6.1",
+      "description": "New Brunswick statute governing commissioners for taking affidavits"
+    },
+    {
+      "code": "Oaths Act, RSNB 1973, c. O-1",
+      "description": "New Brunswick statute governing the form and administration of oaths and solemn affirmations"
+    },
+    {
+      "code": "Rules of Court of New Brunswick",
+      "description": "Procedural rules for Court of King's Bench of New Brunswick"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at ___, in the Province of New Brunswick, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Affidavits\nin and for the Province of New Brunswick",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for taking affidavits."
+  }
+}

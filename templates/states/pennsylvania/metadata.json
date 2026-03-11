@@ -1,0 +1,42 @@
+{
+  "stateCode": "PA",
+  "stateName": "Pennsylvania",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "commonwealth",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "42 Pa.C.S. § 6341",
+      "description": "Affidavit requirements and use in civil proceedings"
+    },
+    {
+      "code": "18 Pa.C.S. § 4902",
+      "description": "Perjury — false sworn statements punishable as a felony of the third degree"
+    },
+    {
+      "code": "18 Pa.C.S. § 4904",
+      "description": "Unsworn falsification to authorities — penalties for false statements in non-sworn documents (note: for sworn affidavits, § 4902 perjury applies)"
+    },
+    {
+      "code": "57 Pa.C.S. § 316",
+      "description": "Pennsylvania Notary Public Law — jurat and acknowledgment requirements"
+    }
+  ],
+  "affidavitJurat": "Sworn to and subscribed before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Exhibits must be labeled with letters (A, B, C, etc.) and a cover page identifying the exhibit must be attached."
+  }
+}

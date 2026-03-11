@@ -57,6 +57,7 @@ function buildPhaseTool(stateCode) {
           county:                { type: 'string', description: 'County (or parish/district) where petition is filed' },
           residency_state_months: { type: 'number', description: 'Months lived in the state' },
           residency_county_days:  { type: 'number', description: 'Days lived in the filing county' },
+          residency_basis:        { type: 'string', description: 'NY only: which DRL § 230 jurisdictional basis applies (e.g., both_residents, married_in_ny_1yr, last_lived_together_1yr, grounds_arose_1yr, 2yr_residence)' },
           has_protective_order:   { type: 'boolean' },
 
           // ── GROUNDS & MARRIAGE ──
@@ -96,7 +97,7 @@ function buildPhaseTool(stateCode) {
           service_method:     { type: 'string', description: 'waiver | formal' },
           respondent_address: { type: 'string' },
 
-          // ── INDIGENCY (TX/UT) ──
+          // ── INDIGENCY / FEE WAIVER (all states) ──
           indigency_confirmed: { type: 'boolean' },
           indigency_requested: { type: 'boolean' },
           monthly_income:      { type: 'number' },
@@ -109,6 +110,12 @@ function buildPhaseTool(stateCode) {
           respondent_military_status: { type: 'string', description: 'not_military | military | unknown' },
           military_search_date:       { type: 'string' },
           military_search_method:     { type: 'string' },
+
+          // ── RECONCILIATION (Ghana — MCA s.2(3)) ──
+          reconciliation_acknowledged: { type: 'boolean', description: 'true = user acknowledges mandatory reconciliation requirement' },
+
+          // ── MARRIAGE TYPE (Ghana — ordinance/customary/Mohammedan) ──
+          marriage_type: { type: 'string', description: 'Type of marriage: ordinance, customary, or mohammedan' },
 
           // ── REVIEW ──
           user_confirmed_review: { type: 'boolean' },
@@ -142,12 +149,13 @@ const FIELD_MAP = {
   county:                      'county',
   residency_state_months:      'residencyStateMonths',
   residency_county_days:       'residencyCountyDays',
+  residency_basis:             'residencyBasis',
   has_protective_order:        'hasProtectiveOrder',
   marriage_date:               'marriageDate',
   marriage_city:               'marriageCity',
   marriage_state:              'marriageStateName',
   separation_date:             'separationDate',
-  grounds:                     'grounds',
+  grounds:                     'groundsForDivorce',
   children_confirmed:          'childrenConfirmed',
   children:                    'children',
   custody_arrangement:         'custodyArrangement',
@@ -171,23 +179,47 @@ const FIELD_MAP = {
   military_search_date:        'militarySearchDate',
   military_search_method:      'militarySearchMethod',
   user_confirmed_review:       'userConfirmedReview',
+  reconciliation_acknowledged: 'reconciliationAcknowledged',
+  marriage_type:               'marriageType',
   // TX legacy compat
   residency_tx_months:         'residencyStateMonths',
 };
 
 // ─── Phase → fact category ────────────────────────────────────────────────────
 const PHASE_CATEGORY = {
-  INTAKE:    'general',
-  RESIDENCY: 'residency',
-  GROUNDS:   'grounds',
-  CHILDREN:  'children',
-  PROPERTY:  'property',
-  SUPPORT:   'support',
-  SERVICE:   'service',
-  INDIGENCY: 'indigency',
-  MILITARY:  'military',
-  REVIEW:    'general',
+  INTAKE:          'general',
+  RESIDENCY:       'residency',
+  GROUNDS:         'grounds',
+  RECONCILIATION:  'grounds',
+  CHILDREN:        'children',
+  PROPERTY:        'property',
+  SUPPORT:         'support',
+  SERVICE:         'service',
+  INDIGENCY:       'indigency',
+  MILITARY:        'military',
+  REVIEW:          'general',
 };
+
+// ─── Orchestrator behavior rules ──────────────────────────────────────────────
+// Injected into every system prompt to enforce consistent UX across all states.
+
+const ORCHESTRATOR_BEHAVIOR = `
+CONVERSATION RULES (you MUST follow these strictly):
+1. Ask exactly ONE question per message. The COLLECT list above shows everything to gather in this phase, but you MUST ask them one at a time across multiple messages. Never combine two or more questions.
+2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
+3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
+4. Never repeat information the user already provided.
+`;
+
+// No first-message disclaimer — the app UI already disclaims elsewhere.
+// The AI disclaimer appears only at REVIEW completion (see REVIEW_COMPLETION).
+
+const REVIEW_COMPLETION = `
+COMPLETION INSTRUCTIONS: When the user confirms all information is correct and you set user_confirmed_review: true, your response MUST:
+1. Provide a brief summary confirmation (2-3 sentences)
+2. Include this notice: "Important: These documents were generated with AI assistance. While we strive for accuracy, they may contain errors or omissions. We strongly recommend having them reviewed by a licensed attorney in your jurisdiction before filing."
+3. End with a clear call to action: "Your divorce documents are ready! Click the Download or Purchase button below to get your completed package."
+`;
 
 // ─── BaseDivorceOrchestrator ─────────────────────────────────────────────────
 
@@ -228,7 +260,7 @@ class BaseDivorceOrchestrator {
       sessionId
     });
 
-    const systemPrompt = this.phases[state.currentPhase].prompt;
+    const systemPrompt = this._buildSystemPrompt(state, divorceData);
     const userPrompt   = this._buildUserPrompt(message, divorceData, state);
 
     const messages = [
@@ -291,6 +323,36 @@ class BaseDivorceOrchestrator {
 
   // ─── Private helpers ───────────────────────────────────────────────────────
 
+  /**
+   * Build the enhanced system prompt with behavioral rules and phase context.
+   */
+  _buildSystemPrompt(state, divorceData) {
+    const parts = [this.phases[state.currentPhase].prompt];
+
+    // Core behavior rules (one question at a time, auto-transition)
+    parts.push(ORCHESTRATOR_BEHAVIOR);
+
+    // Progress indicator
+    const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
+    const totalPhases = this.phaseOrder.length;
+    parts.push(`PROGRESS: Step ${currentIdx + 1} of ${totalPhases}.`);
+
+    // Tell the LLM what the next phase is so it can transition naturally
+    if (state.currentPhase !== 'REVIEW') {
+      const nextPhase = this._getNextPhase(state.currentPhase, divorceData);
+      if (nextPhase && this.phases[nextPhase]) {
+        parts.push(`WHEN PHASE IS COMPLETE: Transition to "${this.phases[nextPhase].displayName}" and immediately ask the first relevant question about that topic.`);
+      }
+    }
+
+    // Review phase: CTA + AI disclaimer
+    if (state.currentPhase === 'REVIEW') {
+      parts.push(REVIEW_COMPLETION);
+    }
+
+    return parts.join('\n');
+  }
+
   _initState(divorceData) {
     if (divorceData.orchestratorState?.currentPhase) {
       return { ...divorceData.orchestratorState };
@@ -320,21 +382,47 @@ class BaseDivorceOrchestrator {
 
   _buildUserPrompt(message, divorceData, state) {
     const collected = this._summarizeCollected(divorceData);
+    const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
+    const completedCount = state.completedPhases?.length || 0;
     return [
       `CURRENT PHASE: ${state.currentPhase} (${this.phases[state.currentPhase]?.displayName || state.currentPhase})`,
+      `PROGRESS: Phase ${currentIdx + 1} of ${this.phaseOrder.length} | ${completedCount} completed`,
       collected ? `\nALREADY COLLECTED:\n${collected}` : '',
       `\nUSER MESSAGE: ${message}`
-    ].filter(Boolean).join('');
+    ].filter(Boolean).join('\n');
   }
 
   _summarizeCollected(d) {
+    // States that use Plaintiff/Defendant in divorce complaints:
+    //   NY, PA — traditional plaintiff/defendant style
+    //   GA, MA, MI, NC, NJ, OH — also use Plaintiff/Defendant in divorce complaints
+    // All other states (CO, WA, VA, TX, AZ, CA, FL, IL, UT, and Canadian provinces)
+    //   use Petitioner/Respondent (or Complainant/Defendant for VA).
+    const usesPlaintiff = ['NY', 'PA', 'GA', 'MA', 'MI', 'NC', 'NJ', 'OH'].includes(this.stateCode);
+    const filingPartyLabel   = usesPlaintiff ? 'Plaintiff'  : 'Petitioner';
+    const respondingPartyLabel = usesPlaintiff ? 'Defendant' : 'Respondent';
+
+    // Canadian provinces use province-specific location terminology:
+    // NB uses "Judicial District"; PE has a single court location (Charlottetown).
+    // All other Canadian provinces and all US states use generic location labelling.
+    const CANADIAN_PROVINCES = ['MB', 'SK', 'NB', 'NS', 'NL', 'PE', 'ON', 'BC', 'AB', 'QC', 'NT', 'YT', 'NU'];
+    const isCanadian = CANADIAN_PROVINCES.includes(this.stateCode);
+    let locationLabel;
+    if (this.stateCode === 'NB') {
+      locationLabel = 'Judicial District';
+    } else if (isCanadian) {
+      locationLabel = 'Court Location';
+    } else {
+      locationLabel = 'County';
+    }
+
     const items = [];
-    if (d.petitionerFirstName) items.push(`Petitioner: ${d.petitionerFirstName} ${d.petitionerLastName || ''}`);
-    if (d.respondentFirstName)  items.push(`Respondent: ${d.respondentFirstName} ${d.respondentLastName || ''}`);
-    if (d.state)                items.push(`State: ${d.state}`);
-    if (d.county)               items.push(`County: ${d.county}`);
+    if (d.petitionerFirstName) items.push(`${filingPartyLabel}: ${d.petitionerFirstName} ${d.petitionerLastName || ''}`);
+    if (d.respondentFirstName)  items.push(`${respondingPartyLabel}: ${d.respondentFirstName} ${d.respondentLastName || ''}`);
+    if (d.state)                items.push(`Province/State: ${d.state}`);
+    if (d.county)               items.push(`${locationLabel}: ${d.county}`);
     if (d.marriageDate)         items.push(`Marriage date: ${d.marriageDate}`);
-    if (d.grounds)              items.push(`Grounds: ${d.grounds}`);
+    if (d.groundsForDivorce)    items.push(`Grounds: ${d.groundsForDivorce}`);
     if (typeof d.hasMinorChildren === 'boolean') {
       items.push(`Minor children: ${d.hasMinorChildren ? 'yes' : 'no'}`);
     }
@@ -358,6 +446,42 @@ class BaseDivorceOrchestrator {
     }
     if (updated.respondentFirstName || updated.respondentLastName) {
       updated.respondentName = [updated.respondentFirstName, updated.respondentLastName].filter(Boolean).join(' ');
+    }
+
+    // Derive marriageLocation from marriageCity + marriageStateName for template compatibility.
+    // BaseDivorcePetitionTemplate reads divorceData.marriageLocation for the marriage paragraph.
+    if (updated.marriageCity || updated.marriageStateName) {
+      updated.marriageLocation = [updated.marriageCity, updated.marriageStateName].filter(Boolean).join(', ');
+    }
+
+    // Derive spousal-support decree fields from the orchestrator's support fields.
+    // BaseDivorceDecreeTemplate (and all state subclasses) read:
+    //   divorceData.spousalSupportAmount   — orchestrator stores supportAmount
+    //   divorceData.spousalSupportDuration — orchestrator stores supportDuration
+    //   divorceData.spousalSupportAwarded  — orchestrator stores spousalSupportRequested
+    // Without these aliases the decree sections always render with '[AMOUNT]' / '[DURATION]'
+    // placeholders and the spousal-support block is suppressed entirely.
+    if (updated.supportAmount !== undefined) {
+      updated.spousalSupportAmount = updated.supportAmount;
+    }
+    if (updated.supportDuration !== undefined) {
+      updated.spousalSupportDuration = updated.supportDuration;
+    }
+    // Map the boolean intent flag to the decree gate field.
+    // spousalSupportRequested=true  → spousalSupportAwarded=true
+    // spousalSupportRequested=false → spousalSupportWaived=true
+    if (updated.spousalSupportRequested === true) {
+      updated.spousalSupportAwarded = true;
+    } else if (updated.spousalSupportRequested === false) {
+      updated.spousalSupportWaived = true;
+    }
+
+    // Derive custodyType from custodyArrangement for decree template compatibility.
+    // BaseDivorceDecreeTemplate (and all state subclasses) gate joint-vs-sole custody
+    // language on divorceData.custodyType. The orchestrator stores custodyArrangement
+    // (from custody_arrangement). Without this alias the decree always defaults to 'joint'.
+    if (updated.custodyArrangement !== undefined && updated.custodyType === undefined) {
+      updated.custodyType = updated.custodyArrangement;
     }
 
     return updated;
@@ -387,6 +511,9 @@ class BaseDivorceOrchestrator {
 
       if (phaseConf?.optional) {
         if (candidate === 'SUPPORT'   && divorceData.spousalSupportConfirmed === true) continue;
+        // Skip INDIGENCY only when confirmed AND the user did not request a fee waiver.
+        // indigencyConfirmed=true merely means the section ran; indigencyRequested=true
+        // means the user actually needs the waiver and the phase must NOT be skipped.
         if (candidate === 'INDIGENCY' && divorceData.indigencyConfirmed === true && !divorceData.indigencyRequested) continue;
       }
       return candidate;

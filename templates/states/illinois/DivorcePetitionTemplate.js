@@ -27,10 +27,11 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Double-spaced
  *
  * Illinois-Specific Notes:
- * - 90-day residency requirement
- * - No mandatory waiting period
- * - Financial Affidavit mandatory per statute
- * - Irreconcilable differences is ONLY ground for dissolution
+ * - 90-day residency requirement (can be established before or after filing, but before judgment)
+ * - No mandatory waiting period; however, 6 months separation creates a rebuttable presumption of irreconcilable differences
+ * - Both parties may waive the 6-month separation period by written stipulation (750 ILCS 5/401(a)(2))
+ * - Financial Affidavit mandatory per statute (750 ILCS 5/501(a)(1))
+ * - Irreconcilable differences is ONLY ground for dissolution (since January 1, 2016)
  */
 class IllinoisDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   constructor() {

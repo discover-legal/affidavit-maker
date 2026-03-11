@@ -1,0 +1,109 @@
+{
+  "stateCode": "NZ",
+  "stateName": "New Zealand",
+  "countryCode": "NZ",
+  "countryName": "New Zealand",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "Either spouse must be domiciled in New Zealand at the time of the application (Family Proceedings Act 1980, s.38). Domicile is distinct from residency — it means NZ is the person's permanent home."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No waiting period after the order is made. A dissolution order takes effect immediately upon being granted (Family Proceedings Act 1980, s.46). However, the 2-year separation must be completed before the application is filed."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation",
+        "name": "Two-Year Separation",
+        "description": "The marriage has broken down irreconcilably, as shown by the parties having lived apart for 2 or more years immediately preceding the filing of the application.",
+        "statute": "Family Proceedings Act 1980, s.39"
+      },
+      {
+        "code": "family_violence",
+        "name": "Family Violence (Protected Person)",
+        "description": "A protected person with a final protection order (or registered foreign protection order) against their spouse may apply for dissolution without the 2-year separation requirement. In effect from 18 October 2025.",
+        "statute": "Family Proceedings Act 1980, s.39A (inserted by Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024)"
+      }
+    ],
+    "fault": []
+  },
+  "terminology": {
+    "caseNumberLabel": "FAM No.",
+    "custody": "Day-to-Day Care and Contact",
+    "physicalCustody": "Day-to-Day Care",
+    "jointCustody": "Shared Day-to-Day Care",
+    "soleCustody": "Sole Day-to-Day Care",
+    "alimony": "Maintenance",
+    "childSupport": "Child Support",
+    "maritalProperty": "Relationship Property (Property (Relationships) Act 1976)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Application for Dissolution of Marriage",
+        "description": "Filed in the Family Court under the Family Proceedings Act 1980; available as a sole or joint application",
+        "required": true
+      },
+      {
+        "name": "Affidavit in Support of Application",
+        "description": "Sworn affidavit confirming the 2-year separation and other required facts",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Family Proceedings Act 1980",
+      "description": "Governs dissolution of marriage in New Zealand"
+    },
+    {
+      "code": "Property (Relationships) Act 1976",
+      "description": "Division of relationship property — equal sharing starting point"
+    },
+    {
+      "code": "Care of Children Act 2004",
+      "description": "Guardianship, day-to-day care, and contact arrangements for children"
+    },
+    {
+      "code": "Child Support Act 1991",
+      "description": "Framework for child support assessment and collection by Inland Revenue"
+    },
+    {
+      "code": "Family Proceedings Act 1980, ss.63-74",
+      "description": "Spousal maintenance provisions"
+    },
+    {
+      "code": "Family Violence Act 2018",
+      "description": "Governs protection orders and the legal response to family violence (replaced the Domestic Violence Act 1995)"
+    },
+    {
+      "code": "Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024",
+      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 18 October 2025)"
+    }
+  ],
+  "filingFees": {
+    "approximate": "NZD $242",
+    "joint": "NZD $242",
+    "varies": false,
+    "notes": "Filing fee for dissolution application (updated per Ministry of Justice). Fee waiver may be available for applicants who cannot afford the fee. Contact the Family Court registry for current fees."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "formula",
+    "guidelines": "Child Support Act 1991",
+    "notes": "Child support is assessed by Inland Revenue using a formula based on parents' income, care arrangements, and number of children. It is separate from the dissolution process."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "Family Proceedings Act 1980, ss.63-74",
+    "notes": "Maintenance is based on the reasonable needs of the applicant and the ability of the other spouse to pay. It is not automatic and must be specifically applied for."
+  },
+  "effectiveDateRule": "The dissolution order takes effect immediately upon being made by the court (Family Proceedings Act 1980, s.46). There is no further waiting period after the order is granted.",
+  "certificateNote": "A certificate confirming the dissolution may be obtained from the Family Court registry after the order takes effect.",
+  "paperSize": "A4",
+  "currency": "NZD"
+}

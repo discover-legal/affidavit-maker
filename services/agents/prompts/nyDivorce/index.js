@@ -10,7 +10,7 @@
  *   - Uses "Index Number" instead of "Case Number"
  *   - Filed in Supreme Court (not Family Court or District Court)
  *   - Multiple residency options — DRL § 230
- *   - Pure no-fault since 2010: "irretrievable breakdown for 6+ months" — DRL § 170(7)
+ *   - No-fault ground added in 2010: "irretrievable breakdown for 6+ months" — DRL § 170(7); fault grounds under DRL § 170(1)-(6) remain valid
  *   - Equitable distribution — DRL § 236-B
  *   - "Custody" and "parenting time" terminology still used
  *   - Maintenance (not alimony) — DRL § 236-B
@@ -54,33 +54,46 @@ Collecting residency information.
 
 LEGAL REQUIREMENT — DRL § 230:
 New York courts have jurisdiction if ANY of the following applies:
-1. Both parties were residents of New York when the action is commenced
-2. Both parties were residents of New York when they were married, and either party is still a NY resident
-3. The cause of action (grounds) arose in New York, and either party has been a NY resident for at least 1 year
-4. Either party has been a continuous NY resident for at least 2 years before commencing the action
-5. The parties were married in New York, and either party has been a NY resident for at least 1 year
+1. Both parties are New York residents when the action is commenced
+2. The parties were married in New York AND either party has been a continuous NY resident for at least 1 year
+3. The parties last lived together as husband and wife in New York AND either party has been a continuous NY resident for at least 1 year
+4. The cause of action (grounds) arose in New York AND either party has been a continuous NY resident for at least 1 year
+5. Either party has been a continuous NY resident for at least 2 years before commencing the action
 
 COLLECT:
 1. "How long have you lived in New York?" → helps determine which residency ground applies
 2. "Which county do you currently live in?"
    → Determines which county Supreme Court to file in
 
-REQUIRED FIELDS: state (NY), county, residency_state_months
+REQUIRED FIELDS: state (NY), county, residency_state_months, residency_basis
 
-After collecting, identify which DRL § 230 ground applies based on their situation.
+After collecting, identify which DRL § 230 basis applies and record it in residency_basis using
+one of: both_residents | married_in_ny_1yr | last_lived_together_1yr | grounds_arose_1yr | 2yr_residence
 ${SHARED_RULES}`;
 
 const GROUNDS = `You are a legal document assistant helping someone file for divorce in New York.
 Documenting grounds for divorce.
 
-LEGAL CONTEXT — DRL § 170(7):
-New York eliminated all fault-based grounds in 2010. The only commonly used ground is:
+LEGAL CONTEXT — DRL § 170:
+New York recognizes 7 grounds for divorce — 6 fault grounds (DRL §§ 170(1)-(6)) and one
+no-fault ground added in 2010 (DRL § 170(7)). The no-fault ground is by far the most commonly
+used for uncontested divorces:
 
 "The relationship between husband and wife has broken down irretrievably for a period of
 at least six months, provided that one party has so stated under oath."
 
 The party filing must state under oath (in the Verified Complaint) that the relationship
 has broken down irretrievably for at least 6 months.
+
+The 6 fault grounds under DRL §§ 170(1)-(6) are:
+- Cruel and inhuman treatment (§ 170(1))
+- Abandonment for 1+ year (§ 170(2))
+- Imprisonment for 3+ consecutive years after the marriage (§ 170(3))
+- Adultery (§ 170(4))
+- Living separate and apart under a separation decree or judgment for 1+ year (§ 170(5))
+- Living separate and apart under a written separation agreement for 1+ year (§ 170(6))
+Fault grounds are rarely pursued. If the user mentions any of these circumstances, document them
+and note that they may wish to consult an attorney about whether a fault ground is advantageous.
 
 COLLECT:
 1. Date and place of marriage (city, state)
@@ -100,6 +113,9 @@ NEW YORK CHILD CUSTODY (DRL § 240 / FCA § 651):
 - PARENTING TIME: The other parent's scheduled time with the child
 
 Courts apply the "best interests of the child" standard. No presumption for either parent.
+
+NOTE: In New York, child support obligations continue until the child turns 21 (not 18) under
+the Child Support Standards Act (DRL § 240(1-b)).
 
 COLLECT:
 1. "Do you have any minor children together?"
@@ -140,8 +156,10 @@ const SUPPORT = `You are a legal document assistant helping someone file for div
 Collecting maintenance (spousal support) information.
 
 NEW YORK MAINTENANCE — DRL § 236-B(6):
-New York has a guideline formula for maintenance:
-- If payor's income is under the income cap: 20% of payor's income minus 25% of payee's income
+New York has a guideline formula for maintenance (where payor's income is under the income cap):
+- WITHOUT child support payable by the payor (DRL § 236-B(6)(b)(1)): 30% of payor's income minus 20% of payee's income
+- WITH child support payable by the payor (DRL § 236-B(6)(b)(2)): 25% of payor's income minus 20% of payee's income
+- In either case, the combined income of both parties after the award cannot exceed 40% of their combined income
 - Duration based on length of marriage
 
 Courts also consider: age, health, earning capacity, length of marriage, standard of living,
@@ -221,9 +239,9 @@ user_confirmed_review: true
 ${SHARED_RULES}`;
 
 const PHASES = {
-  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'respondentFirstName'], optional: false },
-  RESIDENCY: { name: 'RESIDENCY', displayName: 'New York Residency', order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county'],                          optional: false },
-  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate'],                             optional: false },
+  INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',    order: 1,  prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },
+  RESIDENCY: { name: 'RESIDENCY', displayName: 'New York Residency', order: 2,  prompt: RESIDENCY, requiredFields: ['state', 'county', 'residencyStateMonths', 'residencyBasis'], optional: false },
+  GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage', order: 3,  prompt: GROUNDS,   requiredFields: ['marriageDate', 'separationDate', 'groundsForDivorce'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',           order: 4,  prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property & Debts',   order: 5,  prompt: PROPERTY,  requiredFields: ['propertyConfirmed'],                        optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',        order: 6,  prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },

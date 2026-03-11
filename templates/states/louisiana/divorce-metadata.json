@@ -1,0 +1,288 @@
+{
+  "stateCode": "LA",
+  "stateName": "Louisiana",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Judgment of Divorce",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Joint Custody (Domiciliary / Non-Domiciliary Parent)",
+    "visitation": "Visitation / Custodial Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Community Property"
+  },
+
+  "residencyRequirements": {
+    "domicile": true,
+    "parishMonths": 6,
+    "description": "The petitioner must be domiciled in Louisiana. Six months of parish residency establishes domicile for filing purposes. The petition is filed in the parish where either party is domiciled.",
+    "statute": "La. C.C. Art. 10; La. C.C.P. Art. 3941"
+  },
+
+  "waitingPeriod": {
+    "article102": {
+      "noChildren": {
+        "days": 180,
+        "description": "Under Article 102, the spouses must live separate and apart for 180 days after service of the petition (when there are no minor children)."
+      },
+      "withChildren": {
+        "days": 365,
+        "description": "Under Article 102, the spouses must live separate and apart for 365 days after service of the petition (when there are minor children of the marriage)."
+      }
+    },
+    "article103": {
+      "days": 0,
+      "description": "Under Article 103, if the spouses have already lived separate and apart for the required period (180 days without children / 365 days with children), divorce may be granted immediately upon proof of separation."
+    },
+    "fault": {
+      "days": 0,
+      "description": "No waiting period for fault-based divorce (adultery or felony conviction with death or hard labor sentence)."
+    },
+    "covenantMarriage": {
+      "days": 730,
+      "description": "Covenant marriage requires 2 years of separation (or applicable fault grounds after mandatory counseling)."
+    },
+    "startsFrom": "service_of_petition",
+    "notes": "Louisiana waiting periods depend on the type of divorce filed (Article 102 vs. 103) and whether minor children are involved."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "article_102",
+        "name": "Article 102 No-Fault (File First, Then Wait)",
+        "description": "Petition is filed first, then spouses must live separate and apart for 180 days (no children) or 365 days (with children) after service of the petition before divorce is granted.",
+        "statute": "La. C.C. Art. 102"
+      },
+      {
+        "code": "article_103_separation",
+        "name": "Article 103 No-Fault (Already Separated)",
+        "description": "Spouses have already lived separate and apart for the required period (180 days without children / 365 days with children). Divorce may be granted immediately upon proof.",
+        "statute": "La. C.C. Art. 103(1)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "The other spouse has committed adultery.",
+        "statute": "La. C.C. Art. 103(2)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Felony Conviction",
+        "description": "The other spouse has been convicted of a felony and has been sentenced to death or imprisonment at hard labor.",
+        "statute": "La. C.C. Art. 103(3)"
+      }
+    ],
+    "covenantMarriage": [
+      {
+        "code": "covenant_adultery",
+        "name": "Adultery (Covenant)",
+        "description": "The other spouse committed adultery.",
+        "statute": "La. R.S. 9:307(A)(1)"
+      },
+      {
+        "code": "covenant_felony",
+        "name": "Felony Conviction (Covenant)",
+        "description": "The other spouse has been convicted of a felony and sentenced to death or imprisonment at hard labor.",
+        "statute": "La. R.S. 9:307(A)(2)"
+      },
+      {
+        "code": "covenant_abandonment",
+        "name": "Abandonment (Covenant)",
+        "description": "The other spouse has abandoned the matrimonial domicile for one year and constantly refuses to return.",
+        "statute": "La. R.S. 9:307(A)(3)"
+      },
+      {
+        "code": "covenant_abuse",
+        "name": "Physical or Sexual Abuse (Covenant)",
+        "description": "The other spouse has physically or sexually abused the spouse or a child of one of the spouses.",
+        "statute": "La. R.S. 9:307(A)(4)"
+      },
+      {
+        "code": "covenant_separation",
+        "name": "Two-Year Separation (Covenant)",
+        "description": "The spouses have lived separate and apart for at least two years.",
+        "statute": "La. R.S. 9:307(A)(6)"
+      }
+    ],
+    "notes": "Louisiana is a civil law state. Divorce grounds are codified in the Civil Code (Articles 102-103) and the Revised Statutes. Covenant marriages have additional requirements including mandatory counseling before filing."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Louisiana is a community property state. All property acquired during the marriage (except by gift, inheritance, or by the terms of a prenuptial agreement) is community property and is divided equally (50/50) upon divorce. Each spouse retains their separate property.",
+    "separateProperty": "Separate property includes property acquired before the marriage, property acquired during the marriage by gift or inheritance, and property designated as separate by valid matrimonial agreement. Fruits and revenues of separate property are community property unless otherwise provided by matrimonial agreement.",
+    "statute": "La. C.C. Art. 2336 et seq.; La. R.S. 9:2801"
+  },
+
+  "legalCitations": [
+    {
+      "code": "La. C.C. Art. 102",
+      "description": "Divorce — file petition, then live separate and apart for required period"
+    },
+    {
+      "code": "La. C.C. Art. 103",
+      "description": "Divorce — already separated for required period; fault grounds (adultery, felony)"
+    },
+    {
+      "code": "La. C.C. Art. 10",
+      "description": "Domicile — determines jurisdiction for divorce proceedings"
+    },
+    {
+      "code": "La. C.C.P. Art. 3941",
+      "description": "Venue — divorce filed in parish of domicile of either spouse"
+    },
+    {
+      "code": "La. C.C. Art. 2336 et seq.",
+      "description": "Community property regime — classification and division"
+    },
+    {
+      "code": "La. R.S. 9:2801",
+      "description": "Partition of community property upon termination"
+    },
+    {
+      "code": "La. C.C. Art. 131 et seq.",
+      "description": "Custody — best interest of the child; joint custody presumption; domiciliary parent"
+    },
+    {
+      "code": "La. R.S. 9:335",
+      "description": "Joint custody implementation — domiciliary parent designation and visitation"
+    },
+    {
+      "code": "La. C.C. Art. 111-113",
+      "description": "Spousal support — interim and final periodic spousal support"
+    },
+    {
+      "code": "La. R.S. 9:315 et seq.",
+      "description": "Louisiana Child Support Guidelines — income shares model"
+    },
+    {
+      "code": "La. R.S. 9:307",
+      "description": "Covenant marriage — grounds for divorce"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$200-$600",
+    "varies": true,
+    "notes": "Louisiana filing fees vary by parish. Typically $200-$600. Fee waivers are available for qualifying low-income individuals via an Application for In Forma Pauperis (IFP)."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding under Article 102 or Article 103",
+        "required": true
+      },
+      {
+        "name": "Citation",
+        "description": "Formal notice to respondent served by sheriff or private process server",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Domicile",
+        "description": "Sworn statement establishing domicile in the parish of filing",
+        "required": true
+      },
+      {
+        "name": "Rule to Show Cause (Article 102)",
+        "description": "Motion filed after the waiting period to set the divorce hearing — required for Article 102 divorces",
+        "required": false
+      },
+      {
+        "name": "Judgment of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Citation and Service by Sheriff",
+        "description": "Domiciliary service by the parish sheriff — standard service method in Louisiana",
+        "required": true,
+        "alternatives": ["Waiver of Citation and Service", "Long-Arm Service"]
+      },
+      {
+        "name": "Waiver of Citation and Service",
+        "description": "Respondent voluntarily waives formal service",
+        "required": false,
+        "notes": "Must be signed by respondent before a notary public"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody Implementation Plan",
+        "description": "Joint custody implementation order designating domiciliary and non-domiciliary parent per La. R.S. 9:335",
+        "required": true
+      },
+      {
+        "name": "Child Support Obligation Worksheet",
+        "description": "Calculation per Louisiana Child Support Guidelines (La. R.S. 9:315 et seq.)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Louisiana District Court local rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 15,
+      "description": "Respondent must file a response within 15 days of service (La. C.C.P. Art. 1001)"
+    },
+    "outOfState": {
+      "days": 15,
+      "description": "Respondent served outside Louisiana has 15 days from service plus additional time for long-arm service"
+    },
+    "statute": "La. C.C.P. Art. 1001"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Louisiana uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Louisiana Child Support Guidelines schedule based on combined adjusted gross income and the number of children.",
+    "statute": "La. R.S. 9:315 et seq.",
+    "notes": "The court may deviate from the guidelines if application would not be in the best interest of the child or would be inequitable to the parties."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "Louisiana provides for two types of spousal support: (1) Interim spousal support — awarded during the divorce proceeding based on the needs of the claimant and the ability of the other spouse to pay, considering the standard of living during the marriage; (2) Final periodic support — awarded after divorce to a spouse who is free from fault and lacks sufficient means for support, limited to one-third of the obligor's net income and subject to modification.",
+    "eligibility": "Interim support: based on need and ability to pay. Final periodic support: claimant must be free from fault in the breakup of the marriage and must lack sufficient means for support.",
+    "statute": "La. C.C. Art. 111 (interim); La. C.C. Art. 112-113 (final periodic)"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Divorce is filed in the District Court of the parish where either party is domiciled. Louisiana courts are organized by judicial district and parish, not by county."
+  },
+
+  "notes": "Louisiana is the only U.S. civil law state. Its legal system derives from the French Napoleonic Code. Louisiana uses PARISHES instead of counties. The 'domiciliary parent' is a unique Louisiana term for the parent with whom the child primarily resides in a joint custody arrangement."
+}

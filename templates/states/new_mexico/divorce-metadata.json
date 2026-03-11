@@ -1,0 +1,214 @@
+{
+  "stateCode": "NM",
+  "stateName": "New Mexico",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Final Decree of Dissolution of Marriage",
+    "caseNumberLabel": "No.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Timesharing / Visitation",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Community Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": 0,
+    "description": "At least one party must have been domiciled in New Mexico for at least six (6) months immediately preceding the filing of the petition.",
+    "statute": "NMSA \u00a740-4-5"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "New Mexico has a mandatory 30-day cooling-off period after service of process before the court may enter a final decree."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility",
+        "description": "Incompatibility due to discord or conflict of personalities that destroys the legitimate ends of the marriage relationship and prevents any reasonable expectation of reconciliation",
+        "statute": "NMSA \u00a740-4-1(A)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "cruel_inhuman_treatment",
+        "name": "Cruel and Inhuman Treatment",
+        "description": "Cruel and inhuman treatment by the respondent",
+        "statute": "NMSA \u00a740-4-1(B)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery committed by the respondent",
+        "statute": "NMSA \u00a740-4-1(C)"
+      },
+      {
+        "code": "abandonment",
+        "name": "Abandonment",
+        "description": "Abandonment by the respondent",
+        "statute": "NMSA \u00a740-4-1(D)"
+      }
+    ],
+    "notes": "New Mexico is both a fault and no-fault state. The most commonly used ground is incompatibility. Fault grounds exist but are rarely needed."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "New Mexico is a community property state. All property acquired during the marriage is presumed to be community property and is subject to equal (50/50) division. Separate property \u2014 property owned before the marriage, or acquired during the marriage by gift or inheritance \u2014 remains with the owning spouse.",
+    "separateProperty": "Property acquired before the marriage, or during the marriage by gift, bequest, or inheritance, is separate property and is not subject to division. Commingling may convert separate property to community property.",
+    "statute": "NMSA \u00a740-4-7"
+  },
+
+  "legalCitations": [
+    {
+      "code": "NMSA \u00a740-4-5",
+      "description": "Residency requirements \u2014 6 months domicile in New Mexico"
+    },
+    {
+      "code": "NMSA \u00a740-4-1",
+      "description": "Grounds for dissolution of marriage \u2014 incompatibility, cruel treatment, adultery, abandonment"
+    },
+    {
+      "code": "NMSA \u00a740-4-7",
+      "description": "Division of community property and spousal support"
+    },
+    {
+      "code": "NMSA \u00a740-4-9",
+      "description": "Child custody determination \u2014 legal and physical custody"
+    },
+    {
+      "code": "NMSA \u00a740-4-9.1",
+      "description": "Joint custody presumption, parenting plan requirement, timesharing/visitation"
+    },
+    {
+      "code": "NMSA \u00a740-4-11.1",
+      "description": "New Mexico Child Support Guidelines \u2014 income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$132-$162",
+    "varies": true,
+    "notes": "New Mexico filing fees for dissolution of marriage are approximately $132 to $162 and may vary by judicial district. Fee waivers (Petition to Proceed in Forma Pauperis) are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Entry of Appearance",
+        "description": "Respondent's entry of appearance and acceptance",
+        "required": false
+      },
+      {
+        "name": "Domestic Relations Information Sheet",
+        "description": "Statistical information required by the court",
+        "required": true
+      },
+      {
+        "name": "Final Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Acceptance of Service", "Service by Publication"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Respondent voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Required when joint custody is ordered \u2014 must include timesharing schedule, decision-making allocation, and dispute resolution (NMSA \u00a740-4-9.1)",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per New Mexico Child Support Guidelines (NMSA \u00a740-4-11.1) \u2014 income shares model",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per New Mexico Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside New Mexico must file a response within 30 days of service"
+    },
+    "statute": "NMRA Rule 1-012(A)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "New Mexico uses an income shares model. Both parents' gross incomes are combined, and the child support obligation is determined from the guidelines schedule based on combined monthly gross income and the number of children.",
+    "statute": "NMSA \u00a740-4-11.1",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Timesharing adjustments apply when a parent has the child(ren) for more than 35% of overnights."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "New Mexico provides for spousal support based on the financial circumstances of the parties. The court considers factors including the duration of the marriage, each party's earning capacity, age and health, the standard of living during the marriage, each party's assets and liabilities, and the needs of each party.",
+    "eligibility": "The court has broad discretion to award spousal support. There is no strict formula; the court weighs statutory factors on a case-by-case basis.",
+    "statute": "NMSA \u00a740-4-7"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Dissolution of marriage is filed in the District Court in the county where either party resides."
+  }
+}

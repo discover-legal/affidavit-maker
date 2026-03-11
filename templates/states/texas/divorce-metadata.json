@@ -75,6 +75,12 @@
     ]
   },
 
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Texas is a community property state. Property acquired during marriage is presumed community property and is subject to a just and right division by the court. Separate property includes property owned before marriage or acquired during marriage by gift, devise, or descent.",
+    "statute": "Texas Family Code Chapter 7"
+  },
+
   "terminology": {
     "caseNumberLabel": "CAUSE NO.",
     "custody": "Conservatorship",
@@ -176,14 +182,14 @@
     },
     {
       "code": "Texas Family Code § 6.301",
-      "description": "Petition requirements"
+      "description": "Residency requirements for filing"
     },
     {
       "code": "Texas Family Code § 6.401",
       "description": "Waiver of service requirements"
     },
     {
-      "code": "Texas Family Code § 6.501",
+      "code": "Texas Family Code § 6.702",
       "description": "60-day waiting period"
     },
     {
@@ -209,7 +215,7 @@
   ],
 
   "filingFees": {
-    "approximate": "$300-350",
+    "approximate": "$250-350",
     "varies": true,
     "notes": "Varies by county. Fee waiver available for indigent parties."
   },
@@ -224,7 +230,7 @@
       "5_children": "40%",
       "6_or_more_children": "not_less_than_40%"
     },
-    "incomeCapNote": "Applies to first $9,200/month of net resources (as of 2024)",
+    "incomeCapNote": "Applies to first $11,700/month of net resources (effective September 1, 2025)",
     "statute": "Texas Family Code § 154.125"
   },
 

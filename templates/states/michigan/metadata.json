@@ -1,0 +1,38 @@
+{
+  "stateCode": "MI",
+  "stateName": "Michigan",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "MCL § 600.2102",
+      "description": "Affidavits — requirements for affidavits in civil matters; must be sworn before an officer authorized to administer oaths"
+    },
+    {
+      "code": "MCL § 55.285",
+      "description": "Michigan Notary Public Act — notary authority to administer oaths and take affidavits; notary must indicate county of commission and expiration date"
+    },
+    {
+      "code": "MCL § 750.422",
+      "description": "Perjury — false statement in a judicial proceeding; for Michigan affidavits, the notary oath provides the sworn affirmation; a separate perjury statement is not required in the affidavit text"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to before me this ___ day of _______________, 20___.\n\n\n_________________________________\n[Notary Name], Notary Public\n_______________ County, State of Michigan\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and attach a cover page identifying the exhibit letter and a brief description. Reference each exhibit in the body of the affidavit and attach exhibits at the end of the document."
+  }
+}

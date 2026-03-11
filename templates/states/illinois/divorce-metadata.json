@@ -71,7 +71,12 @@
 
   "waitingPeriod": {
     "days": 0,
-    "description": "Illinois has no mandatory waiting period, but residency requirement must be met before judgment can be entered."
+    "separationPresumption": {
+      "months": 6,
+      "description": "If parties have lived separate and apart for 6 continuous months, irreconcilable differences are presumed. Both parties may waive the 6-month period by written stipulation.",
+      "statute": "750 ILCS 5/401(a)(2)"
+    },
+    "description": "Illinois has no mandatory waiting period, but residency requirement must be met before judgment. If parties have not been separated for 6 months, they must affirmatively establish irreconcilable differences; 6 months separation creates a rebuttable presumption."
   },
 
   "groundsForDissolution": {
@@ -145,7 +150,7 @@
   ],
 
   "filingFees": {
-    "approximate": "$289-388",
+    "approximate": "$210-388",
     "varies": true,
     "notes": "Varies by county. Fee waiver available for qualifying individuals."
   },
@@ -160,7 +165,8 @@
     "formula": {
       "description": "Statutory formula for maintenance calculation",
       "calculation": "(33.33% of payor's net income) - (25% of payee's net income)",
-      "cap": "Combined maintenance and payee's net income cannot exceed 40% of combined net income"
+      "cap": "Combined maintenance and payee's net income cannot exceed 40% of combined net income",
+      "incomeThreshold": "Formula applies only when combined gross income is under $500,000; above that threshold, the court uses discretionary statutory factors"
     },
     "duration": {
       "description": "Based on length of marriage",

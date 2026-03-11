@@ -1,0 +1,200 @@
+{
+  "stateCode": "KY",
+  "stateName": "Kentucky",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Custody / Sole Custody",
+    "visitation": "Timesharing / Visitation",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "At least one party must have been a resident of Kentucky for at least 180 days (approximately 6 months) before filing. The petition is filed in the county where the petitioner resides. There is no separate county residency requirement.",
+    "statute": "KRS 403.140"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Kentucky has a mandatory 60-day waiting period. The decree cannot be entered until at least 60 days have elapsed after the petition is filed. KRS 403.170(1)."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken. May be established by both parties affirming the breakdown, one party stating it and the other not denying it, or the parties living apart for at least 60 days.",
+        "statute": "KRS 403.170"
+      }
+    ],
+    "fault": [],
+    "notes": "Kentucky is a pure no-fault state. The only ground for dissolution of marriage is irretrievable breakdown. Fault is not considered in granting the dissolution."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Kentucky divides marital property in 'just proportions,' considering the contribution of each spouse to acquisition of marital property (including the contribution of a spouse as homemaker), the value of property set apart to each spouse, the duration of the marriage, and the economic circumstances of each spouse at the time of the division.",
+    "separateProperty": "Non-marital (separate) property includes property acquired before marriage, property acquired by gift or inheritance during marriage, property acquired in exchange for non-marital property, and property excluded by valid agreement.",
+    "statute": "KRS 403.190"
+  },
+
+  "legalCitations": [
+    {
+      "code": "KRS 403.140",
+      "description": "Jurisdiction — 180-day residency requirement"
+    },
+    {
+      "code": "KRS 403.170",
+      "description": "Dissolution of marriage — irretrievable breakdown; 60-day waiting period"
+    },
+    {
+      "code": "KRS 403.190",
+      "description": "Disposition of marital property — equitable distribution in just proportions"
+    },
+    {
+      "code": "KRS 403.200",
+      "description": "Maintenance — factors for award and amount"
+    },
+    {
+      "code": "KRS 403.270",
+      "description": "Child custody — joint custody and sole custody; best interest of child"
+    },
+    {
+      "code": "KRS 403.320",
+      "description": "Timesharing and visitation rights"
+    },
+    {
+      "code": "KRS 403.211 et seq.",
+      "description": "Child support guidelines — income shares model"
+    },
+    {
+      "code": "KRS 523.020",
+      "description": "Perjury in the first degree — criminal penalty for false sworn statements"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$115-$185",
+    "varies": true,
+    "notes": "Kentucky filing fees for dissolution of marriage range from approximately $115 to $185 depending on the county. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Case Data Information Sheet (VS-300)",
+        "description": "Vital statistics form required by Kentucky courts",
+        "required": true
+      },
+      {
+        "name": "Verified Disclosure Statement",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true,
+        "notes": "Required by Kentucky Family Court Rules"
+      },
+      {
+        "name": "Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent by sheriff or certified process server",
+        "required": true,
+        "alternatives": ["Entry of Appearance and Waiver of Service"]
+      },
+      {
+        "name": "Entry of Appearance and Waiver of Service",
+        "description": "Respondent voluntarily accepts service and enters an appearance",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Worksheet (AOC-238)",
+        "description": "Income shares calculation per KRS 403.211",
+        "required": true
+      },
+      {
+        "name": "Parenting Time Agreement / Schedule",
+        "description": "Proposed timesharing and visitation arrangement",
+        "required": true,
+        "notes": "Required in most Kentucky family courts"
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Kentucky Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Respondent served outside Kentucky must file an answer within 20 days of service (may be extended by the court)"
+    },
+    "statute": "Kentucky Rules of Civil Procedure, CR 12.01"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Kentucky uses an income shares model. Both parents' combined monthly adjusted parental gross incomes are used to determine the basic child support obligation from a schedule. The obligation is apportioned between the parents based on their proportional share of the combined income.",
+    "statute": "KRS 403.211 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. Adjustments for childcare, health insurance, and extraordinary expenses."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "maintenance",
+    "description": "Kentucky courts may award maintenance (not alimony) when one spouse lacks sufficient property to provide for reasonable needs and is unable to support themselves through appropriate employment. There are no statutory formulas — the court exercises broad discretion based on the statutory factors in KRS 403.200.",
+    "eligibility": "The court considers: financial resources of the party seeking maintenance, time needed to acquire education/training, standard of living during marriage, duration of marriage, age, physical and emotional condition, and the ability of the paying spouse to meet their needs while paying maintenance.",
+    "statute": "KRS 403.200"
+  },
+
+  "court": {
+    "name": "Family Court / Circuit Court",
+    "description": "Dissolution of marriage is filed in the Family Court (in counties where Family Court has been established) or the Circuit Court (in counties without a Family Court) in the county where the petitioner resides."
+  }
+}

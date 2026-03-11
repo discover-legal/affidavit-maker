@@ -34,6 +34,21 @@ class OntarioAffidavitTemplate extends BaseAffidavitTemplate {
   }
 
   /**
+   * Ontario header uses province designation.
+   */
+  generateHeader() {
+    return 'PROVINCE OF ONTARIO';
+  }
+
+  /**
+   * Ontario venue — city or regional municipality of filing.
+   */
+  generateVenue(county) {
+    const location = (county || '[CITY/MUNICIPALITY]').toUpperCase();
+    return `AT ${location}`;
+  }
+
+  /**
    * Ontario case caption.
    * Superior Court of Justice uses "Court File No." and the courthouse location.
    */

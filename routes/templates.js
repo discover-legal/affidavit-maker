@@ -197,38 +197,25 @@ router.get('/divorce/states', standardLimiter, asyncHandler(async (req, res) => 
   const templateManager = req.app.locals.templateManager;
 
   try {
-    // Check if registry mode is available with divorce support
-    if (templateManager.isRegistryMode?.()) {
-      const states = templateManager.getSupportedStates();
+    const states = templateManager.getSupportedStates();
 
-      // Filter to only states that have divorce document types
-      const divorceStates = states.filter(state => {
-        const docTypes = templateManager.getDocumentTypes(state.code);
-        return docTypes.includes('divorce_petition') || docTypes.includes('divorce_decree');
-      });
+    // Filter to only states that have divorce document types
+    const divorceStates = states.filter(state => {
+      const docTypes = templateManager.getDocumentTypes(state.code);
+      return docTypes.includes('divorce_petition') || docTypes.includes('divorce_decree');
+    });
 
-      res.json({
-        success: true,
-        data: {
-          states: divorceStates.map(s => s.code),
-          stateDetails: divorceStates.map(s => ({
-            code: s.code,
-            name: s.name
-          })),
-          documentTypes: ['divorce_petition', 'divorce_decree']
-        }
-      });
-    } else {
-      // Legacy mode - return empty (divorce not supported)
-      res.json({
-        success: true,
-        data: {
-          states: [],
-          stateDetails: [],
-          documentTypes: ['divorce_petition', 'divorce_decree']
-        }
-      });
-    }
+    res.json({
+      success: true,
+      data: {
+        states: divorceStates.map(s => s.code),
+        stateDetails: divorceStates.map(s => ({
+          code: s.code,
+          name: s.name
+        })),
+        documentTypes: ['divorce_petition', 'divorce_decree']
+      }
+    });
   } catch (error) {
     logger.error('Failed to get divorce states:', {
       error: error.message,
@@ -260,20 +247,11 @@ router.get('/divorce/requirements/:state', standardLimiter, asyncHandler(async (
   try {
     const stateCode = state.toUpperCase();
 
-    // Check if state supports divorce documents
-    if (!templateManager.isRegistryMode?.()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Divorce documents not available in this configuration',
-        requestId: req.id
-      });
-    }
-
     const docTypes = templateManager.getDocumentTypes(stateCode);
     if (!docTypes.includes('divorce_petition') && !docTypes.includes('divorce_decree')) {
       return res.status(400).json({
         success: false,
-        error: `State does not support divorce documents. Supported states: TX, UT, AZ, CA, FL, IL, NY`,
+        error: `State does not support divorce documents. Supported states: TX, UT, AZ, CA, FL, IL, NY, CO, GA, MA, MI, NC, NJ, OH, PA, VA, WA, ON, BC, AB, QC, MB, NB, NL, NS, PE, SK`,
         requestId: req.id
       });
     }
@@ -331,14 +309,6 @@ router.get('/divorce/document-types/:state', standardLimiter, asyncHandler(async
 
   try {
     const stateCode = state.toUpperCase();
-
-    if (!templateManager.isRegistryMode?.()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Divorce documents not available in this configuration',
-        requestId: req.id
-      });
-    }
 
     const allDocTypes = templateManager.getDocumentTypes(stateCode);
 
@@ -416,16 +386,7 @@ router.post('/divorce/validate', standardLimiter, asyncHandler(async (req, res) 
   try {
     const stateCode = state.toUpperCase();
 
-    if (!templateManager.isRegistryMode?.()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Divorce document validation not available in this configuration',
-        requestId: req.id
-      });
-    }
-
-    // Validate using StateTemplateManager
-    const validation = templateManager.validateDivorceData(stateCode, data, documentType);
+    const validation = templateManager.validateAffidavitData(stateCode, data, documentType);
 
     // Calculate completion percentage
     const metadata = templateManager.getMetadata(stateCode, documentType);

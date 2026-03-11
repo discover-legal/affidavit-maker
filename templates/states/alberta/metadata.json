@@ -16,7 +16,7 @@
     "perjuryStatement": false,
     "notaryBlock": true,
     "notaryInstruction": false,
-    "caseNumberLabel": "Court File No.",
+    "caseNumberLabel": "Action No.",
     "caseNumberRequired": false,
     "headerFormat": "uppercase",
     "venueFormat": "uppercase",
@@ -30,10 +30,10 @@
     "appealCourt": "Court of Appeal of Alberta"
   },
   "divorceTerminology": {
-    "parties": ["Petitioner", "Respondent"],
+    "parties": ["Plaintiff", "Defendant"],
     "grounds": "Divorce Act (RSC 1985, c. 3)",
     "primaryGround": "separation of one year (s.8(2)(a))",
-    "propertyDivision": "Matrimonial Property Act, RSA 2000, c. M-8"
+    "propertyDivision": "Family Property Act, RSA 2000, c. F-4.7"
   },
   "legalCitations": [
     {
@@ -41,8 +41,8 @@
       "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
     },
     {
-      "code": "Matrimonial Property Act, RSA 2000, c. M-8",
-      "description": "Alberta statute — division of matrimonial property between spouses"
+      "code": "Family Property Act, RSA 2000, c. F-4.7",
+      "description": "Alberta statute — division of family property between spouses and adult interdependent partners (replaced Matrimonial Property Act effective January 1, 2020)"
     },
     {
       "code": "Family Law Act, SA 2003, c. F-4.5",

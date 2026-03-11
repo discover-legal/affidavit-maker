@@ -1,0 +1,207 @@
+{
+  "stateCode": "HI",
+  "stateName": "Hawaii",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree Granting Divorce",
+    "caseNumberLabel": "FC-D NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Spousal Support / Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 3,
+    "countyMonths": 0,
+    "description": "The plaintiff or defendant must have been domiciled or physically present in the State of Hawaii for a continuous period of at least three (3) months immediately preceding the filing of the complaint. The complaint must be filed in the circuit where the plaintiff resides. (HRS §580-1)",
+    "statute": "HRS §580-1"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "not_applicable",
+    "exceptions": [],
+    "description": "Hawaii has no mandatory waiting period after filing. The court may schedule a hearing at any time after proper service."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Marriage Is Irretrievably Broken",
+        "description": "The marriage is irretrievably broken",
+        "statute": "HRS §580-41"
+      },
+      {
+        "code": "lived_apart_two_years",
+        "name": "Lived Apart for Two or More Years",
+        "description": "The parties have lived apart for a continuous period of two or more years under a decree of separate maintenance or by mutual consent",
+        "statute": "HRS §580-41"
+      },
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "There exist irreconcilable differences which have caused the irretrievable breakdown of the marriage",
+        "statute": "HRS §580-41"
+      }
+    ],
+    "fault": [],
+    "notes": "Hawaii is a no-fault only state. The court may grant a divorce on any of the no-fault grounds listed above. (HRS §580-41)"
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Hawaii courts divide marital property in a just and equitable manner, considering the respective merits of the parties, the relative abilities of the parties, the condition in which each party will be left, the burdens imposed upon either party for the benefit of the children, and all other relevant circumstances.",
+    "separateProperty": "Property acquired before the marriage or by gift or inheritance may be treated as separate property. However, the court has broad discretion in dividing all property, including separate property, to achieve a fair and equitable result.",
+    "statute": "HRS §580-47"
+  },
+
+  "legalCitations": [
+    {
+      "code": "HRS §580-1",
+      "description": "Jurisdiction — domicile in Hawaii required"
+    },
+    {
+      "code": "HRS §580-41",
+      "description": "Grounds for divorce — no-fault only (irretrievably broken, lived apart 2+ years, irreconcilable differences)"
+    },
+    {
+      "code": "HRS §580-47",
+      "description": "Property division and spousal support — fair and equitable distribution"
+    },
+    {
+      "code": "HRS §571-46",
+      "description": "Child custody — best interests of the child; joint custody encouraged"
+    },
+    {
+      "code": "HRS §576D",
+      "description": "Hawaii Child Support Enforcement Agency"
+    },
+    {
+      "code": "HRS §576E",
+      "description": "Hawaii Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$215-$265",
+    "varies": true,
+    "notes": "Hawaii filing fees range from approximately $215 to $265 depending on the circuit. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Appearance and Waiver",
+        "description": "Defendant's voluntary appearance and waiver of service",
+        "required": false
+      },
+      {
+        "name": "Income and Expense Statement",
+        "description": "Mandatory disclosure of income, expenses, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree Granting Divorce",
+        "description": "Final court decree granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Personal Service",
+        "description": "Service by sheriff, process server, or any adult who is not a party",
+        "required": true,
+        "alternatives": ["Appearance and Waiver"]
+      },
+      {
+        "name": "Appearance and Waiver",
+        "description": "Defendant waives formal service and enters appearance",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Custody and Visitation Plan",
+        "description": "Plan detailing custody and visitation arrangements",
+        "required": true
+      },
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Calculation per Hawaii Child Support Guidelines (HRS §576E)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Hawaii Family Court filing requirements"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Hawaii must file an answer within 30 days of service"
+    },
+    "statute": "Hawaii Rules of Civil Procedure Rule 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Hawaii uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the Hawaii Child Support Guidelines schedule based on combined monthly gross income and the number of children.",
+    "statute": "HRS §576D, §576E",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support_alimony",
+    "description": "Hawaii courts may award spousal support or alimony based on the financial needs of the requesting spouse and the ability of the other spouse to pay, considering the standard of living during the marriage, the length of the marriage, the age and health of the parties, the income and earning capacity of each party, and other relevant factors.",
+    "eligibility": "Either party may request spousal support. The court has broad discretion in determining the amount and duration.",
+    "statute": "HRS §580-47"
+  },
+
+  "court": {
+    "name": "Family Court",
+    "description": "Divorce cases are filed in the Family Court of the judicial circuit where the plaintiff is domiciled. (HRS §571-1 et seq.)"
+  }
+}

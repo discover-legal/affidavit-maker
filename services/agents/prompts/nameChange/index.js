@@ -30,14 +30,26 @@ OPENING (first message): "I'm here to help you petition for a legal name change.
 
 REQUIRED FIELDS: current_first_name, current_last_name, new_first_name, new_last_name, state, county, change_reason, is_for_minor
 
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Name changes are governed by provincial legislation:
+  ON: Change of Name Act | BC: Name Act | AB: Change of Name Act | QC: Civil Code art. 57-64 (Directeur de l'etat civil)
+  MB: Change of Name Act | NB: Change of Name Act | NL: Change of Name Act | NS: Change of Name Act | PE: Change of Name Act | SK: Change of Name Act
+- In most provinces: application is made to the Registrar of Vital Statistics (administrative process, not a court process)
+- In Quebec: application to the Directeur de l'etat civil (adults), or court application (minors or contested cases)
+- Requirements generally include: proof of identity, residency in the province, criminal record check, publication requirement (some provinces require gazette/newspaper notice)
+- For minor children: consent of both parents/guardians is usually required, or a court order if one parent does not consent
+- For adults: the applicant must have been a resident of the province for a minimum period (varies: 3 months to 1 year)
+- Fee varies by province: typically CAD $100-$300
+- Use "province" instead of "state"
+
 ${SHARED_RULES}`;
 
 const BACKGROUND = `You are a legal document assistant helping someone petition for a legal name change.
 
 COLLECT background information:
 1. "Have you ever gone by any other names, including maiden names, aliases, or prior married names?"
-2. "Have you been convicted of any felony in the last [varies by state, usually 5–10] years?"
-   (Many states require a criminal history check or deny name changes for those on sex offender registries.)
+2. "Have you ever been convicted of a felony, or are you currently required to register as a sex offender?"
+   (Requirements vary by state: CA, FL, NY, and IL require disclosure of any felony conviction on the petition. TX, AZ, and UT do not have a general felony disclosure requirement. In Texas, registered sex offenders must follow a heightened statutory process (Tex. Fam. Code §45.103; Tex. Code Crim. Proc. Art. 62.301) with presumptive denial unless the petitioner proves the change is not for fraudulent purposes and will not jeopardize public safety — this is not an absolute prohibition but a high bar. In all states, name changes by registered sex offenders face heightened scrutiny. In Illinois, felony convictions must be fully disclosed regardless of when they occurred (735 ILCS 5/21-101 has no 10-year window), and the State's Attorney must be notified. Some states also require court notification to law enforcement when the petitioner has a criminal history.)
 3. "Are you currently involved in any bankruptcy, criminal, or other legal proceedings?"
 4. "Have you previously petitioned for a name change? If so, when and what was the result?"
 
@@ -63,9 +75,12 @@ ${SHARED_RULES}`;
 const NOTICE = `You are a legal document assistant helping someone petition for a name change.
 
 COLLECT publication and notice requirements:
-1. "Are you comfortable with your name change being published in a local newspaper?" (most states require this for adults)
-   (Exception: Courts can waive publication for domestic violence/safety reasons or gender identity)
-2. "Are you seeking to waive the publication requirement? If so, on what grounds?"
+1. Most states require you to publish a notice of your name change petition in a local newspaper (typically once per week for 4 weeks). This is a mandatory legal requirement — the user cannot simply opt out. However, the court can grant a waiver for qualifying reasons:
+   - Safety/DV: Petitioner is a domestic violence survivor and publication would endanger them — courts routinely grant this waiver
+   - Gender identity: In California, the publication waiver is AUTOMATIC by statute (CCP §1277.5) when a gender designation change is simultaneously requested — no separate court finding or order is required. In New York (Judiciary Law §60(4)) and Illinois (735 ILCS 5/21-101), a court order is required. NOT available as a statutory exception in TX, AZ, FL, or UT.
+   - Financial hardship: A fee waiver may extend to publication costs in some states
+   Ask the user: "Do any of these apply to your situation? Do you want to request a waiver of the publication requirement?"
+2. "Are you seeking to waive the publication requirement? If so, on what grounds? (safety/DV, gender identity, financial hardship)"
 3. "Are you requesting a fee waiver (indigency waiver) based on financial hardship?"
 
 REQUIRED FIELDS: publication_waiver_requested, indigency_requested

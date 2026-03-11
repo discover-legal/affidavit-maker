@@ -17,7 +17,7 @@ npm run db:migrate    # Run database migrations
 npm run lint:fix      # Auto-fix linting issues
 ```
 
-**Supported States**: TX, UT, AZ, CA, FL, IL, NY (7 total)
+**Supported States**: TX, UT, AZ, CA, FL, IL, NY, CO, GA, MA, MI, NC, NJ, OH, PA, VA, WA (17 US states) + ON, BC, AB, QC, MB, NB, NL, NS, PE, SK (10 Canadian provinces) = 27 total jurisdictions
 
 **Live URL**: `https://make.discover.legal` (app) — landing/marketing is on Webflow at `discover.legal`
 

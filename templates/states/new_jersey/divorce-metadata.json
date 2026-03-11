@@ -1,0 +1,260 @@
+{
+  "stateCode": "NJ",
+  "stateName": "New Jersey",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment of Divorce",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Legal Custody / Residential Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "One party must have been a bona fide resident of New Jersey for at least one (1) year immediately before filing, UNLESS the ground is adultery committed in New Jersey (no residency requirement applies in that case). The irreconcilable differences ground requires the same 1-year residency as all other grounds — the 18-month period is the duration of irreconcilable differences that must be alleged, not an extended residency requirement.",
+    "statute": "N.J.S.A. 2A:34-10",
+    "exceptions": [
+      {
+        "ground": "adultery_in_nj",
+        "residencyRequirement": "None if adultery was committed in New Jersey"
+      }
+    ]
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "New Jersey has no mandatory waiting period before filing or after filing for divorce based on fault grounds. For irreconcilable differences, the complaint must allege the irreconcilable differences have existed for at least 6 months with no prospect of reconciliation."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences that have caused the breakdown of the marriage for a period of at least six (6) months with no prospect of reconciliation. Note: the standard 12-month state residency requirement (N.J.S.A. 2A:34-10) also applies.",
+        "statute": "N.J.S.A. 2A:34-2(i)",
+        "differencesDuration": "6 months"
+      },
+      {
+        "code": "separation",
+        "name": "Separation",
+        "description": "The parties have lived separate and apart in different habitations for at least 18 consecutive months, with no reasonable prospect of reconciliation.",
+        "statute": "N.J.S.A. 2A:34-2(d)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "statute": "N.J.S.A. 2A:34-2(a)"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion for 12 or More Months",
+        "statute": "N.J.S.A. 2A:34-2(b)"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Such physical or mental cruelty as to endanger the safety or health of the Plaintiff or make it improper to require the Plaintiff to continue to cohabit with Defendant.",
+        "statute": "N.J.S.A. 2A:34-2(c)"
+      },
+      {
+        "code": "addiction",
+        "name": "Addiction or Habituation to Narcotics / Alcohol",
+        "description": "Voluntarily induced addiction or habituation to any narcotic drug or alcohol, beginning after marriage.",
+        "statute": "N.J.S.A. 2A:34-2(e)"
+      },
+      {
+        "code": "institutionalization",
+        "name": "Institutionalization for Mental Illness",
+        "description": "Institutionalization for mental illness for a period of 24 or more consecutive months after the marriage.",
+        "statute": "N.J.S.A. 2A:34-2(f)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Imprisonment for 18 or more consecutive months after the marriage, with parties not having resumed cohabitation.",
+        "statute": "N.J.S.A. 2A:34-2(g)"
+      },
+      {
+        "code": "deviant_sexual_conduct",
+        "name": "Deviant Sexual Conduct",
+        "description": "Deviant sexual conduct voluntarily performed by Defendant without consent of Plaintiff.",
+        "statute": "N.J.S.A. 2A:34-2(h)"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "New Jersey distributes marital property equitably — not necessarily equally. The court considers the factors set forth in N.J.S.A. 2A:34-23.1, including duration of the marriage, each party's economic circumstances, and contribution to marital property.",
+    "separateProperty": "Property acquired before marriage, or during marriage by gift or inheritance, is generally not subject to equitable distribution.",
+    "statute": "N.J.S.A. 2A:34-23.1"
+  },
+
+  "alimony": {
+    "types": [
+      "open_durational",
+      "limited_duration",
+      "rehabilitative",
+      "reimbursement"
+    ],
+    "description": "New Jersey courts may award alimony of several types. For marriages of less than 20 years, limited duration alimony cannot exceed the length of the marriage. For marriages of 20+ years, open durational alimony may be awarded.",
+    "statute": "N.J.S.A. 2A:34-23"
+  },
+
+  "legalCitations": [
+    {
+      "code": "N.J.S.A. 2A:34-2",
+      "description": "Grounds for divorce — lists all fault and no-fault grounds"
+    },
+    {
+      "code": "N.J.S.A. 2A:34-10",
+      "description": "Residency requirements — bona fide domicile in New Jersey"
+    },
+    {
+      "code": "N.J.S.A. 2A:34-23",
+      "description": "Alimony — factors and types (open durational, limited duration, rehabilitative, reimbursement)"
+    },
+    {
+      "code": "N.J.S.A. 2A:34-23.1",
+      "description": "Equitable distribution of property — factors for distribution"
+    },
+    {
+      "code": "N.J.S.A. 9:2-4",
+      "description": "Child custody — legal and residential custody, best interests standard"
+    },
+    {
+      "code": "N.J. Court Rule 5:6A",
+      "description": "New Jersey Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$300",
+    "varies": true,
+    "notes": "New Jersey filing fees are approximately $300 for a Complaint for Divorce. Additional fees may apply for case information statements and other required forms. Fee waivers are available."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Confidential Litigant Information Sheet (CIS)",
+        "description": "Required confidential information form filed with the court",
+        "required": true
+      },
+      {
+        "name": "Case Information Statement (CIS - R. 5:5-2)",
+        "description": "Comprehensive financial disclosure statement required by court rule",
+        "required": true,
+        "notes": "Must be filed within 35 days of the filing of the responsive pleading or the expiration of time for filing"
+      },
+      {
+        "name": "Certification of Insurance Coverage",
+        "description": "Certification regarding insurance coverage for both parties",
+        "required": true
+      },
+      {
+        "name": "Final Judgment of Divorce",
+        "description": "Court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant",
+        "required": true,
+        "alternatives": ["Acknowledgment of Service"]
+      },
+      {
+        "name": "Acknowledgment of Service",
+        "description": "Defendant acknowledges receipt of the complaint",
+        "required": false,
+        "notes": "Must be in writing and signed by the defendant"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet (Appendix IX to R. 5:6A)",
+        "description": "Income shares calculation per NJ Child Support Guidelines",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and parenting time schedule",
+        "required": true
+      },
+      {
+        "name": "Certification of Non-Collusion",
+        "description": "Required certification that the action is not collusive",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per New Jersey Rules of Court"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 35,
+      "description": "Defendant must file an answer within 35 days of service"
+    },
+    "outOfState": {
+      "days": 35,
+      "description": "Defendant served outside New Jersey must file an answer within 35 days of service"
+    },
+    "statute": "N.J. Court Rule 4:6-1"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "New Jersey uses an income shares model. Both parents' net incomes are combined to determine a basic child support obligation from a schedule (Appendix IX to R. 5:6A). The obligation is apportioned between parents based on their share of combined net income. Adjustments are made for parenting time, health insurance, childcare, and other expenses.",
+    "statute": "N.J. Court Rule 5:6A; Appendix IX to R. 5:6A",
+    "notes": "The guidelines are updated periodically. The Sole Parenting worksheet applies when one parent has the child fewer than 28% of overnights; the Shared Parenting worksheet applies when each parent has at least 28% of overnights."
+  },
+
+  "court": {
+    "name": "Superior Court of New Jersey, Chancery Division, Family Part",
+    "description": "Divorce actions in New Jersey are filed in the Superior Court, Chancery Division, Family Part of the county where either party resides."
+  }
+}

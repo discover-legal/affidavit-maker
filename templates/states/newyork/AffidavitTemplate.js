@@ -96,7 +96,13 @@ class NewYorkAffidavitTemplate extends BaseAffidavitTemplate {
 
   /**
    * New York notary block - Traditional jurat format
-   * COMPLIANT WITH: Standard New York notarial practice
+   * COMPLIANT WITH: Standard New York notarial practice per N.Y. Executive Law § 137
+   *
+   * REQUIRED NY ELEMENTS:
+   * - "Notary Public, State of New York" (not just "Notary Public")
+   * - "Qualified in [County] County" — NY notaries must disclose the county
+   *   in which they are qualified, even when notarizing in a different county
+   * - Commission expiration date
    *
    * NOTE: This implements the traditional "subscribed and sworn" format.
    * CPLR § 2106 now allows unsworn affirmations as alternative for court filings.
@@ -113,8 +119,8 @@ Subscribed and sworn to before me this _____ day of _________, 20__.
 
 
 _________________________________
-Notary Public
-
+Notary Public, State of New York
+Qualified in _______________ County
 My commission expires: ___________`;
   }
 
@@ -143,6 +149,9 @@ My commission expires: ___________`;
   /**
    * New York perjury statement
    * Required for traditional sworn affidavits
+   *
+   * Perjury statutes: NY Penal Law § 210.10 (perjury in the second degree)
+   * and § 210.15 (perjury in the first degree, for material false statements).
    *
    * NOTE: CPLR § 2106 (effective Jan 1, 2024) allows unsworn affirmations
    * as an alternative for court filings, but this template implements

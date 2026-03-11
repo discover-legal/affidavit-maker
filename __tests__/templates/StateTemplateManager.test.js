@@ -1,50 +1,64 @@
 // __tests__/templates/StateTemplateManager.test.js
-const { 
-  StateTemplateManager, 
-  TexasTemplate, 
-  UtahTemplate, 
-  ArizonaTemplate 
-} = require('../../templates/StateTemplateManager');
+// Tests for StateTemplateManager using the registry-based approach.
+// All templates are loaded via auto-discovery from templates/states/.
+
+const { StateTemplateManager } = require('../../templates/StateTemplateManager');
+const { initializeTemplates } = require('../../templates/initialize');
+const BaseAffidavitTemplate = require('../../templates/core/BaseAffidavitTemplate');
+
+let registry;
+let templateManager;
+
+beforeAll(async () => {
+  registry = await initializeTemplates();
+  templateManager = new StateTemplateManager({ registry });
+});
 
 describe('StateTemplateManager', () => {
-  let templateManager;
-
-  beforeEach(() => {
-    templateManager = new StateTemplateManager();
+  it('should throw if constructed without a registry', () => {
+    expect(() => new StateTemplateManager()).toThrow('requires a registry');
   });
 
   describe('getTemplate', () => {
     it('should return Texas template for TX', () => {
       const template = templateManager.getTemplate('TX');
-      expect(template).toBeInstanceOf(TexasTemplate);
+      expect(template).toBeInstanceOf(BaseAffidavitTemplate);
+      expect(template.state).toBe('TX');
     });
 
     it('should return Utah template for UT', () => {
       const template = templateManager.getTemplate('UT');
-      expect(template).toBeInstanceOf(UtahTemplate);
+      expect(template).toBeInstanceOf(BaseAffidavitTemplate);
+      expect(template.state).toBe('UT');
     });
 
     it('should return Arizona template for AZ', () => {
       const template = templateManager.getTemplate('AZ');
-      expect(template).toBeInstanceOf(ArizonaTemplate);
+      expect(template).toBeInstanceOf(BaseAffidavitTemplate);
+      expect(template.state).toBe('AZ');
     });
 
     it('should handle lowercase state codes', () => {
       const template = templateManager.getTemplate('tx');
-      expect(template).toBeInstanceOf(TexasTemplate);
+      expect(template.state).toBe('TX');
     });
 
     it('should default to Texas for invalid state', () => {
       const template = templateManager.getTemplate('XX');
-      expect(template).toBeInstanceOf(TexasTemplate);
+      expect(template.state).toBe('TX');
     });
   });
 
   describe('getSupportedStates', () => {
     it('should return all supported states', () => {
       const states = templateManager.getSupportedStates();
-      expect(states).toHaveLength(4);
-      expect(states.map(s => s.code)).toEqual(['TX', 'UT', 'AZ', 'CA']);
+      // Registry has 64 jurisdictions
+      expect(states.length).toBeGreaterThanOrEqual(4);
+      const codes = states.map(s => s.code);
+      expect(codes).toContain('TX');
+      expect(codes).toContain('UT');
+      expect(codes).toContain('AZ');
+      expect(codes).toContain('CA');
     });
 
     it('should include state names and requirements', () => {
@@ -64,51 +78,49 @@ describe('StateTemplateManager', () => {
         facts: ['Fact 1', 'Fact 2'],
         state: 'TX',
       };
-
       const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
 
     it('should detect missing affiant name', () => {
-      const data = {
-        county: 'Travis',
-        facts: ['Fact 1'],
-        state: 'TX',
-      };
-
+      const data = { county: 'Travis', facts: ['Fact 1'], state: 'TX' };
       const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(false);
       expect(validation.errors).toContain('Affiant name is required and must be at least 2 characters');
     });
 
     it('should detect missing county for Texas', () => {
-      const data = {
-        affiantName: 'John Doe',
-        facts: ['Fact 1'],
-        state: 'TX',
-      };
-
+      const data = { affiantName: 'John Doe', facts: ['Fact 1'], state: 'TX' };
       const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.isValid).toBe(false);
       expect(validation.errors).toContain('County is required for Texas affidavits');
     });
 
     it('should warn about missing facts', () => {
-      const data = {
-        affiantName: 'John Doe',
-        county: 'Travis',
-        facts: [],
-        state: 'TX',
-      };
-      
+      const data = { affiantName: 'John Doe', county: 'Travis', facts: [], state: 'TX' };
       const validation = templateManager.validateAffidavitData('TX', data);
       expect(validation.warnings).toContain('No facts provided - affidavit will be incomplete');
     });
   });
+
+  describe('getLegalCitations', () => {
+    it('should return citations for Texas from metadata', () => {
+      const citations = templateManager.getLegalCitations('TX');
+      expect(citations).not.toBeNull();
+      expect(citations.primary).toBeDefined();
+      expect(Array.isArray(citations.secondary)).toBe(true);
+    });
+
+    it('should return null for unknown state', () => {
+      const citations = templateManager.getLegalCitations('XX');
+      // XX falls through to null since no metadata exists
+      expect(citations).toBeNull();
+    });
+  });
 });
 
-describe('TexasTemplate', () => {
+describe('Texas template (registry-loaded)', () => {
   let template;
   const validData = {
     affiantName: 'John Doe',
@@ -118,14 +130,13 @@ describe('TexasTemplate', () => {
     documentType: 'general',
   };
 
-  beforeEach(() => {
-    template = new TexasTemplate();
+  beforeAll(() => {
+    template = registry.getTemplate('TX');
   });
 
   describe('generateDocument', () => {
     it('should generate complete document with all sections', () => {
       const document = template.generateDocument(validData);
-      
       expect(document.id).toBeDefined();
       expect(document.state).toBe('TX');
       expect(document.sections.header).toBe('THE STATE OF TEXAS');
@@ -136,87 +147,31 @@ describe('TexasTemplate', () => {
     it('should include all facts with proper numbering', () => {
       const document = template.generateDocument(validData);
       const facts = document.sections.facts;
-
-      // facts is now an object with items property
       expect(facts).toBeDefined();
       expect(facts.items).toBeDefined();
-      expect(facts.items.length).toBeGreaterThanOrEqual(2); // At least competency + user facts
+      expect(facts.items.length).toBeGreaterThanOrEqual(2);
       expect(facts.items[0].number).toBe(1);
       expect(facts.items[0].type).toBe('competency');
     });
 
-    it('should generate proper notary block', () => {
+    it('should generate proper notary block per Tex. Civ. Prac. & Rem. Code 18.002', () => {
       const document = template.generateDocument(validData);
       const notaryBlock = document.sections.notaryBlock;
-      
       expect(notaryBlock).toContain('SWORN TO AND SUBSCRIBED');
       expect(notaryBlock).toContain('Notary Public, State of Texas');
       expect(notaryBlock).toContain('My commission expires:');
     });
 
-    it('should generate document even with missing data (validation is separate)', () => {
-      const invalidData = { ...validData, affiantName: '' };
+    it('should NOT include perjury statement (oath provides warning per 312.011)', () => {
+      const document = template.generateDocument(validData);
+      expect(document.sections.perjuryStatement).toBeNull();
+    });
 
-      // Template generates document regardless of validation
-      // Validation is handled separately via validateData()
+    it('should generate document even with missing data', () => {
+      const invalidData = { ...validData, affiantName: '' };
       const document = template.generateDocument(invalidData);
       expect(document).toBeDefined();
       expect(document.sections).toBeDefined();
-    });
-  });
-
-  describe('generateDocumentTypeSpecificFacts', () => {
-    it('should generate divorce-specific facts', () => {
-      const divorceData = {
-        ...validData,
-        documentType: 'divorce',
-        marriageDate: '01/15/2010',
-        separationDate: '06/01/2023',
-        spouseName: 'Jane Doe',
-        grounds: 'irreconcilable differences',
-      };
-
-      const document = template.generateDocument(divorceData);
-      const facts = document.sections.facts;
-
-      // facts is now an object with items array
-      expect(facts.items).toBeDefined();
-      const marriageFact = facts.items.find(f => f.content && f.content.includes('married'));
-      // Divorce-specific facts may or may not be generated depending on template implementation
-      // Just verify the structure is correct
-      expect(Array.isArray(facts.items)).toBe(true);
-    });
-
-    it('should generate custody-specific facts', () => {
-      const custodyData = {
-        ...validData,
-        documentType: 'custody',
-        children: ['Child One', 'Child Two'],
-        currentCustody: 'Joint custody with primary residence with mother',
-      };
-
-      const document = template.generateDocument(custodyData);
-      const facts = document.sections.facts;
-
-      // facts is now an object with items array
-      expect(facts.items).toBeDefined();
-      expect(Array.isArray(facts.items)).toBe(true);
-    });
-
-    it('should generate financial-specific facts', () => {
-      const financialData = {
-        ...validData,
-        documentType: 'financial',
-        monthlyIncome: '5000',
-        monthlyExpenses: '3500',
-      };
-
-      const document = template.generateDocument(financialData);
-      const facts = document.sections.facts;
-
-      // facts is now an object with items array
-      expect(facts.items).toBeDefined();
-      expect(Array.isArray(facts.items)).toBe(true);
     });
   });
 
@@ -224,73 +179,70 @@ describe('TexasTemplate', () => {
     it('should generate valid HTML', () => {
       const document = template.generateDocument(validData);
       const html = document.htmlContent;
-
       expect(html).toContain('<!DOCTYPE html>');
       expect(html).toContain('<title>');
-      expect(html).toContain('</title>');
-      expect(html).toContain('<div class="header">THE STATE OF TEXAS</div>');
-      expect(html).toContain('<div class="venue">COUNTY OF TRAVIS</div>');
+      expect(html).toContain('THE STATE OF TEXAS');
+      expect(html).toContain('COUNTY OF TRAVIS');
     });
 
     it('should include CSS styles', () => {
       const document = template.generateDocument(validData);
       const html = document.htmlContent;
-      
       expect(html).toContain('<style>');
-      expect(html).toContain('font-family: \'Times New Roman\'');
+      expect(html).toContain('Times New Roman');
       expect(html).toContain('@media print');
     });
   });
 });
 
-describe('State-specific differences', () => {
+describe('State-specific differences (registry-loaded)', () => {
   const testData = {
     affiantName: 'Test User',
     county: 'Test County',
     facts: ['Test fact'],
-    state: 'TX',  // Default state for testing
+    state: 'TX',
   };
 
-  it('should handle Utah formatting differences', () => {
-    const utahTemplate = new UtahTemplate();
+  it('should handle Utah formatting per Utah Code 46-1-6.5', () => {
+    const utahTemplate = registry.getTemplate('UT');
     const document = utahTemplate.generateDocument(testData);
-
-    // Utah uses sentence case for header
+    // Utah uses sentence case for header per statute
     expect(document.sections.header).toBe('State of Utah');
-    // Venue format varies
     expect(document.sections.venue).toBeDefined();
     expect(document.sections.notaryBlock).toBeDefined();
   });
 
-  it('should handle Arizona no-venue requirement', () => {
-    const arizonaTemplate = new ArizonaTemplate();
+  it('should handle Arizona perjury statement per A.R.S. 13-2702', () => {
+    const arizonaTemplate = registry.getTemplate('AZ');
     const document = arizonaTemplate.generateDocument({
       ...testData,
-      county: undefined, // Arizona doesn't require county
+      county: 'Maricopa',
     });
-
     expect(document.sections.header).toBe('STATE OF ARIZONA');
-    // Arizona may or may not have venue depending on implementation
-    expect(document.sections).toBeDefined();
+    expect(document.sections.perjuryStatement).toBeDefined();
+    expect(document.sections.perjuryStatement).not.toBeNull();
   });
 
   it('should validate county requirement by state', () => {
-    const texasTemplate = new TexasTemplate();
-    const arizonaTemplate = new ArizonaTemplate();
+    const texasTemplate = registry.getTemplate('TX');
+    const arizonaTemplate = registry.getTemplate('AZ');
 
     // Texas requires county
-    const texasDataWithoutCounty = { ...testData, county: undefined, state: 'TX' };
-    const texasValidation = texasTemplate.validateData(texasDataWithoutCounty);
+    const texasValidation = texasTemplate.validateData({
+      ...testData, county: undefined, state: 'TX',
+    });
     expect(texasValidation.isValid).toBe(false);
 
-    // Arizona also requires county per its metadata
-    const arizonaDataWithoutCounty = { ...testData, county: undefined, state: 'AZ' };
-    const arizonaValidation = arizonaTemplate.validateData(arizonaDataWithoutCounty);
+    // Arizona also requires county
+    const arizonaValidation = arizonaTemplate.validateData({
+      ...testData, county: undefined, state: 'AZ',
+    });
     expect(arizonaValidation.isValid).toBe(false);
 
-    // Both should pass with county provided
-    const arizonaDataWithCounty = { ...testData, county: 'Maricopa', state: 'AZ' };
-    const arizonaValidationWithCounty = arizonaTemplate.validateData(arizonaDataWithCounty);
-    expect(arizonaValidationWithCounty.isValid).toBe(true);
+    // Both pass with county
+    const arizonaWithCounty = arizonaTemplate.validateData({
+      ...testData, county: 'Maricopa', state: 'AZ',
+    });
+    expect(arizonaWithCounty.isValid).toBe(true);
   });
 });

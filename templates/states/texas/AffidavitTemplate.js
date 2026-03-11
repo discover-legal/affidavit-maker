@@ -1,6 +1,6 @@
 // templates/states/texas/AffidavitTemplate.js
 // LEGAL COMPLIANCE VERSION 2.0 - Updated to conform with TX statutory requirements
-// Governing Law: Tex. Gov't Code § 312.011, Tex. Civ. Prac. & Rem. Code § 18.002
+// Governing Law: Tex. Gov't Code § 312.011, Tex. Civ. Prac. & Rem. Code § 18.002, Tex. Penal Code § 37.02
 
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
 
@@ -9,9 +9,11 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  *
  * CRITICAL COMPLIANCE NOTES:
  * - NO perjury statement required (oath provides warning per § 312.011)
- * - Notary block matches statutory form (§ 18.002)
+ * - Notary block matches statutory form (§ 18.002): "BEFORE ME, the undersigned authority,
+ *   personally appeared..." followed by "SWORN TO AND SUBSCRIBED before me..."
  * - County is required field
  * - Uses "CAUSE NO." terminology (Texas convention)
+ * - Perjury for false sworn statements governed by Tex. Penal Code § 37.02
  *
  * @class TexasAffidavitTemplate
  * @extends BaseAffidavitTemplate
@@ -28,6 +30,27 @@ class TexasAffidavitTemplate extends BaseAffidavitTemplate {
 
     // Texas does NOT include perjury statement in sworn affidavits
     this.sections.perjuryStatement = false;
+  }
+
+  /**
+   * Texas header — statutory form per Tex. Gov't Code § 312.011
+   * Correct form is "THE STATE OF TEXAS" (with "THE")
+   *
+   * @returns {string} Header text
+   */
+  generateHeader() {
+    return 'THE STATE OF TEXAS';
+  }
+
+  /**
+   * Texas venue — all-caps format per Texas court convention
+   *
+   * @param {string} county - County name
+   * @returns {string} Venue text
+   */
+  generateVenue(county) {
+    const countyUpper = (county || '[COUNTY]').toUpperCase();
+    return `COUNTY OF ${countyUpper}`;
   }
 
   /**
@@ -94,11 +117,18 @@ class TexasAffidavitTemplate extends BaseAffidavitTemplate {
    * Texas notary block per Tex. Civ. Prac. & Rem. Code § 18.002
    * COMPLIANT WITH: Statutory jurat format
    *
+   * Statutory form requires:
+   * 1. "BEFORE ME, the undersigned authority, personally appeared [affiant]..."
+   * 2. "SWORN TO AND SUBSCRIBED before me on this __ day of ___, 20__."
+   * 3. Notary signature, "Notary Public, State of Texas", printed name, commission expiry
+   *
    * @param {Object} affidavitData - The affidavit data
    * @returns {string} Notary block text
    */
   generateNotaryBlock(affidavitData) {
-    return `SWORN TO AND SUBSCRIBED before me on this _____ day of _____________, 20___.
+    return `BEFORE ME, the undersigned authority, personally appeared the above-named Affiant, who being by me duly sworn, stated that the foregoing facts are true and correct.
+
+SWORN TO AND SUBSCRIBED before me on this _____ day of _____________, 20___.
 
 
 _________________________________

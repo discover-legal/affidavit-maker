@@ -261,7 +261,7 @@ class BaseAffidavitTemplate {
    * @returns {string} Header text
    */
   generateHeader() {
-    return this.state === 'TX' ? 'THE STATE OF TEXAS' : `STATE OF ${this.stateName.toUpperCase()}`;
+    return `STATE OF ${this.stateName.toUpperCase()}`;
   }
 
   /**
@@ -273,9 +273,7 @@ class BaseAffidavitTemplate {
    */
   generateVenue(county) {
     const countyUpper = (county || '[COUNTY]').toUpperCase();
-    return this.state === 'TX'
-      ? `COUNTY OF ${countyUpper}`
-      : `County of ${countyUpper}`;
+    return `County of ${countyUpper}`;
   }
 
   /**

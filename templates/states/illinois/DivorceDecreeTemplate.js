@@ -418,7 +418,7 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
 
       items.push({
-        content: `The Court, having applied the statutory formula set forth in 750 ILCS 5/504, orders maintenance as follows:`,
+        content: `The Court, having applied the statutory formula set forth in 750 ILCS 5/504(b-1)(1) — [(33-1/3% of payor's net income) minus (25% of payee's net income)] — orders maintenance as follows:`,
         type: 'finding'
       });
 

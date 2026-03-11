@@ -27,7 +27,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "Joint Legal Custody" / "Sole Custody"
  * - "Parent-time" instead of "Visitation"
  * - "Alimony" for spousal support
- * - 30-day waiting period from filing
+ * - 90-day waiting period from service of complaint (Utah Code § 30-3-18); court may waive for good cause
  */
 class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   constructor() {
@@ -74,12 +74,15 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Get default court for Utah county
+   * Different counties fall under different judicial districts (1st through 8th).
+   * The generic caption format used by Utah courts is:
+   * "IN THE DISTRICT COURT OF THE STATE OF UTAH / IN AND FOR [COUNTY] COUNTY"
    * @param {string} county - County name
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
     const countyUpper = (county || '[COUNTY]').toUpperCase();
-    return `THIRD JUDICIAL DISTRICT COURT IN AND FOR ${countyUpper} COUNTY, STATE OF UTAH`;
+    return `DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR ${countyUpper} COUNTY`;
   }
 
   /**
@@ -175,7 +178,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'FINDINGS OF FACT AND CONCLUSIONS OF LAW',
-      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, Utah, for at least three months immediately prior to the filing of this action, satisfying the requirements of Utah Code § 30-3-1.\n\n3. At least thirty (30) days have elapsed since the date this action was filed.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
+      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, Utah, for at least three months immediately prior to the filing of this action, satisfying the requirements of Utah Code § 30-3-1.\n\n3. At least ninety (90) days have elapsed since the date the complaint was served on Respondent, satisfying the requirements of Utah Code § 30-3-18.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
       type: 'jurisdiction'
     };
   }

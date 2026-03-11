@@ -1,0 +1,73 @@
+{
+  "stateCode": "NS",
+  "stateName": "Nova Scotia",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Supreme Court of Nova Scotia",
+    "familyDivision": "Supreme Court of Nova Scotia (Family Division)",
+    "appealCourt": "Nova Scotia Court of Appeal"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Matrimonial Property Act, RSNS 1989, c. 275 (equal division of matrimonial assets)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Matrimonial Property Act, RSNS 1989, c. 275",
+      "description": "Nova Scotia statute — equal division of matrimonial assets on marriage breakdown"
+    },
+    {
+      "code": "Maintenance and Custody Act, RSNS 1989, c. 160",
+      "description": "Nova Scotia statute — custody, access, and maintenance obligations"
+    },
+    {
+      "code": "Evidence Act, RSNS 1989, c. 154",
+      "description": "Nova Scotia affidavit requirements — oath before commissioner for taking oaths"
+    },
+    {
+      "code": "Notaries and Commissioners Act, RSNS 1989, c. 312",
+      "description": "Nova Scotia statute governing notaries public and commissioners for taking oaths"
+    },
+    {
+      "code": "Oaths Act, RSNS 1989, c. 317",
+      "description": "Nova Scotia statute governing the form and administration of oaths and solemn affirmations"
+    },
+    {
+      "code": "Nova Scotia Civil Procedure Rules",
+      "description": "Procedural rules for Supreme Court of Nova Scotia proceedings"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at ___, in the Province of Nova Scotia, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Oaths\nin and for the Province of Nova Scotia",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for taking oaths."
+  }
+}

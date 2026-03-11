@@ -1,0 +1,54 @@
+// templates/states/queensland/DivorcePetitionTemplate.js
+// Governing Law: Family Law Act 1975 (Cth); Family Law Rules 2004 (Cth)
+'use strict';
+
+const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+
+class QueenslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
+  constructor() {
+    super();
+    this.state = 'QLD';
+    this.stateName = 'Queensland';
+    this.countryCode = 'AU';
+    this.documentTitle = 'APPLICATION FOR DIVORCE';
+    try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
+    this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
+    this.residencyRequirements = { stateMonths: 12, countyDays: 0, description: 'Either spouse must be an Australian citizen, domiciled in Australia, or ordinarily resident in Australia for at least 12 months (Family Law Act 1975 (Cth), s.39(3)).' };
+    this.waitingPeriod = { days: 0, description: 'No waiting period after filing. Divorce Order takes effect 1 month and 1 day after made (s.55).' };
+    this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
+  }
+
+  getCaseNumberLabel() { return 'File Number'; }
+  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
+
+  generateCaseCaption(divorceData) {
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
+    const caseNumber = divorceData.caseNumber || '[FILE NUMBER]';
+    const applicant = (divorceData.petitionerName || '[APPLICANT NAME]').toUpperCase();
+    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
+    const caption = [`IN THE ${courtName}`, '', `${this.getCaseNumberLabel()}: ${caseNumber}`, '', `IN THE MATTER OF THE FAMILY LAW ACT 1975 (CTH)`, '', `BETWEEN:`, '', `${applicant}`, `Applicant`, '', `AND`, '', `${respondent}`, `Respondent`].join('\n');
+    return { courtName, caseNumber: divorceData.caseNumber, petitioner: divorceData.petitionerName, respondent: divorceData.respondentName, formatted: caption };
+  }
+
+  getJurisdictionStatement() { return `Either the Applicant or the Respondent is an Australian citizen, is domiciled in Australia, or has been ordinarily resident in Australia for at least twelve months immediately preceding the filing of this Application, as required by section 39(3) of the Family Law Act 1975 (Cth).`; }
+  getVenueReason(divorceData) { return `the Applicant or Respondent resides within the jurisdiction of the ${divorceData.county || '[REGISTRY LOCATION]'} registry`; }
+
+  generateReliefSection(divorceData) {
+    const items = [];
+    items.push({ number: null, content: 'THE APPLICANT SEEKS THE FOLLOWING ORDERS:', type: 'relief_intro' });
+    const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);', 'A property settlement order pursuant to section 79 of the Family Law Act 1975 (Cth);'];
+    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+      reliefItems.push('Parenting orders pursuant to Part VII of the Family Law Act 1975 (Cth);');
+      reliefItems.push('A child support assessment through Services Australia (Child Support);');
+    }
+    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) reliefItems.push('A spousal maintenance order pursuant to sections 72-75 of the Family Law Act 1975 (Cth);');
+    reliefItems.push('Such further or other orders as the Court considers appropriate.');
+    reliefItems.forEach((relief, i) => { items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }); });
+    return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
+  }
+
+  getVerificationText(divorceData) { return `I, ${divorceData.petitionerName || '[APPLICANT NAME]'}, the Applicant, make oath and say (or solemnly affirm) that the contents of this Application are true and correct to the best of my knowledge, information, and belief.`; }
+  getGroundsStatement() { return 'The marriage has broken down irretrievably within the meaning of section 48(1) of the Family Law Act 1975 (Cth). The parties have lived separately and apart for a continuous period of not less than 12 months immediately preceding the date of filing of this Application.'; }
+}
+
+module.exports = QueenslandDivorcePetitionTemplate;

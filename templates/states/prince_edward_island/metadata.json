@@ -1,0 +1,77 @@
+{
+  "stateCode": "PE",
+  "stateName": "Prince Edward Island",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Supreme Court of Prince Edward Island (Trial Division)",
+    "familyDivision": "Supreme Court of Prince Edward Island (Family Division)",
+    "appealCourt": "Prince Edward Island Court of Appeal"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Matrimonial Property Act, RSPEI 1988, c. M-6 (equal division of matrimonial property)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Matrimonial Property Act, RSPEI 1988, c. M-6",
+      "description": "Prince Edward Island statute — equal division of matrimonial property on marriage breakdown"
+    },
+    {
+      "code": "Family Law Act, RSPEI 1988, c. F-2.1",
+      "description": "Prince Edward Island statute — spousal and child support, domestic contracts"
+    },
+    {
+      "code": "Evidence Act, RSPEI 1988, c. E-11",
+      "description": "Prince Edward Island affidavit and oath requirements"
+    },
+    {
+      "code": "Commissioners for Oaths Act, RSPEI 1988, c. C-8.1",
+      "description": "Prince Edward Island statute governing commissioners for oaths"
+    },
+    {
+      "code": "Oaths Act, RSPEI 1988, c. O-1",
+      "description": "Prince Edward Island statute governing the form and administration of oaths and solemn affirmations"
+    },
+    {
+      "code": "Alimony Act, RSPEI 1988, c. A-10",
+      "description": "Prince Edward Island statute — spousal support and maintenance"
+    },
+    {
+      "code": "Maintenance Enforcement Act, RSPEI 1988, c. M-1",
+      "description": "Prince Edward Island statute — enforcement of maintenance orders; 'maintenance' is the correct PEI provincial term for spousal support"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at ___, in the Province of Prince Edward Island, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths\nin and for the Province of Prince Edward Island",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner."
+  }
+}

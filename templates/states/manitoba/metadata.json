@@ -1,0 +1,73 @@
+{
+  "stateCode": "MB",
+  "stateName": "Manitoba",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Court of King's Bench of Manitoba",
+    "familyDivision": "Court of King's Bench of Manitoba — Family Division",
+    "appealCourt": "Manitoba Court of Appeal"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Property Act, CCSM c. F25 (equalization of family property)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Property Act, CCSM c. F25",
+      "description": "Manitoba statute — equalization of family property on marriage breakdown"
+    },
+    {
+      "code": "Family Maintenance Act, CCSM c. F20",
+      "description": "Manitoba statute — spousal and child support obligations"
+    },
+    {
+      "code": "Court of King's Bench Act, CCSM c. C280",
+      "description": "Manitoba Court procedures and jurisdiction"
+    },
+    {
+      "code": "The Manitoba Evidence Act, CCSM c. E150",
+      "description": "Manitoba affidavit requirements — oath before commissioner for taking oaths"
+    },
+    {
+      "code": "Commissioners for Oaths Act, CCSM c. C155",
+      "description": "Manitoba statute governing commissioners for taking oaths"
+    },
+    {
+      "code": "Oaths Act, CCSM c. O5",
+      "description": "Manitoba statute governing the form and administration of oaths and solemn affirmations"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the City/Town of ___, in the Province of Manitoba, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths\nin and for the Province of Manitoba",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for oaths."
+  }
+}

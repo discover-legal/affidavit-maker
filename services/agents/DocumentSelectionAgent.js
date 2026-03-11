@@ -53,15 +53,17 @@ const HANDLERS = {};
  * True when the interview has confirmed minor children exist.
  *
  * childrenConfirmed semantics (from tool definition):
- *   true  = "confirmed NO minor children"   ← confusing name, but that's the schema
- *   false = "confirmed YES, children exist"
- * children array populated by LLM when children exist.
+ *   true  = CHILDREN phase is complete (either "no minor children" confirmed,
+ *            OR children data was collected and the section is done)
+ *   false/undefined = CHILDREN phase not yet completed
  *
- * So children are present when EITHER the array has entries OR childrenConfirmed === false.
- * hasMinorChildren is never set by FIELD_MAP so we never rely on it.
+ * The LLM populates the children array when children exist AND sets
+ * childrenConfirmed: true when the phase is done. The primary signal is
+ * whether the children array has entries. hasMinorChildren is never set by
+ * FIELD_MAP so we never rely on it.
  */
 function hasChildren(data) {
-  return (data.children?.length > 0) || (data.childrenConfirmed === false);
+  return (data.children?.length > 0);
 }
 
 /**
@@ -474,7 +476,7 @@ HANDLERS['*:dvro'] = function(data) {
   docs.push('dv_declaration');
   reasons['dv_declaration'] = 'A sworn declaration describing the incidents of domestic violence that support your request for protection.';
 
-  if (data.children && data.children.length > 0) {
+  if (hasChildren(data)) {
     docs.push('child_custody_dv_order');
     reasons['child_custody_dv_order'] = 'A custody and visitation order to protect children and establish safe arrangements.';
   }
@@ -519,7 +521,7 @@ HANDLERS['*:legal_separation'] = function(data) {
   docs.push('separation_agreement');
   reasons['separation_agreement'] = 'A marital separation agreement documenting terms for living separately.';
 
-  if (data.children && (data.children.length > 0 || data.childrenConfirmed === false)) {
+  if (hasChildren(data)) {
     docs.push('parenting_plan');
     reasons['parenting_plan'] = 'A parenting plan establishing custody and visitation during the separation.';
   }

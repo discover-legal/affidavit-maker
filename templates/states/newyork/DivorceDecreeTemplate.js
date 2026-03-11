@@ -14,7 +14,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - DRL § 236(B) (Equitable distribution and maintenance)
  * - DRL § 240 (Custody and child support)
  * - CPLR 2101 (Form of papers)
- * - 22 NYCRR Part 202 (Uniform Rules for Trial Courts)
+ * - 22 NYCRR 202.16 (Matrimonial Actions - Uniform Rules for Trial Courts)
  *
  * Formatting Requirements:
  * - 8.5" x 11" paper

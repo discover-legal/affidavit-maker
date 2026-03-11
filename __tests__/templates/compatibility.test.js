@@ -1,56 +1,34 @@
 // __tests__/templates/compatibility.test.js
-// Compatibility tests to ensure new system produces identical output to old system
+// Validates that the template system (registry-based) produces correct output
+// for all original states (TX, UT, AZ, CA).
 
-const { StateTemplateManager } = require('../../templates/StateTemplateManager');
 const { initializeTemplates } = require('../../templates/initialize');
+const BaseAffidavitTemplate = require('../../templates/core/BaseAffidavitTemplate');
 
-describe('Template System Compatibility', () => {
-  let oldManager;
-  let newManager;
+describe('Template System', () => {
+  let registry;
 
   beforeAll(async () => {
-    // Initialize old system
-    oldManager = new StateTemplateManager();
-
-    // Initialize new system
-    newManager = await initializeTemplates();
+    registry = await initializeTemplates();
   });
 
   describe('getSupportedStates', () => {
-    it('should include all states from old system (backwards compatibility)', () => {
-      const oldStates = oldManager.getSupportedStates();
-      const newStates = newManager.getSupportedStates();
-
-      // New system should have at least as many states as old system
-      expect(newStates.length).toBeGreaterThanOrEqual(oldStates.length);
-
-      // All old state codes should exist in new system
-      const oldCodes = oldStates.map(s => s.code);
-      const newCodes = newStates.map(s => s.code);
-      oldCodes.forEach(code => {
-        expect(newCodes).toContain(code);
-      });
+    it('should include all original states', () => {
+      const states = registry.getSupportedStates();
+      const codes = states.map(s => s.code);
+      expect(codes).toContain('TX');
+      expect(codes).toContain('UT');
+      expect(codes).toContain('AZ');
+      expect(codes).toContain('CA');
     });
 
-    it('should return same state names', () => {
-      const oldStates = oldManager.getSupportedStates();
-      const newStates = newManager.getSupportedStates();
-
-      oldStates.forEach(oldState => {
-        const newState = newStates.find(s => s.code === oldState.code);
-        expect(newState).toBeDefined();
-        expect(newState.name).toBe(oldState.name);
-      });
-    });
-
-    it('should return same requirements', () => {
-      const oldStates = oldManager.getSupportedStates();
-      const newStates = newManager.getSupportedStates();
-
-      oldStates.forEach(oldState => {
-        const newState = newStates.find(s => s.code === oldState.code);
-        expect(newState.requirements).toEqual(oldState.requirements);
-      });
+    it('should return state names and requirements', () => {
+      const states = registry.getSupportedStates();
+      const texas = states.find(s => s.code === 'TX');
+      expect(texas.name).toBe('Texas');
+      expect(texas.requirements).toBeDefined();
+      expect(texas.requirements.venue).toBe(true);
+      expect(texas.requirements.countyRequired).toBe(true);
     });
   });
 
@@ -58,27 +36,21 @@ describe('Template System Compatibility', () => {
     const stateCodes = ['TX', 'UT', 'AZ', 'CA'];
 
     stateCodes.forEach(stateCode => {
-      it(`should return same template type for ${stateCode}`, () => {
-        const oldTemplate = oldManager.getTemplate(stateCode);
-        const newTemplate = newManager.getTemplate(stateCode);
-
-        expect(newTemplate.state).toBe(oldTemplate.state);
-        expect(newTemplate.stateName).toBe(oldTemplate.stateName);
+      it(`should return a valid template for ${stateCode}`, () => {
+        const template = registry.getTemplate(stateCode);
+        expect(template).toBeInstanceOf(BaseAffidavitTemplate);
+        expect(template.state).toBe(stateCode);
       });
     });
 
-    it('should handle lowercase state codes identically', () => {
-      const oldTemplate = oldManager.getTemplate('tx');
-      const newTemplate = newManager.getTemplate('tx');
-
-      expect(newTemplate.state).toBe(oldTemplate.state);
+    it('should handle lowercase state codes', () => {
+      const template = registry.getTemplate('tx');
+      expect(template.state).toBe('TX');
     });
 
-    it('should handle invalid state codes identically', () => {
-      const oldTemplate = oldManager.getTemplate('XX');
-      const newTemplate = newManager.getTemplate('XX');
-
-      expect(newTemplate.state).toBe(oldTemplate.state);
+    it('should fall back to default for invalid state codes', () => {
+      const template = registry.getTemplate('XX');
+      expect(template.state).toBe('TX');
     });
   });
 
@@ -87,36 +59,27 @@ describe('Template System Compatibility', () => {
       affiantName: 'John Doe',
       state: 'TX',
       county: 'Travis',
-      facts: ['Fact 1', 'Fact 2']
+      facts: ['Fact 1', 'Fact 2'],
     };
 
-    it('should validate identically for valid data', () => {
-      const oldValidation = oldManager.validateAffidavitData('TX', testData);
-      const newValidation = newManager.validateAffidavitData('TX', testData);
-
-      expect(newValidation.isValid).toBe(oldValidation.isValid);
-      expect(newValidation.errors).toEqual(oldValidation.errors);
-      expect(newValidation.warnings).toEqual(oldValidation.warnings);
+    it('should validate valid data', () => {
+      const validation = registry.validateAffidavitData('TX', testData);
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toEqual([]);
     });
 
-    it('should detect missing affiant name identically', () => {
+    it('should detect missing affiant name', () => {
       const invalidData = { state: 'TX', county: 'Travis' };
-
-      const oldValidation = oldManager.validateAffidavitData('TX', invalidData);
-      const newValidation = newManager.validateAffidavitData('TX', invalidData);
-
-      expect(newValidation.isValid).toBe(oldValidation.isValid);
-      expect(newValidation.errors.length).toBe(oldValidation.errors.length);
+      const validation = registry.validateAffidavitData('TX', invalidData);
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
     });
 
-    it('should detect missing county identically for Texas', () => {
+    it('should detect missing county for Texas', () => {
       const invalidData = { affiantName: 'John Doe', state: 'TX' };
-
-      const oldValidation = oldManager.validateAffidavitData('TX', invalidData);
-      const newValidation = newManager.validateAffidavitData('TX', invalidData);
-
-      expect(newValidation.isValid).toBe(oldValidation.isValid);
-      expect(newValidation.errors).toContain('County is required for Texas affidavits');
+      const validation = registry.validateAffidavitData('TX', invalidData);
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors).toContain('County is required for Texas affidavits');
     });
   });
 
@@ -129,304 +92,187 @@ describe('Template System Compatibility', () => {
       court: 'District Court',
       plaintiff: 'Plaintiff Name',
       defendant: 'Defendant Name',
-      facts: ['Fact 1', 'Fact 2', 'Fact 3']
+      facts: ['Fact 1', 'Fact 2', 'Fact 3'],
     };
 
     ['TX', 'UT', 'AZ', 'CA'].forEach(stateCode => {
       describe(`${stateCode} affidavits`, () => {
-        it('should generate same document structure', () => {
-          const stateData = { ...testData, state: stateCode };
+        let doc;
 
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.state).toBe(oldDoc.state);
-          expect(Object.keys(newDoc.sections)).toEqual(Object.keys(oldDoc.sections));
+        beforeAll(() => {
+          doc = registry.generateAffidavit(stateCode, { ...testData, state: stateCode });
         });
 
-        it('should generate identical header', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.header).toBe(oldDoc.sections.header);
+        it('should have correct state', () => {
+          expect(doc.state).toBe(stateCode);
         });
 
-        it('should generate identical venue', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.venue).toBe(oldDoc.sections.venue);
+        it('should have all required sections', () => {
+          expect(doc.sections.header).toBeDefined();
+          expect(doc.sections.title).toBeDefined();
+          expect(doc.sections.introduction).toBeDefined();
+          expect(doc.sections.facts).toBeDefined();
+          expect(doc.sections.conclusion).toBeDefined();
+          expect(doc.sections.signatureBlock).toBeDefined();
+          expect(doc.sections.notaryBlock).toBeDefined();
         });
 
-        it('should generate identical title', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.title).toBe(oldDoc.sections.title);
+        it('should generate case caption with CAUSE NO. or CASE NO.', () => {
+          const caption = doc.sections.caseCaption?.formatted || '';
+          expect(caption).toMatch(/CAUSE NO\.|CASE NO\./);
         });
 
-        it('should generate identical case caption', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.caseCaption.formatted).toBe(oldDoc.sections.caseCaption.formatted);
+        it('should include facts', () => {
+          expect(doc.sections.facts.items.length).toBeGreaterThanOrEqual(3);
         });
 
-        it('should generate identical introduction', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.introduction).toBe(oldDoc.sections.introduction);
+        it('should generate conclusion', () => {
+          expect(doc.sections.conclusion).toContain('Further');
         });
 
-        it('should generate same number of facts', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.facts.items.length).toBe(oldDoc.sections.facts.items.length);
+        it('should generate signature block', () => {
+          expect(doc.sections.signatureBlock.formatted).toContain('John Doe');
         });
 
-        it('should generate identical conclusion', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          expect(newDoc.sections.conclusion).toBe(oldDoc.sections.conclusion);
-        });
-
-        it('should generate identical signature block', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          // Normalize whitespace for comparison
-          const normalize = (text) => text ? text.replace(/[ \t]+$/gm, '').trim() : text;
-          expect(normalize(newDoc.sections.signatureBlock.formatted)).toBe(normalize(oldDoc.sections.signatureBlock.formatted));
-        });
-
-        it('should generate identical notary block', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          // Normalize whitespace for comparison (trailing spaces may differ)
-          const normalize = (text) => text ? text.replace(/[ \t]+$/gm, '').trim() : text;
-          expect(normalize(newDoc.sections.notaryBlock)).toBe(normalize(oldDoc.sections.notaryBlock));
-        });
-
-        it('should handle perjury statement identically', () => {
-          const stateData = { ...testData, state: stateCode };
-
-          const oldDoc = oldManager.generateAffidavit(stateCode, stateData);
-          const newDoc = newManager.generateAffidavit(stateCode, stateData);
-
-          // Normalize whitespace for comparison
-          const normalize = (text) => text ? text.replace(/[ \t]+$/gm, '').trim() : text;
-          expect(normalize(newDoc.sections.perjuryStatement)).toBe(normalize(oldDoc.sections.perjuryStatement));
+        it('should generate notary block with jurat', () => {
+          const normalize = (text) => text ? text.replace(/[ \t]+$/gm, '').trim() : '';
+          const notary = normalize(doc.sections.notaryBlock);
+          expect(notary.length).toBeGreaterThan(20);
+          // All states should have some form of notary/jurat
+          expect(notary).toMatch(/SWORN|Subscribed|sworn|affirm/i);
         });
       });
     });
   });
 
-  describe('generateAffidavit - Content Comparison', () => {
+  describe('generateAffidavit - Content', () => {
     const testData = {
       affiantName: 'John Doe',
       state: 'TX',
       county: 'Travis',
-      facts: ['Fact 1', 'Fact 2']
+      facts: ['Fact 1', 'Fact 2'],
     };
 
-    it('should generate identical full text for Texas', () => {
-      const oldDoc = oldManager.generateAffidavit('TX', { ...testData, state: 'TX' });
-      const newDoc = newManager.generateAffidavit('TX', { ...testData, state: 'TX' });
-
-      // Normalize whitespace for comparison
-      const normalizeText = (text) => text.replace(/\s+/g, ' ').trim();
-      expect(normalizeText(newDoc.fullText)).toBe(normalizeText(oldDoc.fullText));
+    it('should generate full text containing all content for Texas', () => {
+      const doc = registry.generateAffidavit('TX', testData);
+      const text = doc.fullText;
+      expect(text).toContain('THE STATE OF TEXAS');
+      expect(text).toContain('COUNTY OF TRAVIS');
+      expect(text).toContain('SWORN TO AND SUBSCRIBED');
+      expect(text).toContain('John Doe');
     });
 
-    it('should generate similar HTML content structure', () => {
-      const oldDoc = oldManager.generateAffidavit('TX', { ...testData, state: 'TX' });
-      const newDoc = newManager.generateAffidavit('TX', { ...testData, state: 'TX' });
-
-      expect(newDoc.htmlContent).toContain('<html>');
-      expect(newDoc.htmlContent).toContain('</html>');
-      expect(newDoc.htmlContent).toContain(testData.affiantName);
+    it('should generate valid HTML content', () => {
+      const doc = registry.generateAffidavit('TX', testData);
+      expect(doc.htmlContent).toContain('<html>');
+      expect(doc.htmlContent).toContain('</html>');
+      expect(doc.htmlContent).toContain(testData.affiantName);
     });
   });
 
   describe('State-Specific Behavior', () => {
-    describe('Texas specifics', () => {
-      it('should not include perjury statement', () => {
-        const testData = {
-          affiantName: 'John Doe',
-          state: 'TX',
-          county: 'Travis',
-          facts: ['Fact 1']
-        };
-
-        const oldDoc = oldManager.generateAffidavit('TX', testData);
-        const newDoc = newManager.generateAffidavit('TX', testData);
-
-        expect(newDoc.sections.perjuryStatement).toBeNull();
-        expect(newDoc.sections.perjuryStatement).toBe(oldDoc.sections.perjuryStatement);
+    describe('Texas', () => {
+      it('should not include perjury statement (per Tex. Govt Code 312.011)', () => {
+        const doc = registry.generateAffidavit('TX', {
+          affiantName: 'John Doe', state: 'TX', county: 'Travis', facts: ['Fact 1'],
+        });
+        expect(doc.sections.perjuryStatement).toBeNull();
       });
 
       it('should use CAUSE NO. terminology', () => {
-        const testData = {
-          affiantName: 'John Doe',
-          state: 'TX',
-          county: 'Travis',
-          caseNumber: '2024-12345',
-          facts: ['Fact 1']
-        };
-
-        const oldDoc = oldManager.generateAffidavit('TX', testData);
-        const newDoc = newManager.generateAffidavit('TX', testData);
-
-        expect(newDoc.sections.caseCaption.formatted).toContain('CAUSE NO.');
-        expect(newDoc.sections.caseCaption.formatted).toBe(oldDoc.sections.caseCaption.formatted);
+        const doc = registry.generateAffidavit('TX', {
+          affiantName: 'John Doe', state: 'TX', county: 'Travis',
+          caseNumber: '2024-12345', facts: ['Fact 1'],
+        });
+        expect(doc.sections.caseCaption.formatted).toContain('CAUSE NO.');
       });
     });
 
-    describe('Utah specifics', () => {
-      it('should include notary instruction', () => {
-        const testData = {
-          affiantName: 'John Doe',
-          state: 'UT',
-          county: 'Salt Lake',
-          facts: ['Fact 1']
-        };
-
-        const oldDoc = oldManager.generateAffidavit('UT', testData);
-        const newDoc = newManager.generateAffidavit('UT', testData);
-
-        expect(newDoc.sections.notaryInstruction).toBeDefined();
-        expect(newDoc.sections.notaryInstruction).toBe(oldDoc.sections.notaryInstruction);
+    describe('Utah', () => {
+      it('should use sentence case header per Utah Code 46-1-6.5', () => {
+        const doc = registry.generateAffidavit('UT', {
+          affiantName: 'John Doe', state: 'UT', county: 'Salt Lake', facts: ['Fact 1'],
+        });
+        expect(doc.sections.header).toBe('State of Utah');
       });
 
-      it('should use sentence case header', () => {
-        const testData = {
-          affiantName: 'John Doe',
-          state: 'UT',
-          county: 'Salt Lake',
-          facts: ['Fact 1']
-        };
-
-        const oldDoc = oldManager.generateAffidavit('UT', testData);
-        const newDoc = newManager.generateAffidavit('UT', testData);
-
-        expect(newDoc.sections.header).toBe('State of Utah');
-        expect(newDoc.sections.header).toBe(oldDoc.sections.header);
+      it('should include notary instruction for oath requirement', () => {
+        const doc = registry.generateAffidavit('UT', {
+          affiantName: 'John Doe', state: 'UT', county: 'Salt Lake', facts: ['Fact 1'],
+        });
+        expect(doc.sections.notaryInstruction).toBeDefined();
+        expect(doc.sections.notaryInstruction).toContain('oath');
       });
     });
 
-    describe('Arizona specifics', () => {
-      it('should include perjury statement', () => {
-        const testData = {
-          affiantName: 'John Doe',
-          state: 'AZ',
-          county: 'Maricopa',
-          facts: ['Fact 1']
-        };
+    describe('Arizona', () => {
+      it('should include perjury statement per A.R.S. 13-2702', () => {
+        const doc = registry.generateAffidavit('AZ', {
+          affiantName: 'John Doe', state: 'AZ', county: 'Maricopa', facts: ['Fact 1'],
+        });
+        expect(doc.sections.perjuryStatement).toBeDefined();
+        expect(doc.sections.perjuryStatement).not.toBeNull();
+        expect(doc.sections.perjuryStatement).toContain('perjury');
+      });
+    });
 
-        const oldDoc = oldManager.generateAffidavit('AZ', testData);
-        const newDoc = newManager.generateAffidavit('AZ', testData);
-
-        expect(newDoc.sections.perjuryStatement).toBeDefined();
-        expect(newDoc.sections.perjuryStatement).not.toBeNull();
-        expect(newDoc.sections.perjuryStatement).toBe(oldDoc.sections.perjuryStatement);
+    describe('California', () => {
+      it('should support declaration under penalty of perjury per CCP 2015.5', () => {
+        const doc = registry.generateAffidavit('CA', {
+          affiantName: 'John Doe', state: 'CA', county: 'Los Angeles', facts: ['Fact 1'],
+        });
+        // California uses declarations under penalty of perjury
+        expect(doc.sections.perjuryStatement).toBeDefined();
       });
     });
   });
 
   describe('getLegalCitations', () => {
-    it('should return same citations for Texas', () => {
-      const oldCitations = oldManager.getLegalCitations('TX');
-      const newCitations = newManager.getLegalCitations('TX');
-
-      expect(newCitations.primary).toBe(oldCitations.primary);
-      expect(newCitations.secondary).toEqual(oldCitations.secondary);
+    it('should return citations for Texas', () => {
+      const citations = registry.getLegalCitations('TX');
+      expect(citations).not.toBeNull();
+      expect(citations.primary).toBeDefined();
+      expect(citations.secondary.length).toBeGreaterThan(0);
     });
 
-    it('should return same citations for Utah', () => {
-      const oldCitations = oldManager.getLegalCitations('UT');
-      const newCitations = newManager.getLegalCitations('UT');
-
-      expect(newCitations.primary).toBe(oldCitations.primary);
-      expect(newCitations.secondary).toEqual(oldCitations.secondary);
+    it('should return citations for Utah', () => {
+      const citations = registry.getLegalCitations('UT');
+      expect(citations).not.toBeNull();
+      expect(citations.primary).toBeDefined();
     });
 
-    it('should return same citations for Arizona', () => {
-      const oldCitations = oldManager.getLegalCitations('AZ');
-      const newCitations = newManager.getLegalCitations('AZ');
-
-      expect(newCitations.primary).toBe(oldCitations.primary);
-      expect(newCitations.secondary).toEqual(oldCitations.secondary);
+    it('should return citations for Arizona', () => {
+      const citations = registry.getLegalCitations('AZ');
+      expect(citations).not.toBeNull();
+      expect(citations.primary).toBeDefined();
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty facts array identically', () => {
-      const testData = {
-        affiantName: 'John Doe',
-        state: 'TX',
-        county: 'Travis',
-        facts: []
-      };
-
-      const oldDoc = oldManager.generateAffidavit('TX', testData);
-      const newDoc = newManager.generateAffidavit('TX', testData);
-
-      expect(newDoc.sections.facts.items.length).toBe(oldDoc.sections.facts.items.length);
+    it('should handle empty facts array', () => {
+      const doc = registry.generateAffidavit('TX', {
+        affiantName: 'John Doe', state: 'TX', county: 'Travis', facts: [],
+      });
+      // Should still have competency statement as first fact
+      expect(doc.sections.facts.items.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should handle missing optional fields identically', () => {
-      const testData = {
-        affiantName: 'John Doe',
-        state: 'TX',
-        county: 'Travis',
-        facts: ['Fact 1']
-      };
-
-      const oldDoc = oldManager.generateAffidavit('TX', testData);
-      const newDoc = newManager.generateAffidavit('TX', testData);
-
-      expect(newDoc.sections.caseCaption.formatted).toContain('[CASE NUMBER]');
-      expect(newDoc.sections.caseCaption.formatted).toBe(oldDoc.sections.caseCaption.formatted);
+    it('should handle missing optional fields', () => {
+      const doc = registry.generateAffidavit('TX', {
+        affiantName: 'John Doe', state: 'TX', county: 'Travis', facts: ['Fact 1'],
+      });
+      expect(doc.sections.caseCaption.formatted).toContain('[CASE NUMBER]');
     });
   });
 
   describe('Performance', () => {
     it('should generate documents in reasonable time', () => {
-      const testData = {
-        affiantName: 'John Doe',
-        state: 'TX',
-        county: 'Travis',
-        facts: Array(50).fill('Test fact')
-      };
-
       const start = Date.now();
-      newManager.generateAffidavit('TX', testData);
-      const duration = Date.now() - start;
-
-      // Should complete in under 100ms
-      expect(duration).toBeLessThan(100);
+      registry.generateAffidavit('TX', {
+        affiantName: 'John Doe', state: 'TX', county: 'Travis',
+        facts: Array(50).fill('Test fact'),
+      });
+      expect(Date.now() - start).toBeLessThan(100);
     });
   });
 });

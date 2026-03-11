@@ -169,7 +169,38 @@ const getAllowedOrigins = () => {
     'https://discover.legal',
     'https://www.discover.legal',
     'https://ca.discover.legal',
-    'https://canada.discover.legal'
+    'https://canada.discover.legal',
+    // International subdomains
+    'https://uk.discover.legal',
+    'https://ie.discover.legal',
+    'https://au.discover.legal',
+    'https://nz.discover.legal',
+    'https://in.discover.legal',
+    'https://pk.discover.legal',
+    'https://bd.discover.legal',
+    'https://lk.discover.legal',
+    'https://sa.discover.legal',
+    'https://ng.discover.legal',
+    'https://ke.discover.legal',
+    'https://gh.discover.legal',
+    'https://ug.discover.legal',
+    'https://tz.discover.legal',
+    'https://zm.discover.legal',
+    'https://zw.discover.legal',
+    'https://bw.discover.legal',
+    'https://mw.discover.legal',
+    'https://na.discover.legal',
+    'https://sg.discover.legal',
+    'https://hk.discover.legal',
+    'https://my.discover.legal',
+    'https://jm.discover.legal',
+    'https://tt.discover.legal',
+    'https://bb.discover.legal',
+    'https://bs.discover.legal',
+    'https://bm.discover.legal',
+    'https://fj.discover.legal',
+    'https://pg.discover.legal',
+    'https://cy.discover.legal'
   );
 
   // Add FRONTEND_URL if set (normalized)
@@ -355,26 +386,16 @@ async function initializeServices() {
     console.log(`  - OpenAI: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '❌ Not configured'}`);
     console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '❌ Not configured'}`);
 
-    // Initialize template manager
-    // Feature flag to switch between old and new template system
-    const useNewTemplateSystem = process.env.USE_NEW_TEMPLATE_SYSTEM !== 'false';
-
-    if (useNewTemplateSystem) {
-      logger.info('Using new template system (auto-discovery)');
-      const { initializeTemplates } = require('./templates/initialize');
-      templateManager = await initializeTemplates();
-    } else {
-      logger.info('Using legacy template system');
-      const { StateTemplateManager } = require('./templates/StateTemplateManager');
-      templateManager = new StateTemplateManager();
-    }
+    // Initialize template manager (auto-discovery from templates/states/)
+    const { initializeTemplates } = require('./templates/initialize');
+    templateManager = await initializeTemplates();
 
     app.locals.templateManager = templateManager;
     logger.info('✅ Template Manager initialized');
 
     // ✅ NEW: Initialize PDF Service
     const PDFService = require('./services/pdfService');
-    pdfService = new PDFService();
+    pdfService = new PDFService({ templateManager });
     app.locals.pdfService = pdfService;
     logger.info('✅ PDF Service initialized');
 

@@ -1,0 +1,250 @@
+{
+  "stateCode": "AK",
+  "stateName": "Alaska",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "domicile": true,
+    "stateMonths": 0,
+    "description": "The plaintiff must be domiciled in Alaska at the time of filing. There is no minimum duration of residency required.",
+    "statute": "AS 25.24.090"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "Alaska requires a 30-day waiting period after service of process before the court may enter a decree. (AS 25.24.090)"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility of Temperament",
+        "description": "The parties have an incompatibility of temperament that has caused the irremediable breakdown of the marriage",
+        "statute": "AS 25.24.050(5)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by the defendant",
+        "statute": "AS 25.24.050(1)"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Conviction of a Felony",
+        "description": "Conviction of a felony",
+        "statute": "AS 25.24.050(1)"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion",
+        "description": "Willful desertion for a period of one year",
+        "statute": "AS 25.24.050(1)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel Treatment",
+        "description": "Either cruel and inhuman treatment calculated to impair health or endanger life",
+        "statute": "AS 25.24.050(1)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Gross Drunkenness",
+        "description": "Habitual gross drunkenness contracted since marriage and continuing for one year prior to filing",
+        "statute": "AS 25.24.050(2)"
+      },
+      {
+        "code": "incurable_mental_illness",
+        "name": "Incurable Mental Illness",
+        "description": "Incurable mental illness when the spouse has been confined to an institution for at least 18 months",
+        "statute": "AS 25.24.050(3)"
+      },
+      {
+        "code": "personal_indignities",
+        "name": "Personal Indignities",
+        "description": "Personal indignities by one spouse making life burdensome for the other",
+        "statute": "AS 25.24.050(4)"
+      },
+      {
+        "code": "failure_to_consummate",
+        "name": "Failure to Consummate",
+        "description": "Failure to consummate the marriage at the time of marriage",
+        "statute": "AS 25.24.050(6)"
+      },
+      {
+        "code": "drug_addiction",
+        "name": "Drug Addiction",
+        "description": "Addiction to drugs",
+        "statute": "AS 25.24.050(7)"
+      }
+    ],
+    "notes": "Alaska allows both fault and no-fault grounds. Incompatibility of temperament is the most common (no-fault) ground."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Alaska follows equitable distribution. The court divides marital property in a fair and just manner, considering factors such as length of marriage, earning capacity, financial condition, conduct, and desirability of awarding the family home to the custodial parent.",
+    "separateProperty": "Property acquired before marriage or by inheritance/gift is generally considered separate property, though the court may consider it in achieving a fair division.",
+    "statute": "AS 25.24.160"
+  },
+
+  "legalCitations": [
+    {
+      "code": "AS 25.24.090",
+      "description": "Residency requirements — domicile in Alaska; 30-day waiting period after service"
+    },
+    {
+      "code": "AS 25.24.050",
+      "description": "Grounds for divorce — fault and no-fault"
+    },
+    {
+      "code": "AS 25.24.160",
+      "description": "Property division — equitable distribution; alimony"
+    },
+    {
+      "code": "AS 25.20.060",
+      "description": "Custody and visitation — shared custody"
+    },
+    {
+      "code": "Civil Rule 90.3",
+      "description": "Alaska Child Support Guidelines — income shares model"
+    },
+    {
+      "code": "AS 22.10",
+      "description": "Superior Court jurisdiction"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$250",
+    "varies": true,
+    "notes": "Alaska filing fees are approximately $250 for a divorce complaint but may vary by judicial district. Fee waivers are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "VS-800 Vital Statistics Form",
+        "description": "Certificate of divorce reporting form",
+        "required": true
+      },
+      {
+        "name": "Financial Declaration (DR-250)",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via process server or certified mail",
+        "required": true,
+        "alternatives": ["Waiver of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Defendant waives formal service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody and Visitation Order",
+        "description": "Court order establishing custody and visitation",
+        "required": true
+      },
+      {
+        "name": "Child Support Order (DR-305)",
+        "description": "Calculation per Alaska Child Support Guidelines (Civil Rule 90.3)",
+        "required": true
+      },
+      {
+        "name": "Child Support Guidelines Affidavit (DR-306)",
+        "description": "Income and deduction information for child support calculation",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Alaska Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Defendant served outside Alaska must file an answer within 20 days of service (additional time may be granted)"
+    },
+    "statute": "Alaska Civil Rule 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "percentage_of_income",
+    "description": "Alaska uses a percentage of income model under Civil Rule 90.3. Child support is calculated as a percentage of the non-custodial parent's adjusted annual income based on the number of children.",
+    "statute": "Civil Rule 90.3",
+    "notes": "The court may deviate from the guidelines if application would be manifestly unjust."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Alaska courts may award alimony in a divorce action. The court considers the length of the marriage, the station in life and circumstances of the parties, the age and health of the parties, the earning capacity of each party, the financial condition of each party, and the conduct of the parties.",
+    "eligibility": "Either party may request alimony. There is no fixed formula — the court has discretion to award temporary, rehabilitative, or permanent alimony based on the circumstances.",
+    "statute": "AS 25.24.160"
+  },
+
+  "court": {
+    "name": "Superior Court",
+    "description": "Divorce is filed in the Superior Court in the judicial district where either party resides. (AS 22.10)"
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "stateCode": "DC",
+  "stateName": "District of Columbia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment of Absolute Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": null,
+    "description": "At least one party must have been a bona fide resident of the District of Columbia for at least six months before the commencement of the action.",
+    "statute": "D.C. Code §16-902"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "DC has no mandatory waiting period after filing. However, the parties must demonstrate either mutual consent or living separate and apart for six or more months."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "no_longer_wish",
+        "name": "No Longer Wish to Remain Married",
+        "description": "One or both parties state under oath that they no longer wish to remain married. No separation period or mutual consent required. Added effective January 26, 2024.",
+        "statute": "D.C. Code §16-904(a)"
+      },
+      {
+        "code": "mutual_consent",
+        "name": "Mutual and Voluntary Separation",
+        "description": "Both parties mutually and voluntarily consent to the divorce.",
+        "statute": "D.C. Code §16-904(a)"
+      },
+      {
+        "code": "living_separate",
+        "name": "Living Separate and Apart",
+        "description": "The parties have been living separate and apart without cohabitation for at least six months.",
+        "statute": "D.C. Code §16-904(b)"
+      }
+    ],
+    "fault": [],
+    "notes": "DC is a purely no-fault jurisdiction. Effective January 26, 2024, DC added a new primary ground: 'one or both parties no longer wish to remain married' — no separation period and no mutual consent required. The older grounds (mutual consent, 6-month separation) remain available."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "DC courts divide marital property equitably. The court considers factors including the duration of the marriage, the age, health, occupation, and earning capacity of each party, the contribution of each party to the acquisition, preservation, and appreciation of property, and any other factor the court deems just and proper.",
+    "separateProperty": "Property acquired before the marriage, by inheritance, or by gift is generally considered separate property and is not subject to division. Only marital property is divided.",
+    "statute": "D.C. Code §16-910"
+  },
+
+  "legalCitations": [
+    {
+      "code": "D.C. Code §16-902",
+      "description": "Residency requirement — 6 months"
+    },
+    {
+      "code": "D.C. Code §16-904",
+      "description": "Grounds for divorce — mutual consent or 6 months living separate"
+    },
+    {
+      "code": "D.C. Code §16-910",
+      "description": "Property division — equitable distribution"
+    },
+    {
+      "code": "D.C. Code §16-913",
+      "description": "Alimony"
+    },
+    {
+      "code": "D.C. Code §16-914",
+      "description": "Custody — legal and physical custody, visitation"
+    },
+    {
+      "code": "D.C. Code §16-916.01",
+      "description": "DC Child Support Guideline"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$120",
+    "varies": false,
+    "notes": "DC filing fees are approximately $120. Fee waivers may be available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Financial Statement",
+        "description": "Mandatory disclosure of income, assets, expenses, and debts",
+        "required": true
+      },
+      {
+        "name": "Judgment of Absolute Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant accepts service voluntarily",
+        "required": false,
+        "alternatives": ["Process Server", "Publication"]
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Calculation per DC Child Support Guideline (D.C. Code §16-916.01)",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Plan for custody and visitation arrangements",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per DC Superior Court Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Defendant must file an answer within 21 days of service"
+    },
+    "outOfState": {
+      "days": 60,
+      "description": "Defendant served outside the District of Columbia has 60 days to file an answer"
+    },
+    "statute": "D.C. Super. Ct. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "DC uses an income shares model. Both parents' gross incomes are combined and the child support obligation is determined from the DC Child Support Guideline schedule based on combined income and the number of children.",
+    "statute": "D.C. Code §16-916.01",
+    "notes": "The court may deviate from the guidelines if strict application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "DC courts may award alimony after considering factors including the ability of the party seeking alimony to be wholly or partly self-supporting, the time necessary to gain sufficient education or training, the standard of living during the marriage, the duration of the marriage, the circumstances which contributed to the estrangement of the parties, and the financial needs and resources of each party.",
+    "eligibility": "Available based on need and ability to pay. No formula-based calculation.",
+    "statute": "D.C. Code §16-913"
+  },
+
+  "court": {
+    "name": "Superior Court of the District of Columbia, Family Court Division",
+    "description": "Divorce cases are filed in the Superior Court of the District of Columbia, Family Court Division."
+  }
+}

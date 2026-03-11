@@ -7,13 +7,18 @@
 
   "terminology": {
     "divorce": "Dissolution of Marriage",
-    "petition": "Petition",
-    "decree": "Judgment",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Judgment of Dissolution of Marriage",
     "caseNumberLabel": "Case Number:",
+    "captionFormat": "IN RE THE MARRIAGE OF",
+    "court": "Superior Court",
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
     "custody": "Custody",
     "visitation": "Visitation",
     "alimony": "Spousal Support",
-    "maritalProperty": "Community Property"
+    "maritalProperty": "Community Property",
+    "notes": "California uses 'Dissolution of Marriage' not 'Divorce'. Document titles must say 'PETITION FOR DISSOLUTION OF MARRIAGE' and 'JUDGMENT OF DISSOLUTION OF MARRIAGE'. Caption format is 'IN RE THE MARRIAGE OF [NAME], Petitioner, and [NAME], Respondent.'"
   },
 
   "officialForms": {
@@ -93,7 +98,9 @@
   "residencyRequirements": {
     "stateMonths": 6,
     "countyMonths": 3,
-    "description": "Petitioner must be a California resident for at least 6 months and a county resident for at least 3 months before filing.",
+    "countyDays": 90,
+    "statute": "Family Code § 2320",
+    "description": "At least one spouse must have been a California resident for the preceding 6 months AND a resident of the filing county for the preceding 3 months (90 days) before filing.",
     "sameSexMarriageException": "Same-sex couples married in California but living in a non-recognition state may file in the county where they were married."
   },
 
@@ -101,7 +108,7 @@
     "days": 180,
     "startsFrom": "service_date",
     "exceptions": [],
-    "description": "California has a mandatory 6-month waiting period. No divorce can be finalized until 6 months after Respondent is served. There are NO exceptions."
+    "description": "California has a mandatory 6-month waiting period. No divorce can be finalized until 6 months after Respondent is served. There are no statutory exceptions to the 6-month waiting period."
   },
 
   "groundsForDissolution": {
@@ -164,6 +171,10 @@
     {
       "code": "California Family Code Division 6",
       "description": "Nullity, Dissolution, and Legal Separation"
+    },
+    {
+      "code": "Family Code § 2320",
+      "description": "Residency requirements — 6 months in state, 3 months in county"
     },
     {
       "code": "Family Code § 2310",

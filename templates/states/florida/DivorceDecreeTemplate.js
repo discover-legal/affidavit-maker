@@ -31,7 +31,8 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "Time-Sharing and Parental Responsibility" instead of "Custody"
  * - "Shared Parental Responsibility" for joint custody
  * - "Time-Sharing Schedule" instead of "Visitation"
- * - "Alimony" (multiple types)
+ * - "Alimony" (bridge-the-gap, rehabilitative, durational, lump sum)
+ * - Permanent alimony abolished effective July 1, 2023 (SB 1416)
  * - Equitable distribution state
  * - No mandatory waiting period
  */
@@ -216,7 +217,7 @@ class FloridaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     // Property to Petitioner (called Husband/Wife in Florida forms typically)
     items.push({
-      content: `The following marital assets and liabilities are distributed to ${divorceData.petitionerName || 'Petitioner'} as that party's non-marital property:`,
+      content: `The following marital assets and liabilities are distributed to ${divorceData.petitionerName || 'Petitioner'} as that party's sole property:`,
       type: 'order'
     });
 
@@ -233,7 +234,7 @@ class FloridaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     // Property to Respondent
     items.push({
-      content: `The following marital assets and liabilities are distributed to ${divorceData.respondentName || 'Respondent'} as that party's non-marital property:`,
+      content: `The following marital assets and liabilities are distributed to ${divorceData.respondentName || 'Respondent'} as that party's sole property:`,
       type: 'order'
     });
 
@@ -406,7 +407,11 @@ class FloridaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     } else if (divorceData.spousalSupportAwarded) {
       const payor = divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent';
       const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
-      const alimonyType = divorceData.alimonyType || 'durational';
+      // Permanent alimony is abolished in Florida effective July 1, 2023 (SB 1416; § 61.08).
+      // Reject any attempt to award permanent alimony and fall back to durational.
+      const requestedType = divorceData.alimonyType || 'durational';
+      const prohibitedTypes = ['permanent'];
+      const alimonyType = prohibitedTypes.includes(requestedType) ? 'durational' : requestedType;
 
       items.push({
         content: `The Court, having considered the factors set forth in Florida Statutes § 61.08, awards ${alimonyType} alimony as follows:`,
@@ -538,6 +543,11 @@ Respondent: ${divorceData.respondentName || '________'}`,
     // Warning about parenting plan
     if (divorceData.hasMinorChildren === true) {
       warnings.push('Florida requires a Parenting Plan when minor children are involved (Florida Statutes § 61.13).');
+    }
+
+    // Permanent alimony is abolished effective July 1, 2023 (SB 1416; § 61.08).
+    if (divorceData.alimonyType === 'permanent') {
+      errors.push('Permanent alimony is prohibited in Florida effective July 1, 2023 (SB 1416; Fla. Stat. § 61.08). The alimony type has been changed to durational.');
     }
 
     return { errors, warnings };

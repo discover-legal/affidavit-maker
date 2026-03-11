@@ -30,6 +30,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - 6-month residency requirement
  * - Simplified dissolution has NO waiting period
  * - Regular dissolution has no mandatory waiting period
+ * - Permanent alimony abolished effective July 1, 2023 (SB 1416)
+ * - Available alimony types: bridge-the-gap, rehabilitative, durational, lump sum
  */
 class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   constructor() {
@@ -308,7 +310,9 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.requestSpousalSupport) {
-      reliefItems.push('Award alimony to Petitioner;');
+      // Permanent alimony abolished effective July 1, 2023 (SB 1416).
+      // Only bridge-the-gap, rehabilitative, durational, or lump sum alimony is available.
+      reliefItems.push('Award alimony to Petitioner (bridge-the-gap, rehabilitative, durational, or lump sum) as provided by Florida Statutes § 61.08 (as amended by SB 1416, effective July 1, 2023);');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {

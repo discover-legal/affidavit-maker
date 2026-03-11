@@ -1,0 +1,115 @@
+{
+  "stateCode": "AB",
+  "stateName": "Alberta",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "Either spouse must have been ordinarily resident in Alberta for at least one year immediately before the divorce application (Divorce Act, s.3(1))."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. The 1-year separation must be completed before or by the time the application is granted. Divorce Order effective 31 days after made (Divorce Act, s.12)."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation",
+        "name": "One-Year Separation",
+        "description": "Spouses have lived separate and apart for at least one year immediately preceding the determination of the divorce application.",
+        "statute": "Divorce Act, RSC 1985, c. 3, s.8(2)(a)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Respondent has committed adultery.",
+        "statute": "Divorce Act s.8(2)(b)(i)"
+      },
+      {
+        "code": "cruelty",
+        "name": "Physical or Mental Cruelty",
+        "description": "Respondent has treated applicant with physical or mental cruelty rendering cohabitation intolerable.",
+        "statute": "Divorce Act s.8(2)(b)(ii)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Action No.",
+    "custody": "Parenting Time and Decision-Making Responsibility (2021 Divorce Act amendments, in force March 1, 2021)",
+    "physicalCustody": "Parenting Time",
+    "jointCustody": "Shared Decision-Making Responsibility",
+    "soleCustody": "Sole Decision-Making Responsibility",
+    "alimony": "Spousal Support",
+    "childSupport": "Child Support",
+    "maritalProperty": "Family Property (Family Property Act, RSA 2000, c. F-4.7)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Statement of Claim for Divorce",
+        "description": "Initiates the divorce proceeding in the Court of King's Bench of Alberta",
+        "required": true
+      },
+      {
+        "name": "Statement of Defence and Counterclaim",
+        "description": "Respondent's defence if contesting",
+        "required": false
+      },
+      {
+        "name": "Divorce Order",
+        "description": "Draft order to be submitted to court for signature",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces"
+    },
+    {
+      "code": "Family Property Act, RSA 2000, c. F-4.7",
+      "description": "Alberta statute — division of family property between spouses and adult interdependent partners on relationship breakdown (replaced Matrimonial Property Act effective January 1, 2020)"
+    },
+    {
+      "code": "Family Law Act, SA 2003, c. F-4.5",
+      "description": "Alberta statute — parentage, guardianship, parenting, contact, and support"
+    },
+    {
+      "code": "Maintenance Enforcement Act, RSA 2000, c. M-1",
+      "description": "Alberta enforcement of support orders through MEP (Maintenance Enforcement Program)"
+    },
+    {
+      "code": "Alberta Rules of Court, AR 124/2010",
+      "description": "Procedural rules for Court of King's Bench proceedings in Alberta"
+    },
+    {
+      "code": "Child Support Guidelines, SOR/97-175",
+      "description": "Federal guidelines for calculating child support"
+    }
+  ],
+  "filingFees": {
+    "approximate": "CAD $260-300",
+    "varies": true,
+    "notes": "Fee waiver available for low-income parties. Court of King's Bench has jurisdiction (rebranded from Queen's Bench in 2022)."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "federal_table",
+    "federalGuidelines": "Child Support Guidelines, SOR/97-175",
+    "notes": "Federal Child Support Guidelines apply in all provinces. Alberta enforces through the Maintenance Enforcement Program (MEP)."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "SSAG",
+    "guidelines": "Spousal Support Advisory Guidelines (SSAG)",
+    "notes": "SSAG are advisory only — not legislatively mandated but widely applied by Alberta courts"
+  },
+  "effectiveDateRule": "31 days after the divorce judgment is made, unless the court varies the effective date or both parties waive the waiting period (Divorce Act, s.12).",
+  "certificateNote": "A Certificate of Divorce may be obtained from the court office after the effective date of the Divorce Judgment (Divorce Act, s.12(7)).",
+  "notes": "Alberta uses 'family property' with a presumption of equal division (Family Property Act, s.7). Court of King's Bench of Alberta has exclusive jurisdiction over divorce. Judicial districts include Calgary, Edmonton, Red Deer, Lethbridge, and others."
+}

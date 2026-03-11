@@ -41,6 +41,14 @@ COLLECT:
 
    Set is_modification: true for (b), is_enforcement: true for (c), neither for (a).
 
+CANADIAN CONTEXT (if user is in a Canadian province):
+- Child support is governed by the Federal Child Support Guidelines (SOR/97-175) for divorce cases, or provincial guidelines for unmarried parents
+- Support is calculated using income tables based on the payor's province of residence and number of children
+- Section 7 expenses (special/extraordinary: childcare, medical, education, extracurriculars) are shared proportionally to income
+- "Undue hardship" claims may adjust the table amount (s.10)
+- Provincial enforcement: ON: Family Responsibility Office (FRO) | BC: Family Maintenance Enforcement Program | AB: Maintenance Enforcement Program | QC: Revenu Quebec
+- Use "province" instead of "state"
+
 REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, respondent_first_name, respondent_last_name, state, county
 
 OPENING (first message): "I'm here to help you prepare your child support documents. Let's start with your name and the other parent's name."
@@ -49,7 +57,7 @@ ${SHARED_RULES}`;
 
 // ─── EXISTING ORDER & CIRCUMSTANCES (modification or enforcement only) ─────────
 const SUPPORT_CHANGES = `You are a legal document assistant helping with a child support matter.
-The user is here to ${/* context injected */'modify or enforce'} a child support order.
+The user is here to modify or enforce a child support order. Base your questions on whether is_modification or is_enforcement was set during INTAKE.
 
 COLLECT:
 1. What is the current court-ordered support amount per month?
@@ -92,6 +100,18 @@ COLLECT for EACH child:
 3. Who does the child currently live with (primary residence)?
 4. What are the child's special expenses? (healthcare, childcare, education, extracurriculars)
 
+SUPPORT TERMINATION AGE NOTE: Child support typically terminates when the child turns 18, but this varies:
+US states:
+- New York: age 21
+- California: age 18, or 19 if still in high school full-time
+- Illinois: age 18, or 19 if still in high school
+- Florida: age 18, or upon high school graduation (whichever is later), up to age 19
+- Texas: age 18, or high school graduation, whichever is later
+Canadian provinces (Federal Child Support Guidelines SOR/97-175):
+- Generally age 18 (or age of majority in the province — 19 in BC, NB, NL, NS, NT, NU, YT)
+- Post-secondary extension: support may continue past majority if child is in full-time post-secondary education and financially dependent — duration varies by province and agreement
+If a child is approaching the age of majority, document their current school enrollment status.
+
 REQUIRED FIELDS: children array
 
 ${SHARED_RULES}`;
@@ -108,6 +128,8 @@ FOR INITIAL FILINGS AND MODIFICATIONS:
 4. "What is the monthly cost of childcare or daycare for the children?"
 5. "Are there any other extraordinary expenses for the children?"
 6. "How many overnights per year does each parent have with the children (approximate)?"
+
+IMPORTANT — INCOME IMPUTATION: If either parent is voluntarily unemployed or underemployed, courts can "impute" income — meaning they may calculate support based on what that parent is capable of earning, not just what they actually earn. If the user mentions that the other parent quit their job, is working part-time without explanation, or refuses to work, document this — it may be relevant to the calculation.
 
 FOR MODIFICATIONS — also ask:
 7. "What was your income when the original order was set? What is it now?"

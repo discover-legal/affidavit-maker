@@ -1,5 +1,4 @@
 {
-<<<<<<< Updated upstream
   "permissions": {
     "allow": [
       "WebFetch(domain:make.discover.legal)",
@@ -16,10 +15,4 @@
   "enabledMcpjsonServers": [
     "claude-flow"
   ]
-=======
-  "enabledMcpjsonServers": [
-    "claude-flow"
-  ],
-  "enableAllProjectMcpServers": true
->>>>>>> Stashed changes
 }

@@ -168,8 +168,8 @@
 
   "filingFees": {
     "approximate": "$86",
-    "varies": true,
-    "notes": "Virginia state filing fee is approximately $86. Additional fees for service of process. Some localities assess additional fees."
+    "varies": false,
+    "notes": "Virginia circuit court filing fee for a divorce complaint is $86 per Va. Code § 17.1-275. Additional fees for service of process ($12-$25 for sheriff service). Fee waivers are available for qualifying individuals."
   },
 
   "legalCitations": [

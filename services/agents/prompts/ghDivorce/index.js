@@ -20,7 +20,7 @@
  *   - Mandatory court-annexed reconciliation (MCA s.2(3))
  *   - Three marriage types: ordinance, customary, Mohammedan
  *   - Process: Petition -> Reconciliation -> Hearing -> Decree Nisi -> Decree Absolute
- *   - Decree Nisi becomes absolute after 3 months (MCA s.15)
+ *   - Decree Nisi becomes absolute after 3 months (MCA, Act 367)
  *   - Property division by court discretion (Art. 22 of 1992 Constitution)
  *   - No statutory child support formula — court discretion
  *   - A4 paper, GHS currency
@@ -77,7 +77,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Ghana.
 Collecting residency information.
 
-LEGAL REQUIREMENT — Matrimonial Causes Act 1971, s.23:
+LEGAL REQUIREMENT — Matrimonial Causes Act 1971, s.31:
 To file in Ghana, EITHER the Petitioner or the Respondent must be:
 (a) domiciled in Ghana, OR
 (b) resident in Ghana for at least THREE YEARS immediately before filing
@@ -106,10 +106,10 @@ This must be proved by establishing ONE of five facts:
    - The respondent has behaved in such a way that the petitioner cannot reasonably be expected to live with them
 3. DESERTION FOR 2+ YEARS (s.2(1)(c))
    - The respondent deserted the petitioner for at least 2 continuous years
-4. NO COHABITATION FOR 5+ YEARS (s.2(1)(d))
-   - The parties have not lived together for at least 5 continuous years
-5. CONSENT — 2-YEAR SEPARATION (s.2(1)(e))
+4. CONSENT — 2-YEAR SEPARATION (s.2(1)(d))
    - The parties have not cohabited for 2+ years AND the respondent consents to the divorce
+5. NO COHABITATION FOR 5+ YEARS (s.2(1)(e))
+   - The parties have not lived together for at least 5 continuous years (no consent required)
 
 TWO-YEAR BAR (MCA s.1):
 - Cannot file within 2 years of marriage — court may grant leave ONLY in exceptional circumstances
@@ -274,10 +274,10 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Court filing fee is approximately GHS 50 (lawyer professional fees are separate)
+- Court filing fees are approximately GHS 500-1,000 (lawyer professional fees are separate — typically GHS 30,000-90,000 per Ghana Bar Association Scale)
 - The court WILL refer you to mandatory reconciliation (MCA s.2(3))
 - After the hearing, the court grants a Decree Nisi (provisional divorce)
-- The Decree Nisi becomes Decree Absolute after 3 months (MCA s.15)
+- The Decree Nisi becomes Decree Absolute after 3 months (MCA, Act 367)
 - After the Decree Absolute, either party can obtain a Certificate of Divorce
   from the High Court registry
 - For customary marriages that were registered, you should also register the

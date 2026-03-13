@@ -24,7 +24,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "Parenting Time" or "Residential Responsibility" (RSA 461-A)
  * - "Alimony" (RSA 458:19)
  * - Equitable distribution of ALL property (including separate)
- * - Superior Court, Family Division
+ * - Circuit Court, Family Division
  */
 class NewHampshireDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   constructor() {
@@ -59,13 +59,13 @@ class NewHampshireDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Get default court for New Hampshire county — Superior Court, Family Division
+   * Get default court for New Hampshire county — Circuit Court, Family Division
    * @param {string} county - County name
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
     const countyName = county || '[COUNTY]';
-    return `${countyName} County Superior Court, Family Division, State of New Hampshire`;
+    return `${countyName} County Circuit Court, Family Division, State of New Hampshire`;
   }
 
   /**
@@ -360,7 +360,7 @@ class NewHampshireDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
 _________________________________
 JUDGE
-${divorceData.county ? `${divorceData.county.toUpperCase()} COUNTY SUPERIOR COURT` : '[COUNTY] COUNTY SUPERIOR COURT'}
+${divorceData.county ? `${divorceData.county.toUpperCase()} COUNTY CIRCUIT COURT` : '[COUNTY] COUNTY CIRCUIT COURT'}
 FAMILY DIVISION
 STATE OF NEW HAMPSHIRE`,
       type: 'judgment'

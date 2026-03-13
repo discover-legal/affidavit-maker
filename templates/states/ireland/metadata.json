@@ -24,6 +24,8 @@
     "paperSize": "A4",
     "currency": "EUR"
   },
+  "emergencyNumber": "999 / 112",
+  "dvHotline": "1800 341 900",
   "courtSystem": {
     "trialCourt": "Circuit Family Court",
     "familyDivision": "Circuit Court (Family Law)",

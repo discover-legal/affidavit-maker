@@ -11,7 +11,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Idaho Code §32-601 et seq. — Divorce
  * - Idaho Code §32-701 — Residency requirement (6 full weeks)
  * - Idaho Code §32-603 — Grounds for divorce
- * - Idaho Code §32-716 — 20-day waiting period after service
+ * - Idaho Code §32-716 — 21-day waiting period after service
  * - Idaho Code §32-712 — Division of community property (substantially equal)
  * - Idaho Code §32-705 — Spousal maintenance
  * - Idaho Code §32-717B — Joint custody
@@ -23,7 +23,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Parties are "Plaintiff" and "Defendant"
  * - Both fault and no-fault grounds (irreconcilable differences used in ~99% of cases)
  * - 6-week residency requirement (one of the shortest in the US)
- * - 20-day waiting period after service
+ * - 21-day waiting period after service
  * - "Legal Custody" and "Physical Custody"; "Joint Custody" and "Sole Custody"
  * - "Visitation" or "Reasonable Visitation"
  * - "Spousal Maintenance" (not alimony)
@@ -61,12 +61,12 @@ class IdahoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'The plaintiff must have been a resident of Idaho for a full six (6) weeks immediately preceding the filing of the complaint. (Idaho Code §32-701)'
     };
 
-    // Idaho waiting period — 20 days after service
+    // Idaho waiting period — 21 days after service
     this.waitingPeriod = {
-      days: 20,
+      days: 21,
       startsFrom: 'service_date',
       exceptions: [],
-      description: 'A divorce cannot be granted until at least twenty (20) days after service of the summons and complaint on the defendant. (Idaho Code §32-716)'
+      description: 'A divorce cannot be granted until at least twenty-one (21) days after service of the summons and complaint on the defendant. (Idaho Code §32-716)'
     };
   }
 
@@ -365,7 +365,7 @@ Plaintiff`;
     }
 
     warnings.push('Idaho requires 6 full weeks of state residency before filing. (Idaho Code §32-701)');
-    warnings.push('A divorce cannot be granted until 20 days after service of the summons and complaint. (Idaho Code §32-716)');
+    warnings.push('A divorce cannot be granted until 21 days after service of the summons and complaint. (Idaho Code §32-716)');
     warnings.push('Idaho is a community property state — community property is divided substantially equally. (Idaho Code §32-712)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

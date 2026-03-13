@@ -150,9 +150,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$210-388",
+    "approximate": "$210-$388",
     "varies": true,
-    "notes": "Varies by county. Fee waiver available for qualifying individuals."
+    "notes": "Varies by county. Cook County charges $388 for a Petition for Dissolution of Marriage (respondent appearance fee is $251). Other counties may be lower. Fee waiver available for qualifying individuals under 735 ILCS 5/5-105."
   },
 
   "childSupport": {

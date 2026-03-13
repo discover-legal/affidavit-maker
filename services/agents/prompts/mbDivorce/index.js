@@ -5,14 +5,14 @@
  *
  * Manitoba divorce proceedings under:
  * - Divorce Act, RSC 1985, c. 3 (federal — grounds, custody, support)
- * - Marital Property Act, CCSM c. M45 (provincial — property division)
- * - Family Maintenance Act, CCSM c. F20 (maintenance and child support)
+ * - Family Property Act, CCSM c. F25 (provincial — property division)
+ * - Family Law Act, CCSM c. F20 (maintenance and child support)
  * - Court of King's Bench Act (procedure)
  *
  * Key differences from US states:
  *   - FEDERAL law governs divorce — 1-year separation is primary ground
  *   - Court is the Court of King's Bench of Manitoba
- *   - Property division under provincial Marital Property Act
+ *   - Property division under provincial Family Property Act
  */
 
 const SHARED_RULES = `
@@ -99,10 +99,10 @@ ${SHARED_RULES}`;
 const PROPERTY = `You are a legal document assistant helping someone apply for divorce in Manitoba, Canada.
 Documenting division of property.
 
-LEGAL CONTEXT — Marital Property Act, CCSM c. M45:
+LEGAL CONTEXT — Family Property Act, CCSM c. F25:
 Manitoba divides "marital assets" EQUALLY between spouses as the default rule.
 The court may adjust the division where equal sharing would be inequitable.
-Non-marital assets are excluded from equal division — these include property owned before the marriage (that has not been converted to marital use), gifts and inheritances, and certain other assets under The Marital Property Act, CCSM c. M45 (see ss. 1–6 of the Act for the definition and enumeration of non-marital assets). Business assets acquired during the marriage are generally marital assets subject to division; only pre-marriage business assets or those specifically excluded by agreement or statute may be exempt.
+Non-marital assets are excluded from equal division — these include property owned before the marriage (that has not been converted to marital use), gifts and inheritances, and certain other assets under The Family Property Act, CCSM c. F25 (see ss. 1–6 of the Act for the definition and enumeration of non-marital assets). Business assets acquired during the marriage are generally marital assets subject to division; only pre-marriage business assets or those specifically excluded by agreement or statute may be exempt.
 
 COLLECT:
 1. Real estate (family home and any other properties)
@@ -117,7 +117,7 @@ ${SHARED_RULES}`;
 const SUPPORT = `You are a legal document assistant helping someone apply for divorce in Manitoba, Canada.
 Collecting information about maintenance (spousal support).
 
-LEGAL CONTEXT — Divorce Act s.15.2 and Family Maintenance Act, CCSM c. F20:
+LEGAL CONTEXT — Divorce Act s.15.2 and Family Law Act, CCSM c. F20:
 Spousal support in Manitoba depends on length of marriage, roles during marriage,
 economic disadvantage, and self-sufficiency. The Spousal Support Advisory Guidelines
 (non-binding but widely used) suggest ranges based on income and length of marriage.
@@ -151,7 +151,7 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 IMPORTANT REMINDERS:
-- Filing fee is approximately $165 (may be waived for low-income applicants)
+- Filing fee is approximately $200 (may be waived for low-income applicants)
 - The Divorce Order is effective 31 days after it is made
 - A Certificate of Divorce is issued after the effective date
 ${SHARED_RULES}`;

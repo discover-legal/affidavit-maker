@@ -248,10 +248,10 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         return 'The Defendant has committed adultery. (Domestic Relations Law § 170(4))';
 
       case 'separation_judgment':
-        return 'The husband and wife have lived apart pursuant to a decree or judgment of separation for a period of one or more years. (Domestic Relations Law § 170(5))';
+        return 'The husband and wife have lived apart pursuant to a decree or judgment of separation for a period of six or more months. (Domestic Relations Law § 170(5), as amended by Chapter 673, Laws of 2025)';
 
       case 'separation_agreement':
-        return 'The husband and wife have lived separate and apart pursuant to a written agreement of separation for a period of one or more years. (Domestic Relations Law § 170(6))';
+        return 'The husband and wife have lived separate and apart pursuant to a written agreement of separation for a period of six or more months. (Domestic Relations Law § 170(6), as amended by Chapter 673, Laws of 2025)';
 
       default:
         return 'The relationship between husband and wife has broken down irretrievably for a period of at least six months. (Domestic Relations Law § 170(7))';

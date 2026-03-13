@@ -200,9 +200,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$350",
+    "approximate": "$349-$360",
     "varies": true,
-    "notes": "Varies by county. Fee deferral or waiver available for qualifying individuals."
+    "notes": "Maricopa County charges approximately $349-$360 for a Petition for Dissolution of Marriage per Supreme Court Administrative Order 2024-210. Fees vary by county. Response fee is approximately $279. Fee deferral or waiver available for qualifying individuals."
   },
 
   "childSupport": {

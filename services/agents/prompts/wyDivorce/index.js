@@ -149,7 +149,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Wyoming courts allow fee waivers for low-income filers by filing an In Forma Pauperis petition.
-The filing fee is approximately $70.
+The filing fee is approximately $120-$160 depending on the county.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -182,7 +182,7 @@ user_confirmed_review: true
 
 IMPORTANT REMINDERS for Wyoming:
 - Wyoming has a mandatory 20-DAY WAITING PERIOD from the date the Complaint is FILED before the Decree of Divorce can be entered. (Wyo. Stat. § 20-2-108)
-- The filing fee is approximately $70 (may be waived for low-income filers)
+- The filing fee is approximately $120-$160 depending on the county (may be waived for low-income filers)
 - Documents will be filed in the District Court
 - The sole ground for divorce is irreconcilable differences
 - The final document is called a "Decree of Divorce"

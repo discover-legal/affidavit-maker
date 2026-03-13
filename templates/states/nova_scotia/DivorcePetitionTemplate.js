@@ -18,10 +18,10 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
- *   - s.13: Certificate of Divorce
+ *   - s.12(7): Certificate of Divorce
  * - Matrimonial Property Act, RSNS 1989, c. 275 (provincial — equal division of
  *   matrimonial assets; s.12 creates a presumption of equal sharing)
- * - Maintenance and Custody Act, RSNS 1989, c. 160 (provincial — custody and maintenance)
+ * - Parenting and Support Act, RSNS 1989, c. 160 (provincial — parenting arrangements and support; formerly the Maintenance and Custody Act, renamed in 2017)
  * - Evidence Act, RSNS 1989, c. 154 (affidavit requirements)
  * - Nova Scotia Civil Procedure Rules (procedure)
  * - Federal Child Support Guidelines, SOR/97-175
@@ -39,7 +39,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Property division: equal division of matrimonial assets (Matrimonial Property Act, s.12)
  *   — includes the matrimonial home and other matrimonial assets; matrimonial debts
  *   are also shared equally
- * - Filing fee: approximately CAD $246
+ * - Filing fee: approximately CAD $291.55
  * - 2021 Divorce Act amendments: "parenting time" and "decision-making responsibility"
  *   are preferred terms over "custody and access"
  *
@@ -127,7 +127,7 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * "decision-making responsibility" replace "custody" and "access" (Divorce Act, ss.16.1-16.92).
    * Matrimonial Property Act, RSNS 1989, c. 275, s.12 creates a presumption of equal sharing
    * of matrimonial assets.
-   * Spousal support is termed "maintenance" under the Maintenance and Custody Act, RSNS 1989, c. 160.
+   * Spousal support is termed "support" under the Parenting and Support Act, RSNS 1989, c. 160 (formerly the Maintenance and Custody Act).
    * Petitioner/Respondent labels per NS divorce practice.
    */
   generateReliefSection(divorceData) {
@@ -152,7 +152,7 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A maintenance order pursuant to section 15.2 of the Divorce Act and the Maintenance and Custody Act, RSNS 1989, c. 160, as corollary relief;');
+      reliefItems.push('A support order pursuant to section 15.2 of the Divorce Act and the Parenting and Support Act, RSNS 1989, c. 160, as corollary relief;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {
@@ -199,7 +199,7 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b)(i) adultery
    *   (b)(ii) physical or mental cruelty
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

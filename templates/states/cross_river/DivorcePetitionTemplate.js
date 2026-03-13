@@ -9,7 +9,7 @@ class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.documentTitle = 'PETITION FOR DISSOLUTION OF MARRIAGE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
-    this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'MCA s.2 — domicile or 3 years ordinary residence. Cross River High Court jurisdiction if either party resides in the state.' };
+    this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident for 3 years is deemed domiciled (MCA s.7(b)). Cross River High Court jurisdiction if either party resides in the state.' };
     this.waitingPeriod = { days: 0, description: 'Decree Nisi -> 3 months -> Decree Absolute (MCA s.58). 2-year bar (MCA s.30).' };
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
@@ -23,7 +23,7 @@ class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const caption = [`IN THE ${courtName}`, '', `Suit No. ${caseNumber}`, '', 'IN THE MATTER OF THE MATRIMONIAL CAUSES ACT, CAP M7 LFN 2004', '', 'BETWEEN:', '', petitioner, 'Petitioner', '', 'AND', '', respondent, 'Respondent'].join('\n');
     return { courtName, caseNumber: divorceData.caseNumber, petitioner: divorceData.petitionerName, respondent: divorceData.respondentName, formatted: caption };
   }
-  getJurisdictionStatement() { return 'The Petitioner/Respondent is domiciled in Nigeria (or has been ordinarily resident for not less than three years), as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004. The Petitioner resides within the jurisdiction of the High Court of Cross River State.'; }
+  getJurisdictionStatement() { return 'The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for not less than three years and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of Cross River State.'; }
   getVenueReason(divorceData) { return `the Petitioner resides within the ${divorceData.county || '[JUDICIAL DIVISION]'} Judicial Division of Cross River State`; }
   generateReliefSection(divorceData) {
     const items = [];
@@ -37,7 +37,7 @@ class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return { title: 'RELIEF SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }
   getVerificationText(divorceData) { return `I, ${divorceData.petitionerName || '[PETITIONER NAME]'}, the Petitioner herein, make oath and state that the facts deposed to in this Petition are true and correct to the best of my knowledge, information, and belief.`; }
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
     if (g.includes('adultery')) return 'Since the celebration of the marriage, the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent (MCA s.15(2)(b)).';
     if (g.includes('intolerable') || g.includes('behaviour') || g.includes('cruelty')) return 'The Respondent has behaved in such a way that the Petitioner cannot reasonably be expected to live with the Respondent (MCA s.15(2)(c)).';

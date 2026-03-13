@@ -15,7 +15,7 @@
  *   - Equitable distribution — fair and just division — AS 25.24.160
  *   - "Legal Custody" / "Physical Custody"; shared custody — AS 25.20.060
  *   - "Alimony" — AS 25.24.160
- *   - Child support — income shares model — Civil Rule 90.3
+ *   - Child support — percentage of income model — Civil Rule 90.3
  */
 
 const SHARED_RULES = `

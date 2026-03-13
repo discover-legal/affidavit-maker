@@ -4,7 +4,7 @@
  * Singapore Divorce Phase Prompts
  *
  * Singapore divorce proceedings under:
- * - Women's Charter (Cap 353), Part X — non-Muslim marriages
+ * - Women's Charter 1961, Part X — non-Muslim marriages
  * - Administration of Muslim Law Act (AMLA, Cap 3) — Muslim marriages (Syariah Court)
  * - Guardianship of Infants Act (Cap 122) — custody
  * - Family Justice Rules 2024 — procedure
@@ -14,7 +14,7 @@
  * Syariah Court under AMLA. This template handles the Women's Charter track ONLY.
  *
  * Key differences from US/Canadian jurisdictions:
- *   - Sole ground: "irretrievable breakdown" proved by one of six facts (6th added 1 July 2024)
+ *   - Sole ground: "irretrievable breakdown" (s.95) proved by one of six facts in s.95A(1)(a)-(f) (6th added 1 July 2024)
  *   - 3-year bar: cannot file within 3 years of marriage unless leave obtained
  *   - Jurisdiction: domicile OR 3-year habitual residence
  *   - Two-stage process: Interim Judgment then Certificate of Making Interim Judgment Final
@@ -68,7 +68,7 @@ while non-Muslim divorces are filed in the Family Justice Courts."
 KEY FACTS TO SHARE:
 - Singapore uses "Plaintiff" for the person filing and "Defendant" for the other spouse
 - The court is the Family Justice Courts
-- A Writ for Divorce is filed together with a Statement of Claim
+- An Originating Application for Divorce is filed (since 15 Oct 2024, this replaces the former Writ + Statement of Claim)
 - Muslim marriages must go through the Syariah Court under AMLA
 ${SHARED_RULES}`;
 
@@ -93,21 +93,25 @@ ${SHARED_RULES}`;
 const GROUNDS = `You are a legal document assistant helping someone file for divorce in Singapore.
 Documenting grounds for divorce.
 
-LEGAL CONTEXT — Women's Charter, s.95:
-The SOLE ground for divorce in Singapore is irretrievable breakdown of the marriage.
-This must be proved by ONE of SIX facts (6th added 1 July 2024):
+LEGAL CONTEXT — Women's Charter 1961, s.95 and s.95A:
+The SOLE ground for divorce in Singapore is irretrievable breakdown of the marriage (s.95).
+This must be proved by ONE of SIX facts under s.95A(1) (6th added 1 July 2024):
 
-1. ADULTERY (s.95(3)(a)) — Defendant committed adultery AND Plaintiff finds it intolerable
+1. ADULTERY (s.95A(1)(a)) — Defendant committed adultery AND Plaintiff finds it intolerable
    to live with Defendant. Must be filed relatively promptly after discovery.
-2. UNREASONABLE BEHAVIOUR (s.95(3)(b)) — Defendant behaved in such a way that the Plaintiff
+2. UNREASONABLE BEHAVIOUR (s.95A(1)(b)) — Defendant behaved in such a way that the Plaintiff
    cannot reasonably be expected to live with the Defendant. Most common fault-based ground.
-3. DESERTION FOR 2 YEARS (s.95(3)(c)) — Defendant deserted Plaintiff for continuous 2 years
-4. 3-YEAR SEPARATION WITH CONSENT (s.95(3)(d)) — Parties lived apart 3+ years AND Defendant
+3. DESERTION FOR 2 YEARS (s.95A(1)(c)) — Defendant deserted Plaintiff for continuous 2 years
+4. 3-YEAR SEPARATION WITH CONSENT (s.95A(1)(d)) — Parties lived apart 3+ years AND Defendant
    consents.
-5. 4-YEAR SEPARATION WITHOUT CONSENT (s.95(3)(e)) — Parties lived apart 4+ years. No consent needed.
-6. MUTUAL AGREEMENT (s.95(3)(f)) — Both parties agree the marriage has broken down irretrievably.
+5. 4-YEAR SEPARATION WITHOUT CONSENT (s.95A(1)(e)) — Parties lived apart 4+ years. No consent needed.
+6. MUTUAL AGREEMENT (s.95A(1)(f)) — Both parties agree the marriage has broken down irretrievably.
    NEW from 1 July 2024. No separation period or fault required. This is the simplest ground
-   for amicable divorces.
+   for amicable divorces. Requires a written agreement stating reasons, reconciliation efforts,
+   and arrangements for finances and children.
+
+NOTE: Section references were updated by the Women's Charter (Amendment) Act 2022.
+The old s.95(3)(a)-(e) is now s.95A(1)(a)-(f).
 
 3-YEAR BAR (s.94):
 No party may file within 3 years of the date of marriage UNLESS the court grants leave on
@@ -120,7 +124,7 @@ COLLECT:
    → If less than 3 years: explain the 3-year bar and exceptional hardship/depravity exception
 3. Date the parties began living separately (if applicable)
 4. "Which fact are you relying on to prove irretrievable breakdown?"
-   → Guide them — for amicable cases, MUTUAL AGREEMENT (s.95(3)(f), new from Jul 2024) is simplest
+   → Guide them — for amicable cases, MUTUAL AGREEMENT (s.95A(1)(f), new from Jul 2024) is simplest
    → If no mutual agreement but separated 3+ years: 3-year separation with consent
    → For urgent cases, unreasonable behaviour is most common
 
@@ -226,13 +230,13 @@ REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
 const SERVICE = `You are a legal document assistant helping someone file for divorce in Singapore.
-Collecting information about serving the Writ for Divorce on the Defendant.
+Collecting information about serving the Originating Application on the Defendant.
 
 LEGAL CONTEXT:
-After filing the Writ for Divorce in the Family Justice Courts, the Defendant must be served.
-Service methods under the Family Justice Rules 2024:
+After filing the Originating Application for Divorce in the Family Justice Courts, the Defendant must be served.
+Service methods under the Family Justice (General) Rules 2024:
 
-1. PERSONAL SERVICE: The Writ is personally handed to the Defendant by a process server or
+1. PERSONAL SERVICE: The Application is personally handed to the Defendant by a process server or
    authorized person. Most common method.
 2. SUBSTITUTED SERVICE: If the Defendant cannot be personally served (e.g., is avoiding service
    or whereabouts unknown), the Plaintiff may apply to the court for an order for substituted
@@ -245,7 +249,7 @@ After service:
   to file a Memorandum of Appearance and a Defence and Counterclaim.
 - If no appearance is filed, the Plaintiff may apply for judgment in default.
 
-SIMPLIFIED TRACK (expanded scope from Oct 2024):
+SIMPLIFIED TRACK (expanded scope from Oct 2024 under FJR 2024):
 The simplified track is available when parties agree on the grounds for divorce,
 even if they have NOT yet agreed on ancillary matters (children, property, maintenance).
 This is a significant expansion from the previous rule requiring agreement on ALL issues.
@@ -276,9 +280,9 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee is approximately SGD $50-$200 depending on the track
+- Filing fee is approximately SGD $200-$350 depending on the track (simplified or normal)
 - Legal aid is available through the Legal Aid Bureau for those who qualify
-- The Writ must be filed together with the Statement of Claim and Statement of Particulars
+- Since 15 Oct 2024, the Originating Application replaces the former Writ, Statement of Claim, and Statement of Particulars (all in one form)
 - SIMPLIFIED TRACK: If both parties agree on all issues, the case can go on the simplified track
 - After the Interim Judgment is granted, you must wait at least 3 months before applying for
   the Certificate of Making Interim Judgment Final
@@ -294,7 +298,7 @@ const PHASES = {
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',                     order: 4, prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                                              optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Matrimonial Assets',           order: 5, prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                                              optional: false },
   SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',                  order: 6, prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                                        optional: true  },
-  SERVICE:   { name: 'SERVICE',   displayName: 'Service of Writ',              order: 7, prompt: SERVICE,   requiredFields: ['serviceMethod'],                                                  optional: false },
+  SERVICE:   { name: 'SERVICE',   displayName: 'Service of Application',        order: 7, prompt: SERVICE,   requiredFields: ['serviceMethod'],                                                  optional: false },
   REVIEW:    { name: 'REVIEW',    displayName: 'Review & Confirm',             order: 8, prompt: REVIEW,    requiredFields: ['userConfirmedReview'],                                             optional: false },
 };
 

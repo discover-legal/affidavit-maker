@@ -9,7 +9,7 @@
  * Key facts:
  *   - 90-day domicile — MCA §40-4-104
  *   - No-fault ONLY: irretrievable breakdown or 180-day separation — MCA §40-4-104
- *   - 20-day waiting period from service or response — MCA §40-4-107
+ *   - 21-day waiting period from service or response — MCA §40-4-107
  *   - Equitable distribution — MCA §40-4-202
  *   - Montana eliminated "custody" and "visitation" in 2005 — uses "parenting" exclusively
  *   - "Parenting plan" required for all cases with children — MCA §40-4-212
@@ -146,7 +146,7 @@ OPTIONS:
 2. SHERIFF SERVICE: By sheriff or process server
 3. PUBLICATION: If respondent cannot be found
 
-Note: Montana has a 20-day waiting period from service or filing of response before a decree can be entered — MCA §40-4-107.
+Note: Montana has a 21-day waiting period from service or filing of response before a decree can be entered — MCA §40-4-107.
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -159,7 +159,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Montana courts allow fee waivers for low-income filers.
-The filing fee is approximately $200.
+The filing fee is approximately $250 ($200 filing fee + $50 judgment fee).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -191,9 +191,9 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- 20-day waiting period from service or response before a decree can be entered — MCA §40-4-107
+- 21-day waiting period from service or response before a decree can be entered — MCA §40-4-107
 - Montana is a purely no-fault state
-- Filing fee is approximately $200
+- Filing fee is approximately $250 ($200 filing fee + $50 judgment fee)
 - A PARENTING PLAN is required if there are children — MCA §40-4-212
 - Montana uses "parenting" — NOT "custody" or "visitation"
 - Montana uses "maintenance" — NOT "alimony"

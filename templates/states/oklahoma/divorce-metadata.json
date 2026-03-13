@@ -154,9 +154,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$183\u2013$273",
+    "approximate": "$183\u2013$270",
     "varies": true,
-    "notes": "Oklahoma filing fees for divorce range from approximately $183 to $273 depending on the county. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
+    "notes": "Oklahoma filing fees for divorce vary by county. Oklahoma County charges approximately $224, Tulsa County approximately $235-$252, Cleveland County approximately $258-$268. Rural counties may charge less. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
   },
 
   "requiredForms": {

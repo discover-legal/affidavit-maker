@@ -183,7 +183,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Oklahoma courts allow fee waivers (Affidavit of Indigency / In Forma Pauperis) for low-income filers.
-The filing fee for divorce in Oklahoma is approximately $183 to $273, varying by county.
+The filing fee for divorce in Oklahoma is approximately $183 to $270, varying by county (e.g., Oklahoma County ~$224, Tulsa County ~$235-$252, Cleveland County ~$258-$268).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -218,7 +218,7 @@ Remind the user:
 - Oklahoma has a mandatory waiting period from filing before the decree can be entered:
   * 90 days if there are minor children born of the marriage (43 O.S. §107.1)
   * 10 days if there are no minor children (43 O.S. §107.1)
-- The filing fee is approximately $183–$273 (varies by county; fee waiver available for low-income filers)
+- The filing fee is approximately $183–$270 (varies by county; fee waiver available for low-income filers)
 - Oklahoma uses equitable distribution of jointly-acquired property — 43 O.S. §121
 - Incompatibility is the most common ground for divorce — 43 O.S. §101
 ${SHARED_RULES}`;

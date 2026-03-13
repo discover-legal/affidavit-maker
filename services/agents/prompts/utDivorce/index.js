@@ -4,15 +4,15 @@
  * UT Divorce Phase Prompts
  *
  * Utah divorce interview phases.
- * Statutes: Utah Code Title 30, Chapter 3
+ * Statutes: Utah Code Title 81, Chapter 4 (recodified 9/1/2024; formerly Title 30, Chapter 3)
  *
  * Key differences from TX:
- *   - 3-month state residency only — Utah Code § 30-3-1
- *   - BOTH fault and no-fault grounds available — Utah Code § 30-3-1(3)
- *   - Equitable distribution (NOT community property) — Utah Code § 30-3-5
+ *   - 3-month county residency — Utah Code § 81-4-402
+ *   - BOTH fault and no-fault grounds available — Utah Code § 81-4-405
+ *   - Equitable distribution (NOT community property) — Utah Code § 81-4-406
  *   - "Parent-time" replaces visitation
  *   - INDIGENCY phase included (similar to TX fee waiver process)
- *   - Covenant marriage rarely used but exists — Utah Code § 30-1-37.1
+ *   - Covenant marriage rarely used but exists — Utah Code § 81-2-201 (formerly § 30-1-37.1)
  */
 
 const SHARED_RULES = `
@@ -49,8 +49,8 @@ const RESIDENCY = `You are a legal document assistant helping someone file for d
 You are collecting residency information.
 
 LEGAL REQUIREMENT:
-Under Utah Code § 30-3-1, at least one party must have been a resident of Utah for 3 months
-immediately before the commencement of the action. No separate county requirement.
+Under Utah Code § 81-4-402, the petitioner must be an actual and bona fide resident of the county
+where the petition is filed for at least 90 days before filing.
 
 COLLECT:
 1. "How long have you lived in Utah?"
@@ -65,7 +65,7 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 You are documenting the grounds for divorce.
 
 LEGAL CONTEXT:
-Utah Code § 30-3-1(3) allows both no-fault and fault-based divorce:
+Utah Code § 81-4-405 allows both no-fault and fault-based divorce:
 
 NO-FAULT:
 - Irreconcilable differences (most common)
@@ -80,7 +80,7 @@ FAULT-BASED:
 - Cruel treatment to the extent of causing bodily injury or grievous mental distress
 - Incurable insanity
 
-WAITING PERIOD — Utah Code § 30-3-18:
+WAITING PERIOD — Utah Code § 81-4-402:
 Utah imposes a mandatory 30-day waiting period from the date the complaint is filed
 before the court may grant a divorce decree (changed from 90 days effective May 8, 2018).
 The waiting period applies to ALL cases regardless of whether minor children are involved.
@@ -102,7 +102,7 @@ ${SHARED_RULES}`;
 const CHILDREN = `You are a legal document assistant helping someone file for divorce in Utah.
 You are collecting information about children of the marriage.
 
-LEGAL TERMINOLOGY (Utah Code § 30-3-10):
+LEGAL TERMINOLOGY:
 - "Physical custody": who the child primarily lives with
 - "Legal custody": authority to make major decisions
 - "Parent-time": the non-custodial parent's time with the child (replaces "visitation")
@@ -123,7 +123,7 @@ const PROPERTY = `You are a legal document assistant helping someone file for di
 You are documenting property and debts.
 
 LEGAL CONTEXT:
-Utah is an equitable distribution state (Utah Code § 30-3-5). The court divides marital property
+Utah is an equitable distribution state (Utah Code § 81-4-406). The court divides marital property
 "equitably" — fairly but not necessarily equally. Factors include length of marriage, each
 spouse's income and earning potential, contributions to the marriage, and other circumstances.
 
@@ -141,7 +141,7 @@ const SUPPORT = `You are a legal document assistant helping someone file for div
 You are collecting alimony (spousal support) information.
 
 LEGAL CONTEXT:
-Utah Code § 30-3-5(8) allows courts to award alimony considering:
+Utah Code § 81-4-504 allows courts to award alimony considering:
 - Financial condition and needs of the receiving spouse
 - Earning capacity of both spouses
 - Length of marriage
@@ -211,7 +211,7 @@ then confirm: user_confirmed_review: true
 
 TIMING REMINDER (mention before finalizing):
 "Utah requires a mandatory 30-day waiting period after filing before a divorce can be granted
-(Utah Code § 30-3-18). This applies to all cases regardless of whether children are involved.
+(Utah Code § 81-4-402). This applies to all cases regardless of whether children are involved.
 The court may waive this period only for extraordinary circumstances (e.g., domestic violence).
 If you have minor children, you must also complete Utah's mandatory divorce education course
 before the decree will be signed. Plan your timeline accordingly."

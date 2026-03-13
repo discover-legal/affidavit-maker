@@ -194,7 +194,7 @@ COLLECT:
    c. "Do you own significant assets beyond a home and basic vehicle?"
    d. "How many people are financially dependent on you?"
 
-NOTE: Illinois filing fees for dissolution of marriage are typically $250–$350 depending on the county.
+NOTE: Illinois filing fees for dissolution of marriage are typically $210–$388 depending on the county (Cook County charges $388).
 
 REQUIRED FIELDS: indigency_confirmed, and if yes: monthly_income, monthly_expenses, assets_description, dependents_count
 ${SHARED_RULES}`;

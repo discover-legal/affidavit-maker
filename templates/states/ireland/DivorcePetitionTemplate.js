@@ -227,7 +227,7 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Ireland does NOT have fault-based grounds (adultery/cruelty are not separate grounds,
    * though they may be relevant to the separation requirement or proper provision).
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     return (
       'The Applicant and the Respondent have lived apart from one another for a period of, ' +
       'or periods amounting to, at least two years during the preceding three years, within the ' +

@@ -87,9 +87,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "CAD $290-330",
+    "approximate": "CAD $210-290",
     "varies": true,
-    "notes": "BC Supreme Court filing fee for a Notice of Family Claim is approximately CAD $290-$330. Fee waiver available for low-income parties."
+    "notes": "BC Supreme Court filing fee is CAD $200 for a Notice of Family Claim (Form F3), plus a $10 federal Central Registry of Divorce Proceedings fee. If no response is filed, an additional ~$80 filing fee applies for the desk order. Parties who provide a Certificate of Mediation (Form F100) are exempt from the $200 filing fee. Fee waiver available under Supreme Court Family Rule 20-5 for parties who cannot afford fees."
   },
   "childSupportGuidelines": {
     "calculationBasis": "federal_table",

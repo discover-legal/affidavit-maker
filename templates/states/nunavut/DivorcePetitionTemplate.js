@@ -236,7 +236,7 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b)(i) adultery [s.8(2)(b)(i)]
    *   (b)(ii) physical or mental cruelty [s.8(2)(b)(ii)]
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

@@ -36,8 +36,8 @@
       {
         "code": "mutual_agreement",
         "name": "Joint Application by Mutual Agreement",
-        "description": "Both parties jointly apply for divorce by mutual agreement. Available from 1 July 2024 under the Matrimonial Causes (Amendment) Ordinance 2024. Requires filing a notice of intention and a 3-month reflection period before the joint application can proceed.",
-        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11B (as inserted by Matrimonial Causes (Amendment) Ordinance 2024)"
+        "description": "Both parties jointly apply for divorce by mutual agreement under s.11B. Both parties must prove that they have lived apart for at least 1 year immediately preceding the application, OR that at least 1 year prior to the application both signed a written notice (Form 2E) of their intention to apply and it was not withdrawn.",
+        "statute": "Matrimonial Causes Ordinance (Cap 179), s.11B"
       }
     ],
     "fault": [

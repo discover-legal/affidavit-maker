@@ -24,7 +24,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *   - s.12(2): Spouses may jointly request reduction of the waiting period
  *   - s.12(7): Certificate of Divorce — issued by court registrar after effective date
  * - Family Property Act, CCSM c. F25 (property division — equalization)
- * - Family Maintenance Act, CCSM c. F20 (support)
+ * - Family Law Act, CCSM c. F20 (support)
  * - Court of King's Bench Act, CCSM c. C280 (procedure)
  *
  * Note: The court title changed from "Court of Queen's Bench of Manitoba" to

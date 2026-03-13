@@ -86,9 +86,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "CAD $100-200",
+    "approximate": "CAD $60-200",
     "varies": true,
-    "notes": "Fee waiver available for parties who cannot afford the filing fee."
+    "notes": "The cost for a divorce judgment and corollary relief is CAD $60. Additional filing fees apply for other documents. Fee waiver available for parties who cannot afford the filing fee."
   },
   "childSupportGuidelines": {
     "calculationBasis": "federal_table",

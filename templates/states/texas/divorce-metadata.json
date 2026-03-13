@@ -215,9 +215,21 @@
   ],
 
   "filingFees": {
-    "approximate": "$250-350",
+    "approximate": "$250-$350",
     "varies": true,
-    "notes": "Varies by county. Fee waiver available for indigent parties."
+    "notes": "Varies by county. Fee waiver available for indigent parties via Statement of Inability to Afford Payment of Court Costs (Tex. R. Civ. P. 145)."
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file an answer by 10:00 a.m. on the first Monday after 20 days have passed since service. If the 20th day falls on a Monday, the answer is due the following Monday."
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Same rule applies — answer due by 10:00 a.m. on the first Monday after 20 days from service"
+    },
+    "statute": "Tex. R. Civ. P. 99"
   },
 
   "childSupportGuidelines": {

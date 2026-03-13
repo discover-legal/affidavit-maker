@@ -181,7 +181,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Tennessee courts allow fee waivers (Uniform Civil Affidavit of Indigency, T.C.A. § 20-12-127) for low-income filers.
-The filing fee is typically approximately $300.
+The filing fee ranges from approximately $184 to $365, varying by county and whether minor children are involved.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -214,7 +214,7 @@ user_confirmed_review: true
 
 Remind the user:
 - Waiting period: 60 days (no minor children) or 90 days (minor children) from filing — TCA 36-4-101(b)
-- The filing fee is approximately $300 (may be waived for low-income filers)
+- The filing fee is approximately $184-$365 depending on county and whether children are involved (may be waived for low-income filers)
 - A Parenting Plan is REQUIRED if minor children are involved — TCA 36-6-404
 - If filing on irreconcilable differences, both parties must agree (or be separated 2+ years with no minor children)
 ${SHARED_RULES}`;

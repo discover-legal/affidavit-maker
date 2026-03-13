@@ -44,6 +44,12 @@
       "required": false,
       "notes": "Alternative to personal service"
     },
+    "jointPetition": {
+      "formNumber": "FL-100JP",
+      "name": "Joint Petition for Dissolution of Marriage/Domestic Partnership",
+      "required": false,
+      "notes": "Available effective January 1, 2026 per SB 1427. Filing the joint petition constitutes service — no separate service required. If either party files an amended petition or response, the joint petition process reverts to standard proceedings."
+    },
     "response": {
       "formNumber": "FL-120",
       "name": "Response—Marriage/Domestic Partnership",
@@ -185,6 +191,10 @@
       "description": "Procedure for dissolution"
     },
     {
+      "code": "Family Code § 2339",
+      "description": "Mandatory 6-month waiting period — no judgment final until 6 months after service or appearance"
+    },
+    {
       "code": "Family Code § 2040",
       "description": "Automatic temporary restraining orders"
     },
@@ -207,7 +217,7 @@
   ],
 
   "filingFees": {
-    "approximate": "$435-450",
+    "approximate": "$435-$450",
     "varies": true,
     "notes": "Varies by county. Fee waiver (FW-001) available for qualifying individuals."
   },
@@ -220,7 +230,8 @@
       "Tax filing status",
       "Number of children"
     ],
-    "statute": "Family Code § 4050-4076"
+    "statute": "Family Code § 4050-4076",
+    "notes": "Updated effective September 1, 2024 per SB 343 — expanded income sources, adjusted for shared parenting time, and greater relief for low-income parents."
   },
 
   "spousalSupport": {

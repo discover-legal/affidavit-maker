@@ -10,7 +10,7 @@ class TamilNaduDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
     this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'HMA s.19 / SMA s.31 jurisdiction rules.' };
-    this.waitingPeriod = { days: 180, description: '6-month cooling-off (waivable per Amardeep Singh (2017)).' };
+    this.waitingPeriod = { days: 180, description: '6-month cooling-off (waivable per Amardeep Singh v. Harveen Kaur (2017)). Supreme Court may also grant divorce directly under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)).' };
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
   getCaseNumberLabel() { return 'Case No.'; }
@@ -31,7 +31,7 @@ class TamilNaduDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return { title: 'PRAYER', items, nextParagraphNumber: dd._paragraphNum || 15 };
   }
   getVerificationText(dd) { return `Verified at Chennai on this _____ day of __________, _______. I, ${dd.petitionerName || '[PETITIONER NAME]'}, verify that the contents are true and correct.`; }
-  getGroundsStatement(g) {
+  getGroundsText(g) {
     const s = (g || 'mutual_consent').toLowerCase();
     if (s.includes('mutual') || s.includes('consent')) return 'The parties have mutually consented to dissolve the marriage (HMA s.13B / SMA s.28).';
     if (s.includes('cruelty')) return 'The Respondent has treated the Petitioner with cruelty (HMA s.13(1)(ia)).';

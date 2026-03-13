@@ -114,9 +114,9 @@ REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
 const SUPPORT = `You are a legal document assistant helping someone apply for divorce in Nova Scotia, Canada.
-Collecting information about maintenance (spousal support).
+Collecting information about support (spousal support).
 
-LEGAL CONTEXT — Divorce Act s.15.2 and Maintenance and Custody Act, RSNS 1989, c. 160:
+LEGAL CONTEXT — Divorce Act s.15.2 and Parenting and Support Act, RSNS 1989, c. 160:
 Spousal support in Nova Scotia depends on length of marriage, roles during marriage,
 economic disadvantage, and self-sufficiency. The Spousal Support Advisory Guidelines
 (non-binding but widely used) suggest ranges based on income and length of marriage.
@@ -150,7 +150,7 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 IMPORTANT REMINDERS:
-- Filing fee is approximately $172 (may be waived for low-income applicants)
+- Filing fee is approximately $291.55 (fee waiver may be available for qualifying parties)
 - The Divorce Order is effective 31 days after it is made
 - A Certificate of Divorce is issued after the effective date
 ${SHARED_RULES}`;
@@ -161,7 +161,7 @@ const PHASES = {
   GROUNDS:   { name: 'GROUNDS',   displayName: 'Grounds & Marriage',  order: 3, prompt: GROUNDS,   requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'], optional: false },
   CHILDREN:  { name: 'CHILDREN',  displayName: 'Children',            order: 4, prompt: CHILDREN,  requiredFields: ['childrenConfirmed'],                        optional: false },
   PROPERTY:  { name: 'PROPERTY',  displayName: 'Property Division',   order: 5, prompt: PROPERTY,  requiredFields: ['propertyAgreement'],                       optional: false },
-  SUPPORT:   { name: 'SUPPORT',   displayName: 'Maintenance',         order: 6, prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },
+  SUPPORT:   { name: 'SUPPORT',   displayName: 'Support',         order: 6, prompt: SUPPORT,   requiredFields: ['spousalSupportConfirmed'],                  optional: true  },
   SERVICE:   { name: 'SERVICE',   displayName: 'Serving Your Spouse', order: 7, prompt: SERVICE,   requiredFields: ['serviceMethod'],                            optional: false },
   REVIEW:    { name: 'REVIEW',    displayName: 'Review & Confirm',    order: 8, prompt: REVIEW,    requiredFields: ['userConfirmedReview'],                      optional: false },
 };

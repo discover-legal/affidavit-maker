@@ -39,7 +39,7 @@ class SouthAustraliaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate 
   }
 
   getVerificationText(divorceData) { return `I, ${divorceData.petitionerName || '[APPLICANT NAME]'}, the Applicant, make oath and say (or solemnly affirm) that the contents of this Application are true and correct to the best of my knowledge, information, and belief.`; }
-  getGroundsStatement() { return 'The marriage has broken down irretrievably within the meaning of section 48(1) of the Family Law Act 1975 (Cth). The parties have lived separately and apart for a continuous period of not less than 12 months.'; }
+  getGroundsText() { return 'The marriage has broken down irretrievably within the meaning of section 48(1) of the Family Law Act 1975 (Cth). The parties have lived separately and apart for a continuous period of not less than 12 months.'; }
 }
 
 module.exports = SouthAustraliaDivorcePetitionTemplate;

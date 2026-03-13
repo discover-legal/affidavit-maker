@@ -16,7 +16,7 @@
  *   - "Legal custody" and "physical placement" — R.I. Gen. Laws §15-5-16
  *   - "Visitation" — R.I. Gen. Laws §15-5-16
  *   - Alimony — R.I. Gen. Laws §15-5-16
- *   - No mandatory waiting period
+ *   - 3-month (90-day) waiting period between nominal decree and final judgment (irreconcilable differences); 21 days for 3-year separation
  *   - Uses "Complaint" (not Petition) and "Plaintiff"/"Defendant"
  */
 
@@ -149,7 +149,7 @@ OPTIONS:
 2. PERSONAL SERVICE: By constable or process server
 3. SERVICE BY MAIL: Certified mail, return receipt requested
 
-Note: Rhode Island has NO mandatory waiting period after filing.
+Note: Rhode Island has a 3-month (90-day) mandatory waiting period between the nominal decree hearing and the entry of the Final Judgment of Divorce (for irreconcilable differences). For divorces based on 3-year separation, the waiting period is 21 days.
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -194,7 +194,7 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- Rhode Island has no mandatory waiting period
+- Rhode Island has a mandatory 3-month (90-day) waiting period between the nominal decree and the Final Judgment of Divorce for irreconcilable differences cases (21 days for 3-year separation cases)
 - Filing fee is approximately $160
 - Rhode Island uses "Complaint for Divorce" with "Plaintiff" and "Defendant" terminology
 - A Financial Statement (DR-6) must be filed with the court

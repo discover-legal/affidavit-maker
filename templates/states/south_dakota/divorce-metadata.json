@@ -24,10 +24,11 @@
   },
 
   "waitingPeriod": {
-    "days": 0,
-    "startsFrom": null,
+    "days": 60,
+    "startsFrom": "service_date",
     "exceptions": [],
-    "description": "South Dakota has no mandatory waiting period, unless the court orders conciliation."
+    "description": "No hearing, trial, or final judgment can occur until 60 days have elapsed from completed service of the summons and complaint on the defendant. SDCL §25-4-34. The court may continue the case for an additional 30 days for reconciliation efforts if either party requests it (SDCL §25-4-17.2).",
+    "statute": "SDCL §25-4-34"
   },
 
   "groundsForDissolution": {
@@ -125,7 +126,7 @@
   "filingFees": {
     "approximate": "$95",
     "varies": true,
-    "notes": "South Dakota filing fees are approximately $95 for a divorce complaint but may vary by county. Fee waivers are available for qualifying low-income individuals."
+    "notes": "South Dakota filing fee for a divorce complaint is approximately $95 (may vary by county). The answer filing fee is $25. Fee waivers are available for qualifying low-income individuals by filing UJS-305 Motion & Order to Waive Filing Fee."
   },
 
   "requiredForms": {

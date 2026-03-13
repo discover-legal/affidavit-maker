@@ -192,7 +192,7 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee is approximately $157 (may be waived for low-income applicants — Form 26B)
+- Filing fee is approximately $224 for the Application, plus $445 when setting the matter down for divorce ($669 total; fee waiver available via Form 26B)
 - If uncontested: no hearing required — the judge reviews the papers and grants the order
 - The Divorce Order is effective 31 days after it is made
 - Either party can apply for a Certificate of Divorce after the effective date

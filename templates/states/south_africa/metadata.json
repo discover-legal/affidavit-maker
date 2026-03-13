@@ -47,7 +47,8 @@
     "parties": ["Plaintiff", "Defendant"],
     "grounds": "Divorce Act 70 of 1979",
     "primaryGround": "Irretrievable breakdown of the marriage (s.4(1))",
-    "propertyDivision": "Matrimonial Property Act 88 of 1984"
+    "propertyDivision": "Matrimonial Property Act 88 of 1984",
+    "jurisdictionBasis": "Domicile OR ordinary residence for 1+ year in South Africa (s.2(1), Domicile Act 3 of 1992)"
   },
   "legalCitations": [
     {

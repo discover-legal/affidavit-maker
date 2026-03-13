@@ -8,7 +8,7 @@
  *
  * Key facts:
  *   - Resident at time of filing; no minimum duration — SDCL §25-4-30
- *   - No mandatory waiting period
+ *   - 60-day waiting period from service — SDCL §25-4-34
  *   - Grounds: irreconcilable differences (no-fault), adultery, extreme cruelty,
  *     willful desertion, willful neglect, habitual intemperance, felony conviction — SDCL §25-4-2, §25-4-17.1
  *   - Equitable distribution — all property subject to division — SDCL §25-4-44
@@ -144,7 +144,7 @@ OPTIONS:
 2. PERSONAL SERVICE: By sheriff or process server
 3. SERVICE BY PUBLICATION: If defendant cannot be found (requires court approval)
 
-Note: South Dakota has NO mandatory waiting period. The court may schedule a hearing once service is complete and the response deadline has passed.
+Note: South Dakota has a mandatory 60-day waiting period from the date of completed service before any hearing, trial, or final judgment can occur (SDCL §25-4-34).
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -189,7 +189,7 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- South Dakota has no mandatory waiting period
+- South Dakota has a 60-day waiting period from service (SDCL §25-4-34)
 - The filing fee is approximately $95 (may be waived for low-income filers)
 - South Dakota divides all property equitably — SDCL §25-4-44
 ${SHARED_RULES}`;

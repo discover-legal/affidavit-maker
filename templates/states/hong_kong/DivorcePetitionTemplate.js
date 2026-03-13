@@ -17,6 +17,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.11: sole ground is irretrievable breakdown of marriage
  *   - s.11A(2): five facts proving irretrievable breakdown (adultery, unreasonable
  *     behaviour, desertion 1 yr, separation 1 yr with consent, separation 2 yr)
+ *   - s.11B: joint application by mutual agreement (1-yr separation or 1-yr prior notice)
  *   - s.12: 1-year bar — no petition within first year of marriage
  *   - s.3: domicile or 3-year habitual residence requirement
  * - Matrimonial Proceedings and Property Ordinance (Cap 192) — financial provision,
@@ -226,8 +227,9 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (c) desertion for 1 year
    *   (d) separation 1 year with consent
    *   (e) separation 2 years without consent
+   * Additionally, s.11B provides for joint application by mutual agreement.
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
     if (g.includes('adultery')) {
       return 'The marriage has irretrievably broken down in that the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent (Matrimonial Causes Ordinance (Cap 179), s.11A(2)(a)).';
@@ -238,7 +240,10 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (g.includes('desertion')) {
       return 'The marriage has irretrievably broken down in that the Respondent has deserted the Petitioner for a continuous period of at least one year immediately preceding the presentation of this Petition (Matrimonial Causes Ordinance (Cap 179), s.11A(2)(c)).';
     }
-    if (g.includes('no_consent') || g.includes('no consent') || g.includes('2') || g.includes('two')) {
+    if (g.includes('mutual') || g.includes('joint') || g.includes('agreement')) {
+      return 'Both parties jointly apply for divorce by mutual agreement. The parties have lived apart for a continuous period of at least one year, or have given at least one year\'s prior written notice of their intention to jointly apply (Matrimonial Causes Ordinance (Cap 179), s.11B).';
+    }
+    if (g.includes('no_consent') || g.includes('no consent') || g.includes('two')) {
       return 'The marriage has irretrievably broken down in that the parties to the marriage have lived apart for a continuous period of at least two years immediately preceding the presentation of this Petition (Matrimonial Causes Ordinance (Cap 179), s.11A(2)(e)).';
     }
     // Default: 1-year separation with consent

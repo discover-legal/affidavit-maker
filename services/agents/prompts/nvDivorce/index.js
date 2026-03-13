@@ -15,7 +15,7 @@
  *   - "Joint Legal Custody" and "Joint Physical Custody" — NRS 125C.001, 125C.0035
  *   - "Visitation" — NRS 125C
  *   - "Alimony" — NRS 125.150(1)(a)
- *   - Child support: income shares model — NRS 125B
+ *   - Child support: percentage of income model — NRS 125B
  *   - Filed in Family Court (Clark/Washoe) or District Court (rural counties)
  *   - Parties: Plaintiff and Defendant
  *   - Initiating document: "Complaint for Divorce"
@@ -138,7 +138,7 @@ Nevada uses "ALIMONY" (not maintenance or spousal support). There is no statutor
 Alimony is more commonly awarded in longer marriages. It may be temporary, rehabilitative, or permanent.
 
 CHILD SUPPORT — NRS 125B:
-Nevada uses an income shares model. The statutory guideline percentages of the obligor's gross income are:
+Nevada uses a percentage-of-income model. The statutory guideline percentages of the obligor's gross income are:
 - 1 child: 18%
 - 2 children: 25%
 - 3 children: 29%
@@ -174,7 +174,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Nevada courts allow fee waivers via an Application to Proceed In Forma Pauperis for low-income filers.
-The filing fee varies by county — approximately $299 in Clark County, $306 in Washoe County, and $299-$364 in other counties.
+The filing fee varies by county — approximately $364 for a Complaint in Clark County, approximately $284-$326 in Washoe County, and varies in other counties.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -210,7 +210,7 @@ Remind the user:
 - Only 6 weeks of residency required (one of the shortest in the US) — NRS 125.020
 - A Resident Witness Affidavit must be filed to prove residency
 - Nevada is a community property state — community property is divided equally (50/50) — NRS 125.150(1)(b)
-- The filing fee is approximately $299-$364 depending on the county (fee waiver available for qualifying individuals)
+- The filing fee is approximately $284-$364 depending on the county (fee waiver available for qualifying individuals)
 - The initiating document is a "Complaint for Divorce" — the parties are Plaintiff and Defendant
 ${SHARED_RULES}`;
 

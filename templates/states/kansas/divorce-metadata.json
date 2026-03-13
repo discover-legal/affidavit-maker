@@ -27,7 +27,7 @@
     "days": 60,
     "startsFrom": "filing_date",
     "exceptions": [],
-    "description": "No decree of divorce shall be entered until at least sixty (60) days after the date the petition is filed. K.S.A. §23-2709."
+    "description": "An action for divorce shall not be heard until at least sixty (60) days after the date the petition is filed, unless the judge enters an order declaring the existence of an emergency. K.S.A. §23-2708."
   },
 
   "groundsForDissolution": {
@@ -40,13 +40,19 @@
       },
       {
         "code": "failure_of_marital_duty",
-        "name": "Failure to Perform Marital Duty or Obligation",
-        "description": "Failure of a party to perform a marital duty or obligation",
+        "name": "Failure to Perform a Material Marital Duty or Obligation",
+        "description": "Failure of a party to perform a material marital duty or obligation",
         "statute": "K.S.A. §23-2701(b)"
+      },
+      {
+        "code": "mental_illness_incompatibility",
+        "name": "Incompatibility by Reason of Mental Illness or Mental Incapacity",
+        "description": "Incompatibility by reason of mental illness or mental incapacity of one or both spouses, requiring confinement for 2 years or adjudication of mental illness, plus a finding by 2 of 3 court-appointed physicians of poor prognosis for recovery",
+        "statute": "K.S.A. §23-2701(c)"
       }
     ],
     "fault": [],
-    "notes": "Kansas is a no-fault state. The two recognized grounds are incompatibility and failure to perform a marital duty or obligation. K.S.A. §23-2701."
+    "notes": "Kansas recognizes three grounds for divorce under K.S.A. §23-2701: incompatibility, failure to perform a material marital duty or obligation, and incompatibility by reason of mental illness or mental incapacity. None are traditional fault-based grounds."
   },
 
   "propertyDivision": {
@@ -66,8 +72,8 @@
       "description": "Grounds for divorce — incompatibility, failure of marital duty"
     },
     {
-      "code": "K.S.A. §23-2709",
-      "description": "60-day waiting period from filing"
+      "code": "K.S.A. §23-2708",
+      "description": "60-day waiting period from filing — action for divorce shall not be heard until 60 days after filing unless emergency declared"
     },
     {
       "code": "K.S.A. §23-2802",
@@ -90,7 +96,7 @@
   "filingFees": {
     "approximate": "$195",
     "varies": true,
-    "notes": "Kansas filing fees are approximately $195 for a petition for divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Poverty Affidavit."
+    "notes": "Kansas statewide base docket fee for divorce is $173 (K.S.A. §60-2001). With surcharges extended by the Kansas Legislature, the total filing fee in most judicial districts is $195 (e.g., Third Judicial District/Shawnee County as of June 2025). Fee waivers are available for qualifying low-income individuals via a Poverty Affidavit."
   },
 
   "requiredForms": {

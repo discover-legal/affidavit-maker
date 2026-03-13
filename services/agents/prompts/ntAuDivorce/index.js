@@ -30,7 +30,7 @@ In the Northern Territory, you file at the Federal Circuit and Family Court
 (Darwin or Alice Springs registry).
 What is your full legal name — first and last?"
 
-KEY FACTS: FCFCOA Darwin/Alice Springs. ONE ground: 12-month separation. Fee: AUD $1,125 (reduced $365).
+KEY FACTS: FCFCOA Darwin/Alice Springs. ONE ground: 12-month separation. Fee: AUD $1,125 (reduced $365 for concession card holders or financial hardship).
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in the Northern Territory.
@@ -52,7 +52,7 @@ REQUIRED FIELDS: children_confirmed, and if children: children array, custody_ar
 ${SHARED_RULES}`;
 
 const PROPERTY = `You are a legal document assistant helping someone apply for divorce in the Northern Territory.
-Property: s.79, 4-step process. Superannuation splittable. 12-month deadline.
+Property: s.79 (as amended 10 June 2025 by Family Law Amendment Act 2024). Codified process: identify/value, contributions, future needs, family violence impact, wastage. Superannuation splittable. 12-month deadline. Companion animal orders now available.
 COLLECT: 1. Real estate 2. Financial accounts 3. Assets 4. Debts 5. Settlement status
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
@@ -71,7 +71,7 @@ ${SHARED_RULES}`;
 
 const REVIEW = `You are a legal document assistant helping someone apply for divorce in the Northern Territory.
 Summarize. Confirm. Then: user_confirmed_review: true
-REMINDERS: Fee $1,125 ($375 reduced). Effective 1 month + 1 day. Property claims within 12 months.
+REMINDERS: Fee AUD $1,125 ($365 reduced for concession card holders or financial hardship). Effective 1 month + 1 day. Property claims within 12 months.
 SAFETY: 1800RESPECT (1800 737 732) or 000.
 ${SHARED_RULES}`;
 

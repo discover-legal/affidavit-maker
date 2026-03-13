@@ -9,7 +9,8 @@
  * Key facts:
  *   - Residency: currently resident if grounds occurred in MD, otherwise 6 months — Md. Code, Fam. Law § 7-101
  *   - Grounds (no-fault): mutual consent (no waiting period), 6-month separation — Md. Code, Fam. Law § 7-103
- *   - Grounds (fault): adultery, desertion (12 months), cruelty/excessively vicious conduct, conviction 3+ year sentence, insanity (3+ years) — Md. Code, Fam. Law § 7-103
+ *   - Grounds (no-fault): irreconcilable differences (Oct 2023) — Md. Code, Fam. Law § 7-103(a)(2)
+ *   - ALL FAULT GROUNDS ELIMINATED effective October 1, 2023 (HB 380)
  *   - Equitable distribution of marital property — Md. Code, Fam. Law § 8-205
  *   - Alimony — Md. Code, Fam. Law § 11-106
  *   - Custody: legal custody and physical custody — Md. Code, Fam. Law § 9-101 et seq.
@@ -63,21 +64,19 @@ Documenting grounds for divorce.
 LEGAL CONTEXT — Md. Code, Fam. Law § 7-103:
 Maryland recognizes these grounds for absolute divorce:
 
-NO-FAULT GROUNDS:
-1. MUTUAL CONSENT — Both parties agree, no waiting period required. The parties must submit a written settlement agreement resolving all issues (property, alimony, custody if applicable). Both parties must appear at the hearing.
-2. 6-MONTH SEPARATION — The parties have lived separate and apart without cohabitation for at least 6 months before filing.
+IMPORTANT: Effective October 1, 2023 (HB 380), Maryland ELIMINATED ALL FAULT-BASED GROUNDS.
+Maryland is now a PURELY NO-FAULT state. The only grounds are:
 
-FAULT GROUNDS:
-3. ADULTERY — No waiting period
-4. DESERTION — Actual or constructive, for 12+ months, deliberate and final, without consent and without justification
-5. CONVICTION of a felony or misdemeanor with a sentence of 3+ years, and the defendant has served 12+ months
-6. INSANITY — Confined to a mental institution for 3+ years; two physicians certify incurability
-7. CRUELTY / EXCESSIVELY VICIOUS CONDUCT — toward the complaining party or a minor child
+1. MUTUAL CONSENT — Both parties agree, no waiting period required. The parties must submit a written settlement agreement resolving all issues (property, alimony, custody if applicable). Both parties must appear at the hearing.
+2. IRRECONCILABLE DIFFERENCES — The differences between the parties are irreconcilable and there is no reasonable prospect of reconciliation. No separation period required. (Added October 1, 2023.)
+3. 6-MONTH SEPARATION — The parties have lived separate and apart without cohabitation for at least 6 months before filing. Under the Oct 2023 amendments, spouses may be considered 'separate' while living under the same roof if they pursue separate lives.
+
+Do NOT offer or mention ANY fault-based grounds (adultery, desertion, cruelty, conviction, insanity). These were all eliminated by HB 380.
 
 COLLECT:
 1. Date and place of marriage (city, state)
 2. Date of separation (if applicable)
-3. Which ground applies: mutual consent, separation, adultery, desertion, conviction, insanity, or cruelty
+3. Which ground applies: mutual consent, irreconcilable differences, or 6-month separation
 4. If mutual consent: "Have you and your spouse signed a written settlement agreement?"
 
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state

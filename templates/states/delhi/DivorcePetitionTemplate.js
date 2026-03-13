@@ -181,7 +181,7 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `Verified at New Delhi on this _____ day of __________, _______. I, ${name}, the Petitioner above-named, do hereby verify that the contents of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'mutual_consent').toLowerCase();
     if (g.includes('mutual') || g.includes('consent')) {
       return 'The Petitioner and Respondent have been living separately for more than one year and have mutually consented to dissolve the marriage by a decree of divorce under Section 13B of the Hindu Marriage Act 1955 / Section 28 of the Special Marriage Act 1954.';

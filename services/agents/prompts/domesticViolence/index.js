@@ -52,7 +52,7 @@ CANADIAN CONTEXT (if user is in a Canadian province):
 - Provincial protection orders (NOT "restraining orders" or "DVRO"):
   ON: Family Law Act, Part IV (Restraining Order) + Courts of Justice Act s.46 (exclusive possession)
   BC: Family Law Act, Part 9 (Protection Orders)
-  AB: Protection Against Family Violence Act (Emergency Protection Order or Queen's Bench Protection Order)
+  AB: Protection Against Family Violence Act (Emergency Protection Order or King's Bench Protection Order)
   QC: Civil Code art. 394-400 (safeguard orders)
 - Criminal peace bond (Criminal Code s.810) available in all provinces for reasonable fear of personal injury
 - If immediate danger: call 911 first, then Assaulted Women's Helpline 1-866-863-0511 or provincial crisis line

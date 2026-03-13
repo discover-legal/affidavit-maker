@@ -28,8 +28,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Florida-Specific Notes:
  * - 6-month residency requirement
- * - Simplified dissolution has NO waiting period
- * - Regular dissolution has no mandatory waiting period
+ * - 20-day mandatory waiting period from filing before final judgment (Fla. Stat. § 61.19)
+ * - Court may waive waiting period upon finding of injustice
  * - Permanent alimony abolished effective July 1, 2023 (SB 1416)
  * - Available alimony types: bridge-the-gap, rehabilitative, durational, lump sum
  */
@@ -64,11 +64,12 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'At least one spouse must have been a Florida resident for at least 6 months before filing.'
     };
 
-    // Florida waiting period (none for simplified)
+    // Florida waiting period — Fla. Stat. § 61.19
     this.waitingPeriod = {
-      days: 0,
-      exceptions: [],
-      description: 'Florida has no mandatory waiting period. Simplified dissolutions can be finalized approximately 30 days after filing.'
+      days: 20,
+      startsFrom: 'filing_date',
+      exceptions: ['Court may waive upon finding earlier judgment necessary to avoid injustice'],
+      description: 'Florida requires a mandatory 20-day waiting period from filing before the court may enter a final judgment of dissolution. (Fla. Stat. § 61.19)'
     };
 
     // Florida formatting requirements

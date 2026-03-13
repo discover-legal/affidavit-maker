@@ -14,7 +14,7 @@
  *   - Alimony — periodic, lump-sum, rehabilitative — Miss. Code §93-5-23
  *   - Filed in CHANCERY COURT (unique to Mississippi)
  *   - Parties: "Complainant" and "Defendant"
- *   - Filing fee ~$52 (one of cheapest in US)
+ *   - Filing fee ~$148–$158 (varies by county)
  */
 
 const SHARED_RULES = `
@@ -176,10 +176,10 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Mississippi courts allow fee waivers (In Forma Pauperis) for low-income filers.
-The filing fee is typically only $52 — one of the lowest in the United States.
+The filing fee is typically $148–$158 depending on the county and whether the case is contested.
 
 COLLECT:
-1. "Do you want to ask the court to waive your filing fees? Note: Mississippi's filing fee is only about $52."
+1. "Do you want to ask the court to waive your filing fees? The filing fee in Mississippi is typically $148–$158."
    - If NO: phase complete
 2. If YES: monthly income, monthly expenses, assets, number of dependents
 
@@ -210,7 +210,7 @@ user_confirmed_review: true
 Remind the user:
 - For irreconcilable differences: 60-day waiting period from filing — Miss. Code §93-5-2
 - For fault-based divorce: no waiting period
-- The filing fee is approximately $52 (one of the lowest in the US)
+- The filing fee is approximately $148–$158 (varies by county)
 - Mississippi uses Chancery Court — not Circuit Court
 - Mississippi distinguishes between marital and separate property — Miss. Code §93-5-23
 - Parties are called "Complainant" and "Defendant"

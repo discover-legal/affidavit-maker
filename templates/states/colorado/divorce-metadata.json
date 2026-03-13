@@ -88,9 +88,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$230-$260",
-    "varies": true,
-    "notes": "Colorado filing fees range from approximately $230 to $260 for a dissolution of marriage depending on the county. Fee waivers are available for qualifying low-income individuals."
+    "approximate": "$230",
+    "varies": false,
+    "notes": "Colorado's filing fee for a Petition for Dissolution of Marriage is $230 (increased effective January 1, 2025 per HB 2024-1286). Fee waivers are available for qualifying low-income individuals (JDF 205)."
   },
 
   "requiredForms": {

@@ -90,14 +90,14 @@
     },
     {
       "code": "NRS 125B",
-      "description": "Nevada Child Support Guidelines — income shares model"
+      "description": "Nevada Child Support Guidelines — percentage of income model"
     }
   ],
 
   "filingFees": {
-    "approximate": "$299-$364",
+    "approximate": "$284-$364",
     "varies": true,
-    "notes": "Filing fees vary by county. Clark County is approximately $299; Washoe County is approximately $306. Fee waivers (Application to Proceed In Forma Pauperis) are available for qualifying low-income individuals."
+    "notes": "Filing fees vary by county. Clark County (Las Vegas) charges approximately $364 for a Complaint for Divorce. Washoe County (Reno) charges approximately $284-$326. Rural counties vary. Fee waivers (Application to Proceed In Forma Pauperis) are available for qualifying low-income individuals."
   },
 
   "requiredForms": {
@@ -181,14 +181,14 @@
 
   "responseDeadlines": {
     "inState": {
-      "days": 20,
-      "description": "Defendant must file an answer within 20 days of service within Nevada"
+      "days": 21,
+      "description": "Defendant must file an answer within 21 days of service within Nevada"
     },
     "outOfState": {
-      "days": 20,
-      "description": "Defendant served outside Nevada must file an answer within 20 days of service (additional time may be granted)"
+      "days": 21,
+      "description": "Defendant served outside Nevada must file an answer within 21 days of service (additional time may be granted)"
     },
-    "statute": "NRCP 12(a)"
+    "statute": "NRCP 12(a)(1)(A)(i)"
   },
 
   "childSupportGuidelines": {

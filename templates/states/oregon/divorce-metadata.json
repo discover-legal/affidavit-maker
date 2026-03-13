@@ -88,8 +88,8 @@
 
   "filingFees": {
     "approximate": "$301",
-    "varies": true,
-    "notes": "Oregon filing fees are approximately $301 for a dissolution of marriage petition. Fee waivers or deferrals are available for qualifying low-income individuals."
+    "varies": false,
+    "notes": "Oregon's filing fee for a Petition for Dissolution of Marriage is $301 statewide per ORS 21.135. Fee waivers or deferrals are available for qualifying low-income individuals."
   },
 
   "requiredForms": {

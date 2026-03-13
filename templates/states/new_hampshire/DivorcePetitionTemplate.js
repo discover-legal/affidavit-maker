@@ -29,7 +29,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - "Parenting Time" or "Residential Responsibility" (RSA 461-A)
  * - "Alimony" (RSA 458:19)
  * - Equitable distribution of ALL property — including separate (RSA 458:16-a)
- * - Filed in Superior Court, Family Division
+ * - Filed in Circuit Court, Family Division
  * - Case number label: "CASE NO."
  * - Parties: "Petitioner" and "Respondent"
  */
@@ -81,13 +81,13 @@ class NewHampshireDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Get default court for New Hampshire county — Superior Court, Family Division
+   * Get default court for New Hampshire county — Circuit Court, Family Division
    * @param {string} county - County name
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
     const countyName = county || '[COUNTY]';
-    return `${countyName} County Superior Court, Family Division, State of New Hampshire`;
+    return `${countyName} County Circuit Court, Family Division, State of New Hampshire`;
   }
 
   /**

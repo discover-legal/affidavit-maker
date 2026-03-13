@@ -305,9 +305,11 @@
   "filingFees": {
     "indexNumber": "$210",
     "rji": "$95",
-    "total": "$305+",
+    "noteOfIssue": "$30",
+    "rjiAndNoteOfIssue": "$125",
+    "total": "$335+",
     "varies": true,
-    "notes": "Fee waiver available for qualifying individuals"
+    "notes": "Index number $210 + RJI/Note of Issue $125 (when filed together) = $335 minimum. Fee waiver available for qualifying individuals."
   },
 
   "childSupport": {

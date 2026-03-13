@@ -91,9 +91,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "CAD $224 (initial filing) / $669 (total with motion and certificate)",
+    "approximate": "CAD $224 (initial filing) / $669 (total for divorce)",
     "varies": false,
-    "notes": "Ontario initial filing fee is CAD $224 for the Application (Form 8). Additional fees include motion to clerk for divorce ($280) and Certificate of Divorce ($21), bringing the total cost to approximately $669 for an uncontested divorce. Fee waiver available (Form 26B) for parties who cannot afford the fee."
+    "notes": "Ontario filing fee is CAD $224 for the Application (Form 8A), plus $445 for setting the matter down for divorce (Affidavit for Divorce), totalling $669. A Certificate of Divorce costs an additional $25 ($694 total). Fee waiver available (Form 26B) for parties who cannot afford the fee."
   },
   "childSupportGuidelines": {
     "calculationBasis": "federal_table",

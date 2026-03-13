@@ -82,9 +82,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$185-$195",
+    "approximate": "$184.50-$194.50",
     "varies": true,
-    "notes": "Wisconsin filing fees are approximately $185-$195 for a divorce action but may vary by county. Fee waivers are available for qualifying low-income individuals by filing a Petition for Waiver of Fees and Costs."
+    "notes": "Wisconsin base divorce filing fee is $184.50. If requesting maintenance or support, the fee is $194.50 (additional $10). Some counties (e.g., Milwaukee) charge slightly more. Fee waivers are available for qualifying low-income individuals by filing a Petition for Waiver of Fees and Costs (Form CV-410A)."
   },
 
   "requiredForms": {

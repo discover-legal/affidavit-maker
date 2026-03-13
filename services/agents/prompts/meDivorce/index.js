@@ -8,7 +8,7 @@
  *
  * Key facts:
  *   - 6 months state residency (or married in ME, or grounds arose in ME) — 19-A M.R.S. §901
- *   - Grounds: no-fault only — irreconcilable marital differences — 19-A M.R.S. §902
+ *   - Grounds: no-fault (irreconcilable marital differences) and fault-based — 19-A M.R.S. §902
  *   - 60-day waiting period from SERVICE — 19-A M.R.S. §902
  *   - Equitable distribution — 19-A M.R.S. §953
  *   - UNIQUE: "Parental rights and responsibilities" (NOT "custody") — 19-A M.R.S. §1501 et seq.
@@ -63,12 +63,23 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — 19-A M.R.S. §902:
-Maine is a NO-FAULT ONLY state. The sole ground for divorce is "irreconcilable marital differences." There are no fault-based grounds in Maine.
+Maine recognizes both no-fault and fault-based grounds for divorce:
+1. Irreconcilable marital differences (no-fault — most common)
+2. Adultery
+3. Impotence
+4. Extreme cruelty
+5. Utter desertion for 3 consecutive years
+6. Gross and confirmed habits of intoxication (liquor or drugs)
+7. Nonsupport (when spouse has sufficient ability but refuses to provide)
+8. Cruel and abusive treatment
+9. Mental illness requiring 7+ years institutional confinement
+
+Most filings use irreconcilable marital differences (no-fault).
 
 COLLECT:
 1. Date and place of marriage (city, state)
 2. Date of separation (if applicable)
-3. Confirm: "Maine only recognizes no-fault divorce — based on irreconcilable marital differences. Is that the basis you wish to use?" (This is the only option.)
+3. "On what ground are you filing? Most people file on the ground of irreconcilable marital differences."
 
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
@@ -194,7 +205,7 @@ user_confirmed_review: true
 Remind the user:
 - 60-day mandatory waiting period from SERVICE (not filing) — 19-A M.R.S. §902
 - The filing fee is approximately $120 (may be waived for low-income filers)
-- Maine is a no-fault only state — the sole ground is irreconcilable marital differences — 19-A M.R.S. §902
+- Maine has both no-fault (irreconcilable marital differences) and fault-based grounds — 19-A M.R.S. §902
 - Maine courts divide marital property equitably — 19-A M.R.S. §953
 - Maine uses "parental rights and responsibilities" (not custody) and "parent-child contact" (not visitation)
 ${SHARED_RULES}`;

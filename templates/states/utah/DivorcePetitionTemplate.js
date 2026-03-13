@@ -8,9 +8,9 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Utah Verified Petition for Divorce Template
  *
  * Legal References:
- * - Utah Code Title 30, Chapter 3 (Divorce)
- * - Utah Code § 30-3-1 (Procedure; residence requirements)
- * - Utah Code § 30-3-3 (Verification of complaint)
+ * - Utah Code Title 81, Chapter 4 (Dissolution of Marriage) — recodified 9/1/2024; formerly Title 30, Chapter 3
+ * - Utah Code § 81-4-402 (Petition for divorce; residency; 30-day waiting period) — formerly § 30-3-1 / § 30-3-18
+ * - Utah Code § 81-4-405 (Grounds for divorce) — formerly § 30-3-1(3)
  * - Utah Rules of Civil Procedure Rule 10 (Form of pleadings)
  *
  * Formatting Requirements (URCP Rule 10):
@@ -22,10 +22,9 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Utah-Specific Requirements:
  * - Petition must be verified (sworn)
- * - 30-day waiting period
+ * - 30-day waiting period from filing (Utah Code § 81-4-402); court may waive for extraordinary circumstances
  * - 3-month county residency
  * - Mandatory divorce education class (with children)
- * - 90-day waiting period from service of complaint (Utah Code § 30-3-18); court may waive for good cause
  */
 class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   constructor() {
@@ -59,12 +58,12 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'The Petitioner must have been an actual and bona fide resident of the county for three months immediately prior to filing.'
     };
 
-    // Utah waiting period
+    // Utah waiting period — 30 days from filing (Utah Code § 81-4-402)
     this.waitingPeriod = {
-      days: 90,
-      startsFrom: 'service_date',
-      exceptions: ['good_cause'],
-      description: 'Divorce may not be granted until 90 days after service of the complaint on Respondent. Court may waive for good cause. (Utah Code § 30-3-18)'
+      days: 30,
+      startsFrom: 'filing_date',
+      exceptions: ['extraordinary_circumstances'],
+      description: 'The court may not enter a decree of divorce until 30 days after the day on which the petition is filed, unless the court finds that extraordinary circumstances exist. (Utah Code § 81-4-402)'
     };
 
     // Utah formatting requirements (URCP Rule 10)
@@ -254,7 +253,7 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       // Utah mandatory divorce education
       items.push({
         number: paragraphNum++,
-        content: 'Petitioner understands that attendance at a divorce education class is mandatory when minor children are involved, as required by Utah Code § 30-3-11.3.',
+        content: 'Petitioner understands that attendance at a divorce education class is mandatory when minor children are involved, as required by Utah Code § 81-4-409.',
         type: 'education_acknowledgment'
       });
     }
@@ -404,7 +403,7 @@ My Commission Expires: ___________`;
 
     // Warning about mandatory divorce education
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      warnings.push('Utah requires both parents to complete a divorce education class when minor children are involved (Utah Code § 30-3-11.3).');
+      warnings.push('Utah requires both parents to complete a divorce education class when minor children are involved (Utah Code § 81-4-409).');
     }
 
     return { errors, warnings };

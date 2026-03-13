@@ -14,7 +14,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - NRS 125.150(1)(b) — Community property — equal 50/50 division
  * - NRS 125.150(1)(a) — Alimony
  * - NRS 125C.001, 125C.0035 — Custody (joint legal, joint physical; best interest standard)
- * - NRS 125B — Nevada Child Support Guidelines (income shares)
+ * - NRS 125B — Nevada Child Support Guidelines (percentage of income)
  *
  * Nevada-Specific Notes:
  * - Called "Divorce" — not dissolution of marriage

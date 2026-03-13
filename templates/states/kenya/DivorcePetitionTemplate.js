@@ -17,8 +17,13 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Marriage Act, 2014 (No. 4 of 2014)
  *   - s.6: Types of marriage recognized (civil, Christian, customary, Hindu, Islamic)
  *   - s.65: Jurisdiction — either party must be resident in Kenya at time of filing
- *   - s.66: Grounds — adultery, cruelty, desertion (3+ years), exceptional depravity
- *           (court must be satisfied marriage has broken down irretrievably)
+ *   - s.66(2): Grounds — (a) adultery, (b) cruelty, (c) desertion 3+ years,
+ *              (d) exceptional depravity, (e) irretrievable breakdown
+ *   NOTE: The 3-year bar on filing (formerly s.66(1)-(2)) was declared unconstitutional
+ *   by the Court of Appeal in 2022 (Civil Appeal E003/2020). The grace period for
+ *   Parliament to legislate lapsed June 2025. No minimum marriage duration applies.
+ *   - s.66(6): Irretrievable breakdown defined — other grounds proven, 2-year separation,
+ *              7+ year imprisonment, or incurable insanity
  *   - s.67-68: Mandatory reconciliation — court must refer parties to attempt reconciliation
  *   - s.77-80: Maintenance
  * - Matrimonial Property Act, 2013 (No. 49 of 2013) — contribution-based property division
@@ -32,7 +37,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Kenya-Specific:
  * - Parties are "Petitioner" and "Respondent"
  * - Court is High Court (Family Division) or Kadhi's Court (Islamic marriages)
- * - Filing fee: approx KES 4,000-10,000
+ * - Filing fee: approx KES 2,000-45,000 (varies by court and claim value)
  * - Process: Petition -> Reconciliation attempt -> Decree Nisi -> Decree Absolute
  * - A4 paper size, KES currency
  *
@@ -213,26 +218,30 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Kenya grounds for divorce.
-   * Marriage Act, 2014, s.66 — the court must be satisfied that the marriage
+   * Marriage Act, 2014, s.66(2) — the court must be satisfied that the marriage
    * has broken down irretrievably on one of the following grounds:
    *   (a) adultery
    *   (b) cruelty (physical or mental)
    *   (c) desertion for 3+ years
    *   (d) exceptional depravity
+   *   (e) irretrievable breakdown of the marriage (s.66(6))
    */
-  getGroundsStatement(groundsForDivorce) {
-    const g = (groundsForDivorce || 'cruelty').toLowerCase();
+  getGroundsText(groundsForDivorce) {
+    const g = (groundsForDivorce || 'irretrievable_breakdown').toLowerCase();
     if (g.includes('adultery')) {
-      return 'The Respondent has committed adultery and the Petitioner finds it intolerable to continue living with the Respondent, within the meaning of section 66(a) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has committed one or more acts of adultery and the Petitioner finds it intolerable to continue living with the Respondent, within the meaning of section 66(2)(a) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
     }
     if (g.includes('desertion')) {
-      return 'The Respondent has deserted the Petitioner for a continuous period of at least three years immediately preceding the presentation of this Petition, within the meaning of section 66(c) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has deserted the Petitioner for a continuous period of at least three years immediately preceding the presentation of this Petition, within the meaning of section 66(2)(c) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
     }
     if (g.includes('depravity') || g.includes('exceptional')) {
-      return 'The Respondent has behaved in such a way that the Petitioner cannot reasonably be expected to continue living with the Respondent (exceptional depravity), within the meaning of section 66(d) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has exhibited exceptional depravity such that the Petitioner cannot reasonably be expected to continue living with the Respondent, within the meaning of section 66(2)(d) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
     }
-    // Default: cruelty
-    return 'The Respondent has been cruel to the Petitioner, being physical or mental cruelty of such a nature as to render continued cohabitation intolerable, within the meaning of section 66(b) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+    if (g.includes('cruelty')) {
+      return 'The Respondent has inflicted cruelty, whether mental or physical, on the Petitioner or on the children of the marriage, within the meaning of section 66(2)(b) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+    }
+    // Default: irretrievable breakdown
+    return 'The marriage between the Petitioner and the Respondent has broken down irretrievably with no reasonable prospect of reconciliation, within the meaning of section 66(2)(e) of the Marriage Act, 2014.';
   }
 }
 

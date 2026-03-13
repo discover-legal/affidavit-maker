@@ -9,7 +9,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *
  * Legal References:
  * - D.C. Code §16-902 — Residency (6 months)
- * - D.C. Code §16-904 — Grounds (mutual consent or 6 months living separate)
+ * - D.C. Code §16-904 — Grounds ("no longer wish to remain married" (Jan 2024), mutual consent, or 6 months living separate)
  * - D.C. Code §16-910 — Property division (equitable distribution)
  * - D.C. Code §16-913 — Alimony
  * - D.C. Code §16-914 — Custody (legal and physical custody, visitation)

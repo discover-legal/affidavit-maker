@@ -10,7 +10,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Legal References:
  * - O.C.G.A. § 19-5-1 et seq. — Divorce proceedings
  * - O.C.G.A. § 19-5-3 — Grounds for divorce (13 grounds total: grounds 1-5 are voidability grounds; 6-12 are fault grounds; 13 is irretrievably broken no-fault)
- * - O.C.G.A. § 19-5-4 — Residency requirements (6 months)
+ * - O.C.G.A. § 19-5-2 — Residency requirements (6 months)
  * - O.C.G.A. § 19-5-8 — 30-day waiting period after service
  * - O.C.G.A. § 19-6-1 — Alimony
  * - O.C.G.A. § 19-7-1 — Child custody — best interests standard
@@ -53,15 +53,15 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 6,
       countyDays: 0,
-      description: 'Petitioner must have been a bona fide resident of Georgia for at least six months immediately preceding the filing of this Complaint. (O.C.G.A. § 19-5-4)'
+      description: 'Petitioner must have been a bona fide resident of Georgia for at least six months immediately preceding the filing of this Complaint. (O.C.G.A. § 19-5-2)'
     };
 
-    // Georgia waiting period — 30 days from service
+    // Georgia waiting period — 30 days from service (cannot be waived for no-fault)
     this.waitingPeriod = {
       days: 30,
       startsFrom: 'service_date',
-      exceptions: ['Parties may waive by written agreement'],
-      description: 'Georgia requires a minimum 30-day waiting period after service of process before the court may enter a final judgment. (O.C.G.A. § 19-5-8)'
+      exceptions: ['May not apply to fault-based grounds other than irretrievably broken (O.C.G.A. § 19-5-3(13))'],
+      description: 'Georgia requires a mandatory 30-day waiting period after service of process before the court may enter a final judgment for no-fault (irretrievably broken) divorces. This period cannot be waived by agreement. (O.C.G.A. § 19-5-3(13))'
     };
   }
 
@@ -141,7 +141,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Plaintiff has been a bona fide resident of the State of Georgia for more than six (6) months immediately preceding the filing of this Complaint. (O.C.G.A. § 19-5-4)`;
+    return `Plaintiff has been a bona fide resident of the State of Georgia for more than six (6) months immediately preceding the filing of this Complaint. (O.C.G.A. § 19-5-2)`;
   }
 
   /**
@@ -162,7 +162,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 8;
 
-    const groundsText = this.getGroundsStatement(divorceData.groundsForDivorce);
+    const groundsText = this.getGroundsText(divorceData.groundsForDivorce);
 
     items.push({
       number: paragraphNum++,
@@ -182,7 +182,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @param {string} grounds - Grounds code
    * @returns {string} Grounds text
    */
-  getGroundsStatement(grounds) {
+  getGroundsText(grounds) {
     switch (grounds) {
       case 'irretrievably_broken':
       case 'irreconcilable_differences':
@@ -380,7 +380,7 @@ My commission expires: ___________`;
       errors.push('County is required for Georgia divorce complaints — file in county where Defendant resides');
     }
 
-    warnings.push('Georgia requires 6 months state residency before filing. (O.C.G.A. § 19-5-4)');
+    warnings.push('Georgia requires 6 months state residency before filing. (O.C.G.A. § 19-5-2)');
     warnings.push('Georgia requires a 30-day waiting period after service before final judgment. (O.C.G.A. § 19-5-8)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

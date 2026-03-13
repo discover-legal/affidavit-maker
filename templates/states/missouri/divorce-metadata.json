@@ -82,9 +82,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$135-$200",
+    "approximate": "$133-$250",
     "varies": true,
-    "notes": "Missouri filing fees range from approximately $135 to $200 depending on the county. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
+    "notes": "Missouri filing fees vary by county. St. Charles County charges $133; St. Louis County charges approximately $148.50; Jackson County charges $177.50; cases with minor children may cost up to ~$250 in some counties. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
   },
 
   "requiredForms": {

@@ -22,7 +22,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Both fault and no-fault grounds available
  * - No-fault: "irreconcilable differences"
  * - 1-year residency requirement (RSA §15-5-12)
- * - No mandatory waiting period
+ * - 3-month (90-day) waiting period between nominal decree and final judgment for irreconcilable differences; 21 days for 3-year separation
  * - "Legal Custody" and "Physical Placement"
  * - "Visitation"
  * - "Alimony"
@@ -60,12 +60,18 @@ class RhodeIslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'The filing spouse must have lived in Rhode Island for at least one year before filing for divorce. (R.I. Gen. Laws §15-5-12)'
     };
 
-    // Rhode Island — no mandatory waiting period
+    // Rhode Island — 3-month waiting period between nominal decree and final judgment
     this.waitingPeriod = {
-      days: 0,
-      startsFrom: 'filing_date',
-      exceptions: [],
-      description: 'Rhode Island has no mandatory waiting period after filing for divorce.'
+      days: 90,
+      startsFrom: 'nominal_decree',
+      exceptions: [
+        {
+          ground: 'living_separate_3_years',
+          days: 21,
+          description: 'For divorces on the ground of living separate and apart for 3 years, the waiting period is 21 days'
+        }
+      ],
+      description: 'Rhode Island has a mandatory 3-month (90-day) waiting period between the nominal decree (initial hearing) and entry of the Final Judgment of Divorce for irreconcilable differences cases. For 3-year separation cases, the waiting period is 21 days.'
     };
   }
 

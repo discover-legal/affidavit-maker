@@ -18,7 +18,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * Key Legal References:
  * - Matrimonial Causes Ordinance (Cap 179)
  *   - s.11: Sole ground — irretrievable breakdown of marriage
- *   - s.11A(2): Five facts proving irretrievable breakdown
+ *   - s.11A(2): Five facts proving irretrievable breakdown; s.11B: joint application
  *   - s.15: Decree Nisi not to be made absolute within 6 weeks
  *   - s.17: Intervention to prevent Decree Nisi being made Absolute
  * - Matrimonial Proceedings and Property Ordinance (Cap 192)
@@ -349,7 +349,7 @@ class HongKongDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * within 6 weeks from the date it is pronounced.
    */
   getEffectiveDateText() {
-    return 'This Decree Nisi shall not be made Absolute until after the expiration of three months from the date hereof, unless the Court by general or special order fixes a shorter time (Matrimonial Causes Ordinance (Cap 179), s.15). The marriage is dissolved only upon the grant of the Decree Absolute.';
+    return 'This Decree Nisi shall not be made Absolute until after the expiration of six weeks from the date hereof, unless the Court by general or special order fixes a shorter time (Matrimonial Causes Ordinance (Cap 179), s.15). The marriage is dissolved only upon the grant of the Decree Absolute.';
   }
 
   /**

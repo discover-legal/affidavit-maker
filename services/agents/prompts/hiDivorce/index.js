@@ -160,7 +160,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Hawaii courts allow fee waivers for low-income filers.
-The filing fee ranges from approximately $215 to $265 depending on the circuit.
+The filing fee is $215 (without minor children) or $265 (with minor children, which includes a $50 Kids First parent education surcharge). Fees are standardized statewide (Act 91, 2022).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -194,7 +194,7 @@ user_confirmed_review: true
 
 Remind the user:
 - Hawaii has NO mandatory waiting period after filing
-- The filing fee ranges from approximately $215 to $265
+- The filing fee is $215 (no children) or $265 (with children)
 - Hawaii is a no-fault only state — HRS §580-41
 - Hawaii courts divide property in a "just and equitable" manner — HRS §580-47
 - Hawaii encourages joint custody — HRS §571-46

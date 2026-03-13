@@ -14,11 +14,11 @@
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No mandatory waiting period after filing. However, a divorce cannot be filed within 3 years of the date of marriage unless leave of court is obtained on grounds of exceptional hardship or exceptional depravity (Women's Charter, s.94). After the Interim Judgment is granted, a minimum of 3 months must elapse before the Certificate of Making Interim Judgment Final may be applied for (s.99(3))."
+    "description": "No mandatory waiting period after filing. However, an application for divorce cannot be filed within 3 years of the date of marriage unless leave of court is obtained on grounds of exceptional hardship or exceptional depravity (Women's Charter, s.94). After the Interim Judgment is granted, a minimum of 3 months must elapse before the Certificate of Making Interim Judgment Final may be applied for (s.99(3))."
   },
   "threeYearBar": {
     "years": 3,
-    "description": "No party shall file a writ for divorce within 3 years of the date of marriage unless the court grants leave on grounds of exceptional hardship suffered by the plaintiff or exceptional depravity on the part of the defendant (Women's Charter, s.94).",
+    "description": "No party shall file an application for divorce within 3 years of the date of marriage unless the court grants leave on grounds of exceptional hardship suffered by the plaintiff or exceptional depravity on the part of the defendant (Women's Charter, s.94).",
     "exceptions": ["exceptional hardship", "exceptional depravity"]
   },
   "groundsForDivorce": {
@@ -26,20 +26,20 @@
       {
         "code": "separation_consent",
         "name": "3-Year Separation with Consent",
-        "description": "The parties have lived apart for a continuous period of at least 3 years immediately preceding the filing of the writ, and the defendant consents to a judgment being granted.",
-        "statute": "Women's Charter, s.95(3)(d)"
+        "description": "The parties have lived apart for a continuous period of at least 3 years immediately preceding the application for divorce, and the defendant consents to a judgment being granted.",
+        "statute": "Women's Charter, s.95A(1)(d)"
       },
       {
         "code": "separation_no_consent",
         "name": "4-Year Separation without Consent",
-        "description": "The parties have lived apart for a continuous period of at least 4 years immediately preceding the filing of the writ.",
-        "statute": "Women's Charter, s.95(3)(e)"
+        "description": "The parties have lived apart for a continuous period of at least 4 years immediately preceding the application for divorce.",
+        "statute": "Women's Charter, s.95A(1)(e)"
       },
       {
         "code": "mutual_agreement",
         "name": "Divorce by Mutual Agreement",
         "description": "Both parties agree that the marriage has broken down irretrievably. Available from 1 July 2024. No separation period or fault required.",
-        "statute": "Women's Charter, s.95A"
+        "statute": "Women's Charter, s.95A(1)(f)"
       }
     ],
     "fault": [
@@ -47,19 +47,19 @@
         "code": "adultery",
         "name": "Adultery",
         "description": "The defendant has committed adultery and the plaintiff finds it intolerable to live with the defendant.",
-        "statute": "Women's Charter, s.95(3)(a)"
+        "statute": "Women's Charter, s.95A(1)(a)"
       },
       {
         "code": "unreasonable_behaviour",
         "name": "Unreasonable Behaviour",
         "description": "The defendant has behaved in such a way that the plaintiff cannot reasonably be expected to live with the defendant.",
-        "statute": "Women's Charter, s.95(3)(b)"
+        "statute": "Women's Charter, s.95A(1)(b)"
       },
       {
         "code": "desertion",
         "name": "Desertion for 2 Years",
-        "description": "The defendant has deserted the plaintiff for a continuous period of at least 2 years immediately preceding the filing of the writ.",
-        "statute": "Women's Charter, s.95(3)(c)"
+        "description": "The defendant has deserted the plaintiff for a continuous period of at least 2 years immediately preceding the application for divorce.",
+        "statute": "Women's Charter, s.95A(1)(c)"
       }
     ]
   },
@@ -76,28 +76,18 @@
   "requiredForms": {
     "basic": [
       {
-        "name": "Writ for Divorce",
-        "description": "Initiates divorce proceedings in the Family Justice Courts",
-        "required": true
-      },
-      {
-        "name": "Statement of Claim",
-        "description": "Filed together with the Writ — sets out the facts relied upon for the divorce",
-        "required": true
-      },
-      {
-        "name": "Statement of Particulars",
-        "description": "Details the particulars of the facts supporting the ground of divorce",
+        "name": "Originating Application for Divorce (Form 2A)",
+        "description": "Initiates divorce proceedings in the Family Justice Courts. Since 15 October 2024 (FJR 2024), this single form replaces the former Writ for Divorce, Statement of Claim, Statement of Particulars, Proposed Parenting Plan, and Proposed Matrimonial Property Plan.",
         "required": true
       },
       {
         "name": "Proposed Parenting Plan",
-        "description": "Required where there are children under 21 — sets out proposed custody, care and control, and access arrangements",
+        "description": "Required where there are children under 21 — sets out proposed custody, care and control, and access arrangements. Now incorporated into the Originating Application for filings on or after 15 October 2024.",
         "required": false
       },
       {
         "name": "Agreed Matrimonial Property Plan (if simplified track)",
-        "description": "For uncontested cases on the simplified track — agreed division of matrimonial assets",
+        "description": "For uncontested cases on the simplified track — agreed division of matrimonial assets. Now incorporated into the Originating Application for filings on or after 15 October 2024.",
         "required": false
       }
     ]
@@ -125,9 +115,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "SGD $50-$200",
+    "approximate": "SGD $200-$350",
     "varies": true,
-    "notes": "Filing fees vary depending on type of filing and track: SGD $50 (simplified track), up to SGD $200+ (contested). Fee waiver may be available through legal aid (Legal Aid Bureau). Verify current fees at the Family Justice Courts website."
+    "notes": "Filing fees vary depending on the type of filing and track. Under the Family Justice (General) Rules 2024 (effective 15 October 2024), court fees for the originating application for divorce range from approximately SGD $200-$350 (simplified and normal tracks), plus LawNet & CrimsonLogic e-filing fees. Additional fees apply for ancillary matters. Fee waiver may be available through legal aid (Legal Aid Bureau). Verify current fees at the Family Justice Courts website (judiciary.gov.sg) — see Division 4 of the Third Schedule of the FJ(G)R 2024."
   },
   "childSupportGuidelines": {
     "calculationBasis": "court_discretion",

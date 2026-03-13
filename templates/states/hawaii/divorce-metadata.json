@@ -17,9 +17,10 @@
   },
 
   "residencyRequirements": {
-    "stateMonths": 3,
-    "countyMonths": 0,
-    "description": "The plaintiff or defendant must have been domiciled or physically present in the State of Hawaii for a continuous period of at least three (3) months immediately preceding the filing of the complaint. The complaint must be filed in the circuit where the plaintiff resides. (HRS §580-1)",
+    "stateMonths": 0,
+    "circuitMonths": 0,
+    "domicileRequired": true,
+    "description": "The plaintiff must be domiciled in Hawaii at the time of filing. There is no minimum statewide or circuit-level residency duration for divorce (Act 69, 2021 removed the former 6-month requirement). The 3-month circuit residency requirement applies only to annulment and legal separation, NOT to divorce. (HRS §580-1, as amended by Act 69, 2021)",
     "statute": "HRS §580-1"
   },
 
@@ -91,8 +92,8 @@
 
   "filingFees": {
     "approximate": "$215-$265",
-    "varies": true,
-    "notes": "Hawaii filing fees range from approximately $215 to $265 depending on the circuit. Fee waivers are available for qualifying low-income individuals."
+    "varies": false,
+    "notes": "Hawaii filing fees are standardized: $215 for divorce without minor children, $265 for divorce with minor children (includes $50 parent education surcharge for the Kids First program). Effective June 17, 2022 per Act 91. Fee waivers are available for qualifying low-income individuals."
   },
 
   "requiredForms": {

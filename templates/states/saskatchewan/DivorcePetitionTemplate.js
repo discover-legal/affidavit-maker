@@ -18,7 +18,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
- *   - s.13: Certificate of Divorce
+ *   - s.12(7): Certificate of Divorce
  * - The Family Property Act, SS 1997, c. F-6.3 (provincial — deferred community of property;
  *   equal division of family property on marriage breakdown)
  * - The Family Maintenance Act, 1997, SS 1997, c. F-6.2 (provincial — support obligations)
@@ -197,7 +197,7 @@ class SaskatchewanDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b)(i) adultery
    *   (b)(ii) physical or mental cruelty
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

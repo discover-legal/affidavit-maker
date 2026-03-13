@@ -11,7 +11,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - Idaho Code §32-601 et seq. — Divorce
  * - Idaho Code §32-701 — Residency (6 full weeks)
  * - Idaho Code §32-603 — Grounds (irreconcilable differences, fault, separation)
- * - Idaho Code §32-716 — 20-day waiting period after service
+ * - Idaho Code §32-716 — 21-day waiting period after service
  * - Idaho Code §32-712 — Community property division (substantially equal)
  * - Idaho Code §32-705 — Spousal maintenance
  * - Idaho Code §32-717B — Joint custody
@@ -139,7 +139,7 @@ class IdahoDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'JURISDICTION',
-      text: `The Court finds that it has jurisdiction over this proceeding and the parties. Plaintiff has been a bona fide resident of the State of Idaho for a full six (6) weeks immediately preceding the filing of the Complaint. (Idaho Code §32-701) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. Irreconcilable differences have caused the irremediable breakdown of the marriage. At least twenty (20) days have elapsed since service of the summons and complaint on Defendant. (Idaho Code §32-716)`,
+      text: `The Court finds that it has jurisdiction over this proceeding and the parties. Plaintiff has been a bona fide resident of the State of Idaho for a full six (6) weeks immediately preceding the filing of the Complaint. (Idaho Code §32-701) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. Irreconcilable differences have caused the irremediable breakdown of the marriage. At least twenty-one (21) days have elapsed since service of the summons and complaint on Defendant. (Idaho Code §32-716)`,
       type: 'jurisdiction'
     };
   }
@@ -389,7 +389,7 @@ STATE OF IDAHO`,
       errors.push('Case number is required for Idaho divorce decree');
     }
 
-    warnings.push('Ensure 20 days have elapsed from service before entering the decree. (Idaho Code §32-716)');
+    warnings.push('Ensure 21 days have elapsed from service before entering the decree. (Idaho Code §32-716)');
 
     if (divorceData.hasMinorChildren === true && (!divorceData.children || divorceData.children.length === 0)) {
       warnings.push('You indicated there are minor children but did not provide child information.');

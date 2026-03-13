@@ -249,7 +249,8 @@ IMPORTANT REMINDERS TO SHARE:
 SAFETY REMINDER:
 - If there are safety concerns, the Family Court can make protection orders under the Family Violence Act 2018
 - In an emergency, call 111
-- Women's Refuge / Are You OK? helpline: 0800 456 450
+- Women's Refuge 24-hour crisis line: 0800 733 843 (0800 REFUGE)
+- Family Violence Info Line (Are You OK?): 0800 456 450
 ${SHARED_RULES}`;
 
 const PHASES = {

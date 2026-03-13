@@ -162,7 +162,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Missouri courts allow fee waivers (Motion to Proceed In Forma Pauperis) for low-income filers.
-The filing fee is typically $135–$200 depending on the county.
+The filing fee is typically $133–$250 depending on the county.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -195,7 +195,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 30-day mandatory waiting period from filing before the court can enter a judgment — RSMo 452.305
-- The filing fee is approximately $135–$200 depending on the county (may be waived for low-income filers)
+- The filing fee is approximately $133–$250 depending on the county (may be waived for low-income filers)
 - Missouri is a pure no-fault state — only ground is irretrievably broken — RSMo 452.320
 - A Parenting Plan is required if minor children are involved — RSMo 452.310
 ${SHARED_RULES}`;

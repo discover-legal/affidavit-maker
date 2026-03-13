@@ -366,7 +366,7 @@ function selectUT_family(data) {
 
   if (hasChildren(data)) {
     docs.push('parenting_plan');
-    reasons['parenting_plan'] = 'Utah requires a Parenting Plan filed with the court specifying custody and parent-time for each child (Utah Code § 30-3-10.8).';
+    reasons['parenting_plan'] = 'Utah requires a Parenting Plan filed with the court specifying custody and parent-time for each child (Utah Code § 81-9-201).';
   }
 
   if (data.serviceMethod === 'waiver') {

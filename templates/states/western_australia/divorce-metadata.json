@@ -48,12 +48,13 @@
     { "code": "Family Court Act 1997 (WA)", "description": "Establishes the Family Court of Western Australia" },
     { "code": "Family Court Rules 2021 (WA)", "description": "WA-specific procedural rules" },
     { "code": "Child Support (Assessment) Act 1989 (Cth)", "description": "Federal child support legislation" },
-    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting and property provisions (in force 6 May 2024)" }
+    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting provisions (in force 6 May 2024)" },
+    { "code": "Family Law Amendment Act 2024 (Cth)", "description": "Codified property settlement process (s.79); family violence and wastage factors; companion animal orders; abolished mandatory counselling for marriages under 2 years (in force 10 June 2025)" }
   ],
   "filingFees": {
-    "approximate": "AUD $1125",
+    "approximate": "AUD $1100",
     "varies": false,
-    "notes": "Fee effective 1 July 2025. Reduced fee of AUD $375 available for financial hardship. Fee is the same as the federal court."
+    "notes": "Fee effective 1 July 2025 (Family Court of Western Australia). Reduced fee of AUD $365 available for concession card holders or financial hardship. Fee may be fully waived if liquid assets are less than $5,500 and income/expense tests are met. Note: WA's fee differs from the FCFCOA fee ($1,125) because WA has its own Family Court."
   },
   "childSupportGuidelines": {
     "calculationBasis": "formula",

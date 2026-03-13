@@ -62,8 +62,8 @@ Documenting grounds for divorce.
 LEGAL CONTEXT — 23 Pa.C.S. § 3301:
 Pennsylvania offers several grounds. Most common for uncontested divorces:
 1. MUTUAL CONSENT (§ 3301(c)): Both parties consent in writing; 90-day waiting period
-   from the DATE OF FILING the complaint before Affidavits of Consent can be filed
-   — the simplest no-fault option
+   from the DATE OF SERVICE of the complaint on the defendant before Affidavits of Consent
+   can be filed — the simplest no-fault option
 2. IRRETRIEVABLE BREAKDOWN + 1-YEAR SEPARATION (§ 3301(d)): Parties have lived separate
    for at least 1 year (amended December 2016 — reduced from 2 years)
 3. Fault grounds: adultery, desertion, cruel treatment, imprisonment (§ 3301(a))
@@ -161,7 +161,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Pennsylvania allows fee waivers (In Forma Pauperis) for low-income filers.
-The filing fee is approximately $200–$300 depending on the county.
+The filing fee is approximately $300–$400 depending on the county.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -197,8 +197,8 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- For § 3301(c) mutual consent: 90-day waiting period from the DATE OF FILING the complaint before Affidavits of Consent can be filed
-- Filing fee approximately $200–$300 (may be waived)
+- For § 3301(c) mutual consent: 90-day waiting period from the DATE OF SERVICE of the complaint on the defendant before Affidavits of Consent can be filed
+- Filing fee approximately $300–$400 depending on the county (may be waived)
 - An Inventory and Appraisement form is required for equitable distribution claims
 ${SHARED_RULES}`;
 

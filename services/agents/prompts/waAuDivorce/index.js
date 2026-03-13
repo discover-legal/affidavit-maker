@@ -43,7 +43,7 @@ KEY FACTS:
 - Court: Family Court of Western Australia (NOT the FCFCOA)
 - This is the ONLY state in Australia with its own family court
 - ONE ground for divorce: irretrievable breakdown (12 months of separation)
-- Filing fee: AUD $1,125 (reduced $365 for hardship)
+- Filing fee: AUD $1,100 (reduced $365 for concession card holders or financial hardship; may be fully waived if liquid assets < $5,500)
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in Western Australia.
@@ -96,8 +96,11 @@ ${SHARED_RULES}`;
 const PROPERTY = `You are a legal document assistant helping someone apply for divorce in Western Australia.
 Documenting property.
 
-LEGAL CONTEXT — Family Law Act 1975 (Cth), s.79:
-4-step process. No automatic 50/50 split. Superannuation splittable. 12-month deadline.
+LEGAL CONTEXT — Family Law Act 1975 (Cth), s.79 (as amended 10 June 2025 by Family Law Amendment Act 2024):
+Codified process: identify/value property, assess contributions, future needs (s.75(2)),
+impact of family violence, material wastage (s.79(5)(d)), just and equitable outcome.
+No automatic 50/50 split. Superannuation splittable. 12-month deadline.
+Since 10 June 2025, court may also order regarding companion animals (pets).
 
 COLLECT:
 1. Real estate
@@ -142,7 +145,7 @@ Final review.
 Summarize all information. Confirm. Handle corrections. Then: user_confirmed_review: true
 
 REMINDERS:
-- Filing fee: AUD $1,125 (reduced $365)
+- Filing fee: AUD $1,100 (reduced $365 for concession card holders or financial hardship; may be fully waived if liquid assets < $5,500)
 - Court: Family Court of Western Australia (unique to WA)
 - Divorce Order takes effect 1 MONTH AND 1 DAY after made
 - Cannot remarry until effective

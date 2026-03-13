@@ -42,7 +42,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either party must be domiciled in Nigeria or ordinarily resident in Nigeria for three years before filing (MCA s.2). The FCT High Court has jurisdiction if either party resides within the Federal Capital Territory.'
+      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). The FCT High Court has jurisdiction if either party resides within the Federal Capital Territory.'
     };
 
     this.waitingPeriod = {
@@ -104,7 +104,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner/Respondent is domiciled in Nigeria (or has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition), as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004. The Petitioner resides within the jurisdiction of the High Court of the Federal Capital Territory, Abuja.`;
+    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of the Federal Capital Territory, Abuja.`;
   }
 
   getVenueReason(divorceData) {
@@ -155,7 +155,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `I, ${name}, the Petitioner herein, make oath and state that the facts deposed to in this Petition are true and correct to the best of my knowledge, information, and belief.`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
     if (g.includes('adultery')) {
       return 'Since the celebration of the marriage, the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent, within the meaning of section 15(2)(b) of the Matrimonial Causes Act, Cap M7 LFN 2004.';

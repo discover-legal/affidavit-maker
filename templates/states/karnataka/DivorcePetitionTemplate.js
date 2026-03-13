@@ -10,7 +10,7 @@ class KarnatakaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
     this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'Filed where the marriage was solemnized, or where the parties last resided together, or where the respondent resides, or where the petitioner (wife) resides (HMA s.19).' };
-    this.waitingPeriod = { days: 180, description: 'Mutual consent: 6-month cooling-off period (may be waived per Amardeep Singh (2017)).' };
+    this.waitingPeriod = { days: 180, description: 'Mutual consent: 6-month cooling-off period (may be waived per Amardeep Singh v. Harveen Kaur (2017)). Supreme Court may also grant divorce directly under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)).' };
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
 
@@ -50,7 +50,7 @@ class KarnatakaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `Verified at Bengaluru on this _____ day of __________, _______. I, ${divorceData.petitionerName || '[PETITIONER NAME]'}, the Petitioner, verify that the contents of the above petition are true and correct to the best of my knowledge and belief.`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'mutual_consent').toLowerCase();
     if (g.includes('mutual') || g.includes('consent')) return 'The parties have been living separately for more than one year and have mutually consented to dissolve the marriage (HMA s.13B / SMA s.28).';
     if (g.includes('adultery')) return 'The Respondent has committed adultery (HMA s.13(1)(i)).';

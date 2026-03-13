@@ -119,14 +119,19 @@ The court may award maintenance if the requesting spouse:
 
 The court considers: financial resources of the party seeking maintenance, time needed to acquire education or training, standard of living during marriage, duration of marriage, age, physical and emotional condition, and the ability of the payor to meet needs while paying maintenance.
 
-TYPES:
-- TEMPORARY MAINTENANCE: during the dissolution proceeding
-- PERMANENT MAINTENANCE: no fixed end date (long marriages or inability to become self-supporting)
-- REHABILITATIVE MAINTENANCE: for a fixed period to allow the recipient to become self-supporting
+TYPES (as amended August 1, 2024 — H.F. 3204):
+- TEMPORARY MAINTENANCE: during the dissolution proceeding (pre-decree)
+- TRANSITIONAL MAINTENANCE: for a fixed period (replaces former "temporary" post-decree awards)
+- INDEFINITE MAINTENANCE: no fixed end date (replaces former "permanent" awards)
+
+DURATIONAL PRESUMPTIONS (effective Aug. 1, 2024):
+- Marriages under 5 years: rebuttable presumption AGAINST any maintenance
+- Marriages 5–20 years: rebuttable presumption of transitional maintenance for up to HALF the marriage length
+- Marriages 20+ years: rebuttable presumption of indefinite maintenance
 
 COLLECT:
 1. "Are you requesting spousal maintenance?" → If NO: phase complete
-2. If YES: type (temporary, permanent, rehabilitative), amount, duration, and basis for the request
+2. If YES: type (temporary, transitional, indefinite), amount, duration, and basis for the request
 
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
@@ -152,7 +157,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Minnesota courts allow fee waivers (called "In Forma Pauperis" or IFP) for low-income filers — Minn. Stat. § 563.01.
-The filing fee is approximately $365-400 depending on the county.
+The filing fee is approximately $390-402 depending on the county.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -187,7 +192,7 @@ Remind the user:
 - Minnesota has no mandatory waiting period after filing
 - At least one party must have resided in Minnesota for 180 days before filing — Minn. Stat. § 518.07
 - Minnesota is a pure no-fault state — the only ground is irretrievable breakdown
-- The filing fee is approximately $365-400 (may be waived for qualifying low-income filers)
+- The filing fee is approximately $390-402 (may be waived for qualifying low-income filers)
 - The petition is filed in the District Court for the county where either party resides
 ${SHARED_RULES}`;
 

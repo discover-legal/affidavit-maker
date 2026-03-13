@@ -236,7 +236,7 @@ class KenyaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Kenya child maintenance order — Children Act, 2022, s.36.
+   * Kenya child maintenance order — Children Act, 2022, s.24.
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Child maintenance section or null if no children
    */
@@ -249,12 +249,12 @@ class KenyaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED pursuant to the Children Act, 2022, s.36, that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Respondent'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Petitioner'} child maintenance in the amount of KES ${divorceData.childSupportAmount} per month for the benefit of the minor child(ren).`,
+        content: `IT IS ORDERED pursuant to the Children Act, 2022, s.24, that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Respondent'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Petitioner'} child maintenance in the amount of KES ${divorceData.childSupportAmount} per month for the benefit of the minor child(ren).`,
         type: 'order'
       });
     } else {
       items.push({
-        content: 'IT IS ORDERED pursuant to the Children Act, 2022, s.36, that child maintenance shall be paid in an amount to be determined by this Court, having regard to the needs of the child(ren), the means of both parents, and the standard of living the child(ren) was accustomed to.',
+        content: 'IT IS ORDERED pursuant to the Children Act, 2022, s.24, that child maintenance shall be paid in an amount to be determined by this Court, having regard to the needs of the child(ren), the means of both parents, and the standard of living the child(ren) was accustomed to.',
         type: 'order'
       });
     }

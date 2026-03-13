@@ -168,7 +168,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Virginia allows fee waivers (Petition to Proceed Without Payment of Fees or Costs)
-for low-income filers. The filing fee is typically $86–$100 plus service fees.
+for low-income filers. The filing fee is typically $84–$89 per Va. Code \u00a7 17.1-275, plus service fees ($12-$25 for sheriff service).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -204,7 +204,7 @@ user_confirmed_review: true
 Remind the user:
 - Separation period: 6 months (no children + separation agreement) or 1 year (other cases)
 - The separation period must be complete before the divorce can be granted
-- Filing fee approximately $86–$100 (may be waived)
+- Filing fee approximately $84–$89 per Va. Code \u00a7 17.1-275 (may be waived)
 - For uncontested divorces with a separation agreement, an ore tenus hearing or Grounds Affidavit may be used
 ${SHARED_RULES}`;
 

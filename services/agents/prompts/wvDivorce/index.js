@@ -167,7 +167,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 West Virginia courts allow fee waivers for low-income filers.
-The filing fee ranges from approximately $135 to $200 depending on the county.
+The filing fee for a Petition for Divorce is $135 (standard statewide per W. Va. Code \u00a759-1-11).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -200,7 +200,7 @@ user_confirmed_review: true
 
 Remind the user:
 - West Virginia has no mandatory post-filing waiting period (but no-fault requires consent or 1-year separation)
-- The filing fee ranges from approximately $135 to $200 depending on the county
+- The filing fee is $135 (standard statewide per W. Va. Code \u00a759-1-11)
 - West Virginia allows both fault and no-fault grounds — W. Va. Code §48-5-201
 - West Virginia courts divide property equitably — W. Va. Code §48-7-101 et seq.
 ${SHARED_RULES}`;

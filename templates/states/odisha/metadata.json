@@ -2,7 +2,7 @@
   "stateCode": "IN_OD", "stateName": "Odisha", "countryCode": "IN", "countryName": "India",
   "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"], "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
-  "personalLawSystem": true, "stampPaperRequired": true, "stampPaperValue": "INR 10",
+  "personalLawSystem": true, "stampPaperRequired": true, "stampPaperValue": "INR 15",
   "features": { "perjuryStatement": false, "notaryBlock": true, "notaryInstruction": true, "caseNumberLabel": "Case No.", "caseNumberRequired": false, "headerFormat": "uppercase", "venueFormat": "sentencecase", "stampPaperAffidavit": true, "personalLawTriage": true },
   "courtSystem": { "trialCourt": "Family Court", "familyDivision": "Family Court, Bhubaneswar / Cuttack", "appealCourt": "Orissa High Court" },
   "divorceTerminology": { "parties": ["Petitioner", "Respondent"], "grounds": "Hindu Marriage Act 1955 / Special Marriage Act 1954", "primaryGround": "mutual consent (HMA s.13B)", "propertyDivision": "No specific matrimonial property statute" },

@@ -14,7 +14,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Miss. Code §93-5-2 — No-fault ground (irreconcilable differences, 60-day waiting)
  * - Miss. Code §93-5-23 — Property division (equitable distribution); alimony
  * - Miss. Code §93-5-24 — Child custody (legal and physical custody, visitation)
- * - Miss. Code §43-19-101 et seq. — Mississippi Child Support Guidelines (income shares)
+ * - Miss. Code §43-19-101 et seq. — Mississippi Child Support Guidelines (percentage of income)
  *
  * Mississippi-Specific Notes:
  * - Called "Complaint for Divorce" — NOT petition
@@ -28,7 +28,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - "Visitation" terminology
  * - "Alimony" (periodic, lump-sum, rehabilitative)
  * - Dual classification: marital vs separate property
- * - Filing fee ~$52 (one of cheapest in US)
+ * - Filing fee ~$148–$158 (varies by county)
  */
 class MississippiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   constructor() {

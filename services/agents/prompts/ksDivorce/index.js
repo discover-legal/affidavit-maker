@@ -13,7 +13,7 @@
  *   - "Legal custody" and "residency" (not physical custody) — K.S.A. §23-3222
  *   - "Parenting time" (not visitation) — K.S.A. §23-3222
  *   - Maintenance — K.S.A. §23-2902
- *   - 60-day waiting period from filing — K.S.A. §23-2709
+ *   - 60-day waiting period from filing — K.S.A. §23-2708
  */
 
 const SHARED_RULES = `
@@ -137,7 +137,7 @@ OPTIONS:
 2. PERSONAL SERVICE: By sheriff or certified process server
 3. SERVICE BY PUBLICATION: If respondent cannot be located (requires court approval)
 
-Note: Kansas has a mandatory 60-day waiting period from the date of filing before the court can grant the divorce — K.S.A. §23-2709.
+Note: Kansas has a mandatory 60-day waiting period from the date of filing before the court can grant the divorce — K.S.A. §23-2708.
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -150,7 +150,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Kansas courts allow fee waivers (Poverty Affidavit) for low-income filers.
-The filing fee is typically $176.
+The filing fee is typically $195.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -182,8 +182,8 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- 60-day mandatory waiting period from filing before the court can grant the divorce — K.S.A. §23-2709
-- The filing fee is approximately $176 (may be waived for low-income filers)
+- 60-day mandatory waiting period from filing before the court can grant the divorce — K.S.A. §23-2708
+- The filing fee is approximately $195 (may be waived for low-income filers)
 - Kansas subjects ALL property (including pre-marital) to equitable division — K.S.A. §23-2802
 - Kansas uses "residency" not "physical custody" and "parenting time" not "visitation"
 - Maintenance is limited to a maximum of 121 months — K.S.A. §23-2902

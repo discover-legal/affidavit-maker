@@ -21,9 +21,10 @@
   "legalCitations": [
     { "code": "Family Law Act 1975 (Cth)", "description": "Federal divorce statute" },
     { "code": "Child Support (Assessment) Act 1989 (Cth)", "description": "Federal child support" },
-    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting and property provisions (in force 6 May 2024)" }
+    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting provisions (in force 6 May 2024)" },
+    { "code": "Family Law Amendment Act 2024 (Cth)", "description": "Codified property settlement process (s.79); family violence and wastage factors; companion animal orders; abolished mandatory counselling for marriages under 2 years (in force 10 June 2025)" }
   ],
-  "filingFees": { "approximate": "AUD $1125", "varies": false, "notes": "Fee effective 1 July 2025. Reduced fee $375 for financial hardship." },
+  "filingFees": { "approximate": "AUD $1125", "varies": false, "notes": "Fee effective 1 July 2025. Reduced fee of AUD $365 available for concession card holders (Health Care Card, Pensioner Concession Card, Commonwealth Seniors Health Card) or parties experiencing financial hardship." },
   "childSupportGuidelines": { "calculationBasis": "formula", "federalGuidelines": "Child Support (Assessment) Act 1989 (Cth)", "notes": "Assessed by Services Australia." },
   "spousalSupportGuidelines": { "calculationBasis": "discretionary", "guidelines": "Family Law Act 1975 (Cth), ss.72-75", "notes": "Discretionary." },
   "effectiveDateRule": "Divorce Order takes effect 1 month and 1 day after made (s.55).",

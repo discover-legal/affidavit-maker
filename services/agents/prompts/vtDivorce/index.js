@@ -61,11 +61,21 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — 15 V.S.A. § 551:
-Vermont is a no-fault only state (since 1969). There are two no-fault grounds:
+Vermont has both no-fault and fault-based grounds for divorce.
+
+NO-FAULT GROUNDS:
 1. The parties have lived apart for six (6) consecutive months and the resumption of marital relations is not reasonably probable.
 2. The marriage is irretrievably broken.
 
-Fault-based grounds are NOT available in Vermont.
+FAULT-BASED GROUNDS (rarely used):
+3. Adultery — 15 V.S.A. § 551(1)
+4. Imprisonment for 3+ years — 15 V.S.A. § 551(2)
+5. Intolerable severity (cruelty) — 15 V.S.A. § 551(3)
+6. Willful desertion for 7 consecutive years — 15 V.S.A. § 551(4)
+7. Persistent refusal or neglect to provide suitable maintenance — 15 V.S.A. § 551(5)
+8. Incurable insanity (confined 5+ years) — 15 V.S.A. § 551(6)
+
+NOTE: Most Vermont divorces use the no-fault grounds. Only present fault grounds if the user specifically mentions fault-related circumstances.
 
 COLLECT:
 1. Date and place of marriage (city, state/country)
@@ -73,6 +83,7 @@ COLLECT:
 3. "Which ground applies to your situation?"
    a. You and your spouse have lived apart for at least 6 consecutive months and getting back together is not likely.
    b. The marriage is irretrievably broken (cannot be repaired).
+   c. Other circumstances (ask for details — may involve a fault-based ground).
 
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
@@ -156,7 +167,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Vermont courts allow fee waivers for low-income filers by filing an Application to Waive Filing Fees and Service Costs.
-The filing fee is approximately $295.
+The filing fee is $90 for a stipulated (uncontested) divorce or $295 for a contested divorce.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -194,7 +205,7 @@ IMPORTANT REMINDERS for Vermont:
   * "Parent-Child Contact" (not visitation)
   * "Maintenance" (not alimony)
 - Vermont has no mandatory statutory waiting period (though the process typically takes several months)
-- The filing fee is approximately $295 (may be waived for low-income filers)
+- The filing fee is $90 (stipulated/uncontested) or $295 (contested) — may be waived for low-income filers
 - Documents will be filed in the Family Division of the Superior Court
 - The final document is called a "Final Divorce Order" (not a decree)
 ${SHARED_RULES}`;

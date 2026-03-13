@@ -62,7 +62,7 @@
     },
     {
       "code": "Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024",
-      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 18 October 2025)"
+      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 17 October 2025)"
     },
     {
       "code": "Oaths and Declarations Act 1957",
@@ -76,5 +76,6 @@
     "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the person before whom the affidavit is sworn."
   },
   "emergencyNumber": "111",
-  "dvHotline": "0800 456 450"
+  "dvHotline": "0800 456 450",
+  "dvHotlineNote": "Family Violence Info Line (Are You OK?): 0800 456 450; Women's Refuge 24-hour crisis line: 0800 733 843 (0800 REFUGE)"
 }

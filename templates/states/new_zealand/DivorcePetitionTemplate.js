@@ -207,11 +207,20 @@ class NewZealandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * NZ grounds for dissolution — sole ground is 2-year separation.
-   * Family Proceedings Act 1980, s.39.
+   * NZ grounds for dissolution.
+   * Family Proceedings Act 1980:
+   *   - s.39: Standard ground — 2-year separation
+   *   - s.39A: Family violence exception — protected person with final protection order
+   *            (in force 17 October 2025, inserted by the Family Proceedings (Dissolution
+   *            of Marriage or Civil Union for Family Violence) Amendment Act 2024)
    * There are NO fault-based grounds in New Zealand.
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
+    const g = (groundsForDivorce || 'separation').toLowerCase();
+    if (g.includes('family_violence') || g.includes('protection_order') || g.includes('violence')) {
+      return 'The Applicant is a protected person under a final protection order made against the Respondent, and applies for dissolution pursuant to section 39A of the Family Proceedings Act 1980 (as inserted by the Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024).';
+    }
+    // Default: 2-year separation (s.39)
     return 'The marriage has broken down irreconcilably as the parties have lived apart for a continuous period of at least two years immediately preceding the filing of this application, within the meaning of section 39 of the Family Proceedings Act 1980.';
   }
 }

@@ -53,7 +53,7 @@ If one party is a non-resident, the filing spouse must have lived in New Hampshi
 COLLECT:
 1. "Are both you and your spouse New Hampshire residents?"
 2. If NOT both residents: "How long have you lived in New Hampshire?" → must confirm 1+ year
-3. "Which county do you live in?" → determines Superior Court, Family Division jurisdiction
+3. "Which county do you live in?" → determines Circuit Court, Family Division jurisdiction
 
 REQUIRED FIELDS: state (NH), county, residency_confirmed
 ${SHARED_RULES}`;
@@ -164,7 +164,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 New Hampshire courts allow fee waivers for low-income filers.
-The filing fee is approximately $252 (joint) or $400 (contested).
+The filing fee is $280 (no children) or $400 (with children) as of July 1, 2025.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -198,7 +198,7 @@ user_confirmed_review: true
 Remind the user:
 - New Hampshire has no mandatory waiting period
 - ALL property is subject to equitable distribution — including separate property — RSA 458:16-a
-- Filing fee is approximately $252 (joint) or $400 (contested)
+- Filing fee is $280 (no children) or $400 (with children) as of July 1, 2025
 - A parenting plan must be filed if there are children — RSA 461-A
 ${SHARED_RULES}`;
 

@@ -14,7 +14,7 @@
   },
   "waitingPeriod": {
     "days": 180,
-    "description": "Mutual consent: 6-month cooling-off period between First Motion and Second Motion (HMA s.13B(2) / SMA s.28(2)). Courts may waive this per Amardeep Singh v. Harveen Kaur (2017) 8 SCC 746. Contested: no fixed waiting period."
+    "description": "Mutual consent: 6-month cooling-off period between First Motion and Second Motion (HMA s.13B(2) / SMA s.28(2)). Courts may waive this per Amardeep Singh v. Harveen Kaur (2017) 8 SCC 746. SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)). Contested: no fixed waiting period."
   },
   "groundsForDivorce": {
     "noFault": [
@@ -44,7 +44,7 @@
   "requiredForms": {
     "basic": [
       { "name": "Petition for Divorce", "description": "Filed under applicable personal law with affidavit on stamp paper", "required": true },
-      { "name": "Affidavit of the Petitioner", "description": "Sworn affidavit on judicial stamp paper (INR 100 in Maharashtra)", "required": true },
+      { "name": "Affidavit of the Petitioner", "description": "Sworn affidavit on judicial stamp paper (INR 100 in Maharashtra; Maharashtra Stamp Dept. circular dated 30-Oct-2024 confirmed INR 100 remains valid for affidavits despite Oct 2024 ordinance raising minimum to INR 500)", "required": true },
       { "name": "Marriage Certificate", "description": "Original or certified copy", "required": true },
       { "name": "Address Proof", "description": "Aadhaar card, voter ID, passport, or utility bill", "required": true }
     ]

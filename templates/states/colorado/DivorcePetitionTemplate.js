@@ -20,7 +20,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Called "Dissolution of Marriage" — NOT divorce
  * - Pure no-fault state — only ground is "irretrievable breakdown"
  * - 91-day (3-month) domicile requirement (NOT 6 months)
- * - 91-day waiting period from date of filing (C.R.S. § 14-10-106(1)(f))
+ * - 91-day waiting period from date of service/jurisdiction (C.R.S. § 14-10-106(1)(a))
  * - "Parental Responsibilities" (not custody)
  * - "Parenting Time" (not visitation)
  * - "Maintenance" (not alimony or spousal support)
@@ -57,12 +57,12 @@ class ColoradoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'One of the parties must have been domiciled in Colorado for at least 91 days before filing the petition. (C.R.S. § 14-10-106)'
     };
 
-    // Colorado waiting period — 91 days from filing
+    // Colorado waiting period — 91 days from service (or co-petitioner joinder)
     this.waitingPeriod = {
       days: 91,
-      startsFrom: 'filing_date',
+      startsFrom: 'service_date',
       exceptions: [],
-      description: 'A decree cannot be entered until 91 days have elapsed after the filing of the petition. (C.R.S. § 14-10-106(1)(f))'
+      description: 'A decree cannot be entered until 91 days have elapsed after the court acquires jurisdiction over the respondent (via service, waiver of service, or co-petitioner joinder). (C.R.S. § 14-10-106(1)(a))'
     };
   }
 

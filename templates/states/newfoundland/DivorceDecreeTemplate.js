@@ -23,7 +23,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *   - s.12: Effective date of divorce — 31 days after order unless varied
  *   - s.12(7): Certificate of divorce — issued by registrar after effective date
  * - Family Law Act, RSNL 1990, c. F-2 (property division on marriage breakdown)
- * - Family Law Act, SNL 2016, c. 41 (maintenance/support obligations)
+ * - Family Law Act, RSNL 1990, c. F-2 (maintenance/support obligations)
  * - Judicature Act, RSNL 1990, c. J-4 (court procedures)
  *
  * @class NewfoundlandDivorceDecreeTemplate

@@ -196,7 +196,7 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   /**
    * Australian grounds — only one: irretrievable breakdown (12-month separation).
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     return 'The marriage has broken down irretrievably within the meaning of section 48(1) of the Family Law Act 1975 (Cth). The parties have lived separately and apart for a continuous period of not less than 12 months immediately preceding the date of filing of this Application.';
   }
 }

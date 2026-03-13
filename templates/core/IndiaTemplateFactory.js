@@ -86,7 +86,7 @@ function createIndiaDivorcePetitionTemplate(config) {
       try { this.metadata = require(config.metadataPath); } catch (e) { this.metadata = null; }
       this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
       this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'HMA s.19 / SMA s.31 jurisdiction rules.' };
-      this.waitingPeriod = { days: 180, description: '6-month cooling-off (waivable per Amardeep Singh (2017)).' };
+      this.waitingPeriod = { days: 180, description: '6-month cooling-off (waivable per Amardeep Singh v. Harveen Kaur (2017)). Supreme Court may also grant divorce directly under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)).' };
       this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
     }
 
@@ -133,7 +133,7 @@ function createIndiaDivorcePetitionTemplate(config) {
       return `Verified at ${config.defaultCity} on this _____ day of __________, _______. I, ${dd.petitionerName || '[PETITIONER NAME]'}, verify that the contents are true and correct.`;
     }
 
-    getGroundsStatement(g) {
+    getGroundsText(g) {
       const s = (g || 'mutual_consent').toLowerCase();
       if (s.includes('mutual') || s.includes('consent')) return 'The parties have mutually consented to dissolve the marriage (HMA s.13B / SMA s.28).';
       if (s.includes('adultery')) return 'The Respondent has committed adultery (HMA s.13(1)(i)).';
@@ -247,7 +247,7 @@ function createIndiaDivorcePrompts(config) {
 
   const RESIDENCY = `Legal document assistant for ${config.stateName} divorce.\nJurisdiction per HMA s.19 / SMA s.31: filed where marriage was solemnized, respondent resides, parties last resided together, or petitioner (wife) resides.\n\nCOLLECT:\n1. Where was marriage solemnized?\n2. Current residence → confirm ${config.stateName}\n3. Spouse's residence\n4. Preferred court location\n${SHARED_RULES}`;
 
-  const GROUNDS = `Legal document assistant for ${config.stateName} divorce.\nHMA s.13 / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\nAmardeep Singh (2017): cooling-off waivable\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
+  const GROUNDS = `Legal document assistant for ${config.stateName} divorce.\nHMA s.13 / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\nAmardeep Singh (2017): 6-month cooling-off waivable\nShilpa Sailesh v. Varun Sreenivasan (2023): SC may grant divorce under Art. 142 on irretrievable breakdown\nDelhi HC Full Bench (Dec 2025): 1-year separation under s.13B(1) is directory, not mandatory\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
 
   const CHILDREN = `Legal document assistant for ${config.stateName} divorce.\nHMA s.26 / HMGA 1956 / GWA 1890 / BNSS s.144. Welfare of child paramount.\n\nCOLLECT:\n1. Minor/dependent children? → If NO: phase complete\n2. Each child: name, DOB, living arrangements\n3. Custody proposal\n4. Maintenance agreement\nREQUIRED: children_confirmed\n${SHARED_RULES}`;
 
@@ -257,7 +257,7 @@ function createIndiaDivorcePrompts(config) {
 
   const SERVICE = `Legal document assistant for ${config.stateName} divorce.\nService: personal, substituted, registered post, mutual consent.\n\nCOLLECT:\n1. Mutual consent or contested?\n2. Respondent's address\n3. Cooperative?\nREQUIRED: service_method, respondent_address\n${SHARED_RULES}`;
 
-  const REVIEW = `Legal document assistant for ${config.stateName} divorce. Final review.\nSummarize all information. Ask user to confirm. user_confirmed_review: true\n\nREMINDERS:\n- Stamp paper: ${config.stampPaperValue}\n- Filing fee: ~${config.filingFee}\n- Mutual consent: First Motion → 6-month cooling-off → Second Motion\n- Emergency: 181 or 112\n${SHARED_RULES}`;
+  const REVIEW = `Legal document assistant for ${config.stateName} divorce. Final review.\nSummarize all information. Ask user to confirm. user_confirmed_review: true\n\nREMINDERS:\n- Stamp paper: ${config.stampPaperValue}\n- Filing fee: ~${config.filingFee || 'varies by court'}\n- Mutual consent: First Motion → 6-month cooling-off → Second Motion\n- Cooling-off waivable (Amardeep Singh (2017)); 1-year separation waivable (Delhi HC Dec 2025)\n- Emergency: 181 or 112\n${SHARED_RULES}`;
 
   const PHASES = {
     INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1, prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },

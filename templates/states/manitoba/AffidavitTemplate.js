@@ -17,7 +17,7 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * - Court File No. instead of Case No.
  * - No perjury statement required (oath provides the solemn affirmation)
  * - Divorce proceedings use "Petitioner" / "Respondent" (Manitoba practice)
- * - Support is termed "maintenance" in Manitoba (Family Maintenance Act, CCSM c. F20)
+ * - Support is termed "maintenance" in Manitoba (Family Law Act, CCSM c. F20)
  *
  * @class ManitobaAffidavitTemplate
  * @extends BaseAffidavitTemplate

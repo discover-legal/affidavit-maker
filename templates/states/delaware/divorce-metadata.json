@@ -86,9 +86,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$152",
-    "varies": true,
-    "notes": "Delaware filing fees are approximately $152. Fee waivers may be available for qualifying low-income individuals."
+    "approximate": "$165 + $10 court security fee",
+    "varies": false,
+    "notes": "Delaware Family Court filing fee for divorce is $165 plus a $10 court security fee ($175 total). Fee waivers may be available for qualifying low-income individuals."
   },
 
   "requiredForms": {

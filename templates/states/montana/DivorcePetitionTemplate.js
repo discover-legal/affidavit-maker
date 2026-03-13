@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - MCA §40-4-104 — Dissolution of marriage (residency, grounds)
- * - MCA §40-4-107 — 20-day waiting period from service or response
+ * - MCA §40-4-107 — 21-day waiting period from service or response
  * - MCA §40-4-202 — Property disposition (equitable distribution)
  * - MCA §40-4-203 — Maintenance (spousal support)
  * - MCA §40-4-212 — Parenting plan required
@@ -20,7 +20,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Called "Dissolution of Marriage" (NOT divorce)
  * - Purely no-fault — "irretrievable breakdown" or 180-day separation
  * - 90-day residency requirement (MCA §40-4-104)
- * - 20-day waiting period from service or response (MCA §40-4-107)
+ * - 21-day waiting period from service or response (MCA §40-4-107)
  * - Montana eliminated "custody" and "visitation" in 2005 — uses "parenting" exclusively
  * - "Parenting Plan" required in all cases with minor children (MCA §40-4-212)
  * - "Parenting Time" (not visitation)
@@ -60,12 +60,12 @@ class MontanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'At least one party must have been domiciled in Montana for 90 days preceding the filing of the petition. (MCA §40-4-104)'
     };
 
-    // Montana — 20-day waiting period from service or response
+    // Montana — 21-day waiting period from service or response
     this.waitingPeriod = {
-      days: 20,
+      days: 21,
       startsFrom: 'service_or_response',
       exceptions: [],
-      description: 'No decree may be entered until at least 20 days after the respondent is served or files a response. (MCA §40-4-107)'
+      description: 'No decree may be entered until at least 21 days after the respondent is served or files a response. (MCA §40-4-107)'
     };
   }
 
@@ -315,7 +315,7 @@ Petitioner`;
     }
 
     warnings.push('Montana requires 90 days of domicile before filing. (MCA §40-4-104)');
-    warnings.push('A decree cannot be entered until 20 days after service or filing of response. (MCA §40-4-107)');
+    warnings.push('A decree cannot be entered until 21 days after service or filing of response. (MCA §40-4-107)');
     warnings.push('Montana is a purely no-fault state — only irretrievable breakdown or 180-day separation.');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

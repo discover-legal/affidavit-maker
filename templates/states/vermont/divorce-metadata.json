@@ -45,8 +45,45 @@
         "statute": "15 V.S.A. § 551"
       }
     ],
-    "fault": [],
-    "notes": "Vermont is a no-fault only state since 1969. The two no-fault grounds are (1) the parties have lived apart for six consecutive months and resumption of marital relations is not reasonably probable, or (2) the marriage is irretrievably broken."
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by either party",
+        "statute": "15 V.S.A. § 551(1)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Either party sentenced to confinement at hard labor for three years or more and actually confined at the time of the action",
+        "statute": "15 V.S.A. § 551(2)"
+      },
+      {
+        "code": "intolerable_severity",
+        "name": "Intolerable Severity",
+        "description": "Intolerable severity in either party (cruelty)",
+        "statute": "15 V.S.A. § 551(3)"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion for Seven Years",
+        "description": "Willful desertion for seven consecutive years",
+        "statute": "15 V.S.A. § 551(4)"
+      },
+      {
+        "code": "persistent_refusal_to_provide",
+        "name": "Persistent Refusal or Neglect to Provide",
+        "description": "Persistent refusal or neglect on the part of one spouse to provide suitable maintenance for the other when able to do so",
+        "statute": "15 V.S.A. § 551(5)"
+      },
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "Either party has been confined to a mental institution for at least five years and adjudged incurably insane",
+        "statute": "15 V.S.A. § 551(6)"
+      }
+    ],
+    "notes": "Vermont has both no-fault and fault-based grounds for divorce under 15 V.S.A. § 551. The two no-fault grounds are (1) the parties have lived apart for six consecutive months and resumption of marital relations is not reasonably probable, or (2) the marriage is irretrievably broken. Fault grounds include adultery, imprisonment for 3+ years, intolerable severity, willful desertion for 7 years, persistent refusal to provide, and incurable insanity."
   },
 
   "propertyDivision": {

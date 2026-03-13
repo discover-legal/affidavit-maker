@@ -213,7 +213,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Louisiana courts allow fee waivers via an Application for In Forma Pauperis (IFP).
-Filing fees vary by parish, typically $200-$450.
+Filing fees vary by parish, typically $200-$600.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -250,7 +250,7 @@ Remind the user:
 - Article 103: No additional waiting period if already separated for required time
 - Louisiana is a community property state — property is divided equally (50/50)
 - Joint custody is presumed with a domiciliary parent designation
-- Filing fees vary by parish ($200-$450); fee waivers available via IFP
+- Filing fees vary by parish ($200-$600); fee waivers available via IFP
 - The petition is filed in the District Court of the parish where either party is domiciled
 - Louisiana uses PARISHES, not counties — the documents will reflect this
 ${SHARED_RULES}`;

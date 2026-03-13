@@ -10,7 +10,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Legal References:
  * - K.S.A. §23-2701 — Grounds for divorce (incompatibility, failure of marital duty)
  * - K.S.A. §23-2703 — Residency requirement (60 days)
- * - K.S.A. §23-2709 — 60-day waiting period from filing
+ * - K.S.A. §23-2708 — 60-day waiting period from filing
  * - K.S.A. §23-2802 — Property division (equitable distribution, all property)
  * - K.S.A. §23-2902 — Maintenance
  * - K.S.A. §23-3222 — Custody (legal custody, residency, parenting time)
@@ -63,7 +63,7 @@ class KansasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       days: 60,
       startsFrom: 'filing_date',
       exceptions: [],
-      description: 'No decree of divorce shall be entered until at least sixty (60) days after the date the petition is filed. (K.S.A. §23-2709)'
+      description: 'No decree of divorce shall be entered until at least sixty (60) days after the date the petition is filed. (K.S.A. §23-2708)'
     };
   }
 
@@ -320,7 +320,7 @@ Petitioner`;
     }
 
     warnings.push('Kansas requires 60 days of state residency before filing. (K.S.A. §23-2703)');
-    warnings.push('No decree shall be entered until 60 days after the petition is filed. (K.S.A. §23-2709)');
+    warnings.push('No decree shall be entered until 60 days after the petition is filed. (K.S.A. §23-2708)');
     warnings.push('Kansas law subjects ALL property of either party to equitable division. (K.S.A. §23-2802)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

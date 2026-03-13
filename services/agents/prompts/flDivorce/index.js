@@ -202,8 +202,9 @@ Final review phase.
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:
 user_confirmed_review: true
 
-Remind the user they will also need to complete mandatory financial disclosure forms (FL Form 12.902(b) or (c))
-and file them with the court.
+Remind the user:
+- Florida has a mandatory 20-day waiting period from filing before a final judgment can be entered (Fla. Stat. § 61.19)
+- They will also need to complete mandatory financial disclosure forms (FL Form 12.902(b) or (c)) and file them with the court
 ${SHARED_RULES}`;
 
 const PHASES = {

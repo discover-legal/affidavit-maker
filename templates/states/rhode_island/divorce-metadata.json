@@ -24,10 +24,16 @@
   },
 
   "waitingPeriod": {
-    "days": 0,
-    "startsFrom": "filing_date",
-    "exceptions": [],
-    "description": "Rhode Island has no mandatory waiting period after filing. However, for irreconcilable differences, the plaintiff must make a statement under oath."
+    "days": 90,
+    "startsFrom": "nominal_decree",
+    "exceptions": [
+      {
+        "ground": "living_separate_3_years",
+        "days": 21,
+        "description": "For divorces granted on the ground of living separate and apart for 3 years, the waiting period is 21 days (20 days after the decision pending entry of final judgment)"
+      }
+    ],
+    "description": "Rhode Island has a mandatory waiting period between the nominal decree (initial hearing) and the entry of the Final Judgment of Divorce. For irreconcilable differences, the waiting period is approximately 3 months (90 days). For living separate and apart for 3+ years, it is 21 days. This 'cooling off' period allows the parties to reconsider."
   },
 
   "groundsForDissolution": {

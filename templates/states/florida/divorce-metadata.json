@@ -209,9 +209,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$409",
+    "approximate": "$408",
     "varies": true,
-    "notes": "Varies by county. Application for Determination of Civil Indigent Status available for fee waiver."
+    "notes": "Standard statewide filing fee is approximately $408 (base $397.50 plus $10.50 judgment fee), plus a $10 summons fee. Some counties may assess additional administrative fees. Application for Determination of Civil Indigent Status available for fee waiver."
   },
 
   "childSupport": {

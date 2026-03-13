@@ -162,7 +162,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 New Mexico courts allow fee waivers (Petition to Proceed in Forma Pauperis) for low-income filers.
-The filing fee is typically $137 to $200 depending on the judicial district.
+The filing fee is typically $137 statewide (standardized across all judicial districts).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -195,7 +195,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 30-day mandatory cooling-off period after service before the court can enter a final decree
-- The filing fee is approximately $137 to $200 (may be waived for low-income filers)
+- The filing fee is $137 statewide (may be waived for low-income filers)
 - New Mexico is a community property state — property acquired during marriage is divided equally 50/50 (NMSA §40-4-7)
 - Joint custody is presumed to be in the best interests of the child(ren) (NMSA §40-4-9.1)
 - A parenting plan is required when joint custody is ordered (NMSA §40-4-9.1)

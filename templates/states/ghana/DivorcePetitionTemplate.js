@@ -18,15 +18,15 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.2(1)(a): adultery + intolerability
  *   - s.2(1)(b): unreasonable behaviour
  *   - s.2(1)(c): desertion for 2+ years
- *   - s.2(1)(d): no cohabitation for 5+ years
- *   - s.2(1)(e): 2-year separation with consent
+ *   - s.2(1)(d): 2-year separation with consent
+ *   - s.2(1)(e): no cohabitation for 5+ years
  * - Marriage Ordinance (Cap 127) — ordinance marriages
  * - Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112) — customary marriages
  * - Marriage of Mohammedans Ordinance (Cap 129) — Mohammedan marriages
  * - Children's Act 1998 (Act 560) — best interests of the child
  * - 1992 Constitution, Art. 22 — spouse's property rights
  *
- * Residency Requirement (MCA s.23):
+ * Residency Requirement (MCA s.31):
  * - Either party must be domiciled in Ghana OR resident for at least 3 years before filing.
  *
  * Two-Year Bar (MCA s.1):
@@ -40,7 +40,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Ghana-Specific:
  * - Parties are "Petitioner" and "Respondent"
  * - Court is the High Court of Justice (Matrimonial/Family Division)
- * - Court filing fee: approx. GHS 50 (lawyer professional fees are separate)
+ * - Court filing fee: approx. GHS 500-1,000 (lawyer professional fees are separate)
  * - Suit No. instead of Case No.
  * - A4 paper size
  *
@@ -72,11 +72,11 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'marriageType'
     ];
 
-    // Ghana residency: domicile OR 3 years resident (MCA s.23)
+    // Ghana residency: domicile OR 3 years resident (MCA s.31)
     this.residencyRequirements = {
       stateMonths: 36,
       countyDays: 0,
-      description: 'Either party must be domiciled in Ghana OR have been resident in Ghana for at least 3 years immediately before filing the petition (Matrimonial Causes Act 1971, s.23).'
+      description: 'Either party must be (a) a citizen of Ghana, OR (b) domiciled in Ghana, OR (c) ordinarily resident in Ghana for at least 3 years immediately before filing the petition (Matrimonial Causes Act 1971, s.31).'
     };
 
     // No mandatory waiting period after filing, but reconciliation is required
@@ -147,11 +147,11 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Ghana jurisdiction statement — MCA s.23.
+   * Ghana jurisdiction statement — MCA s.31.
    * Either party must be domiciled in Ghana or resident for 3 years.
    */
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner (or the Respondent) is domiciled in Ghana or has been resident in Ghana for at least three years immediately preceding the filing of this Petition, as required by section 23 of the Matrimonial Causes Act 1971 (Act 367). The parties were married under ${divorceData.marriageType || '[MARRIAGE TYPE]'} law.`;
+    return `The Petitioner (or the Respondent) is a citizen of Ghana, or is domiciled in Ghana, or has been ordinarily resident in Ghana for at least three years immediately preceding the filing of this Petition, as required by section 31 of the Matrimonial Causes Act 1971 (Act 367). The parties were married under ${divorceData.marriageType || '[MARRIAGE TYPE]'} law.`;
   }
 
   /**
@@ -246,7 +246,7 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Matrimonial Causes Act 1971, s.2(1) — sole ground is that the marriage
    * has broken down beyond reconciliation, proved by one of five facts.
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'consent_separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent, within the meaning of section 2(1)(a) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
@@ -258,17 +258,10 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return 'The Respondent has deserted the Petitioner for a continuous period of at least two years immediately preceding the filing of this Petition, within the meaning of section 2(1)(c) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
     }
     if (g.includes('five') || g.includes('5')) {
-      return 'The parties have not cohabited for a continuous period of at least five years immediately preceding the filing of this Petition, within the meaning of section 2(1)(d) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
+      return 'The parties have not lived as man and wife for a continuous period of at least five years immediately preceding the presentation of this Petition, within the meaning of section 2(1)(e) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
     }
     // Default: 2-year separation with consent
-    return 'The parties have not cohabited for a continuous period of at least two years immediately preceding the filing of this Petition, and the Respondent consents to the divorce, within the meaning of section 2(1)(e) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
-  }
-
-  /**
-   * Override base getGroundsText to use Ghana-specific getGroundsStatement.
-   */
-  getGroundsText(grounds, divorceData) {
-    return this.getGroundsStatement(grounds);
+    return 'The parties have not lived as man and wife for a continuous period of at least two years immediately preceding the presentation of this Petition, and the Respondent consents to the grant of a decree of divorce, within the meaning of section 2(1)(d) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
   }
 
   /**

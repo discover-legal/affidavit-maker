@@ -9,14 +9,14 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - 19-A M.R.S. §901 — Jurisdiction and residency (6 months or married in ME or grounds arose in ME)
- * - 19-A M.R.S. §902 — Grounds (no-fault only — irreconcilable marital differences); 60-day waiting period
+ * - 19-A M.R.S. §902 — Grounds (no-fault and fault-based); 60-day waiting period
  * - 19-A M.R.S. §953 — Division of marital property (equitable distribution)
  * - 19-A M.R.S. §951-A — Spousal support (general, transitional, reimbursement, nominal)
  * - 19-A M.R.S. §1501 et seq. — Parental rights and responsibilities (Maine's term for custody)
  * - 19-A M.R.S. §2001 et seq. — Maine Child Support Guidelines
  *
  * Maine-Specific Notes:
- * - No-fault only state — "irreconcilable marital differences"
+ * - Both no-fault ("irreconcilable marital differences") and fault grounds available
  * - 6-month residency (or married in ME, or grounds arose in ME)
  * - 60-day waiting period from service
  * - UNIQUE: "Parental Rights and Responsibilities" (NOT "custody")
@@ -122,7 +122,7 @@ class MaineDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Generate Maine grounds section — no-fault only (irreconcilable marital differences)
+   * Generate Maine grounds section — irreconcilable marital differences (most common)
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Grounds section
    */
@@ -305,7 +305,7 @@ Plaintiff`;
 
     warnings.push('Maine requires 6 months of state residency before filing (or married in ME, or grounds arose in ME). (19-A M.R.S. §901)');
     warnings.push('No judgment may be entered until 60 days after service of the summons and complaint. (19-A M.R.S. §902)');
-    warnings.push('Maine is a no-fault only state. The sole ground is irreconcilable marital differences. (19-A M.R.S. §902)');
+    warnings.push('Maine has both no-fault (irreconcilable marital differences) and fault-based grounds. (19-A M.R.S. §902)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       warnings.push('A proposed order on parental rights and responsibilities must be filed.');

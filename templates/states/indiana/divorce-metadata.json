@@ -101,9 +101,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$157",
+    "approximate": "$157-$177",
     "varies": true,
-    "notes": "Indiana filing fees are approximately $157 for a dissolution of marriage but may vary by county. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
+    "notes": "Indiana filing fees range from approximately $157 to $177 depending on the county. Many counties (e.g., Marion, Clark) charge $177. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
   },
 
   "requiredForms": {

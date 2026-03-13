@@ -2,7 +2,7 @@
   "stateCode": "IN_TN", "stateName": "Tamil Nadu", "countryCode": "IN", "countryName": "India",
   "documentTypes": ["divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true, "personalLawSystem": true,
   "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "Filed where marriage was solemnized, parties last resided together, respondent resides, or petitioner (wife) resides (HMA s.19 / SMA s.31)." },
-  "waitingPeriod": { "days": 180, "description": "Mutual consent: 6-month cooling-off (waivable per Amardeep Singh (2017)). Contested: no fixed waiting period." },
+  "waitingPeriod": { "days": 180, "description": "Mutual consent: 6-month cooling-off (waivable per Amardeep Singh v. Harveen Kaur (2017)). SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)). Contested: no fixed waiting period." },
   "groundsForDivorce": {
     "noFault": [{ "code": "mutual_consent", "name": "Mutual Consent", "description": "Joint petition after 1+ year separation.", "statute": "HMA s.13B / SMA s.28" }],
     "fault": [

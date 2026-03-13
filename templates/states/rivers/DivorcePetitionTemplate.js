@@ -16,7 +16,7 @@ class RiversDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
 
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
-    this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'Either party must be domiciled in Nigeria or ordinarily resident for 3 years (MCA s.2). Rivers State High Court has jurisdiction if either party resides within the state.' };
+    this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for 3 years is deemed domiciled (MCA s.7(b)). Rivers State High Court has jurisdiction if either party resides within the state.' };
     this.waitingPeriod = { days: 0, description: 'Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage without leave (MCA s.30).' };
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
@@ -34,7 +34,7 @@ class RiversDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner/Respondent is domiciled in Nigeria (or has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition), as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004. The Petitioner resides within the jurisdiction of the High Court of Rivers State.`;
+    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of Rivers State.`;
   }
 
   getVenueReason(divorceData) {
@@ -71,7 +71,7 @@ class RiversDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `I, ${name}, the Petitioner herein, make oath and state that the facts deposed to in this Petition are true and correct to the best of my knowledge, information, and belief.`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
     if (g.includes('adultery')) return 'Since the celebration of the marriage, the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent, within the meaning of section 15(2)(b) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
     if (g.includes('intolerable') || g.includes('behaviour') || g.includes('cruelty')) return 'Since the celebration of the marriage, the Respondent has behaved in such a way that the Petitioner cannot reasonably be expected to live with the Respondent, within the meaning of section 15(2)(c) of the Matrimonial Causes Act, Cap M7 LFN 2004.';

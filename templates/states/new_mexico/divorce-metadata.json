@@ -97,9 +97,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$132-$162",
-    "varies": true,
-    "notes": "New Mexico filing fees for dissolution of marriage are approximately $132 to $162 and may vary by judicial district. Fee waivers (Petition to Proceed in Forma Pauperis) are available for qualifying low-income individuals."
+    "approximate": "$137",
+    "varies": false,
+    "notes": "New Mexico has a standardized statewide filing fee of $137 for a Petition for Dissolution of Marriage across all judicial districts. Fee waivers (Application for Free Process, Form 4-222) are available for qualifying low-income individuals."
   },
 
   "requiredForms": {

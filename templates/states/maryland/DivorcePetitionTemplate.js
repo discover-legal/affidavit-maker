@@ -17,8 +17,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Maryland-Specific Notes:
  * - Called "Absolute Divorce" — complaint is "Complaint for Absolute Divorce"
- * - No-fault grounds: mutual consent (no waiting), 6-month separation
- * - Fault grounds: adultery, desertion (12 mo), cruelty, conviction (3+ yr sentence), insanity (3+ yr)
+ * - No-fault grounds: mutual consent (no waiting), irreconcilable differences (Oct 2023), 6-month separation
+ * - ALL fault grounds ELIMINATED effective October 1, 2023 (HB 380) — Maryland is now purely no-fault
  * - "Alimony" (not maintenance or spousal support)
  * - "Legal Custody" and "Physical Custody" (not parental responsibilities)
  * - Equitable distribution (NOT community property)
@@ -138,40 +138,31 @@ class MarylandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     let paragraphNum = divorceData._paragraphNum || 8;
     const grounds = divorceData.groundsForDivorce || 'mutual_consent';
 
+    // Maryland eliminated ALL fault grounds effective October 1, 2023 (HB 380).
+    // Only no-fault grounds remain: mutual consent, irreconcilable differences, 6-month separation.
     if (grounds === 'mutual_consent') {
       items.push({
         number: paragraphNum++,
         content: 'The parties mutually consent to the divorce and have executed a written settlement agreement resolving all issues of alimony, property distribution, and, if applicable, child custody, visitation, and child support. (Md. Code, Fam. Law § 7-103(a)(8))',
         type: 'grounds'
       });
-    } else if (grounds === 'six_month_separation') {
+    } else if (grounds === 'irreconcilable_differences' || grounds === 'no_fault') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties have lived separate and apart without cohabitation for at least six (6) months prior to the filing of this Complaint. (Md. Code, Fam. Law § 7-103(a)(7))',
+        content: 'The differences between the parties are irreconcilable and there is no reasonable prospect of reconciliation. (Md. Code, Fam. Law § 7-103(a)(2))',
         type: 'grounds'
       });
-    } else if (grounds === 'adultery') {
+    } else if (grounds === 'six_month_separation' || grounds === 'separation') {
       items.push({
         number: paragraphNum++,
-        content: 'The Defendant committed adultery. (Md. Code, Fam. Law § 7-103(a)(1))',
-        type: 'grounds'
-      });
-    } else if (grounds === 'desertion') {
-      items.push({
-        number: paragraphNum++,
-        content: 'The Defendant has deserted the Plaintiff for at least twelve (12) months. The desertion is deliberate and final, without the consent of the Plaintiff, and without justification. (Md. Code, Fam. Law § 7-103(a)(2))',
-        type: 'grounds'
-      });
-    } else if (grounds === 'cruelty') {
-      items.push({
-        number: paragraphNum++,
-        content: 'The Defendant has engaged in cruelty of treatment or excessively vicious conduct toward the Plaintiff (or a minor child of the Plaintiff), rendering continued cohabitation unsafe or improper. (Md. Code, Fam. Law § 7-103(a)(6))',
+        content: 'The parties have lived separate and apart without cohabitation for at least six (6) months prior to the filing of this Complaint. Under the October 2023 amendments, spouses may be considered "separate" while living under the same roof if they pursue separate lives. (Md. Code, Fam. Law § 7-103(a)(3))',
         type: 'grounds'
       });
     } else {
+      // Default to irreconcilable differences (most common)
       items.push({
         number: paragraphNum++,
-        content: `The marriage should be dissolved on the ground of: ${grounds}. (Md. Code, Fam. Law § 7-103)`,
+        content: 'The differences between the parties are irreconcilable and there is no reasonable prospect of reconciliation. (Md. Code, Fam. Law § 7-103(a)(2))',
         type: 'grounds'
       });
     }
@@ -345,10 +336,11 @@ Plaintiff`;
     const grounds = divorceData.groundsForDivorce || '';
     if (grounds === 'mutual_consent') {
       warnings.push('Mutual consent divorce requires a signed written settlement agreement resolving all issues. Both parties must appear at the hearing.');
-    } else if (grounds === 'six_month_separation') {
-      warnings.push('The parties must have lived separate and apart without cohabitation for at least 6 months before filing. (Md. Code, Fam. Law § 7-103(a)(7))');
+    } else if (grounds === 'six_month_separation' || grounds === 'separation') {
+      warnings.push('The parties must have lived separate and apart without cohabitation for at least 6 months before filing. Under the October 2023 amendments, spouses may be considered "separate" while living under the same roof if they pursue separate lives. (Md. Code, Fam. Law § 7-103(a)(3))');
     }
 
+    warnings.push('Maryland eliminated ALL fault-based grounds effective October 1, 2023 (HB 380). Only no-fault grounds are available: mutual consent, irreconcilable differences, or 6-month separation.');
     warnings.push('If the grounds occurred outside Maryland, at least one party must have resided in Maryland for at least 6 months before filing. (Md. Code, Fam. Law § 7-101)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

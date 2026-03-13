@@ -32,7 +32,7 @@
     "parties": ["Petitioner", "Respondent"],
     "grounds": "Divorce Act (RSC 1985, c. 3)",
     "primaryGround": "separation of one year (s.8(2)(a))",
-    "propertyDivision": "Family Law Act, RSNL 1990, c. F-2 (property division and support obligations); Family Law Act, SNL 2016, c. 41 (support obligations)"
+    "propertyDivision": "Family Law Act, RSNL 1990, c. F-2 (property division and support obligations)"
   },
   "legalCitations": [
     {
@@ -40,8 +40,8 @@
       "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
     },
     {
-      "code": "Family Law Act, SNL 2016, c. 41",
-      "description": "Newfoundland and Labrador statute — property division, spousal support, domestic contracts (replaced SNL 1988, c. 60)"
+      "code": "Family Law Act, RSNL 1990, c. F-2",
+      "description": "Newfoundland and Labrador statute — property division, support obligations, domestic contracts"
     },
     {
       "code": "Evidence Act, RSNL 1990, c. E-16",

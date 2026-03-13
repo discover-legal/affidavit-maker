@@ -69,7 +69,7 @@
     },
     {
       "code": "D.C. Code §16-904",
-      "description": "Grounds for divorce — mutual consent or 6 months living separate"
+      "description": "Grounds for divorce — 'no longer wish to remain married' (Jan 2024), mutual consent, or 6 months living separate"
     },
     {
       "code": "D.C. Code §16-910",
@@ -90,9 +90,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$120",
+    "approximate": "$80",
     "varies": false,
-    "notes": "DC filing fees are approximately $120. Fee waivers may be available for qualifying low-income individuals."
+    "notes": "DC Family Court filing fee for a divorce complaint is $80. Counterclaims and motions are $20 each. Fee waivers may be available for qualifying low-income individuals by filing an Application to Proceed Without Prepayment of Costs."
   },
 
   "requiredForms": {

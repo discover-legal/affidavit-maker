@@ -8,9 +8,10 @@
  *
  * Key facts:
  *   - Both residents: no minimum residency; defendant non-resident: plaintiff 6 months — Ala. Code §30-2-5
- *   - Grounds: incompatibility of temperament (most common no-fault), irretrievable breakdown,
- *     voluntary separation (2+ yrs), adultery, abandonment (1 yr), imprisonment, habitual
- *     drunkenness/addiction, cruelty, insanity (5 yrs confined) — Ala. Code §30-2-1
+ *   - Grounds: incompatibility of temperament §30-2-1(a)(7) (most common no-fault),
+ *     irretrievable breakdown §30-2-1(a)(9), physical incapacity (a)(1), adultery (a)(2),
+ *     voluntary abandonment 1 yr (a)(3), imprisonment (a)(4), crime against nature (a)(5),
+ *     habitual drunkenness/addiction (a)(6), insanity 5 yrs confined (a)(8) — Ala. Code §30-2-1
  *   - Equitable distribution — Ala. Code §30-2-51
  *   - "Joint Custody" / "Sole Custody" — Ala. Code §30-3-150 et seq.
  *   - "Visitation" (standard term)
@@ -73,17 +74,17 @@ LEGAL CONTEXT — Ala. Code §30-2-1:
 Alabama recognizes both NO-FAULT and FAULT grounds:
 
 NO-FAULT:
-1. Incompatibility of temperament (most commonly used)
-2. Irretrievable breakdown of the marriage
-3. Voluntary separation for 2+ years
+1. Incompatibility of temperament — §30-2-1(a)(7) (most commonly used)
+2. Irretrievable breakdown of the marriage — §30-2-1(a)(9)
 
 FAULT:
-4. Adultery
-5. Voluntary abandonment for 1 year
-6. Imprisonment (2 years served, 7+ year sentence)
-7. Habitual drunkenness or drug addiction (contracted after marriage)
-8. Cruelty (violence with danger to life/health)
-9. Incurable insanity (confined 5+ successive years)
+3. Physical incapacity at time of marriage — §30-2-1(a)(1)
+4. Adultery — §30-2-1(a)(2)
+5. Voluntary abandonment from bed and board for 1 year — §30-2-1(a)(3)
+6. Imprisonment (2 years served, 7+ year sentence) — §30-2-1(a)(4)
+7. Crime against nature — §30-2-1(a)(5)
+8. Habitual drunkenness or drug addiction (contracted after marriage) — §30-2-1(a)(6)
+9. Incurable insanity (confined in mental hospital 5+ successive years) — §30-2-1(a)(8)
 
 IMPORTANT: Fault grounds may affect the court's decisions on property division and alimony.
 
@@ -179,7 +180,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Alabama courts allow fee waivers for low-income filers through an Affidavit of Substantial Hardship (in forma pauperis).
-The filing fee is typically $274 to $350, varying by county.
+The filing fee is typically $200 to $300, varying by county (e.g., Marion County ~$192, Jefferson County ~$290).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -212,7 +213,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 30-day mandatory waiting period from filing before the court can enter a final judgment — Ala. Code §30-2-8.1
-- The filing fee is approximately $274 to $350 (varies by county; may be waived for low-income filers)
+- The filing fee is approximately $200 to $300 (varies by county; may be waived for low-income filers)
 - Alabama follows equitable distribution of marital property (not necessarily 50/50) — Ala. Code §30-2-51
 - Alabama uses "Complaint for Divorce" — filed in Circuit Court
 - A VS-12 Vital Statistics Form is required for recording the divorce

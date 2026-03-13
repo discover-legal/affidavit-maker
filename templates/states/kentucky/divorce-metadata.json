@@ -86,9 +86,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$115-$185",
+    "approximate": "$113-$250",
     "varies": true,
-    "notes": "Kentucky filing fees for dissolution of marriage range from approximately $115 to $185 depending on the county. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
+    "notes": "Kentucky filing fees for dissolution of marriage vary by county. The most common base fee is $148, but total fees range from approximately $113 to $250 depending on the county. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
   },
 
   "requiredForms": {

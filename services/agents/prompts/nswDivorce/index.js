@@ -16,7 +16,7 @@
  *   - Property: s.79 — just and equitable division (4-step process)
  *   - Spousal support called "spousal maintenance" (ss.72-75)
  *   - Divorce Order takes effect 1 month and 1 day after made (s.55)
- *   - Filing fee: AUD $1,125 (reduced fee $375 for financial hardship) — effective 1 July 2025
+ *   - Filing fee: AUD $1,125 (reduced fee $365 for concession card holders or financial hardship) — effective 1 July 2025
  *   - A4 paper, AUD currency
  */
 
@@ -50,7 +50,7 @@ What is your full legal name — first and last?"
 KEY FACTS TO SHARE:
 - The court is the Federal Circuit and Family Court of Australia (FCFCOA)
 - There is only ONE ground for divorce: irretrievable breakdown of the marriage, shown by 12 months of separation
-- The filing fee is AUD $1,125 (reduced fee of $375 available for financial hardship)
+- The filing fee is AUD $1,125 (reduced fee of $365 available for concession card holders or financial hardship)
 - Joint applications are available when both parties agree
 ${SHARED_RULES}`;
 
@@ -229,7 +229,7 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee: AUD $1,125 (reduced fee $375 for financial hardship)
+- Filing fee: AUD $1,125 (reduced fee $365 for concession card holders or financial hardship)
 - The court hearing is usually brief (often only a few minutes for uncontested matters)
 - The Divorce Order takes effect 1 MONTH AND 1 DAY after it is made
 - You CANNOT remarry until the order takes effect

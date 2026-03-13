@@ -143,19 +143,19 @@ class AlabamaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (grounds === 'incompatibility' || grounds === 'no_fault') {
       items.push({
         number: paragraphNum++,
-        content: 'There exists a complete incompatibility of temperament between the parties such that they can no longer live together as husband and wife. (Ala. Code §30-2-1(a)(2))',
+        content: 'There exists a complete incompatibility of temperament between the parties such that they can no longer live together as husband and wife. (Ala. Code §30-2-1(a)(7))',
         type: 'grounds'
       });
     } else if (grounds === 'irretrievable_breakdown') {
       items.push({
         number: paragraphNum++,
-        content: 'The marriage of the parties is irretrievably broken. (Ala. Code §30-2-1(a)(9))',
+        content: 'The marriage of the parties is irretrievably broken and further attempts at reconciliation are impractical or futile. (Ala. Code §30-2-1(a)(9))',
         type: 'grounds'
       });
     } else if (grounds === 'voluntary_separation') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties have voluntarily separated from bed and board for a period of two (2) or more years prior to the filing of this Complaint, with complete separation maintained throughout. (Ala. Code §30-2-1(a)(4))',
+        content: 'The Plaintiff has been voluntarily abandoned by the Defendant from bed and board for one (1) year next preceding the filing of this Complaint, with complete separation maintained throughout. (Ala. Code §30-2-1(a)(3))',
         type: 'grounds'
       });
     } else if (grounds === 'adultery') {
@@ -167,38 +167,38 @@ class AlabamaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else if (grounds === 'abandonment') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has voluntarily abandoned the Plaintiff from bed and board for a period of one (1) year or more. (Ala. Code §30-2-1(a)(4))',
+        content: 'Defendant has voluntarily abandoned the Plaintiff from bed and board for a period of one (1) year next preceding the filing of this Complaint. (Ala. Code §30-2-1(a)(3))',
         type: 'grounds'
       });
     } else if (grounds === 'imprisonment') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been imprisoned in the penitentiary for two (2) years, having been sentenced for a term of seven (7) years or more. (Ala. Code §30-2-1(a)(5))',
+        content: 'Defendant has been imprisoned in the penitentiary for two (2) years, having been sentenced for a term of seven (7) years or more. (Ala. Code §30-2-1(a)(4))',
         type: 'grounds'
       });
     } else if (grounds === 'habitual_drunkenness') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant is addicted to habitual drunkenness or habitual use of drugs, contracted after marriage. (Ala. Code §30-2-1(a)(6))',
+        content: 'Defendant has become addicted after marriage to habitual drunkenness or habitual use of drugs. (Ala. Code §30-2-1(a)(6))',
         type: 'grounds'
       });
-    } else if (grounds === 'cruelty') {
+    } else if (grounds === 'crime_against_nature' || grounds === 'cruelty') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has committed actual violence on the person of the Plaintiff, attended with danger to life or health, or reasonable apprehension thereof. (Ala. Code §30-2-1(a)(3))',
+        content: 'Defendant has committed the crime against nature, whether with mankind or beast. (Ala. Code §30-2-1(a)(5))',
         type: 'grounds'
       });
     } else if (grounds === 'insanity') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been incurably insane and confined to an institution for a period of at least five (5) successive years. (Ala. Code §30-2-1(a)(7))',
+        content: 'Defendant has been confined in a mental hospital for a period of five (5) successive years and is hopelessly and incurably insane at the time of the filing of this Complaint. (Ala. Code §30-2-1(a)(8))',
         type: 'grounds'
       });
     } else {
       // Default to incompatibility
       items.push({
         number: paragraphNum++,
-        content: 'There exists a complete incompatibility of temperament between the parties such that they can no longer live together as husband and wife. (Ala. Code §30-2-1(a)(2))',
+        content: 'There exists a complete incompatibility of temperament between the parties such that they can no longer live together as husband and wife. (Ala. Code §30-2-1(a)(7))',
         type: 'grounds'
       });
     }

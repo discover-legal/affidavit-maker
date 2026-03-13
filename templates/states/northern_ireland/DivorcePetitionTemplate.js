@@ -31,7 +31,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Either party domiciled in NI, OR
  * - Either party habitually resident in NI for 1 year before petition
  *
- * Filing fee: approx. GBP £310 (plus £117 for Decree Absolute)
+ * Filing fee: approx. GBP £310 (per nidirect.gov.uk), plus £117 for Decree Absolute (Family Proceedings Fees Schedule, from 1 October 2024).
  * Paper size: A4
  *
  * @class NorthernIrelandDivorcePetitionTemplate
@@ -208,7 +208,7 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
    * NI grounds for divorce — five facts.
    * NI still requires proof of one of five facts under the 1978 Order.
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_2yr_consent').toLowerCase();
     if (g.includes('adultery')) {
       return 'The marriage has broken down irretrievably in that the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent, within the meaning of Article 3(2)(a) of the Matrimonial Causes (Northern Ireland) Order 1978.';

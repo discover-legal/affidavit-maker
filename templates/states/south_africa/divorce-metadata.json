@@ -7,9 +7,9 @@
   "version": "1.0",
   "legallyCompliant": true,
   "residencyRequirements": {
-    "stateMonths": 0,
+    "stateMonths": 12,
     "countyDays": 0,
-    "description": "Either spouse must be domiciled in South Africa at the time of issuing the summons (Divorce Act 70 of 1979, s.2). There is no minimum residency period — domicile (permanent home) is the jurisdictional requirement."
+    "description": "Either spouse must be (a) domiciled in the court's area of jurisdiction, OR (b) ordinarily resident in the court's area of jurisdiction and have been ordinarily resident in South Africa for at least one year immediately prior to instituting the action (Divorce Act 70 of 1979, s.2(1), as amended by the Domicile Act 3 of 1992)."
   },
   "waitingPeriod": {
     "days": 0,
@@ -95,6 +95,10 @@
     {
       "code": "Divorce Amendment Act 1 of 2024",
       "description": "Effective 14 May 2024 — amends the Divorce Act to recognise Muslim marriages, extending all divorce provisions (dissolution, children's welfare, asset redistribution, forfeiture of benefits) to marriages entered into in accordance with the tenets of Islam"
+    },
+    {
+      "code": "General (Family) Laws Amendment Bill (B20-2025)",
+      "description": "PENDING (tabled 2025, not yet enacted) — will amend the Divorce Act, Matrimonial Property Act, and Mediation in Certain Divorce Matters Act to allow courts to redistribute assets in out-of-community-of-property marriages, implementing the Constitutional Court ruling in RB v JB 2023"
     }
   ],
   "filingFees": {

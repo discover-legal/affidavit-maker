@@ -70,5 +70,8 @@
     "labelStyle": "letters",
     "requireCoverPage": true,
     "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the person before whom the affidavit is sworn."
-  }
+  },
+  "emergencyNumber": "999",
+  "dvHotline": "2522 0434",
+  "dvHotlineNote": "Harmony House 24-hour Women's Hotline: 2522 0434; Social Welfare Department 24-hour hotline: 2343 2255"
 }

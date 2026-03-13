@@ -149,7 +149,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Nebraska courts allow fee waivers for low-income filers.
-The filing fee is typically $158.
+The filing fee is typically $164.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -182,7 +182,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 60-day mandatory waiting period from filing or service (whichever is later) — Neb. Rev. Stat. §42-372
-- The filing fee is approximately $158 (may be waived for low-income filers)
+- The filing fee is approximately $164 (may be waived for low-income filers)
 - Nebraska is a no-fault only state — the sole ground is irretrievable breakdown — Neb. Rev. Stat. §42-361
 - Nebraska courts divide property equitably — Neb. Rev. Stat. §42-365
 ${SHARED_RULES}`;

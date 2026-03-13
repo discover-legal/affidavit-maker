@@ -88,7 +88,7 @@
   "filingFees": {
     "approximate": "$390-$425",
     "varies": true,
-    "notes": "Minnesota filing fees for dissolution of marriage are approximately $390-$425 depending on the county. Fee waivers are available for qualifying low-income individuals via In Forma Pauperis (Minn. Stat. § 563.01)."
+    "notes": "Minnesota base filing fee for dissolution of marriage is $390 ($340 base + $50 surcharge per Minn. Stat. § 357.021). Counties add a law library fee of approximately $7-$35, bringing totals to approximately $397-$425 depending on the county (e.g., Hennepin County charges $402 as of July 2025). Fee waivers are available for qualifying low-income individuals via In Forma Pauperis (Minn. Stat. § 563.01)."
   },
 
   "requiredForms": {
@@ -193,9 +193,15 @@
 
   "maintenanceGuidelines": {
     "type": "spousal_maintenance",
-    "description": "Minnesota courts may award spousal maintenance (not alimony) when one spouse lacks sufficient property to provide for reasonable needs or is unable to provide adequate self-support through appropriate employment. There are no statutory formulas — the court exercises broad discretion based on the statutory factors.",
-    "eligibility": "Any spouse may seek maintenance. The court considers: financial resources of the party seeking maintenance, time needed to acquire education/training, standard of living during marriage, duration of marriage, loss of earnings/employment opportunities due to homemaking, age, physical and emotional condition of the party seeking maintenance, and the ability of the paying spouse to meet their needs while paying maintenance.",
-    "statute": "Minn. Stat. § 518.552"
+    "description": "As of August 1, 2024 (H.F. 3204), Minnesota's spousal maintenance law was substantially revised. Maintenance is now categorized as 'transitional' (fixed duration) or 'indefinite' (ongoing). New rebuttable presumptions for duration based on marriage length: marriages under 5 years — presumption against maintenance; marriages 5-20 years — presumption of transitional maintenance for up to half the length of the marriage; marriages 20+ years — presumption of indefinite maintenance. The court also now considers whether the marital standard of living was supported by debt.",
+    "eligibility": "Any spouse may seek maintenance. The court considers: financial resources, time needed for education/training, standard of living (including whether sustained by debt), duration of marriage, loss of employment opportunities due to homemaking, age, physical and emotional condition, and the paying spouse's ability to meet needs while paying maintenance.",
+    "durationalPresumptions": {
+      "under5Years": "Rebuttable presumption against any maintenance award",
+      "5to20Years": "Rebuttable presumption of transitional maintenance for up to half the length of the marriage",
+      "over20Years": "Rebuttable presumption of indefinite maintenance"
+    },
+    "retirementProvisions": "Effective August 1, 2024, new provisions govern modification or termination of maintenance upon retirement, considering good faith retirement, Social Security eligibility, and prudent asset management since dissolution.",
+    "statute": "Minn. Stat. § 518.552 (as amended Aug. 1, 2024)"
   },
 
   "court": {

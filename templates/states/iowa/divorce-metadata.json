@@ -83,8 +83,8 @@
 
   "filingFees": {
     "approximate": "$265",
-    "varies": true,
-    "notes": "Iowa filing fees are approximately $265 for a dissolution of marriage but may vary by county. Fee waivers are available for qualifying low-income individuals via an Application to Defer Fees."
+    "varies": false,
+    "notes": "Iowa statewide filing fee for a Petition for Dissolution of Marriage is $265 (Iowa Code §602.8105(1)(b)). Fee waivers are available for qualifying low-income individuals via an Application to Defer Fees."
   },
 
   "requiredForms": {

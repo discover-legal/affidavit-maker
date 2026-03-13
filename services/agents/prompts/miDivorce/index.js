@@ -160,7 +160,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Michigan allows fee waivers (Affidavit and Order Waiving Fees) for low-income filers.
-The filing fee is approximately $175.
+The base filing fee is $175. Cases with minor children add approximately $80 (custody/parenting time fee). A $25 e-filing fee may also apply.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -193,7 +193,7 @@ user_confirmed_review: true
 
 Remind the user:
 - Waiting period: 60 days (no children) or 6 months (with minor children) from filing date
-- Filing fee approximately $175 (may be waived)
+- Filing fee approximately $200-$280 ($175 base + $25 e-filing; add ~$80 with children) — may be waived
 ${SHARED_RULES}`;
 
 const PHASES = {

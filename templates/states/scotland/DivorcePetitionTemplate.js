@@ -26,7 +26,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Either party domiciled in Scotland, OR
  * - Either party habitually resident in Scotland for 40 days before action raised
  *
- * Filing fee: approx. GBP £151 (Sheriff Court ordinary cause); simplified: approx. £128
+ * Filing fee: approx. GBP £185 (Sheriff Court ordinary cause); simplified: approx. £151
  * Paper size: A4
  *
  * @class ScotlandDivorcePetitionTemplate
@@ -204,7 +204,7 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (c) 1-year separation with consent — s.1(2)(d)
    *   (d) 2-year separation without consent — s.1(2)(e)
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_1yr_consent').toLowerCase();
     if (g.includes('adultery')) {
       return 'The marriage has broken down irretrievably by reason of the Defender\'s adultery, in terms of section 1(2)(a) of the Divorce (Scotland) Act 1976.';

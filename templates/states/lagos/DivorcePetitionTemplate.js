@@ -22,8 +22,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Child Rights Act 2003 (adopted by Lagos State)
  * - High Court of Lagos State (Civil Procedure) Rules
  *
- * Residency (MCA s.2):
- * - Either party must be domiciled in Nigeria or ordinarily resident for 3 years
+ * Residency (MCA s.2, s.7(b)):
+ * - Either party must be domiciled in Nigeria; a wife resident for 3 years is deemed domiciled (s.7(b))
  *
  * @class LagosDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -52,11 +52,11 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // MCA s.2 — domicile in Nigeria or 3 years ordinary residence
+    // MCA s.2 — domicile in Nigeria; s.7(b) — wife resident 3 years deemed domiciled
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either party must be domiciled in Nigeria or ordinarily resident in Nigeria for three years before filing (MCA s.2). Lagos High Court has jurisdiction if either party resides within the state.'
+      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). Lagos High Court has jurisdiction if either party resides within the state.'
     };
 
     // MCA s.30 — 2-year bar from date of marriage
@@ -125,7 +125,7 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Jurisdiction statement — MCA s.2.
    */
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner/Respondent is domiciled in Nigeria (or has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition), as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004. The Petitioner resides within the jurisdiction of the High Court of Lagos State.`;
+    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of Lagos State.`;
   }
 
   /**
@@ -199,7 +199,7 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Grounds for divorce — MCA s.15(2).
    * Sole ground: irretrievable breakdown, proved by one of eight facts (s.15(2)(a)-(h)).
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
 
     if (g.includes('adultery')) {

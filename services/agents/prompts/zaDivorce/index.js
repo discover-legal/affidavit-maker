@@ -15,7 +15,7 @@
  * Key differences from US/Canadian jurisdictions:
  *   - Parties are "Plaintiff" and "Defendant" (adversarial terminology)
  *   - Court is the High Court of South Africa (specific division)
- *   - No minimum residency period — DOMICILE is the jurisdictional test
+ *   - Jurisdictional test: domicile OR ordinary residence for 1+ year (s.2(1))
  *   - Irretrievable breakdown is the primary ground (s.4(1))
  *   - Three property regimes: in community, out with accrual, out without accrual
  *   - Customary marriages recognised — default in community of property
@@ -67,16 +67,18 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone file for divorce in South Africa.
 Collecting domicile and jurisdiction information.
 
-LEGAL REQUIREMENT — Divorce Act 70 of 1979, s.2:
-To file for divorce in South Africa, EITHER spouse must be DOMICILED in South Africa
-at the time of issuing the summons. There is NO minimum residency period —
-domicile means South Africa is the person's permanent home.
+LEGAL REQUIREMENT — Divorce Act 70 of 1979, s.2(1), as amended by Domicile Act 3 of 1992:
+To file for divorce in South Africa, EITHER spouse must be:
+(a) DOMICILED in the court's area of jurisdiction (domicile = permanent home), OR
+(b) ORDINARILY RESIDENT in the court's area of jurisdiction AND have been ordinarily
+    resident in South Africa for at least ONE YEAR immediately prior to issuing the summons.
 
 COLLECT:
 1. "Are you domiciled in South Africa — is South Africa your permanent home?"
    → If yes: confirm which city/area
-   → If no: is the Defendant domiciled in SA?
-   → If NEITHER is domiciled in SA: they cannot file here
+   → If no: "Have you been ordinarily resident in South Africa for at least one year?"
+   → If no to both: is the Defendant domiciled or ordinarily resident for 1+ year in SA?
+   → If NEITHER spouse qualifies: they cannot file here
 2. "Which High Court division is closest to where you live?"
    → Gauteng Division (Pretoria or Johannesburg)
    → Western Cape Division (Cape Town)
@@ -88,7 +90,7 @@ COLLECT:
    → North West Division (Mahikeng)
    → Northern Cape Division (Kimberley)
 
-NOTE: The concept is "domicile" (permanent home), not a fixed residency period.
+NOTE: The primary test is "domicile" (permanent home). Alternatively, ordinary residence for 1+ year in SA also confers jurisdiction.
 ${SHARED_RULES}`;
 
 const GROUNDS = `You are a legal document assistant helping someone file for divorce in South Africa.

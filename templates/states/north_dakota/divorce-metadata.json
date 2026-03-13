@@ -212,10 +212,17 @@
   },
 
   "childSupportGuidelines": {
-    "calculationBasis": "income_shares",
-    "description": "North Dakota uses an income shares model. Both parents' net incomes are combined and child support is determined from the North Dakota Child Support Guidelines schedule based on combined income and the number of children.",
-    "statute": "NDCC §14-09-09.7",
-    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+    "calculationBasis": "percentage_of_income",
+    "description": "North Dakota uses a percentage of income model. Child support is based on a percentage of the obligor's net income: 14% for 1 child, 20% for 2 children, 22% for 3 children, 24% for 4 children, and 27% for 5 or more children. The guidelines are established by the Department of Health and Human Services under N.D. Admin. Code §75-02-04.1.",
+    "percentages": {
+      "1": "14%",
+      "2": "20%",
+      "3": "22%",
+      "4": "24%",
+      "5_or_more": "27%"
+    },
+    "statute": "NDCC §14-09-09.7; N.D. Admin. Code §75-02-04.1",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate. The obligor's net income is calculated by deducting mandatory deductions from gross income."
   },
 
   "maintenanceGuidelines": {

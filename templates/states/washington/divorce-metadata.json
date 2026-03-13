@@ -27,7 +27,7 @@
     "days": 90,
     "startsFrom": "filing_date",
     "exceptions": [],
-    "description": "Washington requires a mandatory 90-day waiting period from the date the petition is filed before a decree can be entered. (RCW 26.09.030)"
+    "description": "Washington requires a mandatory 90-day waiting period from the date the petition is filed AND service on the respondent (or respondent's first appearance) must have occurred before a decree can be entered. Both conditions must be satisfied. (RCW 26.09.030)"
   },
 
   "groundsForDissolution": {
@@ -90,9 +90,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$314",
+    "approximate": "$314-$364",
     "varies": true,
-    "notes": "Washington's dissolution filing fee is approximately $314 and varies by county. A fee waiver may be available for low-income petitioners."
+    "notes": "Washington's dissolution filing fee varies by county (e.g., approximately $314 in Pierce County, $364 in some other counties). A fee waiver may be available for low-income petitioners whose household income is at or below 125% of the federal poverty guidelines."
   },
 
   "requiredForms": {
@@ -195,7 +195,7 @@
     "calculationBasis": "income_shares",
     "description": "Washington uses the Washington State Child Support Schedule, an income shares model based on an economic table. Both parents' combined monthly net incomes are matched to the economic table to determine the basic support obligation. The obligation is then apportioned based on each parent's share of combined net income. Adjustments apply for health insurance, daycare, special child-rearing expenses, and the residential schedule.",
     "statute": "RCW 26.19; Washington State Child Support Schedule",
-    "notes": "The economic table is reviewed and updated periodically by the legislature. The court may deviate from the standard calculation upon written findings."
+    "notes": "Effective January 1, 2026 (EHB 1014): The economic table is expanded to cover combined monthly net incomes up to $50,000 (previously capped at $12,000). The self-support reserve is increased from 125% to 180% of the federal poverty guideline for a one-person family. The low-income floor is raised from $1,000 to $2,200 combined monthly income. Paid Family and Medical Leave (PFML) and WA Cares premiums are now deductible from gross income. These changes apply to all new and modified orders entered on or after January 1, 2026."
   },
 
   "maintenanceGuidelines": {

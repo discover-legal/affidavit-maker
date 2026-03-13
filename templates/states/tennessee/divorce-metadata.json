@@ -156,9 +156,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$300",
+    "approximate": "$184-$365",
     "varies": true,
-    "notes": "Tennessee filing fees are approximately $300 for a divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Uniform Civil Affidavit of Indigency (TCA 20-12-127)."
+    "notes": "Tennessee filing fees vary significantly by county and whether minor children are involved. Davidson County (Nashville) charges $184.50 without children, $259.50 with children. Some counties (e.g., Shelby County) charge up to $365 including service fees. Fees vary by Circuit Court vs. Chancery Court. Fee waivers are available for qualifying low-income individuals via a Uniform Civil Affidavit of Indigency (TCA 20-12-127)."
   },
 
   "requiredForms": {

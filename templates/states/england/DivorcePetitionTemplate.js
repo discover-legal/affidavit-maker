@@ -212,7 +212,7 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * irretrievably broken down. No evidence of adultery, behaviour, or
    * separation is required.
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     return 'The marriage has irretrievably broken down, within the meaning of section 1(1) of the Divorce, Dissolution and Separation Act 2020. This is the sole ground for divorce and no further particulars are required.';
   }
 }

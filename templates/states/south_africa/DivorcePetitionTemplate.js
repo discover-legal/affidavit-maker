@@ -30,9 +30,10 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Maintenance Act 99 of 1998
  *   - Governs spousal and child maintenance
  *
- * Domicile Requirement (Divorce Act, s.2):
- * - Either spouse must be domiciled in South Africa at the time of issuing summons.
- * - No minimum residency period — domicile (permanent home) is the test.
+ * Jurisdiction (Divorce Act, s.2(1), as amended by Domicile Act 3 of 1992):
+ * - Either spouse must be (a) domiciled in the court's area of jurisdiction, OR
+ *   (b) ordinarily resident in the court's area and have been ordinarily resident
+ *   in South Africa for at least one year immediately prior to instituting the action.
  *
  * South Africa-Specific:
  * - Parties are "Plaintiff" and "Defendant" (traditional adversarial terminology)
@@ -69,11 +70,11 @@ class SouthAfricaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // SA domicile — no minimum residency period
+    // SA jurisdiction: domicile OR ordinary residence for 1+ year (Divorce Act s.2(1))
     this.residencyRequirements = {
-      stateMonths: 0,
+      stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must be domiciled in South Africa at the time of issuing the summons (Divorce Act 70 of 1979, s.2). There is no minimum residency period.'
+      description: 'Either spouse must be (a) domiciled in the court\'s area of jurisdiction, OR (b) ordinarily resident in the court\'s area and have been ordinarily resident in South Africa for at least one year immediately prior to instituting the action (Divorce Act 70 of 1979, s.2(1), as amended by the Domicile Act 3 of 1992).'
     };
 
     // No mandatory waiting period after filing
@@ -140,12 +141,12 @@ class SouthAfricaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * South Africa jurisdiction statement — Divorce Act 70 of 1979, s.2.
-   * Either spouse must be domiciled in SA. No minimum period.
+   * South Africa jurisdiction statement — Divorce Act 70 of 1979, s.2(1).
+   * Either spouse must be domiciled OR ordinarily resident for 1+ year in SA.
    * Uses "Plaintiff" (not "Applicant" or "Petitioner").
    */
   getJurisdictionStatement(divorceData) {
-    return `The Plaintiff is domiciled within the Republic of South Africa and this Honourable Court has jurisdiction to hear this matter in terms of section 2 of the Divorce Act 70 of 1979.`;
+    return `The Plaintiff is domiciled (alternatively, ordinarily resident) within the area of jurisdiction of this Honourable Court and this Honourable Court has jurisdiction to hear this matter in terms of section 2(1) of the Divorce Act 70 of 1979.`;
   }
 
   /**
@@ -238,7 +239,7 @@ class SouthAfricaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   - s.4(1): Irretrievable breakdown of the marriage
    *   - s.5: Mental illness or continuous unconsciousness
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'irretrievable_breakdown').toLowerCase();
     if (g.includes('mental') || g.includes('unconscious')) {
       return 'The Defendant has been admitted to a psychiatric hospital or similar institution and there is no reasonable prospect of recovery, as contemplated in section 5 of the Divorce Act 70 of 1979.';

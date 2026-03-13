@@ -11,7 +11,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *
  * In Ghana, the divorce process produces two orders:
  * 1. Decree Nisi — provisional dissolution of the marriage
- * 2. Decree Absolute — final dissolution (3 months after Decree Nisi, MCA s.15)
+ * 2. Decree Absolute — final dissolution (3 months after Decree Nisi)
  *
  * The Decree Nisi is granted by the High Court (Matrimonial/Family Division)
  * after the hearing. Either party may apply to have the Decree Nisi made
@@ -21,7 +21,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - Matrimonial Causes Act 1971 (Act 367)
  *   - s.2: Sole ground — marriage has broken down beyond reconciliation
  *   - s.2(3): Mandatory reconciliation before proceeding
- *   - s.15: Decree Nisi becomes absolute after 3 months
+ *   - Decree Nisi becomes absolute after 3 months (court practice)
  *   - s.20: Maintenance orders
  * - Children's Act 1998 (Act 560) — best interests of the child
  * - 1992 Constitution, Art. 22 — spouse's property rights
@@ -337,10 +337,10 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ghana Decree Nisi becomes absolute after 3 months (MCA s.15).
+   * Ghana Decree Nisi becomes absolute after 3 months.
    */
   getEffectiveDateText() {
-    return 'This Decree Nisi shall become absolute after the expiration of three months from the date hereof, unless the Court otherwise directs or an appeal is pending (Matrimonial Causes Act 1971, s.15). Either party may apply to have this Decree Nisi made absolute after the said period.';
+    return 'This Decree Nisi shall become absolute after the expiration of three months from the date hereof, unless the Court otherwise directs or an appeal is pending (Matrimonial Causes Act 1971, Act 367). Either party may apply to have this Decree Nisi made absolute after the said period.';
   }
 
   /**

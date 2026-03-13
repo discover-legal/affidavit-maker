@@ -153,9 +153,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$250-$475",
+    "approximate": "$250-$400",
     "varies": true,
-    "notes": "Filing fees vary by county. The Domestic Relations Division of the Court of Common Pleas sets local fees. Fee waivers (in forma pauperis) are available for qualifying individuals."
+    "notes": "Filing fees vary by county (Ohio has 88 counties). Most mid-size counties charge $200-$250; larger counties (Franklin, Cuyahoga, Hamilton) charge $300-$400 due to electronic filing surcharges. Fee waivers (in forma pauperis / Poverty Affidavit) are available for qualifying individuals."
   },
 
   "requiredForms": {

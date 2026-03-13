@@ -15,7 +15,7 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * - Supreme Court uses city/location identifiers (St. John's, Corner Brook, Grand Falls-Windsor, etc.)
  * - Court File No. instead of Case No.
  * - Divorce proceedings use "Petitioner" / "Respondent"
- * - Support is termed "maintenance" under the Family Law Act, SNL 2016, c. 41 (replaced SNL 1988, c. 60)
+ * - Support is termed "maintenance" under the Family Law Act, RSNL 1990, c. F-2
  * - Affidavit body opens: "I, [name], of [city], in the Province of Newfoundland and Labrador,
  *   [occupation], make oath and say:" (Evidence Act, RSNL 1990, c. E-16)
  * - Commissioners for Oaths Act governs who may administer oaths (RSNL 1990, c. C-22)

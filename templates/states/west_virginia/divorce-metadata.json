@@ -121,9 +121,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$135-$200",
-    "varies": true,
-    "notes": "West Virginia filing fees range from approximately $135 to $200 depending on the county. Fee waivers are available for qualifying low-income individuals."
+    "approximate": "$135",
+    "varies": false,
+    "notes": "West Virginia charges a standard $135 filing fee for a Petition for Divorce in Family Court per W. Va. Code \u00a759-1-11. Modifications of Family Court orders cost $85 and miscellaneous Family Court petitions cost $200. Fee waivers are available for qualifying low-income individuals via Financial Affidavit Form SCA-C&M201."
   },
 
   "requiredForms": {

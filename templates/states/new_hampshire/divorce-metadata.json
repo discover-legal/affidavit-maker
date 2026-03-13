@@ -131,9 +131,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$252 (joint) / $400 (contested)",
-    "varies": true,
-    "notes": "New Hampshire filing fees are approximately $252 for a joint petition or $400 for a contested divorce. Fee waivers may be available for qualifying low-income individuals."
+    "approximate": "$280 (no children) / $400 (with children)",
+    "varies": false,
+    "notes": "As of July 1, 2025, New Hampshire filing fees are $280 for a divorce without minor children and $400 for a divorce with minor children (Circuit Court, Family Division). Fee waivers may be available for qualifying low-income individuals."
   },
 
   "requiredForms": {
@@ -201,7 +201,7 @@
     },
     "spacing": "double",
     "ink": "black",
-    "notes": "Per New Hampshire Superior Court Rules"
+    "notes": "Per Rules of the Circuit Court of the State of New Hampshire, Family Division"
   },
 
   "responseDeadlines": {
@@ -231,7 +231,7 @@
   },
 
   "court": {
-    "name": "Superior Court, Family Division",
-    "description": "Divorce cases are filed in the Superior Court, Family Division in the county where either party resides. (RSA 490-D)"
+    "name": "Circuit Court, Family Division",
+    "description": "Divorce cases are filed in the Circuit Court, Family Division for the county where either party resides. (RSA 490-D)"
   }
 }

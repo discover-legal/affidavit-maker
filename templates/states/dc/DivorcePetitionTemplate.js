@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - D.C. Code §16-902 — Residency (6 months)
- * - D.C. Code §16-904 — Grounds (mutual consent or 6 months living separate)
+ * - D.C. Code §16-904 — Grounds ("no longer wish to remain married" (Jan 2024), mutual consent, or 6 months living separate)
  * - D.C. Code §16-910 — Property division (equitable distribution)
  * - D.C. Code §16-913 — Alimony
  * - D.C. Code §16-914 — Custody (legal and physical custody, visitation)
@@ -20,7 +20,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Parties: "Plaintiff" and "Defendant"
  * - DC is a federal district, NOT a state — uses "District of Columbia" throughout
  * - No county — single jurisdiction; uses "wards" for internal divisions
- * - Purely no-fault — mutual consent or 6 months living separate
+ * - Purely no-fault — "no longer wish to remain married" (Jan 2024), mutual consent, or 6 months living separate
  * - 6-month residency requirement
  * - No mandatory waiting period
  * - "Legal Custody" and "Physical Custody"
@@ -129,18 +129,31 @@ class DCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 8;
 
-    const grounds = divorceData.groundsForDivorce || 'mutual_consent';
+    const grounds = divorceData.groundsForDivorce || 'no_longer_wish';
 
-    if (grounds === 'living_separate' || grounds === 'separation') {
+    if (grounds === 'no_longer_wish' || grounds === 'no_fault') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Plaintiff states under oath that Plaintiff no longer wishes to remain married. (D.C. Code §16-904(a), effective January 26, 2024)',
+        type: 'grounds'
+      });
+    } else if (grounds === 'living_separate' || grounds === 'separation') {
       items.push({
         number: paragraphNum++,
         content: 'The parties have been living separate and apart without cohabitation for at least six (6) months. (D.C. Code §16-904(b))',
         type: 'grounds'
       });
-    } else {
+    } else if (grounds === 'mutual_consent') {
       items.push({
         number: paragraphNum++,
         content: 'Both parties mutually and voluntarily consent to the divorce. (D.C. Code §16-904(a))',
+        type: 'grounds'
+      });
+    } else {
+      // Default to the new primary ground
+      items.push({
+        number: paragraphNum++,
+        content: 'Plaintiff states under oath that Plaintiff no longer wishes to remain married. (D.C. Code §16-904(a), effective January 26, 2024)',
         type: 'grounds'
       });
     }
@@ -309,7 +322,7 @@ Plaintiff`;
 
     // DC has no county requirement — it is a single jurisdiction
     warnings.push('DC requires 6 months of residency before filing. (D.C. Code §16-902)');
-    warnings.push('DC is a purely no-fault jurisdiction — only mutual consent or 6-month separation is available.');
+    warnings.push('DC is a purely no-fault jurisdiction. As of January 2024, the primary ground is "no longer wish to remain married" (no separation required). Mutual consent and 6-month separation are also available.');
     warnings.push('DC uses "Complaint for Divorce" with "Plaintiff" and "Defendant" terminology.');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

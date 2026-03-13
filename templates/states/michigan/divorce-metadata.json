@@ -101,9 +101,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$175-$250",
+    "approximate": "$200-$280",
     "varies": true,
-    "notes": "Michigan filing fees vary by county and are set by the Michigan Supreme Court and local courts. Fees are approximately $175-$250. Fee deferrals (fee waiver) are available for qualifying individuals (MC 20)."
+    "notes": "Michigan base filing fee is $175 (MCL 600.2529) plus $25 state e-filing fee ($200 total). Cases with minor children add ~$80 custody/parenting time fee (total ~$280). Fee deferrals (fee waiver) are available for qualifying individuals (MC 20) if household income is at or below 125% of the federal poverty guidelines."
   },
 
   "requiredForms": {

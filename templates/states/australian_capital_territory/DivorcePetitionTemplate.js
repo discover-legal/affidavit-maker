@@ -33,6 +33,6 @@ class ACTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }
   getVerificationText(divorceData) { return `I, ${divorceData.petitionerName || '[APPLICANT NAME]'}, the Applicant, solemnly affirm that this Application is true and correct.`; }
-  getGroundsStatement() { return 'The marriage has broken down irretrievably (s.48(1)). The parties have lived separately and apart for at least 12 months.'; }
+  getGroundsText() { return 'The marriage has broken down irretrievably (s.48(1)). The parties have lived separately and apart for at least 12 months.'; }
 }
 module.exports = ACTDivorcePetitionTemplate;

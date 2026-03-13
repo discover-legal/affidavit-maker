@@ -38,26 +38,26 @@
         "code": "incompatibility",
         "name": "Incompatibility of Temperament",
         "description": "The parties have an incompatibility of temperament such that they can no longer live together",
-        "statute": "Ala. Code §30-2-1(a)(9)"
+        "statute": "Ala. Code §30-2-1(a)(7)"
       },
       {
         "code": "irretrievable_breakdown",
         "name": "Irretrievable Breakdown",
-        "description": "The marriage is irretrievably broken",
-        "statute": "Ala. Code §30-2-1(a)(10)"
+        "description": "The marriage is irretrievably broken and further attempts at reconciliation are impractical or futile",
+        "statute": "Ala. Code §30-2-1(a)(9)"
       },
       {
         "code": "voluntary_separation",
         "name": "Voluntary Separation",
-        "description": "Voluntary abandonment from bed and board for two or more years prior to filing, with complete separation maintained",
-        "statute": "Ala. Code §30-2-1(a)(4)"
+        "description": "Voluntary abandonment from bed and board for one year next preceding the filing of the complaint, with complete separation maintained",
+        "statute": "Ala. Code §30-2-1(a)(3)"
       }
     ],
     "fault": [
       {
         "code": "physical_incapacity",
         "name": "Physical Incapacity",
-        "description": "Incapacity of body or mind at the time of marriage which permanently prevents the consummation of the marriage",
+        "description": "Physical and incurable incapacity at the time of marriage from entering into the marriage state",
         "statute": "Ala. Code §30-2-1(a)(1)"
       },
       {
@@ -69,32 +69,32 @@
       {
         "code": "abandonment",
         "name": "Voluntary Abandonment",
-        "description": "Voluntary abandonment from bed and board for one year",
-        "statute": "Ala. Code §30-2-1(a)(4)"
+        "description": "Voluntary abandonment from bed and board for one year next preceding the filing of the complaint",
+        "statute": "Ala. Code §30-2-1(a)(3)"
       },
       {
         "code": "imprisonment",
         "name": "Imprisonment",
         "description": "Imprisonment in the penitentiary for two years, where the sentence is seven years or longer",
+        "statute": "Ala. Code §30-2-1(a)(4)"
+      },
+      {
+        "code": "crime_against_nature",
+        "name": "Crime Against Nature",
+        "description": "Commission of the crime against nature, whether with mankind or beast, either before or after marriage",
         "statute": "Ala. Code §30-2-1(a)(5)"
       },
       {
         "code": "habitual_drunkenness",
         "name": "Habitual Drunkenness or Drug Addiction",
-        "description": "Habitual drunkenness or habitual use of drugs contracted after marriage",
+        "description": "Becoming addicted after marriage to habitual drunkenness or habitual use of opium, morphine, cocaine, or other like drug",
         "statute": "Ala. Code §30-2-1(a)(6)"
-      },
-      {
-        "code": "cruelty",
-        "name": "Cruelty",
-        "description": "Commission of actual violence on the person of the other, attended with danger to life or health, or reasonable apprehension thereof",
-        "statute": "Ala. Code §30-2-1(a)(3)"
       },
       {
         "code": "insanity",
         "name": "Incurable Insanity",
-        "description": "Incurable insanity with confinement to an institution for at least five successive years",
-        "statute": "Ala. Code §30-2-1(a)(7)"
+        "description": "Confinement in a mental hospital for five successive years and hopelessly and incurably insane at time of filing",
+        "statute": "Ala. Code §30-2-1(a)(8)"
       }
     ],
     "notes": "Alabama recognizes both fault and no-fault grounds. 'Incompatibility of temperament' is the most commonly used no-fault ground. The 'irretrievable breakdown' ground was added more recently. Fault grounds may affect the court's division of property and alimony decisions."
@@ -139,9 +139,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$274–$350",
+    "approximate": "$200-$400",
     "varies": true,
-    "notes": "Alabama filing fees for a complaint for divorce are approximately $274 to $350, varying by county. Fee waivers are available for qualifying low-income individuals via an Affidavit of Substantial Hardship (in forma pauperis)."
+    "notes": "Alabama filing fees for a complaint for divorce vary by county, typically $200 to $400. Jefferson County (Birmingham) charges approximately $290; Mobile County approximately $208. Fee waivers are available for qualifying low-income individuals via an Affidavit of Substantial Hardship (in forma pauperis)."
   },
 
   "requiredForms": {

@@ -46,7 +46,7 @@
     "petitioner": "Petitioner",
     "respondent": "Respondent",
     "custody": "Parenting Time and Decision-Making Responsibility",
-    "alimony": "Maintenance (Manitoba terminology under the Family Maintenance Act, CCSM c. F20 — not 'spousal support')",
+    "alimony": "Maintenance (Manitoba terminology under the Family Law Act, CCSM c. F20 — not 'spousal support')",
     "maritalProperty": "Family Property (Family Property Act, CCSM c. F25)"
   },
   "legalCitations": [
@@ -59,7 +59,7 @@
       "description": "Manitoba statute — equalization of family property on marriage breakdown"
     },
     {
-      "code": "Family Maintenance Act, CCSM c. F20",
+      "code": "Family Law Act, CCSM c. F20",
       "description": "Manitoba statute — maintenance and child support obligations"
     },
     {
@@ -93,7 +93,7 @@
   "spousalSupportGuidelines": {
     "calculationBasis": "SSAG",
     "guidelines": "Spousal Support Advisory Guidelines (SSAG)",
-    "notes": "SSAG are advisory only — not legislatively mandated but widely applied by Manitoba courts. Manitoba uses the term 'maintenance' (Family Maintenance Act, CCSM c. F20) rather than 'spousal support' in provincial proceedings."
+    "notes": "SSAG are advisory only — not legislatively mandated but widely applied by Manitoba courts. Manitoba uses the term 'maintenance' (Family Law Act, CCSM c. F20) rather than 'spousal support' in provincial proceedings."
   },
   "effectiveDateRule": "31 days after the divorce order is made, unless the court varies the effective date or both parties waive the waiting period (Divorce Act, s.12).",
   "certificateNote": "A Certificate of Divorce may be obtained from the court office after the effective date of the Divorce Order (Divorce Act, s.12(7)).",

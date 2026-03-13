@@ -10,7 +10,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * Legal References:
  * - K.S.A. §23-2701 — Grounds (incompatibility, failure of marital duty)
  * - K.S.A. §23-2703 — Residency (60 days)
- * - K.S.A. §23-2709 — 60-day waiting period from filing
+ * - K.S.A. §23-2708 — 60-day waiting period from filing
  * - K.S.A. §23-2802 — Property division (equitable distribution, all property)
  * - K.S.A. §23-2902 — Maintenance
  * - K.S.A. §23-3222 — Custody (legal custody, residency, parenting time)
@@ -137,7 +137,7 @@ class KansasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'JURISDICTION',
-      text: `The Court finds that it has jurisdiction over this proceeding and the parties. At least one party has been a bona fide resident of the State of Kansas for at least sixty (60) days immediately preceding the filing of the petition. (K.S.A. §23-2703) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. The parties are incompatible. At least sixty (60) days have elapsed since the date the petition was filed. (K.S.A. §23-2709)`,
+      text: `The Court finds that it has jurisdiction over this proceeding and the parties. At least one party has been a bona fide resident of the State of Kansas for at least sixty (60) days immediately preceding the filing of the petition. (K.S.A. §23-2703) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. The parties are incompatible. At least sixty (60) days have elapsed since the date the petition was filed. (K.S.A. §23-2708)`,
       type: 'jurisdiction'
     };
   }
@@ -382,7 +382,7 @@ STATE OF KANSAS`,
       errors.push('Case number is required for Kansas divorce decree');
     }
 
-    warnings.push('Ensure 60 days have elapsed from filing before entering the decree. (K.S.A. §23-2709)');
+    warnings.push('Ensure 60 days have elapsed from filing before entering the decree. (K.S.A. §23-2708)');
 
     if (divorceData.hasMinorChildren === true && (!divorceData.children || divorceData.children.length === 0)) {
       warnings.push('You indicated there are minor children but did not provide child information.');

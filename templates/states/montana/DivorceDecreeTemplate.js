@@ -9,7 +9,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *
  * Legal References:
  * - MCA §40-4-104 — Dissolution of marriage (residency, grounds)
- * - MCA §40-4-107 — 20-day waiting period from service or response
+ * - MCA §40-4-107 — 21-day waiting period from service or response
  * - MCA §40-4-202 — Property disposition (equitable distribution)
  * - MCA §40-4-203 — Maintenance (spousal support)
  * - MCA §40-4-212 — Parenting plan required
@@ -102,7 +102,7 @@ class MontanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'JURISDICTION',
-      text: `The Court finds that it has jurisdiction over this proceeding and the parties. At least one party has been domiciled in Montana for at least ninety (90) days preceding the filing of the petition. (MCA §40-4-104) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. The marriage is irretrievably broken. At least twenty (20) days have elapsed since service or the filing of a response. (MCA §40-4-107)`,
+      text: `The Court finds that it has jurisdiction over this proceeding and the parties. At least one party has been domiciled in Montana for at least ninety (90) days preceding the filing of the petition. (MCA §40-4-104) The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}. The marriage is irretrievably broken. At least twenty-one (21) days have elapsed since service or the filing of a response. (MCA §40-4-107)`,
       type: 'jurisdiction'
     };
   }
@@ -313,7 +313,7 @@ STATE OF MONTANA`,
       errors.push('Cause number is required for Montana dissolution decree');
     }
 
-    warnings.push('Ensure 20 days have elapsed from service or response before entering the decree. (MCA §40-4-107)');
+    warnings.push('Ensure 21 days have elapsed from service or response before entering the decree. (MCA §40-4-107)');
     warnings.push('Montana uses "parenting" terminology exclusively — not "custody" or "visitation".');
 
     if (divorceData.hasMinorChildren === true && (!divorceData.children || divorceData.children.length === 0)) {

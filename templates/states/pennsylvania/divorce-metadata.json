@@ -175,9 +175,9 @@
   },
 
   "filingFees": {
-    "approximate": "$200-350",
+    "approximate": "$300-$400",
     "varies": true,
-    "notes": "Varies by county. Fee waiver available for qualifying low-income individuals."
+    "notes": "Varies by county (e.g., Philadelphia ~$300-350, Bucks County $398 as of 2026). Fee waiver available for qualifying low-income individuals (household income at or below 125% of federal poverty guidelines)."
   },
 
   "legalCitations": [

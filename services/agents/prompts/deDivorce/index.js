@@ -156,7 +156,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Delaware courts allow fee waivers for low-income filers.
-The filing fee is approximately $152.
+The filing fee is $165 plus a $10 court security fee ($175 total).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -190,7 +190,7 @@ user_confirmed_review: true
 Remind the user:
 - Delaware has no mandatory waiting period
 - Delaware is a purely no-fault state — only irretrievable breakdown
-- Filing fee is approximately $152
+- Filing fee is $165 plus a $10 court security fee ($175 total)
 - Delaware uses the Melson Formula for child support (Del. Code tit. 13, §514) — NOT the standard income shares model
 - Delaware uses "residential arrangements" instead of "physical custody"
 - A Financial Report (Form 69) must be filed with the court

@@ -23,7 +23,7 @@
  *   - Simplified (DIY) divorce available for cases with no children under 16
  *     and no financial claims (Forms F26/F28)
  *   - Residency: domicile or 40 days habitual residence (very short)
- *   - Filing fee: approx. GBP £151 (Sheriff Court ordinary action, updated 2024)
+ *   - Filing fee: approx. GBP £185 (Sheriff Court ordinary cause, from 1 November 2024); £151 simplified
  *   - A4 paper, GBP currency
  */
 
@@ -60,7 +60,7 @@ KEY FACTS TO SHARE:
 - The divorce action is started by lodging an "Initial Writ" with the court
 - For simple cases (no children under 16, no financial claims), there is a simplified
   (DIY) divorce process using Forms F26 or F28 — this is cheaper and faster
-- Filing fee: approx. £151 (ordinary cause) or £128 (simplified)
+- Filing fee: approx. £185 (ordinary cause) or £151 (simplified)
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in Scotland.
@@ -258,7 +258,7 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee: approx. £151 (ordinary cause) or £128 (simplified)
+- Filing fee: approx. £185 (ordinary cause) or £151 (simplified)
 - Fee exemption may be available for benefits recipients
 - If undefended: decree can be granted without a hearing (on affidavit evidence alone)
 - The decree of divorce takes effect IMMEDIATELY — no further waiting period

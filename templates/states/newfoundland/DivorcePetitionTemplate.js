@@ -21,7 +21,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty (rare)
  * - Family Law Act, RSNL 1990, c. F-2 (provincial — property division on marriage breakdown)
- * - Family Law Act, SNL 2016, c. 41 (provincial — maintenance/support obligations)
+ * - Family Law Act, RSNL 1990, c. F-2 (provincial — maintenance/support obligations)
  * - Judicature Act, RSNL 1990, c. J-4 (court procedures and jurisdiction)
  * - Children and Youth Care and Protection Act, SNL 2010, c. C-12.2 (child welfare)
  * - Child Support Guidelines, SOR/97-175 (federal support calculation)
@@ -36,7 +36,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Court File No. instead of "CAUSE NO." or "CASE NO."
  * - Uncontested divorce typically handled on paper without a hearing
  * - Property division: Family Law Act, RSNL 1990, c. F-2 (equal division presumption)
- * - Support is termed "maintenance" under the Family Law Act, SNL 2016, c. 41
+ * - Support is termed "maintenance" under the Family Law Act, RSNL 1990, c. F-2
  *
  * @class NewfoundlandDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -113,7 +113,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @param {string} groundsForDivorce - Grounds for divorce
    * @returns {string} Grounds statement
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';
@@ -131,7 +131,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Post-March 1, 2021 amendments (Bill C-78): "parenting time" and
    * "decision-making responsibility" replace "custody" and "access" (Divorce Act, ss.16.1-16.92).
    * Family Law Act, RSNL 1990, c. F-2 governs property division.
-   * Spousal support is termed "maintenance" under the Family Law Act, SNL 2016, c. 41.
+   * Spousal support is termed "maintenance" under the Family Law Act, RSNL 1990, c. F-2.
    * Petitioner/Respondent labels per NL divorce practice.
    */
   generateReliefSection(divorceData) {
@@ -156,7 +156,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A maintenance order pursuant to section 15.2 of the Divorce Act and the Family Law Act, SNL 2016, c. 41, as corollary relief;');
+      reliefItems.push('A maintenance order pursuant to section 15.2 of the Divorce Act and the Family Law Act, RSNL 1990, c. F-2, as corollary relief;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {

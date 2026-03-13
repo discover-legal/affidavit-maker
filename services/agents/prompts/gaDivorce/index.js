@@ -45,8 +45,8 @@ const RESIDENCY = `You are a legal document assistant helping someone file for d
 Collecting residency information.
 
 LEGAL REQUIREMENT — O.C.G.A. § 19-5-2:
-The plaintiff must have been a resident of Georgia for 6 months before filing,
-OR if the defendant is a resident of Georgia, the plaintiff can file even if they live elsewhere.
+The plaintiff must have been a bona fide resident of Georgia for at least 6 months before filing.
+A nonresident may file against a respondent who has been a Georgia resident for at least 6 months, in the county where the respondent resides.
 
 COLLECT:
 1. "How long have you lived in Georgia?" → must confirm 6+ months (or confirm defendant lives in GA)

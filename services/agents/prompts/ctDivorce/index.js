@@ -211,7 +211,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Connecticut courts allow fee waivers (Application for Waiver of Fees) for low-income filers.
-The filing fee for a dissolution of marriage is approximately $360.
+The filing fee for a dissolution of marriage is $350.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -244,7 +244,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 90-day mandatory waiting period from the return date before the court can enter a judgment — Conn. Gen. Stat. §46b-67
-- The filing fee is approximately $360 (may be waived for low-income filers)
+- The filing fee is $350 (may be waived for low-income filers)
 - Connecticut courts may divide ALL property (including separate property) — Conn. Gen. Stat. §46b-81
   This means that even property acquired before the marriage, inherited property, and gifts can be divided by the court.
 - Automatic orders take effect upon service — both parties are restricted from dissipating assets

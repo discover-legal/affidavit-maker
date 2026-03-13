@@ -119,7 +119,7 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @param {string} groundsForDivorce - Grounds for divorce
    * @returns {string} Grounds statement
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

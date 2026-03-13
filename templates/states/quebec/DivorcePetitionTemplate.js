@@ -153,7 +153,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `the Plaintiff or Defendant resides in the judicial district of ${district}`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       // Quebec civil law: parties are Plaintiff (Demandeur/Demanderesse) and Defendant (Défendeur/Défenderesse)

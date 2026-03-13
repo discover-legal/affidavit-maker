@@ -20,7 +20,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
  *   - s.12(7): Certificate of Divorce
  * - Family Property Act, CCSM c. F25 (provincial — equalization of marital property)
- * - Family Maintenance Act, CCSM c. F20 (provincial — support obligations)
+ * - Family Law Act, CCSM c. F20 (provincial — support obligations)
  * - Court of King's Bench Act, CCSM c. C280 (procedure)
  * - Federal Child Support Guidelines, SOR/97-175
  *
@@ -35,7 +35,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - The Court sits in Winnipeg (Brandon for western Manitoba)
  * - Court File No. instead of "CASE NO." or "CAUSE NO."
  * - Property division: equalization of net marital property (Family Property Act)
- * - Support: "maintenance" is the correct provincial term (Family Maintenance Act, CCSM c. F20)
+ * - Support: "maintenance" is the correct provincial term (Family Law Act, CCSM c. F20)
  * - 2021 amendments to the Divorce Act introduced "parenting time" and
  *   "decision-making responsibility" as preferred terms over "custody and access"
  *
@@ -122,7 +122,7 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Post-March 1, 2021 amendments (Bill C-78): "parenting time" and
    * "decision-making responsibility" replace "custody" and "access" (Divorce Act, ss.16.1-16.92).
    * Family Property Act, CCSM c. F25 governs equalization of marital property.
-   * Spousal support is referred to as "maintenance" under the Family Maintenance Act, CCSM c. F20.
+   * Spousal support is referred to as "maintenance" under the Family Law Act, CCSM c. F20.
    * Petitioner/Respondent labels per Manitoba divorce practice.
    */
   generateReliefSection(divorceData) {
@@ -147,7 +147,7 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A maintenance order pursuant to section 15.2 of the Divorce Act and the Family Maintenance Act, CCSM c. F20, as corollary relief;');
+      reliefItems.push('A maintenance order pursuant to section 15.2 of the Divorce Act and the Family Law Act, CCSM c. F20, as corollary relief;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {
@@ -194,7 +194,7 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b)(i) adultery
    *   (b)(ii) physical or mental cruelty
    */
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

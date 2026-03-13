@@ -16,7 +16,7 @@
  *   - "Primary residential responsibility" / "decision-making responsibility" — NDCC §14-09-06.2
  *   - "Parenting time" — NDCC §14-09-06.2
  *   - "Spousal support" — NDCC §14-05-24.1
- *   - Child support — income shares model — NDCC §14-09-09.7
+ *   - Child support — percentage of income model (14-27% of obligor's net income) — NDCC §14-09-09.7; N.D. Admin. Code §75-02-04.1
  */
 
 const SHARED_RULES = `
@@ -158,7 +158,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 North Dakota courts allow fee waivers for low-income filers.
-The filing fee is approximately $80.
+The filing fee is approximately $160.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -191,7 +191,7 @@ user_confirmed_review: true
 
 Remind the user:
 - North Dakota has no mandatory waiting period
-- The filing fee is approximately $80 (may be waived for low-income filers)
+- The filing fee is approximately $160 (may be waived for low-income filers)
 - North Dakota divides all property equitably — NDCC §14-05-24
 ${SHARED_RULES}`;
 

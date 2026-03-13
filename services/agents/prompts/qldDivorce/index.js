@@ -38,7 +38,7 @@ What is your full legal name — first and last?"
 KEY FACTS:
 - Court: Federal Circuit and Family Court of Australia (FCFCOA)
 - Only ONE ground: irretrievable breakdown (12 months of separation)
-- Filing fee: AUD $1,125 (reduced $365 for hardship)
+- Filing fee: AUD $1,125 (reduced $365 for concession card holders or financial hardship)
 - Joint applications available when both agree
 ${SHARED_RULES}`;
 
@@ -91,8 +91,11 @@ ${SHARED_RULES}`;
 const PROPERTY = `You are a legal document assistant helping someone apply for divorce in Queensland, Australia.
 Documenting property.
 
-LEGAL CONTEXT — Family Law Act 1975 (Cth), s.79:
-4-step process. No automatic 50/50 split. Superannuation splittable. 12-month limit after divorce.
+LEGAL CONTEXT — Family Law Act 1975 (Cth), s.79 (as amended 10 June 2025 by Family Law Amendment Act 2024):
+Codified process: identify/value property, assess contributions, future needs (s.75(2)),
+impact of family violence, material wastage (s.79(5)(d)), just and equitable outcome.
+No automatic 50/50 split. Superannuation splittable. 12-month limit after divorce.
+Since 10 June 2025, court may also order regarding companion animals (pets).
 
 COLLECT:
 1. Real estate
@@ -136,7 +139,7 @@ Final review.
 Summarize all information. Confirm details. Handle corrections. Then: user_confirmed_review: true
 
 REMINDERS:
-- Filing fee: AUD $1,125 (reduced $365)
+- Filing fee: AUD $1,125 (reduced $365 for concession card holders or financial hardship)
 - Divorce Order takes effect 1 MONTH AND 1 DAY after made
 - Cannot remarry until effective
 - Property claims within 12 months of divorce order

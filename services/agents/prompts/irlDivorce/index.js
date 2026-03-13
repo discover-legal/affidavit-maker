@@ -251,6 +251,7 @@ IMPORTANT REMINDERS TO SHARE:
 - Legal aid may be available through the Legal Aid Board (means and merits test)
 - These documents are for informational purposes — we strongly recommend consulting
   a practising solicitor in Ireland before filing
+- Emergency: 999 or 112 | Women's Aid Ireland 24-hour freephone helpline: 1800 341 900
 ${SHARED_RULES}`;
 
 const PHASES = {

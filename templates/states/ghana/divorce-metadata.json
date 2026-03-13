@@ -9,7 +9,7 @@
   "residencyRequirements": {
     "stateMonths": 36,
     "countyDays": 0,
-    "description": "Either party must be domiciled in Ghana OR have been resident in Ghana for at least 3 years immediately before filing (Matrimonial Causes Act 1971, s.23)."
+    "description": "Either party must be (a) a citizen of Ghana, OR (b) domiciled in Ghana, OR (c) ordinarily resident in Ghana for at least 3 years immediately before filing (Matrimonial Causes Act 1971, s.31)."
   },
   "waitingPeriod": {
     "days": 0,
@@ -24,14 +24,14 @@
       {
         "code": "consent_separation",
         "name": "Separation with Consent (2 years)",
-        "description": "The parties have not cohabited for a continuous period of at least 2 years immediately preceding the filing, and the respondent consents to the divorce.",
-        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(e)"
+        "description": "The parties have not lived as man and wife for a continuous period of at least 2 years immediately preceding the presentation of the petition, and the respondent consents to the grant of a decree of divorce. Consent shall not be unreasonably withheld.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(d)"
       },
       {
         "code": "five_year_separation",
         "name": "Five-Year Separation",
-        "description": "The parties have not cohabited for a continuous period of at least 5 years immediately preceding the filing.",
-        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(d)"
+        "description": "The parties have not lived as man and wife for a continuous period of at least 5 years immediately preceding the presentation of the petition. No consent from the respondent is required.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(e)"
       }
     ],
     "fault": [
@@ -108,7 +108,7 @@
   },
   "decreeProcess": {
     "stages": ["Decree Nisi", "Decree Absolute"],
-    "description": "After the hearing, the court first grants a Decree Nisi. Either party may apply for the Decree Nisi to be made absolute after 6 months from the date of the decree nisi, unless the court grants leave for an earlier application (Matrimonial Causes Act 1971, s.15)."
+    "description": "After the hearing, the court first grants a Decree Nisi. Either party may apply for the Decree Nisi to be made absolute after the prescribed period. The court may rescind the decree nisi before it is made absolute if cause is shown."
   },
   "legalCitations": [
     {
@@ -141,9 +141,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "GHS 50",
-    "varies": false,
-    "notes": "Court filing fee for a divorce petition is GHS 50 at both the Circuit and High Courts. Lawyer professional fees are separate and regulated by the Ghana Bar Association Scale of Fees. Indigent applicants may apply for a fee waiver."
+    "approximate": "GHS 500-1,000",
+    "varies": true,
+    "notes": "Court filing fees for a divorce petition range from approximately GHS 500 to GHS 1,000, depending on the court (High Court vs. Circuit Court) and the complexity of the case. Lawyer professional fees are separate and regulated by the Ghana Bar Association Scale of Legal Fees (2022), which typically ranges from GHS 30,000 to GHS 90,000. Indigent applicants may apply for a fee waiver."
   },
   "childSupportGuidelines": {
     "calculationBasis": "court_discretion",
@@ -155,6 +155,6 @@
     "guidelines": "Matrimonial Causes Act 1971 (Act 367), s.20",
     "notes": "The court may order either spouse to pay maintenance to the other. Factors include the duration of the marriage, the financial capacity and needs of each spouse, and whether either party contributed to the education or career of the other."
   },
-  "effectiveDateRule": "The Decree Nisi becomes absolute after 6 months unless the court grants leave for an earlier application (Matrimonial Causes Act 1971, s.15). Either party may apply to have the Decree Nisi made absolute after this period.",
+  "effectiveDateRule": "The Decree Nisi becomes absolute after the prescribed period has elapsed and on application by either party. The marriage is not dissolved until the Decree Absolute is made.",
   "certificateNote": "A Certificate of Divorce may be obtained from the High Court registry after the Decree Absolute is made."
 }

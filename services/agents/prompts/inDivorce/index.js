@@ -152,7 +152,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Indiana courts allow fee waivers (Affidavit of Indigency) for low-income filers.
-The filing fee is typically $157.
+The filing fee is typically $157–$177.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -185,7 +185,7 @@ user_confirmed_review: true
 
 Remind the user:
 - 60-day mandatory waiting period from filing before the court can enter a final decree — IC 31-15-2-10
-- The filing fee is approximately $157 (may be waived for low-income filers)
+- The filing fee is approximately $157–$177 (may be waived for low-income filers)
 - Indiana presumes equal division of marital property — IC 31-15-7-5
 ${SHARED_RULES}`;
 

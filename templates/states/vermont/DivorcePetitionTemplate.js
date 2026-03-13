@@ -8,7 +8,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Vermont Complaint for Divorce Template
  *
  * Legal References:
- * - 15 V.S.A. § 551 — Grounds for divorce (no-fault: lived apart 6 months or irretrievable breakdown)
+ * - 15 V.S.A. § 551 — Grounds for divorce (no-fault and fault-based)
  * - 15 V.S.A. § 592 — Residency requirement (6 months)
  * - 15 V.S.A. § 665 — Legal Responsibility, Physical Responsibility, Parent-Child Contact
  * - 15 V.S.A. § 656 — Child support guidelines (income shares model)
@@ -18,7 +18,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Vermont-Specific Notes:
  * - Called "Complaint for Divorce" and "Final Divorce Order"
- * - No-fault only since 1969
+ * - Both no-fault and fault grounds available (15 V.S.A. § 551)
  * - 6-month residency requirement
  * - No mandatory statutory waiting period
  * - "Legal Responsibility" (NOT legal custody)
@@ -123,8 +123,7 @@ class VermontDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Generate Vermont grounds section — no-fault only
-   * Two grounds: lived apart 6 months, or irretrievable breakdown
+   * Generate Vermont grounds section — no-fault and fault grounds per 15 V.S.A. § 551
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Grounds section
    */
@@ -138,6 +137,42 @@ class VermontDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       items.push({
         number: paragraphNum++,
         content: 'The parties have lived apart for six (6) consecutive months and the resumption of marital relations is not reasonably probable. (15 V.S.A. § 551)',
+        type: 'grounds'
+      });
+    } else if (grounds === 'adultery') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has committed adultery. (15 V.S.A. § 551(1))',
+        type: 'grounds'
+      });
+    } else if (grounds === 'imprisonment') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has been sentenced to confinement at hard labor for three years or more and is actually confined. (15 V.S.A. § 551(2))',
+        type: 'grounds'
+      });
+    } else if (grounds === 'intolerable_severity') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has treated Plaintiff with intolerable severity. (15 V.S.A. § 551(3))',
+        type: 'grounds'
+      });
+    } else if (grounds === 'willful_desertion') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has willfully deserted Plaintiff for seven consecutive years. (15 V.S.A. § 551(4))',
+        type: 'grounds'
+      });
+    } else if (grounds === 'persistent_refusal_to_provide') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has persistently refused or neglected to provide suitable maintenance for Plaintiff when able to do so. (15 V.S.A. § 551(5))',
+        type: 'grounds'
+      });
+    } else if (grounds === 'incurable_insanity') {
+      items.push({
+        number: paragraphNum++,
+        content: 'Defendant has been confined to a mental institution for at least five years and has been adjudged incurably insane. (15 V.S.A. § 551(6))',
         type: 'grounds'
       });
     } else {
@@ -326,7 +361,7 @@ Plaintiff`;
 
     warnings.push('Vermont requires 6 months residency in the state before filing. (15 V.S.A. § 592)');
     warnings.push('Vermont has no mandatory statutory waiting period, though the process typically takes several months.');
-    warnings.push('Vermont is a no-fault only state. Grounds: lived apart 6 months or irretrievable breakdown. (15 V.S.A. § 551)');
+    warnings.push('Vermont has both no-fault and fault-based grounds for divorce. No-fault: lived apart 6 months or irretrievable breakdown. Fault: adultery, imprisonment 3+ years, intolerable severity, willful desertion 7 years, persistent refusal to provide, incurable insanity. (15 V.S.A. § 551)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       warnings.push('Vermont uses "Legal Responsibility" and "Physical Responsibility" instead of custody, and "Parent-Child Contact" instead of visitation. (15 V.S.A. § 665)');

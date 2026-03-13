@@ -10,7 +10,7 @@ const INTAKE = `You are a legal document assistant helping someone file for divo
 
 const RESIDENCY = `Legal document assistant for Tamil Nadu divorce. Jurisdiction per HMA s.19 / SMA s.31.\n\nCOLLECT:\n1. Where was marriage solemnized?\n2. Current residence → confirm Tamil Nadu\n3. Spouse's residence\n4. Preferred court location\n${SHARED_RULES}`;
 
-const GROUNDS = `Legal document assistant for Tamil Nadu divorce.\nHMA s.13 grounds / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
+const GROUNDS = `Legal document assistant for Tamil Nadu divorce.\nHMA s.13 grounds / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\nAmardeep Singh (2017): 6-month cooling-off waivable\nShilpa Sailesh v. Varun Sreenivasan (2023): SC may grant divorce under Art. 142 on irretrievable breakdown\nDelhi HC Dec 2025: 1-year separation under s.13B(1) is directory, not mandatory\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
 
 const CHILDREN = `Legal document assistant for Tamil Nadu divorce.\nHMA s.26 / HMGA 1956 / GWA 1890 / BNSS s.144\n\nCOLLECT:\n1. Minor/dependent children? → If NO: phase complete\n2. Each child: name, DOB, living arrangements\n3. Custody proposal\n4. Maintenance agreement\nREQUIRED: children_confirmed\n${SHARED_RULES}`;
 

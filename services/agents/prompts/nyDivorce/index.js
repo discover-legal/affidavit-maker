@@ -90,8 +90,8 @@ The 6 fault grounds under DRL §§ 170(1)-(6) are:
 - Abandonment for 1+ year (§ 170(2))
 - Imprisonment for 3+ consecutive years after the marriage (§ 170(3))
 - Adultery (§ 170(4))
-- Living separate and apart under a separation decree or judgment for 1+ year (§ 170(5))
-- Living separate and apart under a written separation agreement for 1+ year (§ 170(6))
+- Living separate and apart under a separation decree or judgment for 6+ months (§ 170(5), as amended by Chapter 673, Laws of 2025 — reduced from 1 year)
+- Living separate and apart under a written separation agreement for 6+ months (§ 170(6), as amended by Chapter 673, Laws of 2025 — reduced from 1 year)
 Fault grounds are rarely pursued. If the user mentions any of these circumstances, document them
 and note that they may wish to consult an attorney about whether a fault ground is advantageous.
 

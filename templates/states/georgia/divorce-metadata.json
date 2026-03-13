@@ -19,15 +19,15 @@
   "residencyRequirements": {
     "stateMonths": 6,
     "countyDays": 0,
-    "description": "The petitioner must have been a bona fide resident of Georgia for at least six months immediately preceding the filing of the complaint. There is no separate county residency requirement.",
-    "statute": "O.C.G.A. § 19-5-4"
+    "description": "The petitioner must have been a bona fide resident of Georgia for at least six months immediately preceding the filing of the complaint. A nonresident may file against a respondent who has been a Georgia resident for at least six months. There is no separate county residency requirement.",
+    "statute": "O.C.G.A. § 19-5-2"
   },
 
   "waitingPeriod": {
     "days": 30,
     "startsFrom": "service_date",
-    "exceptions": [],
-    "description": "Georgia requires a mandatory 30-day waiting period after service of process on the respondent before a divorce can be finalized. This period cannot be waived. (O.C.G.A. § 19-5-8)"
+    "exceptions": ["The 30-day waiting period applies specifically to no-fault divorces granted on the ground that the marriage is irretrievably broken (O.C.G.A. § 19-5-3(13)). Fault-based grounds may not require this waiting period."],
+    "description": "Georgia requires a mandatory 30-day waiting period after service of process on the respondent before a no-fault divorce can be finalized. This period cannot be waived by party agreement. (O.C.G.A. § 19-5-3(13))"
   },
 
   "groundsForDivorce": {
@@ -138,8 +138,8 @@
       "description": "Grounds for divorce — 13 grounds including irretrievably broken marriage"
     },
     {
-      "code": "O.C.G.A. § 19-5-4",
-      "description": "Residency requirements for filing — 6 months"
+      "code": "O.C.G.A. § 19-5-2",
+      "description": "Residence requirements and venue — 6 months bona fide residency"
     },
     {
       "code": "O.C.G.A. § 19-5-8",
@@ -160,9 +160,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$200-400",
+    "approximate": "$200-$250",
     "varies": true,
-    "notes": "Filing fees vary significantly by county in Georgia. Contact the Superior Court clerk's office in your county for current fees."
+    "notes": "Filing fees vary by county in Georgia, typically $200-$250. Contact the Superior Court clerk's office in your county for current fees."
   },
 
   "requiredForms": {

@@ -8,7 +8,7 @@
  *
  * Key facts:
  *   - 6-month residency — D.C. Code §16-902
- *   - No-fault ONLY: mutual consent OR 6 months living separate — D.C. Code §16-904
+ *   - No-fault ONLY: "no longer wish to remain married" (Jan 2024), mutual consent, OR 6 months living separate — D.C. Code §16-904
  *   - Equitable distribution of marital property — D.C. Code §16-910
  *   - "Legal custody" and "physical custody" — D.C. Code §16-914
  *   - "Visitation" — D.C. Code §16-914
@@ -67,16 +67,19 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — D.C. Code §16-904:
-DC is a PURELY NO-FAULT jurisdiction. The only grounds are:
-1. Both parties mutually and voluntarily consent to the divorce — D.C. Code §16-904(a)
-2. The parties have been living separate and apart without cohabitation for at least 6 months — D.C. Code §16-904(b)
+DC is a PURELY NO-FAULT jurisdiction. The grounds are:
+1. NO LONGER WISH TO REMAIN MARRIED — One or both parties state under oath that they no longer wish to remain married. No separation period or mutual consent required. (Added effective January 26, 2024.) — D.C. Code §16-904(a)
+2. MUTUAL AND VOLUNTARY SEPARATION — Both parties mutually and voluntarily consent to the divorce — D.C. Code §16-904(a)
+3. LIVING SEPARATE AND APART — The parties have been living separate and apart without cohabitation for at least 6 months — D.C. Code §16-904(b)
 
 There are NO fault grounds in DC.
+
+IMPORTANT: Since January 2024, the simplest ground is #1 — either party can state under oath they no longer wish to remain married. No waiting period and no mutual consent needed.
 
 COLLECT:
 1. Date and place of marriage (city, state/country)
 2. Date of separation (if applicable)
-3. "Do both you and your spouse consent to the divorce? If so, we can file on the basis of mutual consent. Otherwise, have you been living apart for at least 6 months?"
+3. "Since January 2024, DC allows divorce when either party states under oath they no longer wish to remain married — no waiting period needed. Would you like to proceed on that basis? Alternatively, do both you and your spouse consent, or have you been living apart for at least 6 months?"
 
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
@@ -162,7 +165,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 DC courts allow fee waivers for low-income filers.
-The filing fee is approximately $120.
+The filing fee is approximately $80.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -195,8 +198,8 @@ user_confirmed_review: true
 
 Remind the user:
 - DC has no mandatory waiting period
-- DC is a purely no-fault jurisdiction — only mutual consent or 6-month separation
-- Filing fee is approximately $120
+- DC is a purely no-fault jurisdiction — since January 2024, either party can state under oath they no longer wish to remain married (no waiting period), or mutual consent, or 6-month separation
+- Filing fee is approximately $80
 - DC uses "Complaint for Divorce" with "Plaintiff" and "Defendant" terminology
 - DC has no counties — the entire District is one jurisdiction
 - A Financial Statement must be filed with the court

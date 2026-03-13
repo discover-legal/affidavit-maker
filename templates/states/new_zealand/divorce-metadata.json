@@ -26,7 +26,7 @@
       {
         "code": "family_violence",
         "name": "Family Violence (Protected Person)",
-        "description": "A protected person with a final protection order (or registered foreign protection order) against their spouse may apply for dissolution without the 2-year separation requirement. In effect from 18 October 2025.",
+        "description": "A protected person with a final protection order (or registered foreign protection order) against their spouse may apply for dissolution without the 2-year separation requirement. In effect from 17 October 2025.",
         "statute": "Family Proceedings Act 1980, s.39A (inserted by Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024)"
       }
     ],
@@ -83,7 +83,7 @@
     },
     {
       "code": "Family Proceedings (Dissolution of Marriage or Civil Union for Family Violence) Amendment Act 2024",
-      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 18 October 2025)"
+      "description": "Allows dissolution without 2-year separation for protected persons with a final protection order (in force 17 October 2025)"
     }
   ],
   "filingFees": {

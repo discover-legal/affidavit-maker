@@ -16,7 +16,7 @@
  *   - "Visitation" — Idaho Code §32-717
  *   - Spousal maintenance — Idaho Code §32-705
  *   - Child support income shares model — Idaho Code §32-706
- *   - 20-day waiting period after service — Idaho Code §32-716
+ *   - 21-day waiting period after service — Idaho Code §32-716
  */
 
 const SHARED_RULES = `
@@ -162,7 +162,7 @@ OPTIONS:
 2. PERSONAL SERVICE: By sheriff or certified process server
 3. SERVICE BY PUBLICATION: If defendant cannot be located after diligent efforts
 
-Note: Idaho has a 20-day waiting period after service before the court can grant the divorce — Idaho Code §32-716. The waiting period runs from the date of SERVICE, not filing.
+Note: Idaho has a 21-day waiting period after service before the court can grant the divorce — Idaho Code §32-716. The waiting period runs from the date of SERVICE, not filing.
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -175,7 +175,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Idaho courts allow fee waivers via a Motion and Affidavit for Fee Waiver (Idaho Court Administrative Rule 9) for low-income filers.
-The filing fee is approximately $207.
+The filing fee is approximately $207-$242 depending on the county and whether children are involved.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -207,8 +207,8 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- 20-day mandatory waiting period after service before the court can grant the divorce — Idaho Code §32-716
-- The filing fee is approximately $207 (may be waived for low-income filers)
+- 21-day mandatory waiting period after service before the court can grant the divorce — Idaho Code §32-716
+- The filing fee is approximately $207-$242 depending on the county (may be waived for low-income filers)
 - Idaho is a community property state — community property is divided substantially equally — Idaho Code §32-712
 - Idaho requires only 6 full weeks of residency — Idaho Code §32-701
 ${SHARED_RULES}`;

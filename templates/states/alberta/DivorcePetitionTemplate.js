@@ -148,7 +148,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `the Plaintiff or Defendant resides in the Judicial District of ${district}`;
   }
 
-  getGroundsStatement(groundsForDivorce) {
+  getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Defendant has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';

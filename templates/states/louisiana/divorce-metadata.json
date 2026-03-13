@@ -255,12 +255,12 @@
 
   "responseDeadlines": {
     "inState": {
-      "days": 15,
-      "description": "Respondent must file a response within 15 days of service (La. C.C.P. Art. 1001)"
+      "days": 21,
+      "description": "Respondent must file an answer within 21 days of service (La. C.C.P. Art. 1001, as amended effective January 1, 2022)"
     },
     "outOfState": {
-      "days": 15,
-      "description": "Respondent served outside Louisiana has 15 days from service plus additional time for long-arm service"
+      "days": 21,
+      "description": "Respondent served outside Louisiana has 21 days from service plus additional time for long-arm service"
     },
     "statute": "La. C.C.P. Art. 1001"
   },

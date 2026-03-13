@@ -5,7 +5,7 @@
  *
  * Court: Family Court, Bandra (Mumbai) / Pune / Nagpur / other district courts
  * Appeal: Bombay High Court
- * Stamp paper: INR 100 (Maharashtra has the highest stamp paper value)
+ * Stamp paper: INR 100 (Maharashtra Stamp Dept. circular 30-Oct-2024 confirmed INR 100 still valid for affidavits despite Oct 2024 ordinance)
  * Filing fee: ~INR 500-5,000
  */
 
@@ -44,7 +44,7 @@ Let's start — what is your full legal name (first and last)?"
 
 KEY FACTS:
 - Maharashtra has Family Courts in Mumbai (Bandra), Pune, Nagpur, and other districts
-- Affidavit must be on judicial stamp paper of INR 100 (Maharashtra)
+- Affidavit must be on judicial stamp paper of INR 100 (Maharashtra; INR 100 confirmed valid per Stamp Dept. circular 30-Oct-2024)
 - Parties are "Petitioner" and "Respondent"
 ${SHARED_RULES}`;
 
@@ -69,6 +69,8 @@ Documenting grounds for divorce.
 LEGAL CONTEXT:
 HMA s.13: adultery, cruelty, desertion (2 years), conversion, mental disorder, venereal disease, renunciation, presumed dead (7 years)
 Mutual consent (HMA s.13B / SMA s.28): 1+ year separation, 6-month cooling-off (waivable per Amardeep Singh (2017))
+SC may grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))
+Delhi HC Dec 2025: 1-year separation under s.13B(1) is directory, not mandatory
 IDA s.10 (Christians): adultery, conversion, unsoundness of mind, desertion (2 years), cruelty
 DMMA 1939 s.2 (Muslim wives): various grounds including failure to maintain, cruelty, impotence
 

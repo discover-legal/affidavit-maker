@@ -102,9 +102,9 @@
     }
   ],
   "filingFees": {
-    "approximate": "GBP £185",
+    "approximate": "GBP £151 (simplified) / £185 (ordinary cause)",
     "varies": true,
-    "notes": "GBP 185 ordinary cause / GBP 151 simplified (fees increased November 2024). Fee exemption may apply for certain benefits recipients."
+    "notes": "GBP 185 ordinary cause / GBP 151 simplified (fees increased November 2024). A 3% increase is scheduled for 1 April 2026 (Sheriff Court Fees Order 2026). Fee exemption may apply for certain benefits recipients."
   },
   "childSupportGuidelines": {
     "calculationBasis": "cms_formula",

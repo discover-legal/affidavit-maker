@@ -111,8 +111,8 @@
   ],
   "filingFees": {
     "approximate": "GBP £310",
-    "varies": false,
-    "notes": "Filing fee for divorce petition (updated; previously £260). A further £117 fee applies for the Decree Absolute. Fee exemption may apply for those receiving certain state benefits or on very low income. Note: 5% fee increase expected from April 2026."
+    "varies": true,
+    "notes": "Filing fee for divorce petition: £310 (per nidirect.gov.uk). A further £117 fee applies for the Decree Absolute (Family Proceedings Fees Schedule, from 1 October 2024). Fee exemption may apply for those receiving certain state benefits or on very low income. A consultation on no-fault divorce ran June-September 2025; no legislation has been enacted as of March 2026."
   },
   "childSupportGuidelines": {
     "calculationBasis": "cms_formula",

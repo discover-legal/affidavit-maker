@@ -11,7 +11,7 @@
  *   - File in the county where either party lives
  *   - Only ground: irretrievable breakdown — RCW 26.09.030
  *   - Community property state — RCW 26.09.080
- *   - 90-day waiting period from SERVICE on respondent (or respondent's first appearance) — RCW 26.09.030(2)
+ *   - 90-day waiting period from date petition is FILED, AND service must have occurred — RCW 26.09.030
  *   - "Parenting plan" replaces custody/visitation — RCW 26.09.181
  *   - "Spousal maintenance" terminology — RCW 26.09.090
  */
@@ -138,9 +138,10 @@ OPTIONS:
 3. CERTIFIED MAIL + ACKNOWLEDGMENT: Respondent signs the acknowledgment
 4. SERVICE BY PUBLICATION: If respondent cannot be located (requires court approval)
 
-Note: The 90-day waiting period begins on the date the Respondent is SERVED (or the date of
-the Respondent's first appearance in the case, whichever comes first) — RCW 26.09.030(2).
-It does NOT run from the date of filing. Delay in serving the respondent extends the waiting period.
+Note: The 90-day waiting period runs from the date the Petition is FILED — RCW 26.09.030.
+However, service on the Respondent (or the Respondent's first appearance) must ALSO have
+occurred before the court can enter a decree. So both conditions must be satisfied:
+(1) 90 days have passed since the petition was filed, AND (2) the Respondent has been served.
 
 COLLECT:
 1. "Has your spouse agreed to sign an Acceptance of Service?"
@@ -153,7 +154,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Washington allows fee waivers (Order of Indigency) for low-income filers.
-The filing fee is approximately $314.
+The filing fee is approximately $314-$364 depending on the county.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -185,9 +186,9 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- 90-day waiting period after SERVICE ON RESPONDENT (or respondent's first appearance) before the dissolution can be finalized (RCW 26.09.030(2))
+- 90-day waiting period from the date the Petition is FILED, AND service on the Respondent must also have occurred, before the dissolution can be finalized (RCW 26.09.030)
 - Washington is a community property state — assets and debts acquired during marriage are generally split equally
-- Filing fee approximately $314 (may be waived)
+- Filing fee approximately $314-$364 depending on the county (may be waived)
 - A Parenting Plan is required if there are minor children
 ${SHARED_RULES}`;
 

@@ -1,6 +1,6 @@
 // templates/states/utah/DivorceDecreeTemplate.js
 // Utah-specific decree of divorce template
-// Complies with Utah Code Title 30, Chapter 3 and Utah Rules of Civil Procedure
+// Complies with Utah Code Title 81, Chapter 4 (formerly Title 30, Chapter 3) and Utah Rules of Civil Procedure
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 
@@ -8,11 +8,11 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * Utah Decree of Divorce Template
  *
  * Legal References:
- * - Utah Code Title 30, Chapter 3 (Divorce)
- * - Utah Code § 30-3-1 (Procedure; residence requirements; grounds)
- * - Utah Code § 30-3-5 (Disposition of property; maintenance and health care)
- * - Utah Code § 30-3-10 (Custody of children)
- * - Utah Code § 78B-12 (Child Support Guidelines)
+ * - Utah Code Title 81, Chapter 4 (Dissolution of Marriage) — recodified 9/1/2024; formerly Title 30, Chapter 3
+ * - Utah Code § 81-4-402 (Petition for divorce; residency; 30-day waiting period)
+ * - Utah Code § 81-4-405 (Grounds for divorce)
+ * - Utah Code § 81-4-406 (Decree of divorce — property, maintenance, custody)
+ * - Utah Code Title 81, Chapter 6 (Child Support; formerly § 78B-12)
  *
  * Formatting Requirements:
  * - 8.5" x 11" paper
@@ -27,7 +27,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "Joint Legal Custody" / "Sole Custody"
  * - "Parent-time" instead of "Visitation"
  * - "Alimony" for spousal support
- * - 90-day waiting period from service of complaint (Utah Code § 30-3-18); court may waive for good cause
+ * - 30-day waiting period from filing (Utah Code § 81-4-402); court may waive for extraordinary circumstances
  */
 class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   constructor() {
@@ -178,7 +178,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateJurisdictionSection(divorceData) {
     return {
       title: 'FINDINGS OF FACT AND CONCLUSIONS OF LAW',
-      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, Utah, for at least three months immediately prior to the filing of this action, satisfying the requirements of Utah Code § 30-3-1.\n\n3. At least ninety (90) days have elapsed since the date the complaint was served on Respondent, satisfying the requirements of Utah Code § 30-3-18.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
+      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, Utah, for at least ninety (90) days immediately prior to the filing of this action, satisfying the requirements of Utah Code § 81-4-402.\n\n3. At least thirty (30) days have elapsed since the date the petition was filed, satisfying the waiting period requirements of Utah Code § 81-4-402.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
       type: 'jurisdiction'
     };
   }
@@ -324,7 +324,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       ? divorceData.respondentName
       : divorceData.petitionerName;
 
-    return `IT IS ORDERED that ${nonCustodial || 'the non-custodial parent'} shall have parent-time with the minor child(ren) in accordance with Utah Code § 30-3-35 (minimum schedule) or as otherwise agreed by the parties.`;
+    return `IT IS ORDERED that ${nonCustodial || 'the non-custodial parent'} shall have parent-time with the minor child(ren) in accordance with Utah Code § 81-9-302 (minimum schedule) or as otherwise agreed by the parties.`;
   }
 
   /**
@@ -344,12 +344,12 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per month, calculated in accordance with the Utah Child Support Guidelines, Utah Code § 78B-12-301 et seq.`,
+        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per month, calculated in accordance with the Utah Child Support Guidelines, Utah Code Title 81, Chapter 6`,
         type: 'order'
       });
     } else {
       items.push({
-        content: `IT IS ORDERED that child support shall be calculated and paid in accordance with the Utah Child Support Guidelines, Utah Code § 78B-12-301 et seq.`,
+        content: `IT IS ORDERED that child support shall be calculated and paid in accordance with the Utah Child Support Guidelines, Utah Code Title 81, Chapter 6`,
         type: 'order'
       });
     }
@@ -401,7 +401,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
 
       items.push({
-        content: `The Court, having considered the factors set forth in Utah Code § 30-3-5(8), including the financial conditions and needs of the parties, their earning capacities, and the length of the marriage, finds that alimony is appropriate.`,
+        content: `The Court, having considered the factors set forth in Utah Code § 81-4-504, including the financial conditions and needs of the parties, their earning capacities, and the length of the marriage, finds that alimony is appropriate.`,
         type: 'finding'
       });
 
@@ -518,7 +518,7 @@ ${divorceData.judgeName ? divorceData.judgeName.toUpperCase() : ''}`,
 
     // Warning about divorce education class
     if (divorceData.hasMinorChildren === true) {
-      warnings.push('Utah requires both parents to complete a divorce education class when minor children are involved (Utah Code § 30-3-11.3).');
+      warnings.push('Utah requires both parents to complete a divorce education class when minor children are involved (Utah Code § 81-4-409).');
     }
 
     return { errors, warnings };

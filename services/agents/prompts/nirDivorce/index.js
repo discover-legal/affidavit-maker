@@ -17,9 +17,9 @@
  *   - "Decree Nisi" and "Decree Absolute" (not Conditional/Final Order)
  *   - "Ancillary relief" (not financial remedy)
  *   - Court is the High Court (Family Division) — not the Family Court
- *   - Family law is devolved to the NI Assembly (consultation on no-fault divorce launched June 2025; no legislation enacted as of March 2026)
+ *   - Family law is devolved to the NI Assembly (consultation on no-fault divorce ran June-September 2025; no legislation enacted as of March 2026)
  *   - Residence and contact orders (not "child arrangements orders")
- *   - Filing fee: GBP £310 (plus £117 for Decree Absolute)
+ *   - Filing fee: GBP £310 (per nidirect.gov.uk), plus £117 for Decree Absolute (Family Proceedings Fees Schedule, from 1 October 2024)
  *   - A4 paper, GBP currency
  *   - DV Helpline: 0808 802 1414 (24 Hour Domestic & Sexual Abuse Helpline)
  */
@@ -57,7 +57,7 @@ KEY FACTS TO SHARE:
   one of five 'facts' that show the marriage has irretrievably broken down
 - The court handling the case is the High Court of Justice (Family Division) in Belfast,
   or a County Court with matrimonial jurisdiction
-- Filing fee: approx. £310 (plus £117 for Decree Absolute)
+- Filing fee: approx. £310 (per nidirect.gov.uk, Sept 2025), plus £117 for Decree Absolute
 - Most undefended divorces are dealt with on paper, without a court hearing
 ${SHARED_RULES}`;
 

@@ -188,7 +188,7 @@ const ORCHESTRATED_STATES = new Set(Object.keys(divorceOrchestrators));
 const JURISDICTION_COUNTRY = {
   // Canadian provinces & territories
   ON: 'CA', BC: 'CA', AB: 'CA', QC: 'CA', MB: 'CA', NB: 'CA',
-  NL: 'CA', NS: 'CA', PE: 'CA', SK: 'CA',
+  NL: 'CA', NS: 'CA', PE: 'CA', SK: 'CA', NT: 'CA', YT: 'CA', NU: 'CA',
   // UK
   ENG: 'UK', SCO: 'UK', NIR: 'UK',
   // Ireland
@@ -224,6 +224,9 @@ const JURISDICTION_COUNTRY = {
   // Mediterranean
   CY: 'CY',
 };
+
+/** All Canadian province and territory codes. */
+const CANADIAN_PROVINCES = new Set(['ON', 'BC', 'AB', 'QC', 'MB', 'NB', 'NL', 'NS', 'PE', 'SK', 'NT', 'YT', 'NU']);
 
 /** Subdomain-to-country mapping. */
 const SUBDOMAIN_COUNTRY = {

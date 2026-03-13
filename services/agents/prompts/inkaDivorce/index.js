@@ -4,7 +4,7 @@
  * Karnataka (IN_KA) Divorce Phase Prompts
  * Court: Family Court, Bengaluru / Mysuru / Mangaluru / Hubballi
  * Appeal: Karnataka High Court
- * Stamp paper: INR 100
+ * Stamp paper: INR 20
  */
 
 const SHARED_RULES = `
@@ -41,7 +41,7 @@ Let's start — what is your full legal name (first and last)?"
 
 KEY FACTS:
 - Karnataka has Family Courts in Bengaluru, Mysuru, Mangaluru, Hubballi-Dharwad, and other districts
-- Stamp paper: INR 100
+- Stamp paper: INR 20
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Karnataka, India.
@@ -61,6 +61,8 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 LEGAL CONTEXT:
 HMA s.13: adultery, cruelty, desertion (2 yrs), conversion, mental disorder, venereal disease, renunciation, presumed dead (7 yrs)
 Mutual consent (HMA s.13B / SMA s.28): 1+ year separation, 6-month cooling-off (waivable per Amardeep Singh (2017))
+SC may grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))
+Delhi HC Dec 2025: 1-year separation under s.13B(1) is directory, not mandatory
 
 COLLECT:
 1. Date of marriage (and place)
@@ -122,7 +124,7 @@ const REVIEW = `You are a legal document assistant helping someone file for divo
 Final review. Summarize all information. Ask user to confirm. Then: user_confirmed_review: true
 
 REMINDERS:
-- Stamp paper: INR 100
+- Stamp paper: INR 20
 - Filing fee: ~INR 500-3,000
 - Mutual consent: First Motion → 6-month cooling-off → Second Motion → Decree
 - For emergencies: 181 (Women Helpline) or 112

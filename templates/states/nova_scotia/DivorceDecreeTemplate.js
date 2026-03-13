@@ -24,7 +24,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *   - s.12(7): Certificate of Divorce — issued by court registrar after effective date
  * - Matrimonial Property Act, RSNS 1989, c. 275 (property division)
  *   - s.12: Presumption of equal division of matrimonial assets and matrimonial debts
- * - Maintenance and Custody Act, RSNS 1989, c. 160 (custody and support)
+ * - Parenting and Support Act, RSNS 1989, c. 160 (parenting arrangements and support; formerly the Maintenance and Custody Act, renamed in 2017)
  * - Nova Scotia Civil Procedure Rules (procedure)
  *
  * @class NovaScotiaDivorceDecreeTemplate

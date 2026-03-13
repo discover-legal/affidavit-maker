@@ -46,7 +46,7 @@
     "petitioner": "Petitioner",
     "respondent": "Respondent",
     "custody": "Parenting Time and Decision-Making Responsibility",
-    "alimony": "Maintenance (Nova Scotia primary term under the Maintenance and Custody Act, RSNS 1989, c. 160); also referred to as 'spousal support' when invoking the federal Divorce Act",
+    "alimony": "Support (Nova Scotia term under the Parenting and Support Act, RSNS 1989, c. 160 — formerly the Maintenance and Custody Act, renamed in 2017); also referred to as 'spousal support' when invoking the federal Divorce Act",
     "maritalProperty": "Matrimonial Property (Matrimonial Property Act, RSNS 1989, c. 275)"
   },
   "legalCitations": [
@@ -59,8 +59,8 @@
       "description": "Nova Scotia statute — equal division of matrimonial assets on marriage breakdown (s.12 — equal sharing presumption)"
     },
     {
-      "code": "Maintenance and Custody Act, RSNS 1989, c. 160",
-      "description": "Nova Scotia statute — custody, access, and maintenance obligations"
+      "code": "Parenting and Support Act, RSNS 1989, c. 160",
+      "description": "Nova Scotia statute — parenting arrangements, parenting time, contact, and support obligations (formerly the Maintenance and Custody Act, renamed in 2017)"
     },
     {
       "code": "Federal Child Support Guidelines, SOR/97-175",
@@ -93,7 +93,7 @@
   "spousalSupportGuidelines": {
     "calculationBasis": "SSAG",
     "guidelines": "Spousal Support Advisory Guidelines (SSAG)",
-    "notes": "SSAG are advisory only — not legislatively mandated but widely applied by Nova Scotia courts. Nova Scotia uses the term 'maintenance' (Maintenance and Custody Act, RSNS 1989, c. 160) in provincial proceedings."
+    "notes": "SSAG are advisory only — not legislatively mandated but widely applied by Nova Scotia courts. Nova Scotia uses the term 'support' (Parenting and Support Act, RSNS 1989, c. 160) in provincial proceedings."
   },
   "effectiveDateRule": "31 days after the divorce order is made, unless the court varies the effective date or both parties waive the waiting period (Divorce Act, s.12).",
   "certificateNote": "A Certificate of Divorce may be obtained from the court office after the effective date of the Divorce Order (Divorce Act, s.12(7)).",

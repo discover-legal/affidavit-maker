@@ -174,7 +174,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Massachusetts allows fee waivers under Affidavit of Indigency for low-income filers.
-The filing fee is approximately $200.
+The filing fee is $215 ($200 complaint fee plus $15 summons surcharge).
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"

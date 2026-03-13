@@ -14,8 +14,9 @@
  * Key differences from US/Canadian jurisdictions:
  *   - Multiple types of marriage recognized: civil, Christian, customary, Hindu, Islamic
  *   - Islamic marriages have Kadhi's Court jurisdiction (Art. 170 Constitution)
- *   - No no-fault divorce — must prove a ground (adultery, cruelty, desertion 3+ yrs, exceptional depravity)
- *   - Court must be satisfied marriage has broken down irretrievably (overarching requirement)
+ *   - Five grounds: adultery, cruelty, desertion 3+ yrs, exceptional depravity, irretrievable breakdown
+ *   - Irretrievable breakdown (s.66(2)(e)) includes 2-yr separation, 7+ yr imprisonment, incurable insanity
+ *   - No divorce by mutual consent (High Court ruling, April 2025)
  *   - MANDATORY reconciliation attempt before court proceeds (s.67-68)
  *   - Two-stage decree: Decree Nisi (conditional) → Decree Absolute (final)
  *   - Property division is contribution-based (financial and non-financial) under Matrimonial Property Act
@@ -81,12 +82,23 @@ const GROUNDS = `You are a legal document assistant helping someone file for div
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Marriage Act, 2014, s.66:
-Kenya does NOT have no-fault divorce. The court must be satisfied that the marriage has broken down IRRETRIEVABLY on ONE of these grounds:
+The court must be satisfied that the marriage has broken down IRRETRIEVABLY on ONE of these grounds:
 
-1. ADULTERY (s.66(a)) — the respondent committed adultery and the petitioner finds it intolerable to live with them
-2. CRUELTY (s.66(b)) — the respondent has been cruel (physical or mental cruelty)
-3. DESERTION FOR 3+ YEARS (s.66(c)) — the respondent deserted the petitioner for at least 3 continuous years
-4. EXCEPTIONAL DEPRAVITY (s.66(d)) — the respondent behaved in such a way that continued cohabitation is unreasonable
+1. ADULTERY (s.66(2)(a)) — the respondent committed adultery and the petitioner finds it intolerable to live with them
+2. CRUELTY (s.66(2)(b)) — the respondent has been cruel (physical or mental cruelty)
+3. DESERTION FOR 3+ YEARS (s.66(2)(c)) — the respondent deserted the petitioner for at least 3 continuous years
+4. EXCEPTIONAL DEPRAVITY (s.66(2)(d)) — the respondent behaved in such a way that continued cohabitation is unreasonable
+5. IRRETRIEVABLE BREAKDOWN (s.66(2)(e)) — the marriage has irretrievably broken down with no reasonable prospect of reconciliation
+   → Under s.66(6), irretrievable breakdown is deemed proven when: (a) any of the other grounds are proven, (b) the parties have been separated for at least 2 years, (c) a spouse has been sentenced to 7+ years imprisonment, or (d) a spouse suffers from incurable insanity
+
+NOTE ON 3-YEAR BAR: The 3-year bar on divorce petitions for civil marriages (formerly s.66(1)-(2))
+was declared UNCONSTITUTIONAL by the Court of Appeal in 2022 (Civil Appeal E003/2020). The grace
+period for Parliament to amend the law lapsed in June 2025. There is now NO minimum marriage
+duration before filing for divorce.
+
+NOTE ON MUTUAL CONSENT: In April 2025, the High Court confirmed (Constitutional Petition E075/2022,
+Cooper Attorneys & Consultancy v Attorney General & Others) that divorce by mutual consent is NOT
+available under Kenyan law. A statutory ground must be proven.
 
 IMPORTANT — MANDATORY RECONCILIATION (s.67-68):
 The court MUST refer the parties to attempt reconciliation BEFORE proceeding to hear the petition. This is not optional — it is a legal requirement. The court may adjourn proceedings for up to 6 months for reconciliation. You should be prepared for this step.
@@ -203,7 +215,7 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee is approximately KES 4,000-10,000 (varies by court)
+- Filing fee is approximately KES 2,000-45,000 (varies by court and claim value)
 - The court WILL refer you to mandatory reconciliation before proceeding (Marriage Act, s.67-68)
 - If the petition is uncontested, the process is faster
 - The court first issues a Decree Nisi (conditional decree)

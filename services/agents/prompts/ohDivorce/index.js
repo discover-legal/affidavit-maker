@@ -157,7 +157,7 @@ const INDIGENCY = `You are a legal document assistant helping someone file for d
 Determining eligibility for filing fee waiver.
 
 Ohio courts allow fee waivers (Poverty Affidavit) for low-income filers.
-The filing fee varies by county but is typically $150–$200.
+The filing fee varies by county but is typically $250–$400.
 
 COLLECT:
 1. "Do you want to ask the court to waive your filing fees?"
@@ -189,9 +189,9 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- Filing fee approximately $150–$200 (may be waived)
-- Ohio has no mandatory statutory waiting period after service; the court sets hearing dates at its
-  discretion (typically several weeks to months after the case is at issue)
+- Filing fee approximately $250–$400 depending on county (may be waived)
+- Ohio has a mandatory 42-day waiting period after service of process before the court may hear
+  the divorce case (R.C. § 3105.10). This period cannot be waived.
 - If using "incompatibility" ground, the divorce is barred if either party denies incompatibility
 - If both spouses agree on all terms, consider Dissolution of Marriage (O.R.C. § 3105.61+) as an alternative
 - A financial disclosure form may be required

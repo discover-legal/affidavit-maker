@@ -39,8 +39,57 @@
         "statute": "19-A M.R.S. §902"
       }
     ],
-    "fault": [],
-    "notes": "Maine is a no-fault only state. The sole ground for divorce is irreconcilable marital differences. (19-A M.R.S. §902)"
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by either party",
+        "statute": "19-A M.R.S. §902(1)(A)"
+      },
+      {
+        "code": "impotence",
+        "name": "Impotence",
+        "description": "Impotence of either party",
+        "statute": "19-A M.R.S. §902(1)(B)"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Extreme cruelty by either party",
+        "statute": "19-A M.R.S. §902(1)(C)"
+      },
+      {
+        "code": "utter_desertion",
+        "name": "Utter Desertion for Three Years",
+        "description": "Utter desertion continued for 3 consecutive years prior to the filing of the complaint",
+        "statute": "19-A M.R.S. §902(1)(D)"
+      },
+      {
+        "code": "intoxication",
+        "name": "Gross and Confirmed Habits of Intoxication",
+        "description": "Gross and confirmed habits of intoxication from the use of liquor or drugs",
+        "statute": "19-A M.R.S. §902(1)(E)"
+      },
+      {
+        "code": "nonsupport",
+        "name": "Nonsupport",
+        "description": "Nonsupport when the spouse has sufficient ability to provide and grossly or cruelly refuses or neglects to provide suitable maintenance",
+        "statute": "19-A M.R.S. §902(1)(F)"
+      },
+      {
+        "code": "cruel_abusive_treatment",
+        "name": "Cruel and Abusive Treatment",
+        "description": "Cruel and abusive treatment",
+        "statute": "19-A M.R.S. §902(1)(G)"
+      },
+      {
+        "code": "mental_illness",
+        "name": "Mental Illness",
+        "description": "Mental illness requiring confinement in a mental institution for at least 7 consecutive years prior to filing",
+        "statute": "19-A M.R.S. §902(1)(H)"
+      }
+    ],
+    "notes": "Maine has both no-fault and fault-based grounds. The most common ground is irreconcilable marital differences (no-fault). Fault grounds include adultery, impotence, extreme cruelty, 3-year utter desertion, intoxication, nonsupport, cruel and abusive treatment, and 7-year mental illness confinement. (19-A M.R.S. §902)"
   },
 
   "propertyDivision": {

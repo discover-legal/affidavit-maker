@@ -1,7 +1,7 @@
 {
   "stateCode": "OY", "stateName": "Oyo", "countryCode": "NG", "countryName": "Nigeria",
   "documentTypes": ["divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true,
-  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "MCA s.2(1)–(2) — either party domiciled in Nigeria; or wife ordinarily resident for 3 years. Oyo State High Court if either party resides in the state." },
+  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for 3 years is deemed domiciled (MCA s.7(b)). Oyo State High Court if either party resides in the state." },
   "waitingPeriod": { "days": 0, "description": "Decree Nisi -> Decree Absolute after 3 months (MCA s.58). 2-year bar (MCA s.30)." },
   "twoYearBar": { "years": 2, "description": "MCA s.30." },
   "groundsForDivorce": {

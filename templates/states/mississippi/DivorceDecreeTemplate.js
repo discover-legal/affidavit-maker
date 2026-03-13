@@ -14,7 +14,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - Miss. Code §93-5-2 — No-fault ground (irreconcilable differences, 60-day waiting)
  * - Miss. Code §93-5-23 — Property division (equitable distribution); alimony
  * - Miss. Code §93-5-24 — Child custody (legal and physical custody, visitation)
- * - Miss. Code §43-19-101 et seq. — Child support guidelines (income shares)
+ * - Miss. Code §43-19-101 et seq. — Child support guidelines (percentage of income)
  *
  * Mississippi-Specific Terms:
  * - "Final Judgment of Divorce" (not Decree of Divorce)

@@ -1,6 +1,6 @@
 // templates/states/singapore/DivorceDecreeTemplate.js
 // Singapore Interim Judgment / Final Judgment template
-// Governing Law: Women's Charter (Cap 353), Part X; Family Justice Rules 2024
+// Governing Law: Women's Charter 1961, Part X; Family Justice (General) Rules 2024
 
 'use strict';
 
@@ -17,14 +17,15 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * The minimum gap between stages is 3 months (Women's Charter, s.99(3)).
  *
  * Key Legal References:
- * - Women's Charter (Cap 353)
+ * - Women's Charter 1961
  *   - s.95: Irretrievable breakdown — sole ground for divorce
+ *   - s.95A(1): Six facts proving irretrievable breakdown
  *   - s.99: Interim judgment and final judgment
  *   - s.112: Division of matrimonial assets — "just and equitable"
  *   - s.113-114: Maintenance of wife (gender-specific)
  *   - s.125: Welfare of child paramount in custody matters
  * - Guardianship of Infants Act (Cap 122)
- * - Family Justice Rules 2024
+ * - Family Justice (General) Rules 2024
  *
  * IMPORTANT: Muslim marriages are handled by the Syariah Court under AMLA (Cap 3).
  * This template applies ONLY to non-Muslim divorces under the Women's Charter.
@@ -153,7 +154,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateDissolutionSection(divorceData) {
     return {
       title: 'INTERIM JUDGMENT GRANTED',
-      text: `IT IS ADJUDGED that the marriage between ${divorceData.petitionerName || '[PLAINTIFF NAME]'} (Plaintiff) and ${divorceData.respondentName || '[DEFENDANT NAME]'} (Defendant), solemnized on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}, has irretrievably broken down and the Court grants an Interim Judgment dissolving the said marriage pursuant to section 95 read with section 99 of the Women's Charter (Cap 353).\n\nNOTE: This Interim Judgment does NOT dissolve the marriage. The marriage is dissolved only when the Certificate of Making Interim Judgment Final is issued (Women's Charter, s.99(3)).`,
+      text: `IT IS ADJUDGED that the marriage between ${divorceData.petitionerName || '[PLAINTIFF NAME]'} (Plaintiff) and ${divorceData.respondentName || '[DEFENDANT NAME]'} (Defendant), solemnized on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}, has irretrievably broken down and the Court grants an Interim Judgment dissolving the said marriage pursuant to section 95 read with section 99 of the Women's Charter 1961.\n\nNOTE: This Interim Judgment does NOT dissolve the marriage. The marriage is dissolved only when the Certificate of Making Interim Judgment Final is issued (Women's Charter, s.99(3)).`,
       type: 'dissolution'
     };
   }
@@ -170,12 +171,12 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.hasProperty === false) {
       items.push({
-        content: 'The Court finds there are no matrimonial assets to be divided under section 112 of the Women\'s Charter (Cap 353).',
+        content: 'The Court finds there are no matrimonial assets to be divided under section 112 of the Women\'s Charter 1961.',
         type: 'finding'
       });
     } else {
       items.push({
-        content: 'The Court has considered the just and equitable division of the parties\' matrimonial assets pursuant to section 112 of the Women\'s Charter (Cap 353), having regard to the extent of the financial and non-financial contributions made by each party towards the acquisition and improvement of the matrimonial assets, the welfare of the family, and all other relevant circumstances.',
+        content: 'The Court has considered the just and equitable division of the parties\' matrimonial assets pursuant to section 112 of the Women\'s Charter 1961, having regard to the extent of the financial and non-financial contributions made by each party towards the acquisition and improvement of the matrimonial assets, the welfare of the family, and all other relevant circumstances.',
         type: 'finding'
       });
 
@@ -201,7 +202,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty) {
         items.push({
-          content: 'IT IS ORDERED that each party shall retain the assets currently in that party\'s sole name and possession, subject to any further order of this Court regarding the division of matrimonial assets under section 112 of the Women\'s Charter (Cap 353).',
+          content: 'IT IS ORDERED that each party shall retain the assets currently in that party\'s sole name and possession, subject to any further order of this Court regarding the division of matrimonial assets under section 112 of the Women\'s Charter 1961.',
           type: 'order'
         });
       }
@@ -284,12 +285,12 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED pursuant to section 69 of the Women's Charter (Cap 353) that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Defendant'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Plaintiff'} maintenance for the child(ren) in the sum of SGD $${divorceData.childSupportAmount} per month.`,
+        content: `IT IS ORDERED pursuant to section 69 of the Women's Charter 1961 that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Defendant'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Plaintiff'} maintenance for the child(ren) in the sum of SGD $${divorceData.childSupportAmount} per month.`,
         type: 'order'
       });
     } else {
       items.push({
-        content: 'IT IS ORDERED pursuant to section 69 of the Women\'s Charter (Cap 353) that maintenance for the child(ren) shall be paid in such amount as the Court determines, having regard to the financial needs of the child(ren) and the means of the parents.',
+        content: 'IT IS ORDERED pursuant to section 69 of the Women\'s Charter 1961 that maintenance for the child(ren) shall be paid in such amount as the Court determines, having regard to the financial needs of the child(ren) and the means of the parents.',
         type: 'order'
       });
     }
@@ -318,12 +319,12 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.spousalSupportWaived) {
       items.push({
-        content: 'IT IS ORDERED that neither party shall have any claim for maintenance against the other, and each party waives any right to maintenance under sections 113-114 of the Women\'s Charter (Cap 353).',
+        content: 'IT IS ORDERED that neither party shall have any claim for maintenance against the other, and each party waives any right to maintenance under sections 113-114 of the Women\'s Charter 1961.',
         type: 'order'
       });
     } else if (divorceData.spousalSupportAwarded) {
       items.push({
-        content: `IT IS ORDERED pursuant to sections 113-114 of the Women's Charter (Cap 353) that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'the Defendant'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'the Plaintiff'} in the sum of SGD $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED pursuant to sections 113-114 of the Women's Charter 1961 that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'the Defendant'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'the Plaintiff'} in the sum of SGD $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
         type: 'order'
       });
     }
@@ -386,7 +387,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * Note about Muslim marriages being handled by the Syariah Court.
    */
   getMuslimLawNote() {
-    return 'NOTE: This judgment is issued under the Women\'s Charter (Cap 353) and applies to non-Muslim marriages only. Marriages solemnized under Muslim law are governed by the Administration of Muslim Law Act (AMLA, Cap 3) and divorce proceedings for such marriages are handled by the Syariah Court.';
+    return 'NOTE: This judgment is issued under the Women\'s Charter 1961 and applies to non-Muslim marriages only. Marriages solemnized under Muslim law are governed by the Administration of Muslim Law Act (AMLA, Cap 3) and divorce proceedings for such marriages are handled by the Syariah Court.';
   }
 
   /**

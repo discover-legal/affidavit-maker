@@ -88,9 +88,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$200",
+    "approximate": "$250",
     "varies": true,
-    "notes": "Montana filing fees are approximately $200 for a dissolution of marriage. Fee waivers may be available for qualifying low-income individuals."
+    "notes": "Montana filing fees are approximately $250 for a dissolution of marriage ($200 filing fee + $50 judgment fee). Fees may vary slightly by county. Fee waivers may be available for qualifying low-income individuals."
   },
 
   "requiredForms": {

@@ -112,7 +112,7 @@
     },
     {
       "code": "Idaho Code \u00a732-716",
-      "description": "Twenty-day waiting period after service"
+      "description": "Twenty-one-day waiting period after service"
     },
     {
       "code": "Idaho Code \u00a732-712",
@@ -137,9 +137,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$207",
+    "approximate": "$207-$242",
     "varies": true,
-    "notes": "Idaho filing fees are approximately $207 for a complaint for divorce but may vary by county. Fee waivers are available for qualifying low-income individuals via a Motion and Affidavit for Fee Waiver (Idaho Court Administrative Rule 9)."
+    "notes": "Idaho filing fees are approximately $207-$242 for a complaint for divorce depending on the county and whether children are involved. Fee waivers are available for qualifying low-income individuals via a Motion and Affidavit for Fee Waiver (Idaho Court Administrative Rule 9)."
   },
 
   "requiredForms": {

@@ -181,7 +181,7 @@ FOR INITIAL FILINGS AND MODIFICATIONS — ask what arrangement they want:
 
 CHILD'S PREFERENCE: Courts may consider a child's preference when the child is of sufficient age and maturity. Rules vary by state:
 - Texas: A child 12 or older must be interviewed by the court in chambers on the application of a party, the child's attorney, or amicus attorney (Tex. Fam. Code § 153.009(a)). Courts have discretion to interview younger children under § 153.009(b), but the statutory right to compel the interview on request applies to children 12 and older. The mechanism is a judicial chambers interview — there is no written-preference submission procedure under this statute.
-- Utah: A child 14 or older has a preference that carries significant weight; the court must state reasons on the record for any departure (Utah Code § 30-3-10.2).
+- Utah: A child 14 or older has a preference that carries significant weight; the court must state reasons on the record for any departure (Utah Code § 81-9-204).
 - California: A child 14 or older has the right to address the court directly; younger children of sufficient maturity may also be heard (Fam. Code § 3042).
 - Arizona, Florida, Illinois, New York: No fixed age cutoff; the court weighs the child's wishes based on age and maturity as one factor in the best-interests analysis.
 Ask: "Has the child expressed a preference about where they want to live? How old is the child?" Document any expressed preference and the child's current age.

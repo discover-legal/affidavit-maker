@@ -21,7 +21,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * South Dakota-Specific Notes:
  * - Called "Divorce" — complaint titled "Complaint for Divorce"
  * - Resident at time of filing; no minimum duration if events occurred in SD
- * - No mandatory waiting period (unless court orders conciliation)
+ * - 60-day waiting period from service (SDCL §25-4-34)
  * - No-fault: "irreconcilable differences"
  * - Fault: adultery, extreme cruelty, willful desertion, willful neglect,
  *   habitual intemperance, felony conviction
@@ -63,12 +63,12 @@ class SouthDakotaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'The plaintiff must be a resident of South Dakota at the time of filing. There is no minimum duration of residency if the cause of action arose in South Dakota. (SDCL §25-4-30)'
     };
 
-    // South Dakota — no mandatory waiting period
+    // South Dakota — 60-day waiting period from service (SDCL §25-4-34)
     this.waitingPeriod = {
-      days: 0,
-      startsFrom: null,
+      days: 60,
+      startsFrom: 'service_date',
       exceptions: [],
-      description: 'South Dakota has no mandatory waiting period, unless the court orders conciliation.'
+      description: 'No hearing, trial, or final judgment can occur until 60 days have elapsed from completed service of the summons and complaint on the defendant. SDCL §25-4-34.'
     };
   }
 

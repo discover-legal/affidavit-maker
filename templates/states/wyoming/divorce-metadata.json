@@ -91,9 +91,9 @@
   ],
 
   "filingFees": {
-    "approximate": "$70",
+    "approximate": "$120-$160",
     "varies": true,
-    "notes": "Wyoming filing fees are approximately $70 for a Complaint for Divorce. Fee waivers are available for qualifying low-income individuals by filing an In Forma Pauperis petition."
+    "notes": "Wyoming's statutory filing fee is $120 per Wyo. Stat. § 5-3-206(a)(i), but some counties charge up to $160 (e.g., Sheridan and Natrona counties). Fee waivers are available for qualifying low-income individuals by filing an Affidavit of Indigency and Request for Waiver of Filing Fees."
   },
 
   "requiredForms": {

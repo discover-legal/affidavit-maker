@@ -31,7 +31,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Ontario-Specific:
  * - Parties are "Applicant" and "Respondent" (not "Petitioner")
  * - Court is Superior Court of Justice (or Family Court branch where available)
- * - Filing fee: approx. CAD $202 (waivable with Form 26B if impecunious; contact court office for current fee)
+ * - Filing fee: CAD $224 initial (Application) + $445 (Affidavit for Divorce / set-down) = $669 total; Certificate of Divorce $25 extra ($694 total). Waivable with Form 26B if impecunious.
  * - Uncontested divorce: typically handled on paper without a hearing
  * - Court File No. instead of "CAUSE NO." or "CASE NO."
  *

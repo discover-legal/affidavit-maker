@@ -97,6 +97,7 @@ app.use(helmet({
         "https://make.discover.legal",
         "https://discover.legal",
         "https://www.discover.legal",
+        "https://make.discover.legal",
         // Dynamically include FRONTEND_URL so staging/other deployments work
         process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()
           ? process.env.FRONTEND_URL.trim()
@@ -168,6 +169,7 @@ const getAllowedOrigins = () => {
     'https://make.discover.legal',
     'https://discover.legal',
     'https://www.discover.legal',
+    'https://make.discover.legal',
     'https://ca.discover.legal',
     'https://canada.discover.legal',
     // International subdomains

@@ -1,5 +1,6 @@
 {
   "running": true,
+<<<<<<< Updated upstream
   "startedAt": "2026-03-03T14:19:51.310Z",
   "workers": {
     "map": {
@@ -46,6 +47,54 @@
       "lastRun": "2026-03-08T06:51:26.781Z",
       "nextRun": "2026-03-08T07:11:26.781Z",
       "isRunning": false
+=======
+  "startedAt": "2026-03-02T14:18:58.183Z",
+  "workers": {
+    "map": {
+      "runCount": 2,
+      "successCount": 2,
+      "failureCount": 0,
+      "averageDurationMs": 1,
+      "isRunning": false,
+      "nextRun": "2026-03-02T14:33:58.186Z",
+      "lastRun": "2026-03-02T14:33:58.193Z"
+    },
+    "audit": {
+      "runCount": 2,
+      "successCount": 2,
+      "failureCount": 0,
+      "averageDurationMs": 60030.5,
+      "isRunning": false,
+      "nextRun": "2026-03-02T14:42:58.254Z",
+      "lastRun": "2026-03-02T14:32:58.253Z"
+    },
+    "optimize": {
+      "runCount": 1,
+      "successCount": 0,
+      "failureCount": 1,
+      "averageDurationMs": 0,
+      "isRunning": false,
+      "nextRun": "2026-03-02T14:42:58.189Z",
+      "lastRun": "2026-03-02T14:27:58.188Z"
+    },
+    "consolidate": {
+      "runCount": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "averageDurationMs": 2,
+      "isRunning": false,
+      "nextRun": "2026-03-02T14:54:58.193Z",
+      "lastRun": "2026-03-02T14:24:58.193Z"
+    },
+    "testgaps": {
+      "runCount": 1,
+      "successCount": 0,
+      "failureCount": 1,
+      "averageDurationMs": 0,
+      "isRunning": false,
+      "nextRun": "2026-03-02T14:51:58.212Z",
+      "lastRun": "2026-03-02T14:31:58.211Z"
+>>>>>>> Stashed changes
     },
     "predict": {
       "runCount": 0,
@@ -131,5 +180,9 @@
       }
     ]
   },
+<<<<<<< Updated upstream
   "savedAt": "2026-03-08T06:58:54.038Z"
+=======
+  "savedAt": "2026-03-02T14:33:58.193Z"
+>>>>>>> Stashed changes
 }

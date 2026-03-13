@@ -1,5 +1,9 @@
 {
+<<<<<<< Updated upstream
   "timestamp": "2026-03-08T06:58:54.037Z",
+=======
+  "timestamp": "2026-03-02T14:33:58.192Z",
+>>>>>>> Stashed changes
   "projectRoot": "C:\\Users\\hordr\\Documents\\GitHub\\affidavit-maker",
   "structure": {
     "hasPackageJson": true,
@@ -7,5 +11,9 @@
     "hasClaudeConfig": true,
     "hasClaudeFlow": true
   },
+<<<<<<< Updated upstream
   "scannedAt": 1772953134038
+=======
+  "scannedAt": 1772462038192
+>>>>>>> Stashed changes
 }

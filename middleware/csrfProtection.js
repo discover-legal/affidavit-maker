@@ -24,6 +24,7 @@ const getAllowedOrigins = () => {
       'https://make.discover.legal',
       'https://discover.legal',
       'https://www.discover.legal',
+      'https://make.discover.legal',
       'https://ca.discover.legal',
       'https://canada.discover.legal',
       // International subdomains

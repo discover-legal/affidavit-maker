@@ -142,8 +142,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const handleDeleteDocument = async (docId) => {
     if (!window.confirm('Are you sure you want to permanently delete this affidavit?')) return;
 
-    console.log('🗑️ Attempting to delete document:', docId);
-
     try {
       // ✅ This is correct - calling the hook at component level, not inside nested function
       const token = await getAccessTokenSilently();
@@ -154,7 +152,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       });
 
       if (response.ok) {
-        console.log('✅ Document deleted successfully:', docId);
         // Track document deletion
         trackEvent('document_deleted', {
           document_id: docId
@@ -212,7 +209,6 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   };
 
   const handleContinueDocument = (doc) => {
-    console.log('📂 Opening document:', doc.id);
     // Track document open
     trackEvent('document_opened', {
       document_id: doc.id,
@@ -407,7 +403,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">$249</span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">Divorce Package</h4>
-                <p className="text-sm text-gray-600">Complete Texas divorce filing package. AI walks you through the full interview — petition, decree, and all required supporting documents.</p>
+                <p className="text-sm text-gray-600">Complete divorce filing package for your state. AI walks you through the full interview — petition, decree, and all required supporting documents.</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {['Petition', 'Decree', 'Supporting Docs'].map(tag => (
                     <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">

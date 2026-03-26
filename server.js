@@ -74,18 +74,17 @@ app.use(helmet({
         "https://fonts.googleapis.com",
         "'unsafe-inline'"
       ],
-      // SECURITY: 'unsafe-eval' needed for Google Analytics gtag.js library
-      // The gtag library uses Function() constructor internally for performance
       scriptSrc: [
         "'self'",
         "https://js.stripe.com",
         "https://*.auth0.com",
         "https://www.googletagmanager.com",
         "https://www.google-analytics.com",
-        "'unsafe-eval'", // Required for gtag.js
         ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'"] : [])
       ],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
+      // CSP connectSrc uses the shared allowed origins so international
+      // subdomains are automatically included when they go live.
       connectSrc: [
         "'self'",
         "https://api.openai.com",
@@ -94,14 +93,7 @@ app.use(helmet({
         "https://www.google-analytics.com",
         "https://www.googletagmanager.com",
         "https://analytics.google.com",
-        "https://make.discover.legal",
-        "https://discover.legal",
-        "https://www.discover.legal",
-        "https://make.discover.legal",
-        // Dynamically include FRONTEND_URL so staging/other deployments work
-        process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()
-          ? process.env.FRONTEND_URL.trim()
-          : "",
+        ...require('./config/allowedOrigins').getAllowedOrigins(),
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -160,75 +152,10 @@ const normalizeOrigin = (origin) => {
   return origin.replace(/\/$/, '');
 };
 
-// Build allowed origins list
-const getAllowedOrigins = () => {
-  const origins = [];
-
-  // Production domains
-  origins.push(
-    'https://make.discover.legal',
-    'https://discover.legal',
-    'https://www.discover.legal',
-    'https://make.discover.legal',
-    'https://ca.discover.legal',
-    'https://canada.discover.legal',
-    // International subdomains
-    'https://uk.discover.legal',
-    'https://ie.discover.legal',
-    'https://au.discover.legal',
-    'https://nz.discover.legal',
-    'https://in.discover.legal',
-    'https://pk.discover.legal',
-    'https://bd.discover.legal',
-    'https://lk.discover.legal',
-    'https://sa.discover.legal',
-    'https://ng.discover.legal',
-    'https://ke.discover.legal',
-    'https://gh.discover.legal',
-    'https://ug.discover.legal',
-    'https://tz.discover.legal',
-    'https://zm.discover.legal',
-    'https://zw.discover.legal',
-    'https://bw.discover.legal',
-    'https://mw.discover.legal',
-    'https://na.discover.legal',
-    'https://sg.discover.legal',
-    'https://hk.discover.legal',
-    'https://my.discover.legal',
-    'https://jm.discover.legal',
-    'https://tt.discover.legal',
-    'https://bb.discover.legal',
-    'https://bs.discover.legal',
-    'https://bm.discover.legal',
-    'https://fj.discover.legal',
-    'https://pg.discover.legal',
-    'https://cy.discover.legal'
-  );
-
-  // Add FRONTEND_URL if set (normalized)
-  if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
-    origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
-  }
-
-  // Always include localhost for development (safe - these don't resolve in production)
-  if (process.env.NODE_ENV !== 'production' || !process.env.FRONTEND_URL) {
-    origins.push(
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://ca.localhost:3000',
-      'http://canada.localhost:3000'
-    );
-  }
-
-  // Remove duplicates
-  const uniqueOrigins = [...new Set(origins)];
-
-  logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
-  return uniqueOrigins;
-};
-
+// Single source of truth for allowed origins (shared with csrfProtection.js)
+const { getAllowedOrigins } = require('./config/allowedOrigins');
 const allowedOrigins = getAllowedOrigins();
+logger.info('CORS allowed origins:', { origins: allowedOrigins, nodeEnv: process.env.NODE_ENV });
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -343,7 +270,7 @@ async function initializeServices() {
         'AUTH0_DOMAIN',
         'AUTH0_ISSUER_BASE_URL',
         'AUTH0_AUDIENCE',
-        'OPENAI_API_KEY',
+        // LLM API key — checked dynamically below based on LLM_PROVIDER
         'STRIPE_SECRET_KEY',
         'STRIPE_WEBHOOK_SECRET',
         'AUTH0_WEBHOOK_SECRET'
@@ -378,14 +305,34 @@ async function initializeServices() {
 
     logger.info('✅ All required environment variables configured');
 
+    // Check LLM API key dynamically based on provider
+    const llmProvider = (process.env.LLM_PROVIDER || 'openai').toLowerCase();
+    // Maps provider name → env var holding the API key
+    const LLM_KEY_MAP = {
+      openai: 'OPENAI_API_KEY', mistral: 'MISTRAL_API_KEY',
+      groq: 'GROQ_API_KEY', together: 'TOGETHER_API_KEY',
+      perplexity: 'PERPLEXITY_API_KEY', fireworks: 'FIREWORKS_API_KEY',
+      xai: 'XAI_API_KEY', cohere: 'COHERE_API_KEY',
+      cerebras: 'CEREBRAS_API_KEY', sambanova: 'SAMBANOVA_API_KEY',
+      deepseek: 'DEEPSEEK_API_KEY', qwen: 'QWEN_API_KEY',
+      moonshot: 'MOONSHOT_API_KEY', zhipu: 'ZHIPU_API_KEY',
+      yi: 'YI_API_KEY', baichuan: 'BAICHUAN_API_KEY',
+      gemini: 'GEMINI_API_KEY', anthropic: 'ANTHROPIC_API_KEY',
+      custom: 'LLM_API_KEY',
+    };
+    const llmKeyName = LLM_KEY_MAP[llmProvider] || 'OPENAI_API_KEY';
+    if (process.env.NODE_ENV === 'production' && !process.env[llmKeyName]) {
+      logger.warn(`LLM API key ${llmKeyName} not set for provider "${llmProvider}"`);
+    }
+
     // Configuration logging (non-sensitive values only)
     console.log('🔧 Configuration loaded:');
     console.log(`  - Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`  - Port: ${process.env.PORT || 3001}`);
-    console.log(`  - Auth0 Domain: ${process.env.AUTH0_DOMAIN || 'Not configured'}`);
-    console.log(`  - Auth0 Issuer: ${process.env.AUTH0_ISSUER_BASE_URL || 'Not configured'}`);
+    console.log(`  - Auth0 Domain: ${process.env.AUTH0_DOMAIN ? '✓ Configured' : '❌ Not configured'}`);
+    console.log(`  - Auth0 Issuer: ${process.env.AUTH0_ISSUER_BASE_URL ? '✓ Configured' : '❌ Not configured'}`);
     console.log(`  - Database: ${process.env.DATABASE_URL ? '✓ Configured' : '❌ Not configured'}`);
-    console.log(`  - OpenAI: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '❌ Not configured'}`);
+    console.log(`  - LLM Provider: ${llmProvider} (${process.env[llmKeyName] ? '✓ Key set' : '❌ Key missing'})`);
     console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '❌ Not configured'}`);
 
     // Initialize template manager (auto-discovery from templates/states/)
@@ -546,6 +493,11 @@ if (casesRouter) {
 const catalogRouter = safeImportRouter('./routes/catalog', 'Catalog');
 if (catalogRouter) {
   app.use('/api/catalog', catalogRouter);
+}
+
+const ingestRouter = safeImportRouter('./routes/ingest', 'Ingest');
+if (ingestRouter) {
+  app.use('/api/ingest', ingestRouter);
 }
 
 // Basic fallback routes for critical endpoints if files are missing

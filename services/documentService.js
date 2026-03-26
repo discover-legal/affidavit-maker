@@ -1,7 +1,20 @@
 // services/documentService.js - Enhanced document saving service
 const logger = require('../utils/logger');
 
+/**
+ * Client-side document CRUD service.
+ *
+ * Wraps the `/api/documents` REST endpoints with automatic token injection,
+ * debounced auto-save, and a save queue that prevents concurrent writes to
+ * the same document.
+ */
 class DocumentService {
+  /**
+   * @param {string} apiBase - Base URL for the backend API (e.g. `''` for same-origin
+   *   or `'http://localhost:3001'` in development).
+   * @param {Function} getAccessToken - Async function that returns a valid Auth0
+   *   access token string (typically from the Auth0 React SDK).
+   */
   constructor(apiBase, getAccessToken) {
     this.apiBase = apiBase;
     this.getAccessToken = getAccessToken;
@@ -9,6 +22,15 @@ class DocumentService {
     this.isProcessingSave = false;
   }
 
+  /**
+   * Save (create or update) a document. If `affidavitData.documentId` is set
+   * the document is updated; otherwise a new document is created.
+   *
+   * @param {object} affidavitData - The full affidavit/document data object.
+   * @param {object} [options]
+   * @param {string} [options.status='draft'] - Document status (e.g. 'draft', 'final').
+   * @returns {Promise<{ success: boolean, document?: object, documentId?: string, error?: string }>}
+   */
   async saveDocument(affidavitData, options = {}) {
     const saveData = {
       content: affidavitData,
@@ -26,6 +48,12 @@ class DocumentService {
     }
   }
 
+  /**
+   * Create a new document via `POST /api/documents`.
+   *
+   * @param {object} saveData - Prepared save payload with `content`, `title`, and `status`.
+   * @returns {Promise<{ success: boolean, document?: object, documentId?: string, error?: string }>}
+   */
   async createDocument(saveData) {
     try {
       const token = await this.getAccessToken();
@@ -62,6 +90,13 @@ class DocumentService {
     }
   }
 
+  /**
+   * Update an existing document via `PUT /api/documents/:id`.
+   *
+   * @param {string|number} documentId - The document's database ID.
+   * @param {object} saveData - Prepared save payload with `content`, `title`, and `status`.
+   * @returns {Promise<{ success: boolean, document?: object, error?: string }>}
+   */
   async updateDocument(documentId, saveData) {
     try {
       const token = await this.getAccessToken();
@@ -97,6 +132,11 @@ class DocumentService {
     }
   }
 
+  /**
+   * Fetch all documents for the authenticated user via `GET /api/documents`.
+   *
+   * @returns {Promise<{ success: boolean, documents: object[], error?: string }>}
+   */
   async loadDocuments() {
     try {
       const token = await this.getAccessToken();
@@ -126,6 +166,12 @@ class DocumentService {
     }
   }
 
+  /**
+   * Delete a document via `DELETE /api/documents/:id`.
+   *
+   * @param {string|number} documentId - The document's database ID.
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
   async deleteDocument(documentId) {
     try {
       const token = await this.getAccessToken();
@@ -151,6 +197,12 @@ class DocumentService {
     }
   }
 
+  /**
+   * Generate a human-readable title from the document data.
+   *
+   * @param {object} affidavitData - The document data object.
+   * @returns {string} A title string.
+   */
   generateTitle(affidavitData) {
     if (affidavitData.affiantName) {
       return `${affidavitData.affiantName}'s Affidavit`;
@@ -161,10 +213,17 @@ class DocumentService {
     return `Affidavit Draft - ${new Date().toLocaleDateString()}`;
   }
 
-  // Auto-save with debouncing
+  /**
+   * Schedule a debounced auto-save. If called again for the same document
+   * before the delay elapses, the previous timer is cancelled.
+   *
+   * @param {object} affidavitData - The document data to save.
+   * @param {number} [delay=2000] - Debounce delay in milliseconds.
+   * @returns {Promise<void>}
+   */
   async autoSave(affidavitData, delay = 2000) {
     const saveId = affidavitData.documentId || 'new';
-    
+
     // Clear existing timeout for this document
     if (this.saveQueue.has(saveId)) {
       clearTimeout(this.saveQueue.get(saveId).timeoutId);
@@ -192,10 +251,16 @@ class DocumentService {
     this.saveQueue.set(saveId, { timeoutId });
   }
 
-  // Force immediate save (bypass debouncing)
+  /**
+   * Immediately save the document, bypassing the auto-save debounce.
+   * Any pending auto-save for the same document is cancelled.
+   *
+   * @param {object} affidavitData - The document data to save.
+   * @returns {Promise<{ success: boolean, document?: object, documentId?: string, error?: string }>}
+   */
   async forceSave(affidavitData) {
     const saveId = affidavitData.documentId || 'new';
-    
+
     // Clear any pending auto-save
     if (this.saveQueue.has(saveId)) {
       clearTimeout(this.saveQueue.get(saveId).timeoutId);
@@ -205,7 +270,10 @@ class DocumentService {
     return this.saveDocument(affidavitData);
   }
 
-  // Clean up any pending saves
+  /**
+   * Cancel all pending auto-save timers. Call this when the component
+   * unmounts or the user navigates away.
+   */
   cleanup() {
     for (const [saveId, saveInfo] of this.saveQueue) {
       clearTimeout(saveInfo.timeoutId);

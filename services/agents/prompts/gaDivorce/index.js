@@ -27,7 +27,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Georgia.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Georgia.
 
 COLLECT:
 1. Plaintiff's full legal first and last name (Georgia calls the filing spouse the "Plaintiff")
@@ -41,7 +41,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Georgia.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Collecting residency information.
 
 LEGAL REQUIREMENT — O.C.G.A. § 19-5-2:
@@ -55,7 +55,7 @@ COLLECT:
 REQUIRED FIELDS: state (GA), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Georgia.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — O.C.G.A. § 19-5-3:
@@ -78,7 +78,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Georgia.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Collecting information about children.
 
 GEORGIA LAW:
@@ -96,7 +96,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Georgia.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Documenting marital property.
 
 LEGAL CONTEXT:
@@ -113,7 +113,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Georgia.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Collecting alimony information.
 
 GEORGIA ALIMONY — O.C.G.A. § 19-6-1:
@@ -133,7 +133,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Georgia.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Collecting service of process information.
 
 OPTIONS:
@@ -150,7 +150,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/formal), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for divorce in Georgia.
+const INDIGENCY = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Determining eligibility for filing fee waiver.
 
 Georgia courts allow fee waivers (In Forma Pauperis) for low-income filers.
@@ -164,7 +164,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for divorce in Georgia.
+const MILITARY = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -179,7 +179,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Georgia.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Georgia.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

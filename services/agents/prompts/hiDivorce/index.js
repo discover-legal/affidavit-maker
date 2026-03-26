@@ -30,7 +30,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 
 COLLECT:
 1. Plaintiff's full legal first and last name
@@ -42,7 +42,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Collecting residency information.
 
 LEGAL REQUIREMENT — HRS §580-1:
@@ -62,7 +62,7 @@ COLLECT:
 REQUIRED FIELDS: state (HI), county, residency_confirmed
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — HRS §580-41:
@@ -79,7 +79,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Collecting information about children.
 
 HAWAII TERMINOLOGY (HRS §571-46):
@@ -97,7 +97,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Documenting marital property.
 
 LEGAL CONTEXT — HRS §580-47:
@@ -120,7 +120,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Collecting spousal support information.
 
 LEGAL CONTEXT — HRS §580-47:
@@ -139,7 +139,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Collecting service of process information.
 
 OPTIONS:
@@ -156,7 +156,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/personal/publication), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const INDIGENCY = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Determining eligibility for filing fee waiver.
 
 Hawaii courts allow fee waivers for low-income filers.
@@ -170,7 +170,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const MILITARY = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -186,7 +186,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Hawaii.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Hawaii.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

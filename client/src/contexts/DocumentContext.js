@@ -16,7 +16,7 @@ const SaveMetadataContext = createContext();      // Save state (for SaveButton)
 const UIContext = createContext();                // UI state (loading, errors)
 const DocumentActionsContext = createContext();   // All actions
 
-// Initial state
+/** Global document state shape for the reducer. */
 const initialState = {
   // Document data
   currentDocument: {
@@ -81,7 +81,17 @@ const ActionTypes = {
   SWITCH_SUB_DOCUMENT: 'SWITCH_SUB_DOCUMENT'
 };
 
-// Reducer
+/**
+ * Document state reducer.
+ * @param {Object} state - Current state matching initialState shape.
+ * @param {{ type: string, payload: * }} action - Action types: SET_DOCUMENT_DATA,
+ *   UPDATE_DOCUMENT_DATA, SET_DOCUMENTS, SET_PREVIEW, SET_LOADING, SET_SAVING,
+ *   SET_PREVIEW_LOADING, SET_DOCUMENTS_LOADING, SET_LAST_SAVED, SET_ERROR,
+ *   SET_VALIDATION, SET_UNSAVED_CHANGES, SET_JUST_SAVED, SAVE_COMPLETE,
+ *   SET_SESSION_INITIALIZED, RESET_DOCUMENT, SELECT_DOCUMENT,
+ *   MERGE_PROFESSIONAL_REWRITES, REORDER_FACTS, SWITCH_SUB_DOCUMENT.
+ * @returns {Object} Updated state.
+ */
 const documentReducer = (state, action) => {
   switch (action.type) {
     case ActionTypes.SET_DOCUMENT_DATA:
@@ -428,8 +438,6 @@ export const DocumentProvider = ({ children }) => {
       const data = await authFetch(`/api/documents/${documentId}`);
       
       if (data.success && data.document) {
-        console.log('📂 Document loaded:', documentId);
-        
         // Parse the document content
         // Server may return the parsed content under `affidavitData` or under `content`.
         // Support both shapes and fall back safely.
@@ -463,7 +471,6 @@ export const DocumentProvider = ({ children }) => {
         
         // ✅ Generate preview after loading document
         setTimeout(() => {
-          console.log('📊 Generating preview after document load:', documentId);
           generatePreview(documentWithId);
         }, 100);
         
@@ -492,18 +499,15 @@ export const DocumentProvider = ({ children }) => {
     // ✅ FIX: Prevent multiple simultaneous document creations
     // Access state via ref to avoid dependency on state values
     if (stateRef.current.isSaving) {
-      console.log('📄 Document creation already in progress');
       return null;
     }
 
     // ✅ If forceNew, reset state first to ensure clean slate
     if (forceNew) {
-      console.log('📄 Force new document - resetting state');
       dispatch({ type: ActionTypes.RESET_DOCUMENT });
       // Note: We continue immediately because we know we want a new document
     } else if (stateRef.current.currentDocument.documentId) {
       // Only check for existing document if not forcing new
-      console.log('📄 Document already exists:', stateRef.current.currentDocument.documentId);
       if (!stateRef.current.sessionInitialized) {
         dispatch({ type: ActionTypes.SET_SESSION_INITIALIZED, payload: true });
       }
@@ -519,7 +523,6 @@ export const DocumentProvider = ({ children }) => {
     const internalDocType = isDivorcePackage ? 'divorce_package' : 'general';
 
     try {
-      console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
       // Create empty document
@@ -556,8 +559,6 @@ export const DocumentProvider = ({ children }) => {
 
       if (data.success && data.document?.id) {
         const documentId = data.document.id;
-
-        console.log('📄 New document created:', documentId);
 
         // Use the payload data we sent as the source of truth.
         // The save response only returns metadata (id, title, status),
@@ -618,15 +619,6 @@ export const DocumentProvider = ({ children }) => {
         documentId // Always include the ID
       };
 
-      console.log('💾 Saving document:', documentId);
-      console.log('💾 Document title being saved:', fullDocumentData.documentTitle);
-      console.log('💾 Full document data:', {
-        documentTitle: fullDocumentData.documentTitle,
-        firstName: fullDocumentData.firstName,
-        lastName: fullDocumentData.lastName,
-        affiantName: fullDocumentData.affiantName
-      });
-
       // Build payload
       const isDivorceDoc = fullDocumentData.documentType === 'divorce_package' ||
         fullDocumentData.documentType === 'divorce_petition' ||
@@ -667,8 +659,6 @@ export const DocumentProvider = ({ children }) => {
       });
 
       if (data.success) {
-        console.log('💾 Document saved successfully');
-
         // Batch save completion updates to reduce re-renders
         dispatch({
           type: ActionTypes.SAVE_COMPLETE,
@@ -730,10 +720,7 @@ export const DocumentProvider = ({ children }) => {
            stateRef.current.currentDocument.state ||
            (stateRef.current.currentDocument.facts && stateRef.current.currentDocument.facts.length > 0))) {
 
-        console.log('⏰ Auto-saving document...');
-        saveDocument().catch(error => {
-          console.log('⏰ Auto-save failed:', error.message);
-        });
+        saveDocument().catch(() => {});
       }
     }, 30000); // Auto-save after 30 seconds of inactivity
 
@@ -847,13 +834,6 @@ export const DocumentProvider = ({ children }) => {
 
   // ✅ FIXED: Update document data with proper state synchronization and debouncing
   const updateDocumentData = useCallback((data) => {
-    console.log('📝 Updating document data', {
-      hasName: !!data.affiantName,
-      hasState: !!data.state,
-      factCount: data.facts?.length,
-      updatingFields: Object.keys(data)
-    });
-
     dispatch({
       type: ActionTypes.UPDATE_DOCUMENT_DATA,
       payload: data
@@ -862,7 +842,6 @@ export const DocumentProvider = ({ children }) => {
     // ✅ NEW: If facts were updated, auto-save immediately (don't wait 30 seconds)
     const factsUpdated = data.facts && Array.isArray(data.facts);
     if (factsUpdated) {
-      console.log('💾 Facts updated - triggering immediate auto-save');
       // Save immediately when facts change
       // CRITICAL: Pass the updated data to saveDocument so it saves the NEW facts, not old state
       if (isAuthenticated && stateRef.current.currentDocument.documentId) {
@@ -884,7 +863,6 @@ export const DocumentProvider = ({ children }) => {
 
     // Skip preview generation if only metadata changed
     if (!hasPreviewAffectingChanges) {
-      console.log('📝 Skipping preview generation - metadata-only change:', changedFields);
       return;
     }
 
@@ -901,15 +879,8 @@ export const DocumentProvider = ({ children }) => {
       documentId: state.currentDocument.documentId
     };
 
-    console.log('🔄 Merged document for preview:', {
-      factCount: updatedDocument.facts?.length,
-      firstFact: updatedDocument.facts?.[0],
-      lastFact: updatedDocument.facts?.[updatedDocument.facts?.length - 1]
-    });
-
     // Generate preview after a short delay with the fully merged data
     const timer = setTimeout(() => {
-      console.log('🔄 Generating preview after document update');
       generatePreview(updatedDocument);  // Pass full merged document
       setPreviewDebounceTimer(null);
     }, 500);
@@ -921,8 +892,6 @@ export const DocumentProvider = ({ children }) => {
   // Update document data WITHOUT triggering preview generation
   // Used when storing professional rewrites before they are applied
   const updateDocumentDataWithoutPreview = useCallback((data) => {
-    console.log('📝 Updating document data (no preview)');
-
     dispatch({
       type: ActionTypes.UPDATE_DOCUMENT_DATA,
       payload: data
@@ -934,8 +903,6 @@ export const DocumentProvider = ({ children }) => {
 
   // Reorder facts
   const reorderFacts = useCallback((fromIndex, toIndex) => {
-    console.log('🔄 Reordering facts:', { fromIndex, toIndex });
-
     dispatch({
       type: ActionTypes.REORDER_FACTS,
       payload: { fromIndex, toIndex }
@@ -956,8 +923,6 @@ export const DocumentProvider = ({ children }) => {
       console.warn('Invalid sub-document type:', subDocType);
       return;
     }
-
-    console.log('📄 Switching to sub-document:', subDocType);
 
     dispatch({
       type: ActionTypes.SWITCH_SUB_DOCUMENT,
@@ -983,17 +948,13 @@ export const DocumentProvider = ({ children }) => {
   // Load documents on mount - only after TOS is verified
   useEffect(() => {
     if (isAuthenticated && tosVerified) {
-      console.log('[DocumentContext] Auth and TOS verified, loading documents');
       loadDocuments();
-    } else if (isAuthenticated && !tosVerified) {
-      console.log('[DocumentContext] Waiting for TOS verification before loading documents');
     }
   }, [isAuthenticated, tosVerified, loadDocuments]);
 
   // SECURITY: Clear all user data when user logs out
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log('[DocumentContext] User logged out, clearing all user data');
       // Clear documents array to prevent showing previous user's data
       dispatch({ type: ActionTypes.SET_DOCUMENTS, payload: [] });
       // Reset current document
@@ -1087,10 +1048,25 @@ export const DocumentProvider = ({ children }) => {
 };
 
 // Custom hooks for using split contexts (RECOMMENDED - prevents unnecessary re-renders)
+
+/** @returns {{ currentDocument: Object, preview: Object|null, isPreviewLoading: boolean }} */
 export const useDocumentData = () => useContext(DocumentDataContext);
+
+/** @returns {{ documents: Object[], isDocumentsLoading: boolean }} */
 export const useDocumentList = () => useContext(DocumentListContext);
+
+/** @returns {{ isSaving: boolean, lastSaved: Date|null, justSaved: boolean, hasUnsavedChanges: boolean }} */
 export const useSaveMetadata = () => useContext(SaveMetadataContext);
+
+/** @returns {{ isLoading: boolean, error: string|null, validation: Object|null, sessionInitialized: boolean }} */
 export const useUIState = () => useContext(UIContext);
+
+/**
+ * @returns {{ loadDocument, loadDocuments, saveDocument, generatePreview,
+ *   validateDocument, createNewDocument, selectDocument, updateDocumentData,
+ *   updateDocumentDataWithoutPreview, initializeNewDocument, renderFormattedPreview,
+ *   mergeProfessionalRewrites, reorderFacts, switchSubDocument }}
+ */
 export const useDocumentActions = () => useContext(DocumentActionsContext);
 
 // Legacy hook for backward compatibility (DEPRECATED - causes excessive re-renders)

@@ -37,7 +37,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Kenya.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Kenya.
 
 COLLECT:
 1. Petitioner's full legal first and last name
@@ -61,7 +61,7 @@ KEY FACTS TO SHARE:
 - The Marriage Act, 2014 provides a unified framework for all marriage types
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Kenya.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Collecting residency information.
 
 LEGAL REQUIREMENT — Marriage Act, 2014, s.65:
@@ -78,7 +78,7 @@ COLLECT:
 NOTE: Kenya does not require a minimum period of residency — just that the party IS resident at the time of filing.
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Kenya.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Marriage Act, 2014, s.66:
@@ -112,7 +112,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date (if applicable)
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Kenya.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Collecting information about children.
 
 LEGAL CONTEXT — Children Act, 2022:
@@ -134,7 +134,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_arrangement
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Kenya.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Documenting the division of property.
 
 LEGAL CONTEXT — Matrimonial Property Act, 2013:
@@ -157,7 +157,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Kenya.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — Marriage Act, 2014, s.77-80:
@@ -178,7 +178,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Kenya.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Collecting information about serving the other party.
 
 LEGAL CONTEXT:
@@ -198,7 +198,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (personal/substituted/advocate), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Kenya.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Kenya.
 Final review phase.
 
 Summarize all collected information clearly:

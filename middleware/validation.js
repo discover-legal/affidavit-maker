@@ -1,7 +1,6 @@
 // middleware/validation.js - CONSOLIDATED Validation Middleware
 // Drop-in replacement combining security + business validation
 const { body, param, query, validationResult } = require('express-validator');
-const helmet = require('helmet');
 const logger = require('../utils/logger');
 
 /**
@@ -36,46 +35,21 @@ const LIMITS = {
   LIMIT_MAX: 100
 };
 
-/**
- * Security configuration - Helmet setup with CSP
- */
-const helmetConfig = helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://*.auth0.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],
-      imgSrc: ["'self'", "data:", "https:"],
-<<<<<<< Updated upstream
-      connectSrc: ["'self'", "https://*.auth0.com", "https://api.stripe.com", "https://api.openai.com", "https://affidavit-maker.onrender.com", "https://discover.legal", "https://www.discover.legal", "https://make.discover.legal", "https://ca.discover.legal", "https://canada.discover.legal", "https://uk.discover.legal", "https://ie.discover.legal", "https://au.discover.legal", "https://nz.discover.legal", "https://in.discover.legal", "https://pk.discover.legal", "https://bd.discover.legal", "https://lk.discover.legal", "https://sa.discover.legal", "https://ng.discover.legal", "https://ke.discover.legal", "https://gh.discover.legal", "https://ug.discover.legal", "https://tz.discover.legal", "https://zm.discover.legal", "https://zw.discover.legal", "https://bw.discover.legal", "https://mw.discover.legal", "https://na.discover.legal", "https://sg.discover.legal", "https://hk.discover.legal", "https://my.discover.legal", "https://jm.discover.legal", "https://tt.discover.legal", "https://bb.discover.legal", "https://bs.discover.legal", "https://bm.discover.legal", "https://fj.discover.legal", "https://pg.discover.legal", "https://cy.discover.legal", "wss://localhost:*"],
-=======
-      connectSrc: ["'self'", "https://*.auth0.com", "https://api.stripe.com", "https://api.openai.com", "https://affidavit-maker.onrender.com", "https://discover.legal", "https://www.discover.legal", "https://make.discover.legal", "wss://localhost:*"],
->>>>>>> Stashed changes
-      frameSrc: ["https://js.stripe.com", "https://*.auth0.com"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-});
+// NOTE: Helmet CSP is configured in server.js (the authoritative source).
+// This file previously had a duplicate helmetConfig that was never imported —
+// it has been removed to prevent confusion about which CSP is active.
 
 /**
  * Utility functions for validation and sanitization
  */
 
-// Count words in text
+/** @description Count whitespace-delimited words in a string. */
 const countWords = (text) => {
   if (!text || typeof text !== 'string') return 0;
   return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 };
 
-// Basic text sanitization (remove HTML, trim)
+/** @description Strip HTML tags and script elements from text, then trim. */
 const sanitizeText = (text) => {
   if (!text) return text;
   return text
@@ -158,9 +132,7 @@ const checkValidationResult = (req, res, next) => {
  * CONSOLIDATED VALIDATION FUNCTIONS
  */
 
-/**
- * Chat message validation - combines both approaches
- */
+/** @description Validate and sanitize chat message, conversation history, and affidavit data. */
 const validateChatMessage = [
   body('message')
     .trim()
@@ -210,10 +182,12 @@ const validateChatMessage = [
     .withMessage('Invalid name format')
     .customSanitizer(sanitizeText),
     
+  // Accepts any valid jurisdiction code (US states, CA provinces, international)
+  // e.g., TX, ON, ENG, WA_AU, LA_NG, IN_DL — actual lookup happens in the template system
   body('currentData.state')
     .optional()
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', '', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
-    .withMessage('Invalid state'),
+    .matches(/^[A-Za-z]{2,5}(_[A-Za-z]{2,3})?$|^$/)
+    .withMessage('Invalid jurisdiction code'),
     
   body('currentData.facts')
     .optional()
@@ -236,9 +210,7 @@ const validateChatMessage = [
   checkValidationResult
 ];
 
-/**
- * Document save validation
- */
+/** @description Validate document save payload (title, content, status, affidavitData). */
 const validateDocumentSave = [
   body('title')
     .trim()
@@ -289,9 +261,10 @@ const validateAffidavitData = [
     .trim()
     .notEmpty()
     .withMessage('State is required')
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
-    .withMessage('Invalid state. Supported states: TX, UT, AZ, CA, FL, IL, NY'),
-  
+    .matches(/^[A-Za-z]{2,5}(_[A-Za-z]{2,3})?$/)
+    .withMessage('Invalid jurisdiction code')
+    .customSanitizer((value) => value.toUpperCase()),
+
   body('county')
     .optional()
     .trim()
@@ -343,9 +316,7 @@ const validateAffidavitData = [
   checkValidationResult
 ];
 
-/**
- * Preview validation (from securityMiddleware)
- */
+/** @description Validate preview request (affidavitData with optional name, state, county, caseNumber). */
 const validatePreview = [
   body('affidavitData')
     .isObject()
@@ -360,9 +331,9 @@ const validatePreview = [
     .customSanitizer(sanitizeText),
     
   body('affidavitData.state')
-    .optional({ checkFalsy: true })        // ✅ FIXED
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
-    .withMessage('Invalid state'),
+    .optional({ checkFalsy: true })
+    .matches(/^[A-Za-z]{2,5}(_[A-Za-z]{2,3})?$/)
+    .withMessage('Invalid jurisdiction code'),
     
   body('affidavitData.county')
     .optional({ checkFalsy: true })        // ✅ KEY FIX
@@ -390,8 +361,8 @@ const validateDocumentGeneration = [
     .withMessage('Affidavit data must be an object'),
     
   body('affidavitData.state')
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY', 'Texas', 'Utah', 'Arizona', 'California', 'Florida', 'Illinois', 'New York'])
-    .withMessage('Valid state is required'),
+    .matches(/^[A-Za-z]{2,5}(_[A-Za-z]{2,3})?$/)
+    .withMessage('Valid jurisdiction code is required'),
     
   body('affidavitData.affiantName')
     .trim()
@@ -418,9 +389,7 @@ const validateDocumentGeneration = [
   checkValidationResult
 ];
 
-/**
- * Payment validation (from securityMiddleware)
- */
+/** @description Validate payment request. Requires documentType; rejects client-supplied amount. */
 const validatePayment = [
   body('documentType')
     .isIn(['single_affidavit', 'divorce_package', 'all_state_access'])
@@ -439,9 +408,7 @@ const validatePayment = [
   checkValidationResult
 ];
 
-/**
- * Document rename validation (from securityMiddleware)
- */
+/** @description Validate document rename request (newName: 2-255 chars, letters/numbers/punctuation). */
 const validateDocumentRename = [
   body('newName')
     .trim()
@@ -456,9 +423,7 @@ const validateDocumentRename = [
   checkValidationResult
 ];
 
-/**
- * ID parameter validation
- */
+/** @description Validate that :id route param is a positive integer. */
 const validateId = [
   param('id')
     .isInt({ min: 1 })
@@ -560,12 +525,10 @@ const validateRateLimit = (req, res, next) => {
  * SQL injection is prevented by parameterized queries, not keyword filtering.
  */
 const detectSuspiciousActivity = (req, res, next) => {
+  // NOTE: Using /i (not /gi) to avoid stateful lastIndex behavior with .test()
   const suspiciousPatterns = [
-    // SECURITY (MED-02): Simplified script detection regex to avoid ReDoS
-    // Previous pattern had nested quantifiers that could cause catastrophic backtracking
-    /<script\b[^>]*>[\s\S]*?<\/script>/gi,
-    // Command injection patterns
-    /(\b(ls|cat|pwd|whoami|id|uname|ps|netstat|ifconfig|rm|mv|cp|mkdir|chmod|chown|kill|wget|curl|nc|nmap|sqlmap)\b)/gi
+    /<script\b[^>]*>[\s\S]*?<\/script>/i,
+    /[;|`]\s*(rm|wget|curl|nc|nmap|sqlmap|chmod|chown)\b/i
   ];
   
   const requestBody = JSON.stringify(req.body || {});
@@ -604,8 +567,9 @@ const validateDivorceData = [
     .trim()
     .notEmpty()
     .withMessage('State is required')
-    .isIn(['TX', 'UT', 'AZ', 'CA', 'FL', 'IL', 'NY'])
-    .withMessage('Invalid state. Supported states: TX, UT, AZ, CA, FL, IL, NY'),
+    .matches(/^[A-Za-z]{2,5}(_[A-Za-z]{2,3})?$/)
+    .withMessage('Invalid jurisdiction code')
+    .customSanitizer((value) => value.toUpperCase()),
 
   body('documentType')
     .trim()
@@ -751,6 +715,250 @@ const validateDivorceStateParam = [
   checkValidationResult
 ];
 
+/**
+ * Profile update validation (PUT /api/auth/me)
+ */
+const validateProfileUpdate = [
+  body('name')
+    .optional()
+    .trim()
+    .isString()
+    .withMessage('Name must be a string')
+    .isLength({ max: 100 })
+    .withMessage('Name must be at most 100 characters'),
+
+  body('preferences')
+    .optional()
+    .isObject()
+    .withMessage('Preferences must be an object')
+    .custom((value) => {
+      const size = JSON.stringify(value).length;
+      if (size > 10240) {
+        throw new Error('Preferences data exceeds maximum size of 10KB');
+      }
+      return true;
+    }),
+
+  checkValidationResult
+];
+
+/**
+ * Case creation validation (POST /api/cases)
+ */
+const validateCaseCreate = [
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 200 })
+    .withMessage('Title must be at most 200 characters'),
+
+  body('cause_number')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 50 })
+    .withMessage('Cause number must be at most 50 characters'),
+
+  body('court_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 200 })
+    .withMessage('Court name must be at most 200 characters'),
+
+  body('state')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 5 })
+    .withMessage('State code must be at most 5 characters'),
+
+  body('county')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('County must be at most 100 characters'),
+
+  body('matter_type_code')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 50 })
+    .withMessage('Matter type must be at most 50 characters'),
+
+  body('status')
+    .optional()
+    .isIn(['active', 'closed', 'pending'])
+    .withMessage('Status must be one of: active, closed, pending'),
+
+  body('petitioner_first_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Petitioner first name must be at most 100 characters'),
+
+  body('petitioner_last_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Petitioner last name must be at most 100 characters'),
+
+  body('respondent_first_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Respondent first name must be at most 100 characters'),
+
+  body('respondent_last_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Respondent last name must be at most 100 characters'),
+
+  checkValidationResult
+];
+
+/**
+ * Case update validation (PUT /api/cases/:id)
+ * Same fields as create but title is optional
+ */
+const validateCaseUpdate = [
+  body('title')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 200 })
+    .withMessage('Title must be at most 200 characters'),
+
+  body('cause_number')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 50 })
+    .withMessage('Cause number must be at most 50 characters'),
+
+  body('court_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 200 })
+    .withMessage('Court name must be at most 200 characters'),
+
+  body('state')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 5 })
+    .withMessage('State code must be at most 5 characters'),
+
+  body('county')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('County must be at most 100 characters'),
+
+  body('matter_type_code')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 50 })
+    .withMessage('Matter type must be at most 50 characters'),
+
+  body('status')
+    .optional()
+    .isIn(['active', 'closed', 'pending'])
+    .withMessage('Status must be one of: active, closed, pending'),
+
+  body('petitioner_first_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Petitioner first name must be at most 100 characters'),
+
+  body('petitioner_last_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Petitioner last name must be at most 100 characters'),
+
+  body('respondent_first_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Respondent first name must be at most 100 characters'),
+
+  body('respondent_last_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('Respondent last name must be at most 100 characters'),
+
+  checkValidationResult
+];
+
+/**
+ * Ingestion review validation (PUT /api/ingest/:id/review)
+ */
+const validateIngestionReview = [
+  body('corrections')
+    .optional()
+    .isObject()
+    .withMessage('Corrections must be an object')
+    .custom((value) => {
+      const ALLOWED_FIELDS = [
+        'state', 'county', 'court_name', 'cause_number',
+        'petitioner_name', 'respondent_name', 'petitioner_first_name',
+        'petitioner_last_name', 'respondent_first_name', 'respondent_last_name',
+        'marriage_date', 'separation_date', 'filing_date', 'service_date',
+        'children', 'has_children', 'grounds', 'matter_type',
+      ];
+      for (const [key, val] of Object.entries(value)) {
+        if (!ALLOWED_FIELDS.includes(key)) {
+          throw new Error(`Unknown correction field: ${key}`);
+        }
+        if (typeof val === 'string' && val.length > 500) {
+          throw new Error(`Correction field "${key}" exceeds maximum of 500 characters`);
+        }
+      }
+      return true;
+    }),
+
+  body('user_name')
+    .optional()
+    .trim()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage('User name must be at most 100 characters'),
+
+  checkValidationResult
+];
+
+/**
+ * Middleware to verify that req.dbClient is available (set by auth0Middleware).
+ * Add to routes that need a database connection to eliminate duplicated guards.
+ */
+const requireDbClient = (req, res, next) => {
+  if (!req.dbClient) {
+    return res.status(500).json({
+      success: false,
+      error: 'Database connection unavailable',
+      errorType: 'server_error'
+    });
+  }
+  next();
+};
+
 module.exports = {
   // Validation functions
   validateChatMessage,
@@ -766,9 +974,12 @@ module.exports = {
   validateRateLimit,
   validateDivorceData,
   validateDivorceStateParam,
+  validateProfileUpdate,
+  validateCaseCreate,
+  validateCaseUpdate,
+  validateIngestionReview,
 
   // Security middleware
-  helmetConfig,
   detectSuspiciousActivity,
 
   // Utility functions
@@ -779,5 +990,8 @@ module.exports = {
   jsonSizeValidator,
 
   // Constants
-  LIMITS
+  LIMITS,
+
+  // Database client guard middleware
+  requireDbClient
 };

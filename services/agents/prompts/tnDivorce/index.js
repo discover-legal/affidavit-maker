@@ -30,7 +30,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 
 COLLECT:
 1. Petitioner's full legal first and last name
@@ -42,7 +42,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Collecting residency information.
 
 LEGAL REQUIREMENT — TCA 36-4-104:
@@ -56,7 +56,7 @@ COLLECT:
 REQUIRED FIELDS: state (TN), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — TCA 36-4-101:
@@ -89,7 +89,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Collecting information about children.
 
 TENNESSEE TERMINOLOGY (TCA 36-6-402 and TCA 36-6-404):
@@ -108,7 +108,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Documenting marital property.
 
 LEGAL CONTEXT — TCA 36-4-121:
@@ -132,7 +132,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Collecting alimony information.
 
 LEGAL CONTEXT — TCA 36-5-121:
@@ -158,7 +158,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Collecting service of process information.
 
 OPTIONS:
@@ -177,7 +177,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/personal/publication), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const INDIGENCY = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Determining eligibility for filing fee waiver.
 
 Tennessee courts allow fee waivers (Uniform Civil Affidavit of Indigency, T.C.A. § 20-12-127) for low-income filers.
@@ -191,7 +191,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const MILITARY = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -206,7 +206,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Tennessee.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Tennessee.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

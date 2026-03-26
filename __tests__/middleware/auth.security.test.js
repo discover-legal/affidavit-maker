@@ -30,7 +30,15 @@ describe('Auth Middleware Security Tests', () => {
 
   afterAll(async () => {
     if (pool) {
-      await pool.end();
+      // Give a moment for any in-flight connections to settle
+      try { await pool.end(); } catch (_) {}
+    }
+  }, 10000);
+
+  afterEach(() => {
+    // Release any DB client acquired by loadUser for RLS context
+    if (mockReq && mockReq.releaseDbClient) {
+      try { mockReq.releaseDbClient(); } catch (_) { /* already released */ }
     }
   });
 
@@ -271,6 +279,7 @@ describe('Auth Middleware Security Tests', () => {
       // Cleanup
       const userId = mockReq.user.id;
       await pool.query('DELETE FROM user_identities WHERE user_id = $1', [userId]);
+      await pool.query('DELETE FROM audit_log WHERE user_id = $1', [userId]);
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     });
 
@@ -294,6 +303,11 @@ describe('Auth Middleware Security Tests', () => {
         const { loadUser } = require('../../middleware/auth0Middleware');
         await loadUser(mockReq, mockRes, mockNext);
 
+        // Release RLS client before next iteration (prevents pool exhaustion)
+        if (mockReq.releaseDbClient) {
+          try { mockReq.releaseDbClient(); } catch (_) {}
+        }
+
         // Verify provider was extracted correctly
         const identityResult = await pool.query(
           'SELECT provider FROM user_identities WHERE auth0_id = $1',
@@ -304,6 +318,7 @@ describe('Auth Middleware Security Tests', () => {
         // Cleanup
         const userId = mockReq.user.id;
         await pool.query('DELETE FROM user_identities WHERE user_id = $1', [userId]);
+        await pool.query('DELETE FROM audit_log WHERE user_id = $1', [userId]);
         await pool.query('DELETE FROM users WHERE id = $1', [userId]);
       }
     });
@@ -350,6 +365,7 @@ describe('Auth Middleware Security Tests', () => {
 
       // Cleanup
       await pool.query('DELETE FROM user_identities WHERE user_id = $1', [userId]);
+      await pool.query('DELETE FROM audit_log WHERE user_id = $1', [userId]);
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     });
   });
@@ -391,30 +407,28 @@ describe('Integration Tests', () => {
     const victimAuth0Id = `auth0|victim-${Date.now()}`;
     const attackerAuth0Id = `google-oauth2|attacker-${Date.now()}`;
 
-    const pool = new Pool({
+    const testPool = new Pool({
       connectionString: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
     });
 
     try {
       // Step 1: Victim creates account
-      await pool.query(
+      await testPool.query(
         `INSERT INTO users (auth0_id, email, name, created_at, updated_at)
          VALUES ($1, $2, $3, NOW(), NOW())`,
         [victimAuth0Id, victimEmail, 'Victim']
       );
 
       // Step 2: Victim creates affidavit
-      const docResult = await pool.query(
+      await testPool.query(
         `INSERT INTO documents (user_id, title, content, created_at)
          SELECT id, 'Sensitive Document', '{"secret": true}', NOW()
-         FROM users WHERE email = $1
-         RETURNING id`,
+         FROM users WHERE email = $1`,
         [victimEmail]
       );
-      const documentId = docResult.rows[0].id;
 
       // Step 3: Attacker tries to signup with same email
-      const mockReq = {
+      const attackReq = {
         auth: {
           sub: attackerAuth0Id,
           email: victimEmail,
@@ -423,31 +437,36 @@ describe('Integration Tests', () => {
         headers: {},
         path: '/test',
         id: 'attack-test',
-        app: { locals: { pool } }
+        app: { locals: { pool: testPool } }
       };
 
-      const mockRes = {
+      const attackRes = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn().mockReturnThis()
       };
 
-      const mockNext = jest.fn();
+      const attackNext = jest.fn();
 
       const { loadUser } = require('../../middleware/auth0Middleware');
-      await loadUser(mockReq, mockRes, mockNext);
+      await loadUser(attackReq, attackRes, attackNext);
+
+      // Release any RLS client acquired by loadUser
+      if (attackReq.releaseDbClient) {
+        try { attackReq.releaseDbClient(); } catch (_) {}
+      }
 
       // VERIFY ATTACK IS BLOCKED:
 
       // 1. Attacker receives 409 error
-      expect(mockRes.status).toHaveBeenCalledWith(409);
-      expect(mockRes.json).toHaveBeenCalledWith(
+      expect(attackRes.status).toHaveBeenCalledWith(409);
+      expect(attackRes.json).toHaveBeenCalledWith(
         expect.objectContaining({
           errorCode: 'DUPLICATE_EMAIL'
         })
       );
 
       // 2. Victim's auth0_id is UNCHANGED
-      const victimCheck = await pool.query(
+      const victimCheck = await testPool.query(
         'SELECT auth0_id FROM users WHERE email = $1',
         [victimEmail]
       );
@@ -455,10 +474,10 @@ describe('Integration Tests', () => {
 
       // 3. Attacker does NOT have access to victim's documents
       // (because they were rejected and never got a user ID)
-      expect(mockReq.user).toBeUndefined();
+      expect(attackReq.user).toBeUndefined();
 
       // 4. Security event was logged
-      const auditCheck = await pool.query(
+      const auditCheck = await testPool.query(
         `SELECT * FROM audit_log
          WHERE event_type = 'duplicate_email_signup_blocked'
          AND metadata->>'email' = $1
@@ -469,13 +488,15 @@ describe('Integration Tests', () => {
       expect(auditCheck.rows.length).toBe(1);
       expect(auditCheck.rows[0].metadata.auth0_id).toBe(attackerAuth0Id);
 
-      console.log('✅ SECURITY TEST PASSED: Attack scenario successfully blocked');
-
     } finally {
-      // Cleanup
-      await pool.query('DELETE FROM documents WHERE id IN (SELECT id FROM documents d JOIN users u ON d.user_id = u.id WHERE u.email = $1)', [victimEmail]);
-      await pool.query('DELETE FROM users WHERE email = $1', [victimEmail]);
-      await pool.end();
+      // Cleanup — use d.id to avoid ambiguity between documents.id and users.id
+      await testPool.query(
+        'DELETE FROM documents WHERE id IN (SELECT d.id FROM documents d JOIN users u ON d.user_id = u.id WHERE u.email = $1)',
+        [victimEmail]
+      );
+      await testPool.query('DELETE FROM audit_log WHERE metadata->>\'email\' = $1', [victimEmail]);
+      await testPool.query('DELETE FROM users WHERE email = $1', [victimEmail]);
+      await testPool.end();
     }
-  });
+  }, 15000);
 });

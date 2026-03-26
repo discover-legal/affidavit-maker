@@ -45,7 +45,7 @@ SAFETY:
 - If there is an immediate safety concern, advise the user to seek a protection order under the Domestic Violence Act 116 of 1998
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in South Africa.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in South Africa.
 
 COLLECT:
 1. Plaintiff's full legal first and last name
@@ -64,7 +64,7 @@ KEY FACTS TO SHARE:
 - If the Defendant does not contest, the divorce proceeds as "undefended" — typically resolved without a full trial
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in South Africa.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Collecting domicile and jurisdiction information.
 
 LEGAL REQUIREMENT — Divorce Act 70 of 1979, s.2(1), as amended by Domicile Act 3 of 1992:
@@ -93,7 +93,7 @@ COLLECT:
 NOTE: The primary test is "domicile" (permanent home). Alternatively, ordinary residence for 1+ year in SA also confers jurisdiction.
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in South Africa.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Divorce Act 70 of 1979:
@@ -131,7 +131,7 @@ and note it as the marriage type.
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_type
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in South Africa.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Collecting information about children.
 
 LEGAL CONTEXT — Children's Act 38 of 2005:
@@ -164,7 +164,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with care_arrangement
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in South Africa.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Documenting the division of property.
 
 LEGAL CONTEXT — Matrimonial Property Act 88 of 1984:
@@ -217,7 +217,7 @@ COLLECT:
 REQUIRED FIELDS: property_regime, property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in South Africa.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — Divorce Act 70 of 1979, s.7(2):
@@ -247,7 +247,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in South Africa.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Collecting information about serving the Combined Summons on the Defendant.
 
 LEGAL CONTEXT:
@@ -277,7 +277,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (personal/substituted/consent), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in South Africa.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in South Africa.
 Final review phase.
 
 Summarize all collected information clearly:

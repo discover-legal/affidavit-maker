@@ -31,7 +31,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const INTAKE = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 
 COLLECT:
 1. Petitioner's full legal first and last name
@@ -43,7 +43,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const RESIDENCY = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Collecting residency information.
 
 LEGAL REQUIREMENT — NMSA §40-4-5:
@@ -58,7 +58,7 @@ COLLECT:
 REQUIRED FIELDS: state (NM), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const GROUNDS = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Documenting grounds for dissolution.
 
 LEGAL CONTEXT — NMSA §40-4-1:
@@ -78,7 +78,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const CHILDREN = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Collecting information about children.
 
 NEW MEXICO TERMINOLOGY (NMSA §40-4-9, §40-4-9.1):
@@ -99,7 +99,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const PROPERTY = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Documenting community property.
 
 LEGAL CONTEXT — NMSA §40-4-7:
@@ -118,7 +118,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const SUPPORT = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Collecting spousal support and child support information.
 
 SPOUSAL SUPPORT — NMSA §40-4-7:
@@ -141,7 +141,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const SERVICE = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Collecting service of process information.
 
 OPTIONS:
@@ -158,7 +158,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (acceptance/personal/publication), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const INDIGENCY = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Determining eligibility for filing fee waiver.
 
 New Mexico courts allow fee waivers (Petition to Proceed in Forma Pauperis) for low-income filers.
@@ -172,7 +172,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const MILITARY = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -187,7 +187,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for dissolution of marriage in New Mexico.
+const REVIEW = `You are a document preparation assistant helping someone file for dissolution of marriage in New Mexico.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

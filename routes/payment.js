@@ -6,8 +6,8 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { asyncHandler, ValidationError, AuthorizationError } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
-const { validatePayment, validateId } = require('../middleware/validation');
-const { paymentLimiter, strictLimiter } = require('../middleware/rateLimiting');
+const { validatePayment, validateId, requireDbClient } = require('../middleware/validation');
+const { paymentLimiter, strictLimiter, standardLimiter } = require('../middleware/rateLimiting');
 const {
   sendServiceUnavailableError,
   sendValidationError,
@@ -47,35 +47,47 @@ const requireStripe = (req, res, next) => {
 };
 
 /**
- * Create payment intent for document generation
+ * @description Create a Stripe PaymentIntent. Amount is determined server-side from documentType.
+ *   Requires disclaimerAccepted: true. Creates a Stripe Customer if one doesn't exist.
+ * @returns {{ success: boolean, data: { clientSecret, paymentIntentId, amount, currency } }}
  */
 router.post('/create-intent',
   requireStripe,
   paymentLimiter,
   auth0Middleware,
+  requireDbClient,
   validatePayment,
   asyncHandler(async (req, res) => {
-    const { documentId, documentType } = req.body;
+    const { documentId, documentType, disclaimerAccepted } = req.body;
     const userId = req.user.id;
-    const client = req.dbClient;  // ✅ Use RLS-context client
+    const client = req.dbClient;
 
-    // Verify client is available
-    if (!client) {
-      return res.status(500).json({
+    // LEGAL: Require explicit disclaimer acknowledgment before processing payment
+    if (disclaimerAccepted !== true) {
+      return res.status(400).json({
         success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
+        error: 'Legal disclaimer must be accepted before purchase',
+        errorType: 'validation_error'
       });
     }
 
     // SECURITY: Determine amount server-side based on documentType - never trust client
     const amount = PRICING_CONFIG[documentType] || PRICING_CONFIG.single_affidavit;
 
-    // If documentId provided, verify ownership
+    // If documentId provided, validate it is a positive integer then verify ownership
     if (documentId) {
+      const parsedDocId = parseInt(documentId, 10);
+      if (isNaN(parsedDocId) || parsedDocId < 1 || String(parsedDocId) !== String(documentId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'documentId must be a positive integer',
+          errorType: 'validation_error'
+        });
+      }
+
       const docResult = await client.query(
-        'SELECT id, user_id, title FROM documents WHERE id = $1',
-        [documentId]
+        'SELECT id, user_id, title, content FROM documents WHERE id = $1',
+        [parsedDocId]
       );
 
       if (docResult.rows.length === 0) {
@@ -84,6 +96,17 @@ router.post('/create-intent',
 
       if (docResult.rows[0].user_id !== userId) {
         throw new AuthorizationError('You do not have permission to pay for this document');
+      }
+
+      // COMPLIANCE: Block payment for states requiring LDP registration
+      const { isRegistrationPending } = require('../config/jurisdictions');
+      const docState = docResult.rows[0].content?.state;
+      if (docState && isRegistrationPending(docState)) {
+        return res.status(403).json({
+          success: false,
+          error: `Document services for ${docState} are coming soon. We are completing legal document preparer registration for this state.`,
+          errorType: 'registration_pending'
+        });
       }
     }
 
@@ -149,7 +172,7 @@ router.post('/create-intent',
           JSON.stringify({
             documentId,
             documentType,
-            clientSecret: paymentIntent.client_secret.substring(0, 20) + '...' // Store partial for reference
+            // PRIVACY: client_secret is ephemeral — not stored in DB
           })
         ]
       );
@@ -189,19 +212,13 @@ router.post('/create-intent',
  */
 router.get('/status/:paymentIntentId',
   requireStripe,
+  standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
+    const client = req.dbClient;
 
     // Verify this payment belongs to the user
     const paymentResult = await client.query(
@@ -266,18 +283,12 @@ router.get('/status/:paymentIntentId',
  * Get user's payment history
  */
 router.get('/history',
+  standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
+    const client = req.dbClient;
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
@@ -325,8 +336,10 @@ router.get('/history',
 );
 
 /**
- * Stripe webhook handler for payment events
- * Note: No rate limiting - Stripe has built-in DDoS protection and webhooks have signature verification
+ * @description Stripe webhook handler. Verifies signature using rawBody, processes
+ *   payment_intent.succeeded/failed/canceled events in a transaction, and records
+ *   processed events for idempotency.
+ * @returns {{ success: boolean, eventId: string, eventType: string }}
  */
 router.post('/webhook',
   // Note: rawBody is captured by verify middleware in server.js for all webhook routes
@@ -578,18 +591,11 @@ router.post('/webhook',
 router.post('/cancel/:paymentIntentId',
   requireStripe,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
-    const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
+    const client = req.dbClient;
 
     // Verify ownership
     const paymentResult = await client.query(
@@ -639,8 +645,8 @@ router.post('/cancel/:paymentIntentId',
 );
 
 /**
- * Get pricing information
- * SECURITY (HIGH-03): Added rate limiting
+ * @description Return public pricing info for all document types (no auth required).
+ * @returns {{ success: boolean, pricing: { single_affidavit, divorce_package, all_state_access } }}
  */
 router.get('/pricing', strictLimiter, (req, res) => {
   res.json({

@@ -31,7 +31,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Alaska.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Alaska.
 
 COLLECT:
 1. Plaintiff's full legal first and last name
@@ -43,7 +43,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Alaska.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Collecting residency information.
 
 LEGAL REQUIREMENT — AS 25.24.090:
@@ -57,7 +57,7 @@ COLLECT:
 REQUIRED FIELDS: state (AK), county (judicial district), residency_confirmed
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Alaska.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — AS 25.24.050:
@@ -83,7 +83,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Alaska.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Collecting information about children.
 
 ALASKA TERMINOLOGY (AS 25.20.060):
@@ -101,7 +101,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Alaska.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Documenting marital property.
 
 LEGAL CONTEXT — AS 25.24.160:
@@ -122,7 +122,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Alaska.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Collecting alimony information.
 
 LEGAL CONTEXT — AS 25.24.160:
@@ -143,7 +143,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Alaska.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Collecting service of process information.
 
 OPTIONS:
@@ -160,7 +160,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/personal/mail), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for divorce in Alaska.
+const INDIGENCY = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Determining eligibility for filing fee waiver.
 
 Alaska courts allow fee waivers for low-income filers.
@@ -174,7 +174,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for divorce in Alaska.
+const MILITARY = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -189,7 +189,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Alaska.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Alaska.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

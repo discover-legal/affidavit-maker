@@ -84,7 +84,7 @@ module.exports = {
     '/services/agents/',
     '/services/documents/',
     '/services/affidavits/',
-    '/utils/pathSecurity\\.js$',
+    // pathSecurity.js — now has unit tests in __tests__/utils/pathSecurity.test.js
   ],
   coverageThreshold: {
     global: {

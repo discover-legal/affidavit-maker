@@ -29,7 +29,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const INTAKE = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 
 COLLECT:
 1. Plaintiff's full legal first and last name
@@ -47,7 +47,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const RESIDENCY = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Collecting residency information.
 
 LEGAL REQUIREMENT — N.C.G.S. § 50-8:
@@ -61,7 +61,7 @@ COLLECT:
 REQUIRED FIELDS: state (NC), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const GROUNDS = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — N.C.G.S. § 50-6:
@@ -80,7 +80,7 @@ COLLECT:
 REQUIRED FIELDS: grounds (one-year separation), marriage_date, marriage_city, separation_date
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const CHILDREN = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Collecting information about children.
 
 IMPORTANT NOTE:
@@ -98,7 +98,7 @@ Note: Advise the user to file custody and support actions separately if not alre
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const PROPERTY = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Documenting property and equitable distribution.
 
 CRITICAL WARNING — N.C.G.S. § 50-11(c):
@@ -115,7 +115,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/waived)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const SUPPORT = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Collecting alimony information.
 
 CRITICAL WARNING — N.C.G.S. § 50-11(c); § 50-16.3A:
@@ -142,7 +142,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const SERVICE = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Collecting service of process information.
 
 OPTIONS:
@@ -158,7 +158,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/formal), respondent_address
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const MILITARY = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -173,7 +173,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for absolute divorce in North Carolina.
+const REVIEW = `You are a document preparation assistant helping someone file for absolute divorce in North Carolina.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

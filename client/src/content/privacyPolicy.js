@@ -55,9 +55,20 @@ We work with trusted third-party service providers who help us operate our servi
 - **Auth0:** Authentication and identity management
 - **Stripe:** Payment processing
 - **Render:** Cloud hosting infrastructure
-- **OpenAI:** AI-powered document generation assistance
+- **AI Providers:** We use AI services to assist with document preparation. Our default provider is OpenAI, but we may also use other providers including Google (Gemini), Anthropic (Claude), Mistral, or other AI services
 
 These providers are contractually obligated to protect your data and use it only for the purposes we specify.
+
+### AI Data Processing
+
+When you use our document preparation chat, the following data is sent to our AI provider for processing:
+
+- Your conversation messages and responses
+- Document metadata (state, county, document type)
+- Facts you provide for inclusion in your documents
+- Names and identifying information you enter (including party names and, in family law matters, children's names and ages)
+
+**Important:** Our AI providers process this data to generate responses and format documents. We use API-tier access which opts out of model training where available. However, AI providers may retain data for abuse monitoring per their own policies. We recommend reviewing your AI provider's privacy policy (linked in their terms of service) for details on their data handling practices.
 
 ### Legal Requirements
 
@@ -80,7 +91,7 @@ We may share your information for other purposes with your explicit consent.
 
 We implement industry-standard security measures to protect your information:
 
-- **Encryption:** Data is encrypted in transit using SSL/TLS and at rest in our databases
+- **Encryption:** Data is encrypted in transit using SSL/TLS. Our database infrastructure provider applies disk-level encryption at rest
 - **Access Controls:** Strict access controls limit who can view your information
 - **Authentication:** Secure authentication through Auth0
 - **Regular Security Audits:** We regularly review and update our security practices
@@ -127,7 +138,9 @@ You can export your documents at any time through our service.
 
 ## Children's Privacy
 
-Our service is not intended for users under the age of 18. We do not knowingly collect information from children. If you believe we have collected information from a child, please contact us immediately.
+Our service is not intended for users under the age of 18. We do not knowingly collect information directly from children.
+
+**Children's information in family law cases:** In the course of preparing family law documents (custody, divorce, child support), adult users may provide their children's names, dates of birth, and custody-related details. This information is collected from the adult parent/guardian, processed for document preparation, and subject to the same security measures as all other personal data. Children's data is included in account deletion requests and data exports.
 
 ## International Data Transfers
 

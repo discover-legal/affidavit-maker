@@ -1,11 +1,24 @@
 {
   "stateCode": "OK",
   "stateName": "Oklahoma",
-  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
   "version": "1.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "county"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": true,
     "notaryBlock": true,
@@ -15,14 +28,18 @@
     "headerFormat": "uppercase",
     "venueFormat": "titlecase"
   },
+  "courtSystem": {
+    "trialCourt": "District Court",
+    "familyDivision": "District Court, Family Division"
+  },
   "legalCitations": [
     {
-      "code": "49 O.S. \u00a7113",
-      "description": "Oklahoma notarial acts \u2014 authority to administer oaths, take acknowledgments, and certify affidavits"
+      "code": "49 O.S. §113",
+      "description": "Oklahoma notarial acts — authority to administer oaths, take acknowledgments, and certify affidavits"
     },
     {
-      "code": "21 O.S. \u00a7491",
-      "description": "Perjury \u2014 false statement under oath made willfully and corruptly \u2014 criminal penalty for false affidavit statements"
+      "code": "21 O.S. §491",
+      "description": "Perjury — false statement under oath made willfully and corruptly — criminal penalty for false affidavit statements"
     }
   ],
   "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Oklahoma\n\nMy commission number: ____________\nMy commission expires: ___________\n\n[NOTARY SEAL]",

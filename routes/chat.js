@@ -8,6 +8,7 @@ const { asyncHandler } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { validateChatMessage } = require('../middleware/validation');
 const { chatLimiter } = require('../middleware/rateLimiting');
+const crypto = require('crypto');
 const { isInternationalEnabled } = require('../config/jurisdictions');
 
 // ─── Triage orchestrator ──────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ for (const [matterCode, modulePath] of [
   ['civil_harassment',   '../services/agents/CivilHarassmentOrchestrator'],
   ['general_civil',      '../services/agents/GeneralCivilOrchestrator'],
   ['probate',            '../services/agents/ProbateOrchestrator'],
+  ['document_response',  '../services/agents/DocumentIngestionOrchestrator'],
 ]) {
   try {
     matterOrchestrators[matterCode] = require(modulePath);
@@ -440,8 +442,18 @@ const createSessionContext = (req) => {
   };
 };
 
-/**
- * Chat endpoint with comprehensive error handling and stability features
+/*
+ * POST /api/chat — Main chat endpoint.
+ *
+ * 4-tier orchestrator routing (evaluated in order):
+ *   1. Triage — when no matter type or document type is set yet, classifies
+ *      the user's intent and sets matterTypeCode for subsequent messages.
+ *   2. Matter orchestrator — dedicated orchestrator per matter type (custody,
+ *      DVRO, small_claims, etc.) for non-divorce civil/family matters.
+ *   3. Divorce orchestrator — per-jurisdiction (state/province) phase-based
+ *      interview for divorce_package documents.
+ *   4. General affidavit fallback — legacy affidavitService for unrecognized
+ *      types or when no orchestrator is available.
  */
 router.post('/',
   // Apply chat-specific timeout (allows headroom for LLM function-calling requests)
@@ -469,7 +481,7 @@ router.post('/',
       }
 
       // Create session ID for this chat if not exists
-      req.sessionId = req.sessionId || `chat_${Date.now()}_${req.user.id}`;
+      req.sessionId = req.sessionId || `chat_${crypto.randomUUID()}`;
 
       logger.logChat('message_received', req.sessionId, req.user.id, {
         messageLength: message.length,

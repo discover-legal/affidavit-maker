@@ -1,11 +1,24 @@
 {
   "stateCode": "NM",
   "stateName": "New Mexico",
-  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
   "version": "1.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "county"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": true,
     "notaryBlock": true,
@@ -15,14 +28,18 @@
     "headerFormat": "uppercase",
     "venueFormat": "uppercase"
   },
+  "courtSystem": {
+    "trialCourt": "District Court",
+    "familyDivision": "District Court, Family Division"
+  },
   "legalCitations": [
     {
-      "code": "NMSA \u00a714-12A",
-      "description": "Uniform Real Property Electronic Recording Act \u2014 notarial acts, authority to administer oaths and take affidavits in New Mexico"
+      "code": "NMSA §14-12A",
+      "description": "Uniform Real Property Electronic Recording Act — notarial acts, authority to administer oaths and take affidavits in New Mexico"
     },
     {
-      "code": "NMSA \u00a730-25-1",
-      "description": "Perjury \u2014 false statement under oath made with knowledge that it is false \u2014 criminal penalty for false affidavit statements"
+      "code": "NMSA §30-25-1",
+      "description": "Perjury — false statement under oath made with knowledge that it is false — criminal penalty for false affidavit statements"
     }
   ],
   "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of New Mexico\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",

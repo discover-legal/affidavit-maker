@@ -1,13 +1,16 @@
 // routes/auth.js - Authentication related routes
 const express = require('express');
 const router = express.Router();
+const fs = require('fs').promises;
+const path = require('path');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { asyncHandler } = require('../middleware/errorMiddleware');
-const { authLimiter, strictLimiter } = require('../middleware/rateLimiting');
+const { authLimiter, strictLimiter, standardLimiter } = require('../middleware/rateLimiting');
+const { validateProfileUpdate } = require('../middleware/validation');
 const logger = require('../utils/logger');
 
 // Get current user profile
-router.get('/me', auth0Middleware, asyncHandler(async (req, res) => {
+router.get('/me', standardLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
 
   if (!user) {
@@ -115,7 +118,7 @@ router.post('/accept-tos', authLimiter, auth0Middleware, asyncHandler(async (req
 }));
 
 // Get TOS acceptance status
-router.get('/tos-status', auth0Middleware, asyncHandler(async (req, res) => {
+router.get('/tos-status', standardLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
 
   res.json({
@@ -127,7 +130,7 @@ router.get('/tos-status', auth0Middleware, asyncHandler(async (req, res) => {
 }));
 
 // Update user profile
-router.put('/me', authLimiter, auth0Middleware, asyncHandler(async (req, res) => {
+router.put('/me', authLimiter, auth0Middleware, validateProfileUpdate, asyncHandler(async (req, res) => {
   const user = req.user;
   const { name, preferences } = req.body;
   const client = req.dbClient;  // RLS-protected client from auth0Middleware
@@ -180,67 +183,152 @@ router.put('/me', authLimiter, auth0Middleware, asyncHandler(async (req, res) =>
   });
 }));
 
-// Delete user account
-router.delete('/me', strictLimiter, auth0Middleware, asyncHandler(async (req, res) => {
+// Export user data (GDPR/privacy compliance)
+router.get('/export', standardLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
   const client = req.dbClient;  // RLS-protected client from auth0Middleware
 
-  // This is a soft delete - we keep the user record but mark it as deleted
-  await client.query(
-    `UPDATE users SET
-     subscription_status = 'deleted',
-     email = CONCAT('deleted_', id, '_', email),
-     auth0_id = CONCAT('deleted_', id, '_', auth0_id),
-     updated_at = NOW()
-     WHERE id = $1`,
-    [user.id]
-  );
-  
-  logger.info('User account deleted', {
+  // Query all user data in parallel (only tables that exist in the schema)
+  const [userResult, documentsResult, casesResult, paymentsResult] = await Promise.all([
+    client.query(
+      'SELECT id, email, name, created_at FROM users WHERE id = $1',
+      [user.id]
+    ),
+    client.query(
+      'SELECT id, title, content, status, document_type, created_at, updated_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC',
+      [user.id]
+    ),
+    client.query(
+      'SELECT id, title, practice_area, state, county, court_name, cause_number, status, created_at, updated_at FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
+      [user.id]
+    ),
+    client.query(
+      'SELECT id, document_type, amount, status, created_at FROM payments WHERE user_id = $1 ORDER BY created_at DESC',
+      [user.id]
+    ),
+  ]);
+
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    user: userResult.rows[0] || null,
+    documents: documentsResult.rows,
+    cases: casesResult.rows,
+    payments: paymentsResult.rows,
+  };
+
+  logger.info('User data exported', {
     userId: user.id,
+    documentCount: documentsResult.rows.length,
     requestId: req.id
   });
-  
-  res.json({
-    success: true,
-    message: 'Account deleted successfully'
-  });
+
+  res.setHeader('Content-Disposition', 'attachment; filename="my-data-export.json"');
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(exportData, null, 2));
+}));
+
+// Delete user account (hard delete with data cleanup)
+router.delete('/me', strictLimiter, auth0Middleware, asyncHandler(async (req, res) => {
+  const user = req.user;
+  const userId = user.id;
+  const client = req.dbClient;  // RLS-protected client from auth0Middleware
+
+  try {
+    await client.query('BEGIN');
+
+    // 1. Delete evidence files from filesystem
+    const evidenceDir = path.join(__dirname, '..', 'documents', 'evidence', String(userId));
+    try {
+      await fs.rm(evidenceDir, { recursive: true, force: true });
+      logger.info('Evidence files deleted', { userId, evidenceDir, requestId: req.id });
+    } catch (fsError) {
+      // Directory may not exist — that's fine
+      if (fsError.code !== 'ENOENT') {
+        logger.warn('Failed to delete evidence directory', {
+          userId,
+          error: fsError.message,
+          requestId: req.id
+        });
+      }
+    }
+
+    // Delete order matters — FK constraints require children before parents.
+    // ingested_documents.case_id → cases (no CASCADE), so delete ingested first.
+
+    // 2. Delete ingested documents (user_id is TEXT in this table; has FK to cases)
+    await client.query('DELETE FROM ingested_documents WHERE user_id = $1', [String(userId)]);
+
+    // 3. Delete all documents
+    await client.query('DELETE FROM documents WHERE user_id = $1', [userId]);
+
+    // 4. Delete all cases (safe now that ingested_documents are gone)
+    await client.query('DELETE FROM cases WHERE user_id = $1', [userId]);
+
+    // 5. Delete all payments
+    await client.query('DELETE FROM payments WHERE user_id = $1', [userId]);
+
+    // 6. Anonymize activity logs (retain for analytics, strip PII)
+    await client.query(
+      `UPDATE activity_logs SET user_id = NULL, ip_address = 'redacted' WHERE user_id = $1`,
+      [userId]
+    );
+
+    // 7. Anonymize TOS acceptance log (legal requirement to retain, but strip PII)
+    await client.query(
+      `UPDATE tos_acceptance_log SET ip_address = 'redacted' WHERE user_id = $1`,
+      [userId]
+    );
+
+    // 8. Delete user identities
+    await client.query('DELETE FROM user_identities WHERE user_id = $1', [userId]);
+
+    // 9. Delete the user row (last — all FKs are cleared)
+    await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+
+    logger.info('User account and all associated data hard-deleted', {
+      userId,
+      requestId: req.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Account and all associated data deleted'
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
 }));
 
 // Get user's subscription status
-router.get('/subscription', auth0Middleware, asyncHandler(async (req, res) => {
+router.get('/subscription', standardLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const user = req.user;
   const client = req.dbClient;  // RLS-protected client from auth0Middleware
 
-  const subscription = await client.query(
-    `SELECT * FROM subscriptions
-     WHERE user_id = $1 AND status = 'active'
-     ORDER BY created_at DESC
-     LIMIT 1`,
+  // Subscription info lives on the users table (no separate subscriptions table)
+  const result = await client.query(
+    'SELECT subscription_tier, subscription_status FROM users WHERE id = $1',
     [user.id]
   );
-  
-  if (subscription.rows.length === 0) {
+
+  if (result.rows.length === 0 || result.rows[0].subscription_status !== 'active') {
     return res.json({
       success: true,
       hasSubscription: false,
       tier: 'pay_per_use'
     });
   }
-  
-  const sub = subscription.rows[0];
+
+  const sub = result.rows[0];
   
   res.json({
     success: true,
     hasSubscription: true,
     subscription: {
-      id: sub.id,
-      tier: sub.tier,
-      status: sub.status,
-      currentPeriodStart: sub.current_period_start,
-      currentPeriodEnd: sub.current_period_end,
-      documentsUsed: sub.documents_used_this_period,
-      documentsIncluded: sub.documents_included
+      tier: sub.subscription_tier,
+      status: sub.subscription_status,
     }
   });
 }));

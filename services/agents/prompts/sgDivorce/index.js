@@ -39,7 +39,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone apply for divorce in Singapore.
+const INTAKE = `You are a document preparation assistant helping someone apply for divorce in Singapore.
 
 IMPORTANT PERSONAL LAW TRIAGE:
 Before proceeding, you MUST determine whether the marriage was solemnized under Muslim law.
@@ -72,7 +72,7 @@ KEY FACTS TO SHARE:
 - Muslim marriages must go through the Syariah Court under AMLA
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Singapore.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Collecting residency and jurisdiction information.
 
 LEGAL REQUIREMENT — Women's Charter, s.93:
@@ -90,7 +90,7 @@ NOTE: Singapore is a city-state — there is no county or province to specify. T
 is the Family Justice Courts (established 2014), which handles all family proceedings.
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Singapore.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Women's Charter 1961, s.95 and s.95A:
@@ -131,7 +131,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_location, separation_date (if applicable)
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Singapore.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -157,7 +157,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_plan
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Singapore.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Documenting the division of matrimonial assets.
 
 LEGAL CONTEXT — Women's Charter, s.112:
@@ -196,7 +196,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Singapore.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Collecting information about maintenance (spousal support).
 
 LEGAL CONTEXT — Women's Charter, s.113-114:
@@ -229,7 +229,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Singapore.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Collecting information about serving the Originating Application on the Defendant.
 
 LEGAL CONTEXT:
@@ -262,7 +262,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (personal/substituted/overseas), defendant_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Singapore.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Singapore.
 Final review phase.
 
 Summarize all collected information clearly:

@@ -828,29 +828,10 @@ const ValidationSidebar = () => {
       description: ''
     });
 
-    console.log('📌 Adding new evidence:', newEvidence);
-    console.log('📌 Current facts before add:', currentDocument.facts?.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
-
     let updatedFacts = [...(currentDocument.facts || []), newEvidence];
-
-    console.log('📌 Facts after adding, before recalc:', updatedFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
 
     // Recalculate exhibit labels
     updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
-
-    console.log('📌 Facts after recalc:', updatedFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
 
     updateDocumentData({ facts: updatedFacts });
 
@@ -933,38 +914,14 @@ const ValidationSidebar = () => {
 
   // Handle successful upload
   const handleUploadSuccess = (updatedEvidence) => {
-    console.log('✅ Evidence uploaded:', updatedEvidence);
-    console.log('📌 Current evidence ID:', currentEvidence?.id);
-    console.log('📌 Updated evidence ID:', updatedEvidence?.id);
-    console.log('📌 Current facts before update:', currentDocument.facts?.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
-
     // Update the fact in the document by matching ID (not reference)
     let updatedFacts = (currentDocument.facts || []).map(fact => {
       const isMatch = fact.id === currentEvidence?.id;
-      if (isMatch) {
-        console.log('📌 Found matching fact to update:', fact.id);
-      }
       return isMatch ? updatedEvidence : fact;
     });
 
-    console.log('📌 Facts after update, before recalc:', updatedFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
-
     // Recalculate exhibit labels
     updatedFacts = calculateExhibitLabels(updatedFacts, { style: 'letters' });
-
-    console.log('📌 Facts after recalc:', updatedFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      content: f.content?.substring(0, 30)
-    })));
 
     updateDocumentData({ facts: updatedFacts });
     setShowEvidenceUpload(false);

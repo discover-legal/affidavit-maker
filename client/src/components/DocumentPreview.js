@@ -190,11 +190,9 @@ const DocumentPreview = () => {
   // Process and paginate content
   const pages = useMemo(() => {
     if (!preview?.sections) {
-      console.log('📄 DocumentPreview: No preview sections found, returning empty page');
       return [{ content: [], pageNumber: 1 }];
     }
 
-    console.log('📄 DocumentPreview: Processing preview sections:', Object.keys(preview.sections));
     const sections = preview.sections;
     const allContent = [];
 
@@ -399,9 +397,7 @@ const DocumentPreview = () => {
     // Use slightly less to prevent edge-case overflow
     const maxPageHeight = 850;
 
-    console.log(`📄 Total sections to paginate: ${allContent.length}`);
     allContent.forEach((section, idx) => {
-      console.log(`  ${idx}: ${section.type} - ${section.content?.substring(0, 50)}...`);
       // CRITICAL: Height estimation must match PDF rendering for WYSIWYG accuracy
       // PDF uses PDFKit points (72 DPI), Preview uses CSS pixels (96 DPI)
       // Conversion: PDF points × (96/72) = CSS pixels
@@ -580,7 +576,6 @@ const DocumentPreview = () => {
       currentPageContent.push(section);
       currentPageHeight += sectionHeight;
 
-      console.log(`  ✅ Added ${section.type} to page ${paginatedPages.length + 1}, height now: ${currentPageHeight}/${maxPageHeight}`);
     });
 
     // Add final page
@@ -590,15 +585,6 @@ const DocumentPreview = () => {
         pageNumber: paginatedPages.length + 1
       });
     }
-
-    // Log final pagination
-    console.log(`📊 Final pagination:`);
-    paginatedPages.forEach((page, idx) => {
-      console.log(`  Page ${page.pageNumber}: ${page.content.length} items`);
-      page.content.forEach((section, sIdx) => {
-        console.log(`    ${sIdx}: ${section.type} - ${section.content?.substring(0, 50)}...`);
-      });
-    });
 
     return paginatedPages.length > 0 ? paginatedPages : [{ content: [], pageNumber: 1 }];
   }, [preview, currentDocument.activeSubDocument, currentDocument.documentType]);
@@ -1201,7 +1187,6 @@ const DocumentPreview = () => {
               }}
             >
               {/* Render all pages vertically */}
-              {console.log('📄 Rendering pages:', pages.length, 'Mobile:', isMobileView, 'Zoom:', zoomLevel) || null}
               {pages.map((page, pageIndex) => (
                 <div
                   key={`page-${page.pageNumber}`}

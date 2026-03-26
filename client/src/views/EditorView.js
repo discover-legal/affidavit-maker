@@ -8,6 +8,7 @@ import ChatInterface from '../components/ChatInterface';
 import DocumentPreview from '../components/DocumentPreview';
 import ValidationSidebar from '../components/ValidationSidebar';
 import PaymentModal from '../components/PaymentModal';
+import DVSafetyBanner from '../components/DVSafetyBanner';
 import { trackEvent } from '../utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -147,7 +148,6 @@ const EditorView = ({ isNew = false, onBack }) => {
       const validPaidStatuses = ['paid', 'completed', 'free', 'succeeded'];
       const isPaid = validPaidStatuses.includes(paymentStatus);
       setIsPaidDocument(isPaid);
-      console.log('💰 Payment status checked:', { docId, paymentStatus, isPaid });
       return isPaid;
     } catch (error) {
       console.error('❌ Payment status check failed:', error);
@@ -176,7 +176,6 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     if (hasDocumentIdChanged) {
       // DocumentId changed - reset initialization flag
-      console.log('📂 Document ID changed from', lastDocumentId.current, 'to', documentId);
       initializationDone.current = false;
       lastDocumentId.current = documentId;
     }
@@ -192,9 +191,6 @@ const EditorView = ({ isNew = false, onBack }) => {
       if (documentId && !isNew && !isAuthenticated) {
         return;
       }
-
-      // Log what we're doing
-      console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
       if (isNew) {
         // For new documents, initialize with forceNew=true and document type
@@ -215,17 +211,14 @@ const EditorView = ({ isNew = false, onBack }) => {
       } else if (documentId && isAuthenticated) {
         // Loading existing document from URL
         if (sessionInitialized && currentDocument.documentId === documentId) {
-          console.log('✅ Document already loaded:', documentId);
           initializationDone.current = true;
           return;
         }
 
         initializationDone.current = true;
 
-        console.log('📂 Loading existing document:', documentId);
         try {
           await loadDocument(documentId);
-          console.log('✅ Document loaded:', documentId);
           // Track existing document editor opened
           trackEvent('editor_opened', {
             is_new_document: false,
@@ -240,9 +233,7 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     initializeSession();
 
-    return () => {
-      console.log('🧹 Cleaning up document session');
-    };
+    return () => {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, isNew, isAuthenticated]);
 
@@ -281,10 +272,7 @@ const EditorView = ({ isNew = false, onBack }) => {
     }
     
     try {
-      const documentId = await saveDocument();
-      if (documentId) {
-        console.log('✅ Document saved:', documentId);
-      }
+      await saveDocument();
     } catch (error) {
       console.error('Save error:', error);
     }
@@ -293,11 +281,6 @@ const EditorView = ({ isNew = false, onBack }) => {
   // Perform the actual PDF download
   const performDownload = async () => {
     try {
-      console.log('📥 Starting PDF download...', {
-        documentId: currentDocument.documentId,
-        affiantName: currentDocument.affiantName
-      });
-
       const token = await getAccessTokenSilently();
 
       const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
@@ -319,7 +302,6 @@ const EditorView = ({ isNew = false, onBack }) => {
       }
 
       const blob = await response.blob();
-      console.log('✅ PDF generated, size:', blob.size, 'bytes');
 
       // Build a meaningful filename based on document type and sub-document
       const safe = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -341,8 +323,6 @@ const EditorView = ({ isNew = false, onBack }) => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-
-      console.log('✅ PDF download started');
 
     } catch (error) {
       console.error('❌ PDF download failed:', error);
@@ -382,7 +362,6 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
-    console.log('✅ Payment successful, starting download...');
     setIsPaymentModalOpen(false);
     setIsPaidDocument(true);
 
@@ -513,6 +492,13 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   return (
     <div className="h-screen flex flex-col">
+      {/* DV Safety Banner - shown for DVRO matters */}
+      <DVSafetyBanner
+        documentType={currentDocument.documentType}
+        matterTypeCode={currentDocument.matterTypeCode}
+        jurisdiction={currentDocument.state}
+      />
+
       {/* Header */}
       <header className="bg-white shadow-sm border-b px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">

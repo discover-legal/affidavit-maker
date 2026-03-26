@@ -26,7 +26,6 @@ const TOSGuard = ({ children }) => {
 
       // Wait for auth to finish loading
       if (isLoading) {
-        console.log('[TOSGuard] Waiting for auth to finish loading...');
         setLoadingMessage('Checking authentication...');
 
         // Timeout after 10 seconds of waiting for Auth0
@@ -41,7 +40,6 @@ const TOSGuard = ({ children }) => {
 
       // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
       if (!isAuthenticated) {
-        console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
         setLoadingMessage('Redirecting to login...');
         loginWithRedirect({
           appState: { returnTo: window.location.pathname }
@@ -51,7 +49,6 @@ const TOSGuard = ({ children }) => {
 
       // Wait for user object to be available (with timeout)
       if (!user?.sub) {
-        console.log('[TOSGuard] User object not available yet, waiting...');
         setLoadingMessage('Loading user profile...');
 
         // Timeout after 5 seconds of waiting for user object
@@ -72,38 +69,32 @@ const TOSGuard = ({ children }) => {
         return;
       }
 
-      console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
       setLoadingMessage('Verifying account...');
 
-      // Check if we've already verified TOS acceptance (try localStorage first, then sessionStorage)
-      const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
-      const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
-      if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
-        console.log('[TOSGuard] TOS already accepted (cached)');
+      // SECURITY: Only use session-scoped cache (sessionStorage) to skip re-verification
+      // within the same browser tab. localStorage was removed because users could manually
+      // set the key to bypass TOS. The server is always checked on fresh page loads.
+      const tosVerifiedThisSession = sessionStorage.getItem(`tos_verified_${user?.sub}`);
+      if (tosVerifiedThisSession === 'true') {
         markTosVerified();
         setIsCheckingTos(false);
         return;
       }
 
       try {
-        console.log('[TOSGuard] Calling API: /api/auth/tos-status');
         setLoadingMessage('Checking account status...');
         const data = await makeAuthenticatedRequest('/api/auth/tos-status');
-        console.log('[TOSGuard] API response:', data);
 
         if (data.success) {
           setTosStatus(data);
 
           // Only cache if user has actually accepted TOS
           if (data.tosAccepted) {
-            console.log('[TOSGuard] User has accepted TOS, caching acceptance');
-            // Cache in both localStorage (persistent) and sessionStorage (backward compat)
-            localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
-            sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
+            // Cache only in sessionStorage (tab-scoped) after server confirmation
+            sessionStorage.setItem(`tos_verified_${user?.sub}`, 'true');
             markTosVerified();
           } else {
             // Show TOS modal if user hasn't accepted
-            console.log('[TOSGuard] User has NOT accepted TOS, showing modal');
             setShowTosModal(true);
           }
         } else {
@@ -120,7 +111,7 @@ const TOSGuard = ({ children }) => {
         // Don't show modal for transient auth errors during initialization
         if (error.message?.includes('not authenticated') ||
             error.message?.includes('login_required')) {
-          console.log('[TOSGuard] Auth initialization error, will retry on next render');
+          // Auth initialization error, will retry on next render
         } else {
           // For all other errors, show the modal to be safe
           setShowTosModal(true);
@@ -137,29 +128,23 @@ const TOSGuard = ({ children }) => {
 
   const handleAcceptTos = async (tosVersion, researchConsent = false) => {
     try {
-      console.log('[TOSGuard] User accepting TOS:', { tosVersion, researchConsent, userId: user?.sub });
       const data = await makeAuthenticatedRequest('/api/auth/accept-tos', {
         method: 'POST',
         body: JSON.stringify({ tosVersion, researchConsent }),
       });
-      console.log('[TOSGuard] TOS acceptance response:', data);
 
       if (data.success) {
-        console.log('[TOSGuard] TOS acceptance successful, updating state and cache');
         setTosStatus({
           tosAccepted: true,
           tosVersionAccepted: tosVersion,
           tosAcceptedAt: new Date().toISOString(),
         });
-        // Cache the acceptance in both localStorage (persistent) and sessionStorage
+        // Cache in sessionStorage only (server verified the acceptance above)
         if (user?.sub) {
-          localStorage.setItem(`tos_accepted_${user.sub}`, 'true');
-          sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
-          console.log('[TOSGuard] TOS acceptance cached in localStorage and sessionStorage');
+          sessionStorage.setItem(`tos_verified_${user.sub}`, 'true');
         }
         markTosVerified();
         setShowTosModal(false);
-        console.log('[TOSGuard] TOS modal closed, user can now access application');
       } else {
         throw new Error(data.error || 'Failed to accept TOS');
       }

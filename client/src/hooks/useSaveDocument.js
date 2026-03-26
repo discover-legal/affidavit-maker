@@ -7,6 +7,17 @@ const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
+/**
+ * Hook for saving documents to the backend with auto-save support.
+ * @returns {{ isSaving: boolean, lastSaved: Date|null, saveError: string|null,
+ *   saveDocument: (affidavitData: Object, options?: Object) => Promise<{success: boolean, document?: Object, documentId?: number, error?: string}>,
+ *   autoSave: (affidavitData: Object, delay?: number) => void,
+ *   forceSave: (affidavitData: Object, options?: Object) => Promise<Object>,
+ *   clearSaveError: () => void,
+ *   canSave: (affidavitData: Object) => boolean,
+ *   getSaveStatus: () => string,
+ *   generateTitle: (affidavitData: Object) => string }}
+ */
 const useSaveDocument = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [isSaving, setIsSaving] = useState(false);
@@ -106,9 +117,7 @@ const useSaveDocument = () => {
             isAutoSave: true 
           });
           
-          if (result.success) {
-            console.log('Auto-save successful');
-          }
+          // Auto-save completed
         } catch (error) {
           console.error('Auto-save failed:', error);
         } finally {

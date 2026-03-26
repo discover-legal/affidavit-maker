@@ -19,6 +19,7 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
   const elements = useElements();
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,6 +99,25 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
         </div>
       )}
 
+      {/* Legal disclaimer — must be accepted before purchase */}
+      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={disclaimerAccepted}
+            onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+          />
+          <span className="text-xs text-gray-700 leading-relaxed">
+            I understand that this service generates document drafts using AI and{' '}
+            <strong>does not constitute legal advice</strong>. Documents may contain
+            formatting errors or information that is incomplete or incorrect for my
+            specific situation. I agree to have my documents reviewed by a licensed
+            attorney or qualified legal professional before filing or relying on them.
+          </span>
+        </label>
+      </div>
+
       <div className="flex gap-3 pt-2">
         <button
           type="button"
@@ -109,7 +129,7 @@ const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) 
         </button>
         <button
           type="submit"
-          disabled={!stripe || processing}
+          disabled={!stripe || processing || !disclaimerAccepted}
           className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center font-medium"
         >
           {processing ? (
@@ -159,6 +179,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
           body: JSON.stringify({
             documentType,
             documentId,
+            disclaimerAccepted: true, // Server-side enforcement — user accepted in UI
           }),
         });
 
@@ -202,7 +223,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         {/* Header - Fixed */}
         <div className="flex items-center justify-between p-4 sm:p-6 pb-3 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold">Complete Payment</h3>
-          <button onClick={onClose} disabled={loading}>
+          <button onClick={onClose} disabled={loading} aria-label="Close payment modal">
             <X className="h-6 w-6 text-gray-400 hover:text-gray-600" />
           </button>
         </div>
@@ -211,7 +232,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4">
           <div className="mb-6">
             <div className="flex items-center justify-between py-2">
-              <span>{documentType === 'divorce_package' ? 'Divorce Package' : 'Professional Affidavit'}</span>
+              <span>{documentType === 'divorce_package' ? 'Divorce Document Package' : 'Formatted Affidavit'}</span>
               <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
             </div>
             <div className="border-t pt-2">

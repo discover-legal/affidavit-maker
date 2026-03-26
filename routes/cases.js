@@ -5,6 +5,7 @@ const router = express.Router();
 const { asyncHandler, NotFoundError, AuthorizationError, ValidationError } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
+const { validateCaseCreate, validateCaseUpdate, requireDbClient } = require('../middleware/validation');
 const logger = require('../utils/logger');
 
 // ─────────────────────────────────────────────
@@ -15,18 +16,10 @@ const logger = require('../utils/logger');
 router.get('/',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const client = req.dbClient;
     const userId = req.user.id;
-
-    // Verify RLS-context client is available (set by auth0Middleware)
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     const result = await client.query(
       `SELECT
@@ -60,42 +53,32 @@ router.get('/',
 router.get('/:id',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
 
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
-
     if (!caseId || isNaN(caseId)) {
       throw new ValidationError('Invalid case ID');
     }
 
+    // Include user_id in WHERE clause (defense-in-depth alongside RLS)
     const caseResult = await client.query(
-      'SELECT * FROM cases WHERE id = $1',
-      [caseId]
+      'SELECT * FROM cases WHERE id = $1 AND user_id = $2',
+      [caseId, userId]
     );
 
     if (!caseResult.rows.length) {
       throw new NotFoundError('Case not found');
     }
 
-    if (caseResult.rows[0].user_id !== userId) {
-      throw new AuthorizationError('Access denied');
-    }
-
     const docsResult = await client.query(
       `SELECT id, title, document_type, status, updated_at, created_at
        FROM documents
-       WHERE case_id = $1
+       WHERE case_id = $1 AND user_id = $2
        ORDER BY updated_at DESC`,
-      [caseId]
+      [caseId, userId]
     );
 
     res.sendSuccess({
@@ -112,17 +95,11 @@ router.get('/:id',
 router.post('/',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
+  validateCaseCreate,
   asyncHandler(async (req, res) => {
     const client = req.dbClient;
     const userId = req.user.id;
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     const {
       practice_area = 'family',
@@ -181,18 +158,12 @@ router.post('/',
 router.put('/:id',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
+  validateCaseUpdate,
   asyncHandler(async (req, res) => {
     const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     if (!caseId || isNaN(caseId)) {
       throw new ValidationError('Invalid case ID');
@@ -275,19 +246,12 @@ router.put('/:id',
 router.post('/:id/documents',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const client = req.dbClient;
     const userId = req.user.id;
     const caseId = parseInt(req.params.id, 10);
     const { document_id } = req.body;
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     if (!caseId || isNaN(caseId)) throw new ValidationError('Invalid case ID');
     if (!document_id) throw new ValidationError('document_id is required');

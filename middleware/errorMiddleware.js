@@ -2,9 +2,7 @@
 const logger = require('../utils/logger');
 const { errorResponse } = require('../utils/responseHelpers');
 
-/**
- * Custom error classes for better error handling
- */
+/** Base application error with statusCode and errorType. */
 class AppError extends Error {
   constructor(message, statusCode = 500, errorType = null, additionalProps = {}) {
     super(message);
@@ -16,6 +14,7 @@ class AppError extends Error {
   }
 }
 
+/** 400 validation error, optionally carrying an array of field-level errors. */
 class ValidationError extends AppError {
   constructor(message, errors = []) {
     super(message, 400, 'validation_error');
@@ -24,6 +23,7 @@ class ValidationError extends AppError {
   }
 }
 
+/** 401 authentication required error. */
 class AuthenticationError extends AppError {
   constructor(message = 'Authentication required') {
     super(message, 401, 'authentication_error');
@@ -32,6 +32,7 @@ class AuthenticationError extends AppError {
   }
 }
 
+/** 403 access denied error. */
 class AuthorizationError extends AppError {
   constructor(message = 'Access denied') {
     super(message, 403, 'authorization_error');
@@ -39,6 +40,7 @@ class AuthorizationError extends AppError {
   }
 }
 
+/** 404 resource not found error. */
 class NotFoundError extends AppError {
   constructor(message = 'Resource not found') {
     super(message, 404, 'not_found_error');
@@ -46,6 +48,7 @@ class NotFoundError extends AppError {
   }
 }
 
+/** 429 too many requests error with retryAfter hint. */
 class RateLimitError extends AppError {
   constructor(message = 'Too many requests', retryAfter = 60) {
     super(message, 429, 'rate_limit_error');
@@ -54,6 +57,7 @@ class RateLimitError extends AppError {
   }
 }
 
+/** 503 external service unavailable error (Stripe, OpenAI, etc.). */
 class ExternalServiceError extends AppError {
   constructor(message, service, retryAfter = null) {
     super(message, 503, 'external_service_error');
@@ -94,7 +98,9 @@ const sanitizeRequestBody = (body) => {
 };
 
 /**
- * Enhanced error handler with detailed logging and consistent responses
+ * Express error handler. Maps PostgreSQL codes, Stripe errors, JWT errors, and
+ * multer errors to appropriate HTTP status codes and user-safe messages.
+ * Logs 5xx errors with full context; 4xx errors at warn level.
  */
 const errorHandler = (err, req, res, next) => {
   // Don't handle if response already sent
@@ -297,7 +303,9 @@ const notFoundHandler = (req, res) => {
 };
 
 /**
- * Async wrapper that automatically handles errors with standard format
+ * Wraps an async route handler so rejected promises are forwarded to Express
+ * error middleware. If the handler returns a value and no response was sent,
+ * it is automatically sent as a success response.
  */
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next))

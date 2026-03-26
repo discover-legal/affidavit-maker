@@ -6,7 +6,7 @@ export const ARTICLES = [
     id: 'how-to-write-an-affidavit',
     slug: 'how-to-write-an-affidavit',
     title: 'How to Write an Affidavit: Complete Guide for 2025',
-    description: 'Learn how to write a legally valid affidavit with our step-by-step guide. Includes state-specific requirements for Texas, Utah, and Arizona.',
+    description: 'Learn how to write a properly formatted affidavit with our step-by-step guide. Includes state-specific formatting requirements for Texas, Utah, and Arizona.',
     category: 'Guides',
     readTime: '8 min read',
     publishDate: 'November 20, 2025',
@@ -241,7 +241,7 @@ A: False statements in an affidavit can constitute perjury, which is a serious c
 
 ## Ready to Create Your Affidavit?
 
-Don't struggle with templates or worry about legal requirements. Our platform guides you through creating a legally valid affidavit in minutes.
+Don't struggle with templates or worry about formatting requirements. Our platform guides you through creating a properly formatted affidavit in minutes. We recommend having an attorney review your document before filing.
 
 [Get Started Now →](#cta)
 `
@@ -472,7 +472,7 @@ This is exactly why we built discover.legal. Our platform:
 
 ✅ **Includes state-specific requirements** - Each state has different formatting and content requirements built-in
 
-✅ **Saves you time and stress** - Complete a court-ready affidavit in under 10 minutes
+✅ **Saves you time and stress** - Complete a professionally formatted affidavit in under 10 minutes
 
 For just $79—a fraction of attorney fees—you get a professionally formatted legal document that presents your facts in the way courts expect to see them.
 
@@ -484,7 +484,7 @@ You don't need to be a lawyer to write an effective affidavit. You just need to 
 
 ## Ready to Create a Professional Affidavit?
 
-Stop worrying about whether your document looks professional enough. Let our system guide you through creating a court-ready affidavit that presents your facts clearly and credibly.
+Stop worrying about whether your document looks professional enough. Let our system guide you through creating a professionally formatted affidavit that presents your facts clearly and credibly.
 
 [Get Started Now →](#cta)
 
@@ -1211,7 +1211,7 @@ Our platform provides:
 - Built-in state requirements
 - Proper verification language
 - Notary guidance
-- Court-ready formatting
+- Professional formatting
 
 [Create Your Arizona Affidavit →](#cta)
 `

@@ -22,7 +22,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 
 CRITICAL — PERSONAL LAW TRIAGE:
 India uses a personal law system. You MUST determine the applicable law first.
@@ -48,7 +48,7 @@ KEY FACTS:
 - Parties are "Petitioner" and "Respondent"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Collecting jurisdiction and filing information.
 
 LEGAL REQUIREMENT — HMA s.19 / SMA s.31:
@@ -63,7 +63,7 @@ COLLECT:
    → Pune, Nagpur, Thane, etc.: respective district Family Courts
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT:
@@ -81,7 +81,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -98,7 +98,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_arrangement
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Documenting property division.
 
 LEGAL CONTEXT:
@@ -117,7 +117,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Collecting maintenance / alimony information.
 
 LEGAL CONTEXT:
@@ -133,7 +133,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Collecting service information.
 
 Service methods:
@@ -149,7 +149,7 @@ COLLECT:
 REQUIRED FIELDS: service_method, respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Maharashtra, India.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Maharashtra, India.
 Final review phase.
 
 Summarize all collected information. Ask user to confirm.

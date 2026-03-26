@@ -29,7 +29,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 
 CRITICAL — PERSONAL LAW TRIAGE:
 India uses a personal law system. The applicable marriage and divorce statute depends on the
@@ -59,7 +59,7 @@ KEY FACTS TO SHARE:
 - Affidavit must be on judicial stamp paper of INR 10
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Collecting jurisdiction and filing information.
 
 LEGAL REQUIREMENT — HMA s.19 / SMA s.31:
@@ -80,7 +80,7 @@ NOTE: There is no specific residency duration requirement — jurisdiction depen
 connection to the court's territorial area (marriage location, residence, or last cohabitation).
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Depends on applicable personal law:
@@ -120,7 +120,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -142,7 +142,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_arrangement
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Documenting the division of property.
 
 LEGAL CONTEXT:
@@ -166,7 +166,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Collecting information about maintenance / alimony.
 
 LEGAL CONTEXT:
@@ -194,7 +194,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Collecting information about serving the other party.
 
 LEGAL CONTEXT:
@@ -219,7 +219,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (mutual/personal/substituted), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Delhi, India.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Delhi, India.
 Final review phase.
 
 Summarize all collected information clearly:

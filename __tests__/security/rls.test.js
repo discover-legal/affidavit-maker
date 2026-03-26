@@ -87,6 +87,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -98,6 +99,7 @@ describe('Row Level Security (RLS)', () => {
         expect(result.rows[0].user_id).toBe(testUser1Id);
         expect(result.rows[0].title).toBe('User 1 Document');
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -108,6 +110,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -118,6 +121,7 @@ describe('Row Level Security (RLS)', () => {
         // RLS should prevent access - should return 0 rows
         expect(result.rows.length).toBe(0);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -128,6 +132,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser2Id.toString()]);
 
         const result = await client.query(
@@ -138,6 +143,7 @@ describe('Row Level Security (RLS)', () => {
         expect(result.rows.length).toBe(1);
         expect(result.rows[0].user_id).toBe(testUser2Id);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -148,6 +154,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser2Id.toString()]);
 
         const result = await client.query(
@@ -158,6 +165,7 @@ describe('Row Level Security (RLS)', () => {
         // RLS should prevent access
         expect(result.rows.length).toBe(0);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -168,6 +176,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query('SELECT * FROM documents');
@@ -178,6 +187,7 @@ describe('Row Level Security (RLS)', () => {
           expect(doc.user_id).toBe(testUser1Id);
         });
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -190,6 +200,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query('SELECT * FROM users WHERE id = $1', [testUser1Id]);
@@ -197,6 +208,7 @@ describe('Row Level Security (RLS)', () => {
         expect(result.rows.length).toBe(1);
         expect(result.rows[0].id).toBe(testUser1Id);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -207,6 +219,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query('SELECT * FROM users WHERE id = $1', [testUser2Id]);
@@ -214,6 +227,7 @@ describe('Row Level Security (RLS)', () => {
         // RLS should prevent access
         expect(result.rows.length).toBe(0);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -226,6 +240,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.bypass_rls', 'true']);
 
         const result = await client.query('SELECT COUNT(*) as count FROM documents');
@@ -234,6 +249,7 @@ describe('Row Level Security (RLS)', () => {
         const count = parseInt(result.rows[0].count);
         expect(count).toBeGreaterThanOrEqual(2); // At least our 2 test documents
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -244,6 +260,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.bypass_rls', 'true']);
 
         const result = await client.query('SELECT COUNT(*) as count FROM users');
@@ -251,6 +268,7 @@ describe('Row Level Security (RLS)', () => {
         const count = parseInt(result.rows[0].count);
         expect(count).toBeGreaterThanOrEqual(2);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -263,6 +281,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.is_admin', 'true']);
 
@@ -272,6 +291,7 @@ describe('Row Level Security (RLS)', () => {
         expect(result.rows.length).toBe(1);
         expect(result.rows[0].user_id).toBe(testUser2Id);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -284,12 +304,14 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query('SELECT current_user_id() as user_id');
 
         expect(result.rows[0].user_id).toBe(testUser1Id);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -300,12 +322,14 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.is_admin', 'true']);
 
-        const result = await client.query('SELECT current_user_is_admin() as is_admin');
+        const result = await client.query('SELECT current_user_id() as user_id, current_user_is_admin() as is_admin');
 
         expect(result.rows[0].is_admin).toBe(true);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -316,12 +340,14 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.bypass_rls', 'true']);
 
         const result = await client.query('SELECT bypass_rls_enabled() as bypass_enabled');
 
         expect(result.rows[0].bypass_enabled).toBe(true);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -334,6 +360,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -348,6 +375,7 @@ describe('Row Level Security (RLS)', () => {
         const insertedId = result.rows[0].id;
         await client.query('DELETE FROM documents WHERE id = $1', [insertedId]);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -358,6 +386,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -367,6 +396,7 @@ describe('Row Level Security (RLS)', () => {
 
         expect(result.rows.length).toBe(1);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -377,6 +407,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -387,6 +418,7 @@ describe('Row Level Security (RLS)', () => {
         // RLS should prevent update
         expect(result.rows.length).toBe(0);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -397,6 +429,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         // Create a document to delete
@@ -414,6 +447,7 @@ describe('Row Level Security (RLS)', () => {
 
         expect(deleteResult.rows.length).toBe(1);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();
@@ -424,6 +458,7 @@ describe('Row Level Security (RLS)', () => {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query('SET LOCAL ROLE app_user');
         await client.query('SELECT set_config($1, $2, TRUE)', ['app.user_id', testUser1Id.toString()]);
 
         const result = await client.query(
@@ -434,6 +469,7 @@ describe('Row Level Security (RLS)', () => {
         // RLS should prevent delete
         expect(result.rows.length).toBe(0);
 
+        await client.query('RESET ROLE');
         await client.query('COMMIT');
       } finally {
         client.release();

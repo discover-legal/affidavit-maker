@@ -14,6 +14,8 @@ import TermsOfServicePage from './components/TermsOfServicePage';
 import ResourcesPage from './components/ResourcesPage';
 import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
+import QuickExit from './components/QuickExit';
+import DocumentIngestion from './components/DocumentIngestion';
 import { trackPageView } from './utils/analytics';
 
 // Environment configuration
@@ -25,19 +27,20 @@ const AUTH0_CONFIG = {
     audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     scope: "openid profile email"
   },
-  cacheLocation: 'localstorage',
+  // SECURITY: Use in-memory cache to prevent token theft via XSS.
+  // useRefreshTokens handles silent re-authentication across page reloads.
+  cacheLocation: 'memory',
   useRefreshTokens: true,
   useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
   useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
   authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
   onRedirectCallback: (appState) => {
-    // After Auth0 redirects back, navigate to the page the user was on
-    // or default to the dashboard
-    window.history.replaceState(
-      {},
-      document.title,
-      appState?.returnTo || '/dashboard'
-    );
+    // SECURITY: Only allow relative paths starting with / (not //) to prevent open redirects
+    const returnTo = appState?.returnTo;
+    const safePath = (typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//'))
+      ? returnTo
+      : '/dashboard';
+    window.history.replaceState({}, document.title, safePath);
   }
 };
 
@@ -61,13 +64,11 @@ const AppRoutes = () => {
   // documentType: 'affidavit' (default) or 'divorce_package'
   // caseType: 'family' (default) or 'civil'
   const handleNewDocument = (documentType = 'affidavit', caseType = 'family') => {
-    console.log('🚀 Navigating to new document:', documentType, caseType);
     navigate(`/editor/new?type=${documentType}&caseType=${caseType}`);
   };
 
   // ✅ Open existing document
   const handleContinueDocument = (document) => {
-    console.log('📂 Navigating to document:', document.id);
     navigate(`/editor/${document.id}`);
   };
 
@@ -150,6 +151,15 @@ const AppRoutes = () => {
         }
       />
 
+      <Route
+        path="/ingest"
+        element={
+          <TOSGuard>
+            <DocumentIngestion />
+          </TOSGuard>
+        }
+      />
+
       {/* Payment success redirect (Stripe return_url for 3D Secure flows) */}
       <Route
         path="/payment-success"
@@ -182,6 +192,7 @@ const App = () => {
             <DocumentProvider>
               <Router>
                 <AppRoutes />
+                <QuickExit />
               </Router>
             </DocumentProvider>
           </TOSProvider>

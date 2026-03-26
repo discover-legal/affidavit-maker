@@ -27,7 +27,7 @@ PHASE ADVANCEMENT:
 `;
 
 // ─── INTAKE ───────────────────────────────────────────────────────────────────
-const INTAKE = `You are a legal document assistant helping with a child support matter.
+const INTAKE = `You are a document preparation assistant helping with a child support matter.
 
 COLLECT:
 1. Your full legal name — you are the Petitioner
@@ -56,7 +56,7 @@ OPENING (first message): "I'm here to help you prepare your child support docume
 ${SHARED_RULES}`;
 
 // ─── EXISTING ORDER & CIRCUMSTANCES (modification or enforcement only) ─────────
-const SUPPORT_CHANGES = `You are a legal document assistant helping with a child support matter.
+const SUPPORT_CHANGES = `You are a document preparation assistant helping with a child support matter.
 The user is here to modify or enforce a child support order. Base your questions on whether is_modification or is_enforcement was set during INTAKE.
 
 COLLECT:
@@ -92,7 +92,7 @@ REQUIRED FIELDS: existing_order_amount, existing_order_date, existing_order_cour
 ${SHARED_RULES}`;
 
 // ─── CHILDREN ────────────────────────────────────────────────────────────────
-const CHILDREN = `You are a legal document assistant helping with a child support matter.
+const CHILDREN = `You are a document preparation assistant helping with a child support matter.
 
 COLLECT for EACH child:
 1. Full legal name
@@ -117,7 +117,7 @@ REQUIRED FIELDS: children array
 ${SHARED_RULES}`;
 
 // ─── FINANCES ────────────────────────────────────────────────────────────────
-const FINANCES = `You are a legal document assistant helping with a child support matter.
+const FINANCES = `You are a document preparation assistant helping with a child support matter.
 Child support is calculated using both parents' incomes. Collect financial information carefully.
 
 FOR INITIAL FILINGS AND MODIFICATIONS:
@@ -144,7 +144,7 @@ REQUIRED FIELDS: petitioner_monthly_income
 ${SHARED_RULES}`;
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
-const HISTORY = `You are a legal document assistant helping with a child support matter.
+const HISTORY = `You are a document preparation assistant helping with a child support matter.
 
 FOR INITIAL FILINGS:
 1. Has the other parent been providing any financial support voluntarily?
@@ -170,7 +170,7 @@ REQUIRED FIELDS: payment_history_documented — set true when section complete
 ${SHARED_RULES}`;
 
 // ─── REVIEW ──────────────────────────────────────────────────────────────────
-const REVIEW = `You are a legal document assistant helping with a child support matter.
+const REVIEW = `You are a document preparation assistant helping with a child support matter.
 Final review before generating documents.
 
 1. Summarize based on case type:

@@ -25,7 +25,23 @@ const A4_JURISDICTIONS = new Set([
   'IN_RJ', 'IN_KL', 'IN_PB', 'IN_HR', 'IN_MP', 'IN_BR', 'IN_OD', 'IN_AP',
 ]);
 
+/**
+ * PDF and Word document generation service for legal documents.
+ *
+ * Generates affidavits, divorce petitions, and divorce decrees using a
+ * two-pass PDF rendering approach (pass 1 counts pages, pass 2 adds
+ * footers with accurate page numbers). Also supports Word (.docx) export.
+ *
+ * Thread-safe: all mutable render state is held in a per-call
+ * `renderContext` object rather than on `this`, so concurrent calls to
+ * `generatePDF` do not interfere with each other.
+ */
 class PDFService {
+  /**
+   * @param {object} [options]
+   * @param {object} [options.templateManager] - StateTemplateManager instance
+   *   used to look up jurisdiction-specific exhibit rules. May be null.
+   */
   constructor(options = {}) {
     this.templateManager = options.templateManager || null;
     this.defaultOptions = {
@@ -45,22 +61,38 @@ class PDFService {
       bufferPages: true
     };
 
-    // Footer configuration
+    // Footer configuration (immutable)
     this.FOOTER_FONT_SIZE = 10;
     this.FOOTER_HEIGHT = 15;
     this.FOOTER_BOTTOM_MARGIN = 36;
     this.MIN_CONTENT_FOOTER_GAP = 10; // Reduced from 20 to allow more content per page
+  }
 
-    // CRITICAL: Set effective page height to reserve space for footer
-    // This is the maximum Y coordinate before page break (not the available height)
-    // Available space = EFFECTIVE_PAGE_HEIGHT - doc.y (where doc.y starts at 72)
-    // Formula: 792 (page height) - footer reserves = max Y coordinate
-    this.EFFECTIVE_PAGE_HEIGHT = 792 - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
+  /**
+   * Create a fresh render context that holds all mutable state for a single
+   * PDF generation call. Passed through every render method so that
+   * concurrent `generatePDF` calls do not share state.
+   *
+   * @param {number} pageHeight - Total page height in points (792 for Letter, 841.89 for A4).
+   * @returns {{ currentPage: number, totalPages: number, shouldAddFooters: boolean, addingFooter: boolean, EFFECTIVE_PAGE_HEIGHT: number }}
+   */
+  _createRenderContext(pageHeight) {
+    return {
+      currentPage: 1,
+      totalPages: 0,
+      shouldAddFooters: false,
+      addingFooter: false,
+      // Maximum Y coordinate before a page break is needed.
+      // Formula: pageHeight - footer reserves = max Y coordinate
+      EFFECTIVE_PAGE_HEIGHT: pageHeight - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP,
+    };
   }
 
   /**
    * Detect document type from sections shape.
-   * Returns 'petition', 'decree', or 'affidavit' (default).
+   *
+   * @param {object} document - The document object with `sections`, `documentType`, and/or `metadata`.
+   * @returns {'petition'|'decree'|'affidavit'} The detected document type.
    */
   detectDocumentType(document) {
     const { sections, documentType } = document;
@@ -83,6 +115,10 @@ class PDFService {
    * Get PDFKit options based on jurisdiction (Letter vs A4).
    */
   getPageOptions(document) {
+    // Check metadata paperSize first (set by jurisdiction templates)
+    if (document.metadata?.paperSize === 'A4') {
+      return { ...this.a4Options };
+    }
     const state = document.state || document.metadata?.state || 'TX';
     if (A4_JURISDICTIONS.has(state)) {
       return { ...this.a4Options };
@@ -90,6 +126,19 @@ class PDFService {
     return { ...this.defaultOptions };
   }
 
+  /**
+   * Generate a PDF file for the given document.
+   *
+   * Uses a two-pass approach: pass 1 renders to a throwaway PDFDocument to
+   * count total pages; pass 2 renders again with accurate footer page numbers.
+   * An optional pass 3 appends exhibit attachments for affidavits.
+   *
+   * @param {object} document - Document data including `sections`, `state`, `metadata`, etc.
+   * @param {object} [options]
+   * @param {string|number} [options.documentId] - Used in the output filename.
+   * @param {string|number} [options.userId] - Owner user ID (needed for exhibit attachment).
+   * @returns {Promise<{ filepath: string, filename: string, pages: number, documentType: string, success: boolean }>}
+   */
   async generatePDF(document, options = {}) {
     const { documentId, userId } = options;
 
@@ -103,28 +152,31 @@ class PDFService {
       const filepath = path.join(documentsDir, filename);
       const pageOptions = this.getPageOptions(document);
 
-      // Update effective page height for A4 if needed
+      // Compute effective page height for this document's paper size
       const pageHeight = pageOptions.size === 'A4' ? 841.89 : 792;
-      this.EFFECTIVE_PAGE_HEIGHT = pageHeight - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
 
       // Generate base PDF
       const result = await new Promise((resolve, reject) => {
+        // Create a render context for pass 1 (no footers)
+        const ctx1 = this._createRenderContext(pageHeight);
+
         // PASS 1: Count total pages by rendering to a dummy document
         const dummyDoc = new PDFDocument(pageOptions);
         dummyDoc.pipe(require('stream').PassThrough()); // Pipe to nowhere
-        this.buildPDF(dummyDoc, document, false); // false = no footers
+        this.buildPDF(dummyDoc, document, false, ctx1);
         const totalPages = dummyDoc.bufferedPageRange().count;
         dummyDoc.end();
+
+        // Create a render context for pass 2 (with footers)
+        const ctx2 = this._createRenderContext(pageHeight);
+        ctx2.totalPages = totalPages;
 
         // PASS 2: Render actual PDF with footers
         const doc = new PDFDocument(pageOptions);
         const stream = doc.pipe(require('fs').createWriteStream(filepath));
 
-        // Set up page numbering for pass 2
-        this.totalPages = totalPages;
-
         try {
-          this.buildPDF(doc, document, true); // true = add footers
+          this.buildPDF(doc, document, true, ctx2);
           doc.end();
 
           stream.on('finish', () => {
@@ -172,7 +224,11 @@ class PDFService {
 
   /**
    * Generate Word (.docx) document from the same document data.
-   * Returns { filepath, filename, documentType, success }.
+   *
+   * @param {object} document - Document data including `sections`, `state`, `metadata`, etc.
+   * @param {object} [options]
+   * @param {string|number} [options.documentId] - Used in the output filename.
+   * @returns {Promise<{ filepath: string, filename: string, documentType: string, success: boolean }>}
    */
   async generateWordDoc(document, options = {}) {
     const { documentId } = options;
@@ -199,7 +255,7 @@ class PDFService {
         sections: [{
           properties: {
             page: {
-              size: A4_JURISDICTIONS.has(document.state || document.metadata?.state || 'TX')
+              size: (document.metadata?.paperSize === 'A4' || A4_JURISDICTIONS.has(document.state || document.metadata?.state || 'TX'))
                 ? { width: 11906, height: 16838 } // A4 in twips
                 : { width: 12240, height: 15840 }, // Letter in twips
               margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } // 1 inch = 1440 twips
@@ -220,24 +276,37 @@ class PDFService {
     }
   }
 
-  addPageWithFooter(doc) {
+  /**
+   * Add a new page and increment page counter in the render context.
+   * Adds footer to the current page before breaking.
+   *
+   * @param {object} doc - PDFKit document instance.
+   * @param {object} ctx - Mutable render context.
+   */
+  addPageWithFooter(doc, ctx) {
     // Add footer to current page before creating new page
-    if (this.shouldAddFooters && !this.addingFooter) {
-      this.addFooter(doc);
+    if (ctx.shouldAddFooters && !ctx.addingFooter) {
+      this.addFooter(doc, ctx);
     }
 
     // Add new page
     doc.addPage();
 
     // Increment page counter
-    if (this.shouldAddFooters) {
-      this.currentPage++;
+    if (ctx.shouldAddFooters) {
+      ctx.currentPage++;
     }
   }
 
-  addFooter(doc) {
+  /**
+   * Render the footer on the current page.
+   *
+   * @param {object} doc - PDFKit document instance.
+   * @param {object} ctx - Mutable render context.
+   */
+  addFooter(doc, ctx) {
     // Prevent recursive footer addition
-    this.addingFooter = true;
+    ctx.addingFooter = true;
 
     const pageHeight = doc.page.height;
     const footerY = pageHeight - this.FOOTER_BOTTOM_MARGIN;
@@ -250,10 +319,10 @@ class PDFService {
 
     // CRITICAL: Move cursor to a safe position to prevent page break
     // Set Y to a position well within the page margins
-    doc.y = Math.min(savedY, this.EFFECTIVE_PAGE_HEIGHT - 50);
+    doc.y = Math.min(savedY, ctx.EFFECTIVE_PAGE_HEIGHT - 50);
 
     // Use direct PDF text positioning to place footer outside normal flow
-    const footerText = `Page ${this.currentPage} of ${this.totalPages} • Created with Discover.Legal`;
+    const footerText = `Page ${ctx.currentPage} of ${ctx.totalPages} • Generated with AI assistance via Discover.Legal • Not legal advice — have an attorney review before filing`;
     const textWidth = doc.widthOfString(footerText, { fontSize: this.FOOTER_FONT_SIZE });
     const centerX = (doc.page.width - textWidth) / 2;
 
@@ -273,42 +342,50 @@ class PDFService {
     if (savedFont) doc.font(savedFont.name || 'Times-Roman');
     if (savedFontSize) doc.fontSize(savedFontSize);
 
-    this.addingFooter = false;
+    ctx.addingFooter = false;
   }
 
-  buildPDF(doc, document, addFooters = false) {
+  /**
+   * Dispatch to the correct PDF builder based on document type.
+   *
+   * @param {object} doc - PDFKit document instance.
+   * @param {object} document - The document data.
+   * @param {boolean} addFooters - Whether to render footers (pass 2 only).
+   * @param {object} ctx - Mutable render context.
+   */
+  buildPDF(doc, document, addFooters, ctx) {
     const { sections } = document;
 
-    // Track current page for footer rendering
-    this.shouldAddFooters = addFooters;
+    // Configure footer rendering in context
+    ctx.shouldAddFooters = addFooters;
     if (addFooters) {
-      this.currentPage = 1;
-      this.addingFooter = false;
+      ctx.currentPage = 1;
+      ctx.addingFooter = false;
     }
 
     const docType = this.detectDocumentType(document);
 
     switch (docType) {
       case 'petition':
-        this.buildPetitionPDF(doc, sections);
+        this.buildPetitionPDF(doc, sections, ctx);
         break;
       case 'decree':
-        this.buildDecreePDF(doc, sections);
+        this.buildDecreePDF(doc, sections, ctx);
         break;
       default:
-        this.buildAffidavitPDF(doc, sections);
+        this.buildAffidavitPDF(doc, sections, ctx);
         break;
     }
 
     // Add footer to the last page
-    if (this.shouldAddFooters && !this.addingFooter) {
-      this.addFooter(doc);
+    if (ctx.shouldAddFooters && !ctx.addingFooter) {
+      this.addFooter(doc, ctx);
     }
   }
 
   // ─── AFFIDAVIT PDF BUILDER (original) ──────────────────────────────────────
 
-  buildAffidavitPDF(doc, sections) {
+  buildAffidavitPDF(doc, sections, ctx) {
     // Header
     if (sections.header) {
       doc.fontSize(16).font('Times-Bold');
@@ -318,7 +395,7 @@ class PDFService {
 
     // Venue
     if (sections.venue) {
-      this.checkPageBreak(doc);
+      this.checkPageBreak(doc, ctx);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.venue, { align: 'center' });
       doc.moveDown(1.5);
@@ -326,7 +403,7 @@ class PDFService {
 
     // Case Caption
     if (sections.caseCaption) {
-      this.checkPageBreak(doc, 120);
+      this.checkPageBreak(doc, ctx, 120);
       doc.fontSize(12).font('Times-Roman');
       doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
       doc.moveDown(1.5);
@@ -341,7 +418,7 @@ class PDFService {
 
     // Title
     if (sections.title) {
-      this.checkPageBreak(doc);
+      this.checkPageBreak(doc, ctx);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.title, { align: 'center' });
 
@@ -355,7 +432,7 @@ class PDFService {
 
     // Introduction
     if (sections.introduction) {
-      this.checkPageBreak(doc);
+      this.checkPageBreak(doc, ctx);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.introduction, {
         align: 'justify',
@@ -387,23 +464,23 @@ class PDFService {
           }
           spaceForEverything += notarySpace;
 
-          const availableSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
+          const availableSpace = ctx.EFFECTIVE_PAGE_HEIGHT - doc.y;
 
           if (availableSpace >= spaceForEverything) {
-            this.checkPageBreak(doc, estimatedHeight);
+            this.checkPageBreak(doc, ctx, estimatedHeight);
           }
           else if (renderedFactCount > 0) {
             doc.moveDown(1.5);
             doc.fontSize(11).font('Times-Italic');
             doc.text('(Continued on next page)', { align: 'center' });
             doc.font('Times-Roman').fontSize(12);
-            this.addPageWithFooter(doc);
+            this.addPageWithFooter(doc, ctx);
           }
           else {
-            this.checkPageBreak(doc, estimatedHeight);
+            this.checkPageBreak(doc, ctx, estimatedHeight);
           }
         } else {
-          this.checkPageBreak(doc, estimatedHeight);
+          this.checkPageBreak(doc, ctx, estimatedHeight);
         }
 
         this.renderNumberedParagraph(doc, fact.number, fact.content);
@@ -414,7 +491,7 @@ class PDFService {
 
     // Conclusion
     if (sections.conclusion) {
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.conclusion, { align: 'justify', indent: 36, lineGap: 6 });
       doc.moveDown(1.5);
@@ -422,7 +499,7 @@ class PDFService {
 
     // Perjury Statement
     if (sections.perjuryStatement) {
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.moveDown(1.5);
       doc.fontSize(12).font('Times-Roman');
       doc.text(sections.perjuryStatement, { align: 'justify', indent: 36, lineGap: 6 });
@@ -431,18 +508,18 @@ class PDFService {
 
     // Signature Block
     if (sections.signatureBlock) {
-      this.renderAffiantSignature(doc, sections.signatureBlock);
+      this.renderAffiantSignature(doc, sections.signatureBlock, ctx);
     }
 
     // Notary Instruction + Block
-    this.renderNotarySection(doc, sections);
+    this.renderNotarySection(doc, sections, ctx);
   }
 
   // ─── PETITION PDF BUILDER ──────────────────────────────────────────────────
 
-  buildPetitionPDF(doc, sections) {
+  buildPetitionPDF(doc, sections, ctx) {
     // Header + Venue + Caption + Title (shared with affidavit)
-    this.renderDocumentHeader(doc, sections);
+    this.renderDocumentHeader(doc, sections, ctx);
 
     // Numbered-paragraph sections (I. PARTIES, II. JURISDICTION, III. MARRIAGE, etc.)
     const numberedSections = [
@@ -453,7 +530,7 @@ class PDFService {
       const section = sections[key];
       if (!section || !section.title) continue;
 
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.fontSize(13).font('Times-Bold');
       doc.text(section.title, { align: 'center' });
       doc.moveDown(0.8);
@@ -461,7 +538,7 @@ class PDFService {
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach(item => {
           const estimatedHeight = this.estimateTextHeight(doc, item.content, 12) + 20;
-          this.checkPageBreak(doc, estimatedHeight);
+          this.checkPageBreak(doc, ctx, estimatedHeight);
 
           if (item.number) {
             this.renderNumberedParagraph(doc, item.number, item.content);
@@ -477,14 +554,14 @@ class PDFService {
 
     // VII. PRAYER FOR RELIEF (letter-style items)
     if (sections.reliefRequested) {
-      this.checkPageBreak(doc, 80);
+      this.checkPageBreak(doc, ctx, 80);
       doc.fontSize(13).font('Times-Bold');
       doc.text(sections.reliefRequested.title || 'PRAYER FOR RELIEF', { align: 'center' });
       doc.moveDown(0.8);
 
       if (sections.reliefRequested.items) {
         sections.reliefRequested.items.forEach(item => {
-          this.checkPageBreak(doc, 30);
+          this.checkPageBreak(doc, ctx, 30);
           doc.fontSize(12).font('Times-Roman');
 
           if (item.type === 'relief_intro') {
@@ -513,7 +590,7 @@ class PDFService {
 
     // VERIFICATION section
     if (sections.verification) {
-      this.checkPageBreak(doc, 80);
+      this.checkPageBreak(doc, ctx, 80);
       doc.fontSize(13).font('Times-Bold');
       doc.text(sections.verification.title || 'VERIFICATION', { align: 'center' });
       doc.moveDown(0.8);
@@ -525,15 +602,15 @@ class PDFService {
 
     // Signature Block (petitioner)
     if (sections.signatureBlock) {
-      this.renderAffiantSignature(doc, sections.signatureBlock);
+      this.renderAffiantSignature(doc, sections.signatureBlock, ctx);
     }
   }
 
   // ─── DECREE PDF BUILDER ────────────────────────────────────────────────────
 
-  buildDecreePDF(doc, sections) {
+  buildDecreePDF(doc, sections, ctx) {
     // Header + Venue + Caption + Title (shared)
-    this.renderDocumentHeader(doc, sections);
+    this.renderDocumentHeader(doc, sections, ctx);
 
     // Text sections (appearances, jurisdiction, dissolution)
     const textSections = ['appearances', 'jurisdiction', 'dissolution'];
@@ -541,7 +618,7 @@ class PDFService {
       const section = sections[key];
       if (!section || !section.title) continue;
 
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.fontSize(13).font('Times-Bold');
       doc.text(section.title, { align: 'center' });
       doc.moveDown(0.8);
@@ -560,7 +637,7 @@ class PDFService {
       const section = sections[key];
       if (!section || !section.title) continue;
 
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.fontSize(13).font('Times-Bold');
       doc.text(section.title, { align: 'center' });
       doc.moveDown(0.8);
@@ -575,7 +652,7 @@ class PDFService {
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach(item => {
           const estimatedHeight = this.estimateTextHeight(doc, item.content, 12) + 15;
-          this.checkPageBreak(doc, estimatedHeight);
+          this.checkPageBreak(doc, ctx, estimatedHeight);
 
           doc.fontSize(12).font('Times-Roman');
           if (item.type === 'order') {
@@ -591,7 +668,7 @@ class PDFService {
 
     // Name Change (text section, may be null)
     if (sections.nameChange && sections.nameChange.title) {
-      this.checkPageBreak(doc, 60);
+      this.checkPageBreak(doc, ctx, 60);
       doc.fontSize(13).font('Times-Bold');
       doc.text(sections.nameChange.title, { align: 'center' });
       doc.moveDown(0.8);
@@ -603,7 +680,7 @@ class PDFService {
 
     // Judgment Block (judge signature)
     if (sections.judgmentBlock) {
-      this.checkPageBreak(doc, 120);
+      this.checkPageBreak(doc, ctx, 120);
       doc.moveDown(2);
       doc.fontSize(12).font('Times-Roman');
       const judgmentText = sections.judgmentBlock.text || '';
@@ -616,7 +693,7 @@ class PDFService {
 
     // Party Signatures (agreed decrees)
     if (sections.signatureBlock && sections.signatureBlock.type === 'party_signatures') {
-      this.checkPageBreak(doc, 150);
+      this.checkPageBreak(doc, ctx, 150);
       doc.moveDown(1);
       doc.fontSize(12).font('Times-Bold');
       doc.text(sections.signatureBlock.title || 'APPROVED AS TO FORM AND SUBSTANCE:', { align: 'left' });
@@ -624,7 +701,7 @@ class PDFService {
 
       if (sections.signatureBlock.blocks) {
         sections.signatureBlock.blocks.forEach(block => {
-          this.checkPageBreak(doc, 80);
+          this.checkPageBreak(doc, ctx, 80);
           doc.font('Times-Roman');
           doc.text(block.line || '_'.repeat(40));
           doc.moveDown(0.3);
@@ -637,7 +714,7 @@ class PDFService {
     }
     // Fallback: regular signature block (same as affidavit)
     else if (sections.signatureBlock && sections.signatureBlock.line) {
-      this.renderAffiantSignature(doc, sections.signatureBlock);
+      this.renderAffiantSignature(doc, sections.signatureBlock, ctx);
     }
   }
 
@@ -646,7 +723,7 @@ class PDFService {
   /**
    * Render common document header: header, venue, caption, title.
    */
-  renderDocumentHeader(doc, sections) {
+  renderDocumentHeader(doc, sections, ctx) {
     if (sections.header) {
       doc.fontSize(16).font('Times-Bold');
       doc.text(sections.header, { align: 'center' });
@@ -654,14 +731,14 @@ class PDFService {
     }
 
     if (sections.venue) {
-      this.checkPageBreak(doc);
+      this.checkPageBreak(doc, ctx);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.venue, { align: 'center' });
       doc.moveDown(1.5);
     }
 
     if (sections.caseCaption) {
-      this.checkPageBreak(doc, 120);
+      this.checkPageBreak(doc, ctx, 120);
       doc.fontSize(12).font('Times-Roman');
       doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
       doc.moveDown(1.5);
@@ -674,7 +751,7 @@ class PDFService {
     }
 
     if (sections.title) {
-      this.checkPageBreak(doc);
+      this.checkPageBreak(doc, ctx);
       doc.fontSize(14).font('Times-Bold');
       doc.text(sections.title, { align: 'center' });
 
@@ -709,8 +786,8 @@ class PDFService {
   /**
    * Render affiant/petitioner signature block.
    */
-  renderAffiantSignature(doc, sigBlock) {
-    this.checkPageBreak(doc, 100);
+  renderAffiantSignature(doc, sigBlock, ctx) {
+    this.checkPageBreak(doc, ctx, 100);
     doc.moveDown(1.5);
     doc.fontSize(12).font('Times-Roman');
 
@@ -730,17 +807,17 @@ class PDFService {
   /**
    * Render notary instruction + notary block (affidavits only).
    */
-  renderNotarySection(doc, sections) {
+  renderNotarySection(doc, sections, ctx) {
     if (sections.notaryInstruction && sections.notaryBlock) {
       const instructionHeight = this.estimateTextHeight(doc, sections.notaryInstruction, 10) + 30;
       const notaryHeight = 155;
       const totalHeight = instructionHeight + notaryHeight + 30;
-      this.checkPageBreak(doc, totalHeight);
+      this.checkPageBreak(doc, ctx, totalHeight);
     }
 
     if (sections.notaryInstruction) {
       if (!sections.notaryBlock) {
-        this.checkPageBreak(doc, 150);
+        this.checkPageBreak(doc, ctx, 150);
       }
 
       doc.fontSize(10).font('Times-Bold');
@@ -773,16 +850,16 @@ class PDFService {
       doc.moveDown(1.5);
 
       if (sections.notaryBlock) {
-        const remainingSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
+        const remainingSpace = ctx.EFFECTIVE_PAGE_HEIGHT - doc.y;
         if (remainingSpace < 155) {
-          this.addPageWithFooter(doc);
+          this.addPageWithFooter(doc, ctx);
         }
       }
     }
 
     if (sections.notaryBlock) {
       if (!sections.notaryInstruction) {
-        this.checkPageBreak(doc, 155);
+        this.checkPageBreak(doc, ctx, 155);
         doc.moveDown(1.5);
       }
 
@@ -812,11 +889,18 @@ class PDFService {
     }
   }
 
-  checkPageBreak(doc, neededSpace = 60) {
-    const availableSpace = this.EFFECTIVE_PAGE_HEIGHT - doc.y;
+  /**
+   * Check if a page break is needed and add one if so.
+   *
+   * @param {object} doc - PDFKit document instance.
+   * @param {object} ctx - Mutable render context.
+   * @param {number} [neededSpace=60] - Space in points required for the next element.
+   */
+  checkPageBreak(doc, ctx, neededSpace = 60) {
+    const availableSpace = ctx.EFFECTIVE_PAGE_HEIGHT - doc.y;
 
     if (neededSpace > availableSpace) {
-      this.addPageWithFooter(doc);
+      this.addPageWithFooter(doc, ctx);
     }
   }
 
@@ -923,13 +1007,19 @@ class PDFService {
   }
 
   /**
-   * Generate exhibit cover page using PDFKit
+   * Generate exhibit cover page using PDFKit.
+   *
+   * @param {string} exhibitLabel - The exhibit letter/number (e.g. "A").
+   * @param {string} description - Optional description text.
+   * @param {boolean} requireCoverPage - Whether a cover page is needed.
+   * @param {object} [pageOptions] - PDFKit page options (size, margins, etc.).
+   *   Defaults to `this.defaultOptions` (US Letter) when not provided.
    */
-  generateExhibitCoverPage(exhibitLabel, description, requireCoverPage) {
+  generateExhibitCoverPage(exhibitLabel, description, requireCoverPage, pageOptions) {
     if (!requireCoverPage) return null;
 
     return new Promise((resolve) => {
-      const doc = new PDFDocument(this.defaultOptions);
+      const doc = new PDFDocument(pageOptions || this.defaultOptions);
       const chunks = [];
 
       doc.on('data', chunk => chunks.push(chunk));
@@ -1001,6 +1091,11 @@ class PDFService {
         }
       }
 
+      // Determine page options for exhibit cover pages (A4 vs Letter)
+      const coverPageOptions = A4_JURISDICTIONS.has(state)
+        ? { ...this.a4Options }
+        : { ...this.defaultOptions };
+
       logger.info('Appending exhibits to PDF', { count: evidenceItems.length });
 
       // Load the main PDF
@@ -1043,7 +1138,8 @@ class PDFService {
             const coverPageBuffer = await this.generateExhibitCoverPage(
               exhibitLabel,
               description,
-              exhibitRules.requireCoverPage
+              exhibitRules.requireCoverPage,
+              coverPageOptions
             );
 
             if (coverPageBuffer) {

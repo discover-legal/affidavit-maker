@@ -47,7 +47,7 @@ const LandingPage = ({ onGetStarted }) => {
       copy: {
         hero: {
           subtitle: 'AI-powered document preparation with state-specific templates.',
-          description: 'Professional affidavits with legal compliance built-in.'
+          description: 'Professional affidavits with state-specific formatting built-in.'
         },
         features: {
           compliance: 'State-Compliant Templates',
@@ -74,7 +74,7 @@ const LandingPage = ({ onGetStarted }) => {
       copy: {
         hero: {
           subtitle: 'AI-powered document preparation with province-specific templates.',
-          description: 'Professional affidavits with legal compliance built-in.'
+          description: 'Professional affidavits with state-specific formatting built-in.'
         },
         features: {
           compliance: 'Province-Compliant Templates',
@@ -99,8 +99,8 @@ const LandingPage = ({ onGetStarted }) => {
     : 'Create Legal Affidavits Online | AI-Powered Affidavit Generator | discover.legal';
 
   const pageDescription = country === 'CA'
-    ? 'Generate professional, court-ready affidavits in minutes with AI assistance. Province-compliant templates for all Canadian provinces. Fast, accurate, and affordable legal document creation.'
-    : 'Generate professional, court-ready affidavits in minutes with AI assistance. State-compliant templates for Texas, Utah, Arizona, and more. Fast, accurate, and affordable legal document creation.';
+    ? 'Generate professional, professionally formatted affidavits in minutes with AI assistance. Province-compliant templates for all Canadian provinces. Fast, accurate, and affordable legal document creation.'
+    : 'Generate professional, professionally formatted affidavits in minutes with AI assistance. State-compliant templates for Texas, Utah, Arizona, and more. Fast, accurate, and affordable legal document creation.';
 
   const pageUrl = 'https://discover.legal/';
 
@@ -117,7 +117,7 @@ const LandingPage = ({ onGetStarted }) => {
           "@type": "ImageObject",
           "url": "https://discover.legal/logo512.png"
         },
-        "description": "AI-powered legal document generation platform specializing in professional affidavits and court-ready legal documents.",
+        "description": "AI-powered legal document generation platform specializing in professional affidavits and professionally formatted legal documents.",
         "sameAs": []
       },
       {
@@ -277,7 +277,7 @@ const LandingPage = ({ onGetStarted }) => {
               </div>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Professional Quality</h3>
               <p className="text-sm sm:text-base text-gray-600">
-                Court-ready documents with proper formatting,
+                Professionally formatted documents with proper structure,
                 notary blocks, and legal language.
               </p>
             </div>
@@ -325,7 +325,7 @@ const LandingPage = ({ onGetStarted }) => {
             Ready to Create Your Affidavit?
           </h2>
           <p className="text-base sm:text-xl text-white mb-6 sm:mb-8">
-            Create legally compliant affidavits in minutes
+            Create properly formatted affidavits in minutes
           </p>
           <button
             onClick={handleGetStarted}
@@ -348,7 +348,10 @@ const LandingPage = ({ onGetStarted }) => {
                 <span className="text-xl font-bold text-white">discover.legal</span>
               </div>
               <p className="text-sm text-gray-400">
-                Professional legal document preparation
+                AI-powered document preparation service
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Discover.Legal is a document preparation service, not a law firm. We do not provide legal advice. Consult a licensed attorney for legal questions.
               </p>
             </div>
 

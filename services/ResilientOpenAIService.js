@@ -1,5 +1,5 @@
 
-// services/ResilientOpenAIService.js 
+// services/ResilientOpenAIService.js
 
 const winston = require('winston');
 
@@ -16,13 +16,34 @@ const logger = winston.createLogger({
   ]
 });
 
+/**
+ * Circuit breaker for protecting external service calls.
+ *
+ * Implements the standard three-state pattern:
+ *
+ *   CLOSED  --[failures >= threshold]--> OPEN
+ *   OPEN    --[resetTimeout elapsed]---> HALF_OPEN
+ *   HALF_OPEN --[success]--------------> CLOSED
+ *   HALF_OPEN --[failure]--------------> OPEN
+ *
+ * While OPEN, calls are immediately rejected (or routed to a fallback)
+ * without contacting the remote service.
+ */
 class CircuitBreaker {
+  /**
+   * @param {object} [options]
+   * @param {number} [options.threshold=5]      - Consecutive failures before the circuit opens.
+   * @param {number} [options.timeout=60000]     - Per-call timeout in ms (wraps the operation in a race).
+   * @param {number} [options.resetTimeout=120000] - How long (ms) the circuit stays OPEN before
+   *   transitioning to HALF_OPEN to probe for recovery.
+   * @param {string} [options.name='CircuitBreaker'] - Human-readable label used in log messages.
+   */
   constructor(options = {}) {
     this.threshold = options.threshold || 5;
     this.timeout = options.timeout || 60000;
     this.resetTimeout = options.resetTimeout || 120000;
     this.name = options.name || 'CircuitBreaker';
-    
+
     this.state = 'CLOSED';
     this.failureCount = 0;
     this.successCount = 0;
@@ -35,10 +56,20 @@ class CircuitBreaker {
       circuitOpens: 0
     };
   }
-  
+
+  /**
+   * Execute an async operation through the circuit breaker.
+   *
+   * @param {Function} operation - Async function to execute (no arguments).
+   * @param {Function|null} [fallback=null] - Optional async fallback invoked when the
+   *   circuit is OPEN or the operation fails.
+   * @returns {Promise<*>} The result of `operation()` or `fallback()`.
+   * @throws {Error} If the circuit is OPEN (and no fallback), or if the operation
+   *   fails and no fallback is provided.
+   */
   async execute(operation, fallback = null) {
     this.metrics.totalCalls++;
-    
+
     if (this.state === 'OPEN') {
       if (Date.now() < this.nextAttempt) {
         logger.warn(`Circuit breaker ${this.name} is OPEN, using fallback`);
@@ -50,7 +81,7 @@ class CircuitBreaker {
       this.state = 'HALF_OPEN';
       logger.info(`Circuit breaker ${this.name} attempting recovery (HALF_OPEN)`);
     }
-    
+
     try {
       const result = await this.executeWithTimeout(operation, this.timeout);
       this.onSuccess();
@@ -64,34 +95,34 @@ class CircuitBreaker {
       throw error;
     }
   }
-  
+
   async executeWithTimeout(operation, timeout) {
     return Promise.race([
       operation(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Operation timeout')), timeout)
       )
     ]);
   }
-  
+
   onSuccess() {
     this.failureCount = 0;
     this.successCount++;
     this.metrics.totalSuccesses++;
-    
+
     if (this.state === 'HALF_OPEN') {
       logger.info(`Circuit breaker ${this.name} recovered (CLOSED)`);
     }
     this.state = 'CLOSED';
   }
-  
+
   onFailure(error) {
     this.failureCount++;
     this.lastFailureTime = Date.now();
     this.metrics.totalFailures++;
-    
+
     logger.error(`Circuit breaker ${this.name} failure #${this.failureCount}:`, error.message);
-    
+
     if (this.failureCount >= this.threshold) {
       this.state = 'OPEN';
       this.nextAttempt = Date.now() + this.resetTimeout;
@@ -99,7 +130,10 @@ class CircuitBreaker {
       logger.error(`Circuit breaker ${this.name} opened after ${this.failureCount} failures`);
     }
   }
-  
+
+  /**
+   * Manually reset the circuit breaker to CLOSED state.
+   */
   reset() {
     this.state = 'CLOSED';
     this.failureCount = 0;
@@ -107,7 +141,12 @@ class CircuitBreaker {
     this.lastFailureTime = null;
     logger.info(`Circuit breaker ${this.name} manually reset`);
   }
-  
+
+  /**
+   * Return current circuit breaker status and metrics.
+   *
+   * @returns {{ name: string, state: string, failureCount: number, successCount: number, lastFailureTime: number|null, metrics: object }}
+   */
   getStatus() {
     return {
       name: this.name,
@@ -120,43 +159,81 @@ class CircuitBreaker {
   }
 }
 
+/**
+ * Retry policy with exponential backoff for transient failures.
+ */
 class RetryPolicy {
+  /**
+   * @param {object} [options]
+   * @param {number} [options.maxRetries=3]         - Maximum number of retry attempts after the initial call.
+   * @param {number} [options.initialDelay=1000]     - Base delay in ms before the first retry.
+   * @param {number} [options.maxDelay=10000]        - Upper bound on the computed delay.
+   * @param {number} [options.backoffMultiplier=2]   - Multiplier applied to the delay on each successive retry.
+   */
   constructor(options = {}) {
     this.maxRetries = options.maxRetries || 3;
     this.initialDelay = options.initialDelay || 1000;
     this.maxDelay = options.maxDelay || 10000;
     this.backoffMultiplier = options.backoffMultiplier || 2;
   }
-  
+
+  /**
+   * Execute an operation with automatic retries on failure.
+   *
+   * @param {Function} operation - Async function to execute.
+   * @returns {Promise<*>} The result of the first successful invocation.
+   * @throws {Error} The error from the last failed attempt if all retries are exhausted.
+   */
   async execute(operation) {
     let lastError;
-    
+
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         if (attempt < this.maxRetries) {
           const delay = Math.min(
             this.initialDelay * Math.pow(this.backoffMultiplier, attempt),
             this.maxDelay
           );
-          
+
           logger.info(`Retry attempt ${attempt + 1}/${this.maxRetries} after ${delay}ms`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
-    
+
     throw lastError;
   }
 }
 
+/**
+ * Resilient wrapper around the OpenAI client that adds circuit breakers,
+ * retries with exponential backoff, and an in-memory response cache.
+ *
+ * Provides `chat()`, `chatStream()`, and `createEmbedding()` methods that
+ * mirror the OpenAI SDK interface while adding production resilience.
+ */
 class ResilientOpenAIService {
+  /**
+   * @param {object} openaiClient - An initialized OpenAI SDK client instance.
+   * @param {object} [options]
+   * @param {number} [options.chatThreshold=5]         - Circuit breaker failure threshold for chat calls.
+   * @param {number} [options.chatTimeout=30000]        - Per-call timeout (ms) for chat completions.
+   * @param {number} [options.embeddingThreshold=10]     - Circuit breaker failure threshold for embedding calls.
+   * @param {number} [options.embeddingTimeout=10000]    - Per-call timeout (ms) for embedding calls.
+   * @param {number} [options.resetTimeout=120000]       - How long (ms) circuit breakers stay OPEN before probing.
+   * @param {number} [options.maxRetries=3]              - Maximum retry attempts for each call.
+   * @param {number} [options.initialRetryDelay=1000]    - Base retry delay (ms).
+   * @param {number} [options.maxRetryDelay=10000]       - Maximum retry delay (ms).
+   * @param {number} [options.cacheMaxSize=100]          - Maximum number of cached responses.
+   * @param {number} [options.cacheTTL=300000]           - Cache entry time-to-live (ms). Default 5 minutes.
+   */
   constructor(openaiClient, options = {}) {
     this.openai = openaiClient;
-    
+
     // Circuit breakers for different operations
     this.circuitBreakers = {
       chat: new CircuitBreaker({
@@ -172,25 +249,25 @@ class ResilientOpenAIService {
         resetTimeout: options.resetTimeout || 60000
       })
     };
-    
+
     // Retry policy
     this.retryPolicy = new RetryPolicy({
       maxRetries: options.maxRetries || 3,
       initialDelay: options.initialRetryDelay || 1000,
       maxDelay: options.maxRetryDelay || 10000
     });
-    
+
     // Cache for successful responses
     this.responseCache = new Map();
     this.cacheMaxSize = options.cacheMaxSize || 100;
     this.cacheTTL = options.cacheTTL || 300000; // 5 minutes
-    
-    // ✅ FIXED: Fallback responses return proper structure
+
+    // Fallback responses return proper structure
     this.fallbackResponses = {
       chat: "I apologize, but I'm temporarily unable to process your request. Please try again in a moment.",
       embedding: null
     };
-    
+
     // Metrics
     this.metrics = {
       totalRequests: 0,
@@ -199,11 +276,11 @@ class ResilientOpenAIService {
       fallbacksUsed: 0
     };
   }
-  
+
   getCacheKey(operation, params) {
     return `${operation}_${JSON.stringify(params)}`;
   }
-  
+
   getFromCache(key) {
     const cached = this.responseCache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
@@ -213,31 +290,37 @@ class ResilientOpenAIService {
     this.metrics.cacheMisses++;
     return null;
   }
-  
+
   setCache(key, data) {
     if (this.responseCache.size >= this.cacheMaxSize) {
       const firstKey = this.responseCache.keys().next().value;
       this.responseCache.delete(firstKey);
     }
-    
+
     this.responseCache.set(key, {
       data,
       timestamp: Date.now()
     });
   }
 
-  
-  // ✅ FIXED: Complete list of valid OpenAI parameters
+
+  /**
+   * Filter an options object down to only valid OpenAI Chat Completion parameters.
+   * Unknown keys are silently dropped (and logged at debug level).
+   *
+   * @param {object} options - Raw options that may include non-OpenAI keys.
+   * @returns {object} A new object containing only valid OpenAI parameters.
+   */
   filterOpenAIOptions(options) {
     // Complete list of valid OpenAI Chat Completion parameters
     const validParams = [
-      'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n', 
+      'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n',
       'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
       'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
     ];
 
 
-    
+
     const filtered = {};
     for (const [key, value] of Object.entries(options)) {
 
@@ -249,14 +332,23 @@ class ResilientOpenAIService {
 
       }
     }
-    
+
     return filtered;
   }
-  
-  // ✅ FIXED: Chat method with proper error handling and streaming support
+
+  /**
+   * Send a chat completion request through the circuit breaker and retry policy.
+   *
+   * Non-streaming responses are cached. If the circuit is open or all retries
+   * fail, a static fallback response is returned.
+   *
+   * @param {Array<{role: string, content: string}>} messages - The conversation messages.
+   * @param {object} [options] - OpenAI chat completion options (model, temperature, max_tokens, etc.).
+   * @returns {Promise<object>} An OpenAI-compatible chat completion response.
+   */
   async chat(messages, options = {}) {
     this.metrics.totalRequests++;
-    
+
     // Check cache first (only for non-streaming)
     if (!options.stream) {
       const cacheKey = this.getCacheKey('chat', { messages, options });
@@ -266,12 +358,12 @@ class ResilientOpenAIService {
         return cached;
       }
     }
-    
-    // ✅ FIXED: Fallback returns proper OpenAI-compatible structure
+
+    // Fallback returns proper OpenAI-compatible structure
     const fallback = async () => {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback response for chat');
-      
+
 
       return {
         choices: [{
@@ -281,17 +373,17 @@ class ResilientOpenAIService {
           },
           finish_reason: 'stop'
         }],
-        usage: { 
-          prompt_tokens: 0, 
-          completion_tokens: 0, 
-          total_tokens: 0 
+        usage: {
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0
         },
         model: options.model || 'gpt-4o-mini',
         object: 'chat.completion'
       };
     };
-    
-    // ✅ FIXED: Operation with proper parameter filtering
+
+    // Operation with proper parameter filtering
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
         // Filter out ALL invalid parameters before sending to OpenAI
@@ -312,7 +404,7 @@ class ResilientOpenAIService {
           tool_choice: options.tool_choice,
           parallel_tool_calls: options.parallel_tool_calls
         });
-        
+
         logger.debug('Sending to OpenAI:', {
           model: cleanOptions.model,
           messageCount: cleanOptions.messages.length,
@@ -320,9 +412,9 @@ class ResilientOpenAIService {
           stream: cleanOptions.stream,
           filteredParams: Object.keys(cleanOptions)
         });
-        
+
         const response = await this.openai.chat.completions.create(cleanOptions);
-        
+
         // Cache successful response (only non-streaming)
         if (!options.stream) {
           this.setCache(this.getCacheKey('chat', { messages, options }), response);
@@ -330,14 +422,24 @@ class ResilientOpenAIService {
         return response;
       });
     };
-    
+
     return await this.circuitBreakers.chat.execute(operation, fallback);
   }
 
-  // ✅ NEW: Streaming method
+  /**
+   * Send a streaming chat completion request.
+   *
+   * Unlike `chat()`, responses are not cached. On failure a synthetic
+   * async-iterable fallback stream is returned so callers can still
+   * iterate without error handling.
+   *
+   * @param {Array<{role: string, content: string}>} messages - The conversation messages.
+   * @param {object} [options] - OpenAI chat completion options (model, temperature, max_tokens, etc.).
+   * @returns {Promise<AsyncIterable>} An async iterable of chat completion chunks.
+   */
   async chatStream(messages, options = {}) {
     this.metrics.totalRequests++;
-    
+
     const operation = async () => {
       const cleanOptions = this.filterOpenAIOptions({
         model: options.model || "gpt-4o-mini",
@@ -354,12 +456,12 @@ class ResilientOpenAIService {
         tool_choice: options.tool_choice,
         parallel_tool_calls: options.parallel_tool_calls
       });
-      
+
       logger.debug('Starting OpenAI stream with params:', Object.keys(cleanOptions));
-      
+
       return await this.openai.chat.completions.create(cleanOptions);
     };
-    
+
     try {
       return await operation();
     } catch (error) {
@@ -368,16 +470,16 @@ class ResilientOpenAIService {
     }
   }
 
-  // ✅ NEW: Create fallback stream when streaming fails
+  // Create fallback stream when streaming fails
   createFallbackStream() {
     const fallbackContent = this.fallbackResponses.chat;
-    
+
     return {
       [Symbol.asyncIterator]: async function* () {
         // Split into sentences for natural streaming
         // Match sentences ending with . ! ? or newlines
         const sentences = fallbackContent.match(/[^.!?\n]+[.!?\n]+/g) || [fallbackContent];
-        
+
         for (const sentence of sentences) {
           yield {
             choices: [{
@@ -389,7 +491,7 @@ class ResilientOpenAIService {
           // Slight delay between sentences for realistic streaming
           await new Promise(resolve => setTimeout(resolve, 150));
         }
-        
+
         // Send finish signal
         yield {
           choices: [{
@@ -400,26 +502,36 @@ class ResilientOpenAIService {
       }
     };
   }
-  
+
+  /**
+   * Create a text embedding through the circuit breaker.
+   *
+   * Results are cached by input text.
+   *
+   * @param {string} input - The text to embed.
+   * @param {object} [options]
+   * @param {string} [options.model='text-embedding-ada-002'] - Embedding model name.
+   * @returns {Promise<object>} An OpenAI-compatible embeddings response.
+   */
   async createEmbedding(input, options = {}) {
     this.metrics.totalRequests++;
-    
+
     const cacheKey = this.getCacheKey('embedding', { input, options });
     const cached = this.getFromCache(cacheKey);
     if (cached) {
       logger.info('Returning cached embedding');
       return cached;
     }
-    
+
     const fallback = async () => {
       this.metrics.fallbacksUsed++;
       logger.warn('Using fallback for embedding');
-      
+
       const hash = input.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const embedding = new Array(1536).fill(0).map((_, i) => 
+      const embedding = new Array(1536).fill(0).map((_, i) =>
         Math.sin(hash * (i + 1)) * 0.1
       );
-      
+
       return {
         data: [{
           embedding,
@@ -428,7 +540,7 @@ class ResilientOpenAIService {
         usage: { prompt_tokens: 0, total_tokens: 0 }
       };
     };
-    
+
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
 
@@ -436,23 +548,32 @@ class ResilientOpenAIService {
           model: options.model || "text-embedding-ada-002",
           input
         };
-        
+
         const response = await this.openai.embeddings.create(cleanOptions);
 
         this.setCache(cacheKey, response);
         return response;
       });
     };
-    
+
     return await this.circuitBreakers.embedding.execute(operation, fallback);
   }
-  
+
+  /**
+   * Convenience method: process a single user message with a system prompt
+   * and conversation history, returning a simplified result object.
+   *
+   * @param {string} message - The user's message text.
+   * @param {Array<{role: string, content: string}>} [conversationHistory=[]] - Prior messages.
+   * @param {object} [context={}] - Additional context (currently unused, reserved for future use).
+   * @returns {Promise<{ success: boolean, response: string, usage?: object, error?: string }>}
+   */
   async processMessage(message, conversationHistory = [], context = {}) {
     try {
       const messages = [
         {
           role: "system",
-          content: "You are a helpful legal assistant specializing in affidavit preparation. Be professional, accurate, and helpful."
+          content: "You are a document preparation assistant that helps format affidavits. You are not a lawyer and do not provide legal advice. If asked for legal advice, recommend consulting a licensed attorney."
         },
         ...conversationHistory,
         {
@@ -460,13 +581,12 @@ class ResilientOpenAIService {
           content: message
         }
       ];
-      
+
       const response = await this.chat(messages, {
         temperature: 0.7,
         max_tokens: 1000
-        // ✅ REMOVED: timeout and other invalid params
       });
-      
+
       return {
         success: true,
         response: response.choices[0].message.content,
@@ -481,7 +601,13 @@ class ResilientOpenAIService {
       };
     }
   }
-  
+
+  /**
+   * Return the current health status of all circuit breakers, cache, and
+   * aggregate metrics.
+   *
+   * @returns {{ circuitBreakers: object, cache: { size: number, maxSize: number, ttl: number }, metrics: object }}
+   */
   getStatus() {
     return {
       circuitBreakers: Object.entries(this.circuitBreakers).reduce((acc, [name, cb]) => {
@@ -496,12 +622,19 @@ class ResilientOpenAIService {
       metrics: this.metrics
     };
   }
-  
+
+  /**
+   * Reset all circuit breakers to CLOSED state. Useful for manual recovery
+   * after a known outage is resolved.
+   */
   resetCircuitBreakers() {
     Object.values(this.circuitBreakers).forEach(cb => cb.reset());
     logger.info('All circuit breakers reset');
   }
-  
+
+  /**
+   * Evict all entries from the response cache.
+   */
   clearCache() {
     this.responseCache.clear();
     logger.info('Response cache cleared');

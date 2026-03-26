@@ -8,7 +8,8 @@
       "Bash(node:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(do sed:*)"
+      "Bash(do sed:*)",
+      "Bash(wc -l /c/Users/hordr/Documents/GitHub/affidavit-maker/routes/*.js /c/Users/hordr/Documents/GitHub/affidavit-maker/middleware/*.js)"
     ]
   },
   "enableAllProjectMcpServers": true,

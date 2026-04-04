@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import TermsOfServiceModal from './TermsOfServiceModal';
 import { useAuthenticatedApi } from '../services/authService';
@@ -19,6 +19,7 @@ const TOSGuard = ({ children }) => {
   const [isCheckingTos, setIsCheckingTos] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [authStartTime] = useState(Date.now());
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
     const checkTosStatus = async () => {
@@ -41,8 +42,24 @@ const TOSGuard = ({ children }) => {
 
       // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
       if (!isAuthenticated) {
+        // Guard: if Auth0 callback is still being processed (code/state in URL),
+        // don't redirect — Auth0Provider hasn't finished exchanging the code yet
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('code') && params.has('state')) {
+          console.log('[TOSGuard] Auth0 callback in progress, waiting...');
+          setLoadingMessage('Completing login...');
+          return;
+        }
+
+        // Guard: prevent multiple simultaneous loginWithRedirect calls
+        if (redirectingRef.current) {
+          console.log('[TOSGuard] Login redirect already in progress, skipping');
+          return;
+        }
+
         console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
         setLoadingMessage('Redirecting to login...');
+        redirectingRef.current = true;
         loginWithRedirect({
           appState: { returnTo: window.location.pathname }
         });

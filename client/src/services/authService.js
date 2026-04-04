@@ -43,8 +43,11 @@ export const useAuthenticatedApi = () => {
         });
 
         if (response.status === 401) {
-          // Token expired or invalid, redirect to login
-          loginWithRedirect();
+          // Token expired or invalid — only redirect if this isn't the first attempt
+          // (first attempt may fail during Auth0 initialization before tokens are ready)
+          if (retryCount > 0) {
+            loginWithRedirect();
+          }
           throw new Error('Authentication required');
         }
 
@@ -55,12 +58,14 @@ export const useAuthenticatedApi = () => {
 
         return await response.json();
       } catch (error) {
-        // Retry once if token retrieval times out or fails on first attempt
+        // Retry once if token retrieval times out, fails, or returns 401 on first attempt
+        // (401 on first attempt can happen during Auth0 initialization)
         if (retryCount === 0 &&
             (error.message === 'Token retrieval timeout' ||
+             error.message === 'Authentication required' ||
              error.error === 'timeout' ||
              error.message?.includes('timeout'))) {
-          console.warn('[authService] Token retrieval failed, retrying...', error.message);
+          console.warn('[authService] Request failed, retrying...', error.message);
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
           return makeRequest(1); // Retry once
         }

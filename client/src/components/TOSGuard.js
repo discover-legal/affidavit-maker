@@ -19,7 +19,7 @@ const TOSGuard = ({ children }) => {
   const [isCheckingTos, setIsCheckingTos] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [authStartTime] = useState(Date.now());
-  const isRedirectingRef = useRef(false);
+  const isRedirecting = useRef(false);
 
   useEffect(() => {
     const checkTosStatus = async () => {
@@ -40,13 +40,13 @@ const TOSGuard = ({ children }) => {
       // The ref guard prevents calling loginWithRedirect multiple times if state
       // updates trigger re-renders before the redirect completes.
       if (!isAuthenticated) {
-        if (isRedirectingRef.current) {
+        if (isRedirecting.current) {
           console.log('[TOSGuard] Already redirecting to login, skipping duplicate');
           return;
         }
         console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
         setLoadingMessage('Redirecting to login...');
-        isRedirectingRef.current = true;
+        isRedirecting.current = true;
         loginWithRedirect({
           appState: { returnTo: window.location.pathname }
         });

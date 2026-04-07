@@ -11,7 +11,7 @@ import { useTOS } from '../contexts/TOSContext';
  * Public routes like the landing page should NOT be wrapped with TOSGuard
  */
 const TOSGuard = ({ children }) => {
-  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, isLoading, user, loginWithRedirect, error: authError } = useAuth0();
   const { makeAuthenticatedRequest } = useAuthenticatedApi();
   const { markTosVerified } = useTOS();
   const [, setTosStatus] = useState(null);
@@ -38,6 +38,14 @@ const TOSGuard = ({ children }) => {
         } else {
           return;
         }
+      }
+
+      // If Auth0 returned an error (e.g. callback failed), don't loop — show it
+      if (authError) {
+        console.error('[TOSGuard] Auth0 error:', authError.message);
+        setLoadingMessage(`Login error: ${authError.message}. Please try refreshing.`);
+        setIsCheckingTos(false);
+        return;
       }
 
       // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
@@ -150,7 +158,7 @@ const TOSGuard = ({ children }) => {
     checkTosStatus();
     // makeAuthenticatedRequest and loginWithRedirect are stable and should not trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading, user?.sub]);
+  }, [isAuthenticated, isLoading, user?.sub, authError]);
 
   const handleAcceptTos = async (tosVersion, researchConsent = false) => {
     try {
@@ -194,6 +202,24 @@ const TOSGuard = ({ children }) => {
     // For now, we'll keep the modal open (they must accept to use the service)
     alert('You must accept the Terms of Service to use Discover.Legal.');
   };
+
+  // Show error state if Auth0 failed (prevents login loop)
+  if (authError && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center max-w-md">
+          <p className="text-red-600 font-medium mb-2">Authentication error</p>
+          <p className="text-gray-600 text-sm mb-4">{authError.message}</p>
+          <button
+            onClick={() => { redirectingRef.current = false; loginWithRedirect(); }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try logging in again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show loading state while checking TOS
   if (isCheckingTos) {

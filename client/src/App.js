@@ -1,6 +1,6 @@
 // client/src/App.js - COMPLETE INTEGRATION
 import React, { useEffect } from 'react';
-import { Auth0Provider } from '@auth0/auth0-react';
+import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { DocumentProvider } from './contexts/DocumentContext';
@@ -62,6 +62,44 @@ const AnalyticsTracker = () => {
   return null;
 };
 
+/**
+ * Root route handler — if Auth0 callback params (code/state) are in the URL,
+ * show a loading spinner and let Auth0Provider process them.
+ * Otherwise redirect straight to /dashboard.
+ */
+const RootRoute = () => {
+  const { isLoading, isAuthenticated, error } = useAuth0();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const hasAuthCallback = params.has('code') && params.has('state');
+
+  // Auth0 callback in progress — wait for it to finish
+  if (hasAuthCallback || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Completing login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center max-w-md">
+          <p className="text-red-600 font-medium mb-2">Login failed</p>
+          <p className="text-gray-600 text-sm mb-4">{error.message}</p>
+          <a href="/dashboard" className="text-blue-600 underline">Try again</a>
+        </div>
+      </div>
+    );
+  }
+
+  return <Navigate to="/dashboard" replace />;
+};
+
 // Main routing component
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -89,10 +127,10 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Root redirects straight to dashboard (landing page lives on Webflow) */}
+        {/* Root handles Auth0 callback, then redirects to dashboard */}
         <Route
           path="/"
-          element={<Navigate to="/dashboard" replace />}
+          element={<RootRoute />}
         />
 
       {/* Public Policy Pages - No auth required */}

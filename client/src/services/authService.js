@@ -70,9 +70,8 @@ export const useAuthenticatedApi = () => {
           return makeRequest(1); // Retry once
         }
 
-        if (error.error === 'login_required') {
-          loginWithRedirect();
-        }
+        // Don't call loginWithRedirect here — let the caller (TOSGuard) handle it.
+        // Calling it here during post-callback initialization causes a login loop.
         throw error;
       }
     };

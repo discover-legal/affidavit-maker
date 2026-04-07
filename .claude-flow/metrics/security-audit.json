@@ -1,9 +1,5 @@
 {
-<<<<<<< Updated upstream
   "timestamp": "2026-03-08T06:56:26.898Z",
-=======
-  "timestamp": "2026-03-02T14:32:58.253Z",
->>>>>>> Stashed changes
   "mode": "local",
   "checks": {
     "envFilesProtected": true,

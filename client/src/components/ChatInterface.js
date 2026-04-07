@@ -188,7 +188,7 @@ Let's start with your legal first name and last name, then which state you're in
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, currentDocument.firstName, generateFactSummary]);
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

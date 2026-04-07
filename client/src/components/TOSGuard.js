@@ -25,22 +25,20 @@ const TOSGuard = ({ children }) => {
     const checkTosStatus = async () => {
       const elapsedTime = Date.now() - authStartTime;
 
-      // Wait for auth to finish loading
+      // NEVER redirect to login while Auth0 SDK is still loading.
+      // The SDK needs time to process callback params or check the session.
+      // Redirecting during this window causes an infinite login loop.
       if (isLoading) {
         console.log('[TOSGuard] Waiting for auth to finish loading...');
-        setLoadingMessage('Checking authentication...');
-
-        // Timeout after 10 seconds of waiting for Auth0
-        if (elapsedTime > 10000) {
-          console.error('[TOSGuard] Auth0 loading timeout - forcing check anyway');
-          setLoadingMessage('Authentication check taking longer than expected...');
-          // Don't return - continue to check even if isLoading is stuck
-        } else {
-          return;
-        }
+        setLoadingMessage(elapsedTime > 10000
+          ? 'Authentication check taking longer than expected...'
+          : 'Checking authentication...');
+        return;
       }
 
-      // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
+      // If not authenticated and we haven't already started a redirect, send to login.
+      // The ref guard prevents calling loginWithRedirect multiple times if state
+      // updates trigger re-renders before the redirect completes.
       if (!isAuthenticated) {
         if (isRedirecting.current) {
           return; // Already redirecting, don't call loginWithRedirect again

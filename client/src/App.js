@@ -16,29 +16,34 @@ import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
 import { trackPageView } from './utils/analytics';
 
-// Environment configuration
-const AUTH0_CONFIG = {
-  domain: process.env.REACT_APP_AUTH0_DOMAIN,
-  clientId: process.env.REACT_APP_AUTH0_CLIENT_ID,
-  authorizationParams: {
-    redirect_uri: window.location.origin,
-    audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-    scope: "openid profile email"
-  },
-  cacheLocation: 'localstorage',
-  useRefreshTokens: true,
-  useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
-  useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
-  authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
-  onRedirectCallback: (appState) => {
-    // After Auth0 redirects back, navigate to the page the user was on
-    // or default to the dashboard
-    window.history.replaceState(
-      {},
-      document.title,
-      appState?.returnTo || '/dashboard'
-    );
-  }
+// Auth0 provider that lives inside Router so it can use useNavigate
+const Auth0ProviderWithNavigate = ({ children }) => {
+  const navigate = useNavigate();
+
+  const onRedirectCallback = (appState) => {
+    // Use React Router's navigate instead of window.history.replaceState
+    // so the router actually processes the route change
+    navigate(appState?.returnTo || '/dashboard', { replace: true });
+  };
+
+  return (
+    <Auth0Provider
+      domain={process.env.REACT_APP_AUTH0_DOMAIN}
+      clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
+      authorizationParams={{
+        redirect_uri: window.location.origin,
+        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+        scope: "openid profile email"
+      }}
+      cacheLocation="localstorage"
+      useRefreshTokens={true}
+      useRefreshTokensFallback={true}
+      useCookiesForTransactions={true}
+      onRedirectCallback={onRedirectCallback}
+    >
+      {children}
+    </Auth0Provider>
+  );
 };
 
 // Google Analytics page tracking component
@@ -177,15 +182,15 @@ const App = () => {
   return (
     <ErrorBoundary>
       <HelmetProvider>
-        <Auth0Provider {...AUTH0_CONFIG}>
-          <TOSProvider>
-            <DocumentProvider>
-              <Router>
+        <Router>
+          <Auth0ProviderWithNavigate>
+            <TOSProvider>
+              <DocumentProvider>
                 <AppRoutes />
-              </Router>
-            </DocumentProvider>
-          </TOSProvider>
-        </Auth0Provider>
+              </DocumentProvider>
+            </TOSProvider>
+          </Auth0ProviderWithNavigate>
+        </Router>
       </HelmetProvider>
     </ErrorBoundary>
   );

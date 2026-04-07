@@ -1,6 +1,6 @@
 // client/src/App.js - COMPLETE INTEGRATION
-import React, { useEffect } from 'react';
-import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
+import React, { useEffect, useCallback } from 'react';
+import { Auth0Provider } from '@auth0/auth0-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { DocumentProvider } from './contexts/DocumentContext';
@@ -19,15 +19,20 @@ import { trackPageView } from './utils/analytics';
 /**
  * Auth0Provider wrapper that lives inside Router so it can use useNavigate
  * for proper redirect callback handling (prevents login loop).
+ *
+ * Key design: onRedirectCallback sets a sessionStorage flag BEFORE navigating
+ * so that TOSGuard knows "auth callback just completed — wait for state to
+ * sync" instead of firing loginWithRedirect immediately.
  */
 const Auth0ProviderWithNavigate = ({ children }) => {
   const navigate = useNavigate();
 
-  const onRedirectCallback = (appState) => {
-    // Use React Router navigate instead of window.history.replaceState
-    // so the router is aware of the URL change after Auth0 callback
+  const onRedirectCallback = useCallback((appState) => {
+    // Signal to TOSGuard that Auth0 callback just completed — state is
+    // still syncing and isAuthenticated may briefly be false.
+    sessionStorage.setItem('auth0_callback_completing', 'true');
     navigate(appState?.returnTo || '/dashboard', { replace: true });
-  };
+  }, [navigate]);
 
   return (
     <Auth0Provider
@@ -62,44 +67,6 @@ const AnalyticsTracker = () => {
   return null;
 };
 
-/**
- * Root route handler — if Auth0 callback params (code/state) are in the URL,
- * show a loading spinner and let Auth0Provider process them.
- * Otherwise redirect straight to /dashboard.
- */
-const RootRoute = () => {
-  const { isLoading, isAuthenticated, error } = useAuth0();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const hasAuthCallback = params.has('code') && params.has('state');
-
-  // Auth0 callback in progress — wait for it to finish
-  if (hasAuthCallback || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-700 font-medium">Completing login...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="text-center max-w-md">
-          <p className="text-red-600 font-medium mb-2">Login failed</p>
-          <p className="text-gray-600 text-sm mb-4">{error.message}</p>
-          <a href="/dashboard" className="text-blue-600 underline">Try again</a>
-        </div>
-      </div>
-    );
-  }
-
-  return <Navigate to="/dashboard" replace />;
-};
-
 // Main routing component
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -127,10 +94,12 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Root handles Auth0 callback, then redirects to dashboard */}
+        {/* Root redirects to dashboard. Auth0 callback (/?code=&state=) is
+            handled by Auth0Provider internally before this route renders.
+            onRedirectCallback navigates to /dashboard after processing. */}
         <Route
           path="/"
-          element={<RootRoute />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
       {/* Public Policy Pages - No auth required */}

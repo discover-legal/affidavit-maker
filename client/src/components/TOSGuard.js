@@ -48,18 +48,32 @@ const TOSGuard = ({ children }) => {
         return;
       }
 
-      // If not authenticated, redirect to login (since TOSGuard only wraps protected routes)
+      // If not authenticated, check if we should wait or redirect
       if (!isAuthenticated) {
-        // Guard: if Auth0 callback is still being processed (code/state in URL),
-        // don't redirect — Auth0Provider hasn't finished exchanging the code yet
+        // Guard 1: Auth0 callback params still in URL — Auth0Provider is processing
         const params = new URLSearchParams(window.location.search);
         if (params.has('code') && params.has('state')) {
-          console.log('[TOSGuard] Auth0 callback in progress, waiting...');
+          console.log('[TOSGuard] Auth0 callback in progress (URL params), waiting...');
           setLoadingMessage('Completing login...');
           return;
         }
 
-        // Guard: prevent multiple simultaneous loginWithRedirect calls
+        // Guard 2: onRedirectCallback just fired — Auth0 state is still syncing
+        // (onRedirectCallback navigates here before isAuthenticated updates)
+        const callbackCompleting = sessionStorage.getItem('auth0_callback_completing');
+        if (callbackCompleting) {
+          // Give Auth0 state up to 5 seconds to sync after callback
+          if (elapsedTime < 5000) {
+            console.log('[TOSGuard] Auth0 callback just completed, waiting for state sync...');
+            setLoadingMessage('Completing login...');
+            return;
+          }
+          // Timed out waiting — clear flag and proceed to login
+          console.warn('[TOSGuard] Auth0 state sync timed out after callback');
+          sessionStorage.removeItem('auth0_callback_completing');
+        }
+
+        // Guard 3: prevent multiple simultaneous loginWithRedirect calls
         if (redirectingRef.current) {
           console.log('[TOSGuard] Login redirect already in progress, skipping');
           return;
@@ -73,6 +87,9 @@ const TOSGuard = ({ children }) => {
         });
         return;
       }
+
+      // Auth is confirmed — clear the callback flag if it was set
+      sessionStorage.removeItem('auth0_callback_completing');
 
       // Wait for user object to be available (with timeout)
       if (!user?.sub) {
@@ -144,7 +161,8 @@ const TOSGuard = ({ children }) => {
 
         // Don't show modal for transient auth errors during initialization
         if (error.message?.includes('not authenticated') ||
-            error.message?.includes('login_required')) {
+            error.message?.includes('login_required') ||
+            error.error === 'login_required') {
           console.log('[TOSGuard] Auth initialization error, will retry on next render');
         } else {
           // For all other errors, show the modal to be safe

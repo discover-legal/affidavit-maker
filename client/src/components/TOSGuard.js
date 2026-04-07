@@ -41,8 +41,7 @@ const TOSGuard = ({ children }) => {
       // updates trigger re-renders before the redirect completes.
       if (!isAuthenticated) {
         if (isRedirecting.current) {
-          console.log('[TOSGuard] Already redirecting to login, skipping duplicate');
-          return;
+          return; // Already redirecting, don't call loginWithRedirect again
         }
         console.log('[TOSGuard] User not authenticated on protected route, redirecting to login');
         setLoadingMessage('Redirecting to login...');

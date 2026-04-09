@@ -17,7 +17,7 @@ services:
     plan: starter # or 'free' for initial testing
     dockerfilePath: ./Dockerfile
     region: oregon
-    branch: main # Point to your staging/release branch
+    branch: claude/fix-professional-rewrite-g766N
 
     # Run migrations before starting the server
     preDeployCommand: node scripts/migrate.js

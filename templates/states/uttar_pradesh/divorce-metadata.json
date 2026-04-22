@@ -1,0 +1,19 @@
+{
+  "stateCode": "IN_UP", "stateName": "Uttar Pradesh", "countryCode": "IN", "countryName": "India",
+  "documentTypes": ["divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true, "personalLawSystem": true,
+  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "HMA s.19 / SMA s.31 jurisdiction rules." },
+  "waitingPeriod": { "days": 180, "description": "6-month cooling-off for mutual consent (waivable per Amardeep Singh v. Harveen Kaur (2017)). SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))." },
+  "groundsForDivorce": {
+    "noFault": [{ "code": "mutual_consent", "name": "Mutual Consent", "statute": "HMA s.13B / SMA s.28" }],
+    "fault": [
+      { "code": "adultery", "name": "Adultery", "statute": "HMA s.13(1)(i)" }, { "code": "cruelty", "name": "Cruelty", "statute": "HMA s.13(1)(ia)" },
+      { "code": "desertion", "name": "Desertion (2 years)", "statute": "HMA s.13(1)(ib)" }, { "code": "conversion", "name": "Conversion", "statute": "HMA s.13(1)(ii)" },
+      { "code": "mental_disorder", "name": "Unsoundness of Mind", "statute": "HMA s.13(1)(iii)" }, { "code": "venereal_disease", "name": "Venereal Disease", "statute": "HMA s.13(1)(v)" }, { "code": "renunciation", "name": "Renunciation", "statute": "HMA s.13(1)(vi)" }, { "code": "presumed_dead", "name": "Presumed Dead (7 years)", "statute": "HMA s.13(1)(vii)" }
+    ]
+  },
+  "terminology": { "caseNumberLabel": "Case No.", "custody": "Custody and Guardianship", "alimony": "Maintenance / Alimony", "childSupport": "Child Maintenance" },
+  "requiredForms": { "basic": [{ "name": "Petition for Divorce", "required": true }, { "name": "Affidavit on stamp paper (INR 10)", "required": true }, { "name": "Marriage Certificate", "required": true }, { "name": "Address Proof", "required": true }] },
+  "filingFees": { "approximate": "INR 500-2,000", "varies": true },
+  "effectiveDateRule": "Decree takes effect from the date it is passed.",
+  "stampPaperValue": "INR 10", "paperSize": "A4", "currency": "INR", "emergencyNumber": "112", "dvHotline": "181"
+}

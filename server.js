@@ -97,6 +97,11 @@ app.use(helmet({
         "https://make.discover.legal",
         "https://discover.legal",
         "https://www.discover.legal",
+        "https://make.discover.legal",
+        // Dynamically include FRONTEND_URL so staging/other deployments work
+        process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()
+          ? process.env.FRONTEND_URL.trim()
+          : "",
         process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""
       ].filter(Boolean),
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -135,8 +140,15 @@ app.use(helmet({
 }));
 
 // SECURITY: Global request timeout to prevent Slowloris attacks (HIGH-04)
+// Chat/LLM routes need longer timeouts (handled by their own middleware)
 const requestTimeout = require('connect-timeout');
-app.use(requestTimeout('30s'));
+app.use((req, res, next) => {
+  // Skip global timeout for chat routes — they have their own 60s timeout
+  if (req.path.startsWith('/api/chat')) {
+    return next();
+  }
+  requestTimeout('30s')(req, res, next);
+});
 app.use((req, res, next) => {
   if (!req.timedout) next();
 });
@@ -150,37 +162,70 @@ const normalizeOrigin = (origin) => {
 
 // Build allowed origins list
 const getAllowedOrigins = () => {
-  if (process.env.NODE_ENV === 'production') {
-    const origins = [];
+  const origins = [];
 
-    // Add FRONTEND_URL if set (normalized)
-    if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
-      origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
-    }
+  // Production domains
+  origins.push(
+    'https://make.discover.legal',
+    'https://discover.legal',
+    'https://www.discover.legal',
+    'https://make.discover.legal',
+    'https://ca.discover.legal',
+    'https://canada.discover.legal',
+    // International subdomains
+    'https://uk.discover.legal',
+    'https://ie.discover.legal',
+    'https://au.discover.legal',
+    'https://nz.discover.legal',
+    'https://in.discover.legal',
+    'https://pk.discover.legal',
+    'https://bd.discover.legal',
+    'https://lk.discover.legal',
+    'https://sa.discover.legal',
+    'https://ng.discover.legal',
+    'https://ke.discover.legal',
+    'https://gh.discover.legal',
+    'https://ug.discover.legal',
+    'https://tz.discover.legal',
+    'https://zm.discover.legal',
+    'https://zw.discover.legal',
+    'https://bw.discover.legal',
+    'https://mw.discover.legal',
+    'https://na.discover.legal',
+    'https://sg.discover.legal',
+    'https://hk.discover.legal',
+    'https://my.discover.legal',
+    'https://jm.discover.legal',
+    'https://tt.discover.legal',
+    'https://bb.discover.legal',
+    'https://bs.discover.legal',
+    'https://bm.discover.legal',
+    'https://fj.discover.legal',
+    'https://pg.discover.legal',
+    'https://cy.discover.legal'
+  );
 
-    // Always add discover.legal domains for backward compatibility
+  // Add FRONTEND_URL if set (normalized)
+  if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
+    origins.push(normalizeOrigin(process.env.FRONTEND_URL.trim()));
+  }
+
+  // Always include localhost for development (safe - these don't resolve in production)
+  if (process.env.NODE_ENV !== 'production' || !process.env.FRONTEND_URL) {
     origins.push(
-      'https://make.discover.legal',
-      'https://discover.legal',
-      'https://www.discover.legal',
-      'https://ca.discover.legal',
-      'https://canada.discover.legal'
-    );
-
-    // Remove duplicates
-    const uniqueOrigins = [...new Set(origins)];
-
-    logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
-    return uniqueOrigins;
-  } else {
-    return [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://ca.localhost:3000',
       'http://canada.localhost:3000'
-    ];
+    );
   }
+
+  // Remove duplicates
+  const uniqueOrigins = [...new Set(origins)];
+
+  logger.info('CORS allowed origins:', { origins: uniqueOrigins, nodeEnv: process.env.NODE_ENV });
+  return uniqueOrigins;
 };
 
 const allowedOrigins = getAllowedOrigins();
@@ -343,26 +388,16 @@ async function initializeServices() {
     console.log(`  - OpenAI: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '❌ Not configured'}`);
     console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '❌ Not configured'}`);
 
-    // Initialize template manager
-    // Feature flag to switch between old and new template system
-    const useNewTemplateSystem = process.env.USE_NEW_TEMPLATE_SYSTEM !== 'false';
-
-    if (useNewTemplateSystem) {
-      logger.info('Using new template system (auto-discovery)');
-      const { initializeTemplates } = require('./templates/initialize');
-      templateManager = await initializeTemplates();
-    } else {
-      logger.info('Using legacy template system');
-      const { StateTemplateManager } = require('./templates/StateTemplateManager');
-      templateManager = new StateTemplateManager();
-    }
+    // Initialize template manager (auto-discovery from templates/states/)
+    const { initializeTemplates } = require('./templates/initialize');
+    templateManager = await initializeTemplates();
 
     app.locals.templateManager = templateManager;
     logger.info('✅ Template Manager initialized');
 
     // ✅ NEW: Initialize PDF Service
     const PDFService = require('./services/pdfService');
-    pdfService = new PDFService();
+    pdfService = new PDFService({ templateManager });
     app.locals.pdfService = pdfService;
     logger.info('✅ PDF Service initialized');
 
@@ -501,6 +536,16 @@ if (validationRouter) {
 const evidenceRouter = safeImportRouter('./routes/evidence', 'Evidence');
 if (evidenceRouter) {
   app.use('/api/evidence', evidenceRouter);
+}
+
+const casesRouter = safeImportRouter('./routes/cases', 'Cases');
+if (casesRouter) {
+  app.use('/api/cases', casesRouter);
+}
+
+const catalogRouter = safeImportRouter('./routes/catalog', 'Catalog');
+if (catalogRouter) {
+  app.use('/api/catalog', catalogRouter);
 }
 
 // Basic fallback routes for critical endpoints if files are missing

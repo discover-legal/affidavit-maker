@@ -1,0 +1,34 @@
+{
+  "stateCode": "NH",
+  "stateName": "New Hampshire",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "RSA 455",
+      "description": "New Hampshire Notaries Public — authority to administer oaths and take affidavits"
+    },
+    {
+      "code": "RSA 641:1",
+      "description": "Perjury — false statement under oath made with intent to deceive — criminal penalty for false affidavit statements"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public / Justice of the Peace\nState of New Hampshire\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

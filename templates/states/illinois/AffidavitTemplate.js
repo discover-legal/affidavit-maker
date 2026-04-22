@@ -96,11 +96,13 @@ class IllinoisAffidavitTemplate extends BaseAffidavitTemplate {
 
   /**
    * Illinois notary block - Standard jurat format
-   * COMPLIANT WITH: 5 ILCS 312/ (Illinois Notary Public Act)
+   * COMPLIANT WITH: 5 ILCS 255/1 (Oaths and Affirmations Act) and
+   *                 5 ILCS 312/ (Illinois Notary Public Act)
    *
    * NOTE: This implements the traditional notarized affidavit format.
    * 735 ILCS 5/1-109 allows certifications under penalty of perjury
    * as an alternative with same force and effect.
+   * Perjury for false sworn statements governed by 720 ILCS 5/32-2.
    *
    * @param {Object} affidavitData - The affidavit data
    * @returns {string} Notary block text

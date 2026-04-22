@@ -1,0 +1,197 @@
+{
+  "stateCode": "WY",
+  "stateName": "Wyoming",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CIVIL NO.",
+    "custody": "Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 2,
+    "countyDays": 0,
+    "description": "The plaintiff must have been a resident of the State of Wyoming for at least sixty (60) days immediately preceding the filing of the Complaint for Divorce.",
+    "statute": "Wyo. Stat. § 20-2-107"
+  },
+
+  "waitingPeriod": {
+    "days": 20,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Wyoming has a mandatory 20-day waiting period. The Decree of Divorce cannot be entered until at least 20 days after the date the Complaint for Divorce is filed. Wyo. Stat. § 20-2-108."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "The parties have irreconcilable differences",
+        "statute": "Wyo. Stat. § 20-2-104"
+      }
+    ],
+    "fault": [],
+    "notes": "Wyoming is a no-fault only state. The sole ground for divorce is irreconcilable differences. Fault is not relevant to divorce proceedings in Wyoming."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Wyoming courts divide marital property equitably, considering the respective merits of the parties, the condition in which they will be left by the divorce, the party through whom the property was acquired, and the burdens imposed upon the property for the benefit of either party and children.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance during marriage may be considered separate property, though Wyoming courts have broad discretion to divide all property.",
+    "statute": "Wyo. Stat. § 20-2-114"
+  },
+
+  "parentalResponsibilities": {
+    "description": "Wyoming uses standard custody and visitation terminology. The court may award joint or sole custody based on the best interests of the child. Visitation (parenting time) is granted to the non-custodial parent unless it would seriously endanger the child.",
+    "statute": "Wyo. Stat. § 20-2-201"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Wyo. Stat. § 20-2-104",
+      "description": "Grounds for divorce — no-fault: irreconcilable differences"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-107",
+      "description": "Residency requirement — 60 days in Wyoming before filing"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-108",
+      "description": "Waiting period — 20 days from filing before decree can be entered"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-114",
+      "description": "Property disposition and alimony — equitable distribution"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-201",
+      "description": "Custody — best interests of the child; joint or sole custody"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-202",
+      "description": "Visitation — rights of non-custodial parent"
+    },
+    {
+      "code": "Wyo. Stat. § 20-2-304",
+      "description": "Child support guidelines — income shares model"
+    },
+    {
+      "code": "Wyo. Stat. § 5-2-118",
+      "description": "District Court — jurisdiction over divorce proceedings"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$120-$160",
+    "varies": true,
+    "notes": "Wyoming's statutory filing fee is $120 per Wyo. Stat. § 5-3-206(a)(i), but some counties charge up to $160 (e.g., Sheridan and Natrona counties). Fee waivers are available for qualifying low-income individuals by filing an Affidavit of Indigency and Request for Waiver of Filing Fees."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to the defendant (respondent)",
+        "required": true
+      },
+      {
+        "name": "Confidential Financial Affidavit",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on the defendant",
+        "required": true,
+        "alternatives": ["Waiver of Service", "Acceptance of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Defendant voluntarily waives formal service",
+        "required": false,
+        "notes": "Must be signed by the defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and visitation arrangement",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Income shares calculation per Wyo. Stat. § 20-2-304",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Wyoming Rules of Civil Procedure (W.R.C.P.)"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Wyoming must file an answer within 30 days of service"
+    },
+    "statute": "W.R.C.P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Wyoming uses an income shares model. Both parents' net incomes are combined and the child support obligation is determined from the Wyoming Child Support Guidelines based on the combined net income and the number of children.",
+    "statute": "Wyo. Stat. § 20-2-304",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+  },
+
+  "alimonyGuidelines": {
+    "type": "discretionary",
+    "description": "Wyoming courts may award alimony to either party. The court considers the ability of the requesting party to meet their reasonable needs independently, the earning capacity of each party, the duration of the marriage, and any other relevant factors. There are no statutory formulas for calculating alimony in Wyoming.",
+    "statute": "Wyo. Stat. § 20-2-114"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Divorce proceedings are filed in the District Court in the county where either party resides."
+  }
+}

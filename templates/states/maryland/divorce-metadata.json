@@ -1,0 +1,202 @@
+{
+  "stateCode": "MD",
+  "stateName": "Maryland",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Absolute Divorce",
+    "petition": "Complaint for Absolute Divorce",
+    "decree": "Judgment of Absolute Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "If the grounds for divorce occurred outside Maryland, at least one party must have been a resident of Maryland for at least 6 months before filing. If the grounds occurred in Maryland, the filing party need only be a current resident — no minimum period is required.",
+    "statute": "Md. Code, Fam. Law § 7-101"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": ["Mutual consent divorces have no waiting period; 6-month separation ground requires 6 months of living separate and apart before filing"],
+    "description": "Maryland has no post-filing waiting period for mutual consent divorces. For the separation ground, the parties must have lived separate and apart without cohabitation for at least 6 months before filing."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "mutual_consent",
+        "name": "Mutual Consent",
+        "description": "Both parties consent to the divorce and submit a written settlement agreement resolving all issues. No waiting period required. Both parties must appear at the hearing.",
+        "statute": "Md. Code, Fam. Law § 7-103(a)(8)"
+      },
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "The differences between the parties are irreconcilable and there is no reasonable prospect of reconciliation. No separation period required. Added effective October 1, 2023.",
+        "statute": "Md. Code, Fam. Law § 7-103(a)(2)"
+      },
+      {
+        "code": "six_month_separation",
+        "name": "6-Month Separation",
+        "description": "The parties have lived separate and apart for at least 6 months before filing. Under the October 2023 amendments, spouses may be considered 'separate' while living under the same roof if they pursue separate lives.",
+        "statute": "Md. Code, Fam. Law § 7-103(a)(3)"
+      }
+    ],
+    "fault": [],
+    "notes": "Effective October 1, 2023 (HB 380), Maryland eliminated ALL fault-based grounds for divorce (adultery, desertion, conviction, insanity, cruelty). Maryland is now a purely no-fault state. Mutual consent is the fastest path — no waiting period and no separation required, but both parties must agree and sign a written settlement agreement. The irreconcilable differences ground also requires no separation. The 6-month separation ground requires living apart (parties may live under the same roof if they 'pursue separate lives') for at least 6 months before filing."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Maryland divides marital property equitably, considering each spouse's contributions (monetary and non-monetary), the value of property, the economic circumstances of each spouse, how and when property was acquired, and any award of alimony. The court may grant a monetary award to achieve equity but generally does not transfer title to property.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance during marriage is non-marital (separate) property and is not subject to equitable distribution, unless it has been commingled.",
+    "statute": "Md. Code, Fam. Law § 8-205"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Md. Code, Fam. Law § 7-101 et seq.",
+      "description": "Maryland divorce statutes — jurisdiction, residency, and procedural requirements"
+    },
+    {
+      "code": "Md. Code, Fam. Law § 7-103",
+      "description": "Grounds for absolute divorce — mutual consent, irreconcilable differences, 6-month separation (fault grounds eliminated Oct 2023)"
+    },
+    {
+      "code": "Md. Code, Fam. Law § 8-205",
+      "description": "Disposition of marital property — equitable distribution principles"
+    },
+    {
+      "code": "Md. Code, Fam. Law § 11-106",
+      "description": "Alimony — types, factors for award and amount"
+    },
+    {
+      "code": "Md. Code, Fam. Law § 9-101 et seq.",
+      "description": "Child custody and visitation — best interest standard"
+    },
+    {
+      "code": "Md. Code, Fam. Law § 12-204",
+      "description": "Child support guidelines — income shares model"
+    },
+    {
+      "code": "Md. Code, Crim. Law § 9-101",
+      "description": "Perjury — criminal penalty for false sworn statements"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$165",
+    "varies": true,
+    "notes": "Maryland filing fees for absolute divorce are approximately $165 but may vary by county. Fee waivers are available for qualifying low-income individuals via Md. Rule 1-325."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Absolute Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Civil Domestic Case Information Report",
+        "description": "Court administrative intake form (CC-DCM-001)",
+        "required": true
+      },
+      {
+        "name": "Financial Statement",
+        "description": "Disclosure of income, assets, and debts (required in contested cases and when alimony or child support is sought)",
+        "required": true
+      },
+      {
+        "name": "Judgment of Absolute Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Writ of Summons / Summons",
+        "description": "Formal notice to defendant",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant voluntarily accepts service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Income shares calculation per Md. Code, Fam. Law § 12-204",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and visitation arrangement",
+        "required": false,
+        "notes": "Recommended but not always required"
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Maryland Rules of Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 60,
+      "description": "Defendant served outside Maryland must file a response within 60 days of service"
+    },
+    "statute": "Md. Rule 2-321"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Maryland uses an income shares model. Both parents' adjusted actual incomes are combined and the child support obligation is determined from a schedule based on the combined monthly adjusted actual income and the number of children.",
+    "statute": "Md. Code, Fam. Law § 12-204",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate in a particular case."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Maryland courts may award rehabilitative alimony (for a set period to allow the recipient to become self-supporting), indefinite alimony (when the party cannot reasonably be expected to become self-supporting or when the difference in living standards would be unconscionably disparate), or pendente lite alimony (temporary support during the proceeding). There are no statutory formulas — the court exercises broad discretion.",
+    "eligibility": "Any spouse may seek alimony from the other. The court considers the factors in Md. Code, Fam. Law § 11-106(b), including each party's financial needs and resources, the standard of living during marriage, the duration of the marriage, contributions, and the circumstances that contributed to the estrangement.",
+    "statute": "Md. Code, Fam. Law § 11-106"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Divorce cases in Maryland are filed in the Circuit Court for the county (or Baltimore City) where either party resides."
+  }
+}

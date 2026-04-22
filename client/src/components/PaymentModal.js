@@ -192,15 +192,8 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         borderRadius: '6px',
       },
     },
-    // Disable "save payment method" checkbox to reduce modal height
-    paymentMethodSave: 'disabled',
-    // Optimize layout for mobile
-    layout: {
-      type: 'accordion',
-      defaultCollapsed: false,
-      radios: false,
-      spacedAccordionItems: false,
-    },
+    // Note: layout and paymentMethodSave are PaymentElement options, not Elements provider options.
+    // They are already configured in the PaymentElement component (PaymentForm).
   };
 
   return (
@@ -218,7 +211,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4">
           <div className="mb-6">
             <div className="flex items-center justify-between py-2">
-              <span>Professional Affidavit</span>
+              <span>{documentType === 'divorce_package' ? 'Divorce Package' : 'Professional Affidavit'}</span>
               <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
             </div>
             <div className="border-t pt-2">

@@ -1,7 +1,16 @@
 {
   "stateCode": "TX",
   "stateName": "Texas",
-  "documentTypes": ["affidavit"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree",
+    "indigency_affidavit",
+    "waiver_of_service",
+    "cert_last_known_address",
+    "military_status_affidavit",
+    "prove_up_affidavit"
+  ],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -22,13 +31,18 @@
     },
     {
       "code": "Tex. Civ. Prac. & Rem. Code § 18.002",
-      "description": "Statutory jurat format for notary block"
+      "description": "Statutory jurat format for notary block - requires 'BEFORE ME, the undersigned authority' prefatory language"
+    },
+    {
+      "code": "Tex. Penal Code § 37.02",
+      "description": "Perjury statute - false sworn statement made under oath is perjury"
     },
     {
       "code": "Tex. R. Civ. P. 15",
       "description": "Requirements for affidavits in civil proceedings"
     }
   ],
+  "affidavitJurat": "BEFORE ME, the undersigned authority, personally appeared the above-named Affiant, who being by me duly sworn, stated that the foregoing facts are true and correct.\n\nSWORN TO AND SUBSCRIBED before me on this _____ day of _____________, 20___.\n\n\n_________________________________\nNotary Public, State of Texas\n\nNotary's printed name: _______________________\n\nMy commission expires: ___________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

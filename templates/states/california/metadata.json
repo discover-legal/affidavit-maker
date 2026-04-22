@@ -1,7 +1,7 @@
 {
   "stateCode": "CA",
   "stateName": "California",
-  "documentTypes": ["affidavit"],
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -17,18 +17,23 @@
   },
   "legalCitations": [
     {
+      "code": "Cal. Penal Code § 118",
+      "description": "Perjury statute — false sworn statement under California law is perjury"
+    },
+    {
       "code": "Cal. Civ. Proc. Code § 2015.5",
       "description": "Allows unsworn declarations under penalty of perjury as alternative to sworn affidavits (future enhancement)"
     },
     {
       "code": "Cal. Gov't Code § 8202",
-      "description": "Jurat requirements - notary must administer oath and verify identity; specific certificate format required with identity verification notice"
+      "description": "Jurat requirements - notary must administer oath and verify identity; specific certificate format required with identity verification notice box per § 8202(c)"
     },
     {
       "code": "Cal. Civ. Code § 1189",
       "description": "Notarial certificate formats and requirements"
     }
   ],
+  "affidavitJurat": "A notary public or other officer completing this certificate verifies only the identity of the individual who signed the document to which this certificate is attached, and not the truthfulness, accuracy, or validity of that document.\n\nState of California\nCounty of _______________\n\nSubscribed and sworn to (or affirmed) before me on this _____ day of _______, 20__, by _________________________, proved to me on the basis of satisfactory evidence to be the person(s) who appeared before me.\n\n\n_________________________________\nNotary Public Signature\n\n[Notary Seal]",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

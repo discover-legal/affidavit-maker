@@ -1,0 +1,236 @@
+{
+  "stateCode": "MI",
+  "stateName": "Michigan",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 10,
+    "description": "The plaintiff must have been domiciled in Michigan for 180 days (approximately 6 months) AND must have been a resident of the county in which the complaint is filed for at least 10 days before filing.",
+    "statute": "MCL § 552.9"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": [
+      {
+        "condition": "minor_children",
+        "days": 180,
+        "description": "When the parties have minor children, the waiting period is 6 months (180 days) from the date of filing before a judgment can be entered."
+      }
+    ],
+    "description": "Michigan has a mandatory waiting period of 60 days from the date of filing before a Judgment of Divorce can be entered. If the parties have minor children, the waiting period is 180 days (6 months). MCL § 552.9f."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "breakdown_of_marriage",
+        "name": "Breakdown of the Marriage Relationship",
+        "description": "There has been a breakdown of the marriage relationship to the extent that the objects of matrimony have been destroyed and there remains no reasonable likelihood that the marriage can be preserved.",
+        "statute": "MCL § 552.6"
+      }
+    ],
+    "fault": [],
+    "notes": "Michigan is a pure no-fault divorce state. The ONLY ground for divorce is breakdown of the marriage relationship. Fault is not a ground for divorce, though it may be considered in property division and spousal support under some circumstances."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Michigan divides marital property equitably — not necessarily equally. The court considers many factors including the duration of the marriage, the contribution of each party, the needs of the parties, and other relevant circumstances. MCL § 552.19 et seq.",
+    "separateProperty": "Property acquired before marriage or by gift or inheritance may be treated as separate property, though the court has broad discretion.",
+    "statute": "MCL § 552.19 et seq."
+  },
+
+  "spousalSupport": {
+    "description": "Michigan uses the term 'Spousal Support' (not alimony). The court considers the length of the marriage, the parties' ages, health, earning capacities, needs, and other equitable factors. MCL § 552.13, § 552.23.",
+    "statute": "MCL § 552.13; MCL § 552.23"
+  },
+
+  "legalCitations": [
+    {
+      "code": "MCL § 552.6",
+      "description": "Ground for divorce — breakdown of marriage relationship — Michigan's sole no-fault ground"
+    },
+    {
+      "code": "MCL § 552.9",
+      "description": "Residency requirements — 180 days state, 10 days county"
+    },
+    {
+      "code": "MCL § 552.9f",
+      "description": "Waiting period — 60 days (no children); 180 days (minor children)"
+    },
+    {
+      "code": "MCL § 552.13",
+      "description": "Alimony and spousal support — court's authority to award"
+    },
+    {
+      "code": "MCL § 552.19 et seq.",
+      "description": "Property division — equitable distribution of marital property"
+    },
+    {
+      "code": "MCL § 552.23",
+      "description": "Spousal support — factors for award"
+    },
+    {
+      "code": "MCL § 722.26a",
+      "description": "Child custody — legal and physical custody; best interests standard"
+    },
+    {
+      "code": "MCL § 722.23",
+      "description": "Child custody — 12 statutory factors for determining best interests of child (Child Custody Act of 1970)"
+    },
+    {
+      "code": "MCL § 552.519",
+      "description": "Michigan Child Support Formula — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$200-$280",
+    "varies": true,
+    "notes": "Michigan base filing fee is $175 (MCL 600.2529) plus $25 state e-filing fee ($200 total). Cases with minor children add ~$80 custody/parenting time fee (total ~$280). Fee deferrals (fee waiver) are available for qualifying individuals (MC 20) if household income is at or below 125% of the federal poverty guidelines."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce (MC 01 / SCAO)",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons and Complaint (MC 01)",
+        "description": "Combined summons and complaint form",
+        "required": true
+      },
+      {
+        "name": "Verified Statement and Application for IV-D Services (FOC 23)",
+        "description": "Required financial disclosure and IV-D application",
+        "required": true
+      },
+      {
+        "name": "Judgment of Divorce (FOC 70 / TBP 4a)",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      },
+      {
+        "name": "Record of Divorce or Annulment (DCH-0838)",
+        "description": "Vital statistics form for the Michigan Department of Health and Human Services",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant",
+        "required": true,
+        "alternatives": ["Waiver of Service"]
+      },
+      {
+        "name": "Waiver of Service / Consent to Jurisdiction",
+        "description": "Defendant waives formal service and consents to jurisdiction",
+        "required": false,
+        "notes": "Must be signed by defendant"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Uniform Child Support Order (FOC 10 / FOC 10a)",
+        "description": "Court order setting child support per Michigan Child Support Formula",
+        "required": true
+      },
+      {
+        "name": "Uniform Spousal Support Order (FOC 10b)",
+        "description": "Court order setting spousal support, if applicable",
+        "required": false
+      },
+      {
+        "name": "Child Support Recommendation/Order Deviation Addendum (FOC 10d)",
+        "description": "Required if deviating from Michigan Child Support Formula",
+        "required": false
+      },
+      {
+        "name": "Custody and Parenting Time Order",
+        "description": "Court order establishing custody and parenting time",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Michigan Court Rules (MCR). SCAO-approved forms are strongly recommended."
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Defendant must file an answer within 21 days of service"
+    },
+    "outOfState": {
+      "days": 28,
+      "description": "Defendant served outside Michigan must file an answer within 28 days of service"
+    },
+    "statute": "MCR 2.108(A)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Michigan uses the Michigan Child Support Formula (MCSF), an income shares model. Both parents' net incomes are considered, along with the number of overnights each parent has. The formula produces a recommended support amount that is presumptively correct.",
+    "statute": "MCL § 552.519; Michigan Child Support Formula",
+    "notes": "The Michigan Child Support Formula is maintained by the Office of Child Support and updated periodically. Deviations require written findings."
+  },
+
+  "spousalSupportGuidelines": {
+    "type": "spousal_support",
+    "description": "Michigan has no statutory formula for spousal support. Courts consider factors including the length of the marriage, the parties' ability to work, the source and amount of property awarded, the parties' ages, the parties' needs, the prior standard of living, fault (in limited circumstances), and the ability of the paying spouse to pay. Duration and amount are within the court's broad discretion.",
+    "factors": [
+      "Duration of the marriage",
+      "Ability of each party to work",
+      "Source and amount of property awarded in divorce",
+      "Ages of the parties",
+      "Ability of each party to pay",
+      "Present situation of the parties",
+      "Needs of the parties",
+      "Health of the parties",
+      "Prior standard of living",
+      "Contributions to the joint estate",
+      "Fault causing the divorce (limited consideration)",
+      "Cohabitation of the recipient"
+    ],
+    "statute": "MCL § 552.23"
+  },
+
+  "court": {
+    "name": "Circuit Court, Family Division",
+    "description": "Divorce actions in Michigan are filed in the Circuit Court, Family Division, in the county where either the plaintiff or defendant resides. The docket number format is: [year]-[number]-[county code]-DM."
+  }
+}

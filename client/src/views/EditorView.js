@@ -1,7 +1,7 @@
 // client/src/views/EditorView.js - FIXED VERSION WITH PAYMENT
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical, Scale } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentData, useSaveMetadata, useUIState, useDocumentActions } from '../contexts/DocumentContext';
 import ChatInterface from '../components/ChatInterface';
@@ -68,6 +68,12 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 const EditorView = ({ isNew = false, onBack }) => {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const { documentId } = useParams(); // ✅ Get documentId from URL
+  const [searchParams] = useSearchParams(); // ✅ Get query params
+
+  // ✅ Get document type and case type from URL query params (for new documents)
+  const documentTypeFromUrl = searchParams.get('type') || 'affidavit';
+  const caseTypeFromUrl = searchParams.get('caseType') || 'family';
+  const isDivorcePackage = documentTypeFromUrl === 'divorce_package';
 
   // ✅ FIX: Track if initialization was done for a specific documentId
   // This prevents multiple initializations due to dependency changes
@@ -191,14 +197,16 @@ const EditorView = ({ isNew = false, onBack }) => {
       console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
       if (isNew) {
-        // For new documents, initialize with forceNew=true
+        // For new documents, initialize with forceNew=true and document type
         initializationDone.current = true;
 
         try {
-          await initializeNewDocument(true);
+          await initializeNewDocument(true, documentTypeFromUrl, caseTypeFromUrl);
           // Track new document editor opened
           trackEvent('editor_opened', {
-            is_new_document: true
+            is_new_document: true,
+            document_type: documentTypeFromUrl,
+            case_type: caseTypeFromUrl
           });
         } catch (err) {
           console.error('Failed to initialize new document on server:', err);
@@ -313,10 +321,22 @@ const EditorView = ({ isNew = false, onBack }) => {
       const blob = await response.blob();
       console.log('✅ PDF generated, size:', blob.size, 'bytes');
 
+      // Build a meaningful filename based on document type and sub-document
+      const safe = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      let downloadName;
+      if (currentDocument.documentType === 'divorce_package') {
+        const subDoc = currentDocument.activeSubDocument || 'divorce_petition';
+        const partyName = currentDocument.petitionerName ||
+          [currentDocument.petitionerFirstName, currentDocument.petitionerLastName].filter(Boolean).join(' ');
+        downloadName = `${subDoc.replace(/_/g, '-')}-${safe(partyName) || 'document'}.pdf`;
+      } else {
+        downloadName = `affidavit-${safe(currentDocument.affiantName) || 'document'}.pdf`;
+      }
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `affidavit-${currentDocument.affiantName?.replace(/[^a-zA-Z0-9]/g, '_') || 'document'}.pdf`;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -505,9 +525,15 @@ const EditorView = ({ isNew = false, onBack }) => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center min-w-0">
-              <Gavel className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2 flex-shrink-0" />
+              {isDivorcePackage || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree' ? (
+                <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 mr-2 flex-shrink-0" />
+              ) : (
+                <Gavel className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2 flex-shrink-0" />
+              )}
               <h1 className="text-base sm:text-xl font-semibold truncate">
-                {isNew ? 'New Affidavit' : 'Edit Affidavit'}
+                {isDivorcePackage || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree'
+                  ? (isNew ? 'New Divorce Package' : 'Edit Divorce Package')
+                  : (isNew ? 'New Affidavit' : 'Edit Affidavit')}
               </h1>
             </div>
           </div>
@@ -535,7 +561,22 @@ const EditorView = ({ isNew = false, onBack }) => {
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">{isCheckingPayment ? 'Checking...' : 'Download PDF'}</span>
+                <span className="hidden sm:inline">{isCheckingPayment ? 'Checking...' : (() => {
+                  if (currentDocument.documentType !== 'divorce_package') return 'Download PDF';
+                  const LABELS = {
+                    divorce_petition: 'Download Petition', petition_dissolution: 'Download Petition',
+                    divorce_decree: 'Download Decree', judgment_dissolution: 'Download Decree',
+                    final_judgment: 'Download Judgment', proposed_judgment: 'Download Proposed Judgment',
+                    waiver_of_service: 'Download Waiver', acknowledgment_of_service: 'Download Acknowledgment',
+                    acknowledgment_of_receipt: 'Download Acknowledgment', cert_last_known_address: 'Download Certificate',
+                    prove_up_affidavit: 'Download Prove-Up', military_status_affidavit: 'Download Military Affidavit',
+                    indigency_affidavit: 'Download Indigency Affidavit', parenting_plan: 'Download Parenting Plan',
+                    child_support_worksheet: 'Download Worksheet', child_support_order: 'Download Support Order',
+                    spousal_support_order: 'Download Support Order', child_custody_order: 'Download Custody Order',
+                    summons_with_notice: 'Download Summons', verified_complaint: 'Download Complaint',
+                  };
+                  return LABELS[currentDocument.activeSubDocument] || 'Download Document';
+                })()}</span>
               </button>
             </div>
           </div>
@@ -583,7 +624,11 @@ const EditorView = ({ isNew = false, onBack }) => {
         affidavitData={currentDocument}
         onPaymentSuccess={handlePaymentSuccess}
         documentId={currentDocument.documentId}
-        documentType="single_affidavit"
+        documentType={
+          currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree'
+            ? 'divorce_package'
+            : 'single_affidavit'
+        }
       />
     </div>
   );

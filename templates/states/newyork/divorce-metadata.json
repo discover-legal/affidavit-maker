@@ -1,0 +1,393 @@
+{
+  "stateCode": "NY",
+  "stateName": "New York",
+  "documentTypes": ["divorce_complaint", "divorce_judgment", "separation_agreement"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Verified Complaint",
+    "petitioner": "Plaintiff",
+    "respondent": "Defendant",
+    "decree": "Judgment of Divorce",
+    "caseNumberLabel": "Index No.:",
+    "custody": "Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "visitation": "Visitation",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property",
+    "court": "Supreme Court",
+    "filingDocument": "Verified Complaint for Divorce",
+    "notes": "New York uses Plaintiff/Defendant (NOT Petitioner/Respondent). The initiating document is a VERIFIED COMPLAINT (sworn under oath), not a petition. The court is the Supreme Court (the trial court of general jurisdiction for divorce), NOT Family Court. Case number is an Index No., not a Case No."
+  },
+
+  "officialForms": {
+    "summons": {
+      "formNumber": "UD-1/UD-1a",
+      "name": "Summons with Notice",
+      "required": true
+    },
+    "automaticOrders": {
+      "name": "Notice of Automatic Orders",
+      "required": true,
+      "notes": "Must be served with summons"
+    },
+    "healthCareNotice": {
+      "name": "Notice of Health Care Coverage",
+      "required": true
+    },
+    "complaint": {
+      "formNumber": "UD-2",
+      "name": "Verified Complaint",
+      "required": true
+    },
+    "affidavitOfService": {
+      "formNumber": "UD-3",
+      "name": "Affidavit of Service",
+      "required": true
+    },
+    "barriersStatement": {
+      "formNumber": "UD-4",
+      "name": "Sworn Statement of Removal of Barriers to Remarriage",
+      "required": false,
+      "whenRequired": "religious_ceremony",
+      "notes": "Must be served if married in religious ceremony"
+    },
+    "barriersService": {
+      "formNumber": "UD-4a",
+      "name": "Affidavit of Service of UD-4",
+      "required": false
+    },
+    "affirmationOfRegularity": {
+      "formNumber": "UD-5",
+      "name": "Affirmation of Regularity",
+      "required": true
+    },
+    "affidavitOfPlaintiff": {
+      "formNumber": "UD-6",
+      "name": "Affidavit of Plaintiff",
+      "required": true
+    },
+    "affidavitOfDefendant": {
+      "formNumber": "UD-7",
+      "name": "Affidavit of Defendant",
+      "required": false,
+      "whenRequired": "agreed/uncontested"
+    },
+    "incomeWorksheet": {
+      "formNumber": "UD-8(1)",
+      "name": "Annual Income Worksheet",
+      "required": true,
+      "whenRequired": "support_requested"
+    },
+    "maintenanceWorksheet": {
+      "formNumber": "UD-8(2)",
+      "name": "Maintenance Guidelines Worksheet",
+      "required": true,
+      "whenRequired": "maintenance_requested"
+    },
+    "childSupportWorksheet": {
+      "formNumber": "UD-8(3)",
+      "name": "Child Support Worksheet",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "supportCollection": {
+      "formNumber": "UD-8a",
+      "name": "Support Collection Unit Information",
+      "required": true,
+      "whenRequired": "support_ordered"
+    },
+    "qmcso": {
+      "formNumber": "UD-8b",
+      "name": "Qualified Medical Child Support Order",
+      "required": false
+    },
+    "noteOfIssue": {
+      "formNumber": "UD-9",
+      "name": "Note of Issue",
+      "required": true
+    },
+    "findingsOfFact": {
+      "formNumber": "UD-10",
+      "name": "Findings of Fact and Conclusions of Law",
+      "required": true
+    },
+    "judgment": {
+      "formNumber": "UD-11",
+      "name": "Judgment of Divorce",
+      "required": true
+    },
+    "part130": {
+      "formNumber": "UD-12",
+      "name": "Part 130 Certification",
+      "required": true
+    },
+    "rji": {
+      "formNumber": "UD-13",
+      "name": "Request for Judicial Intervention (RJI)",
+      "required": true
+    },
+    "noticeOfEntry": {
+      "formNumber": "UD-14",
+      "name": "Notice of Entry",
+      "required": true
+    },
+    "serviceOfJudgment": {
+      "formNumber": "UD-15",
+      "name": "Affidavit of Service by Mail of Judgment",
+      "required": true
+    },
+    "divorceSummary": {
+      "formNumber": "UCS-111",
+      "name": "Divorce and Child Support Summary Form",
+      "required": true
+    },
+    "rjiAddendum": {
+      "formNumber": "UCS-840M",
+      "name": "Addendum to Request for Judicial Intervention",
+      "required": true
+    },
+    "certificateOfDissolution": {
+      "formNumber": "DOH 2168",
+      "name": "Certificate of Dissolution of Marriage",
+      "required": true,
+      "issuedBy": "Department of Health"
+    }
+  },
+
+  "residencyRequirements": {
+    "options": [
+      {
+        "code": "both_residents_cause_in_ny",
+        "yearsRequired": 0,
+        "additionalRequirement": "Both parties were residents at commencement AND cause of action arose in NY",
+        "description": "DRL § 230(1): Both parties are residents of NY when action commenced AND the cause of action arose in NY",
+        "statute": "DRL § 230(1)"
+      },
+      {
+        "code": "both_domiciled_in_ny",
+        "yearsRequired": 0,
+        "additionalRequirement": "Both parties domiciled in NY when action commenced",
+        "description": "DRL § 230(2): Both parties are domiciled in NY at the time the action is commenced",
+        "statute": "DRL § 230(2)"
+      },
+      {
+        "code": "one_year_married_in_ny",
+        "yearsRequired": 1,
+        "additionalRequirement": "Parties were married in New York OR cause arose in NY",
+        "description": "DRL § 230(3): Plaintiff domiciled in NY for at least 1 year AND parties were married in NY OR cause of action arose in NY",
+        "statute": "DRL § 230(3)"
+      },
+      {
+        "code": "one_year_lived_in_ny",
+        "yearsRequired": 1,
+        "additionalRequirement": "Parties once lived as married couple in NY",
+        "description": "DRL § 230(4): Plaintiff domiciled in NY for at least 1 year AND parties once lived as husband and wife in NY",
+        "statute": "DRL § 230(4)"
+      },
+      {
+        "code": "one_year_cause_in_ny",
+        "yearsRequired": 1,
+        "additionalRequirement": "Cause of action arose in NY AND either party has been domiciled in NY for at least 1 year",
+        "description": "DRL § 230(5): Cause of action arose in NY AND either party has been domiciled in NY for a continuous period of at least 1 year immediately preceding the commencement of the action",
+        "statute": "DRL § 230(5)"
+      },
+      {
+        "code": "two_years_domiciled",
+        "yearsRequired": 2,
+        "additionalRequirement": "Either party has been domiciled in NY for at least 2 continuous years",
+        "description": "DRL § 230(6): Either party has been a domiciliary of NY for a continuous period of at least 2 years immediately preceding the commencement of the action",
+        "statute": "DRL § 230(6)"
+      }
+    ],
+    "statute": "DRL § 230"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "noFaultRequirement": {
+      "months": 6,
+      "description": "For no-fault divorce, marriage must be irretrievably broken for at least 6 months"
+    },
+    "description": "No mandatory waiting period after filing, but no-fault ground requires 6-month breakdown period"
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "Relationship broken down irretrievably for at least 6 months",
+        "statute": "DRL § 170(7)",
+        "notes": "Stated under oath in court papers"
+      }
+    ],
+    "fault": [
+      {
+        "code": "cruel_inhuman_treatment",
+        "name": "Cruel and Inhuman Treatment",
+        "description": "Conduct endangering physical or mental well-being",
+        "statute": "DRL § 170(1)"
+      },
+      {
+        "code": "abandonment",
+        "name": "Abandonment",
+        "description": "Abandoned for 1 or more years",
+        "statute": "DRL § 170(2)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Confined in prison for 3+ consecutive years after marriage",
+        "statute": "DRL § 170(3)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Defendant committed adultery",
+        "statute": "DRL § 170(4)"
+      }
+    ],
+    "conversion": [
+      {
+        "code": "separation_judgment",
+        "name": "Living Apart - Judgment",
+        "description": "Lived apart per decree/judgment of separation for 6+ months (reduced from 1 year by Chapter 673, Laws of 2025)",
+        "statute": "DRL § 170(5)"
+      },
+      {
+        "code": "separation_agreement",
+        "name": "Living Apart - Agreement",
+        "description": "Lived apart per written separation agreement for 6+ months (reduced from 1 year by Chapter 673, Laws of 2025)",
+        "statute": "DRL § 170(6)"
+      }
+    ]
+  },
+
+  "jointFiling": {
+    "available": true,
+    "effectiveDate": "January 2025",
+    "description": "As of January 2025, couples can file jointly for uncontested divorce",
+    "notes": "Separate packets available for with/without children under 21"
+  },
+
+  "automaticOrders": {
+    "required": true,
+    "description": "Automatic orders go into effect upon filing for Plaintiff and upon service for Defendant",
+    "restrictions": [
+      "Cannot sell, transfer, or dispose of property without consent",
+      "Cannot incur unreasonable debts",
+      "Cannot remove children from state without consent",
+      "Cannot change insurance beneficiaries",
+      "Cannot discontinue existing insurance coverage"
+    ],
+    "statute": "DRL § 236-B(2)"
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in minimum"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt minimum",
+      "footnotesSize": "10pt minimum"
+    },
+    "spacing": "double",
+    "notes": "Per CPLR 2101"
+  },
+
+  "filingFees": {
+    "indexNumber": "$210",
+    "rji": "$95",
+    "noteOfIssue": "$30",
+    "rjiAndNoteOfIssue": "$125",
+    "total": "$335+",
+    "varies": true,
+    "notes": "Index number $210 + RJI/Note of Issue $125 (when filed together) = $335 minimum. Fee waiver available for qualifying individuals."
+  },
+
+  "childSupport": {
+    "guidelines": "Child Support Standards Act (CSSA)",
+    "ageOfMajority": 21,
+    "description": "In New York, child support generally continues until age 21",
+    "statute": "DRL § 240"
+  },
+
+  "maintenance": {
+    "guidelines": "Maintenance Guidelines",
+    "incomeCapNote": "Income cap of $241,000 for guideline calculations (effective March 1, 2026, CPI-U adjusted)",
+    "factors": [
+      "Age and health of parties",
+      "Present and future earning capacity",
+      "Need for education or training",
+      "Standard of living during marriage",
+      "Reduced earning capacity due to career sacrifice",
+      "Child custody arrangements",
+      "Tax consequences",
+      "Duration of the marriage",
+      "Loss of health insurance",
+      "Any other relevant factor"
+    ],
+    "statute": "DRL § 236-B(6)"
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "New York is an equitable distribution state. Marital property is divided fairly, not necessarily equally.",
+    "factors": [
+      "Income and property at time of marriage and at commencement",
+      "Duration of the marriage",
+      "Age and health of both parties",
+      "Need of custodial parent to occupy marital residence",
+      "Loss of inheritance and pension rights",
+      "Loss of health insurance",
+      "Award of maintenance",
+      "Direct or indirect contribution to acquiring marital property",
+      "Liquid or non-liquid character of property",
+      "Probable future financial circumstances",
+      "Difficulty of evaluating an interest in a business",
+      "Tax consequences",
+      "Wasteful dissipation of assets",
+      "Transfer of property made in contemplation of divorce",
+      "Any other relevant factor"
+    ],
+    "statute": "DRL § 236-B(5)"
+  },
+
+  "legalCitations": [
+    {
+      "code": "New York Domestic Relations Law",
+      "description": "Primary divorce statute"
+    },
+    {
+      "code": "DRL § 170",
+      "description": "Grounds for divorce"
+    },
+    {
+      "code": "DRL § 230",
+      "description": "Residence requirements"
+    },
+    {
+      "code": "DRL § 236-B",
+      "description": "Equitable distribution and maintenance"
+    },
+    {
+      "code": "DRL § 240",
+      "description": "Custody and child support"
+    },
+    {
+      "code": "CPLR 2101",
+      "description": "Form of papers"
+    },
+    {
+      "code": "22 NYCRR 202.16",
+      "description": "Uniform Rules for Trial Courts - Matrimonial Actions"
+    }
+  ]
+}

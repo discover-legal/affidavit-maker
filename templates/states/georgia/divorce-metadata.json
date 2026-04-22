@@ -1,0 +1,278 @@
+{
+  "stateCode": "GA",
+  "stateName": "Georgia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Final Judgment and Decree of Divorce",
+    "caseNumberLabel": "CIVIL ACTION FILE NO.",
+    "custody": "Legal Custody",
+    "visitation": "Parenting Time / Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "The petitioner must have been a bona fide resident of Georgia for at least six months immediately preceding the filing of the complaint. A nonresident may file against a respondent who has been a Georgia resident for at least six months. There is no separate county residency requirement.",
+    "statute": "O.C.G.A. § 19-5-2"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "service_date",
+    "exceptions": ["The 30-day waiting period applies specifically to no-fault divorces granted on the ground that the marriage is irretrievably broken (O.C.G.A. § 19-5-3(13)). Fault-based grounds may not require this waiting period."],
+    "description": "Georgia requires a mandatory 30-day waiting period after service of process on the respondent before a no-fault divorce can be finalized. This period cannot be waived by party agreement. (O.C.G.A. § 19-5-3(13))"
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Irretrievably Broken",
+        "description": "The marriage is irretrievably broken",
+        "statute": "O.C.G.A. § 19-5-3(13)"
+      }
+    ],
+    "voidabilityGrounds": [
+      {
+        "code": "prohibited_consanguinity",
+        "name": "Intermarriage Within Prohibited Degrees",
+        "description": "Intermarriage within prohibited degrees of consanguinity or affinity",
+        "statute": "O.C.G.A. § 19-5-3(1)",
+        "notes": "Ground of voidability (imperfect marriage) — not a fault ground"
+      },
+      {
+        "code": "mental_incapacity_at_marriage",
+        "name": "Mental Incapacity at Time of Marriage",
+        "description": "Mental incapacity or lunacy at the time of the marriage",
+        "statute": "O.C.G.A. § 19-5-3(2)",
+        "notes": "Ground of voidability — incapacity must exist at time of marriage"
+      },
+      {
+        "code": "impotency",
+        "name": "Impotency",
+        "description": "Impotency at the time of the marriage",
+        "statute": "O.C.G.A. § 19-5-3(3)",
+        "notes": "Ground of voidability — must have existed at time of marriage and been unknown to the other party"
+      },
+      {
+        "code": "fraud_duress",
+        "name": "Force, Menace, Duress, or Fraud",
+        "description": "Force, menace, duress, or fraud in obtaining the marriage",
+        "statute": "O.C.G.A. § 19-5-3(4)",
+        "notes": "Ground of voidability"
+      },
+      {
+        "code": "pregnancy_by_other",
+        "name": "Pregnancy of Wife by Another Man",
+        "description": "Pregnancy of the wife by a man other than the husband at the time of the marriage, such pregnancy being unknown to the husband",
+        "statute": "O.C.G.A. § 19-5-3(5)",
+        "notes": "Ground of voidability"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery in either of the parties after marriage",
+        "statute": "O.C.G.A. § 19-5-3(6)"
+      },
+      {
+        "code": "wilful_desertion",
+        "name": "Wilful Desertion",
+        "description": "Wilful and continued desertion by either of the parties for the term of one year",
+        "statute": "O.C.G.A. § 19-5-3(7)"
+      },
+      {
+        "code": "conviction_of_crime",
+        "name": "Conviction of Crime Involving Moral Turpitude",
+        "description": "Conviction of either party for an offense involving moral turpitude and sentence of imprisonment in a penal institution for a term of two years or longer",
+        "statute": "O.C.G.A. § 19-5-3(8)"
+      },
+      {
+        "code": "habitual_intoxication",
+        "name": "Habitual Intoxication",
+        "description": "Habitual intoxication",
+        "statute": "O.C.G.A. § 19-5-3(9)"
+      },
+      {
+        "code": "cruel_treatment",
+        "name": "Cruel Treatment",
+        "description": "Cruel treatment, which shall consist of the willful infliction of pain, bodily or mental, upon the complaining party, such as reasonably justifies apprehension of danger to life, limb, or health",
+        "statute": "O.C.G.A. § 19-5-3(10)"
+      },
+      {
+        "code": "incurable_mental_illness",
+        "name": "Incurable Mental Illness",
+        "description": "Incurable mental illness. The mental illness must be adjudicated by a court of competent jurisdiction and confirmed by the testimony of two physicians",
+        "statute": "O.C.G.A. § 19-5-3(11)"
+      },
+      {
+        "code": "habitual_drug_use",
+        "name": "Habitual Drug Addiction",
+        "description": "Habitual addiction to any controlled substance",
+        "statute": "O.C.G.A. § 19-5-3(12)"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Georgia is an equitable distribution state. Marital property is divided equitably (fairly) but not necessarily equally. The court considers many factors including the contribution of each spouse, the length of the marriage, and the economic circumstances of each party.",
+    "statute": "O.C.G.A. § 19-5-1 et seq."
+  },
+
+  "legalCitations": [
+    {
+      "code": "O.C.G.A. § 19-5-1",
+      "description": "Georgia divorce — general provisions and authority of Superior Court"
+    },
+    {
+      "code": "O.C.G.A. § 19-5-3",
+      "description": "Grounds for divorce — 13 grounds including irretrievably broken marriage"
+    },
+    {
+      "code": "O.C.G.A. § 19-5-2",
+      "description": "Residence requirements and venue — 6 months bona fide residency"
+    },
+    {
+      "code": "O.C.G.A. § 19-5-8",
+      "description": "30-day waiting period after service before final judgment"
+    },
+    {
+      "code": "O.C.G.A. § 19-6-1",
+      "description": "Alimony — authority of court to grant alimony"
+    },
+    {
+      "code": "O.C.G.A. § 19-7-1",
+      "description": "Child custody — best interests of child standard"
+    },
+    {
+      "code": "O.C.G.A. § 19-6-15",
+      "description": "Child support guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$200-$250",
+    "varies": true,
+    "notes": "Filing fees vary by county in Georgia, typically $200-$250. Contact the Superior Court clerk's office in your county for current fees."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Domestic Relations Financial Affidavit",
+        "description": "Required disclosure of income, expenses, assets, and liabilities",
+        "required": true
+      },
+      {
+        "name": "Domestic Relations Case Filing Information Form",
+        "description": "Court administrative form required at filing",
+        "required": true
+      },
+      {
+        "name": "Final Judgment and Decree of Divorce",
+        "description": "Court order dissolving the marriage",
+        "required": true
+      },
+      {
+        "name": "Verification",
+        "description": "Sworn verification of the complaint",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent issued by the clerk",
+        "required": true,
+        "alternatives": ["Acknowledgment of Service"]
+      },
+      {
+        "name": "Acknowledgment of Service",
+        "description": "Respondent acknowledges receipt of complaint",
+        "required": false,
+        "notes": "Respondent signs before a notary public acknowledging service"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Worksheet",
+        "description": "Income shares calculation per O.C.G.A. § 19-6-15",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and visitation schedule",
+        "required": true
+      },
+      {
+        "name": "Child Support Addendum",
+        "description": "Supplemental schedules for extraordinary expenses",
+        "required": false
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Georgia Superior Court Rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 60,
+      "description": "Respondent served outside Georgia must file an answer within 60 days of service"
+    },
+    "statute": "O.C.G.A. § 9-11-12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Georgia uses an income shares model. Both parents' gross incomes are combined to determine the basic child support obligation from a statutory schedule. The obligation is then divided proportionally based on each parent's share of the combined income. Adjustments are made for health insurance, childcare, and extraordinary expenses.",
+    "statute": "O.C.G.A. § 19-6-15",
+    "notes": "Georgia's child support guidelines were substantially revised in 2007 to adopt the income shares model."
+  },
+
+  "alimonyGuidelines": {
+    "type": "alimony",
+    "description": "Georgia courts have broad discretion to award alimony. There is no statutory formula. The court considers the standard of living during the marriage, duration of the marriage, age and condition of the parties, financial resources of each party, time necessary for education or training, and contribution of each party to the marriage. Adultery by the party seeking alimony is an absolute bar to alimony unless the other party condoned it.",
+    "adulteryBar": true,
+    "statute": "O.C.G.A. § 19-6-1 et seq.",
+    "notes": "Georgia does not have a statutory formula or durational guidelines for alimony. Awards are entirely discretionary."
+  },
+
+  "court": {
+    "name": "Superior Court",
+    "description": "Divorce is filed in the Superior Court of the county where the respondent resides. If the respondent is a non-resident, file in the county where the petitioner resides."
+  }
+}

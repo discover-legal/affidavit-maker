@@ -1,7 +1,7 @@
 {
   "stateCode": "IL",
   "stateName": "Illinois",
-  "documentTypes": ["affidavit"],
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -17,6 +17,10 @@
   },
   "legalCitations": [
     {
+      "code": "720 ILCS 5/32-2",
+      "description": "Perjury statute — false sworn statement in official proceedings is perjury under Illinois criminal code"
+    },
+    {
       "code": "735 ILCS 5/1-109",
       "description": "Allows certification under penalty of perjury as alternative to sworn affidavits - has same force and effect (future enhancement)"
     },
@@ -25,10 +29,15 @@
       "description": "Governs use of affidavits in civil procedure"
     },
     {
+      "code": "5 ILCS 255/1",
+      "description": "Illinois Oaths and Affirmations Act - 'Subscribed and sworn to before me' jurat language requirement"
+    },
+    {
       "code": "5 ILCS 312/",
       "description": "Illinois Notary Public Act - governs notarization requirements and jurat formats"
     }
   ],
+  "affidavitJurat": "Signed and sworn (or affirmed) to before me on _____________ (date)\nby __________________ (name of person making statement).\n\n\n_________________________________\nNotary Public\n\n[Notary Seal]\n\nMy commission expires: ___________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": false,

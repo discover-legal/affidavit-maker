@@ -1,0 +1,34 @@
+{
+  "stateCode": "RI",
+  "stateName": "Rhode Island",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "R.I. Gen. Laws §42-30",
+      "description": "Rhode Island Notaries Public — authority to administer oaths and take affidavits"
+    },
+    {
+      "code": "R.I. Gen. Laws §11-33-2",
+      "description": "Perjury — false statement under oath — criminal penalty for false affidavit statements"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Rhode Island\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

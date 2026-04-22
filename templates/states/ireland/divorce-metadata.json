@@ -1,0 +1,120 @@
+{
+  "stateCode": "IRL",
+  "stateName": "Ireland",
+  "countryCode": "IE",
+  "countryName": "Ireland",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "Either spouse must be domiciled in Ireland on the date of institution of proceedings OR ordinarily resident in Ireland for at least one year immediately before that date (Family Law (Divorce) Act 1996, s.39(1)(a))."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. The 2-year separation must already be satisfied before or by the date the court grants the decree. There is no separate post-filing cooling-off period."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_2_of_3",
+        "name": "Two-Year Separation",
+        "description": "The spouses have lived apart from one another for a period of, or periods amounting to, at least two years during the preceding three years (as amended by Family Law Act 2019, implementing the 38th Amendment to the Constitution).",
+        "statute": "Family Law (Divorce) Act 1996, s.5(1)(a), as amended by Family Law Act 2019, s.9"
+      }
+    ],
+    "fault": [],
+    "additionalRequirements": [
+      {
+        "code": "no_reconciliation",
+        "name": "No Reasonable Prospect of Reconciliation",
+        "description": "The court must be satisfied that there is no reasonable prospect of a reconciliation between the spouses.",
+        "statute": "Family Law (Divorce) Act 1996, s.5(1)(b)"
+      },
+      {
+        "code": "proper_provision",
+        "name": "Proper Provision",
+        "description": "The court must be satisfied that such provision as the court considers proper having regard to the circumstances exists or will be made for the spouses and any dependent members of the family.",
+        "statute": "Family Law (Divorce) Act 1996, s.5(1)(c)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Record No.",
+    "custody": "Custody",
+    "physicalCustody": "Custody / Day-to-Day Care",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Proper Provision (Family Law (Divorce) Act 1996, ss.14-18)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Family Law Civil Bill",
+        "description": "Initiates divorce proceedings in the Circuit Family Court",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Means",
+        "description": "Full sworn disclosure of income, assets, debts, and outgoings — required in all family law proceedings",
+        "required": true
+      },
+      {
+        "name": "Affidavit of Welfare",
+        "description": "Details of dependent children, their living arrangements, health, education, and welfare — REQUIRED if there are dependent children",
+        "required": false
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final order dissolving the marriage, granted by the Circuit Court or High Court",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Family Law (Divorce) Act 1996",
+      "description": "Primary Irish divorce statute — grounds, proper provision, ancillary relief"
+    },
+    {
+      "code": "Family Law Act 2019",
+      "description": "Reduced separation period from 4 of 5 years to 2 of 3 years"
+    },
+    {
+      "code": "Family Law Act 1995",
+      "description": "Judicial separation, property adjustment, s.16 factors for financial provision"
+    },
+    {
+      "code": "Guardianship of Infants Act 1964 (as amended)",
+      "description": "Guardianship, custody, and access — welfare of child is paramount"
+    },
+    {
+      "code": "Family Law (Maintenance of Spouses and Children) Act 1976",
+      "description": "Maintenance obligations for spouses and children"
+    },
+    {
+      "code": "Domestic Violence Act 2018",
+      "description": "Safety, barring, interim barring, and protection orders"
+    }
+  ],
+  "filingFees": {
+    "approximate": "EUR \u20ac0",
+    "varies": false,
+    "notes": "No court fee for family law applications in the Circuit Court (the Courts Service does not charge fees for family law proceedings). High Court fees may apply for complex/high-value cases. Legal aid may be available through the Legal Aid Board for those who qualify on a means and merits test."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "No statutory formula — court has discretion based on means and needs (Guardianship of Infants Act 1964; Family Law (Divorce) Act 1996, s.5(1)(c))",
+    "notes": "Ireland does not have a child support formula like the UK or US. The court considers income, needs, and standard of living."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "discretionary",
+    "guidelines": "Family Law Act 1995, s.16 factors (applied by analogy in divorce proceedings under the 1996 Act)",
+    "notes": "No fixed formula. Court considers means, needs, earning capacity, duration of marriage, contributions to family welfare, and conduct."
+  },
+  "effectiveDateRule": "The Decree of Divorce takes effect immediately when granted by the court. There is no statutory waiting period between the granting of the decree and its effectiveness.",
+  "certificateNote": "A certified copy of the Decree of Divorce may be obtained from the court office after the decree is granted."
+}

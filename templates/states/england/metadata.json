@@ -1,0 +1,70 @@
+{
+  "stateCode": "ENG",
+  "stateName": "England & Wales",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "paperSize": "A4",
+  "currency": "GBP",
+  "emergencyNumber": "999",
+  "dvHotline": "0808 2000 247",
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": false,
+    "notaryInstruction": false,
+    "statementOfTruth": true,
+    "caseNumberLabel": "Case No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "commissionerForOaths": false
+  },
+  "courtSystem": {
+    "trialCourt": "Family Court",
+    "familyDivision": "Family Court",
+    "highCourt": "Family Division of the High Court",
+    "appealCourt": "Court of Appeal (Civil Division)"
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Divorce, Dissolution and Separation Act 2020",
+    "primaryGround": "Irretrievable breakdown (no-fault, s.1(1))",
+    "propertyDivision": "Matrimonial Causes Act 1973, s.25 factors"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce, Dissolution and Separation Act 2020",
+      "description": "No-fault divorce — single ground of irretrievable breakdown, in force 6 April 2022"
+    },
+    {
+      "code": "Matrimonial Causes Act 1973",
+      "description": "Governs financial remedy orders (s.23-25A) — lump sum, property adjustment, periodical payments"
+    },
+    {
+      "code": "Children Act 1989",
+      "description": "Welfare of children — s.1 welfare principle, s.8 orders (child arrangements, prohibited steps, specific issue)"
+    },
+    {
+      "code": "Civil Procedure Rules, Part 22",
+      "description": "Statement of Truth — replaces sworn affidavits in most civil/family proceedings"
+    },
+    {
+      "code": "Family Procedure Rules 2010 (SI 2010/2955)",
+      "description": "Procedural rules governing family proceedings in England and Wales"
+    }
+  ],
+  "affidavitJurat": "I believe that the facts stated in this document are true.\n\n________________________________\nSigned: [Full Name]\nDated: _______________\n\nSTATEMENT OF TRUTH\nThe contents of this statement are true to the best of my knowledge and belief.",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with a letter (A, B, C, etc.) and signed by the person making the statement and the solicitor or commissioner."
+  }
+}

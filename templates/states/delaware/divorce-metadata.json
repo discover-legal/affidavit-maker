@@ -1,0 +1,187 @@
+{
+  "stateCode": "DE",
+  "stateName": "Delaware",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Petition for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "PETITION NO.",
+    "custody": "Legal Custody / Residential Arrangements",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": null,
+    "description": "At least one party must have been a bona fide resident of the State of Delaware for at least six months before the commencement of the proceeding.",
+    "statute": "Del. Code tit. 13, §1504"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Delaware has no mandatory waiting period after filing for divorce."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken, as demonstrated by reconciliation being improbable or the parties having lived separate and apart for at least six months",
+        "statute": "Del. Code tit. 13, §1505"
+      }
+    ],
+    "fault": [],
+    "notes": "Delaware is a purely no-fault state. The only ground for divorce is irretrievable breakdown of the marriage. This can be demonstrated by showing that reconciliation is improbable, or that the parties have voluntarily lived separate and apart for six or more months without reasonable expectation of reconciliation."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Delaware courts divide marital property equitably. The court considers factors including the length of the marriage, any prior marriage of either party, the age, health, station, amount and sources of income, vocational skills, employability, estate, liabilities, and needs of each party, and whether the property award is in lieu of or in addition to alimony.",
+    "separateProperty": "Property acquired before the marriage, by inheritance, or by gift (excluding gifts between the spouses) is generally considered separate property and is not subject to division, although the court has discretion.",
+    "statute": "Del. Code tit. 13, §1513"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Del. Code tit. 13, §1504",
+      "description": "Residency requirement — 6 months"
+    },
+    {
+      "code": "Del. Code tit. 13, §1505",
+      "description": "Grounds for divorce — irretrievable breakdown only (no-fault)"
+    },
+    {
+      "code": "Del. Code tit. 13, §1513",
+      "description": "Division of marital property — equitable distribution"
+    },
+    {
+      "code": "Del. Code tit. 13, §1512",
+      "description": "Alimony"
+    },
+    {
+      "code": "Del. Code tit. 13, §722",
+      "description": "Legal custody and residential arrangements"
+    },
+    {
+      "code": "Del. Code tit. 13, §727",
+      "description": "Visitation rights"
+    },
+    {
+      "code": "Del. Code tit. 13, §514",
+      "description": "Delaware Child Support Formula (Melson Formula)"
+    },
+    {
+      "code": "Del. Code tit. 10, §921",
+      "description": "Family Court jurisdiction"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$165 + $10 court security fee",
+    "varies": false,
+    "notes": "Delaware Family Court filing fee for divorce is $165 plus a $10 court security fee ($175 total). Fee waivers may be available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Financial Report (Form 69)",
+        "description": "Mandatory financial disclosure",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Acceptance of Service",
+        "description": "Respondent accepts service voluntarily",
+        "required": false,
+        "alternatives": ["Sheriff Service", "Publication"]
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet (Melson Formula)",
+        "description": "Calculation per Delaware Melson Formula (Del. Code tit. 13, §514)",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Plan for custody and residential arrangements",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Delaware Family Court Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Respondent served outside Delaware has 20 days to file a response"
+    },
+    "statute": "Del. Family Court R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "melson_formula",
+    "description": "Delaware uses the Melson Formula, a unique variation of the income shares model. It provides each parent with a self-support allowance, calculates a primary support obligation based on each child's needs, and adds a standard of living adjustment. Delaware is one of only three states using the Melson Formula.",
+    "statute": "Del. Code tit. 13, §514",
+    "notes": "The Melson Formula is more complex than standard income shares. It first ensures each parent can meet their own basic needs, then calculates child support obligations."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Delaware courts may award alimony after considering factors including the financial needs of each party, the financial resources of each party, any marital misconduct, the duration of the marriage, the age and physical and emotional condition of the parties, and whether one party sacrificed career or educational opportunities for the other.",
+    "eligibility": "Available based on need and ability to pay. The dependent party must have insufficient property and be unable to support themselves through appropriate employment.",
+    "statute": "Del. Code tit. 13, §1512"
+  },
+
+  "court": {
+    "name": "Family Court",
+    "description": "Divorce cases are filed in the Family Court. (Del. Code tit. 10, §921)"
+  }
+}

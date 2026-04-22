@@ -1,0 +1,266 @@
+{
+  "stateCode": "MS",
+  "stateName": "Mississippi",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Final Judgment of Divorce",
+    "caseNumberLabel": "CAUSE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property",
+    "petitioner": "Complainant",
+    "judge": "Chancellor",
+    "court": "Chancery Court"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": 0,
+    "description": "At least one party must have been a bona fide resident of Mississippi for at least six (6) months immediately preceding the filing of the complaint.",
+    "statute": "Miss. Code §93-5-5"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": ["No waiting period for fault-based divorce"],
+    "description": "For irreconcilable differences (no-fault) divorce, a 60-day waiting period from filing applies. No waiting period for fault-based grounds. Miss. Code §93-5-2."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "The parties have irreconcilable differences. Requires consent of both parties or a 60-day waiting period.",
+        "statute": "Miss. Code §93-5-2"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by the respondent",
+        "statute": "Miss. Code §93-5-1(a)"
+      },
+      {
+        "code": "habitual_cruel_treatment",
+        "name": "Habitual Cruel and Inhuman Treatment",
+        "description": "Habitual cruel and inhuman treatment",
+        "statute": "Miss. Code §93-5-1(c)"
+      },
+      {
+        "code": "habitual_drunkenness",
+        "name": "Habitual Drunkenness",
+        "description": "Habitual drunkenness",
+        "statute": "Miss. Code §93-5-1(d)"
+      },
+      {
+        "code": "drug_use",
+        "name": "Habitual Drug Use",
+        "description": "Habitual and excessive use of opium, morphine, or other such drug",
+        "statute": "Miss. Code §93-5-1(e)"
+      },
+      {
+        "code": "natural_impotency",
+        "name": "Natural Impotency",
+        "description": "Natural impotency",
+        "statute": "Miss. Code §93-5-1(b)"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Imprisonment",
+        "description": "Sentenced to imprisonment in a state or federal penal institution",
+        "statute": "Miss. Code §93-5-1(f)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion",
+        "description": "Willful, continued, and obstinate desertion for one year",
+        "statute": "Miss. Code §93-5-1(g)"
+      },
+      {
+        "code": "insanity",
+        "name": "Insanity or Idiocy",
+        "description": "Insanity or idiocy at time of marriage, unknown to complainant",
+        "statute": "Miss. Code §93-5-1(h)"
+      },
+      {
+        "code": "pregnancy_by_another",
+        "name": "Pregnancy by Another",
+        "description": "Wife was pregnant at time of marriage by another person, without knowledge of the husband",
+        "statute": "Miss. Code §93-5-1(i)"
+      },
+      {
+        "code": "incest",
+        "name": "Incest",
+        "description": "Parties are within the prohibited degrees of kindred",
+        "statute": "Miss. Code §93-5-1(j)"
+      },
+      {
+        "code": "bigamy",
+        "name": "Bigamy",
+        "description": "A former marriage undissolved at time of present marriage",
+        "statute": "Miss. Code §93-5-1(k)"
+      },
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "Incurable insanity at the time of filing, after confinement for three years",
+        "statute": "Miss. Code §93-5-1(l)"
+      }
+    ],
+    "notes": "Mississippi has both fault and no-fault grounds. The no-fault ground (irreconcilable differences) requires consent of both parties or a 60-day waiting period. Fault-based divorce has no waiting period."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Mississippi uses equitable distribution with a dual classification system. The court first classifies property as marital or separate, then equitably divides marital property. Factors include: substantial contribution to the accumulation of property, use of marital property for non-marital purposes, dissipation of assets, market and emotional value of property, and the needs of each party.",
+    "separateProperty": "Mississippi distinguishes between marital and separate property. Separate property includes property owned before the marriage, property acquired by gift or inheritance, and property excluded by agreement. Separate property is not subject to division unless commingled.",
+    "statute": "Miss. Code §93-5-23"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Miss. Code §93-5-5",
+      "description": "Residency requirements — 6 months bona fide resident"
+    },
+    {
+      "code": "Miss. Code §93-5-1",
+      "description": "Fault grounds for divorce"
+    },
+    {
+      "code": "Miss. Code §93-5-2",
+      "description": "No-fault ground — irreconcilable differences (60-day waiting)"
+    },
+    {
+      "code": "Miss. Code §93-5-23",
+      "description": "Property division — equitable distribution; alimony"
+    },
+    {
+      "code": "Miss. Code §93-5-24",
+      "description": "Child custody — legal and physical custody, visitation"
+    },
+    {
+      "code": "Miss. Code §43-19-101 et seq.",
+      "description": "Mississippi Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$148-$158",
+    "varies": true,
+    "notes": "Mississippi filing fees are approximately $148 (uncontested) to $158 (contested) but may vary by county. Fee waivers are available for qualifying low-income individuals via an In Forma Pauperis motion."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Financial Statement (Rule 8.05)",
+        "description": "Mandatory disclosure of income, assets, and debts per Uniform Chancery Court Rule 8.05",
+        "required": true
+      },
+      {
+        "name": "Final Judgment of Divorce",
+        "description": "Final court order granting the divorce",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Service on defendant via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Waiver of Service and Entry of Appearance"]
+      },
+      {
+        "name": "Waiver of Service and Entry of Appearance",
+        "description": "Defendant voluntarily waives service and enters an appearance",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody and Visitation Plan",
+        "description": "Proposed custody and visitation arrangement",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Mississippi Child Support Guidelines (Miss. Code §43-19-101 et seq.)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Mississippi Rules of Civil Procedure and Uniform Chancery Court Rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file a response within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Mississippi must file a response within 30 days of service"
+    },
+    "statute": "Miss. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "percentage_of_income",
+    "description": "Mississippi uses a percentage-of-income model. Child support is calculated as a percentage of the non-custodial parent's adjusted gross income per the Mississippi Child Support Guidelines.",
+    "statute": "Miss. Code §43-19-101 et seq.",
+    "notes": "The court may deviate from the guidelines if application would be unjust. The percentage formula is 14% for one child, 20% for two, 22% for three, 24% for four, 26% for five or more."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Mississippi provides several types of alimony: (1) Periodic alimony — ongoing payments based on need and ability to pay, (2) Lump-sum alimony — single payment or fixed total, (3) Rehabilitative alimony — temporary support to allow a spouse to become self-supporting. The court considers the income and expenses of each party, the health and earning capacities, the needs of each party, the obligations and assets of each party, the length of the marriage, the age of the parties, and the standard of living during the marriage.",
+    "eligibility": "Alimony is available to either spouse based on need and the other's ability to pay. It is more common in longer marriages.",
+    "statute": "Miss. Code §93-5-23"
+  },
+
+  "court": {
+    "name": "Chancery Court",
+    "description": "Divorce cases in Mississippi are filed in the Chancery Court (not Circuit Court). Mississippi is unique in using Chancery Court for domestic relations matters."
+  }
+}

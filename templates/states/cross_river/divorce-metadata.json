@@ -1,0 +1,41 @@
+{
+  "stateCode": "CR",
+  "stateName": "Cross River",
+  "countryCode": "NG",
+  "countryName": "Nigeria",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "Either party must be domiciled in Nigeria at the time of filing (MCA s.2). A wife who has been ordinarily resident in Nigeria for at least 3 years immediately preceding the petition is deemed domiciled in Nigeria (MCA s.7(b)). Cross River State High Court has jurisdiction if either party resides within the state." },
+  "waitingPeriod": { "days": 0, "description": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage without leave (MCA s.30)." },
+  "twoYearBar": { "years": 2, "description": "MCA s.30 — 2-year bar from date of marriage unless exceptional hardship or depravity." },
+  "groundsForDivorce": {
+    "noFault": [
+      { "code": "separation_consent", "name": "2-Year Separation with Consent", "description": "Lived apart 2+ years, respondent does not object.", "statute": "MCA s.15(2)(e)" },
+      { "code": "separation_no_consent", "name": "3-Year Separation without Consent", "description": "Lived apart 3+ years.", "statute": "MCA s.15(2)(f)" }
+    ],
+    "fault": [
+      { "code": "wilful_refusal", "name": "Wilful Refusal to Consummate", "description": "Respondent wilfully refused to consummate.", "statute": "MCA s.15(2)(a)" },
+      { "code": "adultery", "name": "Adultery", "description": "Respondent committed adultery.", "statute": "MCA s.15(2)(b)" },
+      { "code": "intolerable_behaviour", "name": "Intolerable Behaviour", "description": "Respondent behaved intolerably.", "statute": "MCA s.15(2)(c)" },
+      { "code": "desertion", "name": "Desertion for One Year", "description": "Respondent deserted for 1+ year.", "statute": "MCA s.15(2)(d)" },
+      { "code": "restitution", "name": "Failure to Comply with Restitution Order", "description": "Respondent failed to comply with conjugal rights order.", "statute": "MCA s.15(2)(g)" },
+      { "code": "presumption_of_death", "name": "Presumption of Death (Absent 7 Years)", "description": "Other party absent 7+ years, petitioner has no reason to believe them alive.", "statute": "MCA s.15(2)(h)" }
+    ]
+  },
+  "terminology": { "caseNumberLabel": "Suit No.", "custody": "Custody of the Child(ren)", "physicalCustody": "Custody and Care", "jointCustody": "Joint Custody", "soleCustody": "Sole Custody", "alimony": "Maintenance", "childSupport": "Child Maintenance", "maritalProperty": "Ancillary Orders (MCA s.70-73)" },
+  "requiredForms": { "basic": [
+    { "name": "Petition for Dissolution of Marriage", "description": "Initiates the divorce proceeding", "required": true },
+    { "name": "Affidavit in Support of Petition", "description": "Sworn affidavit verifying the petition", "required": true },
+    { "name": "Marriage Certificate", "description": "Original or certified copy", "required": true }
+  ] },
+  "legalCitations": [
+    { "code": "Matrimonial Causes Act 1970, Cap M7 LFN 2004", "description": "Federal divorce statute" },
+    { "code": "Child Rights Act 2003", "description": "Welfare of the child — adopted by Cross River State" }
+  ],
+  "filingFees": { "approximate": "NGN 10,000-30,000", "varies": true, "notes": "Filing fees vary by court registry." },
+  "childSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "MCA s.71; Child Rights Act 2003", "notes": "No statutory formula." },
+  "spousalSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "MCA s.70", "notes": "Court discretion." },
+  "decreeProcess": { "decreeNisi": "Court grants Decree Nisi after hearing.", "decreeAbsolute": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58).", "waitingMonths": 3 },
+  "paperSize": "A4", "currency": "NGN", "emergencyNumber": "112", "dvHotline": "0800 72 73 2255"
+}

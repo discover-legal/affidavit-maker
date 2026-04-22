@@ -1,0 +1,38 @@
+{
+  "stateCode": "MA",
+  "stateName": "Massachusetts",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "M.G.L. c. 268, § 1A",
+      "description": "Perjury — 'Signed under the penalties of perjury' — Massachusetts specific statutory perjury language required in affidavits and sworn statements"
+    },
+    {
+      "code": "M.G.L. c. 222",
+      "description": "Massachusetts Uniform Law on Notarial Acts — notary public authority to administer oaths, take affidavits, and perform notarial acts; supersedes prior law as of 2019"
+    },
+    {
+      "code": "M.G.L. c. 268, § 1",
+      "description": "Perjury statute — false statement under oath — makes sworn affidavit legally binding"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and attach each with a cover page identifying the exhibit letter. Reference each exhibit in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

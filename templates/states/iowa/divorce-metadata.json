@@ -1,0 +1,194 @@
+{
+  "stateCode": "IA",
+  "stateName": "Iowa",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Legal Custody / Physical Care",
+    "visitation": "Visitation",
+    "alimony": "Spousal Support",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyMonths": 0,
+    "description": "At least one party must have been a resident of Iowa for at least one year prior to filing, unless the defendant is a resident of Iowa at the time of filing.",
+    "statute": "Iowa Code §598.5"
+  },
+
+  "waitingPeriod": {
+    "days": 90,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "No decree shall be entered until 90 days after the date the petition is served on the respondent. Iowa Code §598.19."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "There has been a breakdown of the marriage relationship to the extent that the legitimate objects of matrimony have been destroyed and there remains no reasonable likelihood that the marriage can be preserved",
+        "statute": "Iowa Code §598.17"
+      }
+    ],
+    "fault": [],
+    "notes": "Iowa is a purely no-fault state. The only ground for dissolution is irretrievable breakdown of the marriage. Iowa Code §598.17."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Iowa uses equitable distribution. ALL property of both spouses — including property acquired before the marriage — is subject to division. The court considers the length of the marriage, property brought into the marriage, each party's contribution, age and health, earning capacity, and other relevant factors.",
+    "separateProperty": "Iowa does not recognize a separate property classification. All property of both spouses is in the marital pot, though the court considers when and how property was acquired.",
+    "statute": "Iowa Code §598.21"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Iowa Code §598.5",
+      "description": "Residency requirements — 1 year unless defendant is Iowa resident"
+    },
+    {
+      "code": "Iowa Code §598.17",
+      "description": "Grounds for dissolution — irretrievable breakdown (no-fault only)"
+    },
+    {
+      "code": "Iowa Code §598.19",
+      "description": "90-day waiting period from service"
+    },
+    {
+      "code": "Iowa Code §598.21",
+      "description": "Property division — equitable distribution of all property"
+    },
+    {
+      "code": "Iowa Code §598.21A",
+      "description": "Spousal support — traditional, rehabilitative, reimbursement"
+    },
+    {
+      "code": "Iowa Code §598.41",
+      "description": "Child custody — joint legal custody, physical care, visitation"
+    },
+    {
+      "code": "Iowa Code §598.21B",
+      "description": "Iowa Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$265",
+    "varies": false,
+    "notes": "Iowa statewide filing fee for a Petition for Dissolution of Marriage is $265 (Iowa Code §602.8105(1)(b)). Fee waivers are available for qualifying low-income individuals via an Application to Defer Fees."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Original Notice",
+        "description": "Formal notice to respondent (Iowa equivalent of summons)",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Original Notice",
+        "description": "Service on respondent via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Voluntary Appearance and Waiver"]
+      },
+      {
+        "name": "Voluntary Appearance and Waiver",
+        "description": "Respondent waives formal service by voluntary appearance",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custodial and Visitation Provisions",
+        "description": "Proposed custody and visitation arrangement",
+        "required": true
+      },
+      {
+        "name": "Child Support Computation Worksheet",
+        "description": "Calculation per Iowa Child Support Guidelines (Iowa Code §598.21B)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Iowa Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Respondent served outside Iowa must file a response within 20 days of service (additional time may be granted)"
+    },
+    "statute": "Iowa R. Civ. P. 1.305"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Iowa uses an income shares model. Both parents' net monthly incomes are combined and the child support obligation is determined from the Iowa Child Support Guidelines schedule based on combined net income and the number of children.",
+    "statute": "Iowa Code §598.21B",
+    "notes": "The court may deviate from the guidelines if application would be unjust. Adjustments may apply for overnight visitation credits."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "spousal_support",
+    "description": "Iowa provides three types of spousal support: (1) Traditional — ongoing support based on need and ability to pay, (2) Rehabilitative — temporary support to allow a spouse to become self-supporting through education or training, and (3) Reimbursement — compensation for economic sacrifices made during the marriage (e.g., supporting a spouse through school).",
+    "eligibility": "The court considers the length of the marriage, age and health of the parties, earning capacity, education level, feasibility of becoming self-supporting, and tax consequences.",
+    "statute": "Iowa Code §598.21A"
+  },
+
+  "court": {
+    "name": "District Court",
+    "description": "Dissolution of marriage is filed in the District Court in the county where either party resides."
+  }
+}

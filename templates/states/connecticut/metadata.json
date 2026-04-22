@@ -1,0 +1,34 @@
+{
+  "stateCode": "CT",
+  "stateName": "Connecticut",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "DOCKET NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "Conn. Gen. Stat. \u00a71-24",
+      "description": "Oaths and affirmations \u2014 authority to administer oaths; requirements for sworn statements and affidavits"
+    },
+    {
+      "code": "Conn. Gen. Stat. \u00a753a-156",
+      "description": "Perjury \u2014 criminal penalty for making a false sworn statement in an affidavit or other official proceeding"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public / Commissioner of the Superior Court\nState of Connecticut\n\nMy commission expires: ___________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

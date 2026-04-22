@@ -1,0 +1,218 @@
+{
+  "stateCode": "IN",
+  "stateName": "Indiana",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Decree of Dissolution of Marriage",
+    "caseNumberLabel": "CAUSE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyMonths": 3,
+    "description": "At least one party must have been a resident of Indiana for at least 6 months and a resident of the county where the petition is filed for at least 3 months immediately preceding the filing.",
+    "statute": "IC 31-15-2-6"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Indiana has a mandatory 60-day waiting period. The final hearing cannot be held until at least 60 days after the date the petition is filed. IC 31-15-2-10."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The marriage is irretrievably broken",
+        "statute": "IC 31-15-2-3(1)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "felony_conviction",
+        "name": "Felony Conviction",
+        "description": "Conviction of a felony subsequent to the marriage",
+        "statute": "IC 31-15-2-3(2)"
+      },
+      {
+        "code": "impotence",
+        "name": "Impotence",
+        "description": "Impotence existing at the time of the marriage",
+        "statute": "IC 31-15-2-3(3)"
+      },
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "Incurable insanity of either party for a period of at least two years",
+        "statute": "IC 31-15-2-3(4)"
+      }
+    ],
+    "notes": "Indiana is predominantly a no-fault state. The most common ground is irretrievable breakdown. Fault grounds exist but are rarely used."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Indiana presumes an equal division of marital property. The court may deviate from equal division based on factors including the contribution of each spouse, whether property was acquired before marriage, economic circumstances, conduct of the parties, and the earnings or earning ability of each spouse.",
+    "separateProperty": "Indiana does not have a traditional separate property classification. All property of either party is part of the marital pot, but the court considers when and how property was acquired in determining equitable division.",
+    "statute": "IC 31-15-7-5"
+  },
+
+  "legalCitations": [
+    {
+      "code": "IC 31-15-2-6",
+      "description": "Residency requirements — 6 months state, 3 months county"
+    },
+    {
+      "code": "IC 31-15-2-3",
+      "description": "Grounds for dissolution of marriage"
+    },
+    {
+      "code": "IC 31-15-2-10",
+      "description": "60-day waiting period from filing"
+    },
+    {
+      "code": "IC 31-15-7-5",
+      "description": "Disposition of property — presumption of equal division"
+    },
+    {
+      "code": "IC 31-15-7-2",
+      "description": "Spousal maintenance — limited circumstances"
+    },
+    {
+      "code": "IC 31-17-2",
+      "description": "Child custody — legal and physical custody determination"
+    },
+    {
+      "code": "IC 31-16-6",
+      "description": "Indiana Child Support Guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$157-$177",
+    "varies": true,
+    "notes": "Indiana filing fees range from approximately $157 to $177 depending on the county. Many counties (e.g., Marion, Clark) charge $177. Fee waivers are available for qualifying low-income individuals via an Affidavit of Indigency."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Appearance Form",
+        "description": "Respondent's entry of appearance",
+        "required": false
+      },
+      {
+        "name": "Financial Declaration Form",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff or process server",
+        "required": true,
+        "alternatives": ["Waiver of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Respondent waives formal service",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Time Order",
+        "description": "Court order establishing parenting time schedule per Indiana Parenting Time Guidelines",
+        "required": true
+      },
+      {
+        "name": "Child Support Obligation Worksheet",
+        "description": "Calculation per Indiana Child Support Guidelines (IC 31-16-6)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Indiana Trial Rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file a response within 20 days of service"
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Respondent served outside Indiana must file a response within 20 days of service (additional time may be granted)"
+    },
+    "statute": "Indiana Trial Rule 6(C)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Indiana uses an income shares model. Both parents' weekly gross incomes are combined and the child support obligation is determined from the Indiana Child Support Guidelines schedule based on combined weekly adjusted income and the number of children.",
+    "statute": "IC 31-16-6",
+    "notes": "The court may deviate from the guidelines if application would be unjust. Parenting time credits may apply."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "limited_maintenance",
+    "description": "Indiana maintenance (spousal support) is very limited. It is available only in three situations: (1) a spouse is physically or mentally incapacitated and cannot support themselves, (2) a spouse lacks sufficient property and is the caretaker of an incapacitated child, or (3) rehabilitative maintenance for up to 3 years to complete education or training.",
+    "eligibility": "Only available in the three statutory circumstances listed above. The standard of living during the marriage is generally not relevant.",
+    "statute": "IC 31-15-7-2"
+  },
+
+  "court": {
+    "name": "Circuit Court or Superior Court",
+    "description": "Dissolution of marriage is filed in the Circuit Court or Superior Court in the county where either party resides."
+  }
+}

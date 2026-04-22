@@ -1,0 +1,44 @@
+{
+  "stateCode": "NT_AU",
+  "stateName": "Northern Territory",
+  "countryCode": "AU",
+  "countryName": "Australia",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "File Number",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "territoryNotState": true,
+    "justiceOfThePeace": true
+  },
+  "courtSystem": {
+    "trialCourt": "Federal Circuit and Family Court of Australia",
+    "familyDivision": "Federal Circuit and Family Court of Australia — Division 1",
+    "appealCourt": "Full Court of the Family Court of Australia"
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Family Law Act 1975 (Cth)",
+    "primaryGround": "irretrievable breakdown shown by 12-month separation (s.48(1))",
+    "propertyDivision": "Family Law Act 1975 (Cth), s.79 — just and equitable division"
+  },
+  "legalCitations": [
+    { "code": "Family Law Act 1975 (Cth)", "description": "Federal statute — governs divorce, property, parenting, and spousal maintenance" },
+    { "code": "Family Law Rules 2004 (Cth)", "description": "Procedural rules for the FCFCOA" },
+    { "code": "Oaths, Affidavits and Declarations Act 2010 (NT)", "description": "NT statute — requirements for sworn affidavits and statutory declarations" }
+  ],
+  "affidavitJurat": "Sworn/Affirmed at ___ in the Northern Territory on the ___ day of ___, ___.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths",
+  "exhibitRules": { "labelStyle": "letters", "requireCoverPage": true, "instructions": "Each exhibit must bear an exhibit certificate." },
+  "paperSize": "A4",
+  "currency": "AUD",
+  "emergencyNumber": "000",
+  "dvHotline": "1800 737 732"
+}

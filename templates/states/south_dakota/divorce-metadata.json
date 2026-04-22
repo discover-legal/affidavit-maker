@@ -1,0 +1,236 @@
+{
+  "stateCode": "SD",
+  "stateName": "South Dakota",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CIV. NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "resident": true,
+    "stateMonths": 0,
+    "description": "The plaintiff must be a resident of South Dakota at the time of filing. There is no minimum duration of residency if the cause of action arose in South Dakota.",
+    "statute": "SDCL §25-4-30"
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "No hearing, trial, or final judgment can occur until 60 days have elapsed from completed service of the summons and complaint on the defendant. SDCL §25-4-34. The court may continue the case for an additional 30 days for reconciliation efforts if either party requests it (SDCL §25-4-17.2).",
+    "statute": "SDCL §25-4-34"
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irreconcilable_differences",
+        "name": "Irreconcilable Differences",
+        "description": "Irreconcilable differences have caused the irremediable breakdown of the marriage",
+        "statute": "SDCL §25-4-17.1"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Adultery by the defendant",
+        "statute": "SDCL §25-4-2"
+      },
+      {
+        "code": "extreme_cruelty",
+        "name": "Extreme Cruelty",
+        "description": "Extreme cruelty",
+        "statute": "SDCL §25-4-2"
+      },
+      {
+        "code": "willful_desertion",
+        "name": "Willful Desertion",
+        "description": "Willful desertion",
+        "statute": "SDCL §25-4-2"
+      },
+      {
+        "code": "willful_neglect",
+        "name": "Willful Neglect",
+        "description": "Willful neglect to provide the common necessities of life",
+        "statute": "SDCL §25-4-2"
+      },
+      {
+        "code": "habitual_intemperance",
+        "name": "Habitual Intemperance",
+        "description": "Habitual intemperance",
+        "statute": "SDCL §25-4-2"
+      },
+      {
+        "code": "felony_conviction",
+        "name": "Conviction of a Felony",
+        "description": "Conviction of a felony",
+        "statute": "SDCL §25-4-2"
+      }
+    ],
+    "notes": "South Dakota allows both fault and no-fault grounds. Irreconcilable differences is the most common ground."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "South Dakota follows equitable distribution. The court divides all property of the parties in an equitable manner. The court considers the duration of the marriage, the value of property, the ages of the parties, health, competency to earn a living, and the contribution of each party to the accumulation of property.",
+    "separateProperty": "All property is subject to distribution, though the court considers the origin and source of property in determining equitable division.",
+    "statute": "SDCL §25-4-44"
+  },
+
+  "legalCitations": [
+    {
+      "code": "SDCL §25-4-30",
+      "description": "Residency requirements — resident at time of filing"
+    },
+    {
+      "code": "SDCL §25-4-2",
+      "description": "Grounds for divorce — fault grounds"
+    },
+    {
+      "code": "SDCL §25-4-17.1",
+      "description": "Grounds for divorce — irreconcilable differences (no-fault)"
+    },
+    {
+      "code": "SDCL §25-4-44",
+      "description": "Property division — equitable distribution"
+    },
+    {
+      "code": "SDCL §25-4-41",
+      "description": "Alimony"
+    },
+    {
+      "code": "SDCL §25-4A",
+      "description": "Joint custody; legal and physical custody"
+    },
+    {
+      "code": "SDCL §25-4A-11",
+      "description": "Visitation"
+    },
+    {
+      "code": "SDCL §25-7-6.2",
+      "description": "South Dakota Child Support Guidelines"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$95",
+    "varies": true,
+    "notes": "South Dakota filing fee for a divorce complaint is approximately $95 (may vary by county). The answer filing fee is $25. Fee waivers are available for qualifying low-income individuals by filing UJS-305 Motion & Order to Waive Filing Fee."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via sheriff or process server",
+        "required": true,
+        "alternatives": ["Voluntary Appearance and Waiver"]
+      },
+      {
+        "name": "Voluntary Appearance and Waiver",
+        "description": "Defendant voluntarily appears and waives formal service",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Court order establishing custody and visitation",
+        "required": true
+      },
+      {
+        "name": "Child Support Obligation Worksheet",
+        "description": "Calculation per South Dakota Child Support Guidelines (SDCL §25-7-6.2)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per South Dakota Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside South Dakota must file an answer within 30 days of service"
+    },
+    "statute": "SDCL §15-6-12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "South Dakota uses an income shares model. Both parents' net incomes are combined and child support is determined from the South Dakota Child Support Guidelines schedule based on combined net income and the number of children.",
+    "statute": "SDCL §25-7-6.2",
+    "notes": "The court may deviate from the guidelines if application would be unjust or inappropriate."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "South Dakota courts may award alimony considering factors including the length of the marriage, the earning capacity of each party, the financial condition and needs of each party, the fault of the parties, and any other relevant factors.",
+    "eligibility": "Either party may request alimony. The court has broad discretion to determine the amount and duration.",
+    "statute": "SDCL §25-4-41"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Divorce is filed in the Circuit Court in the county where either party resides."
+  }
+}

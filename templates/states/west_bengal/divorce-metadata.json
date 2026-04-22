@@ -1,0 +1,10 @@
+{
+  "stateCode": "IN_WB", "stateName": "West Bengal", "countryCode": "IN", "countryName": "India",
+  "documentTypes": ["divorce_petition", "divorce_decree"], "version": "1.0", "legallyCompliant": true, "personalLawSystem": true,
+  "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "HMA s.19 / SMA s.31 jurisdiction rules." },
+  "waitingPeriod": { "days": 180, "description": "6-month cooling-off for mutual consent (waivable per Amardeep Singh v. Harveen Kaur (2017)). SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))." },
+  "groundsForDivorce": { "noFault": [{ "code": "mutual_consent", "name": "Mutual Consent", "statute": "HMA s.13B / SMA s.28" }], "fault": [{ "code": "adultery", "statute": "HMA s.13(1)(i)" }, { "code": "cruelty", "statute": "HMA s.13(1)(ia)" }, { "code": "desertion", "statute": "HMA s.13(1)(ib)" }, { "code": "conversion", "statute": "HMA s.13(1)(ii)" }, { "code": "mental_disorder", "statute": "HMA s.13(1)(iii)" }, { "code": "venereal_disease", "statute": "HMA s.13(1)(v)" }, { "code": "renunciation", "statute": "HMA s.13(1)(vi)" }, { "code": "presumed_dead", "statute": "HMA s.13(1)(vii)" }] },
+  "filingFees": { "approximate": "INR 500-2,000", "varies": true },
+  "effectiveDateRule": "Decree takes effect from the date it is passed.",
+  "stampPaperValue": "INR 10", "paperSize": "A4", "currency": "INR", "emergencyNumber": "112", "dvHotline": "181"
+}

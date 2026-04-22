@@ -1,0 +1,33 @@
+{
+  "stateCode": "ACT",
+  "stateName": "Australian Capital Territory",
+  "countryCode": "AU",
+  "countryName": "Australia",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": { "stateMonths": 12, "countyDays": 0, "description": "Either spouse must be an Australian citizen, domiciled in Australia, or ordinarily resident in Australia for at least 12 months (s.39(3))." },
+  "waitingPeriod": { "days": 0, "description": "Divorce Order takes effect 1 month and 1 day after made (s.55)." },
+  "groundsForDivorce": {
+    "noFault": [{ "code": "separation", "name": "Irretrievable Breakdown (12-Month Separation)", "description": "12 months of continuous separation.", "statute": "Family Law Act 1975 (Cth), s.48(1)" }],
+    "fault": []
+  },
+  "terminology": { "caseNumberLabel": "File Number", "custody": "Parenting Orders", "physicalCustody": "Time Spent with Child", "jointCustody": "Parental Responsibility (shared)", "soleCustody": "Sole Parental Responsibility", "alimony": "Spousal Maintenance", "childSupport": "Child Support", "maritalProperty": "Property Settlement (s.79)" },
+  "requiredForms": { "basic": [
+    { "name": "Application for Divorce", "description": "Filed in the FCFCOA — Canberra registry", "required": true },
+    { "name": "Affidavit — Proof of Separation", "description": "Supporting affidavit", "required": true },
+    { "name": "Marriage Certificate", "description": "Certified copy", "required": true }
+  ]},
+  "legalCitations": [
+    { "code": "Family Law Act 1975 (Cth)", "description": "Federal divorce statute" },
+    { "code": "Child Support (Assessment) Act 1989 (Cth)", "description": "Federal child support" },
+    { "code": "Family Law Amendment Act 2023 (Cth)", "description": "Repealed presumption of equal shared parental responsibility (s.61DA); reformed parenting provisions (in force 6 May 2024)" },
+    { "code": "Family Law Amendment Act 2024 (Cth)", "description": "Codified property settlement process (s.79); family violence and wastage factors; companion animal orders; abolished mandatory counselling for marriages under 2 years (in force 10 June 2025)" }
+  ],
+  "filingFees": { "approximate": "AUD $1125", "varies": false, "notes": "Fee effective 1 July 2025. Reduced fee of AUD $365 available for concession card holders (Health Care Card, Pensioner Concession Card, Commonwealth Seniors Health Card) or parties experiencing financial hardship." },
+  "childSupportGuidelines": { "calculationBasis": "formula", "federalGuidelines": "Child Support (Assessment) Act 1989 (Cth)", "notes": "Assessed by Services Australia." },
+  "spousalSupportGuidelines": { "calculationBasis": "discretionary", "guidelines": "Family Law Act 1975 (Cth), ss.72-75", "notes": "Discretionary." },
+  "effectiveDateRule": "Divorce Order takes effect 1 month and 1 day after made (s.55).",
+  "certificateNote": "Sealed Divorce Order obtainable from registry after effective date.",
+  "registryLocations": { "primary": "Canberra", "others": [] }
+}

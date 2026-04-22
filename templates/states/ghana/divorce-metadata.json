@@ -1,0 +1,160 @@
+{
+  "stateCode": "GH",
+  "stateName": "Ghana",
+  "countryCode": "GH",
+  "countryName": "Ghana",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 36,
+    "countyDays": 0,
+    "description": "Either party must be (a) a citizen of Ghana, OR (b) domiciled in Ghana, OR (c) ordinarily resident in Ghana for at least 3 years immediately before filing (Matrimonial Causes Act 1971, s.31)."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. However, the court MUST refer the matter to conciliation before proceeding (MCA s.2(3)). A petition cannot be filed within 2 years of marriage unless exceptional circumstances apply (MCA s.1)."
+  },
+  "twoYearBar": {
+    "years": 2,
+    "description": "No petition for divorce shall be presented to the court within two years of marriage. The court may grant leave in exceptional circumstances of exceptional hardship or exceptional depravity (MCA s.1)."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "consent_separation",
+        "name": "Separation with Consent (2 years)",
+        "description": "The parties have not lived as man and wife for a continuous period of at least 2 years immediately preceding the presentation of the petition, and the respondent consents to the grant of a decree of divorce. Consent shall not be unreasonably withheld.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(d)"
+      },
+      {
+        "code": "five_year_separation",
+        "name": "Five-Year Separation",
+        "description": "The parties have not lived as man and wife for a continuous period of at least 5 years immediately preceding the presentation of the petition. No consent from the respondent is required.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(e)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery and Intolerability",
+        "description": "The respondent has committed adultery and the petitioner finds it intolerable to live with the respondent.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(a)"
+      },
+      {
+        "code": "unreasonable_behaviour",
+        "name": "Unreasonable Behaviour",
+        "description": "The respondent has behaved in such a way that the petitioner cannot reasonably be expected to live with the respondent.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(b)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion (2 years)",
+        "description": "The respondent has deserted the petitioner for a continuous period of at least 2 years immediately preceding the filing.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(c)"
+      }
+    ]
+  },
+  "marriageTypes": {
+    "ordinance": {
+      "name": "Ordinance Marriage",
+      "description": "Registered civil or church marriage under the Marriage Ordinance (Cap 127)",
+      "statute": "Marriage Ordinance 1884-1985 (Cap 127)"
+    },
+    "customary": {
+      "name": "Customary Marriage",
+      "description": "Marriage performed and recognized under customary law, may be registered under PNDCL 112",
+      "statute": "Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112)"
+    },
+    "mohammedan": {
+      "name": "Mohammedan Marriage",
+      "description": "Marriage performed under Islamic law and registered under the Marriage of Mohammedans Ordinance",
+      "statute": "Marriage of Mohammedans Ordinance (Cap 129)"
+    }
+  },
+  "terminology": {
+    "caseNumberLabel": "Suit No.",
+    "custody": "Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Matrimonial Property (1992 Constitution, Art. 22)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Divorce",
+        "description": "Initiates the divorce proceeding in the High Court under the Matrimonial Causes Act 1971",
+        "required": true
+      },
+      {
+        "name": "Statement of Arrangements for Children",
+        "description": "Required if there are children of the marriage — details proposed custody and maintenance arrangements",
+        "required": false
+      },
+      {
+        "name": "Affidavit in Support",
+        "description": "Sworn affidavit verifying the facts stated in the petition",
+        "required": true
+      }
+    ]
+  },
+  "mandatoryReconciliation": {
+    "required": true,
+    "description": "The court MUST refer the matter to conciliation (court-annexed mediation) before proceeding with the hearing (MCA s.2(3)). Only if reconciliation fails may the court proceed to hear the petition.",
+    "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(3)"
+  },
+  "decreeProcess": {
+    "stages": ["Decree Nisi", "Decree Absolute"],
+    "description": "After the hearing, the court first grants a Decree Nisi. Either party may apply for the Decree Nisi to be made absolute after the prescribed period. The court may rescind the decree nisi before it is made absolute if cause is shown."
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Act 1971 (Act 367)",
+      "description": "Governs all divorce proceedings in Ghana — sole ground is irretrievable breakdown (s.2)"
+    },
+    {
+      "code": "Marriage Ordinance (Cap 127)",
+      "description": "Governs ordinance (civil/church-registered) marriages"
+    },
+    {
+      "code": "Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112)",
+      "description": "Registration of customary marriages and divorces"
+    },
+    {
+      "code": "Children's Act 1998 (Act 560)",
+      "description": "Best interests of the child — custody, maintenance, and welfare"
+    },
+    {
+      "code": "1992 Constitution of Ghana, Art. 22",
+      "description": "Spouse's property rights — equitable distribution on dissolution"
+    },
+    {
+      "code": "Intestate Succession Law 1985 (PNDC Law 111)",
+      "description": "Distribution of property on intestacy — relevant to spousal property entitlements"
+    },
+    {
+      "code": "Domestic Violence Act 2007 (Act 732)",
+      "description": "Criminalizes domestic violence and provides for protection orders"
+    }
+  ],
+  "filingFees": {
+    "approximate": "GHS 500-1,000",
+    "varies": true,
+    "notes": "Court filing fees for a divorce petition range from approximately GHS 500 to GHS 1,000, depending on the court (High Court vs. Circuit Court) and the complexity of the case. Lawyer professional fees are separate and regulated by the Ghana Bar Association Scale of Legal Fees (2022), which typically ranges from GHS 30,000 to GHS 90,000. Indigent applicants may apply for a fee waiver."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "guidelines": "Children's Act 1998 (Act 560)",
+    "notes": "Ghana does not have a fixed formula for child maintenance. The court considers the needs of the child, the financial capacity of each parent, and the standard of living the child enjoyed during the marriage."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "guidelines": "Matrimonial Causes Act 1971 (Act 367), s.20",
+    "notes": "The court may order either spouse to pay maintenance to the other. Factors include the duration of the marriage, the financial capacity and needs of each spouse, and whether either party contributed to the education or career of the other."
+  },
+  "effectiveDateRule": "The Decree Nisi becomes absolute after the prescribed period has elapsed and on application by either party. The marriage is not dissolved until the Decree Absolute is made.",
+  "certificateNote": "A Certificate of Divorce may be obtained from the High Court registry after the Decree Absolute is made."
+}

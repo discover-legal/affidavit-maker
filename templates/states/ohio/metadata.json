@@ -1,0 +1,38 @@
+{
+  "stateCode": "OH",
+  "stateName": "Ohio",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "CASE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "R.C. § 2921.11",
+      "description": "Perjury — knowingly making a false statement under oath or affirmation — makes perjury statement required in sworn affidavits"
+    },
+    {
+      "code": "R.C. § 2319.03",
+      "description": "Affidavit requirements — oath administered to affiant; affidavit must be in writing and sworn before an authorized officer"
+    },
+    {
+      "code": "R.C. § 147.03",
+      "description": "Notary public authority — power to administer oaths, take affidavits, and certify instruments; notary must include commission expiration date"
+    }
+  ],
+  "affidavitJurat": "Sworn to and subscribed before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Ohio\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be labeled sequentially (Exhibit A, Exhibit B, etc.) with a cover page identifying the exhibit letter and description. Attach exhibits after the signature and notary block."
+  }
+}

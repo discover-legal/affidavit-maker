@@ -1,0 +1,34 @@
+{
+  "stateCode": "HI",
+  "stateName": "Hawaii",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "FC-D NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "titlecase"
+  },
+  "legalCitations": [
+    {
+      "code": "HRS §456-1 et seq.",
+      "description": "Hawaii Notaries Public — authority to administer oaths, take acknowledgments, and perform notarial acts"
+    },
+    {
+      "code": "HRS §710-1060",
+      "description": "Perjury — criminal penalty for false statements under oath"
+    }
+  ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, State of Hawaii\n\nMy commission expires: ___________\nJudicial Circuit: _________________\n\n[NOTARY SEAL]",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Label exhibits sequentially (Exhibit A, Exhibit B, etc.) and reference each in the body of the affidavit. Attach exhibits at the end of the document."
+  }
+}

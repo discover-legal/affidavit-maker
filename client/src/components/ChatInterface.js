@@ -10,12 +10,42 @@ import {
   Loader,
   ChevronDown,
   ChevronUp,
-  Upload
+  Upload,
+  MapPin
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 import DocumentMetadata from './DocumentMetadata';
 import EvidenceUploadModal from './EvidenceUploadModal';
+
+// TX Divorce phase metadata (mirrors services/agents/prompts/txDivorce/index.js)
+const TX_DIVORCE_PHASE_ORDER = [
+  'INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY',
+  'SUPPORT', 'SERVICE', 'INDIGENCY', 'MILITARY', 'REVIEW'
+];
+const TX_DIVORCE_PHASE_NAMES = {
+  INTAKE:    'Getting Started',
+  RESIDENCY: 'Texas Residency',
+  GROUNDS:   'Grounds & Marriage',
+  CHILDREN:  'Children',
+  PROPERTY:  'Property & Assets',
+  SUPPORT:   'Support & Finances',
+  SERVICE:   'Service of Process',
+  INDIGENCY: 'Filing Fees',
+  MILITARY:  'Military Status',
+  REVIEW:    'Final Review'
+};
+
+// Supported states for document creation
+const SUPPORTED_STATES = [
+  { code: 'TX', name: 'Texas' },
+  { code: 'UT', name: 'Utah' },
+  { code: 'AZ', name: 'Arizona' },
+  { code: 'CA', name: 'California' },
+  { code: 'FL', name: 'Florida' },
+  { code: 'IL', name: 'Illinois' },
+  { code: 'NY', name: 'New York' }
+];
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -177,18 +207,29 @@ const ChatInterface = () => {
             }]);
           }
         } else {
-          // New user - show welcome message
-          console.log('👋 Showing welcome message for new affidavit');
-          setMessages([{
-            type: 'bot',
-            content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+          // New user - show welcome message based on document type
+          console.log('👋 Showing welcome message for new document');
+          const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
 
-Let's start with your legal first name and last name, then which state you're in.`
-          }]);
+          if (isDivorcePackage) {
+            setMessages([{
+              type: 'bot',
+              content: `Hi! I'm here to help you create your divorce package, which includes both your Divorce Petition and Divorce Decree.
+
+First, please select your state above. Each state has different requirements for divorce documents, and I need to know your state to ensure your documents are legally compliant.`
+            }]);
+          } else {
+            setMessages([{
+              type: 'bot',
+              content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+
+First, please select your state above. Each state has different legal requirements, and I need to know your state to ensure your affidavit is compliant.`
+            }]);
+          }
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, generateFactSummary]);
+  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, currentDocument.documentType, currentDocument.firstName, generateFactSummary]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -306,8 +347,69 @@ Let's start with your legal first name and last name, then which state you're in
     }
   };
 
+  // TX Divorce phase progress
+  const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(currentDocument.documentType);
+  const isTXDivorce = isDivorceDoc && (!currentDocument.state || currentDocument.state === 'TX');
+  const orchestratorPhase = currentDocument.orchestratorState?.currentPhase;
+  const currentPhaseIndex = orchestratorPhase ? TX_DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
+  const phaseProgress = currentPhaseIndex >= 0
+    ? Math.round(((currentPhaseIndex + 1) / TX_DIVORCE_PHASE_ORDER.length) * 100)
+    : 0;
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
+      {/* State Selector - Shows prominently when no state is selected */}
+      {!currentDocument.state && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="h-5 w-5 text-blue-600" />
+            <span className="font-semibold text-gray-800">Select Your State</span>
+            <span className="text-xs text-red-500 font-medium">(Required)</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SUPPORTED_STATES.map((state) => (
+              <button
+                key={state.code}
+                onClick={() => {
+                  updateDocumentData({ state: state.code });
+                  // Add a message confirming state selection
+                  const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
+                  setMessages(prev => [...prev, {
+                    type: 'bot',
+                    content: `Great! You've selected ${state.name}. ${isDivorcePackage
+                      ? `I'll make sure your divorce documents comply with ${state.name} requirements.`
+                      : `I'll make sure your affidavit complies with ${state.name} requirements.`
+                    }\n\nNow, let's start with your legal first and last name.`
+                  }]);
+                }}
+                className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium text-gray-700 hover:text-blue-700"
+              >
+                {state.code} - {state.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TX Divorce Phase Progress Strip */}
+      {isTXDivorce && orchestratorPhase && (
+        <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-indigo-700">
+              Step {currentPhaseIndex + 1} of {TX_DIVORCE_PHASE_ORDER.length}:{' '}
+              {TX_DIVORCE_PHASE_NAMES[orchestratorPhase] || orchestratorPhase}
+            </span>
+            <span className="text-xs text-indigo-400">{phaseProgress}% complete</span>
+          </div>
+          <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${phaseProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Document Metadata Button - Only visible on tablet+ screens */}
       <div className="hidden md:block border-b bg-white">
         <button
@@ -450,15 +552,17 @@ Let's start with your legal first name and last name, then which state you're in
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isLoading}
+            placeholder={currentDocument.state ? "Type your message..." : "Please select your state above first..."}
+            className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !currentDocument.state ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+            }`}
+            disabled={isLoading || !currentDocument.state}
           />
           <button
             type="submit"
-            disabled={isLoading || !message.trim()}
+            disabled={isLoading || !message.trim() || !currentDocument.state}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isLoading || !message.trim()
+              isLoading || !message.trim() || !currentDocument.state
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}

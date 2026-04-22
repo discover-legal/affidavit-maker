@@ -1,0 +1,77 @@
+{
+  "stateCode": "HK",
+  "stateName": "Hong Kong",
+  "countryCode": "HK",
+  "countryName": "Hong Kong SAR",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Case No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase",
+    "commissionerForOaths": true,
+    "paperSize": "A4"
+  },
+  "courtSystem": {
+    "trialCourt": "Family Court",
+    "familyDivision": "Family Court (District Court level)",
+    "highCourt": "Court of First Instance (High Court)",
+    "appealCourt": "Court of Appeal"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Matrimonial Causes Ordinance (Cap 179)",
+    "primaryGround": "irretrievable breakdown of marriage (s.11 MCO)",
+    "propertyDivision": "Matrimonial Proceedings and Property Ordinance (Cap 192), s.7"
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Ordinance (Cap 179)",
+      "description": "Primary divorce statute — grounds, procedure, bars to divorce"
+    },
+    {
+      "code": "Matrimonial Proceedings and Property Ordinance (Cap 192)",
+      "description": "Financial provision, property adjustment, maintenance orders"
+    },
+    {
+      "code": "Guardianship of Minors Ordinance (Cap 13)",
+      "description": "Custody, care and control of minor children"
+    },
+    {
+      "code": "Evidence Ordinance (Cap 8)",
+      "description": "Rules governing sworn evidence including affidavits"
+    },
+    {
+      "code": "Oaths and Declarations Ordinance (Cap 11)",
+      "description": "Administration of oaths, affirmations, and statutory declarations"
+    },
+    {
+      "code": "Separation and Maintenance Orders Ordinance (Cap 16)",
+      "description": "Spousal and child maintenance without divorce"
+    },
+    {
+      "code": "Domestic and Cohabitation Relationships Violence Ordinance (Cap 189)",
+      "description": "Protection orders for victims of domestic violence and cohabitation violence"
+    }
+  ],
+  "affidavitJurat": "Sworn at Hong Kong this _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\nA Commissioner for Oaths / Solicitor / Notary Public",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the person before whom the affidavit is sworn."
+  },
+  "emergencyNumber": "999",
+  "dvHotline": "2522 0434",
+  "dvHotlineNote": "Harmony House 24-hour Women's Hotline: 2522 0434; Social Welfare Department 24-hour hotline: 2343 2255"
+}

@@ -1,0 +1,269 @@
+{
+  "stateCode": "NC",
+  "stateName": "North Carolina",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Absolute Divorce",
+    "petition": "Complaint for Absolute Divorce",
+    "decree": "Judgment of Absolute Divorce",
+    "caseNumberLabel": "FILE NO.",
+    "custody": "Custody",
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Primary Physical Custody",
+    "visitation": "Secondary Custody / Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 0,
+    "description": "One of the parties must have been a resident of North Carolina for at least six months immediately before filing.",
+    "statute": "N.C.G.S. § 50-8"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "description": "North Carolina has no waiting period after filing. However, the parties must have lived separate and apart for ONE YEAR before the divorce can be filed. The one-year separation IS the grounds for divorce, not a waiting period after filing.",
+    "statute": "N.C.G.S. § 50-6",
+    "notes": "Critical: The one-year separation must be complete BEFORE filing, not after. Divorce cannot be granted until at least one year of separation has occurred."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation",
+        "name": "One-Year Separation",
+        "description": "The parties have lived separate and apart for one year, and one party has been a North Carolina resident for six months immediately before filing.",
+        "statute": "N.C.G.S. § 50-6",
+        "notes": "This is the ONLY commonly used ground for absolute divorce in North Carolina. The separation must be for at least one year with at least one party intending the separation to be permanent."
+      },
+      {
+        "code": "incurable_insanity",
+        "name": "Incurable Insanity",
+        "description": "The parties have lived separate and apart for five years on account of the incurable insanity of the defendant.",
+        "statute": "N.C.G.S. § 50-5",
+        "notes": "Rarely used; requires judicial declaration of incurable insanity"
+      }
+    ],
+    "fault": [],
+    "note": "North Carolina no longer has fault-based grounds for absolute divorce. Fault may be relevant only for alimony claims."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "communityProperty": false,
+    "description": "North Carolina is an equitable distribution state. Marital property is presumptively divided equally, but the court may deviate based on 12 statutory factors. CRITICAL: Property distribution must be resolved in a SEPARATE proceeding. A divorce judgment does NOT automatically distribute property. A claim for equitable distribution must be filed BEFORE the divorce is granted or the right is PERMANENTLY WAIVED.",
+    "statute": "N.C.G.S. § 50-20",
+    "waiverWarning": "Claims for equitable distribution, alimony, and post-separation support MUST be raised before the divorce judgment is entered or they are permanently waived.",
+    "factors": [
+      "Income, property, and liabilities of each party at the time the division of property is to become effective",
+      "Obligations for support arising from a prior marriage",
+      "Duration of the marriage and age and physical and mental health of both parties",
+      "Needs of a parent with custody of a child of the marriage",
+      "Expectation of pension, retirement, or other deferred compensation rights",
+      "Any equitable claim to, interest in, or direct or indirect contribution made to the acquisition of such marital property by the party not having title",
+      "Any direct or indirect contribution made by one spouse to help educate or develop the career potential of the other spouse",
+      "Any direct contribution to an increase in value of separate property",
+      "Liquid or nonliquid character of all marital property and divisional property",
+      "Difficulty of evaluating any component asset or any interest in a business, corporation or profession",
+      "Tax consequences to each party",
+      "Acts of either party to maintain, preserve, develop, or expand; or to waste, neglect, devalue or convert the marital property or divisional property"
+    ]
+  },
+
+  "alimony": {
+    "type": "alimony",
+    "statute": "N.C.G.S. § 50-16.1A",
+    "description": "The court may award alimony or post-separation support to a dependent spouse. Fault (adultery) may affect alimony eligibility. CRITICAL: Alimony must be requested BEFORE the divorce is granted or the right is permanently waived.",
+    "postSeparationSupport": {
+      "description": "Temporary support during the period of separation and before the divorce",
+      "statute": "N.C.G.S. § 50-16.2A"
+    },
+    "waiverWarning": "Alimony must be claimed before the divorce judgment is entered."
+  },
+
+  "custody": {
+    "legalCustody": "Legal Custody",
+    "physicalCustody": "Physical Custody",
+    "statute": "N.C.G.S. § 50-13.1",
+    "standard": "Best interests of the child",
+    "description": "Custody is a separate proceeding from the divorce in North Carolina. The court can award joint or sole legal and physical custody."
+  },
+
+  "childSupport": {
+    "guidelines": "North Carolina Child Support Guidelines",
+    "statute": "N.C.G.S. § 50-13.4",
+    "description": "Child support is calculated under North Carolina Child Support Guidelines. It is a separate proceeding from the absolute divorce."
+  },
+
+  "officialForms": {
+    "complaint": {
+      "name": "Complaint for Absolute Divorce",
+      "required": true
+    },
+    "civilSummons": {
+      "name": "Civil Summons (AOC-CV-100)",
+      "required": true
+    },
+    "affidavitOfService": {
+      "name": "Affidavit of Service or Acceptance",
+      "required": true
+    },
+    "separationAgreement": {
+      "name": "Separation Agreement",
+      "required": false,
+      "notes": "Strongly recommended to resolve property, alimony, and custody before or simultaneously with divorce"
+    }
+  },
+
+  "filingFees": {
+    "approximate": "$225",
+    "varies": true,
+    "notes": "Approximately $225 in most counties. Additional fees for service. Fee waiver (IFP) available for qualifying individuals."
+  },
+
+  "legalCitations": [
+    {
+      "code": "N.C.G.S. § 50-6",
+      "description": "Divorce from bonds of matrimony — one-year separation ground"
+    },
+    {
+      "code": "N.C.G.S. § 50-5",
+      "description": "Divorce for incurable insanity — five-year separation"
+    },
+    {
+      "code": "N.C.G.S. § 50-8",
+      "description": "Residency requirement — six months"
+    },
+    {
+      "code": "N.C.G.S. § 50-11",
+      "description": "Effect of divorce judgment"
+    },
+    {
+      "code": "N.C.G.S. § 50-20",
+      "description": "Equitable distribution of marital and divisional property"
+    },
+    {
+      "code": "N.C.G.S. § 50-13.1",
+      "description": "Child custody — jurisdiction and procedure"
+    },
+    {
+      "code": "N.C.G.S. § 50-13.4",
+      "description": "Child support — determination and enforcement"
+    },
+    {
+      "code": "N.C.G.S. § 50-16.1A",
+      "description": "Alimony — definitions and eligibility"
+    },
+    {
+      "code": "N.C.G.S. § 50-16.2A",
+      "description": "Post-separation support — temporary support during separation"
+    }
+  ],
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "all": "1in"
+    },
+    "font": {
+      "family": "Times New Roman or similar",
+      "size": "12pt"
+    },
+    "spacing": "double",
+    "notes": "North Carolina General Court of Justice — District Court Division handles divorce matters."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Absolute Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Civil Summons (AOC-CV-100)",
+        "description": "Official court summons form",
+        "required": true
+      },
+      {
+        "name": "Judgment of Absolute Divorce (AOC-CV-524)",
+        "description": "Court order granting the absolute divorce",
+        "required": true
+      },
+      {
+        "name": "Domestic Civil Action Cover Sheet (AOC-CV-750)",
+        "description": "Court administrative cover sheet",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Civil Summons (AOC-CV-100)",
+        "description": "Formal service on the defendant",
+        "required": true,
+        "alternatives": ["Acceptance of Service (AOC-CV-644)"]
+      },
+      {
+        "name": "Acceptance of Service (AOC-CV-644)",
+        "description": "Defendant accepts service without formal process",
+        "required": false,
+        "notes": "Must be signed by defendant"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Worksheet A or B",
+        "description": "Worksheet A for sole custody; Worksheet B for joint/shared custody. Per N.C.G.S. § 50-13.4.",
+        "required": true
+      },
+      {
+        "name": "Financial Affidavit (AOC-CV-627)",
+        "description": "Required disclosure of income and expenses for child support determination",
+        "required": true
+      },
+      {
+        "name": "Custody and Visitation Order",
+        "description": "Court order establishing custody and visitation (separate proceeding from divorce)",
+        "required": false,
+        "notes": "Custody must be filed as a separate action or resolved by agreement before or at the time of divorce"
+      }
+    ]
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Defendant must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside North Carolina must file an answer within 30 days of service; additional time may be granted by the court"
+    },
+    "statute": "N.C. R. Civ. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "North Carolina uses an income shares model. Both parents' gross incomes are combined to determine a basic child support obligation from a schedule. The obligation is then apportioned between the parents based on their share of combined income. Adjustments are made for health insurance, childcare, extraordinary expenses, and the number of overnights.",
+    "worksheets": {
+      "worksheetA": "Primary custody (sole physical custody) — one parent has 243+ overnights",
+      "worksheetB": "Joint/shared custody — each parent has 123+ overnights",
+      "worksheetC": "Split custody — each parent has primary custody of at least one child"
+    },
+    "statute": "N.C.G.S. § 50-13.4; North Carolina Child Support Guidelines"
+  },
+
+  "venue": {
+    "options": [
+      "County where either party resides at the time of filing"
+    ],
+    "statute": "N.C.G.S. § 50-3"
+  }
+}

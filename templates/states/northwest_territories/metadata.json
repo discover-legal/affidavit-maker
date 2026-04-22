@@ -1,0 +1,65 @@
+{
+  "stateCode": "NT",
+  "stateName": "Northwest Territories",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "FILE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true,
+    "noCounties": true
+  },
+  "courtSystem": {
+    "trialCourt": "Supreme Court of the Northwest Territories",
+    "appealCourt": "Court of Appeal for the Northwest Territories"
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Law Act (SNWT 1997, c. 18) — equal division of family property"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Law Act, SNWT 1997, c. 18",
+      "description": "NWT statute — division of family property on marriage breakdown"
+    },
+    {
+      "code": "Canada Evidence Act, RSC 1985, c. C-5",
+      "description": "Federal statute — oath authority for affidavits"
+    },
+    {
+      "code": "NWT Evidence Act, RSNWT 1988, c. E-8",
+      "description": "NWT statute — administration of oaths and affidavits"
+    },
+    {
+      "code": "Criminal Code, RSC 1985, c. C-46, s.131",
+      "description": "Perjury offence — making a false statement under oath"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the City/Town of ___, in the Northwest Territories, this ___ day of ___, [Year].\n\n________________________________\nA Notary Public / Commissioner for Oaths\nin and for the Northwest Territories",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for oaths or notary public."
+  }
+}

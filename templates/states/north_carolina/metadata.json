@@ -1,0 +1,42 @@
+{
+  "stateCode": "NC",
+  "stateName": "North Carolina",
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": true,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "FILE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase"
+  },
+  "legalCitations": [
+    {
+      "code": "N.C.G.S. § 11-7",
+      "description": "Administration of oaths — requirements for sworn statements"
+    },
+    {
+      "code": "N.C.G.S. § 14-209",
+      "description": "Perjury — false sworn statements punishable as a felony"
+    },
+    {
+      "code": "N.C.G.S. § 10B-20",
+      "description": "North Carolina Notary Public Act — requirements for jurat and acknowledgment"
+    },
+    {
+      "code": "N.C.G.S. § 10B-40",
+      "description": "Jurat requirements for notarized instruments"
+    }
+  ],
+  "affidavitJurat": "Sworn to and subscribed before me this ___ day of _______________, 20___.\n\n\n_________________________________\nNotary Public, _______________ County, North Carolina\n\nMy commission expires: ___________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Exhibits may be labeled with letters (A, B, C, etc.) or numbers. Attach exhibits after the affidavit."
+  }
+}

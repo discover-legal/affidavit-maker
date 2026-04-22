@@ -22,8 +22,8 @@ function validateMetadata(metadata) {
 
   // Validate stateCode format
   if (metadata.stateCode) {
-    if (!/^[A-Z]{2}$/.test(metadata.stateCode)) {
-      errors.push('stateCode must be a 2-letter uppercase code (e.g., TX, UT, AZ)');
+    if (!/^[A-Z]{2,5}(_[A-Z]{2,5})?$/.test(metadata.stateCode)) {
+      errors.push('stateCode must be a 2-5 letter uppercase code (e.g., TX, ENG, NSW, IN_DL)');
     }
   }
 

@@ -23,7 +23,41 @@ const getAllowedOrigins = () => {
     origins.push(
       'https://make.discover.legal',
       'https://discover.legal',
-      'https://www.discover.legal'
+      'https://www.discover.legal',
+      'https://make.discover.legal',
+      'https://ca.discover.legal',
+      'https://canada.discover.legal',
+      // International subdomains
+      'https://uk.discover.legal',
+      'https://ie.discover.legal',
+      'https://au.discover.legal',
+      'https://nz.discover.legal',
+      'https://in.discover.legal',
+      'https://pk.discover.legal',
+      'https://bd.discover.legal',
+      'https://lk.discover.legal',
+      'https://sa.discover.legal',
+      'https://ng.discover.legal',
+      'https://ke.discover.legal',
+      'https://gh.discover.legal',
+      'https://ug.discover.legal',
+      'https://tz.discover.legal',
+      'https://zm.discover.legal',
+      'https://zw.discover.legal',
+      'https://bw.discover.legal',
+      'https://mw.discover.legal',
+      'https://na.discover.legal',
+      'https://sg.discover.legal',
+      'https://hk.discover.legal',
+      'https://my.discover.legal',
+      'https://jm.discover.legal',
+      'https://tt.discover.legal',
+      'https://bb.discover.legal',
+      'https://bs.discover.legal',
+      'https://bm.discover.legal',
+      'https://fj.discover.legal',
+      'https://pg.discover.legal',
+      'https://cy.discover.legal'
     );
 
     // Remove duplicates

@@ -1,0 +1,266 @@
+{
+  "stateCode": "TX",
+  "stateName": "Texas",
+  "documentTypes": ["divorce_petition", "divorce_decree", "waiver_of_service"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "residencyRequirements": {
+    "stateMonths": 6,
+    "countyDays": 90,
+    "description": "At least one spouse must have been a domiciliary of Texas for the preceding six-month period and a resident of the county for the preceding ninety-day period."
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "filing_date",
+    "exceptions": [
+      {
+        "type": "family_violence_conviction",
+        "description": "Spouse convicted of or received deferred adjudication for family violence"
+      },
+      {
+        "type": "protective_order",
+        "description": "Active protective order or magistrate's order for emergency protection due to family violence"
+      }
+    ]
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "insupportability",
+        "name": "Insupportability",
+        "description": "Discord or conflict of personalities that destroys the legitimate ends of the marriage",
+        "statute": "Texas Family Code § 6.001"
+      }
+    ],
+    "fault": [
+      {
+        "code": "cruelty",
+        "name": "Cruel Treatment",
+        "description": "Treatment of such nature as to render further living together insupportable",
+        "statute": "Texas Family Code § 6.002"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Spouse committed adultery",
+        "statute": "Texas Family Code § 6.003"
+      },
+      {
+        "code": "conviction",
+        "name": "Conviction of Felony",
+        "description": "Spouse convicted of felony and imprisoned for at least one year without pardon",
+        "statute": "Texas Family Code § 6.004"
+      },
+      {
+        "code": "abandonment",
+        "name": "Abandonment",
+        "description": "Spouse left with intention of abandonment and remained away at least one year",
+        "statute": "Texas Family Code § 6.005"
+      },
+      {
+        "code": "living_apart",
+        "name": "Living Apart",
+        "description": "Spouses lived apart without cohabitation for at least three years",
+        "statute": "Texas Family Code § 6.006"
+      },
+      {
+        "code": "confinement",
+        "name": "Confinement in Mental Hospital",
+        "description": "Spouse confined in mental hospital for at least three years with unlikely recovery",
+        "statute": "Texas Family Code § 6.007"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Texas is a community property state. Property acquired during marriage is presumed community property and is subject to a just and right division by the court. Separate property includes property owned before marriage or acquired during marriage by gift, devise, or descent.",
+    "statute": "Texas Family Code Chapter 7"
+  },
+
+  "terminology": {
+    "caseNumberLabel": "CAUSE NO.",
+    "custody": "Conservatorship",
+    "physicalCustody": "Possession and Access",
+    "jointCustody": "Joint Managing Conservatorship",
+    "soleCustody": "Sole Managing Conservatorship",
+    "nonCustodialParent": "Possessory Conservator",
+    "visitation": "Standard Possession Order",
+    "alimony": "Spousal Maintenance",
+    "childSupport": "Child Support",
+    "maritalProperty": "Community Property"
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Original Petition for Divorce",
+        "description": "Initiates the divorce proceeding",
+        "required": true
+      },
+      {
+        "name": "Civil Case Information Sheet",
+        "description": "Court administrative form",
+        "required": true
+      },
+      {
+        "name": "Vital Statistics Form",
+        "description": "Bureau of Vital Statistics certificate",
+        "required": true
+      },
+      {
+        "name": "Final Decree of Divorce",
+        "description": "Court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Citation/Summons",
+        "description": "Formal notice to respondent",
+        "required": true,
+        "alternatives": ["Waiver of Service"]
+      },
+      {
+        "name": "Waiver of Service",
+        "description": "Respondent waives formal service",
+        "required": false,
+        "notes": "Must be signed at least one day after petition filed, must be notarized"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Standing Order",
+        "description": "Automatic restraining orders regarding children and property",
+        "required": true,
+        "notes": "Required in most Texas counties"
+      },
+      {
+        "name": "Income Withholding Order",
+        "description": "Order for employer to withhold child support",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Sets child support obligations",
+        "required": true
+      },
+      {
+        "name": "Medical Support Order",
+        "description": "Health and dental insurance for children",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Texas Rules of Civil Procedure"
+  },
+
+  "legalCitations": [
+    {
+      "code": "Texas Family Code Chapter 6",
+      "description": "Suit for Dissolution of Marriage",
+      "url": "https://statutes.capitol.texas.gov/Docs/FA/htm/FA.6.htm"
+    },
+    {
+      "code": "Texas Family Code § 6.301",
+      "description": "Residency requirements for filing"
+    },
+    {
+      "code": "Texas Family Code § 6.401",
+      "description": "Waiver of service requirements"
+    },
+    {
+      "code": "Texas Family Code § 6.702",
+      "description": "60-day waiting period"
+    },
+    {
+      "code": "Texas Family Code Chapter 7",
+      "description": "Award of marital property"
+    },
+    {
+      "code": "Texas Family Code Chapter 153",
+      "description": "Conservatorship, possession, and access"
+    },
+    {
+      "code": "Texas Family Code Chapter 154",
+      "description": "Child support guidelines"
+    },
+    {
+      "code": "Texas Family Code Chapter 8",
+      "description": "Spousal maintenance"
+    },
+    {
+      "code": "Texas Rules of Civil Procedure",
+      "description": "Court filing and formatting requirements"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$250-$350",
+    "varies": true,
+    "notes": "Varies by county. Fee waiver available for indigent parties via Statement of Inability to Afford Payment of Court Costs (Tex. R. Civ. P. 145)."
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Respondent must file an answer by 10:00 a.m. on the first Monday after 20 days have passed since service. If the 20th day falls on a Monday, the answer is due the following Monday."
+    },
+    "outOfState": {
+      "days": 20,
+      "description": "Same rule applies — answer due by 10:00 a.m. on the first Monday after 20 days from service"
+    },
+    "statute": "Tex. R. Civ. P. 99"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "percentage_of_income",
+    "percentages": {
+      "1_child": "20%",
+      "2_children": "25%",
+      "3_children": "30%",
+      "4_children": "35%",
+      "5_children": "40%",
+      "6_or_more_children": "not_less_than_40%"
+    },
+    "incomeCapNote": "Applies to first $11,700/month of net resources (effective September 1, 2025)",
+    "statute": "Texas Family Code § 154.125"
+  },
+
+  "spousalMaintenanceEligibility": {
+    "requirements": [
+      "Marriage lasted at least 10 years",
+      "Spouse lacks ability to earn sufficient income",
+      "Spouse has incapacitating disability",
+      "Spouse is custodian of child with disability requiring substantial care",
+      "Family violence within 2 years of filing"
+    ],
+    "maximumAmount": "Lesser of $5,000/month or 20% of obligor's gross income",
+    "maximumDuration": {
+      "10_to_20_years_married": "5 years",
+      "20_to_30_years_married": "7 years",
+      "30_plus_years_married": "10 years",
+      "disability": "indefinite"
+    },
+    "statute": "Texas Family Code Chapter 8"
+  }
+}

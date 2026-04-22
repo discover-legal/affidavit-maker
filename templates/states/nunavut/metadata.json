@@ -1,0 +1,65 @@
+{
+  "stateCode": "NU",
+  "stateName": "Nunavut",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "FILE NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true,
+    "noCounties": true
+  },
+  "courtSystem": {
+    "trialCourt": "Nunavut Court of Justice",
+    "notes": "Nunavut has a unique single-level trial court — the only one of its kind in Canada. The Nunavut Court of Justice combines the powers of a superior court and a territorial court in a single court."
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Law Act (SNu 2012, c. 30) — division of family property"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Law Act, SNu 2012, c. 30",
+      "description": "Nunavut statute — division of family property and support on marriage breakdown"
+    },
+    {
+      "code": "Canada Evidence Act, RSC 1985, c. C-5",
+      "description": "Federal statute — oath authority for affidavits"
+    },
+    {
+      "code": "Nunavut Evidence Act",
+      "description": "Nunavut statute — administration of oaths and affidavits"
+    },
+    {
+      "code": "Criminal Code, RSC 1985, c. C-46, s.131",
+      "description": "Perjury offence — making a false statement under oath"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the community of ___, in Nunavut, this ___ day of ___, [Year].\n\n________________________________\nA Notary Public / Commissioner for Oaths / Justice of the Peace\nin and for Nunavut",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for oaths, notary public, or justice of the peace."
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "stateCode": "GH",
+  "stateName": "Ghana",
+  "countryCode": "GH",
+  "countryName": "Ghana",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Suit No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "commissionerForOaths": true,
+    "paperSize": "A4"
+  },
+  "courtSystem": {
+    "trialCourt": "High Court of Justice",
+    "familyDivision": "High Court of Justice — Matrimonial (Family) Division",
+    "appealCourt": "Court of Appeal"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Matrimonial Causes Act 1971 (Act 367)",
+    "primaryGround": "marriage has broken down beyond reconciliation (s.2(1))",
+    "propertyDivision": "Court discretion under 1992 Constitution Art. 22 and PNDC Law 111"
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Act 1971 (Act 367)",
+      "description": "Governs all divorce proceedings in Ghana — sole ground is irretrievable breakdown of marriage (s.2)"
+    },
+    {
+      "code": "Marriage Ordinance (Cap 127)",
+      "description": "Governs ordinance (civil/church-registered) marriages"
+    },
+    {
+      "code": "Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112)",
+      "description": "Registration requirements for customary marriages and divorces"
+    },
+    {
+      "code": "Marriage of Mohammedans Ordinance (Cap 129)",
+      "description": "Governs Mohammedan (Islamic) marriages"
+    },
+    {
+      "code": "Children's Act 1998 (Act 560)",
+      "description": "Best interests of the child — custody, maintenance, and welfare"
+    },
+    {
+      "code": "Oaths Act 1972 (NRCD 6)",
+      "description": "Governs the administration of oaths and the swearing of affidavits in Ghana"
+    },
+    {
+      "code": "1992 Constitution of Ghana, Art. 22",
+      "description": "Spouse's property rights and equitable distribution on dissolution of marriage"
+    },
+    {
+      "code": "Intestate Succession Law 1985 (PNDC Law 111)",
+      "description": "Distribution of property on intestacy — relevant to spousal property entitlements"
+    },
+    {
+      "code": "Domestic Violence Act 2007 (Act 732)",
+      "description": "Criminalizes domestic violence and provides for protection orders"
+    }
+  ],
+  "emergencyNumber": "191 / 112",
+  "dvHotline": "055-1000-900",
+  "dvHotlineOrg": "DOVVSU (Domestic Violence and Victim Support Unit)",
+  "currency": "GHS",
+  "affidavitJurat": "Sworn at __________ this _____ day of __________, _______.\n\nBefore me:\n________________________________\nCommissioner for Oaths",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Each exhibit must be marked with a letter (A, B, C, etc.) and initialed by the deponent and the commissioner for oaths."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "stateCode": "IN_MH",
+  "stateName": "Maharashtra",
+  "countryCode": "IN",
+  "countryName": "India",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "personalLawSystem": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "The petition is filed where the marriage was solemnized, or where the parties last resided together, or where the respondent resides, or where the petitioner resides (at the time of filing when the wife is the petitioner). See HMA s.19 / SMA s.31."
+  },
+  "waitingPeriod": {
+    "days": 180,
+    "description": "Mutual consent: 6-month cooling-off period between First Motion and Second Motion (HMA s.13B(2) / SMA s.28(2)). Courts may waive this per Amardeep Singh v. Harveen Kaur (2017) 8 SCC 746. SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)). Contested: no fixed waiting period."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      { "code": "mutual_consent", "name": "Mutual Consent", "description": "Both spouses jointly petition after living separately for at least one year. 6-month cooling-off period applies (may be waived).", "statute": "HMA s.13B / SMA s.28" }
+    ],
+    "fault": [
+      { "code": "adultery", "name": "Adultery", "description": "Voluntary sexual intercourse with a person other than the petitioner after solemnization.", "statute": "HMA s.13(1)(i) / SMA s.27(1)(a)" },
+      { "code": "cruelty", "name": "Cruelty", "description": "Physical or mental cruelty by spouse.", "statute": "HMA s.13(1)(ia) / SMA s.27(1)(d)" },
+      { "code": "desertion", "name": "Desertion", "description": "Desertion for a continuous period of not less than two years.", "statute": "HMA s.13(1)(ib) / SMA s.27(1)(b)" },
+      { "code": "conversion", "name": "Conversion", "description": "Spouse has converted to another religion (HMA only).", "statute": "HMA s.13(1)(ii)" },
+      { "code": "mental_disorder", "name": "Unsoundness of Mind", "description": "Incurably of unsound mind or suffering from mental disorder.", "statute": "HMA s.13(1)(iii) / SMA s.27(1)(e)" },
+      { "code": "venereal_disease", "name": "Venereal Disease", "description": "Suffering from venereal disease in communicable form.", "statute": "HMA s.13(1)(v) / SMA s.27(1)(f)" },
+      { "code": "renunciation", "name": "Renunciation of the World", "description": "Entered a religious order (HMA only).", "statute": "HMA s.13(1)(vi)" },
+      { "code": "presumed_dead", "name": "Presumed Dead", "description": "Not heard of as alive for 7+ years.", "statute": "HMA s.13(1)(vii) / SMA s.27(1)(g)" }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Case No.",
+    "custody": "Custody and Guardianship",
+    "physicalCustody": "Physical Custody",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance / Alimony",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "No specific matrimonial property regime; Hindu Succession Act 1956 / court-ordered settlement"
+  },
+  "requiredForms": {
+    "basic": [
+      { "name": "Petition for Divorce", "description": "Filed under applicable personal law with affidavit on stamp paper", "required": true },
+      { "name": "Affidavit of the Petitioner", "description": "Sworn affidavit on judicial stamp paper (INR 100 in Maharashtra; Maharashtra Stamp Dept. circular dated 30-Oct-2024 confirmed INR 100 remains valid for affidavits despite Oct 2024 ordinance raising minimum to INR 500)", "required": true },
+      { "name": "Marriage Certificate", "description": "Original or certified copy", "required": true },
+      { "name": "Address Proof", "description": "Aadhaar card, voter ID, passport, or utility bill", "required": true }
+    ]
+  },
+  "legalCitations": [
+    { "code": "Hindu Marriage Act 1955", "description": "Marriage and divorce for Hindus, Buddhists, Jains, Sikhs" },
+    { "code": "Special Marriage Act 1954", "description": "Inter-faith or secular marriages" },
+    { "code": "Indian Divorce Act 1869", "description": "Divorce for Christians" },
+    { "code": "Dissolution of Muslim Marriages Act 1939", "description": "Divorce by Muslim wives" },
+    { "code": "Family Courts Act 1984", "description": "Family Courts" },
+    { "code": "BNSS s.144 (formerly CrPC s.125)", "description": "Maintenance" }
+  ],
+  "filingFees": { "approximate": "INR 500-5,000", "varies": true, "notes": "Filing fee varies by court. Indigent persons may apply for fee waiver." },
+  "childSupportGuidelines": { "calculationBasis": "judicial_discretion", "guidelines": "No statutory formula; court considers income, needs, and lifestyle", "notes": "BNSS s.144 (CrPC s.125) provides for maintenance" },
+  "spousalSupportGuidelines": { "calculationBasis": "judicial_discretion", "guidelines": "HMA s.25 / s.24; SMA s.36-37; BNSS s.144", "notes": "No fixed formula; court considers duration, earning capacity, standard of living" },
+  "effectiveDateRule": "The decree takes effect from the date it is passed.",
+  "certificateNote": "A certified copy of the decree may be obtained from the court registry.",
+  "stampPaperValue": "INR 100",
+  "paperSize": "A4",
+  "currency": "INR",
+  "emergencyNumber": "112",
+  "dvHotline": "181"
+}

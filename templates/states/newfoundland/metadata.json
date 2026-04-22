@@ -1,0 +1,69 @@
+{
+  "stateCode": "NL",
+  "stateName": "Newfoundland and Labrador",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Supreme Court of Newfoundland and Labrador (Trial Division)",
+    "familyDivision": "Supreme Court of Newfoundland and Labrador (Trial Division) — Family Division",
+    "appealCourt": "Court of Appeal of Newfoundland and Labrador"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Law Act, RSNL 1990, c. F-2 (property division and support obligations)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Law Act, RSNL 1990, c. F-2",
+      "description": "Newfoundland and Labrador statute — property division, support obligations, domestic contracts"
+    },
+    {
+      "code": "Evidence Act, RSNL 1990, c. E-16",
+      "description": "Newfoundland and Labrador affidavit and oath requirements"
+    },
+    {
+      "code": "Commissioners for Oaths Act, RSNL 1990, c. C-22",
+      "description": "Newfoundland and Labrador statute governing commissioners for oaths"
+    },
+    {
+      "code": "Oaths of Office Act, RSNL 1990, c. O-2",
+      "description": "Newfoundland and Labrador statute governing oaths administered to persons taking public office; relevant to commissioners for oaths appointments"
+    },
+    {
+      "code": "Judicature Act, RSNL 1990, c. J-4",
+      "description": "Court structure and procedures for Newfoundland and Labrador"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at ___, in the Province of Newfoundland and Labrador, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths\nin and for the Province of Newfoundland and Labrador",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner."
+  }
+}

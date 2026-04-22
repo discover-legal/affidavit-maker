@@ -1,0 +1,212 @@
+{
+  "stateCode": "NV",
+  "stateName": "Nevada",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Decree of Divorce",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Joint Legal Custody / Joint Physical Custody",
+    "visitation": "Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Community Property"
+  },
+
+  "residencyRequirements": {
+    "stateWeeks": 6,
+    "countyMonths": null,
+    "description": "At least one spouse must have been a resident of the State of Nevada for at least six (6) weeks immediately preceding the filing of the complaint. A Resident Witness Affidavit is required to prove residency.",
+    "statute": "NRS 125.020"
+  },
+
+  "waitingPeriod": {
+    "days": 0,
+    "startsFrom": null,
+    "exceptions": [],
+    "description": "Nevada has NO mandatory waiting period after filing. The divorce can be finalized as soon as all papers are processed and any required hearing is held."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "incompatibility",
+        "name": "Incompatibility",
+        "description": "The parties are incompatible",
+        "statute": "NRS 125.010(2)"
+      },
+      {
+        "code": "separation_one_year",
+        "name": "Living Separate and Apart for One Year",
+        "description": "The parties have lived separate and apart for one year without cohabitation",
+        "statute": "NRS 125.010(3)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "insanity",
+        "name": "Insanity",
+        "description": "Insanity existing for two (2) years prior to the filing of the complaint, supported by medical evidence",
+        "statute": "NRS 125.010(1)"
+      }
+    ],
+    "notes": "Nevada is primarily a no-fault state. 'Incompatibility' is by far the most common ground. The insanity ground requires medical evidence and is rarely used."
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "description": "Nevada is a community property state. Community property is divided equally (50/50) between the spouses. The court may make an unequal disposition only upon a finding of a compelling reason set forth in writing. Separate property (property acquired before the marriage, by gift, or by inheritance) remains with the owning spouse.",
+    "separateProperty": "Property acquired before marriage, by gift, or by inheritance is separate property and remains with the owning spouse. Commingling separate property with community property may convert it to community property.",
+    "statute": "NRS 125.150(1)(b)"
+  },
+
+  "legalCitations": [
+    {
+      "code": "NRS 125.020",
+      "description": "Residency requirement — 6 weeks state residency; Resident Witness Affidavit required"
+    },
+    {
+      "code": "NRS 125.010",
+      "description": "Grounds for divorce — incompatibility, 1-year separation, insanity"
+    },
+    {
+      "code": "NRS 125.150(1)(b)",
+      "description": "Community property — equal 50/50 division; unequal only with compelling reason in writing"
+    },
+    {
+      "code": "NRS 125.150(1)(a)",
+      "description": "Alimony — court may award alimony to either party"
+    },
+    {
+      "code": "NRS 125C.001",
+      "description": "Child custody definitions — joint legal custody, joint physical custody"
+    },
+    {
+      "code": "NRS 125C.0035",
+      "description": "Best interest of the child standard for custody determination"
+    },
+    {
+      "code": "NRS 125B",
+      "description": "Nevada Child Support Guidelines — percentage of income model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$284-$364",
+    "varies": true,
+    "notes": "Filing fees vary by county. Clark County (Las Vegas) charges approximately $364 for a Complaint for Divorce. Washoe County (Reno) charges approximately $284-$326. Rural counties vary. Fee waivers (Application to Proceed In Forma Pauperis) are available for qualifying low-income individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce",
+        "description": "Initiates the divorce proceeding (Nevada uses 'Complaint' rather than 'Petition')",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to defendant",
+        "required": true
+      },
+      {
+        "name": "Resident Witness Affidavit",
+        "description": "Affidavit from a third-party witness confirming the plaintiff has resided in Nevada for at least 6 weeks (NRS 125.020)",
+        "required": true
+      },
+      {
+        "name": "Financial Disclosure Form",
+        "description": "Disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Decree of Divorce",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on defendant via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Waiver of Service", "Acceptance of Service"]
+      },
+      {
+        "name": "Waiver of Service / Acceptance of Service",
+        "description": "Defendant voluntarily accepts service and waives formal process",
+        "required": false,
+        "notes": "Must be signed by defendant and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Custody/Visitation Order",
+        "description": "Court order establishing joint legal custody, physical custody, and visitation schedule per NRS 125C",
+        "required": true
+      },
+      {
+        "name": "Child Support Worksheet",
+        "description": "Calculation per Nevada Child Support Guidelines (NRS 125B)",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Nevada Rules of Civil Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 21,
+      "description": "Defendant must file an answer within 21 days of service within Nevada"
+    },
+    "outOfState": {
+      "days": 21,
+      "description": "Defendant served outside Nevada must file an answer within 21 days of service (additional time may be granted)"
+    },
+    "statute": "NRCP 12(a)(1)(A)(i)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "percentage_of_income",
+    "description": "Nevada uses a percentage-of-income model under NRS 125B.070. Child support is calculated as a percentage of the obligor's gross income: 18% for one child, 25% for two, 29% for three, 31% for four, and an additional 2% for each additional child. The court may deviate based on the best interest of the child.",
+    "statute": "NRS 125B",
+    "notes": "The statutory percentages serve as a presumptive amount. The court may adjust based on factors including the cost of health insurance, child care, and special needs."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "alimony",
+    "description": "Nevada courts may award alimony to either party. There is no fixed formula. The court considers the financial condition of each spouse, the nature and value of their respective property, each party's contribution to the marriage (including homemaking), the duration of the marriage, each party's income, earning capacity, age, and health, and the standard of living during the marriage.",
+    "eligibility": "Available to either spouse. Generally more likely in longer marriages. No statutory formula — courts have broad discretion.",
+    "statute": "NRS 125.150(1)(a)"
+  },
+
+  "court": {
+    "name": "Family Court or District Court",
+    "description": "Divorce is filed in Family Court in counties that have one (Clark County, Washoe County) or in the District Court in rural counties. (NRS 3.223)"
+  }
+}

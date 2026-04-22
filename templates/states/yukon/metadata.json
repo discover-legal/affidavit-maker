@@ -1,0 +1,61 @@
+{
+  "stateCode": "YT",
+  "stateName": "Yukon",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "S.C. NO.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true,
+    "noCounties": true
+  },
+  "courtSystem": {
+    "trialCourt": "Supreme Court of Yukon",
+    "appealCourt": "Court of Appeal of Yukon"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Property and Support Act (RSY 2002, c. 83) — equal division of family assets"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Property and Support Act, RSY 2002, c. 83",
+      "description": "Yukon statute — division of family assets and spousal support"
+    },
+    {
+      "code": "Yukon Evidence Act, RSY 2002, c. 78",
+      "description": "Yukon statute — administration of oaths and affidavits"
+    },
+    {
+      "code": "Criminal Code, RSC 1985, c. C-46, s.131",
+      "description": "Perjury offence — making a false statement under oath"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the City/Town of ___, in the Yukon Territory, this ___ day of ___, [Year].\n\n________________________________\nA Notary Public / Commissioner for Oaths\nin and for the Yukon Territory",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the exhibit letter and initialed by the deponent and the commissioner for oaths or notary public."
+  }
+}

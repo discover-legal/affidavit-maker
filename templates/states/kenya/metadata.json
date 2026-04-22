@@ -1,0 +1,75 @@
+{
+  "stateCode": "KE",
+  "stateName": "Kenya",
+  "countryCode": "KE",
+  "countryName": "Kenya",
+  "currency": "KES",
+  "paperSize": "A4",
+  "emergencyNumber": "999 / 112",
+  "dvHotline": "1195",
+  "dvHotlineOrg": "Healthcare Assistance Kenya (HAK) GBV Helpline",
+  "personalLawSystem": true,
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Case No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase",
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "High Court of Kenya",
+    "familyDivision": "High Court of Kenya — Family Division",
+    "kadhisCourt": "Kadhi's Court",
+    "appealCourt": "Court of Appeal of Kenya"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Marriage Act, 2014 (No. 4 of 2014), s.66",
+    "primaryGround": "irretrievable breakdown of the marriage",
+    "propertyDivision": "Matrimonial Property Act, 2013 (No. 49 of 2013)"
+  },
+  "legalCitations": [
+    {
+      "code": "Marriage Act, 2014 (No. 4 of 2014)",
+      "description": "Unified marriage and divorce law — governs all types of marriage (civil, Christian, customary, Hindu, Islamic) and divorce proceedings"
+    },
+    {
+      "code": "Matrimonial Property Act, 2013 (No. 49 of 2013)",
+      "description": "Governs division of matrimonial property — contribution-based approach (financial and non-financial)"
+    },
+    {
+      "code": "Children Act, 2022 (No. 29 of 2022)",
+      "description": "Best interests of the child (s.8) — parenting plans, custody, parental responsibility (Part III), and maintenance (repealed Children Act, 2001)"
+    },
+    {
+      "code": "Constitution of Kenya, 2010, Art. 170",
+      "description": "Kadhi's Courts — jurisdiction over Islamic personal law matters including marriage and divorce"
+    },
+    {
+      "code": "Oaths and Statutory Declarations Act (Cap 15)",
+      "description": "Kenyan affidavit requirements — oath before Commissioner for Oaths or Magistrate"
+    },
+    {
+      "code": "Protection Against Domestic Violence Act, 2015 (No. 2 of 2015)",
+      "description": "Domestic violence protection orders — applies to spouses, former spouses, children, and dependants"
+    }
+  ],
+  "affidavitJurat": "Sworn/Affirmed at __________ this _____ day of __________, _______\n\nBefore me:\n________________________________\nCommissioner for Oaths",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the Commissioner for Oaths."
+  }
+}

@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Affidavit Maker
 
-**Last Updated**: 2026-03-02
-**Version**: 3.2.0
+**Last Updated**: 2026-03-13
+**Version**: 4.0.0
 
 ---
 
@@ -17,15 +17,19 @@ npm run db:migrate    # Run database migrations
 npm run lint:fix      # Auto-fix linting issues
 ```
 
-**Supported States**: TX, UT, AZ, CA, FL, IL, NY (7 total)
+**Jurisdictions**: 110 total directories in `templates/states/`
+- **North America (64)**: 51 US (all 50 states + DC) + 13 CA (10 provinces + 3 territories)
+- **International (46, behind `ENABLE_INTERNATIONAL` flag)**: UK (ENG, SCO, NIR), Ireland, New Zealand, Australia (8 states/territories), Singapore, Hong Kong, South Africa, Kenya, Ghana, Nigeria (12 jurisdictions), India (16 jurisdictions)
 
 **Live URL**: `https://make.discover.legal` (app) — landing/marketing is on Webflow at `discover.legal`
 
 **Key Directories**:
-- `/routes/` - API endpoints
+- `/routes/` - API endpoints (11 route files incl. `cases.js`, `catalog.js`)
 - `/services/` - Business logic
+- `/services/agents/` - 134 orchestrator/agent files (divorce orchestrators per jurisdiction + 16 matter orchestrators)
 - `/middleware/` - Auth, validation, error handling
-- `/templates/states/` - State-specific templates
+- `/templates/states/` - Jurisdiction-specific templates (110 directories)
+- `/config/` - Feature flags (`jurisdictions.js`)
 - `/client/src/components/` - React components
 
 **Critical Security Notes**:
@@ -38,15 +42,17 @@ npm run lint:fix      # Auto-fix linting issues
 
 ## Project Overview
 
-A **full-stack web application** at `make.discover.legal` that helps users create legally-compliant affidavits using AI assistance. The marketing/landing site lives separately on Webflow at `discover.legal`.
+A **full-stack web application** at `make.discover.legal` that helps users create legally-compliant legal documents using AI assistance. The marketing/landing site lives separately on Webflow at `discover.legal`.
 
 Users can:
 - Chat with an AI assistant to document facts
-- Generate state-specific affidavits (7 states: TX, UT, AZ, CA, FL, IL, NY)
+- Generate jurisdiction-specific affidavits (all 50 US states + DC, 13 Canadian provinces/territories)
+- Create divorce petitions, divorce decrees, and other family law documents
+- Access 16+ civil/family law matter types (custody, child support, DVRO, paternity, etc.)
 - Validate facts for legal sufficiency
 - Upload supporting evidence
 - Generate professional PDFs
-- Save and manage multiple documents
+- Save and manage multiple documents and cases
 
 ### Tech Stack
 
@@ -123,10 +129,15 @@ affidavit-maker/
 │   ├── rateLimiting.js          # Rate limiters
 │   └── validation.js            # Input validation + secondary CSP config
 │
+├── config/
+│   └── jurisdictions.js         # Feature flags (ENABLE_INTERNATIONAL)
+│
 ├── routes/
 │   ├── auth.js                  # Legacy auth routes
 │   ├── auth0-webhooks.js        # Auth0 lifecycle webhooks
-│   ├── chat.js                  # AI chat interface
+│   ├── cases.js                 # Case profile CRUD (GET/POST/PUT /api/cases)
+│   ├── catalog.js               # Matter/document type catalog (/api/catalog)
+│   ├── chat.js                  # AI chat interface (country-aware routing)
 │   ├── documents.js             # Document CRUD, preview, PDF
 │   ├── evidence.js              # Evidence/exhibit uploads
 │   ├── factRoutes.js            # Fact validation
@@ -144,7 +155,29 @@ affidavit-maker/
 │   ├── enhancedFactValidationService.js
 │   ├── evidenceStorage.js       # File storage management
 │   ├── pdfService.js            # Two-pass PDF generation
-│   └── previewRenderer.js       # HTML preview rendering
+│   ├── previewRenderer.js       # HTML preview rendering
+│   └── agents/                  # 134 files
+│       ├── BaseMatterOrchestrator.js   # Base class for all matter orchestrators
+│       ├── [XX]DivorceOrchestrator.js  # Per-jurisdiction divorce orchestrators (110)
+│       ├── AdoptionOrchestrator.js     # Matter-type orchestrators (16)
+│       ├── CustodyOrchestrator.js
+│       ├── ChildSupportOrchestrator.js
+│       ├── DVROOrchestrator.js
+│       ├── PaternityOrchestrator.js
+│       ├── LegalSeparationOrchestrator.js
+│       ├── AnnulmentOrchestrator.js
+│       ├── GuardianshipOrchestrator.js
+│       ├── EmancipationOrchestrator.js
+│       ├── SmallClaimsOrchestrator.js
+│       ├── NameChangeOrchestrator.js
+│       ├── DebtDefenseOrchestrator.js
+│       ├── LandlordTenantOrchestrator.js
+│       ├── CivilHarassmentOrchestrator.js
+│       ├── GeneralCivilOrchestrator.js
+│       ├── ProbateOrchestrator.js
+│       ├── DocumentSelectionAgent.js
+│       ├── FactOrganizer.js
+│       └── AffidavitRequirementsChecker.js
 │
 ├── templates/
 │   ├── StateTemplateManager.js  # Master template coordinator
@@ -154,20 +187,27 @@ affidavit-maker/
 │   │   ├── TemplateRegistry.js
 │   │   ├── TemplateLoader.js
 │   │   └── validateMetadata.js
-│   └── states/                  # TX, UT, AZ, CA, FL, IL, NY
-│       └── [state]/
+│   └── states/                  # 110 jurisdiction directories
+│       └── [jurisdiction]/
+│           ├── metadata.json
+│           ├── divorce-metadata.json
 │           ├── AffidavitTemplate.js
-│           └── metadata.json
+│           ├── DivorcePetitionTemplate.js
+│           ├── DivorceDecreeTemplate.js
+│           └── prompts/[xx]Divorce/index.js
 │
 ├── utils/
 │   ├── logger.js                # Winston structured logging
 │   ├── factNormalizer.js        # Fact format normalization
+│   ├── pathSecurity.js          # Path traversal prevention
 │   └── responseHelpers.js       # Standard API responses
 │
-├── migrations/                  # 11 SQL migrations
+├── migrations/                  # 13 SQL migrations
 │   ├── 000_initial_schema.sql
 │   ├── 010_enable_rls_all_tables.sql  # Row Level Security
-│   └── 011_webhook_idempotency.sql
+│   ├── 011_webhook_idempotency.sql
+│   ├── 012_add_cases_table.sql        # Case profiles with RLS
+│   └── 013_document_catalog.sql       # Matter/doc types, interview phases
 │
 ├── scripts/
 │   ├── migrate.js
@@ -246,6 +286,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 FRONTEND_URL=http://localhost:3000
 SESSION_SECRET=change-this
 TRUSTED_PROXIES=1
+ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
 ```
 
 **Frontend (client/.env)**:
@@ -318,7 +359,7 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 ## Database
 
-**Core tables**: `users`, `user_identities`, `documents`, `payments`, `audit_log`, `processed_webhooks`
+**Core tables**: `users`, `user_identities`, `documents`, `cases`, `payments`, `audit_log`, `processed_webhooks`, `document_catalog`, `interview_phases`
 
 **RLS**: Row Level Security enabled (migration 010) — database-level isolation.
 
@@ -342,13 +383,30 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 ## Template System
 
-**Auto-discovery**: `templates/initialize.js` scans `templates/states/` on startup — no manual registration needed.
+**Auto-discovery**: `templates/initialize.js` scans `templates/states/` on startup — no manual registration needed. Always registry mode (no legacy `USE_NEW_TEMPLATE_SYSTEM` flag).
 
-**Adding a state**:
-1. `mkdir templates/states/[state-name]`
-2. Create `AffidavitTemplate.js` extending `BaseAffidavitTemplate`
-3. Create `metadata.json` with legal requirements
-4. Add tests in `__tests__/templates/states/[state-name]/`
+**Each jurisdiction has up to 7 files**:
+1. `metadata.json` — general legal requirements
+2. `divorce-metadata.json` — divorce-specific requirements (grounds, fees, waiting periods)
+3. `AffidavitTemplate.js` — extends `BaseAffidavitTemplate`
+4. `DivorcePetitionTemplate.js` — divorce petition generation
+5. `DivorceDecreeTemplate.js` — divorce decree generation
+6. `[XX]DivorceOrchestrator.js` — in `services/agents/`, interview flow for that jurisdiction
+7. `prompts/[xx]Divorce/index.js` — LLM prompts for divorce interviews
+
+**Adding a jurisdiction**:
+1. `mkdir templates/states/[jurisdiction-name]`
+2. Create the template files above (at minimum `metadata.json` + `AffidavitTemplate.js`)
+3. For divorce support: add all 7 files + the orchestrator in `services/agents/`
+4. Add tests in `__tests__/templates/states/[jurisdiction-name]/`
+5. For international jurisdictions: add to `config/jurisdictions.js` mapping
+
+**Feature flag**: `ENABLE_INTERNATIONAL=false` (default) hides non-NA jurisdictions. Gated at:
+- `TemplateLoader` — skips international directories
+- `catalog.js` — filters `ALL_JURISDICTIONS`
+- `chat.js` — clamps `detectCountry()` to US/CA
+
+**Country-aware routing**: `detectCountry()` in `chat.js` uses subdomain and `countryCode` to default to ON (Ontario) for Canadian users, TX for US users.
 
 ---
 
@@ -418,11 +476,27 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 **"Database pool not available"**: `app.locals.pool` must be set before routes load — it is, at line `app.locals.pool = dbService.pool` in `server.js`.
 
-**PDF generation fails**: Check facts are normalized, template state is one of TX/UT/AZ/CA/FL/IL/NY, `documents/` dir is writable.
+**PDF generation fails**: Check facts are normalized, template jurisdiction is recognized, `documents/` dir is writable. Note: PDFService currently only handles affidavit-style layouts; international A4 options are defined but not yet wired up.
 
 ---
 
 ## Version History
+
+### v4.0.0 (2026-03-13) — current branch
+- **Jurisdictions**: Expanded from 7 to 110 directories (64 NA + 46 international)
+  - All 50 US states + DC with full divorce support
+  - 13 Canadian provinces/territories (10 provinces + NT, YT, NU)
+  - Wave 1 international: UK, Ireland, NZ, Australia, Singapore, Hong Kong, South Africa, Kenya, Ghana, Nigeria, India
+- **Divorce orchestration**: Per-jurisdiction interview orchestrators with state-specific legal requirements
+- **Matter types**: 16 civil/family law orchestrators (custody, child support, DVRO, paternity, legal separation, annulment, guardianship, adoption, emancipation, small claims, name change, debt defense, landlord-tenant, civil harassment, general civil, probate)
+- **Catalog API**: In-memory catalog at `/api/catalog/matters` and `/api/catalog/states/:state/matters`
+- **Cases**: New `cases` table (migration 012) with RLS for case profile management
+- **Document catalog**: DB-backed catalog (migration 013) for matter/doc types and interview phases
+- **Triage orchestrator**: Routes users to correct matter type when intent is unknown
+- **Country-aware routing**: `detectCountry()` defaults Canadian users to ON, US users to TX
+- **Feature flag**: `ENABLE_INTERNATIONAL=false` gates non-NA jurisdictions
+- **Security**: `pathSecurity.js` path traversal prevention utility
+- **Legal audit**: 160+ corrections across 130 files (filing fees, statute citations, waiting periods, court names)
 
 ### v3.2.0 (2026-03-02)
 - **Deployment**: App moved to `make.discover.legal`; landing page migrated to Webflow

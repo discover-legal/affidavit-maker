@@ -29,6 +29,7 @@ const initialState = {
     caseType: '',
     county: '',
     documentType: 'general',
+    activeSubDocument: null, // For divorce packages: 'divorce_petition' or 'divorce_decree'
     facts: [],
     documentId: null,
     factSummary: null,      // Cached AI summary of facts
@@ -76,7 +77,8 @@ const ActionTypes = {
   MERGE_PROFESSIONAL_REWRITES: 'MERGE_PROFESSIONAL_REWRITES',
   SET_JUST_SAVED: 'SET_JUST_SAVED',
   REORDER_FACTS: 'REORDER_FACTS',
-  SAVE_COMPLETE: 'SAVE_COMPLETE'
+  SAVE_COMPLETE: 'SAVE_COMPLETE',
+  SWITCH_SUB_DOCUMENT: 'SWITCH_SUB_DOCUMENT'
 };
 
 // Reducer
@@ -92,12 +94,18 @@ const documentReducer = (state, action) => {
     case ActionTypes.UPDATE_DOCUMENT_DATA:
       // ✅ CRITICAL: documentId is immutable - never allow it to be overwritten
       const updates = { ...action.payload };
-      
+
       // Remove documentId from updates if it's null/undefined
       if (updates.documentId === null || updates.documentId === undefined) {
         delete updates.documentId;
       }
-      
+
+      // Auto-set activeSubDocument for divorce_package if not already set
+      const mergedDoc = { ...state.currentDocument, ...updates };
+      if (mergedDoc.documentType === 'divorce_package' && !mergedDoc.activeSubDocument) {
+        updates.activeSubDocument = 'divorce_petition';
+      }
+
       return {
         ...state,
         currentDocument: {
@@ -273,14 +281,32 @@ const documentReducer = (state, action) => {
         hasUnsavedChanges: true
       };
 
+    case ActionTypes.SWITCH_SUB_DOCUMENT:
+      // Switch between divorce petition and decree views
+      // payload: 'divorce_petition' or 'divorce_decree'
+      const newSubDoc = action.payload;
+      if (newSubDoc !== 'divorce_petition' && newSubDoc !== 'divorce_decree') {
+        return state;
+      }
+      // Keep the original documentType (e.g., 'divorce_package') intact
+      // Only update activeSubDocument for view switching
+      const originalDocType = state.currentDocument.documentType;
+      const preserveDocType = originalDocType === 'divorce_package';
+      return {
+        ...state,
+        currentDocument: {
+          ...state.currentDocument,
+          activeSubDocument: newSubDoc,
+          documentType: preserveDocType ? originalDocType : newSubDoc
+        },
+        // Clear preview so it regenerates for the new sub-document
+        preview: null
+      };
+
     default:
       return state;
   }
 };
-
-// Create contexts
-const DocumentContext = createContext();
-const DocumentDispatchContext = createContext();
 
 /**
  * ✅ Document Provider Component - CLEAN ARCHITECTURE
@@ -455,7 +481,9 @@ export const DocumentProvider = ({ children }) => {
   }, [authFetch, generatePreview]);
 
   // ✅ NEW: Initialize a new document session
-  const initializeNewDocument = useCallback(async (forceNew = false) => {
+  // documentType: 'affidavit' (default) or 'divorce_package'
+  // practiceArea: 'family' (default) or 'civil'
+  const initializeNewDocument = useCallback(async (forceNew = false, documentType = 'affidavit', practiceArea = 'family') => {
     if (!isAuthenticated) {
       console.warn('Cannot initialize document: User not authenticated');
       return null;
@@ -482,8 +510,16 @@ export const DocumentProvider = ({ children }) => {
       return stateRef.current.currentDocument.documentId;
     }
 
+    // Determine if this is a divorce package
+    const isDivorcePackage = documentType === 'divorce_package';
+    const defaultTitle = isDivorcePackage ? 'Untitled Divorce Package' : 'Untitled Affidavit';
+    // Preserve 'divorce_package' as the document type so the frontend
+    // can detect it and show the petition/decree switcher.
+    // activeSubDocument tracks which sub-document is currently being viewed.
+    const internalDocType = isDivorcePackage ? 'divorce_package' : 'general';
+
     try {
-      console.log('📄 Creating new document...');
+      console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
       // Create empty document
@@ -497,13 +533,18 @@ export const DocumentProvider = ({ children }) => {
           defendant: '',
           county: '',
           caseType: '',
-          documentType: 'general',
+          documentType: internalDocType,
+          practiceArea: practiceArea,
+          activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         },
-        title: 'Untitled Affidavit',
+        title: defaultTitle,
         content: JSON.stringify({
           state: '',
           affiantName: '',
+          documentType: internalDocType,
+          practiceArea: practiceArea,
+          activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
           facts: []
         })
       };
@@ -518,20 +559,12 @@ export const DocumentProvider = ({ children }) => {
 
         console.log('📄 New document created:', documentId);
 
-        // Safely extract affidavit data from the response. The server may return
-        // parsed affidavit data under `document.affidavitData` or as `document.content`.
-        let createdContent = {};
-        const raw = data.document.affidavitData ?? data.document.content;
-        if (raw) {
-          try {
-            createdContent = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          } catch (e) {
-            console.warn('Failed to parse created document content, using raw value', e);
-            createdContent = raw;
-          }
-        }
+        // Use the payload data we sent as the source of truth.
+        // The save response only returns metadata (id, title, status),
+        // not the full document content.
+        const createdContent = payload.affidavitData;
 
-        // Set the document data (do not spread undefined)
+        // Set the document data
         dispatch({
           type: ActionTypes.SET_DOCUMENT_DATA,
           payload: {
@@ -595,6 +628,10 @@ export const DocumentProvider = ({ children }) => {
       });
 
       // Build payload
+      const isDivorceDoc = fullDocumentData.documentType === 'divorce_package' ||
+        fullDocumentData.documentType === 'divorce_petition' ||
+        fullDocumentData.documentType === 'divorce_decree';
+
       const payload = {
         affidavitData: {
           state: fullDocumentData.state || '',
@@ -609,13 +646,18 @@ export const DocumentProvider = ({ children }) => {
           county: fullDocumentData.county || '',
           caseType: fullDocumentData.caseType || '',
           documentType: fullDocumentData.documentType || 'general',
+          activeSubDocument: fullDocumentData.activeSubDocument || null,
           facts: fullDocumentData.facts || [],
           documentId // Include for backend to know it's an update
         },
         title: fullDocumentData.documentTitle ||
-          (fullDocumentData.affiantName
-            ? `Affidavit of ${fullDocumentData.affiantName}`
-            : 'Untitled Affidavit'),
+          (isDivorceDoc
+            ? (fullDocumentData.affiantName
+              ? `Divorce Package - ${fullDocumentData.affiantName}`
+              : 'Untitled Divorce Package')
+            : (fullDocumentData.affiantName
+              ? `Affidavit of ${fullDocumentData.affiantName}`
+              : 'Untitled Affidavit')),
         content: JSON.stringify(fullDocumentData)
       };
 
@@ -671,7 +713,7 @@ export const DocumentProvider = ({ children }) => {
 
       throw error;
     }
-  }, [authFetch, loadDocuments, isAuthenticated]);
+  }, [authFetch, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ✅ Auto-save functionality
   const scheduleAutoSave = useCallback(() => {
@@ -908,6 +950,36 @@ export const DocumentProvider = ({ children }) => {
     setPreviewDebounceTimer(timer);
   }, [generatePreview, scheduleAutoSave]);
 
+  // Switch between divorce petition and decree views (for divorce packages)
+  const switchSubDocument = useCallback((subDocType) => {
+    if (subDocType !== 'divorce_petition' && subDocType !== 'divorce_decree') {
+      console.warn('Invalid sub-document type:', subDocType);
+      return;
+    }
+
+    console.log('📄 Switching to sub-document:', subDocType);
+
+    dispatch({
+      type: ActionTypes.SWITCH_SUB_DOCUMENT,
+      payload: subDocType
+    });
+
+    // Generate preview for the new sub-document type
+    // Keep the original documentType but pass activeSubDocument for the backend to use
+    setTimeout(() => {
+      const currentDoc = stateRef.current.currentDocument;
+      const updatedDoc = {
+        ...currentDoc,
+        activeSubDocument: subDocType,
+        // Preserve divorce_package type but signal which sub-doc to render
+        documentType: currentDoc.documentType === 'divorce_package'
+          ? 'divorce_package'
+          : subDocType
+      };
+      generatePreview(updatedDoc);
+    }, 100);
+  }, [generatePreview]);
+
   // Load documents on mount - only after TOS is verified
   useEffect(() => {
     if (isAuthenticated && tosVerified) {
@@ -980,7 +1052,8 @@ export const DocumentProvider = ({ children }) => {
     initializeNewDocument,
     renderFormattedPreview,
     mergeProfessionalRewrites,
-    reorderFacts
+    reorderFacts,
+    switchSubDocument
   }), [
     loadDocument,
     loadDocuments,
@@ -994,7 +1067,8 @@ export const DocumentProvider = ({ children }) => {
     initializeNewDocument,
     renderFormattedPreview,
     mergeProfessionalRewrites,
-    reorderFacts
+    reorderFacts,
+    switchSubDocument
   ]);
 
   return (

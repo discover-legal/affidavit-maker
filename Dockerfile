@@ -1,7 +1,6 @@
 # Use Node.js 18 LTS
 FROM node:18-bullseye-slim
 
-
 # Accept build arguments for React environment variables
 # These must be provided during docker build via --build-arg
 ARG REACT_APP_AUTH0_DOMAIN

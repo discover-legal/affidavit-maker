@@ -16,7 +16,6 @@ import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
 import { trackPageView } from './utils/analytics';
 
-// Environment configuration (onRedirectCallback is set inside Auth0ProviderWithNavigate)
 const AUTH0_CONFIG = {
   domain: process.env.REACT_APP_AUTH0_DOMAIN,
   clientId: process.env.REACT_APP_AUTH0_CLIENT_ID,
@@ -27,19 +26,15 @@ const AUTH0_CONFIG = {
   },
   cacheLocation: 'localstorage',
   useRefreshTokens: true,
-  useRefreshTokensFallback: true, // Fallback to refresh tokens if silent auth fails
-  useCookiesForTransactions: true, // Use cookies for faster cross-origin checks
-  authorizeTimeoutInSeconds: 10, // Reduce timeout for iframe check (default is 60s)
+  useRefreshTokensFallback: true,
+  useCookiesForTransactions: true,
+  authorizeTimeoutInSeconds: 10,
 };
 
-// Wrapper that puts Auth0Provider inside Router so onRedirectCallback can use navigate
 const Auth0ProviderWithNavigate = ({ children }) => {
   const navigate = useNavigate();
 
   const onRedirectCallback = (appState) => {
-    // Use React Router navigate instead of window.history.replaceState
-    // replaceState doesn't notify React Router of the URL change, which caused
-    // TOSGuard to see stale route state and trigger loginWithRedirect again
     navigate(appState?.returnTo || '/dashboard', { replace: true });
   };
 
@@ -88,9 +83,11 @@ const AppRoutes = () => {
   const navigate = useNavigate();
 
   // ✅ Start new document - Navigate to /editor/new
-  const handleNewDocument = () => {
-    console.log('🚀 Navigating to new document');
-    navigate('/editor/new');
+  // documentType: 'affidavit' (default) or 'divorce_package'
+  // caseType: 'family' (default) or 'civil'
+  const handleNewDocument = (documentType = 'affidavit', caseType = 'family') => {
+    console.log('🚀 Navigating to new document:', documentType, caseType);
+    navigate(`/editor/new?type=${documentType}&caseType=${caseType}`);
   };
 
   // ✅ Open existing document
@@ -186,7 +183,17 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Catch-all redirect — also uses AuthCallbackHandler to be safe */}
+      {/* Payment success redirect (Stripe return_url for 3D Secure flows) */}
+      <Route
+        path="/payment-success"
+        element={
+          <TOSGuard>
+            <Navigate to="/dashboard" replace />
+          </TOSGuard>
+        }
+      />
+
+      {/* Catch-all — also uses AuthCallbackHandler to be safe */}
       <Route
         path="*"
         element={<AuthCallbackHandler />}

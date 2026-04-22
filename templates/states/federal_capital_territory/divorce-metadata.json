@@ -1,0 +1,147 @@
+{
+  "stateCode": "FC",
+  "stateName": "Federal Capital Territory",
+  "countryCode": "NG",
+  "countryName": "Nigeria",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in Nigeria at the time of filing (MCA s.2). A wife who has been ordinarily resident in Nigeria for at least 3 years immediately preceding the petition is deemed domiciled in Nigeria (MCA s.7(b)). The FCT High Court has jurisdiction if either party resides within the Federal Capital Territory."
+  },
+  "waitingPeriod": {
+    "days": 0,
+    "description": "No mandatory waiting period after filing. The court grants a Decree Nisi, which becomes a Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage unless leave is granted for exceptional hardship (MCA s.30)."
+  },
+  "twoYearBar": {
+    "years": 2,
+    "description": "A petition for dissolution shall not be filed within two years of the date of marriage unless the court grants leave on grounds of exceptional hardship to the petitioner or exceptional depravity on the part of the respondent (MCA s.30)."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_consent",
+        "name": "2-Year Separation with Consent",
+        "description": "The parties have lived apart for a continuous period of at least two years immediately preceding the presentation of the petition and the respondent does not object to the grant of a decree.",
+        "statute": "Matrimonial Causes Act s.15(2)(e)"
+      },
+      {
+        "code": "separation_no_consent",
+        "name": "3-Year Separation without Consent",
+        "description": "The parties have lived apart for a continuous period of at least three years immediately preceding the presentation of the petition.",
+        "statute": "Matrimonial Causes Act s.15(2)(f)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "wilful_refusal",
+        "name": "Wilful Refusal to Consummate",
+        "description": "Since the celebration of the marriage the respondent has wilfully and persistently refused to consummate the marriage.",
+        "statute": "Matrimonial Causes Act s.15(2)(a)"
+      },
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "Since the celebration of the marriage the respondent has committed adultery and the petitioner finds it intolerable to live with the respondent.",
+        "statute": "Matrimonial Causes Act s.15(2)(b)"
+      },
+      {
+        "code": "intolerable_behaviour",
+        "name": "Intolerable Behaviour",
+        "description": "Since the celebration of the marriage the respondent has behaved in such a way that the petitioner cannot reasonably be expected to live with the respondent.",
+        "statute": "Matrimonial Causes Act s.15(2)(c)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion for One Year",
+        "description": "The respondent has deserted the petitioner for a continuous period of at least one year immediately preceding the presentation of the petition.",
+        "statute": "Matrimonial Causes Act s.15(2)(d)"
+      },
+      {
+        "code": "restitution",
+        "name": "Failure to Comply with Restitution Order",
+        "description": "The respondent has, since the celebration of the marriage, failed to comply with a decree of restitution of conjugal rights made under the Act.",
+        "statute": "Matrimonial Causes Act s.15(2)(g)"
+      },
+      {
+        "code": "presumption_of_death",
+        "name": "Presumption of Death (Absent 7 Years)",
+        "description": "The other party to the marriage has been absent for at least seven years and the petitioner has no reason to believe the other party has been alive at any time within that period.",
+        "statute": "Matrimonial Causes Act s.15(2)(h)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Suit No.",
+    "custody": "Custody of the Child(ren)",
+    "physicalCustody": "Custody and Care",
+    "jointCustody": "Joint Custody",
+    "soleCustody": "Sole Custody",
+    "alimony": "Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Ancillary Orders (MCA s.70-73)"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the divorce proceeding in the High Court under the Matrimonial Causes Act",
+        "required": true
+      },
+      {
+        "name": "Affidavit in Support of Petition",
+        "description": "Sworn affidavit verifying the facts stated in the petition",
+        "required": true
+      },
+      {
+        "name": "Marriage Certificate",
+        "description": "Original or certified true copy of the marriage certificate under the Marriage Act",
+        "required": true
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Act 1970, Cap M7 LFN 2004",
+      "description": "Federal statute — governs dissolution of marriages contracted under the Marriage Act"
+    },
+    {
+      "code": "Marriage Act, Cap M6 LFN 2004",
+      "description": "Governs statutory (Act) marriages in Nigeria"
+    },
+    {
+      "code": "Child Rights Act 2003",
+      "description": "Welfare of the child — adopted by the FCT"
+    },
+    {
+      "code": "Oaths Act, Cap O1 LFN 2004",
+      "description": "Governs affidavits and sworn statements"
+    }
+  ],
+  "filingFees": {
+    "approximate": "NGN 20,000-50,000",
+    "varies": true,
+    "notes": "Filing fees vary by court registry. Additional fees for service of process and motion filing."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "guidelines": "Matrimonial Causes Act s.71; Child Rights Act 2003",
+    "notes": "No statutory formula — the court considers the means and needs of the parties and the welfare of the child."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "court_discretion",
+    "guidelines": "Matrimonial Causes Act s.70",
+    "notes": "The court may order maintenance for either spouse, having regard to means, earning capacity, and conduct of the parties."
+  },
+  "decreeProcess": {
+    "decreeNisi": "Court grants Decree Nisi after hearing the petition on its merits.",
+    "decreeAbsolute": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Either party may apply to make it absolute.",
+    "waitingMonths": 3
+  },
+  "paperSize": "A4",
+  "currency": "NGN",
+  "emergencyNumber": "112",
+  "dvHotline": "0800 72 73 2255"
+}

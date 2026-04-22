@@ -1,0 +1,199 @@
+{
+  "stateCode": "MO",
+  "stateName": "Missouri",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition for Dissolution of Marriage",
+    "decree": "Judgment of Dissolution of Marriage",
+    "caseNumberLabel": "CASE NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Visitation / Parenting Time",
+    "alimony": "Maintenance",
+    "maritalProperty": "Marital Property"
+  },
+
+  "residencyRequirements": {
+    "stateDays": 90,
+    "countyDays": 0,
+    "description": "At least one party must have been a resident of Missouri for at least 90 days immediately preceding the filing of the petition. There is no separate county residency requirement.",
+    "statute": "RSMo 452.305"
+  },
+
+  "waitingPeriod": {
+    "days": 30,
+    "startsFrom": "filing_date",
+    "exceptions": [],
+    "description": "Missouri has a mandatory 30-day waiting period. The judgment cannot be entered until at least 30 days after the date the petition is filed. RSMo 452.305."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Irretrievably Broken",
+        "description": "The marriage is irretrievably broken with no reasonable likelihood that the marriage can be preserved",
+        "statute": "RSMo 452.320"
+      }
+    ],
+    "fault": [],
+    "notes": "Missouri is a pure no-fault state. The only ground for dissolution is that the marriage is irretrievably broken. Fault is not relevant to the dissolution proceeding."
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Missouri divides marital property equitably, considering the economic circumstances of each spouse, the contribution of each spouse to the acquisition of marital property, the value of non-marital property, the conduct of the parties during the marriage, custodial arrangements for minor children, and each spouse's earning capacity.",
+    "separateProperty": "Property acquired before marriage, by gift or inheritance during marriage, property acquired after a legal separation, and property excluded by valid agreement is separate (non-marital) property.",
+    "statute": "RSMo 452.330"
+  },
+
+  "legalCitations": [
+    {
+      "code": "RSMo 452.305",
+      "description": "Commencement of dissolution proceedings — 90-day residency, 30-day waiting period"
+    },
+    {
+      "code": "RSMo 452.320",
+      "description": "Grounds for dissolution — irretrievably broken"
+    },
+    {
+      "code": "RSMo 452.330",
+      "description": "Disposition of property — equitable distribution"
+    },
+    {
+      "code": "RSMo 452.335",
+      "description": "Maintenance — factors for award and amount"
+    },
+    {
+      "code": "RSMo 452.375",
+      "description": "Custody — legal and physical custody; joint and sole custody"
+    },
+    {
+      "code": "RSMo 452.310",
+      "description": "Parenting plan requirement"
+    },
+    {
+      "code": "RSMo 452.340",
+      "description": "Missouri Child Support Guidelines — income shares model"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$133-$250",
+    "varies": true,
+    "notes": "Missouri filing fees vary by county. St. Charles County charges $133; St. Louis County charges approximately $148.50; Jackson County charges $177.50; cases with minor children may cost up to ~$250 in some counties. Fee waivers are available for qualifying low-income individuals via a Motion to Proceed In Forma Pauperis."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Petition for Dissolution of Marriage",
+        "description": "Initiates the dissolution proceeding",
+        "required": true
+      },
+      {
+        "name": "Summons",
+        "description": "Formal notice to respondent",
+        "required": true
+      },
+      {
+        "name": "Civil Cover Sheet",
+        "description": "Court administrative form",
+        "required": true
+      },
+      {
+        "name": "Statement of Property and Debt",
+        "description": "Mandatory disclosure of income, assets, and debts",
+        "required": true
+      },
+      {
+        "name": "Judgment of Dissolution of Marriage",
+        "description": "Final court order dissolving the marriage",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on respondent via sheriff, process server, or certified mail",
+        "required": true,
+        "alternatives": ["Entry of Appearance and Waiver of Service"]
+      },
+      {
+        "name": "Entry of Appearance and Waiver of Service",
+        "description": "Respondent waives formal service and enters appearance",
+        "required": false,
+        "notes": "Must be signed by respondent and filed with the court"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Parenting Plan",
+        "description": "Required in all cases with minor children — details custody, visitation, and child support (RSMo 452.310)",
+        "required": true
+      },
+      {
+        "name": "Child Support Amount Calculation (Form 14)",
+        "description": "Income shares calculation per Missouri Supreme Court Rule 88.01",
+        "required": true
+      },
+      {
+        "name": "Child Support Order",
+        "description": "Court order establishing child support obligations",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Missouri Supreme Court Rules"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 30,
+      "description": "Respondent must file an answer within 30 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Respondent served outside Missouri must file an answer within 30 days of service"
+    },
+    "statute": "Missouri Supreme Court Rule 55.25(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Missouri uses an income shares model via Form 14 (Child Support Amount Calculation). Both parents' gross incomes are combined and the child support obligation is determined from the presumed child support amount based on combined adjusted gross income and the number of children.",
+    "statute": "RSMo 452.340; Missouri Supreme Court Rule 88.01",
+    "notes": "The court may deviate from the Form 14 amount if it is unjust or inappropriate after considering all relevant factors."
+  },
+
+  "maintenanceGuidelines": {
+    "type": "discretionary",
+    "description": "Missouri uses 'maintenance' (not alimony). The court may award maintenance if the requesting spouse (a) lacks sufficient property to provide for reasonable needs AND (b) is unable to support themselves through appropriate employment. The court considers the financial resources of each party, time needed for education or training, standard of living during marriage, duration of marriage, age, physical and emotional condition, and ability of the paying spouse to meet their own needs.",
+    "eligibility": "Either spouse may request maintenance. There is no formula; it is within the court's discretion.",
+    "statute": "RSMo 452.335"
+  },
+
+  "court": {
+    "name": "Circuit Court",
+    "description": "Dissolution of marriage is filed in the Circuit Court in the county where the petitioner resides."
+  }
+}

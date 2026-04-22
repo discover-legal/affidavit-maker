@@ -20,6 +20,14 @@ module.exports = {
       return middlewares;
     };
 
+    // Fix allowedHosts - filter out empty strings
+    if (Array.isArray(devServerConfig.allowedHosts)) {
+      devServerConfig.allowedHosts = devServerConfig.allowedHosts.filter(host => host && host.length > 0);
+      if (devServerConfig.allowedHosts.length === 0) {
+        devServerConfig.allowedHosts = 'all';
+      }
+    }
+
     return devServerConfig;
   },
 };

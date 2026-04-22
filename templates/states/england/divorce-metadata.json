@@ -1,0 +1,100 @@
+{
+  "stateCode": "ENG",
+  "stateName": "England & Wales",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in England and Wales, or have been habitually resident for at least one year immediately before the application (Matrimonial Causes Act 1973, s.5(2))."
+  },
+  "waitingPeriod": {
+    "days": 140,
+    "description": "20-week reflection period from the date the application is issued to the Conditional Order (Divorce, Dissolution and Separation Act 2020, s.1(5)). After the Conditional Order, a further 6-week gap before the Final Order can be applied for."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown",
+        "name": "Irretrievable Breakdown",
+        "description": "The sole ground for divorce since April 2022. The applicant (or joint applicants) provides a statement that the marriage has irretrievably broken down. No need to prove fault, adultery, or separation.",
+        "statute": "Divorce, Dissolution and Separation Act 2020, s.1(1)"
+      }
+    ],
+    "fault": []
+  },
+  "terminology": {
+    "caseNumberLabel": "Case No.",
+    "custody": "Child Arrangements",
+    "physicalCustody": "Lives With (Child Arrangements Order)",
+    "jointCustody": "Shared Lives With",
+    "soleCustody": "Lives With One Parent",
+    "alimony": "Spousal Maintenance / Periodical Payments",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Financial Remedy (Matrimonial Causes Act 1973, s.25)",
+    "interimOrder": "Conditional Order",
+    "finalOrder": "Final Order"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Online Application (or Form D8)",
+        "description": "Application for a divorce, dissolution, or (judicial) separation — filed online via the HMCTS portal or on paper using Form D8",
+        "required": true
+      },
+      {
+        "name": "Form D80A-D80E (Statement in Support)",
+        "description": "Historical forms for proving grounds — no longer required under no-fault divorce (post-April 2022) except for judicial separation",
+        "required": false
+      },
+      {
+        "name": "Form A (Financial Remedy)",
+        "description": "Application for a financial order under MCA 1973; needed if financial remedy is sought",
+        "required": false
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce, Dissolution and Separation Act 2020",
+      "description": "No-fault divorce — single ground of irretrievable breakdown, in force 6 April 2022"
+    },
+    {
+      "code": "Matrimonial Causes Act 1973",
+      "description": "Governs financial remedy orders (s.23-25A) — lump sum, property adjustment, periodical payments, pension sharing"
+    },
+    {
+      "code": "Children Act 1989",
+      "description": "Welfare of children — s.1 welfare principle, s.8 child arrangements orders"
+    },
+    {
+      "code": "Family Procedure Rules 2010 (SI 2010/2955)",
+      "description": "Procedural rules governing family proceedings"
+    },
+    {
+      "code": "Child Maintenance Service (CMS)",
+      "description": "Statutory child maintenance — calculated by CMS or agreed privately"
+    }
+  ],
+  "filingFees": {
+    "approximate": "GBP £612",
+    "varies": false,
+    "notes": "Filing fee for divorce application (increased from £593 to £612 in April 2025). Fee remission (Help with Fees / HWF) available for those on low income or receiving certain benefits."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "cms_formula",
+    "guidelines": "Child Maintenance Service (CMS) — gross income formula",
+    "notes": "CMS uses gross income from HMRC data. Basic rate: 12% for 1 child, 16% for 2, 19% for 3+. Parents may agree private arrangements (family-based arrangements) instead."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "section_25_factors",
+    "guidelines": "Matrimonial Causes Act 1973, s.25",
+    "notes": "Court considers all circumstances including income, earning capacity, financial needs, standard of living, age, duration of marriage, disability, and contributions. No fixed formula — discretionary."
+  },
+  "effectiveDateRule": "The divorce is finalised when the Final Order is made. The Conditional Order can be applied for after the 20-week reflection period. The Final Order can be applied for 6 weeks after the Conditional Order.",
+  "certificateNote": "A copy of the Final Order (formerly Decree Absolute) can be obtained from the court. It serves as proof that the marriage has been dissolved.",
+  "jointApplicationNote": "Joint applications are available under the 2020 Act. Both parties apply together and neither is solely responsible for the application."
+}

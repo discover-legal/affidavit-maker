@@ -1,0 +1,64 @@
+{
+  "stateCode": "QC",
+  "stateName": "Quebec",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "No. :",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true,
+    "civilLawProvince": true,
+    "bilingualOption": true
+  },
+  "courtSystem": {
+    "trialCourt": "Superior Court (Cour supérieure)",
+    "familyCourt": "Superior Court (Cour supérieure)",
+    "appealCourt": "Court of Appeal of Quebec (Cour d'appel du Québec)"
+  },
+  "divorceTerminology": {
+    "parties": ["Plaintiff (Demandeur/Demanderesse)", "Defendant (Défendeur/Défenderesse)"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Civil Code of Quebec, arts. 414-426 (Family Patrimony / Patrimoine familial); arts. 448-484 (Partnership of Acquests / Société d'acquêts)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Civil Code of Quebec, CQLR c. CCQ-1991, arts. 516-521",
+      "description": "Quebec provisions on divorce — incorporates federal Divorce Act grounds"
+    },
+    {
+      "code": "Civil Code of Quebec, arts. 380-430",
+      "description": "Quebec family law — marriage and its effects, family patrimony (arts. 414-426) — mandatory equal division of certain assets on breakdown of marriage"
+    },
+    {
+      "code": "Code of Civil Procedure, CQLR c. C-25.01",
+      "description": "Quebec procedural rules for civil and family proceedings"
+    }
+  ],
+  "notes": "Quebec is a civil law province. Affidavits (déclarations sous serment) follow a different tradition. Notaries (notaires) in Quebec have broader powers than in common-law provinces and may draft binding notarial acts. The family patrimony (patrimoine familial) regime is mandatory for all married couples — it requires equal division of certain designated assets regardless of ownership.",
+  "affidavitJurat": "SWORN (DÉCLARÉ SOUS SERMENT) before me at the City of ___, in the Province of Quebec, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Oaths / Commissaire à l'assermentation\nin and for the Province of Quebec",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be identified by letter (A, B, C...) and initialed by the deponent and the commissioner."
+  }
+}

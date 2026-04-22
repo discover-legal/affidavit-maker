@@ -18,6 +18,345 @@ try {
   logger.warn('Stripe not initialized in documents.js', { error: err.message });
 }
 
+// DivorceDocumentGenerator — generates sections objects for all divorce doc types
+let divorceDocumentGenerator = null;
+try {
+  divorceDocumentGenerator = require('../services/documents/DivorceDocumentGenerator');
+  logger.info('DivorceDocumentGenerator loaded');
+} catch (err) {
+  logger.warn('DivorceDocumentGenerator not available', { error: err.message });
+}
+
+// All document type IDs routed through DivorceDocumentGenerator.
+// This is the complete set across all 7 states.
+const ALL_DIVORCE_DOCUMENT_TYPES = new Set([
+  // Core filing documents
+  'divorce_petition', 'petition_dissolution',
+  'divorce_decree', 'judgment_dissolution', 'final_judgment', 'proposed_judgment',
+  // Service documents
+  'waiver_of_service', 'acknowledgment_of_receipt', 'acknowledgment_of_service',
+  'cert_last_known_address',
+  // Affidavit documents
+  'prove_up_affidavit', 'military_status_affidavit', 'indigency_affidavit',
+  // Child & support
+  'parenting_plan', 'child_support_worksheet', 'child_support_order',
+  'spousal_support_order', 'child_custody_order',
+  // NY-specific
+  'summons_with_notice', 'verified_complaint',
+]);
+
+/**
+ * Generate a divorce document using DivorceDocumentGenerator.
+ * Returns a {sections, metadata} object compatible with pdfService and the preview endpoint.
+ * Falls through to null if the generator is unavailable.
+ */
+function generateDivorceDocument(state, docType, data) {
+  if (!divorceDocumentGenerator) return null;
+  try {
+    return divorceDocumentGenerator.generate(state, docType, data);
+  } catch (err) {
+    logger.error('DivorceDocumentGenerator.generate failed', {
+      state, docType, error: err.message
+    });
+    return null;
+  }
+}
+
+/**
+ * Map chat-extracted divorce fields to template-expected field names
+ * @param {Object} divorceData - The divorce data object to map in-place
+ */
+// ─── Matter type display names (for document titles) ─────────────────────────
+const MATTER_TYPE_TITLES = {
+  custody:            'PETITION FOR CHILD CUSTODY AND VISITATION',
+  child_support:      'PETITION FOR CHILD SUPPORT',
+  dvro:               'PETITION FOR DOMESTIC VIOLENCE RESTRAINING ORDER',
+  paternity:          'PETITION TO ESTABLISH PATERNITY',
+  legal_separation:   'PETITION FOR LEGAL SEPARATION',
+  annulment:          'PETITION FOR ANNULMENT OF MARRIAGE',
+  guardianship_minor: 'PETITION FOR APPOINTMENT OF GUARDIAN OF A MINOR',
+  adoption:           'PETITION FOR ADOPTION',
+  emancipation:       'PETITION FOR EMANCIPATION OF A MINOR',
+  small_claims:       'SMALL CLAIMS COMPLAINT',
+  name_change:        'PETITION FOR CHANGE OF NAME',
+  debt_defense:       'ANSWER TO COMPLAINT — DEBT COLLECTION DEFENSE',
+  landlord_tenant:    'COMPLAINT — LANDLORD/TENANT MATTER',
+  civil_harassment:   'PETITION FOR CIVIL HARASSMENT RESTRAINING ORDER',
+  general_civil:      'CIVIL COMPLAINT',
+  probate:            'PETITION FOR PROBATE AND ESTATE ADMINISTRATION',
+};
+
+// Matter types that don't require state-specific templates
+// (they still need a state/county for filing, but any state's affidavit format works)
+const STATE_AGNOSTIC_MATTER_TYPES = new Set([
+  'name_change', 'small_claims', 'debt_defense', 'general_civil', 'probate',
+  'emancipation', 'civil_harassment', 'landlord_tenant',
+]);
+
+/**
+ * Map matter orchestrator output fields → affidavit template fields.
+ * Called before generating a preview or PDF for any non-divorce matter type.
+ * Mutates data in place (same pattern as mapDivorceDataFields).
+ */
+function mapMatterDataFields(data) {
+  // Set affiantName from petitioner/plaintiff if not already set
+  if (!data.affiantName) {
+    if (data.petitionerName) {
+      data.affiantName = data.petitionerName;
+    } else if (data.petitionerFirstName || data.petitionerLastName) {
+      data.affiantName = [data.petitionerFirstName, data.petitionerLastName].filter(Boolean).join(' ');
+    } else if (data.plaintiffName) {
+      data.affiantName = data.plaintiffName;
+    } else if (data.plaintiffFirstName || data.plaintiffLastName) {
+      data.affiantName = [data.plaintiffFirstName, data.plaintiffLastName].filter(Boolean).join(' ');
+    } else if (data.currentFirstName || data.currentLastName) {
+      // Name change: petitioner's current name
+      data.affiantName = [data.currentFirstName, data.currentMiddleName, data.currentLastName].filter(Boolean).join(' ');
+    } else if (data.defendantFirstName || data.defendantLastName) {
+      // Debt defense: the defendant is the affiant
+      data.affiantName = [data.defendantFirstName, data.defendantLastName].filter(Boolean).join(' ');
+    }
+  }
+
+  // Derive combined name fields for template compatibility
+  if (!data.petitionerName && (data.petitionerFirstName || data.petitionerLastName)) {
+    data.petitionerName = [data.petitionerFirstName, data.petitionerLastName].filter(Boolean).join(' ');
+  }
+  if (!data.respondentName && (data.respondentFirstName || data.respondentLastName)) {
+    data.respondentName = [data.respondentFirstName, data.respondentLastName].filter(Boolean).join(' ');
+  }
+  if (!data.plaintiffName && (data.plaintiffFirstName || data.plaintiffLastName)) {
+    data.plaintiffName = [data.plaintiffFirstName, data.plaintiffLastName].filter(Boolean).join(' ');
+  }
+  if (!data.defendantName && (data.defendantFirstName || data.defendantLastName)) {
+    data.defendantName = [data.defendantFirstName, data.defendantLastName].filter(Boolean).join(' ');
+  }
+
+  // Map children field: ensure birthDate field exists alongside dob
+  if (Array.isArray(data.children)) {
+    data.children = data.children.map(child => ({
+      ...child,
+      birthDate: child.birthDate || child.dateOfBirth || child.dob || child.date_of_birth,
+      name: child.name || [child.firstName, child.lastName].filter(Boolean).join(' ')
+    }));
+  }
+
+  // Set document title from matter type
+  if (data.matterTypeCode && MATTER_TYPE_TITLES[data.matterTypeCode]) {
+    data.documentTitle = data.documentTitle || MATTER_TYPE_TITLES[data.matterTypeCode];
+  }
+
+  return data;
+}
+
+function mapDivorceDataFields(divorceData) {
+  // Map party names
+  if (!divorceData.petitionerName && (divorceData.petitionerFirstName || divorceData.petitionerLastName)) {
+    divorceData.petitionerName = [divorceData.petitionerFirstName, divorceData.petitionerLastName].filter(Boolean).join(' ');
+  }
+  if (!divorceData.respondentName && (divorceData.respondentFirstName || divorceData.respondentLastName)) {
+    divorceData.respondentName = [divorceData.respondentFirstName, divorceData.respondentLastName].filter(Boolean).join(' ');
+  }
+  if (!divorceData.marriageLocation && divorceData.marriagePlace) {
+    divorceData.marriageLocation = divorceData.marriagePlace;
+  }
+  if (!divorceData.court && divorceData.courtName) {
+    divorceData.court = divorceData.courtName;
+  }
+
+  // Map children field names: chat uses dateOfBirth, template expects birthDate
+  if (Array.isArray(divorceData.children)) {
+    divorceData.children = divorceData.children.map(child => ({
+      ...child,
+      birthDate: child.birthDate || child.dateOfBirth || child.date_of_birth,
+      name: child.name || [child.firstName, child.lastName].filter(Boolean).join(' ')
+    }));
+  }
+
+  // Map grounds: normalize common variations to template-expected values
+  if (divorceData.groundsForDivorce) {
+    const groundsMap = {
+      'infidelity': 'adultery',
+      'cheating': 'adultery',
+      'unfaithful': 'adultery',
+      'abuse': 'cruelty',
+      'domestic_violence': 'cruelty',
+      'no_fault': 'insupportability',
+      'irreconcilable': 'irreconcilable_differences',
+      'separation': 'living_apart'
+    };
+    const normalized = divorceData.groundsForDivorce.toLowerCase().trim();
+    divorceData.groundsForDivorce = groundsMap[normalized] || divorceData.groundsForDivorce;
+  }
+
+  // Map custody fields
+  if (!divorceData.custodyType && divorceData.custodyPreference) {
+    divorceData.custodyType = divorceData.custodyPreference;
+  }
+
+  // Map spousal support fields
+  if (divorceData.requestingSpousalSupport) {
+    divorceData.requestSpousalSupport = true;
+    divorceData.spousalSupportAwarded = true;
+  }
+
+  // Map child support from extracted data
+  if (divorceData.childSupportMonthly) {
+    divorceData.childSupportAmount = divorceData.childSupportMonthly;
+  }
+
+  // Extract structured data from facts text when structured fields are not set
+  // This ensures facts carry context across jurisdiction changes
+  extractStructuredDataFromFacts(divorceData);
+}
+
+/**
+ * Extract structured divorce data from fact text content.
+ * When users enter facts via chat, the AI produces fact text like
+ * "The parties have one minor child" but doesn't always populate
+ * structured fields like hasMinorChildren, children[], etc.
+ * This function scans facts and populates those fields so templates
+ * can render the correct sections.
+ *
+ * @param {Object} divorceData - The divorce data object to enhance in-place
+ */
+function extractStructuredDataFromFacts(divorceData) {
+  if (!Array.isArray(divorceData.facts) || divorceData.facts.length === 0) {
+    return;
+  }
+
+  const factsText = divorceData.facts
+    .map(f => (typeof f === 'string' ? f : f.content || ''))
+    .join(' ')
+    .toLowerCase();
+
+  // --- Children detection ---
+  if (divorceData.hasMinorChildren === undefined || divorceData.hasMinorChildren === null) {
+    const childPatterns = [
+      /(?:have|has|born|adopted)\s+(?:one|two|three|four|five|six|\d+)\s+(?:minor\s+)?child/i,
+      /minor\s+child(?:ren)?\s+(?:of|born|from)/i,
+      /child(?:ren)?\s+(?:were|was)\s+born/i,
+      /(?:the|a)\s+child\s+of\s+(?:the|this)\s+marriage/i,
+      /custody\s+(?:of|arrangement|shall)/i,
+      /conservatorship/i
+    ];
+
+    const noChildPatterns = [
+      /no\s+(?:minor\s+)?child(?:ren)?\s+(?:of|born|were born|from)/i,
+      /no\s+children\s+(?:of|from)\s+(?:the|this)\s+marriage/i,
+      /without\s+(?:minor\s+)?child(?:ren)?/i
+    ];
+
+    const hasChildMention = childPatterns.some(p => p.test(factsText));
+    const hasNoChildMention = noChildPatterns.some(p => p.test(factsText));
+
+    if (hasNoChildMention) {
+      divorceData.hasMinorChildren = false;
+    } else if (hasChildMention) {
+      divorceData.hasMinorChildren = true;
+
+      // Try to extract child count and names from facts if children array not set
+      if (!divorceData.children || divorceData.children.length === 0) {
+        const children = [];
+        const fullFactsText = divorceData.facts
+          .map(f => (typeof f === 'string' ? f : f.content || ''))
+          .join(' ');
+
+        // Match patterns like "child named X" or "X, born DATE" or "minor child, X"
+        const childNamePatterns = [
+          /child(?:ren)?\s+named?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+          /minor\s+child(?:ren)?,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+          /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+born\s+(?:on\s+)?(\w+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/g
+        ];
+
+        for (const pattern of childNamePatterns) {
+          let match;
+          while ((match = pattern.exec(fullFactsText)) !== null) {
+            const childName = match[1].trim();
+            // Avoid matching generic words that aren't names
+            if (childName.length > 1 && !['The', 'This', 'That', 'And', 'For'].includes(childName)) {
+              const child = { name: childName };
+              if (match[2]) {
+                child.birthDate = match[2].trim();
+              }
+              // Avoid duplicates
+              if (!children.some(c => c.name === childName)) {
+                children.push(child);
+              }
+            }
+          }
+        }
+
+        if (children.length > 0) {
+          divorceData.children = children;
+        } else {
+          // Count children mentioned numerically
+          const countMatch = factsText.match(/(?:have|has)\s+(one|two|three|four|five|six|\d+)\s+(?:minor\s+)?child/i);
+          if (countMatch) {
+            const numWords = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+            const count = numWords[countMatch[1].toLowerCase()] || parseInt(countMatch[1]) || 1;
+            divorceData.children = Array.from({ length: count }, (_, i) => ({
+              name: `[CHILD ${i + 1} NAME]`
+            }));
+          }
+        }
+      }
+    }
+  }
+
+  // --- Grounds for divorce detection ---
+  if (!divorceData.groundsForDivorce) {
+    const groundsPatterns = [
+      { pattern: /insupportab/i, grounds: 'insupportability' },
+      { pattern: /irreconcilable\s+differences/i, grounds: 'irreconcilable_differences' },
+      { pattern: /adultery|unfaithful|affair/i, grounds: 'adultery' },
+      { pattern: /cruel(?:ty|treatment)|domestic\s+violence|abuse/i, grounds: 'cruelty' },
+      { pattern: /abandon(?:ment|ed)/i, grounds: 'abandonment' },
+      { pattern: /lived?\s+(?:separate|apart)/i, grounds: 'living_apart' },
+      { pattern: /no[\s-]fault/i, grounds: 'insupportability' }
+    ];
+
+    for (const { pattern, grounds } of groundsPatterns) {
+      if (pattern.test(factsText)) {
+        divorceData.groundsForDivorce = grounds;
+        break;
+      }
+    }
+  }
+
+  // --- Custody type detection ---
+  if (!divorceData.custodyType) {
+    if (/joint\s+(?:managing\s+)?conservator|joint\s+custody|shared\s+custody/i.test(factsText)) {
+      divorceData.custodyType = 'joint';
+    } else if (/sole\s+(?:managing\s+)?conservator|sole\s+custody|full\s+custody/i.test(factsText)) {
+      divorceData.custodyType = 'sole';
+    }
+  }
+
+  // --- Spousal support detection ---
+  if (!divorceData.requestSpousalSupport && !divorceData.spousalSupportAwarded) {
+    if (/spousal\s+(?:support|maintenance)|alimony/i.test(factsText)) {
+      divorceData.requestSpousalSupport = true;
+      divorceData.spousalSupportAwarded = true;
+    }
+  }
+
+  // --- Child support amount detection ---
+  if (!divorceData.childSupportAmount) {
+    const supportMatch = factsText.match(/child\s+support\s+(?:of\s+)?\$?([\d,]+(?:\.\d{2})?)\s*(?:per\s+month|monthly|\/\s*(?:mo|month))/i);
+    if (supportMatch) {
+      divorceData.childSupportAmount = supportMatch[1].replace(/,/g, '');
+    }
+  }
+
+  // --- Property detection ---
+  if (divorceData.hasProperty === undefined || divorceData.hasProperty === null) {
+    if (/(?:community|marital)\s+property|(?:real\s+)?estate|(?:the\s+)?(?:family\s+)?home|mortgage/i.test(factsText)) {
+      divorceData.hasProperty = true;
+    }
+  }
+}
+
 // Fixed preview route for routes/documents.js
 // Add this to your routes/documents.js file, replacing the existing /preview route
 
@@ -72,38 +411,82 @@ router.post('/preview',
             logger.info('State not set, using neutral preview');
             preview = createFallbackPreview(affidavitData);
           } else {
-            // Use generateAffidavit with state code and data (same as /generate endpoint)
-            const document = templateManager.generateAffidavit(
-              affidavitData.state,
-              affidavitData
-            );
+            // Determine document type and generate appropriate document
+            const documentType = affidavitData.documentType || 'affidavit';
+            let document;
 
-            // ✅ DEBUG: Log generated document sections
-            logger.info('Template generated document', {
-              factItemCount: document.sections?.facts?.items?.length || 0,
-              factItems: document.sections?.facts?.items?.map((f, i) => ({
-                number: f.number,
-                hasContent: !!f.content,
-                contentLength: f.content?.length,
-                contentPreview: f.content?.substring(0, 50)
-              }))
-            });
+            // Resolve the effective document type for divorce packages
+            // divorce_package uses activeSubDocument to determine which document to render
+            let effectiveDocType = documentType;
+            if (documentType === 'divorce_package') {
+              effectiveDocType = affidavitData.activeSubDocument || 'divorce_petition';
+            }
 
-            preview = {
-              sections: document.sections || document,
-              htmlContent: document.htmlContent,
-              metadata: {
-                wordCount: estimateWordCount(affidavitData.facts)
+            // Route to appropriate generator based on document type
+            if (ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveDocType)) {
+              // Divorce / dissolution document — use DivorceDocumentGenerator first, then
+              // fall back to templateManager if the generator is not yet available.
+              const divorceData = { ...affidavitData };
+              mapDivorceDataFields(divorceData);
+
+              const generated = generateDivorceDocument(divorceData.state, effectiveDocType, divorceData);
+              if (generated) {
+                document = generated;
+              } else if (typeof templateManager.generateDocument === 'function') {
+                document = templateManager.generateDocument(divorceData.state, divorceData, effectiveDocType);
+              } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
+                document = templateManager.generateDivorcePetition(divorceData.state, divorceData);
+              } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
+                document = templateManager.generateDivorceDecree(divorceData.state, divorceData);
+              } else {
+                logger.warn('No divorce document generator available, using fallback preview');
+                preview = createDivorceFallbackPreview(affidavitData);
               }
-            };
+            } else {
+              // Non-divorce document: map matter orchestrator fields → affidavit template fields,
+              // then render using the standard affidavit template for the state.
+              const matterData = { ...affidavitData };
+              if (matterData.matterTypeCode) mapMatterDataFields(matterData);
+              document = templateManager.generateAffidavit(
+                matterData.state,
+                matterData
+              );
+            }
+
+            // Only process document if it was generated (not if fallback preview was used)
+            if (document) {
+              // ✅ DEBUG: Log generated document sections
+              logger.info('Template generated document', {
+                factItemCount: document.sections?.facts?.items?.length || 0,
+                factItems: document.sections?.facts?.items?.map((f, i) => ({
+                  number: f.number,
+                  hasContent: !!f.content,
+                  contentLength: f.content?.length,
+                  contentPreview: f.content?.substring(0, 50)
+                }))
+              });
+
+              preview = {
+                sections: document.sections || document,
+                htmlContent: document.htmlContent,
+                metadata: {
+                  wordCount: estimateWordCount(affidavitData.facts)
+                }
+              };
+            }
 
             logger.info('StateTemplateManager preview generated successfully');
           }
         } catch (templateError) {
+          const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
+          const isDivorceType = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
           logger.warn('Template manager preview failed, using fallback', {
-            error: templateError.message
+            error: templateError.message,
+            documentType: docType
           });
-          preview = createFallbackPreview(affidavitData);
+          preview = isDivorceType
+            ? createDivorceFallbackPreview(affidavitData)
+            : createFallbackPreview(affidavitData);
         }
       } else {
         // Use fallback if template manager not available
@@ -114,8 +497,10 @@ router.post('/preview',
       // Enhance preview with categories
       const enhancedPreview = enhancePreviewWithCategories(preview, affidavitData);
 
-      // ✅ SAFETY CHECK: Ensure notaryBlock is present for all states
-      if (!enhancedPreview.sections?.notaryBlock) {
+      // ✅ SAFETY CHECK: Ensure notaryBlock is present for affidavit documents (not divorce)
+      const effectiveType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
+      const isDivorcePreview = effectiveType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveType);
+      if (!isDivorcePreview && !enhancedPreview.sections?.notaryBlock) {
         logger.warn('NotaryBlock missing from preview, adding default', {
           state: affidavitData.state,
           sections: Object.keys(enhancedPreview.sections || {})
@@ -153,9 +538,14 @@ router.post('/preview',
     } catch (error) {
       logger.error('Preview generation failed', { error: error.message });
 
+      const docType = affidavitData?.activeSubDocument || affidavitData?.documentType || 'affidavit';
+      const isDivorceType = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
+
       res.json({
         success: true,
-        preview: createFallbackPreview(affidavitData),
+        preview: isDivorceType
+          ? createDivorceFallbackPreview(affidavitData)
+          : createFallbackPreview(affidavitData),
         fallback: true,
         error: safeErrorMessage(error, 'Preview generation failed')
       });
@@ -344,15 +734,54 @@ router.post('/generate',
         }
 
         try {
-          // Use generateAffidavit with state code and data
-          documentStructure = templateManager.generateAffidavit(
-            affidavitData.state,
-            affidavitData
-          );
+          // Determine document type and generate appropriate document
+          const documentType = affidavitData.documentType || 'affidavit';
+
+          // Resolve effective document type for divorce packages
+          let effectiveDocType = documentType;
+          if (documentType === 'divorce_package') {
+            effectiveDocType = affidavitData.activeSubDocument || 'divorce_petition';
+          }
+
+          // Route to appropriate generator based on document type
+          if (ALL_DIVORCE_DOCUMENT_TYPES.has(effectiveDocType)) {
+            // Divorce / dissolution document — DivorceDocumentGenerator first, then fallbacks
+            const divorceData = { ...affidavitData };
+            mapDivorceDataFields(divorceData);
+
+            const generated = generateDivorceDocument(divorceData.state, effectiveDocType, divorceData);
+            if (generated) {
+              documentStructure = generated;
+            } else if (typeof templateManager.generateDocument === 'function') {
+              documentStructure = templateManager.generateDocument(divorceData.state, divorceData, effectiveDocType);
+            } else if (effectiveDocType === 'divorce_petition' && typeof templateManager.generateDivorcePetition === 'function') {
+              documentStructure = templateManager.generateDivorcePetition(divorceData.state, divorceData);
+            } else if (effectiveDocType === 'divorce_decree' && typeof templateManager.generateDivorceDecree === 'function') {
+              documentStructure = templateManager.generateDivorceDecree(divorceData.state, divorceData);
+            } else {
+              return res.status(400).json({
+                success: false,
+                error: 'Divorce document generation not available — please try again later',
+                errorType: 'unsupported_document_type'
+              });
+            }
+            logger.info('Generated divorce document', { documentType: effectiveDocType, state: affidavitData.state });
+          } else {
+            // Non-divorce document: map matter orchestrator fields → affidavit template fields,
+            // then render using the standard affidavit template for the state.
+            const matterData = { ...affidavitData };
+            if (matterData.matterTypeCode) mapMatterDataFields(matterData);
+            documentStructure = templateManager.generateAffidavit(
+              matterData.state,
+              matterData
+            );
+          }
         } catch (templateError) {
           logger.error('Template generation failed', {
             error: templateError.message,
-            state: affidavitData.state
+            state: affidavitData.state,
+            documentType: affidavitData.documentType || 'affidavit',
+            matterTypeCode: affidavitData.matterTypeCode || null
           });
           return res.status(400).json({
             success: false,
@@ -396,21 +825,33 @@ router.post('/generate',
         };
       }
 
-      // STEP 3: Generate PDF using pdfService
-      const result = await pdfService.generatePDF(documentStructure, {
-        documentId: documentId || Date.now(),
-        userId
-      });
+      // STEP 3: Generate document (PDF or Word) using pdfService
+      const format = (req.query.format || req.body.format || 'pdf').toLowerCase();
+      let result;
 
-      if (!result.success || !result.filepath) {
-        throw new Error('PDF generation failed - no filepath returned');
+      if (format === 'docx' || format === 'word') {
+        result = await pdfService.generateWordDoc(documentStructure, {
+          documentId: documentId || Date.now(),
+          userId
+        });
+      } else {
+        result = await pdfService.generatePDF(documentStructure, {
+          documentId: documentId || Date.now(),
+          userId
+        });
       }
 
-      logger.info('PDF generated successfully', {
+      if (!result.success || !result.filepath) {
+        throw new Error(`${format.toUpperCase()} generation failed - no filepath returned`);
+      }
+
+      logger.info('Document generated successfully', {
         documentId,
         userId,
+        format,
         filepath: result.filepath,
-        pages: result.pages
+        pages: result.pages,
+        documentType: result.documentType
       });
 
       // STEP 4: Update document status in database
@@ -426,7 +867,7 @@ router.post('/generate',
                    $1::text::jsonb
                  )
              WHERE id = $2 AND user_id = $3`,
-            [result.pages, documentId, userId]
+            [result.pages || 0, documentId, userId]
           );
         } catch (dbError) {
           logger.warn('Failed to update document status', {
@@ -435,26 +876,29 @@ router.post('/generate',
         }
       }
 
-      // STEP 5: Stream PDF file to client
+      // STEP 5: Stream file to client
       const fs = require('fs');
       const stat = await fs.promises.stat(result.filepath);
-      
-      res.setHeader('Content-Type', 'application/pdf');
+      const isDocx = format === 'docx' || format === 'word';
+
+      res.setHeader('Content-Type', isDocx
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/pdf');
       res.setHeader('Content-Length', stat.size);
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      
+
       const fileStream = fs.createReadStream(result.filepath);
       fileStream.pipe(res);
 
-      // STEP 6: Clean up PDF file after streaming
+      // STEP 6: Clean up file after streaming
       fileStream.on('end', async () => {
         setTimeout(async () => {
           try {
             await fs.promises.unlink(result.filepath);
-            logger.info('Cleaned up PDF file', { filepath: result.filepath });
+            logger.info('Cleaned up generated file', { filepath: result.filepath });
           } catch (cleanupError) {
-            logger.warn('Failed to cleanup PDF file', { 
-              error: cleanupError.message 
+            logger.warn('Failed to cleanup generated file', {
+              error: cleanupError.message
             });
           }
         }, 60 * 60 * 1000); // 1 hour
@@ -1011,6 +1455,13 @@ function enhancePreviewWithCategories(preview, affidavitData) {
     return enhanced;
   }
 
+  // Skip facts enhancement for divorce documents - they use different section structures
+  const docType = affidavitData.activeSubDocument || affidavitData.documentType || 'affidavit';
+  const isDivorceDoc = docType === 'divorce_package' || ALL_DIVORCE_DOCUMENT_TYPES.has(docType);
+  if (isDivorceDoc) {
+    return enhanced;
+  }
+
   // ✅ FIX: Use items from StateTemplateManager if available (they have proper 'number' property)
   // The StateTemplateManager already properly numbers facts (1, 2, 3, etc.) with the 'number' property
   // prepareFactsForDisplay creates items with 'index' property instead, which causes all facts to show as "1."
@@ -1151,14 +1602,63 @@ function createFallbackPreview(affidavitData) {
 }
 
 /**
+ * ✅ Helper: Create divorce fallback preview when template generation fails
+ */
+function createDivorceFallbackPreview(affidavitData) {
+  const petitionerName = affidavitData.petitionerName ||
+    [affidavitData.petitionerFirstName, affidavitData.petitionerLastName].filter(Boolean).join(' ') ||
+    '[PETITIONER NAME]';
+  const respondentName = affidavitData.respondentName ||
+    [affidavitData.respondentFirstName, affidavitData.respondentLastName].filter(Boolean).join(' ') ||
+    '[RESPONDENT NAME]';
+  const activeDoc = affidavitData.activeSubDocument || 'divorce_petition';
+  const docTitle = activeDoc === 'divorce_decree'
+    ? 'FINAL DECREE OF DIVORCE'
+    : 'ORIGINAL PETITION FOR DIVORCE';
+
+  return {
+    sections: {
+      header: `STATE OF ${getStateName(affidavitData.state)}`,
+      venue: `COUNTY OF ${(affidavitData.county || '[COUNTY]').toUpperCase()}`,
+      caseCaption: {
+        formatted: `CAUSE NO. ${affidavitData.caseNumber || '[CAUSE NUMBER]'}\n\nIN THE MATTER OF THE MARRIAGE OF:\n\n${petitionerName.toUpperCase()}, Petitioner\n\nAND\n\n${respondentName.toUpperCase()}, Respondent`
+      },
+      title: docTitle,
+      parties: {
+        title: 'I. PARTIES',
+        items: [
+          { number: 1, content: `Petitioner: ${petitionerName}`, type: 'party_identification' },
+          { number: 2, content: `Respondent: ${respondentName}`, type: 'party_identification' }
+        ]
+      },
+      jurisdiction: {
+        title: 'II. JURISDICTION AND VENUE',
+        items: [
+          { number: 3, content: 'Continue providing information through the chat to complete this section.', type: 'jurisdiction' }
+        ]
+      }
+    },
+    metadata: {
+      fallback: true,
+      documentType: activeDoc,
+      totalFacts: (affidavitData.facts || []).length,
+      completionScore: 0
+    }
+  };
+}
+
+/**
  * ✅ Helper: Get state name
  */
 function getStateName(stateCode) {
   const stateMap = {
     'TX': 'Texas',
-    'UT': 'Utah', 
+    'UT': 'Utah',
     'AZ': 'Arizona',
-    'CA': 'California'
+    'CA': 'California',
+    'FL': 'Florida',
+    'IL': 'Illinois',
+    'NY': 'New York'
   };
   return stateMap[stateCode] || stateCode || 'Unknown';
 }

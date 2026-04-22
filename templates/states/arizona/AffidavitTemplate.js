@@ -1,6 +1,6 @@
 // templates/states/arizona/AffidavitTemplate.js
 // LEGAL COMPLIANCE VERSION 2.0 - Updated to conform with AZ statutory requirements
-// Governing Law: A.R.S. § 13-2702 (Perjury), A.R.S. § 41-313 (Notary)
+// Governing Law: A.R.S. § 13-2702 (Perjury), A.R.S. § 41-311 (Notary — forms of notarial acts)
 
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
 
@@ -9,7 +9,7 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  *
  * CRITICAL COMPLIANCE NOTES:
  * - Arizona-specific perjury statement (best practice per A.R.S. § 13-2702)
- * - Commission expiration line (best practice per A.R.S. § 41-313(D)(2))
+ * - Commission expiration line (best practice per A.R.S. § 41-311)
  * - County is required field
  * - Enhanced competency statement with explicit "competent to testify" language
  *
@@ -92,7 +92,7 @@ class ArizonaAffidavitTemplate extends BaseAffidavitTemplate {
 
     // County is REQUIRED for Arizona
     if (!affidavitData.county || affidavitData.county.trim().length === 0) {
-      errors.push('County is required for Arizona affidavits (universal practice and A.R.S. § 41-313(D)(2) seal requirement)');
+      errors.push('County is required for Arizona affidavits (universal practice and A.R.S. § 41-311 notarial act requirements)');
     }
 
     return { errors, warnings };
@@ -151,7 +151,7 @@ class ArizonaAffidavitTemplate extends BaseAffidavitTemplate {
   /**
    * Arizona notary block
    * - Added "or affirmed" option
-   * - Added commission expiration line (best practice per A.R.S. § 41-313(D)(2))
+   * - Added commission expiration line (best practice per A.R.S. § 41-311)
    * - Clarified seal placement
    *
    * @param {Object} affidavitData - The affidavit data

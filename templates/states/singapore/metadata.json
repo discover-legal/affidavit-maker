@@ -1,0 +1,71 @@
+{
+  "stateCode": "SG",
+  "stateName": "Singapore",
+  "countryCode": "SG",
+  "countryName": "Singapore",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Divorce Suit No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "commissionerForOaths": true,
+    "personalLawSystem": true,
+    "paperSize": "A4",
+    "currency": "SGD"
+  },
+  "courtSystem": {
+    "trialCourt": "Family Justice Courts",
+    "familyDivision": "Family Justice Courts",
+    "appealCourt": "High Court (Appellate Division)",
+    "syariahCourt": "Syariah Court (Muslim marriages under AMLA)"
+  },
+  "divorceTerminology": {
+    "parties": ["Plaintiff", "Defendant"],
+    "grounds": "Women's Charter 1961, Part X",
+    "primaryGround": "irretrievable breakdown of marriage (s.95, proved by s.95A(1))",
+    "propertyDivision": "Women's Charter 1961, s.112 — just and equitable division of matrimonial assets"
+  },
+  "personalLawNote": "Muslim marriages solemnized under the Administration of Muslim Law Act (AMLA, Cap 3) are handled by the Syariah Court, not the Family Justice Courts. This template covers non-Muslim divorce proceedings under the Women's Charter only.",
+  "legalCitations": [
+    {
+      "code": "Women's Charter 1961",
+      "description": "Primary statute (formerly cited as Cap 353) governing marriage, divorce, maintenance, and division of matrimonial assets for non-Muslim marriages"
+    },
+    {
+      "code": "Administration of Muslim Law Act (AMLA, Cap 3)",
+      "description": "Governs Muslim marriages and divorces — proceedings handled by the Syariah Court"
+    },
+    {
+      "code": "Guardianship of Infants Act (Cap 122)",
+      "description": "Governs custody and welfare of children — paramount consideration is the welfare of the child"
+    },
+    {
+      "code": "Oaths and Declarations Act (Cap 211)",
+      "description": "Governs the administration of oaths and affirmation for affidavits in Singapore"
+    },
+    {
+      "code": "Family Justice (General) Rules 2024",
+      "description": "Procedural rules for family proceedings in the Family Justice Courts (replaced the Family Justice Rules 2014, effective 15 October 2024). Divorce is now commenced by Originating Application."
+    }
+  ],
+  "affidavitJurat": "Sworn/Affirmed at Singapore this _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\n[Name]\nCommissioner for Oaths",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and endorsed by the deponent and the Commissioner for Oaths."
+  },
+  "emergencyNumber": "999",
+  "dvHotline": "1800 777 0000"
+}

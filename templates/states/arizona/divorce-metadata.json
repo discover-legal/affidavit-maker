@@ -1,0 +1,238 @@
+{
+  "stateCode": "AZ",
+  "stateName": "Arizona",
+  "documentTypes": ["dissolution_petition", "dissolution_decree", "consent_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Dissolution of Marriage",
+    "petition": "Petition",
+    "decree": "Decree",
+    "caseNumberLabel": "Case No.",
+    "custody": "Legal Decision-Making",
+    "physicalCustody": "Parenting Time",
+    "jointCustody": "Joint Legal Decision-Making",
+    "soleCustody": "Sole Legal Decision-Making",
+    "visitation": "Parenting Time",
+    "alimony": "Spousal Maintenance",
+    "maritalProperty": "Community Property"
+  },
+
+  "officialForms": {
+    "petitionNoChildren": {
+      "formNumber": "DRDA10f",
+      "name": "Petition for Dissolution of Marriage (Without Minor Children)",
+      "required": true
+    },
+    "petitionWithChildren": {
+      "formNumber": "DRDC15f",
+      "name": "Petition for Dissolution of Marriage (With Minor Children)",
+      "required": true
+    },
+    "summons": {
+      "formNumber": "DR11f",
+      "name": "Summons",
+      "required": true
+    },
+    "preliminaryInjunction": {
+      "formNumber": "DR14f",
+      "name": "Preliminary Injunction",
+      "required": true,
+      "notes": "REQUIRED with ALL dissolution filings"
+    },
+    "creditorNotice": {
+      "formNumber": "DR16f",
+      "name": "Notice Regarding Creditors",
+      "required": true
+    },
+    "healthInsuranceNotice": {
+      "formNumber": "DRD16f",
+      "name": "Notice of Right to Convert Health Insurance",
+      "required": true
+    },
+    "coverSheet": {
+      "formNumber": "DRSDS10f-c",
+      "name": "Family Department/Sensitive Data Cover Sheet",
+      "required": true
+    },
+    "pipOrder": {
+      "formNumber": "DR12f",
+      "name": "Order and Notice to Attend Parent Information Program (PIP)",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "parentingPlan": {
+      "formNumber": "DRCVG11f",
+      "name": "Parenting Plan",
+      "required": true,
+      "whenRequired": "minor_children"
+    },
+    "childAffidavit": {
+      "formNumber": "DRCVG13f",
+      "name": "Affidavit Regarding Minor Children",
+      "required": true,
+      "whenRequired": "minor_children"
+    }
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 3,
+    "stateDays": 90,
+    "countyDays": 0,
+    "statute": "A.R.S. § 25-312(1)",
+    "description": "At least one spouse must have been domiciled in Arizona for at least 90 days (3 months) immediately preceding the commencement of the action. There is no separate county residency requirement."
+  },
+
+  "waitingPeriod": {
+    "days": 60,
+    "startsFrom": "service_date",
+    "exceptions": [],
+    "description": "Court may not enter decree until 60 days after service of petition and summons on Respondent."
+  },
+
+  "groundsForDissolution": {
+    "noFault": [
+      {
+        "code": "irretrievably_broken",
+        "name": "Irretrievably Broken",
+        "description": "The marriage is irretrievably broken with no reasonable prospect of reconciliation",
+        "statute": "A.R.S. § 25-312"
+      }
+    ],
+    "covenantMarriage": {
+      "note": "Covenant marriages have different grounds and require proof of fault or other specific circumstances",
+      "statute": "A.R.S. § 25-903"
+    }
+  },
+
+  "preliminaryInjunction": {
+    "required": true,
+    "description": "Arizona requires a Preliminary Injunction (DR14f) to be filed with every dissolution petition",
+    "effectiveDates": {
+      "petitioner": "Upon filing",
+      "respondent": "Upon service"
+    },
+    "restrictions": [
+      "Cannot transfer, encumber, conceal, or dispose of property except in usual course of business",
+      "Cannot harass, annoy, or interfere with the other party",
+      "Cannot remove minor children from Arizona without written consent or court order",
+      "Cannot deny other parent access to minor children",
+      "Cannot alter insurance coverage"
+    ],
+    "statute": "A.R.S. § 25-315(A)"
+  },
+
+  "parentInformationProgram": {
+    "required": true,
+    "whenRequired": "minor_children",
+    "description": "Both parents must attend the Parent Information Program (PIP) when minor children are involved",
+    "statute": "A.R.S. § 25-351"
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "topFirstPage": "2in",
+      "topSubsequent": "1.5in",
+      "bottom": "0.5in",
+      "left": "1in",
+      "right": "0.5in"
+    },
+    "font": {
+      "family": "Proportionally spaced serif font (Times New Roman preferred)",
+      "size": "14pt minimum",
+      "footnotesMinimum": "13pt"
+    },
+    "spacing": "double",
+    "pageNumbers": "Required on all pages except first",
+    "notes": "Per Arizona Superior Court Administrative Order"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Exclusive of service date; default after 24 days"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Exclusive of service date; default after 34 days"
+    }
+  },
+
+  "legalCitations": [
+    {
+      "code": "A.R.S. Title 25",
+      "description": "Marital and Domestic Relations"
+    },
+    {
+      "code": "A.R.S. § 25-311 through 25-319",
+      "description": "Dissolution of Marriage"
+    },
+    {
+      "code": "A.R.S. § 25-312",
+      "description": "Grounds for dissolution (irretrievably broken)"
+    },
+    {
+      "code": "A.R.S. § 25-315",
+      "description": "Preliminary injunction requirements"
+    },
+    {
+      "code": "A.R.S. § 25-351",
+      "description": "Parent Information Program"
+    },
+    {
+      "code": "A.R.S. § 25-401 through 25-414",
+      "description": "Legal Decision-Making and Parenting Time"
+    },
+    {
+      "code": "A.R.S. § 25-320",
+      "description": "Spousal Maintenance"
+    },
+    {
+      "code": "A.R.S. § 25-903",
+      "description": "Covenant Marriage dissolution"
+    },
+    {
+      "code": "Arizona Rules of Family Law Procedure",
+      "description": "Procedural rules"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$349-$360",
+    "varies": true,
+    "notes": "Maricopa County charges approximately $349-$360 for a Petition for Dissolution of Marriage per Supreme Court Administrative Order 2024-210. Fees vary by county. Response fee is approximately $279. Fee deferral or waiver available for qualifying individuals."
+  },
+
+  "childSupport": {
+    "guidelines": "Arizona Child Support Guidelines",
+    "calculationBasis": "income_shares_model",
+    "statute": "A.R.S. § 25-320"
+  },
+
+  "spousalMaintenance": {
+    "factors": [
+      "Standard of living during the marriage",
+      "Duration of the marriage",
+      "Age, employment history, earning ability, and health of spouse seeking maintenance",
+      "Ability of spouse to pay maintenance",
+      "Comparative financial resources",
+      "Contribution to earning ability of other spouse",
+      "Extent to which spouse seeking maintenance reduced income for marital responsibilities",
+      "Ability of both to contribute to future education of children",
+      "Financial resources of spouse seeking maintenance",
+      "Time to acquire sufficient education or training for employment",
+      "Excessive or abnormal expenditures or destruction of property",
+      "Cost of health insurance"
+    ],
+    "statute": "A.R.S. § 25-319"
+  },
+
+  "propertyDivision": {
+    "type": "community_property",
+    "equalDivision": true,
+    "description": "Arizona is a community property state. The court shall divide community property equally (50/50), with narrow judicial authority to deviate upon a showing of sound reason. This is NOT equitable distribution — equal division is the presumption.",
+    "statute": "A.R.S. § 25-318"
+  }
+}

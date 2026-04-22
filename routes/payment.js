@@ -28,7 +28,7 @@ try {
 // Server-side pricing configuration - DO NOT expose to client or accept from client
 const PRICING_CONFIG = {
   single_affidavit: 7900, // $79.00 in cents
-  family_law_package: 11999, // $119.99 for 5 documents
+  divorce_package: 24900, // $249.00 for full divorce package (petition + decree)
   all_state_access: 19999 // $199.99 for unlimited
 };
 
@@ -404,7 +404,7 @@ router.post('/webhook',
 
       // Process the event
       switch (event.type) {
-        case 'payment_intent.succeeded':
+        case 'payment_intent.succeeded': {
           const paymentIntent = event.data.object;
 
           // Extract postal code from billing details (if available)
@@ -470,8 +470,9 @@ router.post('/webhook',
             });
           }
           break;
+        }
 
-        case 'payment_intent.payment_failed':
+        case 'payment_intent.payment_failed': {
           const failedPayment = event.data.object;
 
           await client.query(
@@ -485,8 +486,9 @@ router.post('/webhook',
             errorCode: failedPayment.last_payment_error?.code || 'unknown'
           });
           break;
+        }
 
-        case 'payment_intent.canceled':
+        case 'payment_intent.canceled': {
           const canceledPayment = event.data.object;
 
           await client.query(
@@ -498,6 +500,7 @@ router.post('/webhook',
             paymentIntentId: canceledPayment.id
           });
           break;
+        }
 
         default:
           logger.info('Unhandled Stripe webhook event', {
@@ -650,12 +653,12 @@ router.get('/pricing', strictLimiter, (req, res) => {
         currency: 'USD',
         description: 'Generate one professional affidavit document'
       },
-      family_law_package: {
-        name: 'Family Law Package',
-        price: PRICING_CONFIG.family_law_package / 100,
-        priceCents: PRICING_CONFIG.family_law_package,
+      divorce_package: {
+        name: 'Divorce Package',
+        price: PRICING_CONFIG.divorce_package / 100,
+        priceCents: PRICING_CONFIG.divorce_package,
         currency: 'USD',
-        description: 'Generate up to 5 family law documents'
+        description: 'Complete divorce document package (petition + decree)'
       },
       all_state_access: {
         name: 'All State Access',

@@ -1,0 +1,104 @@
+{
+  "stateCode": "ZA",
+  "stateName": "South Africa",
+  "countryCode": "ZA",
+  "countryName": "South Africa",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": false,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Case No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase",
+    "commissionerOfOaths": true,
+    "paperSize": "A4",
+    "currency": "ZAR"
+  },
+  "courtSystem": {
+    "trialCourt": "High Court of South Africa",
+    "familyDivision": "High Court of South Africa",
+    "appealCourt": "Supreme Court of Appeal",
+    "divisions": [
+      "Gauteng Division, Pretoria",
+      "Gauteng Division, Johannesburg",
+      "Western Cape Division, Cape Town",
+      "KwaZulu-Natal Division, Durban",
+      "KwaZulu-Natal Division, Pietermaritzburg",
+      "Eastern Cape Division, Grahamstown (Makhanda)",
+      "Eastern Cape Division, Port Elizabeth (Gqeberha)",
+      "Free State Division, Bloemfontein",
+      "Limpopo Division, Polokwane",
+      "Mpumalanga Division, Mbombela",
+      "North West Division, Mahikeng",
+      "Northern Cape Division, Kimberley"
+    ]
+  },
+  "divorceTerminology": {
+    "parties": ["Plaintiff", "Defendant"],
+    "grounds": "Divorce Act 70 of 1979",
+    "primaryGround": "Irretrievable breakdown of the marriage (s.4(1))",
+    "propertyDivision": "Matrimonial Property Act 88 of 1984",
+    "jurisdictionBasis": "Domicile OR ordinary residence for 1+ year in South Africa (s.2(1), Domicile Act 3 of 1992)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act 70 of 1979",
+      "description": "Governs divorce proceedings — grounds, maintenance, parental responsibilities and rights, and property redistribution"
+    },
+    {
+      "code": "Matrimonial Property Act 88 of 1984",
+      "description": "Governs matrimonial property regimes — in community of property, out of community with/without accrual"
+    },
+    {
+      "code": "Children's Act 38 of 2005",
+      "description": "Governs parental responsibilities and rights — guardianship, care, and contact"
+    },
+    {
+      "code": "Maintenance Act 99 of 1998",
+      "description": "Governs maintenance (spousal and child support) obligations and enforcement"
+    },
+    {
+      "code": "Recognition of Customary Marriages Act 120 of 1998",
+      "description": "Recognises customary marriages — both monogamous and polygynous; default in community of property"
+    },
+    {
+      "code": "Justices of the Peace and Commissioners of Oaths Act 16 of 1963",
+      "description": "Governs the taking of oaths and affirmations — affidavits sworn before a Commissioner of Oaths"
+    },
+    {
+      "code": "Domestic Violence Act 116 of 1998",
+      "description": "Provides for protection orders against domestic violence"
+    },
+    {
+      "code": "Mediation in Certain Divorce Matters Act 24 of 1987",
+      "description": "Requires the Family Advocate to be involved when there are minor or dependent children in divorce proceedings"
+    },
+    {
+      "code": "Pension Funds Act 24 of 1956",
+      "description": "Governs pension sharing on divorce — Divorce Act s.7(7) and (8) allow the court to order a pension fund to pay a portion to the non-member spouse"
+    },
+    {
+      "code": "Divorce Amendment Act 1 of 2024",
+      "description": "Effective 14 May 2024 — amends the Divorce Act to recognise Muslim marriages and extend all divorce provisions to such marriages"
+    }
+  ],
+  "affidavitJurat": "Sworn to and signed before me at __________ on this _____ day of __________ [Year].\n\n________________________________\nCommissioner of Oaths\nFull Names: __________\nDesignation: __________",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Each annexure must be clearly marked (Annexure A, B, C, etc.) and the deponent and Commissioner of Oaths must sign or initial each annexure."
+  },
+  "emergencyNumber": "10111",
+  "dvHotline": "0800 428 428",
+  "dvCounsellingLine": "0800 150 150"
+}

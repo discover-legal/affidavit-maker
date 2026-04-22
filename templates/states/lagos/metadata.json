@@ -1,0 +1,65 @@
+{
+  "stateCode": "LA_NG",
+  "stateName": "Lagos",
+  "countryCode": "NG",
+  "countryName": "Nigeria",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Suit No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "uppercase",
+    "personalLawSystem": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "High Court of Lagos State",
+    "familyDivision": "High Court of Lagos State (Family Division)",
+    "appealCourt": "Court of Appeal, Lagos Division"
+  },
+  "divorceTerminology": {
+    "parties": ["Petitioner", "Respondent"],
+    "grounds": "Matrimonial Causes Act 1970, Cap M7 LFN 2004",
+    "primaryGround": "irretrievable breakdown of marriage (MCA s.15)",
+    "propertyDivision": "No automatic division — ancillary orders under MCA s.70-73"
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes Act 1970, Cap M7 LFN 2004",
+      "description": "Federal statute governing dissolution of marriages contracted under the Marriage Act"
+    },
+    {
+      "code": "Marriage Act, Cap M6 LFN 2004",
+      "description": "Governs statutory (Act) marriages in Nigeria"
+    },
+    {
+      "code": "Child Rights Act 2003",
+      "description": "Welfare of the child; adopted by Lagos State"
+    },
+    {
+      "code": "Oaths Act, Cap O1 LFN 2004",
+      "description": "Governs affidavits and sworn statements in Nigeria"
+    },
+    {
+      "code": "Evidence Act 2011",
+      "description": "Governs admissibility and form of evidence including affidavit evidence"
+    }
+  ],
+  "affidavitJurat": "Sworn to at the __________ Registry\nthis _____ day of __________, _______\n\nBefore me:\n________________________________\nCommissioner for Oaths",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": false,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and endorsed by the Commissioner for Oaths."
+  }
+}

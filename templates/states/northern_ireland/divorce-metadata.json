@@ -1,0 +1,129 @@
+{
+  "stateCode": "NIR",
+  "stateName": "Northern Ireland",
+  "countryCode": "UK",
+  "countryName": "United Kingdom",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "residencyRequirements": {
+    "stateMonths": 12,
+    "countyDays": 0,
+    "description": "Either party must be domiciled in Northern Ireland at the date the petition is presented, or have been habitually resident in Northern Ireland for at least one year immediately before the petition (Matrimonial Causes (NI) Order 1978, Art.3)."
+  },
+  "waitingPeriod": {
+    "days": 42,
+    "description": "Decree Nisi can be applied for after the petition has been served and acknowledged (or deemed served). After Decree Nisi is granted, there is a minimum 6-week (42-day) waiting period before applying for Decree Absolute."
+  },
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "separation_2yr_consent",
+        "name": "2-Year Separation with Consent",
+        "description": "The parties have lived apart for a continuous period of at least two years immediately preceding the petition, and the respondent consents to the granting of the decree.",
+        "statute": "Matrimonial Causes (NI) Order 1978, Art.3(2)(d)"
+      },
+      {
+        "code": "separation_5yr",
+        "name": "5-Year Separation",
+        "description": "The parties have lived apart for a continuous period of at least five years immediately preceding the petition. No consent from the respondent is required.",
+        "statute": "Matrimonial Causes (NI) Order 1978, Art.3(2)(e)"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "description": "The respondent has committed adultery and the petitioner finds it intolerable to live with the respondent.",
+        "statute": "Matrimonial Causes (NI) Order 1978, Art.3(2)(a)"
+      },
+      {
+        "code": "unreasonable_behaviour",
+        "name": "Unreasonable Behaviour",
+        "description": "The respondent has behaved in such a way that the petitioner cannot reasonably be expected to live with the respondent.",
+        "statute": "Matrimonial Causes (NI) Order 1978, Art.3(2)(b)"
+      },
+      {
+        "code": "desertion",
+        "name": "Desertion for 2 Years",
+        "description": "The respondent has deserted the petitioner for a continuous period of at least two years immediately preceding the petition.",
+        "statute": "Matrimonial Causes (NI) Order 1978, Art.3(2)(c)"
+      }
+    ]
+  },
+  "terminology": {
+    "caseNumberLabel": "Ref. No.",
+    "custody": "Residence and Contact",
+    "physicalCustody": "Residence Order",
+    "jointCustody": "Shared Residence",
+    "soleCustody": "Sole Residence",
+    "alimony": "Periodical Payments / Maintenance",
+    "childSupport": "Child Maintenance",
+    "maritalProperty": "Ancillary Relief (Matrimonial Causes (NI) Order 1978)",
+    "interimOrder": "Decree Nisi",
+    "finalOrder": "Decree Absolute"
+  },
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Divorce Petition",
+        "description": "Initiates the divorce proceeding in the High Court (Family Division) or County Court",
+        "required": true
+      },
+      {
+        "name": "Statement of Arrangements for Children",
+        "description": "Required where there are children of the family under 18 — sets out proposed arrangements",
+        "required": false
+      },
+      {
+        "name": "Affidavit in Support of Petition",
+        "description": "Sworn affidavit verifying the facts in the petition — required for undefended divorces",
+        "required": true
+      },
+      {
+        "name": "Ancillary Relief Application",
+        "description": "Application for financial orders — needed if financial remedy is sought",
+        "required": false
+      }
+    ]
+  },
+  "legalCitations": [
+    {
+      "code": "Matrimonial Causes (Northern Ireland) Order 1978",
+      "description": "Principal divorce statute — grounds for divorce, financial provision, children"
+    },
+    {
+      "code": "Children (Northern Ireland) Order 1995",
+      "description": "Welfare of children — welfare principle, Article 8 orders"
+    },
+    {
+      "code": "Family Homes and Domestic Violence (NI) Order 1998",
+      "description": "Domestic violence protection — occupation and non-molestation orders"
+    },
+    {
+      "code": "Family Proceedings Rules (NI) 1996",
+      "description": "Procedural rules for family proceedings"
+    },
+    {
+      "code": "Child Support (Northern Ireland) Order 1991",
+      "description": "Statutory child maintenance framework — CMS applies UK-wide"
+    }
+  ],
+  "filingFees": {
+    "approximate": "GBP £310",
+    "varies": true,
+    "notes": "Filing fee for divorce petition: £310 (per nidirect.gov.uk). A further £117 fee applies for the Decree Absolute (Family Proceedings Fees Schedule, from 1 October 2024). Fee exemption may apply for those receiving certain state benefits or on very low income. A consultation on no-fault divorce ran June-September 2025; no legislation has been enacted as of March 2026."
+  },
+  "childSupportGuidelines": {
+    "calculationBasis": "cms_formula",
+    "guidelines": "Child Maintenance Service (CMS) — same UK-wide formula",
+    "notes": "CMS uses gross income from HMRC data. Parents may agree private (family-based) arrangements instead."
+  },
+  "spousalSupportGuidelines": {
+    "calculationBasis": "article_25_factors",
+    "guidelines": "Matrimonial Causes (NI) Order 1978, Art.25-27",
+    "notes": "Court considers all circumstances including income, earning capacity, financial needs, standard of living, age, duration of marriage, disability, and contributions. Discretionary — no fixed formula."
+  },
+  "effectiveDateRule": "The marriage is dissolved when the Decree Absolute is granted. The Decree Nisi must be granted first, followed by a minimum 6-week waiting period before the petitioner (or 3 months after for the respondent) may apply for the Decree Absolute.",
+  "certificateNote": "A sealed copy of the Decree Absolute can be obtained from the court. It serves as proof that the marriage has been dissolved."
+}

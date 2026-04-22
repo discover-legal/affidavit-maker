@@ -1,7 +1,7 @@
 {
   "stateCode": "AZ",
   "stateName": "Arizona",
-  "documentTypes": ["affidavit"],
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -21,8 +21,12 @@
       "description": "Perjury statute - Arizona includes perjury statement as best practice"
     },
     {
+      "code": "A.R.S. § 41-311",
+      "description": "Forms of notarial acts — prescribes jurat language 'subscribed and sworn to (or affirmed) before me'"
+    },
+    {
       "code": "A.R.S. § 41-313",
-      "description": "Notary public requirements including seal and commission expiration"
+      "description": "Notary public seal requirements — official seal must be affixed to notarized documents"
     },
     {
       "code": "Arizona Rule 56",
@@ -33,6 +37,7 @@
       "description": "Case law on affidavit competency requirements"
     }
   ],
+  "affidavitJurat": "Subscribed and sworn to (or affirmed) before me this _____ day of _____________, 20___.\n\n\n(SEAL)                              _________________________________\n                                    Notary Public\n\nMy commission expires: ___________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

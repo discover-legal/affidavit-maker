@@ -1,0 +1,254 @@
+{
+  "stateCode": "MA",
+  "stateName": "Massachusetts",
+  "documentTypes": ["divorce_petition", "divorce_decree"],
+  "version": "1.0",
+  "legallyCompliant": true,
+
+  "terminology": {
+    "divorce": "Divorce",
+    "petition": "Complaint for Divorce",
+    "decree": "Judgment of Divorce Nisi / Judgment of Divorce Absolute",
+    "caseNumberLabel": "DOCKET NO.",
+    "custody": "Legal Custody / Physical Custody",
+    "visitation": "Parenting Time / Visitation",
+    "alimony": "Alimony",
+    "maritalProperty": "Marital Property",
+    "nisiPeriod": "90 days after Judgment of Divorce Nisi before Divorce is Absolute"
+  },
+
+  "residencyRequirements": {
+    "stateMonths": 0,
+    "countyDays": 0,
+    "description": "If the cause of action arose in Massachusetts, the plaintiff need only be domiciled in Massachusetts at the time of filing. If the cause occurred outside Massachusetts, both parties must have been domiciled in Massachusetts, OR one party must have been domiciled in Massachusetts for one (1) year preceding the complaint.",
+    "statute": "M.G.L. c. 208, § 5"
+  },
+
+  "waitingPeriod": {
+    "days": 90,
+    "startsFrom": "judgment_nisi",
+    "exceptions": [],
+    "description": "Massachusetts has a 90-day 'nisi' period. After the court enters a Judgment of Divorce Nisi, the divorce does not become absolute until 90 days later (Judgment of Divorce Absolute). M.G.L. c. 208, § 21."
+  },
+
+  "groundsForDivorce": {
+    "noFault": [
+      {
+        "code": "irretrievable_breakdown_joint",
+        "name": "Irretrievable Breakdown of Marriage (Joint Petition)",
+        "description": "Both parties file a joint petition alleging irretrievable breakdown. A 6-month waiting period from the date of filing is required before the court may hold a hearing and enter judgment. The separation agreement must be filed simultaneously.",
+        "statute": "M.G.L. c. 208, § 1A"
+      },
+      {
+        "code": "irretrievable_breakdown_unilateral",
+        "name": "Irretrievable Breakdown of Marriage (Unilateral)",
+        "description": "One party files alleging irretrievable breakdown. Requires a 6-month waiting period from the date of filing before a hearing can be held.",
+        "statute": "M.G.L. c. 208, § 1B"
+      }
+    ],
+    "fault": [
+      {
+        "code": "adultery",
+        "name": "Adultery",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "impotency",
+        "name": "Impotency",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "utter_desertion",
+        "name": "Utter Desertion for One Year",
+        "description": "Utter desertion continued for one (1) year next prior to the filing of the complaint.",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "gross_intoxication",
+        "name": "Gross and Confirmed Habits of Intoxication Caused by Voluntary Use of Intoxicating Liquor, Opium, or Other Drug",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "cruel_abusive_treatment",
+        "name": "Cruel and Abusive Treatment",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "imprisonment",
+        "name": "Sentence to Imprisonment for Five or More Years",
+        "statute": "M.G.L. c. 208, § 1"
+      },
+      {
+        "code": "nonsupport",
+        "name": "Gross, Wanton, and Cruel Neglect to Provide Suitable Maintenance for Spouse",
+        "statute": "M.G.L. c. 208, § 1"
+      }
+    ]
+  },
+
+  "propertyDivision": {
+    "type": "equitable_distribution",
+    "description": "Massachusetts divides all property equitably — including all property of each party regardless of how or when it was acquired, including pre-marital property and inherited property. The court considers the factors in M.G.L. c. 208, § 34.",
+    "separateProperty": "Unlike many states, Massachusetts does NOT automatically exclude pre-marital property or inherited property from division. The court has broad discretion to divide all property equitably.",
+    "statute": "M.G.L. c. 208, § 34"
+  },
+
+  "alimony": {
+    "types": [
+      "general_term",
+      "rehabilitative",
+      "reimbursement",
+      "transitional"
+    ],
+    "description": "Massachusetts awards several types of alimony under M.G.L. c. 208, § 48 et seq. The 2011 Alimony Reform Act established types and durational limits. General term alimony for marriages of 5+ years has statutory durational limits based on marriage length.",
+    "statute": "M.G.L. c. 208, § 48 et seq."
+  },
+
+  "legalCitations": [
+    {
+      "code": "M.G.L. c. 208",
+      "description": "Massachusetts divorce statutes — complaint for divorce, grounds, property division, alimony, custody"
+    },
+    {
+      "code": "M.G.L. c. 208, § 1",
+      "description": "Grounds for divorce — fault grounds"
+    },
+    {
+      "code": "M.G.L. c. 208, § 1A",
+      "description": "Joint petition for divorce — irretrievable breakdown, mutual consent"
+    },
+    {
+      "code": "M.G.L. c. 208, § 1B",
+      "description": "Complaint for divorce — unilateral irretrievable breakdown; 6-month waiting period before hearing"
+    },
+    {
+      "code": "M.G.L. c. 208, § 5",
+      "description": "Jurisdiction and residency requirements for divorce"
+    },
+    {
+      "code": "M.G.L. c. 208, § 21",
+      "description": "Nisi period — divorce absolute 90 days after Judgment of Divorce Nisi"
+    },
+    {
+      "code": "M.G.L. c. 208, § 28",
+      "description": "Custody of children — legal and physical custody; best interests standard"
+    },
+    {
+      "code": "M.G.L. c. 208, § 34",
+      "description": "Property division — equitable distribution of all property"
+    },
+    {
+      "code": "M.G.L. c. 208, § 48 et seq.",
+      "description": "Alimony Reform Act — types and durational limits of alimony"
+    },
+    {
+      "code": "Massachusetts Child Support Guidelines",
+      "description": "Income shares model for child support calculation"
+    }
+  ],
+
+  "filingFees": {
+    "approximate": "$215",
+    "varies": true,
+    "notes": "Massachusetts Probate and Family Court filing fees are approximately $215 for a Complaint for Divorce. Fee waivers (Affidavit of Indigency) are available for qualifying individuals."
+  },
+
+  "requiredForms": {
+    "basic": [
+      {
+        "name": "Complaint for Divorce (CJ-D 101A / CJ-D 101B)",
+        "description": "CJ-D 101A for joint petition (§ 1A); CJ-D 101B for contested (§ 1B) or fault-based divorce",
+        "required": true
+      },
+      {
+        "name": "Financial Statement (CJ-D 301S / CJ-D 301L)",
+        "description": "Short form (CJ-D 301S) if income under $75,000; Long form (CJ-D 301L) if income $75,000 or more",
+        "required": true
+      },
+      {
+        "name": "Vital Statistics Worksheet (R-408)",
+        "description": "Required statistical information for the Registry of Vital Records",
+        "required": true
+      },
+      {
+        "name": "Certificate of Absolute Divorce or Annulment (R-408)",
+        "description": "Vital statistics reporting form",
+        "required": true
+      }
+    ],
+    "service": [
+      {
+        "name": "Summons",
+        "description": "Formal service on the defendant",
+        "required": true,
+        "alternatives": ["Acceptance of Service"]
+      },
+      {
+        "name": "Acceptance of Service",
+        "description": "Defendant accepts service without formal process",
+        "required": false,
+        "notes": "Must be signed by defendant"
+      }
+    ],
+    "withChildren": [
+      {
+        "name": "Child Support Guidelines Worksheet",
+        "description": "Calculation under Massachusetts Child Support Guidelines",
+        "required": true
+      },
+      {
+        "name": "Parenting Plan",
+        "description": "Proposed custody and parenting time schedule",
+        "required": true,
+        "notes": "Required for joint petition (§ 1A) divorce; strongly recommended for all cases with children"
+      },
+      {
+        "name": "Affidavit Disclosing Care or Custody Proceedings (UCCJEA Affidavit)",
+        "description": "Required disclosure of any other custody proceedings",
+        "required": true
+      }
+    ]
+  },
+
+  "formattingRequirements": {
+    "paperSize": "8.5in x 11in",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "font": {
+      "family": "Times New Roman",
+      "size": "12pt",
+      "minimumSize": "12pt"
+    },
+    "spacing": "double",
+    "ink": "black",
+    "notes": "Per Massachusetts Rules of Domestic Relations Procedure"
+  },
+
+  "responseDeadlines": {
+    "inState": {
+      "days": 20,
+      "description": "Defendant must file an answer within 20 days of service"
+    },
+    "outOfState": {
+      "days": 30,
+      "description": "Defendant served outside Massachusetts must file an answer within 30 days of service"
+    },
+    "statute": "Mass. R. Dom. Rel. P. 12(a)"
+  },
+
+  "childSupportGuidelines": {
+    "calculationBasis": "income_shares",
+    "description": "Massachusetts uses an income shares model under the Massachusetts Child Support Guidelines. Both parents' gross incomes are considered. The guidelines provide a formula based on combined available income and the number of children. The guidelines are reviewed and updated periodically by the Trial Court.",
+    "statute": "Massachusetts Child Support Guidelines (M.G.L. c. 208, § 28; M.G.L. c. 209C, § 9)",
+    "notes": "The 2025 Child Support Guidelines are effective December 1, 2025 (as amended October 30, 2025). Key changes include increased income threshold to $450,000/year and recognition of multiple legal parents under the Massachusetts Parentage Act. Courts may deviate from the guidelines for good cause."
+  },
+
+  "court": {
+    "name": "Probate and Family Court Department",
+    "description": "Divorce actions in Massachusetts are filed in the Probate and Family Court in the county where either party lives. Massachusetts has abolished county government but courts remain organized by county division."
+  }
+}

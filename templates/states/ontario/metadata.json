@@ -1,0 +1,65 @@
+{
+  "stateCode": "ON",
+  "stateName": "Ontario",
+  "countryCode": "CA",
+  "countryName": "Canada",
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
+  "version": "1.0",
+  "legallyCompliant": true,
+  "requiredFields": ["affiantName", "state", "county"],
+  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "features": {
+    "perjuryStatement": false,
+    "notaryBlock": true,
+    "notaryInstruction": false,
+    "caseNumberLabel": "Court File No.",
+    "caseNumberRequired": false,
+    "headerFormat": "uppercase",
+    "venueFormat": "sentencecase",
+    "provinceNotJurisdiction": true,
+    "commissionerForOaths": true
+  },
+  "courtSystem": {
+    "trialCourt": "Superior Court of Justice",
+    "familyDivision": "Superior Court of Justice — Family Court",
+    "appealCourt": "Court of Appeal for Ontario"
+  },
+  "divorceTerminology": {
+    "parties": ["Applicant", "Respondent"],
+    "grounds": "Divorce Act (RSC 1985, c. 3)",
+    "primaryGround": "separation of one year (s.8(2)(a))",
+    "propertyDivision": "Family Law Act (RSO 1990, c. F.3), Part I (Equalization of Net Family Property)"
+  },
+  "legalCitations": [
+    {
+      "code": "Divorce Act, RSC 1985, c. 3",
+      "description": "Federal divorce statute — governs divorce proceedings in all provinces and territories"
+    },
+    {
+      "code": "Family Law Act, RSO 1990, c. F.3",
+      "description": "Ontario statute — equalization of net family property, spousal support, domestic contracts"
+    },
+    {
+      "code": "Children's Law Reform Act, RSO 1990, c. C.12",
+      "description": "Ontario statute — custody and access for children of unmarried or separated parents"
+    },
+    {
+      "code": "Family Law Rules, O. Reg. 114/99",
+      "description": "Procedural rules for family law proceedings in Ontario courts"
+    },
+    {
+      "code": "Evidence Act, RSO 1990, c. E.23, s.45",
+      "description": "Ontario affidavit requirements — oath before commissioner for taking oaths"
+    }
+  ],
+  "affidavitJurat": "SWORN before me at the [City/Town] of ___, in the Province of Ontario, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Oaths\nin and for the Province of Ontario",
+  "exhibitRules": {
+    "labelStyle": "letters",
+    "requireCoverPage": true,
+    "instructions": "Each exhibit must be marked with the letter of the exhibit (A, B, C, etc.) and initialed by the deponent and the commissioner."
+  }
+}

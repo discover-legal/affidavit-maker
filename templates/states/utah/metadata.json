@@ -1,7 +1,7 @@
 {
   "stateCode": "UT",
   "stateName": "Utah",
-  "documentTypes": ["affidavit"],
+  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
   "version": "2.0",
   "legallyCompliant": true,
   "requiredFields": ["affiantName", "state", "county"],
@@ -25,6 +25,10 @@
       "description": "Notary commission requirements including expiration date"
     },
     {
+      "code": "Utah Code § 76-8-503",
+      "description": "Perjury statute - false sworn statement is perjury under Utah criminal code"
+    },
+    {
       "code": "URCP Rule 56(c)(4)",
       "description": "Requirements for affidavits in summary judgment - must show affiant is competent to testify"
     },
@@ -33,6 +37,7 @@
       "description": "Competency of witnesses"
     }
   ],
+  "affidavitJurat": "Subscribed and sworn to before me, ________________________________,\n                                    (notary public name)\n\non this _______ day of _________________, in the year _______,\n        (date)          (month)                      (year)\n\nby ________________________________.\n    (name of document signer)\n\n\n(SEAL)                              _________________________________\n                                    Notary Public, State of Utah\n\nMy commission expires: ___________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

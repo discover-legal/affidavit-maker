@@ -16,31 +16,30 @@ import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
 import { trackPageView } from './utils/analytics';
 
-// Auth0 provider that lives inside Router so it can use useNavigate
+const AUTH0_CONFIG = {
+  domain: process.env.REACT_APP_AUTH0_DOMAIN,
+  clientId: process.env.REACT_APP_AUTH0_CLIENT_ID,
+  authorizationParams: {
+    redirect_uri: window.location.origin,
+    audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+    scope: "openid profile email"
+  },
+  cacheLocation: 'localstorage',
+  useRefreshTokens: true,
+  useRefreshTokensFallback: true,
+  useCookiesForTransactions: true,
+  authorizeTimeoutInSeconds: 10,
+};
+
 const Auth0ProviderWithNavigate = ({ children }) => {
   const navigate = useNavigate();
 
   const onRedirectCallback = (appState) => {
-    // Use React Router's navigate instead of window.history.replaceState
-    // so the router actually processes the route change
     navigate(appState?.returnTo || '/dashboard', { replace: true });
   };
 
   return (
-    <Auth0Provider
-      domain={process.env.REACT_APP_AUTH0_DOMAIN}
-      clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: "openid profile email"
-      }}
-      cacheLocation="localstorage"
-      useRefreshTokens={true}
-      useRefreshTokensFallback={true}
-      useCookiesForTransactions={true}
-      onRedirectCallback={onRedirectCallback}
-    >
+    <Auth0Provider {...AUTH0_CONFIG} onRedirectCallback={onRedirectCallback}>
       {children}
     </Auth0Provider>
   );
@@ -194,7 +193,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Catch-all redirect */}
+      {/* Catch-all — also uses AuthCallbackHandler to be safe */}
       <Route
         path="*"
         element={<AuthCallbackHandler />}

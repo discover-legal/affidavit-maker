@@ -137,16 +137,25 @@ const useSaveDocument = () => {
 
   // Generate a title for the document
   const generateTitle = (affidavitData) => {
+    const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree']
+      .includes(affidavitData.documentType);
+    const typeLabel = isDivorce
+      ? (affidavitData.documentType === 'divorce_petition'
+          ? 'Divorce Petition'
+          : affidavitData.documentType === 'divorce_decree'
+            ? 'Divorce Decree'
+            : 'Divorce Package')
+      : 'Affidavit';
+
     if (affidavitData.affiantName) {
-      return `${affidavitData.affiantName}'s Affidavit`;
+      return isDivorce
+        ? `${typeLabel} — ${affidavitData.affiantName}`
+        : `${affidavitData.affiantName}'s ${typeLabel}`;
     }
     if (affidavitData.state) {
-      return `${affidavitData.state} Affidavit`;
+      return `${affidavitData.state} ${typeLabel}`;
     }
-    if (affidavitData.documentType && affidavitData.documentType !== 'general') {
-      return `${affidavitData.documentType} Affidavit`;
-    }
-    return `Affidavit Draft - ${new Date().toLocaleDateString()}`;
+    return `${typeLabel} Draft - ${new Date().toLocaleDateString()}`;
   };
 
   // Clear save error

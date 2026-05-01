@@ -31,6 +31,8 @@ const AUTH0_CONFIG = {
   authorizeTimeoutInSeconds: 10,
 };
 
+// Lives inside Router so onRedirectCallback can use useNavigate — using
+// window.history.replaceState here causes the router to miss the route change.
 const Auth0ProviderWithNavigate = ({ children }) => {
   const navigate = useNavigate();
 

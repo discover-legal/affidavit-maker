@@ -146,3 +146,7 @@ auto-fix.sh
 
 # SECURITY (MED-06): Temp upload directory
 temp/
+
+# Claude Code / swarm agent runtime state (not shared config)
+.claude/memory.db
+.swarm/

@@ -12,6 +12,18 @@ const API_BASE = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
+// Human-readable label for a document's underlying type
+const getDocTypeLabel = (docType) => {
+  switch (docType) {
+    case 'divorce_package': return 'Divorce Package';
+    case 'divorce_petition': return 'Divorce Petition';
+    case 'divorce_decree': return 'Divorce Decree';
+    case 'affidavit':
+    case 'general':
+    default: return 'Affidavit';
+  }
+};
+
 // Shared document row used in both the cases view and the standalone list
 const DocumentRow = ({
   doc, renamingDocId, newName, setNewName, isSubmittingRename,
@@ -19,8 +31,11 @@ const DocumentRow = ({
 }) => {
   const docTypeLabel = (doc.document_type || doc.documentType);
   const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docTypeLabel);
+  const typeName = getDocTypeLabel(docTypeLabel);
   const displayTitle = doc.documentTitle || doc.title ||
-    (doc.affiantName ? `${doc.affiantName}'s Affidavit` : `Document #${doc.id}`);
+    (doc.affiantName
+      ? (isDivorce ? `${doc.affiantName} — ${typeName}` : `${doc.affiantName}'s ${typeName}`)
+      : `${typeName} #${doc.id}`);
 
   return (
     <li className="p-5 hover:bg-gray-50 transition-colors">
@@ -56,11 +71,9 @@ const DocumentRow = ({
               >
                 {displayTitle}
               </h4>
-              {isDivorce && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
-                  Divorce
-                </span>
-              )}
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${isDivorce ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                {typeName}
+              </span>
             </div>
           )}
           <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
@@ -140,7 +153,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   // ✅ FIXED: Delete handler now properly uses the hook
   const handleDeleteDocument = async (docId) => {
-    if (!window.confirm('Are you sure you want to permanently delete this affidavit?')) return;
+    if (!window.confirm('Are you sure you want to permanently delete this document?')) return;
 
     console.log('🗑️ Attempting to delete document:', docId);
 
@@ -174,8 +187,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   // Rename handlers
   const startRename = (doc) => {
+    const docType = doc.document_type || doc.documentType;
+    const typeName = getDocTypeLabel(docType);
     setRenamingDocId(doc.id);
-    setNewName(doc.affiantName || `Affidavit #${doc.id}`);
+    setNewName(doc.documentTitle || doc.title || doc.affiantName || `${typeName} #${doc.id}`);
   };
 
   const cancelRename = () => {
@@ -385,7 +400,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">$79</span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">General Affidavit</h4>
-                <p className="text-sm text-gray-600">A sworn statement of facts for court filings, custody matters, and more. AI-guided interview.</p>
+                <p className="text-sm text-gray-600">A sworn statement of facts for court filings, declarations, and supporting evidence. AI-guided interview, court-ready output.</p>
               </div>
               <button
                 onClick={() => handleNewDocumentClick('affidavit', 'family')}
@@ -407,7 +422,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">$249</span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">Divorce Package</h4>
-                <p className="text-sm text-gray-600">Complete Texas divorce filing package. AI walks you through the full interview — petition, decree, and all required supporting documents.</p>
+                <p className="text-sm text-gray-600">Complete divorce filing package tailored to your state or province. AI walks you through the full interview — petition, decree, and all required supporting documents.</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {['Petition', 'Decree', 'Supporting Docs'].map(tag => (
                     <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">

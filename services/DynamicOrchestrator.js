@@ -20,6 +20,31 @@
 
 const BaseMatterOrchestrator = require('./agents/BaseMatterOrchestrator');
 const logger = require('../utils/logger');
+const { FLAGS, assertEnabled } = require('../config/features');
+
+// Hard caps to prevent ReDoS / DoS via author-supplied template_config:
+//   - regex pattern length (matches operator)
+//   - input string length tested against any regex
+const MAX_REGEX_PATTERN = 256;
+const MAX_REGEX_INPUT = 1024;
+const MAX_PROMPT_PASS = 50_000;        // any prompt must fit this after replace
+const MAX_TOKEN_REPLACEMENTS = 1_000;  // total {{key}} replacements per prompt
+
+// Run a regex test with a hard-coded input length cap so a malicious template
+// can't pin a CPU on 'a'.repeat(1e6) with /(a+)+b/. We can't time-limit a
+// regex inside V8, so the only safe defence is bounded input + bounded pattern.
+function safeRegexTest(pattern, input) {
+  if (typeof pattern !== 'string' || typeof input !== 'string') return false;
+  if (pattern.length > MAX_REGEX_PATTERN) return false;
+  if (input.length > MAX_REGEX_INPUT) return false;
+  let re;
+  try {
+    re = new RegExp(pattern);
+  } catch {
+    return false;
+  }
+  return re.test(input);
+}
 
 // ─── Allowed condition operators (safe declarative set — NO eval) ────────────
 const CONDITION_EVALUATORS = {
@@ -34,8 +59,16 @@ const CONDITION_EVALUATORS = {
   in:         (fieldVal, val) => Array.isArray(val) && val.includes(fieldVal),
   not_in:     (fieldVal, val) => Array.isArray(val) && !val.includes(fieldVal),
   contains:   (fieldVal, val) => Array.isArray(fieldVal) && fieldVal.includes(val),
-  matches:    (fieldVal, val) => typeof fieldVal === 'string' && typeof val === 'string' && new RegExp(val).test(fieldVal),
+  matches:    (fieldVal, val) => safeRegexTest(val, fieldVal),
 };
+
+// Reserved built-in placeholder keys. Author-supplied keys can never override
+// these — if an author defines a key called `stateName` in template_config we
+// silently ignore it.
+const RESERVED_PLACEHOLDERS = new Set([
+  'stateName', 'stateCode', 'jurisdiction', 'matterType',
+  'practiceArea', 'templateVersion',
+]);
 
 class DynamicOrchestrator extends BaseMatterOrchestrator {
   /**
@@ -43,6 +76,11 @@ class DynamicOrchestrator extends BaseMatterOrchestrator {
    * @param {string|number} templateId - Primary key of the marketplace_templates row
    */
   constructor(templateConfig, templateId) {
+    // Defensive feature gate. The factory checks this too, but constructing a
+    // DynamicOrchestrator on a marketplace-disabled deployment is always a
+    // bug, so fail loud here as well.
+    assertEnabled(FLAGS.ENABLE_MARKETPLACE);
+
     if (!templateConfig || typeof templateConfig !== 'object') {
       throw new Error('DynamicOrchestrator: templateConfig is required and must be an object');
     }
@@ -180,9 +218,10 @@ class DynamicOrchestrator extends BaseMatterOrchestrator {
    *   {{filingFee}}, {{courtName}}, etc.
    */
   _buildSystemPrompt(state, matterData) {
-    let prompt = super._buildSystemPrompt(state, matterData);
+    const prompt = super._buildSystemPrompt(state, matterData);
 
-    // Built-in placeholders
+    // Built-in placeholders. Reserved keys cannot be overridden by template
+    // author config (defence against placeholder-shadowing attacks).
     const replacements = {
       stateName:       this.stateName || 'your state',
       stateCode:       this.stateCode || '',
@@ -192,21 +231,48 @@ class DynamicOrchestrator extends BaseMatterOrchestrator {
       templateVersion: this.templateVersion || '1.0',
     };
 
-    // Merge any extra top-level keys from the raw config (e.g. filingFee, courtName)
+    // Merge custom string keys from the raw config (e.g. filingFee, courtName).
+    // Reserved keys are filtered out; values are coerced to strings.
     if (this._rawConfig) {
       for (const [key, val] of Object.entries(this._rawConfig)) {
-        if (typeof val === 'string' && !replacements[key]) {
-          replacements[key] = val;
-        }
+        if (RESERVED_PLACEHOLDERS.has(key)) continue;
+        if (typeof val !== 'string') continue;
+        if (replacements[key] !== undefined) continue;
+        replacements[key] = val;
       }
     }
 
-    for (const [key, val] of Object.entries(replacements)) {
-      // Use a regex to replace all occurrences of {{key}}
-      prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val);
-    }
+    return DynamicOrchestrator._resolvePlaceholders(prompt, replacements);
+  }
 
-    return prompt;
+  /**
+   * Single-pass tokeniser: replaces every `{{identifier}}` substring with the
+   * corresponding entry from `replacements`. Unknown tokens are left intact.
+   *
+   * Why a single regex over the prompt instead of `new RegExp(key)` per key:
+   *   - O(prompt) instead of O(prompt * keys)
+   *   - The pattern is a constant — never built from user input — so there
+   *     is no ReDoS surface from author-supplied placeholder names.
+   *   - The identifier class `[a-zA-Z0-9_]` rejects pathological keys.
+   */
+  static _resolvePlaceholders(prompt, replacements) {
+    if (!prompt || typeof prompt !== 'string') return prompt;
+    const PLACEHOLDER_RE = /\{\{([a-zA-Z][a-zA-Z0-9_]{0,63})\}\}/g;
+    let count = 0;
+    const out = prompt.replace(PLACEHOLDER_RE, (match, key) => {
+      if (++count > MAX_TOKEN_REPLACEMENTS) return match;
+      // Own-property check defeats prototype lookups: without this, a token
+      // like `{{toString}}` would resolve to `Object.prototype.toString`
+      // and stamp "function toString() { [native code] }" into the prompt.
+      if (!Object.prototype.hasOwnProperty.call(replacements, key)) return match;
+      const val = replacements[key];
+      return val == null ? match : String(val);
+    });
+    if (out.length > MAX_PROMPT_PASS) {
+      logger.warn('DynamicOrchestrator: prompt exceeded MAX_PROMPT_PASS after replacement; truncating');
+      return out.slice(0, MAX_PROMPT_PASS);
+    }
+    return out;
   }
 
   // ─── Override _initState for template-aware state ───────────────────────────

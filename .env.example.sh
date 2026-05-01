@@ -79,3 +79,14 @@ FRONTEND_URL=http://localhost:3000
 # ===========================
 # Set to true to activate ~110 international jurisdictions (default: US + Canada only)
 ENABLE_INTERNATIONAL=false
+
+# Marketplace (lawyer-authored templates, profiles, subscriptions, payouts).
+# Disabled by default. When ENABLE_MARKETPLACE=false, the related routes return
+# 404, the services refuse to operate, and migrations 015-026 do not need to be
+# applied. Flip to true only after the marketplace migrations have been run.
+ENABLE_MARKETPLACE=false
+
+# When MARKETPLACE_AUTO_APPROVE=true, lawyer template submissions skip the
+# pending_review queue and publish immediately. Only honoured when
+# ENABLE_MARKETPLACE=true. Use only in non-production / staging environments.
+MARKETPLACE_AUTO_APPROVE=false

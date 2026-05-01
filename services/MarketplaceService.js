@@ -6,6 +6,12 @@ const {
   NotFoundError,
   AuthorizationError
 } = require('../middleware/errorMiddleware');
+const { isAllowedJurisdiction } = require('../config/jurisdictions');
+const {
+  FLAGS,
+  assertEnabled,
+  isMarketplaceAutoApprove,
+} = require('../config/features');
 
 // Valid matter types (matches catalog.js codes)
 const VALID_MATTER_TYPES = new Set([
@@ -21,9 +27,21 @@ const VALID_PRACTICE_AREAS = new Set([
   'employment', 'real_estate', 'bankruptcy', 'tax'
 ]);
 
-const VALID_SORT_OPTIONS = new Set([
-  'popular', 'rating', 'newest', 'price_low', 'price_high'
-]);
+// Whitelisted sort options. Each maps to an immutable column expression so we
+// never interpolate user input into ORDER BY (SQL injection guard).
+const SORT_COLUMNS = Object.freeze({
+  popular:    { expr: 'mt.total_purchases',  direction: 'DESC' },
+  rating:     { expr: 'mt.avg_rating',       direction: 'DESC' },
+  newest:     { expr: 'mt.published_at',     direction: 'DESC' },
+  price_low:  { expr: 'mt.price_cents',      direction: 'ASC'  },
+  price_high: { expr: 'mt.price_cents',      direction: 'DESC' },
+});
+const DEFAULT_SORT = 'popular';
+
+// Pricing guardrails. Stored as cents in INTEGER, so cap at $1M to avoid
+// negative-value exploits and to keep analytics sane.
+const MIN_PRICE_CENTS = 0;
+const MAX_PRICE_CENTS = 100_000_000; // $1,000,000.00
 
 const TEMPLATE_COLUMNS = `
   mt.id, mt.lawyer_id, mt.title, mt.slug, mt.description, mt.short_description,
@@ -49,11 +67,21 @@ class MarketplaceService {
     this.pool = pool;
   }
 
+  /**
+   * Defensive gate: all public mutating/reading methods call this so a
+   * deployment with ENABLE_MARKETPLACE=false fails loud even if a route
+   * accidentally bypasses the route-level middleware.
+   */
+  _assertEnabled() {
+    assertEnabled(FLAGS.ENABLE_MARKETPLACE);
+  }
+
   // ---------------------------------------------------------------------------
   // Template CRUD (Lawyer)
   // ---------------------------------------------------------------------------
 
   async createTemplate(lawyerId, data) {
+    this._assertEnabled();
     await this._assertLawyerRole(lawyerId);
 
     const { title, description, shortDescription, matterType, practiceArea,
@@ -66,12 +94,11 @@ class MarketplaceService {
     if (!matterType || !VALID_MATTER_TYPES.has(matterType)) {
       throw new ValidationError(`Invalid matter_type. Must be one of: ${[...VALID_MATTER_TYPES].join(', ')}`);
     }
-    if (!Array.isArray(jurisdictions) || jurisdictions.length === 0) {
-      throw new ValidationError('At least one jurisdiction is required');
-    }
+    this._validateJurisdictions(jurisdictions);
     if (practiceArea && !VALID_PRACTICE_AREAS.has(practiceArea)) {
       throw new ValidationError(`Invalid practice_area. Must be one of: ${[...VALID_PRACTICE_AREAS].join(', ')}`);
     }
+    const safePrice = this._validatePriceCents(priceCents, /* defaultCents */ 100);
 
     const slug = this._generateSlug(title);
 
@@ -87,7 +114,7 @@ class MarketplaceService {
         description || null, shortDescription || null,
         matterType, practiceArea || 'civil',
         jurisdictions, templateConfig || {},
-        priceCents != null ? priceCents : 100,
+        safePrice,
         coverImageUrl || null, tags || [],
         estimatedMinutes || 15, difficultyLevel || 'standard'
       ]
@@ -98,6 +125,7 @@ class MarketplaceService {
   }
 
   async getTemplate(templateId, userId = null) {
+    this._assertEnabled();
     const result = await this.pool.query(
       `SELECT ${TEMPLATE_COLUMNS}, ${LAWYER_JOIN_COLUMNS}
        FROM marketplace_templates mt
@@ -116,6 +144,7 @@ class MarketplaceService {
   }
 
   async getTemplateBySlug(slug, userId = null) {
+    this._assertEnabled();
     const result = await this.pool.query(
       `SELECT ${TEMPLATE_COLUMNS}, ${LAWYER_JOIN_COLUMNS}
        FROM marketplace_templates mt
@@ -134,6 +163,7 @@ class MarketplaceService {
   }
 
   async updateTemplate(templateId, lawyerId, data) {
+    this._assertEnabled();
     const existing = await this._getOwnedTemplate(templateId, lawyerId);
 
     if (existing.status === 'suspended') {
@@ -154,23 +184,28 @@ class MarketplaceService {
     };
 
     for (const [jsKey, dbCol] of Object.entries(allowedFields)) {
-      if (data[jsKey] !== undefined) {
-        // Validate specific fields
-        if (jsKey === 'matterType' && !VALID_MATTER_TYPES.has(data[jsKey])) {
-          throw new ValidationError(`Invalid matter_type`);
-        }
-        if (jsKey === 'practiceArea' && !VALID_PRACTICE_AREAS.has(data[jsKey])) {
-          throw new ValidationError(`Invalid practice_area`);
-        }
-        if (jsKey === 'jurisdictions') {
-          if (!Array.isArray(data[jsKey]) || data[jsKey].length === 0) {
-            throw new ValidationError('At least one jurisdiction is required');
-          }
-        }
-        fields.push(`${dbCol} = $${paramIndex}`);
-        values.push(data[jsKey]);
-        paramIndex++;
+      if (data[jsKey] === undefined) continue;
+
+      let value = data[jsKey];
+
+      switch (jsKey) {
+        case 'matterType':
+          if (!VALID_MATTER_TYPES.has(value)) throw new ValidationError('Invalid matter_type');
+          break;
+        case 'practiceArea':
+          if (!VALID_PRACTICE_AREAS.has(value)) throw new ValidationError('Invalid practice_area');
+          break;
+        case 'jurisdictions':
+          this._validateJurisdictions(value);
+          break;
+        case 'priceCents':
+          value = this._validatePriceCents(value);
+          break;
       }
+
+      fields.push(`${dbCol} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
     }
 
     // Auto-update slug if title changed
@@ -200,6 +235,7 @@ class MarketplaceService {
   }
 
   async deleteTemplate(templateId, lawyerId) {
+    this._assertEnabled();
     await this._getOwnedTemplate(templateId, lawyerId);
 
     await this.pool.query(
@@ -213,6 +249,7 @@ class MarketplaceService {
   }
 
   async publishTemplate(templateId, lawyerId) {
+    this._assertEnabled();
     const template = await this._getOwnedTemplate(templateId, lawyerId);
 
     if (template.status !== 'draft') {
@@ -221,9 +258,7 @@ class MarketplaceService {
     if (!template.template_config || Object.keys(template.template_config).length === 0) {
       throw new ValidationError('Template config must not be empty before publishing');
     }
-    if (!template.jurisdictions || template.jurisdictions.length === 0) {
-      throw new ValidationError('At least one jurisdiction is required before publishing');
-    }
+    this._validateJurisdictions(template.jurisdictions);
 
     const newVersion = template.version + 1;
 
@@ -237,9 +272,9 @@ class MarketplaceService {
 
     const versionId = versionResult.rows[0].id;
 
-    // Update the template: pending_review (auto-approve could change this to 'published')
-    const autoApprove = process.env.MARKETPLACE_AUTO_APPROVE === 'true';
-    const newStatus = autoApprove ? 'published' : 'pending_review';
+    // Auto-approve only if BOTH ENABLE_MARKETPLACE and MARKETPLACE_AUTO_APPROVE
+    // are true. The combined check lives in features.js.
+    const newStatus = isMarketplaceAutoApprove() ? 'published' : 'pending_review';
 
     const result = await this.pool.query(
       `UPDATE marketplace_templates
@@ -256,6 +291,7 @@ class MarketplaceService {
   }
 
   async unpublishTemplate(templateId, lawyerId) {
+    this._assertEnabled();
     const template = await this._getOwnedTemplate(templateId, lawyerId);
 
     if (template.status !== 'published') {
@@ -275,6 +311,7 @@ class MarketplaceService {
   }
 
   async duplicateTemplate(templateId, lawyerId) {
+    this._assertEnabled();
     const template = await this._getOwnedTemplate(templateId, lawyerId);
 
     const newTitle = `Copy of ${template.title}`;
@@ -303,18 +340,15 @@ class MarketplaceService {
   // ---------------------------------------------------------------------------
 
   async searchTemplates(options = {}) {
-    const { q, matterType, practiceArea, jurisdiction, minPrice, maxPrice,
-      minRating, sortBy = 'popular', cursor, limit = 20 } = options;
+    this._assertEnabled();
+    const { sortBy = DEFAULT_SORT, cursor, limit = 20 } = options;
 
     const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
-
-    if (sortBy && !VALID_SORT_OPTIONS.has(sortBy)) {
-      throw new ValidationError(`Invalid sortBy. Must be one of: ${[...VALID_SORT_OPTIONS].join(', ')}`);
-    }
+    const sort = this._resolveSort(sortBy);
 
     const { whereClause, params, nextParamIndex } = this._buildSearchQuery(options);
-    const orderBy = this._sortColumn(sortBy);
-    const cursorWhere = cursor ? this._buildCursorCondition(cursor, sortBy, nextParamIndex) : null;
+    const orderBy = `${sort.expr} ${sort.direction}`;
+    const cursorWhere = cursor ? this._buildCursorCondition(cursor, sort, nextParamIndex) : null;
 
     let fullWhere = whereClause;
     const fullParams = [...params];
@@ -353,13 +387,14 @@ class MarketplaceService {
     let nextCursor = null;
     if (hasMore) {
       const last = templates[templates.length - 1];
-      nextCursor = this._encodeCursor(last, sortBy);
+      nextCursor = this._encodeCursor(last, sort.key);
     }
 
     return { templates, nextCursor, total };
   }
 
   async getFeaturedTemplates(limit = 8) {
+    this._assertEnabled();
     const safeLimit = Math.min(Math.max(1, limit), 50);
 
     // Try featured placements first
@@ -395,6 +430,7 @@ class MarketplaceService {
   }
 
   async getTrendingTemplates(limit = 10) {
+    this._assertEnabled();
     const safeLimit = Math.min(Math.max(1, limit), 50);
 
     const result = await this.pool.query(
@@ -416,6 +452,7 @@ class MarketplaceService {
   }
 
   async getNewTemplates(limit = 10) {
+    this._assertEnabled();
     const safeLimit = Math.min(Math.max(1, limit), 50);
 
     const result = await this.pool.query(
@@ -440,6 +477,7 @@ class MarketplaceService {
   }
 
   async getCategories() {
+    this._assertEnabled();
     const result = await this.pool.query(
       `SELECT id, slug, display_name, description, parent_id, icon_name, sort_order
        FROM template_categories
@@ -472,8 +510,10 @@ class MarketplaceService {
   // ---------------------------------------------------------------------------
 
   async getLawyerTemplates(lawyerId, options = {}) {
+    this._assertEnabled();
     const { status, sortBy = 'newest', cursor, limit = 20 } = options;
     const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
+    const sort = this._resolveSort(sortBy);
 
     const conditions = ['mt.lawyer_id = $1', 'mt.deleted_at IS NULL'];
     const params = [lawyerId];
@@ -485,10 +525,8 @@ class MarketplaceService {
       paramIndex++;
     }
 
-    const orderBy = this._sortColumn(sortBy);
-
     if (cursor) {
-      const cursorCond = this._buildCursorCondition(cursor, sortBy, paramIndex);
+      const cursorCond = this._buildCursorCondition(cursor, sort, paramIndex);
       conditions.push(cursorCond.clause);
       params.push(...cursorCond.params);
       paramIndex += cursorCond.params.length;
@@ -500,7 +538,7 @@ class MarketplaceService {
       `SELECT ${TEMPLATE_COLUMNS}
        FROM marketplace_templates mt
        WHERE ${conditions.join(' AND ')}
-       ORDER BY ${orderBy}, mt.id DESC
+       ORDER BY ${sort.expr} ${sort.direction}, mt.id DESC
        LIMIT $${paramIndex}`,
       params
     );
@@ -510,13 +548,14 @@ class MarketplaceService {
 
     let nextCursor = null;
     if (hasMore) {
-      nextCursor = this._encodeCursor(templates[templates.length - 1], sortBy);
+      nextCursor = this._encodeCursor(templates[templates.length - 1], sort.key);
     }
 
     return { templates, nextCursor };
   }
 
   async getLawyerDashboardSummary(lawyerId) {
+    this._assertEnabled();
     const templateStats = await this.pool.query(
       `SELECT
         COUNT(*) FILTER (WHERE deleted_at IS NULL) AS total_templates,
@@ -560,22 +599,31 @@ class MarketplaceService {
   // Analytics Tracking
   // ---------------------------------------------------------------------------
 
-  async trackView(templateId, userId = null) {
-    await this.pool.query(
-      `INSERT INTO template_analytics (template_id, date, views)
-       VALUES ($1, CURRENT_DATE, 1)
-       ON CONFLICT (template_id, date)
-       DO UPDATE SET views = template_analytics.views + 1`,
-      [templateId]
-    );
+  async trackView(templateId, _userId = null) {
+    this._assertEnabled();
+    return this._trackAnalyticsCounter(templateId, 'views');
   }
 
-  async trackDetailView(templateId, userId = null) {
+  async trackDetailView(templateId, _userId = null) {
+    this._assertEnabled();
+    return this._trackAnalyticsCounter(templateId, 'detail_views');
+  }
+
+  /**
+   * Increment a counter column on template_analytics for today. The column
+   * name is taken from a trusted whitelist — never user input — so there is
+   * no SQL injection risk in interpolating it into the query.
+   */
+  async _trackAnalyticsCounter(templateId, column) {
+    const ALLOWED = new Set(['views', 'detail_views']);
+    if (!ALLOWED.has(column)) {
+      throw new ValidationError(`Invalid analytics counter: ${column}`);
+    }
     await this.pool.query(
-      `INSERT INTO template_analytics (template_id, date, detail_views)
+      `INSERT INTO template_analytics (template_id, date, ${column})
        VALUES ($1, CURRENT_DATE, 1)
        ON CONFLICT (template_id, date)
-       DO UPDATE SET detail_views = template_analytics.detail_views + 1`,
+       DO UPDATE SET ${column} = template_analytics.${column} + 1`,
       [templateId]
     );
   }
@@ -650,31 +698,36 @@ class MarketplaceService {
     };
   }
 
-  _sortColumn(sortBy) {
-    switch (sortBy) {
-      case 'popular':    return 'mt.total_purchases DESC';
-      case 'rating':     return 'mt.avg_rating DESC';
-      case 'newest':     return 'mt.published_at DESC';
-      case 'price_low':  return 'mt.price_cents ASC';
-      case 'price_high': return 'mt.price_cents DESC';
-      default:           return 'mt.total_purchases DESC';
+  /**
+   * Resolve a user-supplied sort key against the SORT_COLUMNS whitelist.
+   * Returns { key, expr, direction } where expr is a constant SQL fragment.
+   * Throws ValidationError if the key is unknown — never falls back silently.
+   */
+  _resolveSort(sortBy) {
+    const key = sortBy || DEFAULT_SORT;
+    const sort = SORT_COLUMNS[key];
+    if (!sort) {
+      throw new ValidationError(
+        `Invalid sortBy. Must be one of: ${Object.keys(SORT_COLUMNS).join(', ')}`
+      );
     }
+    return { key, ...sort };
   }
 
-  _encodeCursor(row, sortBy) {
-    const payload = { id: row.id };
-    switch (sortBy) {
-      case 'popular':    payload.v = row.total_purchases; break;
-      case 'rating':     payload.v = row.avg_rating; break;
-      case 'newest':     payload.v = row.published_at; break;
-      case 'price_low':
-      case 'price_high': payload.v = row.price_cents; break;
-      default:           payload.v = row.total_purchases; break;
-    }
+  _encodeCursor(row, sortKey) {
+    // Map sort key to the row column whose value seeds the cursor.
+    const valueByKey = {
+      popular:    row.total_purchases,
+      rating:     row.avg_rating,
+      newest:     row.published_at,
+      price_low:  row.price_cents,
+      price_high: row.price_cents,
+    };
+    const payload = { id: row.id, v: valueByKey[sortKey] ?? row.total_purchases };
     return Buffer.from(JSON.stringify(payload)).toString('base64url');
   }
 
-  _buildCursorCondition(cursor, sortBy, startParamIndex) {
+  _buildCursorCondition(cursor, sort, startParamIndex) {
     let decoded;
     try {
       decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
@@ -687,26 +740,44 @@ class MarketplaceService {
       throw new ValidationError('Invalid cursor payload');
     }
 
-    // Keyset pagination: (sortCol, id) pair for deterministic ordering
-    const isAsc = sortBy === 'price_low';
-    const op = isAsc ? '>' : '<';
-    const sortCol = this._sortColumnRaw(sortBy);
+    // Keyset pagination: (sortCol, id) pair for deterministic ordering. Use
+    // the sort's own direction to pick comparison op so ASC and DESC sorts
+    // are both consistent with the ORDER BY clause.
+    const op = sort.direction === 'ASC' ? '>' : '<';
 
     return {
-      clause: `(${sortCol} ${op} $${startParamIndex} OR (${sortCol} = $${startParamIndex} AND mt.id < $${startParamIndex + 1}))`,
-      params: [v, id]
+      clause: `(${sort.expr} ${op} $${startParamIndex} OR (${sort.expr} = $${startParamIndex} AND mt.id < $${startParamIndex + 1}))`,
+      params: [v, id],
     };
   }
 
-  _sortColumnRaw(sortBy) {
-    switch (sortBy) {
-      case 'popular':    return 'mt.total_purchases';
-      case 'rating':     return 'mt.avg_rating';
-      case 'newest':     return 'mt.published_at';
-      case 'price_low':
-      case 'price_high': return 'mt.price_cents';
-      default:           return 'mt.total_purchases';
+  _validateJurisdictions(value) {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new ValidationError('At least one jurisdiction is required');
     }
+    if (value.length > 64) {
+      // sanity cap; we have ~110 total jurisdictions
+      throw new ValidationError('Too many jurisdictions (max 64)');
+    }
+    for (const code of value) {
+      if (typeof code !== 'string' || !isAllowedJurisdiction(code)) {
+        throw new ValidationError(`Invalid jurisdiction code: ${code}`);
+      }
+    }
+  }
+
+  _validatePriceCents(priceCents, defaultCents = null) {
+    if (priceCents === undefined || priceCents === null) {
+      if (defaultCents !== null) return defaultCents;
+      throw new ValidationError('priceCents is required');
+    }
+    const price = Number(priceCents);
+    if (!Number.isInteger(price) || price < MIN_PRICE_CENTS || price > MAX_PRICE_CENTS) {
+      throw new ValidationError(
+        `priceCents must be an integer between ${MIN_PRICE_CENTS} and ${MAX_PRICE_CENTS}`
+      );
+    }
+    return price;
   }
 
   async _assertLawyerRole(userId) {

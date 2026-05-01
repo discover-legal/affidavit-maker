@@ -1,6 +1,7 @@
 // services/LawyerProfileService.js - Lawyer profile, Stripe Connect, and subscription management
 const logger = require('../utils/logger');
 const { ValidationError, NotFoundError, AuthorizationError } = require('../middleware/errorMiddleware');
+const { FLAGS, assertEnabled, isMarketplaceEnabled } = require('../config/features');
 
 // Fields that only admins can set — never accept from the lawyer themselves
 const ADMIN_ONLY_FIELDS = ['bar_verified', 'bar_verified_at'];
@@ -21,6 +22,11 @@ const UPDATABLE_FIELDS = {
   avatarUrl: 'avatar_url',
 };
 
+// Short cache for hasFeature(). Kept brief so subscription
+// cancellations propagate fast — never trust this cache for security
+// decisions on financial mutations; always re-query before authorising.
+const FEATURE_CACHE_TTL_MS = 10_000;
+
 class LawyerProfileService {
   /**
    * @param {import('pg').Pool} pool - PostgreSQL connection pool
@@ -29,7 +35,16 @@ class LawyerProfileService {
     this.pool = pool;
     // In-memory cache for hasFeature() — cleared on subscription mutation
     this._featureCache = new Map();
-    this._featureCacheTTL = 60_000; // 1 minute
+    this._featureCacheTTL = FEATURE_CACHE_TTL_MS;
+  }
+
+  /**
+   * Defensive gate: every public method calls this so a deployment with
+   * ENABLE_MARKETPLACE=false fails loud even if a route bypasses the
+   * route-level middleware.
+   */
+  _assertEnabled() {
+    assertEnabled(FLAGS.ENABLE_MARKETPLACE);
   }
 
   // ---------------------------------------------------------------------------
@@ -41,6 +56,7 @@ class LawyerProfileService {
    * Runs inside a transaction so both writes succeed or neither does.
    */
   async createProfile(userId, data) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const {
@@ -122,6 +138,7 @@ class LawyerProfileService {
    * Returns null if no profile exists.
    */
   async getProfile(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const result = await this.pool.query(
@@ -153,6 +170,7 @@ class LawyerProfileService {
    * Only returns if the lawyer is bar-verified OR has at least one published template.
    */
   async getProfileBySlug(lawyerId) {
+    this._assertEnabled();
     if (!lawyerId) throw new ValidationError('lawyerId is required');
 
     const result = await this.pool.query(
@@ -167,18 +185,18 @@ class LawyerProfileService {
          lp.licensed_jurisdictions,
          lp.bar_verified,
          lp.created_at,
-         COUNT(lt.id) FILTER (WHERE lt.status = 'published') AS total_templates,
-         COALESCE(SUM(lt.total_sales), 0) AS total_sales,
+         COUNT(mt.id) FILTER (WHERE mt.status = 'published' AND mt.deleted_at IS NULL) AS total_templates,
+         COALESCE(SUM(mt.total_purchases) FILTER (WHERE mt.deleted_at IS NULL), 0) AS total_sales,
          COALESCE(
-           AVG(lt.avg_rating) FILTER (WHERE lt.avg_rating IS NOT NULL),
+           AVG(mt.avg_rating) FILTER (WHERE mt.rating_count > 0 AND mt.deleted_at IS NULL),
            0
          ) AS avg_template_rating
        FROM lawyer_profiles lp
-       LEFT JOIN lawyer_templates lt ON lt.lawyer_id = lp.user_id
+       LEFT JOIN marketplace_templates mt ON mt.lawyer_id = lp.user_id
        WHERE lp.id = $1
        GROUP BY lp.id
        HAVING lp.bar_verified = true
-          OR COUNT(lt.id) FILTER (WHERE lt.status = 'published') > 0`,
+          OR COUNT(mt.id) FILTER (WHERE mt.status = 'published' AND mt.deleted_at IS NULL) > 0`,
       [lawyerId]
     );
 
@@ -207,6 +225,7 @@ class LawyerProfileService {
    * Admin-only and Stripe-managed fields are rejected.
    */
   async updateProfile(userId, data) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
     if (!data || Object.keys(data).length === 0) {
       throw new ValidationError('No fields to update');
@@ -266,8 +285,20 @@ class LawyerProfileService {
    * Logs to audit_log for compliance.
    */
   async verifyBar(userId, adminUserId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
     if (!adminUserId) throw new ValidationError('adminUserId is required');
+
+    // Defence in depth: confirm the caller really is an admin even if a
+    // route handler forgot to. RLS gives us a final guard at the row level
+    // but that won't help if the route is run with bypass_rls_enabled().
+    const adminCheck = await this.pool.query(
+      'SELECT user_role FROM users WHERE id = $1',
+      [adminUserId]
+    );
+    if (adminCheck.rows.length === 0 || adminCheck.rows[0].user_role !== 'admin') {
+      throw new AuthorizationError('Only admins can verify bar membership');
+    }
 
     const client = await this.pool.connect();
     try {
@@ -319,6 +350,7 @@ class LawyerProfileService {
    * Lighter than getProfileBySlug — no visibility gate, just basic info.
    */
   async getPublicProfile(lawyerId) {
+    this._assertEnabled();
     if (!lawyerId) throw new ValidationError('lawyerId is required');
 
     const result = await this.pool.query(
@@ -331,13 +363,13 @@ class LawyerProfileService {
          lp.licensed_jurisdictions,
          lp.bar_verified,
          lp.created_at,
-         COALESCE(SUM(lt.total_sales), 0) AS total_sales,
+         COALESCE(SUM(mt.total_purchases) FILTER (WHERE mt.deleted_at IS NULL), 0) AS total_sales,
          COALESCE(
-           AVG(lt.avg_rating) FILTER (WHERE lt.avg_rating IS NOT NULL),
+           AVG(mt.avg_rating) FILTER (WHERE mt.rating_count > 0 AND mt.deleted_at IS NULL),
            0
          ) AS avg_template_rating
        FROM lawyer_profiles lp
-       LEFT JOIN lawyer_templates lt ON lt.lawyer_id = lp.user_id
+       LEFT JOIN marketplace_templates mt ON mt.lawyer_id = lp.user_id
        WHERE lp.user_id = $1
        GROUP BY lp.id`,
       [lawyerId]
@@ -370,6 +402,7 @@ class LawyerProfileService {
    * route handler to pass to stripe.accounts.create() and stripe.accountLinks.create().
    */
   async initiateStripeOnboarding(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const profile = await this.pool.query(
@@ -437,6 +470,7 @@ class LawyerProfileService {
    * Updates the profile with onboarding completion status.
    */
   async completeStripeOnboarding(userId, stripeAccountId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
     if (!stripeAccountId) throw new ValidationError('stripeAccountId is required');
 
@@ -466,6 +500,7 @@ class LawyerProfileService {
    * Get Stripe Connect status for a lawyer.
    */
   async getStripeStatus(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const result = await this.pool.query(
@@ -492,6 +527,7 @@ class LawyerProfileService {
    * Calculate payout summary from template_purchases.
    */
   async getPayoutSummary(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     // Verify profile exists
@@ -542,6 +578,7 @@ class LawyerProfileService {
    * Get all active subscriptions for a lawyer.
    */
   async getActiveSubscriptions(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const result = await this.pool.query(
@@ -569,6 +606,10 @@ class LawyerProfileService {
    * Uses a short-lived in-memory cache to avoid repeated DB hits.
    */
   async hasFeature(userId, featureCode) {
+    // Treat marketplace-disabled deployments as "no premium features" rather
+    // than throwing — callers (e.g. UI feature toggles) should degrade
+    // gracefully, not 500.
+    if (!isMarketplaceEnabled()) return false;
     if (!userId || !featureCode) return false;
 
     const cacheKey = `${userId}:${featureCode}`;
@@ -596,6 +637,7 @@ class LawyerProfileService {
    * Upserts on (user_id, tier_code) so resubscribing works cleanly.
    */
   async addSubscription(userId, tierCode, stripeData) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
     if (!tierCode) throw new ValidationError('tierCode is required');
 
@@ -644,6 +686,7 @@ class LawyerProfileService {
    * Cancel a subscription at end of billing period.
    */
   async cancelSubscription(userId, tierCode) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
     if (!tierCode) throw new ValidationError('tierCode is required');
 
@@ -671,6 +714,15 @@ class LawyerProfileService {
    * Returns void — webhook handlers must not return data to the caller.
    */
   async handleSubscriptionWebhook(event) {
+    // Webhooks may arrive after a feature is disabled. We still want to
+    // record the cancellation/expiry so DB stays in sync, but mutating an
+    // entirely off feature is suspicious — log and exit if so.
+    if (!isMarketplaceEnabled()) {
+      logger.warn('Subscription webhook received while ENABLE_MARKETPLACE=false; skipping', {
+        type: event?.type,
+      });
+      return;
+    }
     if (!event || !event.type) {
       logger.warn('Received invalid subscription webhook event');
       return;
@@ -740,8 +792,12 @@ class LawyerProfileService {
    * and recent activity in a single efficient query using CTEs.
    */
   async getDashboardSummary(userId) {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
+    // Note: every CTE filters on lawyer_id = $1 (= the authenticated userId),
+    // so a caller cannot fetch another lawyer's data. The route handler must
+    // pass req.user.id here — never accept userId from the request body.
     const result = await this.pool.query(
       `WITH profile AS (
          SELECT display_name, avatar_url, bar_verified
@@ -750,10 +806,10 @@ class LawyerProfileService {
        ),
        template_stats AS (
          SELECT
-           COUNT(*) AS total,
-           COUNT(*) FILTER (WHERE status = 'published') AS published,
-           COUNT(*) FILTER (WHERE status = 'draft') AS draft
-         FROM lawyer_templates
+           COUNT(*) FILTER (WHERE deleted_at IS NULL) AS total,
+           COUNT(*) FILTER (WHERE status = 'published' AND deleted_at IS NULL) AS published,
+           COUNT(*) FILTER (WHERE status = 'draft' AND deleted_at IS NULL) AS draft
+         FROM marketplace_templates
          WHERE lawyer_id = $1
        ),
        revenue AS (
@@ -770,19 +826,19 @@ class LawyerProfileService {
        ),
        ratings AS (
          SELECT
-           COALESCE(AVG(avg_rating) FILTER (WHERE avg_rating IS NOT NULL), 0) AS avg_rating,
-           COALESCE(SUM(rating_count), 0) AS total_reviews
-         FROM lawyer_templates
+           COALESCE(AVG(avg_rating) FILTER (WHERE rating_count > 0 AND deleted_at IS NULL), 0) AS avg_rating,
+           COALESCE(SUM(rating_count) FILTER (WHERE deleted_at IS NULL), 0) AS total_reviews
+         FROM marketplace_templates
          WHERE lawyer_id = $1
        ),
        recent AS (
          SELECT
            tp.id,
-           lt.title AS template_name,
+           mt.title AS template_name,
            tp.price_cents AS amount_cents,
            tp.created_at
          FROM template_purchases tp
-         JOIN lawyer_templates lt ON lt.id = tp.template_id
+         JOIN marketplace_templates mt ON mt.id = tp.template_id
          WHERE tp.lawyer_id = $1
          ORDER BY tp.created_at DESC
          LIMIT 5
@@ -820,6 +876,7 @@ class LawyerProfileService {
    * @param {'daily'|'weekly'|'monthly'} period
    */
   async getRevenueBreakdown(userId, period = 'monthly') {
+    this._assertEnabled();
     if (!userId) throw new ValidationError('userId is required');
 
     const validPeriods = ['daily', 'weekly', 'monthly'];

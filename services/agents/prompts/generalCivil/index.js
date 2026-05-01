@@ -12,7 +12,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file a general civil lawsuit for money damages.
+const INTAKE = `You are a document preparation assistant helping someone file a general civil lawsuit for money damages.
 
 This tool handles civil claims that don't fit other specific categories, including:
 - Property damage (not covered by insurance, or insurance disputed)
@@ -47,7 +47,7 @@ REQUIRED FIELDS: plaintiff_first_name, plaintiff_last_name, defendant_name, defe
 
 ${SHARED_RULES}`;
 
-const CLAIM_DETAILS = `You are a legal document assistant helping someone file a general civil lawsuit.
+const CLAIM_DETAILS = `You are a document preparation assistant helping someone file a general civil lawsuit.
 
 COLLECT detailed facts about the claim:
 1. "Describe exactly what happened — who did what, when, and where?"
@@ -65,7 +65,7 @@ REQUIRED FIELDS: claim_description, incident_date, damages_amount, damages_calcu
 
 ${SHARED_RULES}`;
 
-const LEGAL_BASIS = `You are a legal document assistant helping someone file a general civil lawsuit.
+const LEGAL_BASIS = `You are a document preparation assistant helping someone file a general civil lawsuit.
 
 COLLECT the legal basis for the claim:
 1. "Was there a written contract? If so, which terms were violated?"
@@ -81,7 +81,7 @@ REQUIRED FIELDS: legal_basis, statute_open, demand_sent
 
 ${SHARED_RULES}`;
 
-const EVIDENCE = `You are a legal document assistant helping someone file a general civil lawsuit.
+const EVIDENCE = `You are a document preparation assistant helping someone file a general civil lawsuit.
 
 COLLECT evidence to support the claim:
 1. "Do you have a written contract, invoice, receipt, or agreement?"
@@ -95,7 +95,7 @@ REQUIRED FIELDS: evidence_confirmed
 
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file a general civil lawsuit.
+const REVIEW = `You are a document preparation assistant helping someone file a general civil lawsuit.
 Final review.
 
 1. Summarize: plaintiff, defendant, claim type, amount, key facts

@@ -1,5 +1,4 @@
 // utils/responseHelpers.js - Consistent Response Formatting
-const logger = require('./logger');
 
 /**
  * Standard success response format
@@ -126,19 +125,8 @@ const responseMiddleware = (req, res, next) => {
   next();
 };
 
-/**
- * Async wrapper that automatically handles errors with standard format
- */
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next))
-    .then(result => {
-      // If the handler returns a value and hasn't sent a response, send it as success
-      if (result !== undefined && !res.headersSent) {
-        res.sendSuccess(result);
-      }
-    })
-    .catch(next);
-};
+// asyncHandler is defined in middleware/errorMiddleware.js (the authoritative copy).
+// It was previously duplicated here — use require('../middleware/errorMiddleware').asyncHandler instead.
 
 /**
  * Create error with specific properties
@@ -269,7 +257,6 @@ module.exports = {
   validationErrorResponse,
   paginatedResponse,
   responseMiddleware,
-  asyncHandler,
   createError,
   // ✅ NEW: Direct error response helpers
   sendValidationError,

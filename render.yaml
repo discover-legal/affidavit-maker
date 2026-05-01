@@ -90,9 +90,12 @@ services:
         sync: false
 
       # Frontend Configuration
-      # Frontend URL (will be your Render URL)
+      # Primary canonical domain. Both make.discover.legal and discover.legal
+      # are kept in the CORS allowlist (config/allowedOrigins.js) during the
+      # transition; flip the Render custom-domain config to discover.legal as
+      # well, and add a 301 redirect from make → root before retiring it.
       - key: FRONTEND_URL
-        value: https://make.discover.legal
+        value: https://discover.legal
 
       # API URL for React app - Empty = use relative URLs (works with any domain)
       - key: REACT_APP_API_URL

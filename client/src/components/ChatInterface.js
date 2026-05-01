@@ -1,5 +1,6 @@
 // client/src/components/ChatInterface.js - FIXED VERSION
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { SUPPORTED_JURISDICTIONS as SUPPORTED_STATES } from '../config/jurisdictions';
 import {
   Send,
   Bot,
@@ -35,17 +36,6 @@ const TX_DIVORCE_PHASE_NAMES = {
   MILITARY:  'Military Status',
   REVIEW:    'Final Review'
 };
-
-// Supported states for document creation
-const SUPPORTED_STATES = [
-  { code: 'TX', name: 'Texas' },
-  { code: 'UT', name: 'Utah' },
-  { code: 'AZ', name: 'Arizona' },
-  { code: 'CA', name: 'California' },
-  { code: 'FL', name: 'Florida' },
-  { code: 'IL', name: 'Illinois' },
-  { code: 'NY', name: 'New York' }
-];
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
@@ -91,11 +81,8 @@ const ChatInterface = () => {
 
     // Check if we have a cached summary for these facts
     if (currentDocument.factSummary && currentDocument.factSignature === currentSignature) {
-      console.log('✅ Using cached fact summary');
       return currentDocument.factSummary;
     }
-
-    console.log('🔄 Generating new fact summary');
 
     try {
       const headers = { 'Content-Type': 'application/json' };
@@ -152,11 +139,6 @@ const ChatInterface = () => {
 
     // If documentId changed (including null -> value, value -> null, or value -> different value)
     if (newDocId !== prevDocId) {
-      console.log('📄 Document ID changed, clearing messages', {
-        from: prevDocId,
-        to: newDocId
-      });
-
       // Clear messages and reset welcome flag
       setMessages([]);
       welcomeMessageShownRef.current = false;
@@ -208,22 +190,25 @@ const ChatInterface = () => {
           }
         } else {
           // New user - show welcome message based on document type
-          console.log('👋 Showing welcome message for new document');
           const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
 
           if (isDivorcePackage) {
             setMessages([{
               type: 'bot',
-              content: `Hi! I'm here to help you create your divorce package, which includes both your Divorce Petition and Divorce Decree.
+              content: `Hi! I'm here to help you prepare your divorce documents by gathering the necessary information and formatting your Petition and Decree.
 
-First, please select your state above. Each state has different requirements for divorce documents, and I need to know your state to ensure your documents are legally compliant.`
+**Please note:** I am an AI document preparation tool, not a lawyer. I do not provide legal advice. I strongly recommend consulting a licensed attorney before filing any legal documents.
+
+First, please select your state above so I can use the correct formatting requirements.`
             }]);
           } else {
             setMessages([{
               type: 'bot',
-              content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
+              content: `Hi! I'm here to help you prepare your affidavit by gathering facts and formatting your document.
 
-First, please select your state above. Each state has different legal requirements, and I need to know your state to ensure your affidavit is compliant.`
+**Please note:** I am an AI document preparation tool, not a lawyer. I do not provide legal advice. I strongly recommend consulting a licensed attorney before filing any legal documents.
+
+First, please select your state above so I can use the correct formatting requirements.`
             }]);
           }
         }
@@ -288,25 +273,11 @@ First, please select your state above. Each state has different legal requiremen
 
       const data = await response.json();
 
-      console.log('🔍 Chat API Response:', {
-        success: data.success,
-        hasNewFacts: !!data.newFacts,
-        newFactsCount: data.newFacts?.length || 0,
-        newFacts: data.newFacts
-      });
-
       if (data.success) {
         // Check for evidence items that need upload
         let evidenceItems = [];
         if (data.newFacts && data.newFacts.length > 0) {
-          console.log('🔍 Checking for evidence in newFacts:', data.newFacts);
-
-          evidenceItems = data.newFacts.filter(fact => {
-            console.log('Checking fact:', { type: fact.type, isEvidence: fact.type === 'evidence', fact });
-            return fact.type === 'evidence';
-          });
-
-          console.log('🔍 Evidence items found:', evidenceItems.length, evidenceItems);
+          evidenceItems = data.newFacts.filter(fact => fact.type === 'evidence');
         }
 
         // Add bot response with evidence items attached
@@ -318,12 +289,6 @@ First, please select your state above. Each state has different legal requiremen
 
         // Update document if data changed
         if (data.affidavitData) {
-          console.log('📝 Chat updated document:', {
-            hasName: !!data.affidavitData.affiantName,
-            hasState: !!data.affidavitData.state,
-            factCount: data.affidavitData.facts?.length || 0
-          });
-
           updateDocumentData(data.affidavitData);
         }
 
@@ -577,7 +542,6 @@ First, please select your state above. Each state has different legal requiremen
         isOpen={showEvidenceUpload}
         onClose={() => setShowEvidenceUpload(false)}
         onUploadSuccess={(updatedEvidence) => {
-          console.log('✅ Evidence uploaded:', updatedEvidence);
           // Update the fact in the document by matching ID (not reference)
           const updatedFacts = (currentDocument.facts || []).map(fact =>
             fact.id === currentEvidence?.id ? updatedEvidence : fact

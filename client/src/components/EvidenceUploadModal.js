@@ -4,6 +4,11 @@ import { X, Upload, FileText, File, AlertCircle, CheckCircle, Loader2 } from 'lu
 import { useAuth0 } from '@auth0/auth0-react';
 import { trackEvent } from '../utils/analytics';
 
+// Match API_BASE_URL pattern used by other components (empty string = relative URLs in prod)
+const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
+
 /**
  * Modal for uploading evidence files
  * Supports PDF, JPG, PNG up to 25MB
@@ -95,14 +100,6 @@ const EvidenceUploadModal = ({
   };
 
   const handleUpload = async () => {
-    console.log('🔼 Upload initiated:', {
-      hasFile: !!selectedFile,
-      hasEvidence: !!evidence,
-      hasDocId: !!documentId,
-      evidenceId: evidence?.id,
-      fileName: selectedFile?.name
-    });
-
     if (!selectedFile || !evidence || !documentId) {
       console.error('❌ Upload validation failed:', {
         selectedFile: !!selectedFile,
@@ -131,9 +128,7 @@ const EvidenceUploadModal = ({
       formData.append('evidenceId', evidence.id || Date.now().toString());
       formData.append('description', evidence.evidenceData?.description || '');
 
-      console.log('📤 Uploading to /api/evidence/upload...');
-
-      const response = await fetch('/api/evidence/upload', {
+      const response = await fetch(`${API_BASE_URL}/api/evidence/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -143,14 +138,9 @@ const EvidenceUploadModal = ({
 
       const data = await response.json();
 
-      console.log('📥 Upload response:', { ok: response.ok, status: response.status, data });
-
       if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
       }
-
-      // Success!
-      console.log('✅ Upload successful, calling onUploadSuccess');
 
       // Track successful upload
       trackEvent('evidence_uploaded_successfully', {

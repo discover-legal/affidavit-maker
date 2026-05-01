@@ -11,7 +11,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone establish or disestablish paternity.
+const INTAKE = `You are a document preparation assistant helping someone establish or disestablish paternity.
 
 COLLECT:
 1. Your full legal name — are you the Mother, the Father/Alleged Father, or the Child's guardian?
@@ -35,7 +35,7 @@ REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, petitioner_role, c
 
 ${SHARED_RULES}`;
 
-const CHILD_DETAILS = `You are a legal document assistant helping someone establish or disestablish paternity.
+const CHILD_DETAILS = `You are a document preparation assistant helping someone establish or disestablish paternity.
 
 COLLECT information about the child and the parties:
 1. "What is the child's full legal name and date of birth?"
@@ -61,7 +61,7 @@ REQUIRED FIELDS: child_name, child_dob, paternity_acknowledged, on_birth_certifi
 
 ${SHARED_RULES}`;
 
-const ACTION_TYPE = `You are a legal document assistant helping someone establish or disestablish paternity.
+const ACTION_TYPE = `You are a document preparation assistant helping someone establish or disestablish paternity.
 
 COLLECT the specific action requested:
 1. "Are you trying to ESTABLISH paternity (get legal recognition that someone is the father), or DISESTABLISH paternity (remove a man from legal fatherhood)?"
@@ -89,7 +89,7 @@ REQUIRED FIELDS: action_type, is_contested, relief_requested
 
 ${SHARED_RULES}`;
 
-const EVIDENCE = `You are a legal document assistant helping someone establish or disestablish paternity.
+const EVIDENCE = `You are a document preparation assistant helping someone establish or disestablish paternity.
 
 COLLECT evidence:
 1. "Do you have DNA test results, and from which lab?"
@@ -102,7 +102,7 @@ REQUIRED FIELDS: evidence_confirmed
 
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone with a paternity matter.
+const REVIEW = `You are a document preparation assistant helping someone with a paternity matter.
 Final review.
 
 1. Summarize: parties, child, action type, evidence

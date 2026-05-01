@@ -127,7 +127,7 @@ AI can make mistakes. **You are responsible for reviewing your documents for acc
 
 ## Security
 
-All data is encrypted in transit and at rest. We use industry-standard security practices and perform regular audits. However, no system is 100% secure—you use the service at your own risk.
+All data is encrypted in transit using SSL/TLS. Our database provider applies infrastructure-level disk encryption. We use industry-standard security practices including parameterized queries, row-level security, and regular audits. However, no system is 100% secure—you use the service at your own risk.
 
 ## Changes to Terms
 

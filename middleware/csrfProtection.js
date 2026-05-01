@@ -8,71 +8,8 @@ const normalizeUrl = (url) => {
   return url.replace(/\/$/, '');
 };
 
-// Build allowed origins list (same logic as CORS in server.js)
-const getAllowedOrigins = () => {
-  if (process.env.NODE_ENV === 'production') {
-    const origins = [];
-
-    // Add FRONTEND_URL if set (normalized)
-    if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
-      origins.push(normalizeUrl(process.env.FRONTEND_URL.trim()));
-    }
-
-    // Always add discover.legal domains for backward compatibility
-    // IMPORTANT: Must match CORS config in server.js
-    origins.push(
-      'https://make.discover.legal',
-      'https://discover.legal',
-      'https://www.discover.legal',
-      'https://make.discover.legal',
-      'https://ca.discover.legal',
-      'https://canada.discover.legal',
-      // International subdomains
-      'https://uk.discover.legal',
-      'https://ie.discover.legal',
-      'https://au.discover.legal',
-      'https://nz.discover.legal',
-      'https://in.discover.legal',
-      'https://pk.discover.legal',
-      'https://bd.discover.legal',
-      'https://lk.discover.legal',
-      'https://sa.discover.legal',
-      'https://ng.discover.legal',
-      'https://ke.discover.legal',
-      'https://gh.discover.legal',
-      'https://ug.discover.legal',
-      'https://tz.discover.legal',
-      'https://zm.discover.legal',
-      'https://zw.discover.legal',
-      'https://bw.discover.legal',
-      'https://mw.discover.legal',
-      'https://na.discover.legal',
-      'https://sg.discover.legal',
-      'https://hk.discover.legal',
-      'https://my.discover.legal',
-      'https://jm.discover.legal',
-      'https://tt.discover.legal',
-      'https://bb.discover.legal',
-      'https://bs.discover.legal',
-      'https://bm.discover.legal',
-      'https://fj.discover.legal',
-      'https://pg.discover.legal',
-      'https://cy.discover.legal'
-    );
-
-    // Remove duplicates
-    return [...new Set(origins)];
-  } else {
-    // IMPORTANT: Must match CORS config in server.js
-    return [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://ca.localhost:3000',
-      'http://canada.localhost:3000'
-    ];
-  }
-};
+// Single source of truth — shared with server.js CORS config
+const { getAllowedOrigins } = require('../config/allowedOrigins');
 
 /**
  * CSRF Protection Middleware
@@ -85,10 +22,12 @@ const getAllowedOrigins = () => {
  */
 // Explicit whitelist of webhook paths that skip CSRF (they have signature verification)
 // SECURITY (MED-11): Removed '/api/auth0-webhooks/user-delete' - route doesn't exist
+// SECURITY FIX: Paths must match actual mounted routes in server.js
+// Auth0 webhooks are mounted at /api/webhooks/auth0 (not /api/auth0-webhooks)
 const WEBHOOK_PATHS = new Set([
   '/api/payment/webhook',
-  '/api/auth0-webhooks/user-update',
-  '/api/auth0-webhooks/email-update'
+  '/api/webhooks/auth0/user-update',
+  '/api/webhooks/auth0/email-update'
 ]);
 
 const csrfProtection = (req, res, next) => {

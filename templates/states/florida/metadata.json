@@ -1,11 +1,24 @@
 {
   "stateCode": "FL",
   "stateName": "Florida",
-  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
   "version": "2.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "county"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": false,
     "notaryBlock": true,
@@ -15,6 +28,10 @@
     "caseNumberRequired": false,
     "headerFormat": "uppercase",
     "venueFormat": "sentencecase"
+  },
+  "courtSystem": {
+    "trialCourt": "Circuit Court",
+    "familyDivision": "Circuit Court, Family Division"
   },
   "legalCitations": [
     {
@@ -34,7 +51,7 @@
       "description": "Perjury in official proceedings — criminal perjury statute for false sworn statements"
     }
   ],
-  "affidavitJurat": "Sworn to (or affirmed) and subscribed before me by means of\n\u2610 physical presence or \u2610 online notarization,\nthis _____ day of _______, 20__, by _______________________\n(name of person making statement).\n\n\n_________________________________\nNotary Public - State of Florida\n\n[Print, Type, or Stamp Commissioned Name]\n\nPersonally Known ______ OR Produced Identification ______\nType of Identification Produced: _______________________",
+  "affidavitJurat": "Sworn to (or affirmed) and subscribed before me by means of\n☐ physical presence or ☐ online notarization,\nthis _____ day of _______, 20__, by _______________________\n(name of person making statement).\n\n\n_________________________________\nNotary Public - State of Florida\n\n[Print, Type, or Stamp Commissioned Name]\n\nPersonally Known ______ OR Produced Identification ______\nType of Identification Produced: _______________________",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

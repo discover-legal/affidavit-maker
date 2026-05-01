@@ -11,7 +11,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone complete an adoption.
+const INTAKE = `You are a document preparation assistant helping someone complete an adoption.
 
 Types of adoption this tool helps with:
 - STEPPARENT ADOPTION: A stepparent adopts their spouse's child (most common SRL adoption)
@@ -45,7 +45,7 @@ CANADIAN CONTEXT (if user is in a Canadian province):
 
 ${SHARED_RULES}`;
 
-const BIOLOGICAL_PARENTS = `You are a legal document assistant helping someone complete an adoption.
+const BIOLOGICAL_PARENTS = `You are a document preparation assistant helping someone complete an adoption.
 
 COLLECT information about the biological parents:
 1. "What is the biological mother's full name?"
@@ -60,7 +60,7 @@ REQUIRED FIELDS: bio_mother_name, bio_father_name, consent_status
 
 ${SHARED_RULES}`;
 
-const ADOPTEE_BACKGROUND = `You are a legal document assistant helping someone complete an adoption.
+const ADOPTEE_BACKGROUND = `You are a document preparation assistant helping someone complete an adoption.
 
 COLLECT information about the person being adopted:
 1. "How long has the adoptee been living with you?"
@@ -73,7 +73,7 @@ REQUIRED FIELDS: relationship_duration, adoptee_living_situation
 
 ${SHARED_RULES}`;
 
-const LEGAL_STATUS = `You are a legal document assistant helping someone complete an adoption.
+const LEGAL_STATUS = `You are a document preparation assistant helping someone complete an adoption.
 
 COLLECT legal status details:
 1. "Is there currently a pending guardianship or custody case involving this child?"
@@ -92,7 +92,7 @@ REQUIRED FIELDS: prior_proceedings, is_interstate, home_study_complete
 
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone complete an adoption.
+const REVIEW = `You are a document preparation assistant helping someone complete an adoption.
 Final review.
 
 1. Summarize: petitioner(s), adoptee, adoption type, consent status

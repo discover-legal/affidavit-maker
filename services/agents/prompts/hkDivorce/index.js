@@ -35,7 +35,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const INTAKE = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 
 COLLECT:
 1. Petitioner's full legal first and last name
@@ -62,7 +62,7 @@ If the user mentions domestic violence or fear of harm:
 - Protection available under the Domestic and Cohabitation Relationships Violence Ordinance (Cap 189)
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const RESIDENCY = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Collecting residency / domicile information.
 
 LEGAL REQUIREMENT — Matrimonial Causes Ordinance, s.3:
@@ -84,7 +84,7 @@ NOTE: "Domicile" in HK law means the place a person treats as their permanent ho
 It is distinct from "habitual residence" (which is a factual test of continuous living).
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const GROUNDS = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Matrimonial Causes Ordinance, s.11, s.11A, and s.11B:
@@ -123,7 +123,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date (if applicable)
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const CHILDREN = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -149,7 +149,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_plan
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const PROPERTY = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Documenting the division of property.
 
 LEGAL CONTEXT:
@@ -180,7 +180,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const SUPPORT = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — MPPO ss.3-5 and s.7:
@@ -211,7 +211,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const SERVICE = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Collecting information about serving the other spouse.
 
 LEGAL CONTEXT:
@@ -237,7 +237,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (acknowledged/personal/substituted), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone petition for divorce in Hong Kong.
+const REVIEW = `You are a document preparation assistant helping someone petition for divorce in Hong Kong.
 Final review phase.
 
 Summarize all collected information clearly:

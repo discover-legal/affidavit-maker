@@ -1,11 +1,25 @@
 {
   "stateCode": "LA",
   "stateName": "Louisiana",
-  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
   "version": "1.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "parish"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant", "county"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "parish"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant",
+    "county"
+  ],
   "features": {
     "perjuryStatement": true,
     "notaryBlock": true,
@@ -15,6 +29,10 @@
     "headerFormat": "uppercase",
     "venueFormat": "titlecase",
     "usesParish": true
+  },
+  "courtSystem": {
+    "trialCourt": "District Court",
+    "familyDivision": "District Court"
   },
   "legalCitations": [
     {

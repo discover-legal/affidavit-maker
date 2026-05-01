@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { optionalAuth } = require('../middleware/auth0Middleware');
+const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { chatLimiter } = require('../middleware/rateLimiting');
 const logger = require('../utils/logger');
@@ -11,7 +11,8 @@ const logger = require('../utils/logger');
  * POST /api/facts/rewrite
  * Generate professional rewrite for a single fact on-demand
  */
-router.post('/rewrite', chatLimiter, optionalAuth, asyncHandler(async (req, res) => {
+// SECURITY: Requires auth to prevent unauthenticated LLM cost exhaustion
+router.post('/rewrite', chatLimiter, auth0Middleware, asyncHandler(async (req, res) => {
   const { fact, allFacts, factIndex, context } = req.body;
 
   // Validate input

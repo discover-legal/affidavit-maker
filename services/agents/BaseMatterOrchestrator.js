@@ -87,13 +87,13 @@ CONVERSATION RULES (you MUST follow these strictly):
 4. Never repeat information the user already provided.
 `;
 
-// No first-message disclaimer — the app UI already disclaims elsewhere.
-// The AI disclaimer appears only at REVIEW completion (see REVIEW_COMPLETION).
+// The chat welcome message now includes a UPL disclaimer. The AI also
+// disclaims at REVIEW completion (see REVIEW_COMPLETION below).
 
 const REVIEW_COMPLETION = `
 COMPLETION INSTRUCTIONS: When the user confirms all information is correct and you set phase_complete: true on the REVIEW phase, your response MUST:
 1. Provide a brief summary confirmation (2-3 sentences)
-2. Include this notice: "Important: These documents were generated with AI assistance. While we strive for accuracy, they may contain errors or omissions. We strongly recommend having them reviewed by a licensed attorney in your jurisdiction before filing."
+2. Include this notice: "Important: These documents were generated with AI assistance and may contain errors, omissions, or information that does not apply to your specific situation. We strongly recommend having them reviewed by a licensed attorney in your jurisdiction before filing."
 3. End with a clear call to action: "Your documents are ready! Click the Download or Purchase button below to get your completed package."
 `;
 

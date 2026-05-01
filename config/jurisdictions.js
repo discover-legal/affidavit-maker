@@ -43,4 +43,31 @@ function isAllowedJurisdiction(stateCode) {
   return isInternationalEnabled();
 }
 
-module.exports = { NA_JURISDICTIONS, isInternationalEnabled, isAllowedJurisdiction };
+/**
+ * States that require legal document preparer registration before we can
+ * offer paid document generation. Users can still browse/chat, but document
+ * creation and payment are blocked with a "coming soon" message.
+ *
+ * - CA: Legal Document Assistant (LDA) — Bus. & Prof. Code 6400-6415
+ * - AZ: Legal Document Preparer — ACJA 7-208
+ * - FL: Nonlawyer registration — RRTFB 10-2.1
+ * - NV: Document Preparation Service — NRS 240A
+ */
+const REGISTRATION_PENDING_STATES = new Set(['CA', 'AZ', 'FL', 'NV']);
+
+/**
+ * Returns true if the jurisdiction requires document preparer registration
+ * that has not yet been obtained. These states show "coming soon" in the UI.
+ */
+function isRegistrationPending(stateCode) {
+  if (!stateCode) return false;
+  return REGISTRATION_PENDING_STATES.has(stateCode.toUpperCase());
+}
+
+module.exports = {
+  NA_JURISDICTIONS,
+  REGISTRATION_PENDING_STATES,
+  isInternationalEnabled,
+  isAllowedJurisdiction,
+  isRegistrationPending,
+};

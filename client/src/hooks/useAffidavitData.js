@@ -7,6 +7,18 @@ const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
+/**
+ * Hook for managing affidavit document data, facts, and validation.
+ * @param {Object|null} initialData - Pre-populated document data, or null for a blank document.
+ * @returns {{ affidavitData: Object, isDirty: boolean, isValidating: boolean,
+ *   validation: Object|null, updateAffidavitData: (newData: Object) => void,
+ *   addFact: (content: string, category?: string) => void,
+ *   updateFact: (index: number, content: string) => void,
+ *   removeFact: (index: number) => void,
+ *   validateData: () => Promise<Object|null>,
+ *   resetData: () => void, markAsSaved: (documentId?: number) => void,
+ *   isDocumentReady: () => boolean, getCompletionPercentage: () => number }}
+ */
 const useAffidavitData = (initialData = null) => {
   const { isAuthenticated } = useAuth0();
   

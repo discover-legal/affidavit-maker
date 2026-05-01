@@ -15,6 +15,10 @@
     "headerFormat": "uppercase",
     "venueFormat": "uppercase"
   },
+  "courtSystem": {
+    "trialCourt": "Supreme Court",
+    "familyDivision": "Supreme Court"
+  },
   "legalCitations": [
     {
       "code": "NY Penal Law § 210.15",

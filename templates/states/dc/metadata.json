@@ -1,11 +1,23 @@
 {
   "stateCode": "DC",
   "stateName": "District of Columbia",
-  "documentTypes": ["affidavit", "divorce_petition", "divorce_decree"],
+  "documentTypes": [
+    "affidavit",
+    "divorce_petition",
+    "divorce_decree"
+  ],
   "version": "1.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": true,
     "notaryBlock": true,
@@ -14,6 +26,10 @@
     "caseNumberRequired": false,
     "headerFormat": "uppercase",
     "venueFormat": "titlecase"
+  },
+  "courtSystem": {
+    "trialCourt": "Superior Court",
+    "familyDivision": "Superior Court, Family Court Operations Division"
   },
   "legalCitations": [
     {

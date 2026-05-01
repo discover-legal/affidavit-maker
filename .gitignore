@@ -150,3 +150,8 @@ temp/
 # Claude Code / swarm agent runtime state (not shared config)
 .claude/memory.db
 .swarm/
+
+# Marketplace-related tooling state. Committed copies of these files have
+# previously contained unresolved merge-conflict markers; ignore them.
+.claude-flow/
+.claude/settings.local.json

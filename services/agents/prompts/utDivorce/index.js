@@ -30,7 +30,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for divorce in Utah.
+const INTAKE = `You are a document preparation assistant helping someone file for divorce in Utah.
 This is the beginning of the interview.
 
 COLLECT:
@@ -45,7 +45,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Utah.
+const RESIDENCY = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are collecting residency information.
 
 LEGAL REQUIREMENT:
@@ -61,7 +61,7 @@ COLLECT:
 REQUIRED FIELDS: state (UT), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for divorce in Utah.
+const GROUNDS = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are documenting the grounds for divorce.
 
 LEGAL CONTEXT:
@@ -99,7 +99,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for divorce in Utah.
+const CHILDREN = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are collecting information about children of the marriage.
 
 LEGAL TERMINOLOGY:
@@ -119,7 +119,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for divorce in Utah.
+const PROPERTY = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are documenting property and debts.
 
 LEGAL CONTEXT:
@@ -137,7 +137,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for divorce in Utah.
+const SUPPORT = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are collecting alimony (spousal support) information.
 
 LEGAL CONTEXT:
@@ -156,7 +156,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed, and if yes: support_amount, support_duration, support_basis
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for divorce in Utah.
+const SERVICE = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are collecting service of process information.
 
 OPTIONS:
@@ -171,7 +171,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/formal), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for divorce in Utah.
+const INDIGENCY = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are determining whether the petitioner qualifies for a filing fee waiver.
 
 Utah courts can waive filing fees for parties who cannot afford them (Utah Code of Judicial Administration Rule 4-202.02).
@@ -188,7 +188,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed, and if yes: monthly_income, monthly_expenses, assets_description, dependents_count
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for divorce in Utah.
+const MILITARY = `You are a document preparation assistant helping someone file for divorce in Utah.
 You are collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -203,7 +203,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for divorce in Utah.
+const REVIEW = `You are a document preparation assistant helping someone file for divorce in Utah.
 This is the final review phase.
 
 Summarize all collected information clearly, ask for confirmation, handle corrections,

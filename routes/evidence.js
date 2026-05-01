@@ -14,6 +14,7 @@ const logger = require('../utils/logger');
 const { asyncHandler, ValidationError, safeErrorMessage } = require('../middleware/errorMiddleware');
 const { auth0Middleware } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
+const { requireDbClient } = require('../middleware/validation');
 const evidenceStorage = require('../services/evidenceStorage');
 const { isValidFilename, sanitizeFilename } = require('../utils/pathSecurity');
 
@@ -73,6 +74,7 @@ try {
  */
 router.post('/upload',
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   (req, res, next) => {
     if (!upload) {
@@ -116,14 +118,7 @@ router.post('/upload',
 
     try {
       // Verify user owns the document
-      const client = req.dbClient;  // ✅ Use RLS-context client
-      if (!client) {
-        return res.status(500).json({
-          success: false,
-          error: 'Database connection unavailable',
-          errorType: 'server_error'
-        });
-      }
+      const client = req.dbClient;
       const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
@@ -154,10 +149,7 @@ router.post('/upload',
         fileSize: result.fileSizeBytes
       });
 
-      res.json({
-        success: true,
-        evidence: result
-      });
+      res.sendSuccess({ evidence: result });
     } catch (error) {
       logger.error('Evidence upload failed', {
         userId,
@@ -171,10 +163,7 @@ router.post('/upload',
         await fs.unlink(req.file.path).catch(() => {});
       }
 
-      res.status(500).json({
-        success: false,
-        error: safeErrorMessage(error, 'Failed to upload evidence')
-      });
+      res.sendError(safeErrorMessage(error, 'Failed to upload evidence'));
     }
   })
 );
@@ -187,6 +176,7 @@ router.post('/upload',
 router.get('/:documentId/:fileKey',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const { documentId, fileKey } = req.params;
     const userId = req.user.id;
@@ -199,14 +189,7 @@ router.get('/:documentId/:fileKey',
 
     try {
       // Verify user owns the document
-      const client = req.dbClient;  // ✅ Use RLS-context client
-      if (!client) {
-        return res.status(500).json({
-          success: false,
-          error: 'Database connection unavailable',
-          errorType: 'server_error'
-        });
-      }
+      const client = req.dbClient;
       const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
@@ -270,10 +253,7 @@ router.get('/:documentId/:fileKey',
         error: error.message
       });
 
-      res.status(500).json({
-        success: false,
-        error: safeErrorMessage(error, 'Failed to retrieve evidence')
-      });
+      res.sendError(safeErrorMessage(error, 'Failed to retrieve evidence'));
     }
   })
 );
@@ -286,6 +266,7 @@ router.get('/:documentId/:fileKey',
 router.delete('/:documentId/:evidenceId',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const { documentId, evidenceId } = req.params;
     const { fileKey, thumbnailKey } = req.body;
@@ -293,14 +274,7 @@ router.delete('/:documentId/:evidenceId',
 
     try {
       // Verify user owns the document
-      const client = req.dbClient;  // ✅ Use RLS-context client
-      if (!client) {
-        return res.status(500).json({
-          success: false,
-          error: 'Database connection unavailable',
-          errorType: 'server_error'
-        });
-      }
+      const client = req.dbClient;
       const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
@@ -322,7 +296,7 @@ router.delete('/:documentId/:evidenceId',
         evidenceId
       });
 
-      res.json({ success: true });
+      res.sendSuccess(null, 'Evidence deleted successfully');
     } catch (error) {
       logger.error('Error deleting evidence', {
         userId,
@@ -331,10 +305,7 @@ router.delete('/:documentId/:evidenceId',
         error: error.message
       });
 
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to delete evidence'
-      });
+      res.sendError('Failed to delete evidence');
     }
   })
 );
@@ -347,20 +318,14 @@ router.delete('/:documentId/:evidenceId',
 router.get('/document/:documentId',
   standardLimiter,
   auth0Middleware,
+  requireDbClient,
   asyncHandler(async (req, res) => {
     const { documentId } = req.params;
     const userId = req.user.id;
 
     try {
       // Verify user owns the document
-      const client = req.dbClient;  // ✅ Use RLS-context client
-      if (!client) {
-        return res.status(500).json({
-          success: false,
-          error: 'Database connection unavailable',
-          errorType: 'server_error'
-        });
-      }
+      const client = req.dbClient;
       const docResult = await client.query(
         'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, userId]
@@ -376,10 +341,7 @@ router.get('/document/:documentId',
       // List evidence
       const evidenceFiles = await evidenceStorage.listEvidenceForDocument(userId, documentId);
 
-      res.json({
-        success: true,
-        evidence: evidenceFiles
-      });
+      res.sendSuccess({ evidence: evidenceFiles });
     } catch (error) {
       logger.error('Error listing evidence', {
         userId,
@@ -387,10 +349,7 @@ router.get('/document/:documentId',
         error: error.message
       });
 
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to list evidence'
-      });
+      res.sendError('Failed to list evidence');
     }
   })
 );

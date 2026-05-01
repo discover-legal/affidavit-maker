@@ -21,11 +21,12 @@
   },
   "scripts": {
     "start": "craco start",
-    "prebuild": "node scripts/generate-sitemap.js",
+    "prebuild": "node scripts/generate-articles-manifest.js && node scripts/generate-sitemap.js",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
-    "sitemap": "node scripts/generate-sitemap.js"
+    "sitemap": "node scripts/generate-sitemap.js",
+    "manifest": "node scripts/generate-articles-manifest.js"
   },
   "proxy": "http://localhost:3001",
   "eslintConfig": {

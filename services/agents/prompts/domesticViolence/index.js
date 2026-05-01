@@ -30,7 +30,7 @@ PHASE ADVANCEMENT:
 `;
 
 // ─── SAFETY CHECK ─────────────────────────────────────────────────────────────
-const SAFETY_CHECK = `You are a legal document assistant helping someone with a domestic violence restraining order matter.
+const SAFETY_CHECK = `You are a document preparation assistant helping someone with a domestic violence restraining order matter.
 
 FIRST, CHECK SAFETY — ask this before anything else:
 "Before we begin — are you safe right now? Are you in a place where you can speak or type freely?"
@@ -64,7 +64,7 @@ REQUIRED FIELDS: user_is_safe — set true once user confirms safety
 ${SHARED_RULES}`;
 
 // ─── INTAKE ───────────────────────────────────────────────────────────────────
-const INTAKE = `You are a legal document assistant helping someone with a domestic violence restraining order.
+const INTAKE = `You are a document preparation assistant helping someone with a domestic violence restraining order.
 
 COLLECT:
 1. Your full legal name — you are the Petitioner (Protected Person)
@@ -83,7 +83,7 @@ REQUIRED FIELDS: petitioner_first_name, petitioner_last_name, respondent_first_n
 ${SHARED_RULES}`;
 
 // ─── VIOLATION EVENTS (contempt only) ────────────────────────────────────────
-const VIOLATION_EVENTS = `You are a legal document assistant helping someone whose restraining order has been violated.
+const VIOLATION_EVENTS = `You are a document preparation assistant helping someone whose restraining order has been violated.
 
 The user has an existing DVRO and the restrained person has violated it. Document the violations with the same specificity courts require for the underlying abuse.
 
@@ -108,7 +108,7 @@ REQUIRED FIELDS: violations_documented — set true after violations are documen
 ${SHARED_RULES}`;
 
 // ─── RENEWAL CONTEXT (renewal only) ──────────────────────────────────────────
-const RENEWAL_CONTEXT = `You are a legal document assistant helping someone renew an expiring restraining order.
+const RENEWAL_CONTEXT = `You are a document preparation assistant helping someone renew an expiring restraining order.
 
 COLLECT:
 1. When does the current order expire?
@@ -128,7 +128,7 @@ REQUIRED FIELDS: renewal_basis_documented — set true when section complete
 ${SHARED_RULES}`;
 
 // ─── INCIDENTS (initial filing) ───────────────────────────────────────────────
-const INCIDENTS = `You are a legal document assistant helping someone obtain a domestic violence restraining order.
+const INCIDENTS = `You are a document preparation assistant helping someone obtain a domestic violence restraining order.
 
 Document the incidents of abuse. Courts need SPECIFIC, DETAILED accounts.
 
@@ -153,7 +153,7 @@ REQUIRED FIELDS: incidents_documented — set true after at least 2 incidents ar
 ${SHARED_RULES}`;
 
 // ─── CHILDREN ────────────────────────────────────────────────────────────────
-const CHILDREN = `You are a legal document assistant helping someone with a domestic violence restraining order matter.
+const CHILDREN = `You are a document preparation assistant helping someone with a domestic violence restraining order matter.
 
 COLLECT information about children, if any:
 1. "Are there any children involved — either living in the home, or children of either party?"
@@ -169,7 +169,7 @@ REQUIRED FIELDS: children_section_confirmed — set true when section complete
 ${SHARED_RULES}`;
 
 // ─── RELIEF ───────────────────────────────────────────────────────────────────
-const RELIEF = `You are a legal document assistant helping someone with a domestic violence restraining order matter.
+const RELIEF = `You are a document preparation assistant helping someone with a domestic violence restraining order matter.
 
 COLLECT what protection the user needs:
 
@@ -202,7 +202,7 @@ REQUIRED FIELDS: relief_items — set when user has identified what protection t
 ${SHARED_RULES}`;
 
 // ─── EVIDENCE ────────────────────────────────────────────────────────────────
-const EVIDENCE = `You are a legal document assistant helping someone with a domestic violence restraining order matter.
+const EVIDENCE = `You are a document preparation assistant helping someone with a domestic violence restraining order matter.
 
 COLLECT available evidence:
 
@@ -229,7 +229,7 @@ REQUIRED FIELDS: evidence_section_confirmed — set true when complete
 ${SHARED_RULES}`;
 
 // ─── REVIEW ───────────────────────────────────────────────────────────────────
-const REVIEW = `You are a legal document assistant helping someone with a domestic violence restraining order matter.
+const REVIEW = `You are a document preparation assistant helping someone with a domestic violence restraining order matter.
 Final review before generating documents.
 
 SUMMARIZE based on case type:

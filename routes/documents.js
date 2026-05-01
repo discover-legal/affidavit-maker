@@ -5,8 +5,10 @@ const logger = require('../utils/logger');
 const { asyncHandler, safeErrorMessage } = require('../middleware/errorMiddleware');
 const { auth0Middleware, optionalAuth } = require('../middleware/auth0Middleware');
 const { standardLimiter } = require('../middleware/rateLimiting');
-const { validatePreview, validateDocumentSave, validateDocumentRename } = require('../middleware/validation');
+const fs = require('fs');
+const { validatePreview, validateDocumentSave, validateDocumentRename, requireDbClient } = require('../middleware/validation');
 const { prepareFactsForStorage, prepareFactsForDisplay } = require('../utils/factNormalizer');
+const { sanitizeFilename } = require('../utils/pathSecurity');
 
 // Stripe for payment verification fallback
 let stripe = null;
@@ -357,9 +359,11 @@ function extractStructuredDataFromFacts(divorceData) {
   }
 }
 
-// Fixed preview route for routes/documents.js
-// Add this to your routes/documents.js file, replacing the existing /preview route
-
+/**
+ * @description Generate an HTML preview of the document. Uses templateManager when available,
+ *   falls back to a neutral preview. Does not require authentication (optionalAuth).
+ * @returns {{ success: boolean, preview: Object, metadata: Object }}
+ */
 router.post('/preview',
   validatePreview,
   optionalAuth,
@@ -554,10 +558,13 @@ router.post('/preview',
 );
 
 /**
- * ✅ NEW: Generate and download PDF
+ * @description Generate and stream a PDF or DOCX file. Requires payment verification
+ *   (skipped in dev). Accepts ?format=pdf|docx query param.
+ * @returns Binary file stream (application/pdf or application/vnd...wordprocessingml.document).
  */
 router.post('/generate',
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { affidavitData, documentId } = req.body;
@@ -566,24 +573,38 @@ router.post('/generate',
     const pdfService = req.app.locals.pdfService;
     const templateManager = req.app.locals.templateManager;
 
-    // Verify client is available (auth0Middleware should have set it)
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
-
     // SECURITY: Only allow payment bypass in development environment
-    // Never trust client-provided payment bypass flags
     const skipPayment = process.env.NODE_ENV === 'development';
+
+    // Validate documentId is a positive integer (prevents DB errors that could
+    // bypass payment checks via the catch block)
+    if (documentId !== undefined && documentId !== null && documentId !== 'new') {
+      const parsedId = Number(documentId);
+      if (!Number.isInteger(parsedId) || parsedId < 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid document ID',
+          errorType: 'validation_error'
+        });
+      }
+    }
 
     // Validate inputs
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
         success: false,
         error: 'Valid affidavit data is required'
+      });
+    }
+
+    // COMPLIANCE: Block document generation for states requiring LDP registration
+    const { isRegistrationPending } = require('../config/jurisdictions');
+    const docState = affidavitData?.state || affidavitData?.stateCode;
+    if (docState && isRegistrationPending(docState)) {
+      return res.status(403).json({
+        success: false,
+        error: `Document generation for ${docState} is coming soon. We are completing legal document preparer registration for this state.`,
+        errorType: 'registration_pending'
       });
     }
 
@@ -715,8 +736,12 @@ router.post('/generate',
             }
           }
         } catch (dbError) {
-          logger.warn('Payment check failed, allowing generation', {
-            error: dbError.message
+          // SECURITY: Fail closed — if we can't verify payment, deny generation
+          logger.error('Payment verification failed', { error: dbError.message });
+          return res.status(500).json({
+            success: false,
+            error: 'Unable to verify payment status. Please try again.',
+            errorType: 'payment_verification_error'
           });
         }
       }
@@ -877,7 +902,6 @@ router.post('/generate',
       }
 
       // STEP 5: Stream file to client
-      const fs = require('fs');
       const stat = await fs.promises.stat(result.filepath);
       const isDocx = format === 'docx' || format === 'word';
 
@@ -885,7 +909,7 @@ router.post('/generate',
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : 'application/pdf');
       res.setHeader('Content-Length', stat.size);
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(result.filename)}"`);
 
       const fileStream = fs.createReadStream(result.filepath);
       fileStream.pipe(res);
@@ -922,25 +946,19 @@ router.post('/generate',
 );
 
 /**
- * ✅ Save document endpoint
+ * @description Save or update a document. Creates new if no documentId in affidavitData,
+ *   otherwise updates the existing record. Normalizes facts for storage.
+ * @returns {{ success: boolean, document: { id, title, status, updatedAt } }}
  */
 router.post('/save',
   validateDocumentSave,
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { affidavitData, validation, categories } = req.body;
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-
-    // Verify client is available
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     if (!affidavitData || typeof affidavitData !== 'object') {
       return res.status(400).json({
@@ -1054,33 +1072,29 @@ router.post('/save',
 );
 
 /**
- * ✅ Get user's documents with pagination
+ * @description List the authenticated user's documents with pagination.
+ * @param {string} [req.query.page=1] - Page number (1-10000).
+ * @param {string} [req.query.limit=10] - Results per page (1-100).
+ * @param {string} [req.query.status] - Filter by status (draft|completed|archived).
+ * @param {string} [req.query.state] - Filter by jurisdiction code.
+ * @returns {{ success: boolean, documents: Object[], pagination: { page, limit, total, pages } }}
  */
 router.get('/',
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     try {
       const { page = 1, limit = 10, status, state } = req.query;
 
       // SECURITY: Validate query parameters
       const VALID_STATUSES = ['draft', 'completed', 'archived', 'pending', 'processing'];
-      const VALID_STATES = ['TX', 'UT', 'AZ', 'CA', 'NY', 'FL', 'IL', 'PA', 'OH', 'GA',
-                            'NC', 'MI', 'NJ', 'VA', 'WA', 'MA', 'IN', 'MO', 'TN', 'WI',
-                            'MD', 'CO', 'MN', 'SC', 'AL', 'LA', 'KY', 'OR', 'OK', 'CT',
-                            'IA', 'MS', 'AR', 'KS', 'NV', 'NM', 'NE', 'WV', 'ID', 'HI',
-                            'NH', 'ME', 'RI', 'MT', 'DE', 'SD', 'ND', 'AK', 'VT', 'WY', 'DC'];
+      // Accept any valid jurisdiction code format (US, CA, international)
+      // Actual existence is verified by the WHERE user_id clause + RLS
+      const VALID_STATE_PATTERN = /^[A-Z]{2,5}(_[A-Z]{2,3})?$/;
 
       // Validate page and limit
       const pageNum = parseInt(page);
@@ -1107,10 +1121,10 @@ router.get('/',
         });
       }
 
-      if (state && !VALID_STATES.includes(state)) {
+      if (state && !VALID_STATE_PATTERN.test(state.toUpperCase())) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid state parameter. Must be a valid US state code.'
+          error: 'Invalid state parameter. Must be a valid jurisdiction code.'
         });
       }
 
@@ -1220,23 +1234,17 @@ router.get('/',
 );
 
 /**
- * ✅ Get specific document by ID
+ * @description Get a single document by ID. Verifies user ownership.
+ * @returns {{ success: boolean, document: { id, title, status, documentType, affidavitData, validation, metadata, payment_status, createdAt, updatedAt } }}
  */
 router.get('/:id',
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { id: documentId } = req.params;
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     try {
       const result = await client.query(
@@ -1294,24 +1302,19 @@ router.get('/:id',
 );
 
 /**
- * ✅ Rename document
+ * @description Rename a document. Updates both the title and the affiantName inside content.
+ * @returns {{ success: boolean, document: { id, title, updatedAt } }}
  */
 router.put('/:id/rename',
   validateDocumentRename,
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { id: documentId } = req.params;
     const { newName } = req.body;
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database service unavailable'
-      });
-    }
 
     if (!newName || typeof newName !== 'string' || newName.trim() === '') {
       return res.status(400).json({
@@ -1388,23 +1391,17 @@ router.put('/:id/rename',
 );
 
 /**
- * ✅ Delete document
+ * @description Delete a document by ID. Verifies user ownership via RLS.
+ * @returns {{ success: boolean, message: string }}
  */
 router.delete('/:id',
   auth0Middleware,
+  requireDbClient,
   standardLimiter,
   asyncHandler(async (req, res) => {
     const { id: documentId } = req.params;
     const userId = req.user.id;
     const client = req.dbClient;  // ✅ Use RLS-context client
-
-    if (!client) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection unavailable',
-        errorType: 'server_error'
-      });
-    }
 
     try {
       const result = await client.query(

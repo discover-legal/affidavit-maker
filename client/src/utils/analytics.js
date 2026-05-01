@@ -20,11 +20,7 @@ const isDevelopment = () => {
 /**
  * Debug logging helper - only logs in development
  */
-const debugLog = (message, data) => {
-  if (isDevelopment()) {
-    console.log('[GA Debug]', message, data || '');
-  }
-};
+const debugLog = () => {};
 
 /**
  * Check if gtag is available and log warnings if not
@@ -148,6 +144,5 @@ export const getAnalyticsStatus = () => {
     measurementId: GA_MEASUREMENT_ID
   };
 
-  console.log('[GA Status]', status);
   return status;
 };

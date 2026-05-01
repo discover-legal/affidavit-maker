@@ -9,6 +9,7 @@ import UserDashboard from './components/UserDashboard';
 import EditorView from './views/EditorView';
 import ErrorBoundary from './components/ErrorBoundary';
 import TOSGuard from './components/TOSGuard';
+import LandingPage from './components/LandingPage';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsOfServicePage from './components/TermsOfServicePage';
 import ResourcesPage from './components/ResourcesPage';
@@ -59,12 +60,13 @@ const AnalyticsTracker = () => {
   return null;
 };
 
-// Handles root route and /callback — waits for Auth0 to finish processing
-// the callback (code/state query params) before redirecting to /dashboard.
-// Without this, <Navigate> fires before Auth0Provider reads the params,
-// stripping them from the URL and causing an infinite login loop.
+// Handles `/callback` — waits for Auth0 to finish processing the callback
+// (code/state query params) before redirecting authenticated users on to
+// /dashboard. Without this, <Navigate> fires before Auth0Provider reads
+// the params, stripping them from the URL and causing an infinite login
+// loop. Unauthenticated visitors fall through to the landing page.
 const AuthCallbackHandler = () => {
-  const { isLoading } = useAuth0();
+  const { isLoading, isAuthenticated } = useAuth0();
 
   if (isLoading) {
     return (
@@ -77,7 +79,35 @@ const AuthCallbackHandler = () => {
     );
   }
 
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />;
+};
+
+// Root route. Public homepage for unauthenticated visitors; redirects
+// signed-in users to their dashboard. Auth0 callbacks land at `/callback`,
+// not here, so we don't need to delay rendering for query-param processing.
+const HomeRoute = () => {
+  const { isLoading, isAuthenticated } = useAuth0();
+  const navigate = useNavigate();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // The CTA inside LandingPage prompts login itself for unauthenticated users.
+  // onGetStarted is only invoked once the user is signed in, where we route
+  // them straight into a new document.
+  return <LandingPage onGetStarted={() => navigate('/editor/new')} />;
 };
 
 // Main routing component
@@ -107,15 +137,17 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Root route: must wait for Auth0 callback processing before redirecting.
-            Auth0 redirects back here with ?code=...&state=... query params.
-            Immediately navigating away would strip those params before Auth0 reads them. */}
+        {/* Public homepage: marketing landing for guests, dashboard redirect
+            for signed-in users. Auth0 callbacks land at /callback (configured
+            in the Auth0 dashboard) so this route doesn't need to wait for
+            redirect processing. */}
         <Route
           path="/"
-          element={<AuthCallbackHandler />}
+          element={<HomeRoute />}
         />
 
-        {/* Explicit callback route for Auth0 redirect (matches Auth0 dashboard config) */}
+        {/* Explicit Auth0 callback route — must wait for Auth0Provider to
+            consume the ?code=&state= params before any further navigation. */}
         <Route
           path="/callback"
           element={<AuthCallbackHandler />}

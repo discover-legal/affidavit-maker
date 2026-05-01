@@ -191,12 +191,18 @@ router.post('/email-update',
     const { user, updateTime } = req.body;
     
     if (!user || !user.user_id || !user.email) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid webhook payload' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid webhook payload'
       });
     }
-    
+
+    // Validate Auth0 ID format (defense-in-depth, matches user-update handler)
+    if (!isValidAuth0Id(user.user_id)) {
+      logger.logSecurity('auth0_webhook_invalid_id', { auth0Id: user.user_id });
+      return res.status(400).json({ success: false, error: 'Invalid user ID format' });
+    }
+
     logger.info('Auth0 email update webhook received', {
       auth0Id: user.user_id,
       updateTime

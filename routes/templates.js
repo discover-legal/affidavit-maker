@@ -270,7 +270,8 @@ router.get('/divorce/requirements/:state', standardLimiter, asyncHandler(async (
         stateName: stateInfo?.name || stateCode,
         residencyRequirements: metadata?.residencyRequirements || null,
         waitingPeriod: metadata?.waitingPeriod || null,
-        groundsForDivorce: metadata?.groundsForDivorce || null,
+        // Support both key names: some states use groundsForDissolution, others groundsForDivorce
+        groundsForDivorce: metadata?.groundsForDivorce || metadata?.groundsForDissolution || null,
         requiredForms: metadata?.requiredForms || [],
         terminology: metadata?.terminology || {},
         fees: metadata?.fees || null,

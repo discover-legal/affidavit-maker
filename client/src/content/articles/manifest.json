@@ -1,0 +1,1469 @@
+{
+  "generatedAt": "2026-05-01T22:13:02.352Z",
+  "count": 81,
+  "categories": [
+    "Affidavits",
+    "Arizona Law",
+    "California Law",
+    "Canada Law",
+    "Civil & Family Matters",
+    "Colorado Law",
+    "Custody & Support",
+    "Divorce Process",
+    "Florida Law",
+    "Georgia Law",
+    "Guides",
+    "Illinois Law",
+    "Massachusetts Law",
+    "Michigan Law",
+    "New York Law",
+    "North Carolina Law",
+    "Ohio Law",
+    "Pennsylvania Law",
+    "Self-Representation",
+    "Texas Law",
+    "Utah Law",
+    "Virginia Law",
+    "Washington Law"
+  ],
+  "articles": [
+    {
+      "slug": "divorce-retirement-qdros",
+      "title": "Dividing Retirement Accounts in Divorce: QDROs Explained",
+      "description": "Learn how 401(k)s, pensions, and IRAs are divided in divorce using QDROs and other methods to protect your retirement savings.",
+      "category": "Divorce Process",
+      "readTime": "9 min read",
+      "publishDate": "April 29, 2026",
+      "image": "💰",
+      "featured": true,
+      "sourceFile": "divorce-process-3.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1515,
+      "headingCount": 7,
+      "excerpt": "Retirement accounts are often the largest marital asset couples divide in divorce. A pension accumulated over 20 years of marriage, a 401(k) worth hundreds of thousands of dollars, or an IRA built through decades of savings—these are assets that determine financial security in la…"
+    },
+    {
+      "slug": "grandparents-rights",
+      "title": "Grandparents\\' Rights: Visitation and Custody After Troxel",
+      "description": "Understand grandparents\\' visitation and custody rights, how Troxel v. Granville changed the law, and what varies by state.",
+      "category": "Custody & Support",
+      "readTime": "8 min read",
+      "publishDate": "April 29, 2026",
+      "image": "👨‍👩‍👧‍👦",
+      "featured": true,
+      "sourceFile": "custody-3a.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1154,
+      "headingCount": 9,
+      "excerpt": "When a parent passes away, divorces, or struggles with custody, grandparents often step in to provide stability and love. But what legal rights do grandparents actually have? The answer depends on your state and a landmark U.S. Supreme Court decision that reshaped family law. In …"
+    },
+    {
+      "slug": "visitation-rights-schedules",
+      "title": "Visitation Rights and Schedules: Standard Patterns and Common Variations",
+      "description": "Explore standard visitation schedules, learn how to create a parenting time arrangement that works for your family, and understand your rights and obligations.",
+      "category": "Custody & Support",
+      "readTime": "8 min read",
+      "publishDate": "April 29, 2026",
+      "image": "📅",
+      "featured": true,
+      "sourceFile": "custody-2.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1445,
+      "headingCount": 10,
+      "excerpt": "Visitation schedules are the practical foundation of shared parenting after divorce or separation. While custody orders define legal rights and responsibilities, visitation schedules answer the day-to-day question: When is the child with each parent? A well-designed schedule prov…"
+    },
+    {
+      "slug": "annulment-grounds-and-process",
+      "title": "Annulment: Grounds, Process, and How It Differs from Divorce",
+      "description": "Learn what an annulment is, the grounds required, and when it's the right choice instead of divorce. Understand fraud, bigamy, incapacity, and other legal bases.",
+      "category": "Civil & Family Matters",
+      "readTime": "7 min read",
+      "publishDate": "April 25, 2026",
+      "image": "⚖️",
+      "featured": true,
+      "sourceFile": "civil-family-2.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1337,
+      "headingCount": 8,
+      "excerpt": "You got married, and shortly after, discovered something that makes you question whether the marriage was ever valid. Perhaps your spouse was already married to someone else, or they hid a critical fact before the wedding. An annulment might be the answer—it's a legal decree that…"
+    },
+    {
+      "slug": "divorce-mediation-vs-litigation",
+      "title": "Mediation vs Litigation: Choosing Your Divorce Path",
+      "description": "Compare mediation and litigation in divorce. Learn costs, timelines, and outcomes to choose the best path for your family.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": true,
+      "sourceFile": "divorce-process-3.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 901,
+      "headingCount": 11,
+      "excerpt": "Divorce doesn't have to mean a battle in court. In fact, most divorces never see a judge's gavel. Today, couples have multiple paths forward, each with distinct advantages and drawbacks. The two main approaches—mediation and litigation—represent fundamentally different philosophi…"
+    },
+    {
+      "slug": "domestic-violence-restraining-orders",
+      "title": "Domestic Violence Restraining Orders: Getting Protected, Fast",
+      "description": "Learn about domestic violence restraining orders, emergency protection, and how to apply. Protect yourself from intimate partners, family members, or household abusers.",
+      "category": "Civil & Family Matters",
+      "readTime": "7 min read",
+      "publishDate": "April 15, 2026",
+      "image": "🛡️",
+      "featured": true,
+      "sourceFile": "civil-family-2.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 997,
+      "headingCount": 9,
+      "excerpt": "If you're experiencing abuse from an intimate partner, family member, or household member, a domestic violence restraining order (also called a protective order or order of protection) can provide legal protection quickly. These orders are distinct from civil harassment orders be…"
+    },
+    {
+      "slug": "pro-se-court-etiquette",
+      "title": "Pro Se Court Etiquette: How to Act in the Courtroom",
+      "description": "Learn essential courtroom behavior, dress codes, and speaking rules for self-represented litigants. Master the unwritten rules of court.",
+      "category": "Self-Representation",
+      "readTime": "5 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": true,
+      "sourceFile": "pro-se-1.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1138,
+      "headingCount": 8,
+      "excerpt": "Walking into a courtroom for the first time without an attorney can feel intimidating. The formal setting, unfamiliar procedures, and sea of legal terminology might make you second-guess yourself. But here's the truth: judges see pro se litigants every week, and they understand y…"
+    },
+    {
+      "slug": "how-to-write-an-affidavit",
+      "title": "How to Write an Affidavit: Complete Guide for 2025",
+      "description": "Learn how to write a properly formatted affidavit with our step-by-step guide. Includes state-specific formatting requirements for Texas, Utah, and Arizona.",
+      "category": "Guides",
+      "readTime": "8 min read",
+      "publishDate": "November 20, 2025",
+      "image": "📝",
+      "featured": true,
+      "sourceFile": "originals.js",
+      "tags": [
+        "guide"
+      ],
+      "wordCount": 1271,
+      "headingCount": 12,
+      "excerpt": "An affidavit is a sworn written statement of facts, made under oath before a notary public or other authorized official. It's a legal document commonly used in court proceedings, real estate transactions, and many other legal matters. An affidavit is a voluntary declaration of fa…"
+    },
+    {
+      "slug": "persuasive-legal-writing-guide",
+      "title": "How to Write Persuasive Legal Documents: A Guide for Self-Represented Litigants",
+      "description": "Learn what makes legal writing effective and credible. Understand why formatting, tone, and structure matter in court documents.",
+      "category": "Guides",
+      "readTime": "7 min read",
+      "publishDate": "November 18, 2025",
+      "image": "⚖️",
+      "featured": true,
+      "sourceFile": "originals.js",
+      "tags": [
+        "guide"
+      ],
+      "wordCount": 843,
+      "headingCount": 2,
+      "excerpt": "Many people representing themselves in court feel that judges are biased against them. The legal system can be scary. But often the real problem isn't bias—it's that documents from non-lawyers don't follow the format that judges expect. This isn't about how smart you are. It's ab…"
+    },
+    {
+      "slug": "divorce-fee-waivers",
+      "title": "Filing Fee Waivers in Divorce: How to Qualify and Apply",
+      "description": "Can't afford court fees? Learn how to request a filing fee waiver (in forma pauperis) to reduce or eliminate divorce filing costs.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "May 6, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-process-3.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1228,
+      "headingCount": 8,
+      "excerpt": "Divorce court filing fees typically range from $300–$500, and they're a barrier for people struggling financially. But the courts recognize this and provide a mechanism: filing fee waivers (also called in forma pauperis petitions). If you cannot afford court costs, you can petiti…"
+    },
+    {
+      "slug": "modifying-custody-orders",
+      "title": "Modifying a Custody Order: Substantial Change and the Best-Interests Test",
+      "description": "Learn when and how you can request changes to existing custody orders, and what judges consider when evaluating modifications.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "May 6, 2026",
+      "image": "🧒",
+      "featured": false,
+      "sourceFile": "custody-1.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1429,
+      "headingCount": 9,
+      "excerpt": "Custody orders are not set in stone. Life changes—a parent relocates for work, a child's needs evolve, or family circumstances shift dramatically. When circumstances change, either parent may seek to modify an existing custody order. But courts don't allow modification on a whim;…"
+    },
+    {
+      "slug": "relocation-with-children",
+      "title": "Relocation with Children After Divorce: Notice, Consent, and Court Approval",
+      "description": "Understand your rights and obligations when relocating with children after divorce, including notice requirements, consent procedures, and what courts consider.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "May 06, 2026",
+      "image": "🚚",
+      "featured": false,
+      "sourceFile": "custody-2.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1571,
+      "headingCount": 10,
+      "excerpt": "One of the most contentious issues in post-divorce parenting is relocation. A parent's desire to move—whether for a better job, to be closer to family, or for a fresh start—can directly threaten the other parent's relationship with the child. Family courts balance parental autono…"
+    },
+    {
+      "slug": "adoption-process-overview",
+      "title": "The Adoption Process: From Petition to Final Decree",
+      "description": "A comprehensive guide to the adoption process, including petitions, home studies, court hearings, and final decrees.",
+      "category": "Civil & Family Matters",
+      "readTime": "8 min read",
+      "publishDate": "April 29, 2026",
+      "image": "👨‍👩‍👧",
+      "featured": false,
+      "sourceFile": "civil-family-1a.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1157,
+      "headingCount": 6,
+      "excerpt": "Adoption is one of the most rewarding but legally complex family law processes. Whether you're adopting a child from foster care, privately, or through a relative, understanding the steps involved can help you navigate the journey with confidence. This guide walks you through the…"
+    },
+    {
+      "slug": "affidavit-of-common-law-marriage",
+      "title": "Affidavit of Common-Law Marriage: Establishing the Relationship",
+      "description": "Learn how to document a common-law marriage with an affidavit. Understand jurisdiction requirements, what evidence to gather, and when you need one.",
+      "category": "Affidavits",
+      "readTime": "9 min read",
+      "publishDate": "April 29, 2026",
+      "image": "💍",
+      "featured": false,
+      "sourceFile": "affidavits-3b.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1238,
+      "headingCount": 10,
+      "excerpt": "A couple lives together for years, shares finances, introduces each other as husband and wife, but never had a formal ceremony or marriage license. Are they married? In some jurisdictions, the answer is yes—under common-law marriage rules. But proving it can be challenging, which…"
+    },
+    {
+      "slug": "child-support-enforcement",
+      "title": "Child Support Enforcement: Wage Garnishment, License Suspension, and More",
+      "description": "Discover the federal and state tools used to enforce child support orders, from wage withholding to passport denial.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "April 29, 2026",
+      "image": "💰",
+      "featured": false,
+      "sourceFile": "custody-3b.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1398,
+      "headingCount": 11,
+      "excerpt": "Child support orders are one thing; *collecting* them is another. In the United States, an estimated 1 in 4 custodial parents don't receive full payment of support owed. When payment fails, family law and Title IV-D enforcement agencies have a powerful arsenal of tools at their d…"
+    },
+    {
+      "slug": "divorce-in-michigan",
+      "title": "Divorce in Michigan: 60-Day Wait and No-Fault Grounds",
+      "description": "Learn Michigan divorce requirements: no-fault grounds, 60-day waiting period, residency rules, and equitable property division.",
+      "category": "Michigan Law",
+      "readTime": "6 min read",
+      "publishDate": "April 29, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-3.js",
+      "tags": [
+        "us-state",
+        "michigan"
+      ],
+      "wordCount": 991,
+      "headingCount": 9,
+      "excerpt": "Michigan has simplified its divorce process over the past two decades, moving toward a no-fault approach that gives couples more autonomy in how they end their marriage. Whether you're exploring an uncontested divorce or anticipating a contested one, understanding Michigan's grou…"
+    },
+    {
+      "slug": "establishing-paternity",
+      "title": "Establishing Paternity: Voluntary Acknowledgment, DNA Testing, and Court Orders",
+      "description": "Understand how paternity is established through voluntary agreement, genetic testing, or court proceedings, and why it matters.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "April 29, 2026",
+      "image": "👶",
+      "featured": false,
+      "sourceFile": "custody-1.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1162,
+      "headingCount": 8,
+      "excerpt": "When a child is born outside of marriage, the legal relationship between the father and child is not automatically established. Paternity establishment is the legal process that creates that relationship, opening the door to custody rights, visitation, child support obligations, …"
+    },
+    {
+      "slug": "self-proving-affidavit-wills",
+      "title": "Self-Proving Affidavits: Streamlining Will Execution",
+      "description": "Learn how a Self-Proving Affidavit strengthens your will and can eliminate witness testimony requirements during probate.",
+      "category": "Affidavits",
+      "readTime": "6 min read",
+      "publishDate": "April 29, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-3a.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1164,
+      "headingCount": 10,
+      "excerpt": "Creating a will is a critical step in estate planning, but many people overlook a simple tool that can dramatically streamline the probate process: a Self-Proving Affidavit. This document, attached to your will, allows the will to be accepted in probate court without requiring th…"
+    },
+    {
+      "slug": "small-claims-court-guide",
+      "title": "Small Claims Court: A Practical Guide for Plaintiffs and Defendants",
+      "description": "Navigate small claims court without an attorney. Learn filing procedures, evidence rules, and courtroom strategies for success.",
+      "category": "Civil & Family Matters",
+      "readTime": "9 min read",
+      "publishDate": "April 29, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "civil-family-3a.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1369,
+      "headingCount": 12,
+      "excerpt": "Small claims court exists to resolve disputes without the expense and complexity of traditional litigation. Whether you're owed money for an unpaid loan, security deposit, or damage to property, small claims court provides a faster, more affordable path to justice. This guide cov…"
+    },
+    {
+      "slug": "stepparent-adoption",
+      "title": "Stepparent Adoption: A Step-by-Step Guide",
+      "description": "Learn how stepparent adoption works, what consent is required, and how to navigate the legal process in your state.",
+      "category": "Civil & Family Matters",
+      "readTime": "7 min read",
+      "publishDate": "April 29, 2026",
+      "image": "👨‍👩‍👧‍👦",
+      "featured": false,
+      "sourceFile": "civil-family-1a.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1375,
+      "headingCount": 8,
+      "excerpt": "Stepparent adoption is one of the most common adoption scenarios. When you marry or enter a committed partnership with someone who has children, you may wish to legally formalize your role as a parent. Stepparent adoption allows you to become the legal parent of your stepchild, g…"
+    },
+    {
+      "slug": "custody-evaluations-explained",
+      "title": "Custody Evaluations: What Evaluators Look For and How to Prepare",
+      "description": "Learn what custody evaluators assess, how evaluations influence custody decisions, and tips to prepare for a credible evaluation.",
+      "category": "Custody & Support",
+      "readTime": "9 min read",
+      "publishDate": "April 28, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "custody-3a.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1812,
+      "headingCount": 8,
+      "excerpt": "In contested custody cases, courts often order a custody evaluation or child custody assessment—an independent, in-depth investigation into each parent's fitness, parenting capacity, and the child's best interests. These evaluations can make or break a custody outcome. Understand…"
+    },
+    {
+      "slug": "divorce-in-virginia",
+      "title": "Divorce in Virginia: Separation Requirements and the One-Year Rule",
+      "description": "Understand Virginia divorce law: separation requirements, the one-year waiting period, equitable distribution, and uncontested vs. contested divorces.",
+      "category": "Virginia Law",
+      "readTime": "7 min read",
+      "publishDate": "April 28, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-3.js",
+      "tags": [
+        "us-state",
+        "virginia"
+      ],
+      "wordCount": 1151,
+      "headingCount": 10,
+      "excerpt": "Virginia divorce law is rooted in a unique waiting-period system that emphasizes separation before dissolution. Unlike some states that offer quick no-fault divorces, Virginia requires either a period of separation or mutual agreement and immediate filing. Understanding these pat…"
+    },
+    {
+      "slug": "interstate-custody-uccjea",
+      "title": "Interstate Custody and the UCCJEA: Which State Decides?",
+      "description": "Learn how the UCCJEA determines which state has jurisdiction over custody disputes when families move across state lines.",
+      "category": "Custody & Support",
+      "readTime": "6 min read",
+      "publishDate": "April 28, 2026",
+      "image": "📍",
+      "featured": false,
+      "sourceFile": "custody-3b.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 920,
+      "headingCount": 8,
+      "excerpt": "When a custody dispute involves parents or children in different states, confusion often reigns. Which state's courts have the power to make custody decisions? Can a parent \"forum shop\" by moving to a parent-friendly state? The Uniform Child Custody Jurisdiction and Enforcement A…"
+    },
+    {
+      "slug": "landlord-tenant-disputes",
+      "title": "Landlord-Tenant Disputes: Notice, Eviction, and Tenant Defenses",
+      "description": "Learn the legal process for evictions, required notices, and key tenant defenses to protect your housing rights.",
+      "category": "Civil & Family Matters",
+      "readTime": "12 min read",
+      "publishDate": "April 28, 2026",
+      "image": "🏠",
+      "featured": false,
+      "sourceFile": "civil-family-3b.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1080,
+      "headingCount": 6,
+      "excerpt": "Landlord-tenant disputes are among the most common civil matters handled in courts across North America. Whether you're facing eviction or defending your right to occupy your rental home, understanding the legal process is critical. This guide walks you through the eviction proce…"
+    },
+    {
+      "slug": "divorce-in-north-carolina",
+      "title": "Divorce in North Carolina: Year of Separation and Beyond",
+      "description": "North Carolina divorce guide: one-year separation requirement, equitable distribution, child custody, spousal support, and the complete process.",
+      "category": "North Carolina Law",
+      "readTime": "8 min read",
+      "publishDate": "April 27, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-2.js",
+      "tags": [
+        "us-state",
+        "north-carolina"
+      ],
+      "wordCount": 1357,
+      "headingCount": 10,
+      "excerpt": "North Carolina's divorce law is unique: the state requires a full year of separation before a divorce can be granted, regardless of whether it is contested or uncontested. This mandatory waiting period reflects North Carolina's historical policy favoring reflection and reconcilia…"
+    },
+    {
+      "slug": "divorce-in-washington-state",
+      "title": "Divorce in Washington State: Community Property and the 90-Day Wait",
+      "description": "Master Washington divorce law: community property division, 90-day waiting period, residency rules, and spousal support guidelines.",
+      "category": "Washington Law",
+      "readTime": "7 min read",
+      "publishDate": "April 27, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-3.js",
+      "tags": [
+        "us-state",
+        "washington"
+      ],
+      "wordCount": 1165,
+      "headingCount": 9,
+      "excerpt": "Washington State is one of only nine community property jurisdictions in the United States. This fundamental principle means that property acquired during the marriage—with narrow exceptions—is presumed to be jointly owned and divided equally upon divorce. Combined with Washingto…"
+    },
+    {
+      "slug": "divorce-in-massachusetts",
+      "title": "Divorce in Massachusetts: 1A vs 1B and Equitable Distribution",
+      "description": "Navigate Massachusetts divorce law: uncontested (1A) vs. contested (1B) divorces, equitable property division, and spousal support rules.",
+      "category": "Massachusetts Law",
+      "readTime": "7 min read",
+      "publishDate": "April 26, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-3.js",
+      "tags": [
+        "us-state",
+        "massachusetts"
+      ],
+      "wordCount": 1254,
+      "headingCount": 9,
+      "excerpt": "Massachusetts divorce law is structured around a unique bifurcation: the Divorce 1A (uncontested) and Divorce 1B (contested) pathways. This framework allows couples who agree on the major issues to proceed more quickly and inexpensively, while preserving the court's role in conte…"
+    },
+    {
+      "slug": "debt-collection-defense",
+      "title": "Debt Collection Defense: Answering a Lawsuit and Asserting Your Rights",
+      "description": "Understand FDCPA protections, how to answer a debt collection lawsuit, and defenses you can use in court.",
+      "category": "Civil & Family Matters",
+      "readTime": "13 min read",
+      "publishDate": "April 25, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "civil-family-3b.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1261,
+      "headingCount": 9,
+      "excerpt": "Being sued by a debt collector or creditor can feel overwhelming, but you have legal rights and defenses. The Fair Debt Collection Practices Act (FDCPA)—the federal law governing debt collectors—prohibits abusive, unfair, and deceptive practices. At the state level, additional co…"
+    },
+    {
+      "slug": "default-divorce-spouse-no-response",
+      "title": "Default Divorce: When Your Spouse Won\\'t Respond",
+      "description": "What happens if your spouse ignores the divorce papers? Default judgment, service requirements, and how to finalize divorce without their cooperation.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "April 25, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-process-2.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1572,
+      "headingCount": 9,
+      "excerpt": "In an ideal divorce, both spouses cooperate, exchange information, and reach a settlement. In reality, some spouses refuse to engage: they ignore divorce papers, skip court hearings, and fail to respond to settlement offers. When a spouse fails to respond to a divorce petition, y…"
+    },
+    {
+      "slug": "divorce-in-colorado",
+      "title": "Divorce in Colorado: Dissolution Without Fault",
+      "description": "Master Colorado divorce law: no-fault dissolution, equitable property division, parental responsibilities, and spousal maintenance guidelines.",
+      "category": "Colorado Law",
+      "readTime": "6 min read",
+      "publishDate": "April 25, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-3.js",
+      "tags": [
+        "us-state",
+        "colorado"
+      ],
+      "wordCount": 1183,
+      "headingCount": 9,
+      "excerpt": "Colorado is one of the nation's most straightforward no-fault divorce jurisdictions. The state abolished fault-based grounds decades ago and now uses the term \"dissolution of marriage\" instead of \"divorce.\" This terminology reflects Colorado's modern approach: divorces are grante…"
+    },
+    {
+      "slug": "divorce-in-georgia",
+      "title": "Divorce in Georgia: 13 Grounds and Equitable Distribution",
+      "description": "Georgia divorce essentials: 13 grounds for divorce, equitable distribution, child custody, spousal support, and the Georgia divorce process explained.",
+      "category": "Georgia Law",
+      "readTime": "9 min read",
+      "publishDate": "April 25, 2026",
+      "image": "💼",
+      "featured": false,
+      "sourceFile": "divorce-states-2.js",
+      "tags": [
+        "us-state",
+        "georgia"
+      ],
+      "wordCount": 1332,
+      "headingCount": 9,
+      "excerpt": "Georgia is known for its expansive divorce grounds—thirteen distinct options—giving spouses multiple legal pathways to dissolution. Combined with equitable distribution property division, Georgia's divorce framework offers flexibility, though it also adds complexity to case strat…"
+    },
+    {
+      "slug": "divorce-in-illinois",
+      "title": "Illinois Divorce: Residency, No-Fault Grounds, and What to Expect",
+      "description": "Illinois divorce overview: equitable distribution, no-fault dissolvement grounds, child custody, spousal support, and Circuit Court procedures.",
+      "category": "Illinois Law",
+      "readTime": "8 min read",
+      "publishDate": "April 25, 2026",
+      "image": "🏛️",
+      "featured": false,
+      "sourceFile": "divorce-states-1.js",
+      "tags": [
+        "us-state",
+        "illinois"
+      ],
+      "wordCount": 1192,
+      "headingCount": 9,
+      "excerpt": "Illinois modernized its divorce law in 2016, eliminating the contentious fault-based system in favor of a streamlined no-fault dissolvement process. This change reflects a shift toward reducing conflict and encouraging practical resolution of property, custody, and support issues…"
+    },
+    {
+      "slug": "divorce-in-quebec",
+      "title": "Divorce au Québec: Civil Code, Patrimony, and Process (English Guide)",
+      "description": "Quebec divorce guide: Civil Code family law, family patrimony rules, matrimonial regime, and Quebec Superior Court process in French/English.",
+      "category": "Canada Law",
+      "readTime": "9 min read",
+      "publishDate": "April 25, 2026",
+      "image": "🍁",
+      "featured": false,
+      "sourceFile": "canada-1.js",
+      "tags": [
+        "canada"
+      ],
+      "wordCount": 1427,
+      "headingCount": 12,
+      "excerpt": "Quebec is the only Canadian province with a civil law system (derived from French law), not common law. This means Quebec divorce and family law operate under the Quebec Civil Code, not the common law framework used in other provinces. The federal *Divorce Act* still applies for …"
+    },
+    {
+      "slug": "divorce-in-ohio",
+      "title": "Ohio Divorce: Dissolution, Divorce, and What\\'s Different",
+      "description": "Ohio divorce and dissolution explained: two distinct legal paths, fault and no-fault grounds, equitable distribution, child custody, and process timeline.",
+      "category": "Ohio Law",
+      "readTime": "8 min read",
+      "publishDate": "April 23, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "divorce-states-2.js",
+      "tags": [
+        "us-state",
+        "ohio"
+      ],
+      "wordCount": 1164,
+      "headingCount": 10,
+      "excerpt": "Ohio stands apart from many states by offering two distinct legal processes for ending a marriage: dissolution (uncontested, cooperative) and divorce (contested or fault-based). Understanding which path fits your situation—and the unique advantages and requirements of each—is cru…"
+    },
+    {
+      "slug": "affidavit-of-single-status",
+      "title": "Affidavit of Single Status: For International Marriage and More",
+      "description": "Understand Affidavits of Single Status: when they are required, what they prove, and how to obtain one for marriage, visas, or legal matters.",
+      "category": "Affidavits",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "affidavits-3b.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1045,
+      "headingCount": 9,
+      "excerpt": "Planning to marry someone from another country? Applying for a visa or residency? Navigating family law matters? You may need an Affidavit of Single Status—a sworn legal statement proving you are not married, divorced, widowed, or in any other marital condition. While common in i…"
+    },
+    {
+      "slug": "divorce-in-alberta",
+      "title": "Divorce in Alberta: Grounds, Property, and the Court of King\\'s Bench",
+      "description": "Alberta divorce essentials: Matrimonial Property Act, Court of King\\'s Bench jurisdiction, grounds, child support, and litigation timelines.",
+      "category": "Canada Law",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "canada-1.js",
+      "tags": [
+        "canada"
+      ],
+      "wordCount": 1171,
+      "headingCount": 10,
+      "excerpt": "Divorce in Alberta is uniquely governed by the **federal *Divorce Act* and the Alberta *Matrimonial Property Act***. The *Divorce Act* handles the grounds and dissolution of marriage, while the *Matrimonial Property Act* governs the division of assets and liabilities. All family …"
+    },
+    {
+      "slug": "divorce-in-new-york",
+      "title": "Divorce in New York: Grounds, Equitable Distribution, and Process",
+      "description": "New York divorce essentials: equitable distribution, no-fault and fault grounds, child custody, spousal support, and family court procedures.",
+      "category": "New York Law",
+      "readTime": "9 min read",
+      "publishDate": "April 22, 2026",
+      "image": "💼",
+      "featured": false,
+      "sourceFile": "divorce-states-1.js",
+      "tags": [
+        "us-state",
+        "new-york"
+      ],
+      "wordCount": 1152,
+      "headingCount": 9,
+      "excerpt": "New York's divorce laws offer both no-fault and fault-based grounds, giving spouses flexibility in how they approach dissolution. The state's equitable distribution framework and complex family court system reflect the legal sophistication of one of America's major legal centers.…"
+    },
+    {
+      "slug": "divorce-timelines-what-to-expect",
+      "title": "Divorce Timelines: What Really Takes So Long",
+      "description": "Why divorce takes months or years: mandatory waiting periods, discovery, court backlogs, and negotiation. Realistic expectations for your divorce timeline.",
+      "category": "Divorce Process",
+      "readTime": "6 min read",
+      "publishDate": "April 22, 2026",
+      "image": "⏱️",
+      "featured": false,
+      "sourceFile": "divorce-process-2.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1249,
+      "headingCount": 7,
+      "excerpt": "One of the most common questions divorcing spouses ask is: \"How long will this take?\" The honest answer is: it depends. A simple, uncontested divorce with agreement on all issues can be finalized in a few months. A contested divorce with property disputes, custody conflicts, and …"
+    },
+    {
+      "slug": "emancipation-of-a-minor",
+      "title": "Emancipation of a Minor: Grounds, Process, and Consequences",
+      "description": "Understand what emancipation is, the legal grounds and process, and the rights and responsibilities that follow.",
+      "category": "Civil & Family Matters",
+      "readTime": "9 min read",
+      "publishDate": "April 22, 2026",
+      "image": "🔓",
+      "featured": false,
+      "sourceFile": "civil-family-1b.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1428,
+      "headingCount": 11,
+      "excerpt": "Emancipation is a legal process that frees a minor from parental control and grants them the rights and responsibilities of an adult. Rather than being imposed by courts (as in guardianship situations), emancipation is typically sought by the minor themselves when they are mature…"
+    },
+    {
+      "slug": "filing-your-own-paperwork",
+      "title": "Filing Your Own Paperwork: Clerk\\'s Office Survival Guide",
+      "description": "Navigate courthouse filing systems with confidence. Learn what to bring, how to format documents, and avoid rejection at the clerk\\'s window.",
+      "category": "Self-Representation",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "pro-se-2a.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1178,
+      "headingCount": 8,
+      "excerpt": "The courthouse clerk's office can feel like a maze if you've never filed documents yourself. But with the right preparation, you can walk in with confidence and walk out with a stamped filing. This guide covers what you need to know to navigate the filing process successfully. Pr…"
+    },
+    {
+      "slug": "how-child-support-is-calculated",
+      "title": "How Child Support Is Calculated: Income Shares, Percentage of Income, and Beyond",
+      "description": "Learn the two main child support models, how courts calculate amounts, and what factors influence support obligations.",
+      "category": "Custody & Support",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "💰",
+      "featured": false,
+      "sourceFile": "custody-1.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1137,
+      "headingCount": 7,
+      "excerpt": "Child support is a legal obligation for parents to contribute financially to the costs of raising their children. But how is the amount determined? If you're going through a custody dispute or modification, you've likely wondered whether there's a formula, and what factors might …"
+    },
+    {
+      "slug": "joint-vs-sole-custody",
+      "title": "Joint Custody vs Sole Custody: How Courts Decide",
+      "description": "Understand the legal differences between joint and sole custody, what courts consider when deciding, and how to prepare for custody disputes.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "April 22, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "custody-2.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1270,
+      "headingCount": 9,
+      "excerpt": "One of the most significant decisions in any custody case is whether custody will be joint (shared between both parents) or sole (held by one parent). This decision profoundly affects parental rights, child support, and the child's daily life. Understanding how courts evaluate th…"
+    },
+    {
+      "slug": "legal-separation-vs-divorce",
+      "title": "Legal Separation vs Divorce: Why You Might Choose One Over the Other",
+      "description": "Understand the key differences between legal separation and divorce. Learn when to choose each option based on your circumstances, beliefs, and financial goals.",
+      "category": "Civil & Family Matters",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "💔",
+      "featured": false,
+      "sourceFile": "civil-family-2.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1118,
+      "headingCount": 9,
+      "excerpt": "You've decided your marriage isn't working, but should you pursue a legal separation or a divorce? They sound similar, but the legal and practical consequences are significantly different. Understanding these differences is crucial to making a decision that aligns with your value…"
+    },
+    {
+      "slug": "military-divorce-considerations",
+      "title": "Military Divorce: SCRA, USFSPA, and What's Different",
+      "description": "Active duty military divorces involve special protections and rules. Learn about SCRA, USFSPA, and how military benefits are divided.",
+      "category": "Divorce Process",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "🪖",
+      "featured": false,
+      "sourceFile": "divorce-process-3.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1203,
+      "headingCount": 10,
+      "excerpt": "Military divorce presents a unique legal landscape. Active duty service members and their spouses must navigate federal protections, military-specific benefit divisions, and rules that don't apply to civilian divorces. Whether you're divorcing a service member or are in the milit…"
+    },
+    {
+      "slug": "probate-basics",
+      "title": "Probate Basics: What Happens When Someone Dies",
+      "description": "Understand probate court, estate administration, and how assets are distributed after death. Learn about simplified procedures.",
+      "category": "Civil & Family Matters",
+      "readTime": "8 min read",
+      "publishDate": "April 22, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "civil-family-3a.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 957,
+      "headingCount": 11,
+      "excerpt": "When someone passes away, their assets don't automatically transfer to their heirs. Instead, the legal system has a process called probate to ensure debts are paid, taxes are filed, and assets are distributed according to the deceased person's wishes—or according to state law if …"
+    },
+    {
+      "slug": "small-estate-affidavit",
+      "title": "Small Estate Affidavit: Avoiding Probate for Modest Estates",
+      "description": "Discover how a Small Estate Affidavit can help heirs transfer assets without expensive probate court proceedings.",
+      "category": "Affidavits",
+      "readTime": "7 min read",
+      "publishDate": "April 22, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-3a.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1104,
+      "headingCount": 9,
+      "excerpt": "Probate—the legal process of validating a will and distributing an estate through court—can be costly, time-consuming, and emotionally draining. It often involves attorney fees, court costs, and delays lasting months or years. Yet for modest estates, many jurisdictions offer a fa…"
+    },
+    {
+      "slug": "statutory-declarations-canada",
+      "title": "Statutory Declarations in Canada: Affidavits' Northern Cousin",
+      "description": "Understand statutory declarations in Canada—what they are, when to use them, and how they differ from affidavits and other sworn statements.",
+      "category": "Canada Law",
+      "readTime": "13 min read",
+      "publishDate": "April 22, 2026",
+      "image": "🍁",
+      "featured": false,
+      "sourceFile": "pro-se-2b.js",
+      "tags": [
+        "canada"
+      ],
+      "wordCount": 779,
+      "headingCount": 5,
+      "excerpt": "If you're navigating the Canadian legal system, you've probably heard both \"affidavit\" and \"statutory declaration\" used almost interchangeably. They sound like the same thing. They're both sworn statements. They're both used in court. But they're not identical—and understanding t…"
+    },
+    {
+      "slug": "divorce-in-pennsylvania",
+      "title": "Divorce in Pennsylvania: Grounds, Process, and Property Division",
+      "description": "Pennsylvania divorce guide: fault and no-fault grounds, equitable distribution, spousal support, custody law, and what you need to know.",
+      "category": "Pennsylvania Law",
+      "readTime": "8 min read",
+      "publishDate": "April 20, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-2.js",
+      "tags": [
+        "us-state",
+        "pennsylvania"
+      ],
+      "wordCount": 1139,
+      "headingCount": 9,
+      "excerpt": "Pennsylvania's divorce laws blend no-fault and fault-based grounds, offering spouses multiple paths to dissolution. Whether pursuing an uncontested divorce or litigating contested issues, understanding Pennsylvania's unique requirements—particularly the waiting periods and ground…"
+    },
+    {
+      "slug": "civil-harassment-restraining-orders",
+      "title": "Civil Harassment Orders: Protection Without a Family Connection",
+      "description": "Explore civil harassment restraining orders for protection from stalking, threats, or harassment by strangers, acquaintances, or non-intimate contacts.",
+      "category": "Civil & Family Matters",
+      "readTime": "6 min read",
+      "publishDate": "April 18, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "civil-family-2.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1046,
+      "headingCount": 11,
+      "excerpt": "You're being harassed by a coworker, stalked by an acquaintance, or threatened by someone you've never met. This isn't a domestic violence situation—there's no intimate or family relationship. Yet the harassment is real, frightening, and interfering with your life. A civil harass…"
+    },
+    {
+      "slug": "divorce-in-british-columbia",
+      "title": "Divorce in British Columbia: Family Law Act and the Federal Divorce Act",
+      "description": "BC divorce guide: common-law & married spouses, Family Law Act property rules, child support, and the modern court process.",
+      "category": "Canada Law",
+      "readTime": "8 min read",
+      "publishDate": "April 18, 2026",
+      "image": "🏛️",
+      "featured": false,
+      "sourceFile": "canada-1.js",
+      "tags": [
+        "canada"
+      ],
+      "wordCount": 1033,
+      "headingCount": 10,
+      "excerpt": "British Columbia is unique among Canadian provinces in how it treats married and unmarried couples equally under the *Family Law Act*. Whether you've been through a formal marriage ceremony or cohabited for two years or more, BC law recognizes your relationship and grants you fam…"
+    },
+    {
+      "slug": "divorce-in-florida",
+      "title": "How Divorce Works in Florida: Process, Property, and Timeline",
+      "description": "Florida divorce guide: equitable distribution, no-fault grounds, family law courts, residency rules, and what homeowners and business owners need to know.",
+      "category": "Florida Law",
+      "readTime": "7 min read",
+      "publishDate": "April 18, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "divorce-states-1.js",
+      "tags": [
+        "us-state",
+        "florida"
+      ],
+      "wordCount": 976,
+      "headingCount": 9,
+      "excerpt": "Florida's divorce law reflects the state's mobile population and diverse economic profiles. Whether you're a retiree, young family, or business owner, Florida's no-fault framework and equitable distribution model provide a clear—if sometimes contentious—path to dissolution. To fi…"
+    },
+    {
+      "slug": "spousal-support-alimony-basics",
+      "title": "Spousal Support and Alimony: How Courts Decide",
+      "description": "Understand spousal support awards: factors courts consider, types of alimony, duration, and state differences. Plan for financial independence post-divorce.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "April 18, 2026",
+      "image": "💰",
+      "featured": false,
+      "sourceFile": "divorce-process-2.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1262,
+      "headingCount": 9,
+      "excerpt": "Spousal support—commonly called \"alimony\"—is a regular payment from one spouse to the other after divorce to help equalize earning capacity or provide financial stability during the transition. Unlike child support, which is child-focused, spousal support is about the ex-spouses'…"
+    },
+    {
+      "slug": "affidavit-of-lost-document",
+      "title": "Affidavit of Lost Document: Replacing Critical Records",
+      "description": "Learn when and how to file an Affidavit of Lost Document to replace missing critical records like birth certificates or deeds.",
+      "category": "Affidavits",
+      "readTime": "7 min read",
+      "publishDate": "April 15, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-3b.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1026,
+      "headingCount": 8,
+      "excerpt": "Sometimes important documents disappear. A fire destroys your home, a file box goes missing in a move, or records simply can't be located. When critical documents are lost—like a birth certificate, deed, mortgage, or title—many legal and practical matters grind to a halt. An Affi…"
+    },
+    {
+      "slug": "affidavit-of-no-divorce",
+      "title": "Affidavit of No Divorce: When Marriage History Must Be Proven",
+      "description": "Learn when you need an Affidavit of No Divorce, who requires it, and how to obtain this critical document for remarriage or legal proceedings.",
+      "category": "Affidavits",
+      "readTime": "6 min read",
+      "publishDate": "April 15, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-3a.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1110,
+      "headingCount": 9,
+      "excerpt": "Remarriage, immigration proceedings, and property disputes often hinge on a fundamental question: Are you currently married? An Affidavit of No Divorce is a sworn legal document that establishes you are not legally married to a specific person. While it might sound unusual to pro…"
+    },
+    {
+      "slug": "affidavit-of-service",
+      "title": "Affidavit of Service: Documenting That You Served the Papers",
+      "description": "Learn how to create a proper Affidavit of Service to prove legal documents were delivered in court proceedings.",
+      "category": "Self-Representation",
+      "readTime": "12 min read",
+      "publishDate": "April 15, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "pro-se-2b.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1358,
+      "headingCount": 10,
+      "excerpt": "In any legal proceeding, courts don't just assume parties received important documents. They require proof of service—evidence that the other party was properly notified. An Affidavit of Service is the sworn statement that serves as this proof, and it's one of the most frequently…"
+    },
+    {
+      "slug": "child-custody-basics",
+      "title": "Child Custody Basics: Legal vs Physical, Joint vs Sole",
+      "description": "Understand the differences between legal and physical custody, and learn what joint vs sole custody means for your family.",
+      "category": "Custody & Support",
+      "readTime": "7 min read",
+      "publishDate": "April 15, 2026",
+      "image": "👨‍👩‍👧",
+      "featured": false,
+      "sourceFile": "custody-1.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 915,
+      "headingCount": 8,
+      "excerpt": "When parents separate or divorce, one of the most important decisions involves custody of the children. If you're navigating this terrain, you've likely encountered terms like \"legal custody,\" \"physical custody,\" \"joint custody,\" and \"sole custody.\" While these concepts overlap, …"
+    },
+    {
+      "slug": "common-procedural-mistakes",
+      "title": "10 Common Procedural Mistakes Self-Represented Litigants Make",
+      "description": "Avoid these costly blunders. Learn the top 10 procedural errors that sink pro se cases and how to sidestep them.",
+      "category": "Self-Representation",
+      "readTime": "10 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "pro-se-2a.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1407,
+      "headingCount": 12,
+      "excerpt": "Self-represented litigants (\"pro se\" filers) face a steep learning curve. The court assumes you know the rules—even though nobody taught you them. This guide walks through the ten most common procedural mistakes we see and how to avoid them. The mistake: You miss a motion deadlin…"
+    },
+    {
+      "slug": "divorce-in-california",
+      "title": "Divorce in California: A Complete 2026 Guide",
+      "description": "California divorce explained: community property, no-fault grounds, child custody, spousal support, and what to expect from filing to final judgment.",
+      "category": "California Law",
+      "readTime": "8 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-states-1.js",
+      "tags": [
+        "us-state",
+        "california"
+      ],
+      "wordCount": 966,
+      "headingCount": 9,
+      "excerpt": "California leads the nation in divorce innovation and legal modernization. Whether you're considering separation or responding to divorce papers, understanding California's process—its community property rules, no-fault grounds, and custody frameworks—helps you make informed deci…"
+    },
+    {
+      "slug": "divorce-in-ontario",
+      "title": "Divorce in Ontario: Process, Timeline, and Forms",
+      "description": "Navigate Ontario divorce: grounds, filing requirements, contested vs. uncontested, Family Law Rules, and timeline to finalization.",
+      "category": "Canada Law",
+      "readTime": "8 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "canada-1.js",
+      "tags": [
+        "canada"
+      ],
+      "wordCount": 948,
+      "headingCount": 11,
+      "excerpt": "Divorce in Ontario is governed by both federal law (the *Divorce Act*) and provincial law (the *Family Law Act*). Understanding how these two frameworks interact is essential for navigating the process efficiently. Whether your divorce is uncontested or contested, the procedural …"
+    },
+    {
+      "slug": "guardianship-of-a-minor",
+      "title": "Guardianship of a Minor: When and How",
+      "description": "Learn when guardianship is necessary, types of guardianship, and the court process for obtaining legal custody of a minor.",
+      "category": "Civil & Family Matters",
+      "readTime": "8 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "civil-family-1b.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 1211,
+      "headingCount": 10,
+      "excerpt": "When parents are unable to care for their children due to illness, incapacity, or death, guardianship provides a legal mechanism to ensure minors receive proper care and support. Guardianship is more than informal arrangement—it's a court-supervised relationship that grants an ad…"
+    },
+    {
+      "slug": "name-change-petitions",
+      "title": "Legal Name Change: The Petition Process Explained",
+      "description": "Learn the step-by-step process for legally changing your name. Understand petition requirements, court hearings, and final decrees.",
+      "category": "Civil & Family Matters",
+      "readTime": "7 min read",
+      "publishDate": "April 15, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "civil-family-3a.js",
+      "tags": [
+        "civil",
+        "family"
+      ],
+      "wordCount": 887,
+      "headingCount": 10,
+      "excerpt": "A legal name change is one of the most personal decisions you can make. Whether you're changing your name due to marriage, personal preference, cultural identity, or gender transition, understanding the legal petition process is essential. This guide walks you through what to exp…"
+    },
+    {
+      "slug": "parenting-plans-101",
+      "title": "Parenting Plans 101: Building One That Actually Works",
+      "description": "A complete guide to creating effective parenting plans that balance both parents\\' involvement and prioritize children\\'s best interests.",
+      "category": "Custody & Support",
+      "readTime": "6 min read",
+      "publishDate": "April 15, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "custody-2.js",
+      "tags": [
+        "custody",
+        "child-support"
+      ],
+      "wordCount": 1108,
+      "headingCount": 9,
+      "excerpt": "A parenting plan is more than a legal document—it's the blueprint for how you and your co-parent will raise your children after separation or divorce. Unlike a custody order (which addresses legal and physical custody rights), a parenting plan details the day-to-day logistics: sc…"
+    },
+    {
+      "slug": "property-division-divorce",
+      "title": "Property Division in Divorce: Community Property vs Equitable Distribution",
+      "description": "Learn how courts divide marital assets: community property splits 50/50, equitable distribution considers fairness. Know your state\\'s rules.",
+      "category": "Divorce Process",
+      "readTime": "6 min read",
+      "publishDate": "April 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-process-2.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1326,
+      "headingCount": 8,
+      "excerpt": "One of the most contentious aspects of divorce is dividing marital property. Whether you keep the house, split retirement accounts, or divide business interests depends largely on where you live and which legal framework your state uses. Understanding community property versus eq…"
+    },
+    {
+      "slug": "how-to-serve-legal-papers",
+      "title": "How to Serve Legal Papers: Personal Service, Substituted Service, and Proof",
+      "description": "Master the legal requirement to serve opposing parties. Learn personal service, substituted service, certified mail, and how to file proof of service.",
+      "category": "Self-Representation",
+      "readTime": "7 min read",
+      "publishDate": "April 8, 2026",
+      "image": "✉️",
+      "featured": false,
+      "sourceFile": "pro-se-1.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1373,
+      "headingCount": 9,
+      "excerpt": "You've prepared your legal documents carefully. Your filing fees are paid, your affidavit is notarized, and you're ready to move forward. Then you encounter a requirement buried in the court rules: you must serve your opponent with copies of everything you file. Service of proces…"
+    },
+    {
+      "slug": "when-you-need-a-lawyer",
+      "title": "When You Really Need a Lawyer: Knowing the Limits of DIY",
+      "description": "DIY legal help works for some cases. Learn when self-representation is feasible and when you should hire an attorney.",
+      "category": "Self-Representation",
+      "readTime": "9 min read",
+      "publishDate": "April 8, 2026",
+      "image": "👨‍⚖️",
+      "featured": false,
+      "sourceFile": "pro-se-2a.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1295,
+      "headingCount": 8,
+      "excerpt": "Self-representation can work—sometimes. But it's not right for every case. Knowing the limits of DIY legal help could save you years of regret and thousands of dollars. This guide helps you decide whether your case is one you can handle yourself or whether hiring a lawyer is the …"
+    },
+    {
+      "slug": "financial-affidavit-family-court",
+      "title": "Financial Affidavits in Family Court: Disclosure Done Right",
+      "description": "Master the financial affidavit requirements for divorce and family law proceedings. Learn what to disclose and how to avoid costly mistakes.",
+      "category": "Affidavits",
+      "readTime": "8 min read",
+      "publishDate": "April 5, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-2.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1213,
+      "headingCount": 9,
+      "excerpt": "In divorce, custody, and support cases, one of the most critical documents you'll file is a financial affidavit—a sworn statement of your income, expenses, assets, and debts. Courts use this information to make decisions about alimony, child support, property division, and custod…"
+    },
+    {
+      "slug": "divorce-financial-disclosures",
+      "title": "Divorce Financial Disclosures: A Practical Walkthrough",
+      "description": "Complete guide to financial disclosures in divorce: what to disclose, how to gather documents, and why transparency matters for fair settlement and legal compliance.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "April 02, 2026",
+      "image": "💰",
+      "featured": false,
+      "sourceFile": "divorce-process-1.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 829,
+      "headingCount": 3,
+      "excerpt": "One of the most critical steps in any divorce is financial disclosure. Both spouses must provide complete, accurate information about income, assets, debts, and expenses. This transparency is required by law in most jurisdictions, forms the basis for fair settlement, and is essen…"
+    },
+    {
+      "slug": "affidavit-of-identity",
+      "title": "Affidavit of Identity: When and How to Use One",
+      "description": "Learn when you need an affidavit of identity, what information to include, and how to prepare one correctly for court.",
+      "category": "Affidavits",
+      "readTime": "6 min read",
+      "publishDate": "April 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-1.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1054,
+      "headingCount": 7,
+      "excerpt": "An affidavit of identity is a sworn statement used to verify someone's personal information in legal proceedings. Whether you're changing your name, opening an account on behalf of a minor, or establishing your residency for court purposes, understanding when and how to prepare a…"
+    },
+    {
+      "slug": "affidavit-of-residency",
+      "title": "Affidavit of Residency: A Complete Guide",
+      "description": "Understand what an affidavit of residency is, when you need one, and how to prepare it for legal proceedings.",
+      "category": "Affidavits",
+      "readTime": "7 min read",
+      "publishDate": "April 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-1.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1431,
+      "headingCount": 8,
+      "excerpt": "An affidavit of residency is a legal document that establishes where you live or where you have lived during a specific period. This document is commonly required in family law cases, property disputes, and various legal proceedings where your location is relevant. Whether you're…"
+    },
+    {
+      "slug": "court-fee-waivers",
+      "title": "Court Fee Waivers: Qualifying as Indigent and Filing the Forms",
+      "description": "Learn how to qualify for fee waivers as a low-income litigant, file the paperwork, and avoid court costs entirely. Access justice without the expense.",
+      "category": "Self-Representation",
+      "readTime": "6 min read",
+      "publishDate": "April 1, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "pro-se-1.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 1393,
+      "headingCount": 9,
+      "excerpt": "Court fees are a hidden barrier to justice. Filing a divorce petition, custody modification, or small claims suit can cost $200–$500 or more in filing fees alone, before adding service of process, document preparation, or court reporter costs. For people living paycheck to payche…"
+    },
+    {
+      "slug": "reading-a-court-order",
+      "title": "How to Read a Court Order: Decoding Caption, Findings, and Decree",
+      "description": "Master the structure of court orders: captions, procedural headings, findings of fact, conclusions of law, and the operative decree. Understand what courts are actually ordering.",
+      "category": "Self-Representation",
+      "readTime": "6 min read",
+      "publishDate": "March 25, 2026",
+      "image": "📜",
+      "featured": false,
+      "sourceFile": "pro-se-1.js",
+      "tags": [
+        "self-rep",
+        "pro-se"
+      ],
+      "wordCount": 268,
+      "headingCount": 2,
+      "excerpt": "You've attended your hearing, presented your case, and now you're holding a document from the judge—your court order. It's printed on official letterhead, stamped with the court seal, and filled with formal language that seems designed to confuse. Many self-represented litigants …"
+    },
+    {
+      "slug": "affidavit-of-domicile",
+      "title": "Affidavit of Domicile: Settling Estate Securities Transfers",
+      "description": "Learn how an affidavit of domicile establishes where a deceased person lived, simplifying estate securities transfers and tax settlement.",
+      "category": "Affidavits",
+      "readTime": "7 min read",
+      "publishDate": "March 10, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-2.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1047,
+      "headingCount": 11,
+      "excerpt": "When someone dies and leaves behind securities, investment accounts, or other financial assets, transferring them from their name into the estate or to heirs can be a complex process. One document that frequently simplifies this—especially for out-of-state deaths or unclear resid…"
+    },
+    {
+      "slug": "divorce-without-a-lawyer",
+      "title": "How to File for Divorce Without a Lawyer (and When You Shouldn't)",
+      "description": "Can you file for divorce without a lawyer? Learn the risks, requirements, and when DIY divorce works—plus when professional help is essential.",
+      "category": "Divorce Process",
+      "readTime": "8 min read",
+      "publishDate": "March 05, 2026",
+      "image": "📋",
+      "featured": false,
+      "sourceFile": "divorce-process-1.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1404,
+      "headingCount": 7,
+      "excerpt": "Hiring a divorce attorney can cost thousands of dollars. If your divorce is simple, uncontested, and you and your spouse agree on all terms, filing without an attorney—known as a \"pro se\" or self-represented divorce—might seem like a way to save money. But is it actually possible…"
+    },
+    {
+      "slug": "affidavit-of-support-i864",
+      "title": "Affidavit of Support (Form I-864): What Sponsors Need to Know",
+      "description": "Understand the legal obligations and financial requirements of sponsoring an immigrant with Form I-864, the Affidavit of Support.",
+      "category": "Affidavits",
+      "readTime": "8 min read",
+      "publishDate": "February 20, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-2.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1044,
+      "headingCount": 10,
+      "excerpt": "If you are a U.S. citizen or lawful permanent resident who wants to sponsor a family member or close relative for immigration to the United States, you will almost certainly need to file an Affidavit of Support—officially known as Form I-864. This document is a binding legal cont…"
+    },
+    {
+      "slug": "uncontested-divorce-process",
+      "title": "Uncontested Divorce: How It Works When You Both Agree",
+      "description": "Learn how uncontested divorce works, from negotiating a settlement to filing court documents. Faster, cheaper, and less stressful than contested divorce.",
+      "category": "Divorce Process",
+      "readTime": "7 min read",
+      "publishDate": "February 10, 2026",
+      "image": "⏱️",
+      "featured": false,
+      "sourceFile": "divorce-process-1.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1282,
+      "headingCount": 7,
+      "excerpt": "When both spouses agree on the major terms of their divorce—property division, custody, support, and debt allocation—you have an uncontested divorce. It sounds simple, and it often is compared to contested divorces, but the process still requires careful planning and proper legal…"
+    },
+    {
+      "slug": "affidavit-of-heirship",
+      "title": "Affidavit of Heirship: Transferring Property Without Probate",
+      "description": "Learn how an affidavit of heirship can help your family transfer property efficiently and avoid costly probate proceedings.",
+      "category": "Affidavits",
+      "readTime": "7 min read",
+      "publishDate": "January 15, 2026",
+      "image": "📝",
+      "featured": false,
+      "sourceFile": "affidavits-2.js",
+      "tags": [
+        "affidavits"
+      ],
+      "wordCount": 1082,
+      "headingCount": 9,
+      "excerpt": "When someone passes away, their family often faces the difficult task of managing their estate. One piece of property may need to transfer to heirs quickly, without the time and expense of going through probate court. In many states, an affidavit of heirship offers a practical so…"
+    },
+    {
+      "slug": "no-fault-vs-fault-divorce",
+      "title": "No-Fault vs Fault Divorce: Which Path and When",
+      "description": "Understand the legal differences between no-fault and fault divorces. Learn when each applies, how they affect settlements, and which path fits your situation.",
+      "category": "Divorce Process",
+      "readTime": "6 min read",
+      "publishDate": "January 15, 2026",
+      "image": "⚖️",
+      "featured": false,
+      "sourceFile": "divorce-process-1.js",
+      "tags": [
+        "divorce",
+        "process"
+      ],
+      "wordCount": 1113,
+      "headingCount": 10,
+      "excerpt": "When you decide to end your marriage, one of the first choices you'll face is whether to file for a no-fault or fault-based divorce. This decision affects not only the timeline and cost of your divorce, but also how property is divided, custody is determined, and potentially how …"
+    },
+    {
+      "slug": "texas-family-law-affidavits",
+      "title": "Texas Family Law Affidavits: What You Need to Know",
+      "description": "Essential guide to affidavits in Texas family law cases, including divorce, custody, and child support proceedings.",
+      "category": "Texas Law",
+      "readTime": "7 min read",
+      "publishDate": "November 15, 2025",
+      "image": "👨‍👩‍👧‍👦",
+      "featured": false,
+      "sourceFile": "originals.js",
+      "tags": [
+        "us-state",
+        "texas"
+      ],
+      "wordCount": 543,
+      "headingCount": 7,
+      "excerpt": "Family law cases in Texas frequently require affidavits to support motions, establish facts, and provide evidence. Understanding the general types and formats of affidavits can help you prepare better documentation. Used to request waiver of court costs if you can't afford them. …"
+    },
+    {
+      "slug": "notarization-explained",
+      "title": "Affidavit Notarization: Everything You Need to Know",
+      "description": "Complete guide to getting your affidavit notarized, including costs, requirements, and where to find a notary.",
+      "category": "Guides",
+      "readTime": "5 min read",
+      "publishDate": "November 12, 2025",
+      "image": "✍️",
+      "featured": false,
+      "sourceFile": "originals.js",
+      "tags": [
+        "guide"
+      ],
+      "wordCount": 623,
+      "headingCount": 11,
+      "excerpt": "Notarization is typically the final step in creating a legally valid affidavit. Here's what you need to know about the notarization process. Notarization is the official process where a notary public: 1. Verifies your identity 2. Watches you sign the document 3. Confirms you're s…"
+    },
+    {
+      "slug": "utah-legal-documents-guide",
+      "title": "Utah Legal Documents: Affidavits, Declarations, and More",
+      "description": "Comprehensive guide to preparing legal documents in Utah, including state-specific requirements and procedures.",
+      "category": "Utah Law",
+      "readTime": "6 min read",
+      "publishDate": "November 10, 2025",
+      "image": "🏔️",
+      "featured": false,
+      "sourceFile": "originals.js",
+      "tags": [
+        "us-state",
+        "utah"
+      ],
+      "wordCount": 667,
+      "headingCount": 12,
+      "excerpt": "Utah has specific requirements for legal documents including affidavits, declarations, and verified pleadings. This guide provides an overview of common document types used in Utah courts. Utah has some unique features: Accepts unsworn declarations under penalty of perjury Allows…"
+    },
+    {
+      "slug": "arizona-affidavit-requirements",
+      "title": "Arizona Affidavit Requirements: Complete State Guide",
+      "description": "Everything you need to know about creating valid affidavits in Arizona, including notarization and court requirements.",
+      "category": "Arizona Law",
+      "readTime": "5 min read",
+      "publishDate": "November 8, 2025",
+      "image": "🌵",
+      "featured": false,
+      "sourceFile": "originals.js",
+      "tags": [
+        "us-state",
+        "arizona"
+      ],
+      "wordCount": 743,
+      "headingCount": 12,
+      "excerpt": "Arizona has specific requirements for affidavits used in legal proceedings. This guide provides an overview of common affidavit requirements in Arizona courts. Arizona affidavits typically include these elements: Proper venue (State of Arizona, County of [Name]) Affiant's persona…"
+    }
+  ]
+}

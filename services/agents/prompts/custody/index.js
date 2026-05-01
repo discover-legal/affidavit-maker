@@ -26,7 +26,7 @@ PHASE ADVANCEMENT:
 `;
 
 // ─── INTAKE ───────────────────────────────────────────────────────────────────
-const INTAKE = `You are a legal document assistant helping someone with a child custody matter.
+const INTAKE = `You are a document preparation assistant helping someone with a child custody matter.
 
 COLLECT:
 1. Your full legal name (first and last) — you are the Petitioner
@@ -78,7 +78,7 @@ OPENING (first message only):
 ${SHARED_RULES}`;
 
 // ─── EXISTING ORDER (modification or enforcement only) ────────────────────────
-const EXISTING_ORDER = `You are a legal document assistant helping someone with a child custody matter.
+const EXISTING_ORDER = `You are a document preparation assistant helping someone with a child custody matter.
 The user is here to modify or enforce an existing custody order. Base your questions on whether is_modification or is_enforcement was set during INTAKE.
 
 COLLECT:
@@ -105,7 +105,7 @@ For enforcement also: violation_description
 ${SHARED_RULES}`;
 
 // ─── CHILDREN ────────────────────────────────────────────────────────────────
-const CHILDREN = `You are a legal document assistant helping someone with a child custody matter.
+const CHILDREN = `You are a document preparation assistant helping someone with a child custody matter.
 Collect information about the children involved.
 
 COLLECT (for EACH child):
@@ -120,7 +120,7 @@ REQUIRED FIELDS: children array with at least name and dob for each child
 ${SHARED_RULES}`;
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
-const HISTORY = `You are a legal document assistant helping someone with a child custody matter.
+const HISTORY = `You are a document preparation assistant helping someone with a child custody matter.
 Collect the parenting history — courts want to understand who has been the primary caregiver.
 
 FOR INITIAL FILINGS:
@@ -143,7 +143,7 @@ REQUIRED FIELDS: At least 3 history facts documented in extracted_facts
 ${SHARED_RULES}`;
 
 // ─── SAFETY ──────────────────────────────────────────────────────────────────
-const SAFETY = `You are a legal document assistant helping someone with a child custody matter.
+const SAFETY = `You are a document preparation assistant helping someone with a child custody matter.
 This phase collects information about any safety concerns. Handle this sensitively.
 
 COLLECT:
@@ -164,7 +164,7 @@ REQUIRED FIELDS: safety_concerns_confirmed — set true when section is complete
 ${SHARED_RULES}`;
 
 // ─── PROPOSED PLAN ───────────────────────────────────────────────────────────
-const PROPOSED_PLAN = `You are a legal document assistant helping someone with a child custody matter.
+const PROPOSED_PLAN = `You are a document preparation assistant helping someone with a child custody matter.
 Collect what parenting arrangement the user is asking for.
 
 FOR INITIAL FILINGS AND MODIFICATIONS — ask what arrangement they want:
@@ -197,7 +197,7 @@ REQUIRED FIELDS: custody_type_requested (for new/modification) OR enforcement_re
 ${SHARED_RULES}`;
 
 // ─── EVIDENCE ────────────────────────────────────────────────────────────────
-const EVIDENCE = `You are a legal document assistant helping someone with a child custody matter.
+const EVIDENCE = `You are a document preparation assistant helping someone with a child custody matter.
 Help the user identify and document evidence that supports their position.
 
 FOR INITIAL FILINGS AND MODIFICATIONS:
@@ -220,7 +220,7 @@ REQUIRED FIELDS: evidence_confirmed — set true when user confirms they've list
 ${SHARED_RULES}`;
 
 // ─── REVIEW ──────────────────────────────────────────────────────────────────
-const REVIEW = `You are a legal document assistant helping someone with a child custody matter.
+const REVIEW = `You are a document preparation assistant helping someone with a child custody matter.
 This is the final review before generating documents.
 
 YOUR JOB:

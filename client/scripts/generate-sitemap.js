@@ -1,142 +1,78 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
+
 /**
- * Sitemap Generator
+ * client/scripts/generate-sitemap.js
  *
- * Generates sitemap.xml dynamically based on articles and static routes.
- * This ensures the sitemap stays in sync with actual content.
+ * Builds client/public/sitemap.xml at build time. Auto-discovers article
+ * URLs by scanning the per-bucket files in client/src/content/articles/ —
+ * no manual list to keep in sync with articles.js.
  *
- * Run this script during the build process to generate an updated sitemap.
- *
- * IMPORTANT: When adding new articles to src/content/articles.js,
- * also add them to the ARTICLE_ROUTES array below.
+ * Runs as the `prebuild` npm hook.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = 'https://make.discover.legal';
-const OUTPUT_PATH = path.join(__dirname, '../public/sitemap.xml');
+const BASE_URL = 'https://discover.legal';
+const ARTICLES_DIR = path.join(__dirname, '..', 'src', 'content', 'articles');
+const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'sitemap.xml');
 
-// Static routes with their SEO properties
 const STATIC_ROUTES = [
-  {
-    path: '/',
-    changefreq: 'weekly',
-    priority: '1.0',
-  },
-  {
-    path: '/resources',
-    changefreq: 'weekly',
-    priority: '0.8',
-  },
-  {
-    path: '/privacy',
-    changefreq: 'monthly',
-    priority: '0.3',
-  },
-  {
-    path: '/tos',
-    changefreq: 'monthly',
-    priority: '0.3',
-  },
-  {
-    path: '/brand',
-    changefreq: 'monthly',
-    priority: '0.5',
-  },
+  { path: '/',          changefreq: 'weekly',  priority: '1.0' },
+  { path: '/resources', changefreq: 'weekly',  priority: '0.9' },
+  { path: '/privacy',   changefreq: 'yearly',  priority: '0.5' },
+  { path: '/tos',       changefreq: 'yearly',  priority: '0.5' },
+  { path: '/brand',     changefreq: 'monthly', priority: '0.4' },
 ];
 
-// Article routes
-// IMPORTANT: Keep this in sync with src/content/articles.js
-const ARTICLE_ROUTES = [
-  {
-    path: '/resources/how-to-write-an-affidavit',
-    changefreq: 'monthly',
-    priority: '0.9', // Featured article
-  },
-  {
-    path: '/resources/persuasive-legal-writing-guide',
-    changefreq: 'monthly',
-    priority: '0.9', // Featured article
-  },
-  {
-    path: '/resources/texas-family-law-affidavits',
-    changefreq: 'monthly',
-    priority: '0.7',
-  },
-  {
-    path: '/resources/notarization-explained',
-    changefreq: 'monthly',
-    priority: '0.7',
-  },
-  {
-    path: '/resources/utah-legal-documents-guide',
-    changefreq: 'monthly',
-    priority: '0.7',
-  },
-  {
-    path: '/resources/arizona-affidavit-requirements',
-    changefreq: 'monthly',
-    priority: '0.7',
-  },
-];
+function collectSlugs() {
+  const slugs = [];
+  for (const file of fs.readdirSync(ARTICLES_DIR).sort()) {
+    if (!file.endsWith('.js')) continue;
+    const src = fs.readFileSync(path.join(ARTICLES_DIR, file), 'utf8');
+    const re = /^\s+slug:\s*['"]([a-z0-9-]+)['"]/gm;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      slugs.push(m[1]);
+    }
+  }
+  return [...new Set(slugs)];
+}
 
-/**
- * Generate URL entry for sitemap
- */
-function generateUrlEntry(url) {
-  const lastmod = new Date().toISOString().split('T')[0];
+function isoDate(d = new Date()) {
+  return d.toISOString().slice(0, 10);
+}
+
+function urlEntry(loc, changefreq, priority, lastmod) {
   return `  <url>
-    <loc>${BASE_URL}${url.path}</loc>
+    <loc>${BASE_URL}${loc}</loc>
     <lastmod>${lastmod}</lastmod>
-    <changefreq>${url.changefreq}</changefreq>
-    <priority>${url.priority}</priority>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
   </url>`;
 }
 
-/**
- * Generate sitemap.xml content
- */
-function generateSitemap() {
-  console.log('🗺️  Generating sitemap.xml...');
+function buildXml(slugs) {
+  const today = isoDate();
+  const urls = [
+    ...STATIC_ROUTES.map(r => urlEntry(r.path, r.changefreq, r.priority, today)),
+    ...slugs.map(s => urlEntry(`/resources/${s}`, 'monthly', '0.7', today)),
+  ];
 
-  const allRoutes = [...STATIC_ROUTES, ...ARTICLE_ROUTES];
-  const urls = allRoutes.map(route => generateUrlEntry(route));
-
-  // Generate XML
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Main Pages -->
-${urls.slice(0, 5).join('\n\n')}
-
-  <!-- Resource Articles -->
-${urls.slice(5).join('\n\n')}
-
+${urls.join('\n')}
 </urlset>
 `;
-
-  return xml;
 }
 
-/**
- * Write sitemap to file
- */
-function writeSitemap() {
-  try {
-    const sitemap = generateSitemap();
-    fs.writeFileSync(OUTPUT_PATH, sitemap, 'utf8');
-    console.log(`✅ Sitemap generated successfully at: ${OUTPUT_PATH}`);
-    console.log(`   Total URLs: ${STATIC_ROUTES.length + ARTICLE_ROUTES.length}`);
-  } catch (error) {
-    console.error('❌ Error generating sitemap:', error);
-    process.exit(1);
-  }
+function main() {
+  console.log('🗺️  Generating sitemap.xml...');
+  const slugs = collectSlugs();
+  fs.writeFileSync(OUTPUT_PATH, buildXml(slugs));
+  console.log(`✅ Sitemap written: ${STATIC_ROUTES.length} static + ${slugs.length} article URLs`);
+  console.log(`   ${OUTPUT_PATH}`);
 }
 
-// Run if called directly
-if (require.main === module) {
-  writeSitemap();
-}
-
-module.exports = { generateSitemap, writeSitemap };
+main();

@@ -8,6 +8,13 @@ const API_BASE = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
+/**
+ * Hook for validating county names against known counties per state.
+ * @returns {{ validateCounty: (county: string, state: string) => Promise<{isValid: boolean, normalizedCounty: string, confidence: number, reasoning: string}>,
+ *   getCountiesForState: (state: string) => Promise<string[]>,
+ *   validateMultipleCounties: (counties: string[], state: string) => Promise<Object[]>,
+ *   clearCache: () => void, cacheSize: number }}
+ */
 export const useCountyValidation = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [validationCache, setValidationCache] = useState(new Map());

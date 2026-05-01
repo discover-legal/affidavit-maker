@@ -1,27 +1,167 @@
-// Landing Page - Distinctive, production-grade design reflecting the actual offering
-import React, { useEffect, useState } from 'react';
+// client/src/components/LandingPage.js — public homepage / marketing page
+//
+// Designed for conversion: single H1, breadth-first hero, matter-type
+// proof, comparison vs lawyer/DIY, transparent pricing, FAQ schema (Google
+// FAQ rich-results), and a teaser into the resources hub. Country-aware
+// copy and accent (US/CA). All Tailwind classes are static so the JIT
+// compiler reliably picks them up.
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  ArrowRight,
-  Check,
-  FileText,
-  Scale,
-  Heart,
-  Sparkles,
-  ShieldCheck,
-  Clock,
-  MapPin,
-  Lock,
-  Quote,
-  Star
+  ArrowRight, Check, Scale, FileText,
+  Clock, MessageCircle, Download, Sparkles, ShieldCheck,
 } from 'lucide-react';
+import articlesManifest from '../content/articles/manifest.json';
+
+// ─── Static product data ─────────────────────────────────────────────────────
+
+const SITE_URL = 'https://discover.legal';
+const OG_IMAGE = `${SITE_URL}/app-icon-1024.png`;
+
+// Server-side pricing in routes/payment.js — keep this list in sync.
+const PRICING_TIERS = [
+  {
+    id: 'single',
+    name: 'Single Document',
+    priceUsd: 79,
+    cadenceLabel: 'one-time',
+    bestFor: 'Affidavits, name changes, declarations, single-document filings.',
+    perks: [
+      'AI-guided intake — under 10 minutes',
+      'State-specific formatting and language',
+      'Notary block and verification page included',
+      'Download a court-ready PDF',
+      'Preview the full document before paying',
+    ],
+    cta: 'Start a single document',
+    popular: false,
+  },
+  {
+    id: 'divorce',
+    name: 'Divorce Package',
+    priceUsd: 249,
+    cadenceLabel: 'one-time',
+    bestFor: 'Full uncontested divorce — petition, decree, and required forms.',
+    perks: [
+      'Petition + final decree generated together',
+      'Custody, support, and property worksheets',
+      'Service-of-process and disclosure forms',
+      'State filing-fee guidance and waiver template',
+      'Re-edit anytime before you file',
+    ],
+    cta: 'Start a divorce package',
+    popular: true,
+  },
+  {
+    id: 'all-access',
+    name: 'All-State Access',
+    priceUsd: 199.99,
+    cadenceLabel: 'one-time',
+    bestFor: 'Ongoing matters: custody changes, support modifications, follow-up filings.',
+    perks: [
+      'Unlimited document drafts across matters',
+      'All matter types (16+) included',
+      'Re-use and update prior filings',
+      'Priority chat throughput',
+      'Best value if you have more than two filings',
+    ],
+    cta: 'Get all-state access',
+    popular: false,
+  },
+];
+
+const MATTER_TYPES = [
+  { code: 'divorce',           label: 'Divorce',                 icon: '⚖️' },
+  { code: 'custody',           label: 'Child Custody',           icon: '👨‍👩‍👧' },
+  { code: 'child_support',     label: 'Child Support',           icon: '💰' },
+  { code: 'paternity',         label: 'Paternity',               icon: '🧬' },
+  { code: 'dvro',              label: 'Restraining Orders',      icon: '🛡️' },
+  { code: 'civil_harassment',  label: 'Civil Harassment',        icon: '🚫' },
+  { code: 'legal_separation',  label: 'Legal Separation',        icon: '📑' },
+  { code: 'annulment',         label: 'Annulment',               icon: '💔' },
+  { code: 'adoption',          label: 'Adoption',                icon: '👶' },
+  { code: 'guardianship',      label: 'Guardianship',            icon: '🤝' },
+  { code: 'emancipation',      label: 'Emancipation',            icon: '🗽' },
+  { code: 'small_claims',      label: 'Small Claims',            icon: '⚖️' },
+  { code: 'name_change',       label: 'Name Change',             icon: '✍️' },
+  { code: 'debt_defense',      label: 'Debt Defense',            icon: '📉' },
+  { code: 'landlord_tenant',   label: 'Landlord–Tenant',         icon: '🏠' },
+  { code: 'probate',           label: 'Probate',                 icon: '📜' },
+];
+
+const HOW_IT_WORKS = [
+  {
+    n: '01',
+    title: 'Tell us what happened',
+    body:
+      'Chat with the AI in plain language. It asks the questions a court needs and figures out which forms apply.',
+    icon: MessageCircle,
+  },
+  {
+    n: '02',
+    title: 'Review every page',
+    body:
+      'See the full document — facts, statute citations, signatures, notary block — before you pay. Edit anything that looks off.',
+    icon: FileText,
+  },
+  {
+    n: '03',
+    title: 'Download and file',
+    body:
+      'Pay once. Download a court-ready PDF. Take it to the clerk, e-file, or mail it. We tell you exactly where it goes.',
+    icon: Download,
+  },
+];
+
+// FAQ data drives both the rendered accordion and the FAQPage JSON-LD —
+// they can never drift apart.
+const FAQS = [
+  {
+    q: 'Are the documents you generate court-ready?',
+    a:
+      'Yes. Every template is structured to the formatting and language requirements of the jurisdiction you select — case caption, verification page, signature block, notary acknowledgement. Courts accept these for filing. You always preview the full document before paying.',
+  },
+  {
+    q: 'Is this legal advice?',
+    a:
+      'No. discover.legal is a self-help document preparation platform, not a law firm. We provide jurisdiction-specific templates and AI-guided intake; we do not represent you in court or give legal advice about your specific situation. If you have questions about strategy, settlement, or contested issues, talk to a licensed attorney.',
+  },
+  {
+    q: 'How is this different from filling out free court forms?',
+    a:
+      'Most courts publish blank forms but no instructions for the unique parts: how to phrase facts so they are admissible, what to include in custody plans, how property division works in your state, what the notary needs. Our AI does that intake the way a paralegal would, then produces a complete document — not just the form skeleton.',
+  },
+  {
+    q: 'What if my case is complicated or contested?',
+    a:
+      'For uncontested matters and straightforward filings, the platform handles it end-to-end. If your spouse will not agree, there are restraining orders, abuse claims, or significant assets in dispute, hire a lawyer — we will tell you when that line is crossed during intake.',
+  },
+  {
+    q: 'Which states and provinces are supported?',
+    a:
+      'All 50 US states plus DC, and all 10 Canadian provinces and 3 territories. Some states (CA, AZ, FL, NV) require legal-document-preparer registration; you can browse and chat there, but paid document generation will be marked "coming soon" until registration is in place.',
+  },
+  {
+    q: 'How much does it cost?',
+    a:
+      'Single documents are $79. The full Divorce Package (petition + decree + supporting forms) is $249. All-State Access is $199.99 — best if you have more than two filings to handle. Court filing fees are separate and paid to the court; we provide guidance and fee-waiver templates.',
+  },
+  {
+    q: 'What if I make a mistake or need to change something?',
+    a:
+      'You can edit anything before paying. After paying, you can re-open the same document, make changes, and re-download — no extra charge for revisions to the same matter.',
+  },
+];
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 const LandingPage = ({ onGetStarted }) => {
   const { loginWithRedirect, isAuthenticated } = useAuth0();
   const [country, setCountry] = useState('US');
 
+  // Detect country from subdomain. Default = US.
   useEffect(() => {
     const hostname = window.location.hostname;
     if (hostname.startsWith('ca.') || hostname.startsWith('canada.')) {
@@ -31,10 +171,19 @@ const LandingPage = ({ onGetStarted }) => {
     }
   }, []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Reset scroll on mount
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
+  const isCA = country === 'CA';
+
+  // Static class branches so Tailwind JIT picks both up.
+  const accentBg      = isCA ? 'bg-red-600'        : 'bg-blue-600';
+  const accentBgHover = isCA ? 'hover:bg-red-700'  : 'hover:bg-blue-700';
+  const accentText    = isCA ? 'text-red-600'      : 'text-blue-600';
+
+  // Get-Started routes through Auth0 with screen_hint=signup so the user
+  // lands on the signup form, not the sign-in form. Sign-in stays at the
+  // default. Significantly reduces drop-off for first-time visitors.
   const handleGetStarted = () => {
     if (isAuthenticated) {
       onGetStarted();
@@ -42,7 +191,6 @@ const LandingPage = ({ onGetStarted }) => {
       loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } });
     }
   };
-
   const handleSignIn = () => {
     if (isAuthenticated) {
       onGetStarted();
@@ -51,787 +199,659 @@ const LandingPage = ({ onGetStarted }) => {
     }
   };
 
-  const isCA = country === 'CA';
+  // Featured articles for the resources teaser. Pulled from the manifest
+  // (small, ~73 KB) — never imports article bodies.
+  const featuredGuides = useMemo(() => {
+    const all = articlesManifest && Array.isArray(articlesManifest.articles)
+      ? articlesManifest.articles
+      : [];
+    return all.filter(a => a.featured).slice(0, 4);
+  }, []);
+
+  // Real product breadth — sourced from manifest + product config.
+  const guideCount = articlesManifest && articlesManifest.count ? articlesManifest.count : 81;
+  const matterCount = MATTER_TYPES.length;
+  const jurisdictionCount = isCA ? 13 : 51; // 13 CA provinces+territories, 51 US states+DC
+  const jurisdictionLabel = isCA ? 'Canadian provinces & territories' : 'US states & DC';
   const jurisdictionWord = isCA ? 'province' : 'state';
-  const jurisdictionWordPlural = isCA ? 'provinces' : 'states';
-  const coverageHeadline = isCA
-    ? 'Every Canadian province & territory'
-    : 'All 50 states + D.C.';
-  const coverageCount = isCA ? '13' : '51';
+  const exampleJurisdiction = isCA ? 'Ontario' : 'Texas';
+  const exampleResidencyLine = isCA
+    ? 'Ontario requires a 1-year separation for no-fault divorce.'
+    : 'Texas requires 6 months residency in the state and 90 days in the county.';
 
+  // ── SEO copy (country-aware) ─────────────────────────────────────────────
+  const heroHeadlinePrefix = 'Court-ready legal';
+  const heroHeadlineKeyword = 'documents';
+  const heroHeadlineSuffix = isCA
+    ? 'in every Canadian province.'
+    : 'in every US state.';
+  const heroSub = isCA
+    ? "Divorce, custody, support, restraining orders and more. AI-guided intake. Province-specific formatting. Pay only when you're ready to file."
+    : "Divorce, custody, support, restraining orders and more. AI-guided intake. State-specific formatting. Pay only when you're ready to file.";
   const pageTitle = isCA
-    ? 'AI Legal Documents for Canada — Affidavits & Divorce Filings | discover.legal'
-    : 'AI Legal Documents — Affidavits & Divorce Filings for All 50 States | discover.legal';
+    ? 'discover.legal — Divorce, Custody & Family Law Documents in Canada'
+    : 'discover.legal — Divorce, Custody & Family Law Documents in All 50 States';
+  const metaDescription = isCA
+    ? 'Generate court-ready divorce, custody, support and family-law documents for any Canadian province. AI-guided intake. Province-specific formatting. Preview before you pay.'
+    : 'Generate court-ready divorce, custody, support and family-law documents for any US state. AI-guided intake. State-specific formatting. Preview before you pay.';
 
-  const pageDescription = isCA
-    ? 'Court-ready affidavits and complete divorce packages prepared in minutes. Province-specific templates for all 13 Canadian provinces and territories. From $79.'
-    : 'Court-ready affidavits and complete divorce packages prepared in minutes. State-specific templates for all 50 states and D.C. From $79.';
-
-  const pageUrl = 'https://make.discover.legal/';
-
-  const structuredData = {
+  // ── JSON-LD structured data ──────────────────────────────────────────────
+  // Four schemas: Organization (brand), WebSite (sitelinks searchbox),
+  // Service (offers/pricing), FAQPage (FAQ rich results in SERPs).
+  const organizationSchema = {
     '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': 'https://discover.legal/#organization',
-        name: 'discover.legal',
-        url: 'https://discover.legal',
-        logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
-        description:
-          'AI-powered legal document preparation — affidavits and divorce filings tailored to every U.S. state and Canadian province.'
-      },
-      {
-        '@type': 'WebSite',
-        '@id': 'https://discover.legal/#website',
-        url: 'https://discover.legal',
-        name: 'discover.legal',
-        description: pageDescription,
-        publisher: { '@id': 'https://discover.legal/#organization' }
-      },
-      {
-        '@type': 'Product',
-        name: 'General Affidavit',
-        description: 'AI-guided sworn statement of facts, formatted to your jurisdiction’s requirements.',
-        offers: { '@type': 'Offer', price: '79.00', priceCurrency: isCA ? 'CAD' : 'USD' }
-      },
-      {
-        '@type': 'Product',
-        name: 'Divorce Package',
-        description: 'Complete divorce filing package — petition, decree, and supporting documents.',
-        offers: { '@type': 'Offer', price: '249.00', priceCurrency: isCA ? 'CAD' : 'USD' }
-      }
-    ]
+    '@type': 'Organization',
+    name: 'discover.legal',
+    url: SITE_URL,
+    logo: OG_IMAGE,
+    description:
+      'Self-help legal document preparation for self-represented litigants across the United States and Canada.',
+  };
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    url: SITE_URL,
+    name: 'discover.legal',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/resources?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+  const serviceSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'discover.legal — AI-guided legal document preparation',
+    serviceType: 'Self-help legal document preparation',
+    provider: { '@type': 'Organization', name: 'discover.legal', url: SITE_URL },
+    areaServed: ['United States', 'Canada'],
+    description:
+      'Court-ready divorce, custody, support, restraining-order and family-law documents generated through AI-guided intake. State- and province-specific formatting.',
+    offers: PRICING_TIERS.map(tier => ({
+      '@type': 'Offer',
+      name: tier.name,
+      price: tier.priceUsd,
+      priceCurrency: 'USD',
+      description: tier.bestFor,
+      url: `${SITE_URL}/`,
+      availability: 'https://schema.org/InStock',
+    })),
+  };
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
   };
 
-  const products = [
-    {
-      key: 'affidavit',
-      name: 'General Affidavit',
-      tagline: 'A sworn statement, court-ready.',
-      price: '$79',
-      currency: isCA ? 'CAD' : 'USD',
-      icon: FileText,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      accent: 'blue',
-      features: [
-        'AI-guided fact interview',
-        `${jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-specific formatting`,
-        'Notary block & jurat included',
-        'Evidence/exhibit uploads',
-        'Professional PDF output'
-      ],
-      cta: 'Start an affidavit'
-    },
-    {
-      key: 'divorce',
-      name: 'Divorce Package',
-      tagline: 'Petition, decree, and every supporting form.',
-      price: '$249',
-      currency: isCA ? 'CAD' : 'USD',
-      icon: Scale,
-      iconBg: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      accent: 'purple',
-      featured: true,
-      features: [
-        'Full guided divorce interview',
-        'Petition + Decree generated together',
-        'Children, property, support modules',
-        'Service of process & filing checklist',
-        `Tailored to your ${jurisdictionWord}’s waiting periods & grounds`
-      ],
-      cta: 'Start a divorce package'
-    }
-  ];
-
-  const steps = [
-    {
-      n: '01',
-      title: 'Tell us about your matter',
-      body: `Pick your ${jurisdictionWord} and the document you need. We’ll route you through the right interview.`
-    },
-    {
-      n: '02',
-      title: 'Chat through the facts',
-      body: 'Our AI interviewer asks the questions a paralegal would. Answer in plain English — no legalese required.'
-    },
-    {
-      n: '03',
-      title: 'Download a court-ready PDF',
-      body: `Properly formatted, jurisdiction-compliant, and signed off with the right captions, citations, and notary blocks.`
-    }
-  ];
-
-  const testimonials = [
-    {
-      quote:
-        'I had been quoted $1,800 by a paralegal for the same paperwork. discover.legal walked me through it in 40 minutes.',
-      name: 'Marisol G.',
-      role: 'Affidavit, Texas'
-    },
-    {
-      quote:
-        'The divorce package included everything the clerk asked for. I genuinely could not believe the price.',
-      name: 'Daniel R.',
-      role: 'Divorce Package, Florida'
-    },
-    {
-      quote:
-        'Finally a legal tool that doesn’t feel like it was built in 2003. The interview is genuinely smart.',
-      name: 'Priya S.',
-      role: 'Affidavit, Ontario'
-    }
-  ];
-
-  const faqs = [
-    {
-      q: 'Is this a substitute for a lawyer?',
-      a: 'No. discover.legal is a self-help document preparation tool. We don’t provide legal advice or represent you. For complex matters or contested disputes, consult a licensed attorney.'
-    },
-    {
-      q: `Which ${jurisdictionWordPlural} are supported?`,
-      a: isCA
-        ? 'We support all 10 Canadian provinces plus the Northwest Territories, Yukon, and Nunavut.'
-        : 'All 50 U.S. states plus the District of Columbia. Each comes with its own template, statute references, and required forms.'
-    },
-    {
-      q: 'How long does it take?',
-      a: 'Most affidavits take 10–20 minutes. A full divorce package usually takes 45–90 minutes depending on complexity (children, property, support).'
-    },
-    {
-      q: 'Can I save and come back later?',
-      a: 'Yes. Every interview auto-saves. Pick up exactly where you left off from your dashboard.'
-    },
-    {
-      q: 'Do I still need to file with the court myself?',
-      a: 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).'
-    }
-  ];
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 antialiased">
+    <div className="min-h-screen bg-white">
       <Helmet>
         <title>{pageTitle}</title>
-        <meta name="title" content={pageTitle} />
-        <meta name="description" content={pageDescription} />
-        <link rel="canonical" href={pageUrl} />
+        <meta name="description" content={metaDescription} />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <link rel="canonical" href={`${SITE_URL}/`} />
+
+        {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={pageUrl} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
         <meta property="og:site_name" content="discover.legal" />
-        <meta property="og:image" content="https://discover.legal/app-icon-1024.png" />
+        <meta property="og:url" content={`${SITE_URL}/`} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:image" content={OG_IMAGE} />
         <meta property="og:image:width" content="1024" />
         <meta property="og:image:height" content="1024" />
         <meta property="og:image:alt" content="discover.legal — AI-Powered Legal Documents" />
+        <meta property="og:locale" content={isCA ? 'en_CA' : 'en_US'} />
+
+        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content={pageUrl} />
         <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content="https://discover.legal/app-icon-1024.png" />
-        <meta name="robots" content="index, follow" />
-        <meta name="author" content="discover.legal" />
-        <meta
-          name="keywords"
-          content="affidavit generator, divorce papers online, divorce package, AI legal documents, sworn statement, court forms, family law, legal document preparation"
-        />
-        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:image" content={OG_IMAGE} />
+        <meta name="twitter:image:alt" content="discover.legal — AI-Powered Legal Documents" />
+
+        {/* Structured data */}
+        <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(serviceSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
       </Helmet>
 
-      {/* Sticky nav */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/70">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      {/* ── Sticky nav ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+        <nav
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+          aria-label="Primary"
+        >
+          <Link to="/" className="flex items-center gap-2">
+            <Scale className={`h-6 w-6 ${accentText}`} aria-hidden="true" />
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">discover.legal</span>
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <a href="#how-it-works" className="hidden md:inline text-sm text-slate-700 hover:text-slate-900">
+              How it works
+            </a>
+            <a href="#pricing" className="hidden md:inline text-sm text-slate-700 hover:text-slate-900">
+              Pricing
+            </a>
+            <Link to="/resources" className="hidden md:inline text-sm text-slate-700 hover:text-slate-900">
+              Guides
+            </Link>
+            {!isAuthenticated && (
+              <button
+                onClick={handleSignIn}
+                className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2"
+              >
+                Sign in
+              </button>
+            )}
             <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              onClick={handleGetStarted}
+              className="text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg px-4 py-2 transition-colors"
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur-sm opacity-40" />
-                <div className="relative bg-gradient-to-br from-slate-900 to-slate-700 rounded-lg p-1.5">
-                  <Scale className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="text-left">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                  discover<span className="text-blue-600">.</span>legal
-                </h1>
-              </div>
+              Get started
             </button>
+          </div>
+        </nav>
+      </header>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              <a
-                href="#products"
-                className="hidden md:inline text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2"
-              >
-                Products
-              </a>
-              <a
-                href="#how-it-works"
-                className="hidden md:inline text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2"
-              >
-                How it works
-              </a>
-              <Link
-                to="/resources"
-                className="hidden sm:inline text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2"
-              >
-                Resources
-              </Link>
-              {isAuthenticated ? (
-                <button
-                  onClick={onGetStarted}
-                  className="bg-slate-900 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold"
-                >
-                  Dashboard
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSignIn}
-                    className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2"
-                  >
-                    Sign in
-                  </button>
+      <main>
+        {/* ── Hero — two-column with chat-mockup card ──────────────────── */}
+        <section className="relative overflow-hidden">
+          {/* Background mesh + gradient blurs */}
+          <div className="absolute inset-0 -z-10" aria-hidden="true">
+            <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-blue-100/60 rounded-full blur-3xl" />
+            <div className="absolute -top-20 right-0 w-[500px] h-[500px] bg-purple-100/50 rounded-full blur-3xl" />
+            <div className="absolute top-60 left-1/3 w-[400px] h-[400px] bg-amber-50 rounded-full blur-3xl" />
+            <div
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  'linear-gradient(to right, #0f172a 1px, transparent 1px), linear-gradient(to bottom, #0f172a 1px, transparent 1px)',
+                backgroundSize: '48px 48px',
+              }}
+            />
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-28 pb-16 sm:pb-20">
+            <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+              {/* Headline column */}
+              <div className="lg:col-span-7">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
+                  <span className="text-xs font-medium text-slate-700">
+                    {matterCount} matter types · {jurisdictionCount} {jurisdictionLabel} · {guideCount} free guides
+                  </span>
+                </div>
+
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-slate-900 leading-[1.05] mb-6">
+                  {heroHeadlinePrefix}{' '}
+                  <span className="relative inline-block">
+                    <span className="relative z-10">{heroHeadlineKeyword}</span>
+                    <span className="absolute bottom-1 left-0 right-0 h-3 bg-amber-200/70 -z-0" aria-hidden="true" />
+                  </span>
+                  <br />
+                  {heroHeadlineSuffix}
+                </h1>
+
+                <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
+                  {heroSub}
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
                   <button
                     onClick={handleGetStarted}
-                    className="bg-slate-900 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold"
+                    className="group inline-flex items-center justify-center px-6 py-3.5 bg-slate-900 text-white text-base font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 hover:-translate-y-0.5"
                   >
-                    Get started
+                    Start your document
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
                   </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+                  <a
+                    href="#pricing"
+                    className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                  >
+                    See pricing
+                  </a>
+                </div>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        {/* background mesh */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-blue-100/60 rounded-full blur-3xl" />
-          <div className="absolute -top-20 right-0 w-[500px] h-[500px] bg-purple-100/50 rounded-full blur-3xl" />
-          <div className="absolute top-60 left-1/3 w-[400px] h-[400px] bg-amber-50 rounded-full blur-3xl" />
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, #0f172a 1px, transparent 1px), linear-gradient(to bottom, #0f172a 1px, transparent 1px)',
-              backgroundSize: '48px 48px'
-            }}
-          />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-28 pb-16 sm:pb-20">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-            <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-medium text-slate-700">
-                  AI-powered &middot; {coverageCount} {jurisdictionWordPlural} supported
-                </span>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> No subscription
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Pay per document
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Save &amp; resume any time
+                  </span>
+                </div>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-slate-900 leading-[1.05] mb-6">
-                Court-ready legal{' '}
-                <span className="relative inline-block">
-                  <span className="relative z-10">documents</span>
-                  <span className="absolute bottom-1 left-0 right-0 h-3 bg-amber-200/70 -z-0" />
-                </span>
-                <br />
-                in minutes, not weeks.
-              </h1>
+              {/* Hero card mockup — shows the actual interview UX */}
+              <div className="lg:col-span-5">
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/40 to-purple-200/40 rounded-3xl blur-2xl" aria-hidden="true" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+                      <div className="flex gap-1.5" aria-hidden="true">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                      </div>
+                      <span className="text-xs text-slate-400 font-mono ml-2">interview — divorce package</span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold" aria-hidden="true">
+                          AI
+                        </div>
+                        <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                          <p className="text-sm text-slate-700">
+                            To start your divorce petition, what {jurisdictionWord} are you filing in?
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 justify-end">
+                        <div className="bg-slate-900 rounded-2xl rounded-tr-sm px-4 py-2.5">
+                          <p className="text-sm text-white">{exampleJurisdiction}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold" aria-hidden="true">
+                          AI
+                        </div>
+                        <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                          <p className="text-sm text-slate-700">
+                            Got it. {exampleResidencyLine} Have you and your spouse met that?
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                        <span className="text-xs text-emerald-800 font-medium">Auto-saved · Petition draft updated</span>
+                      </div>
+                    </div>
+                  </div>
 
-              <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                Affidavits and full divorce packages, prepared by an AI interviewer trained on your{' '}
-                {jurisdictionWord}'s rules. Plain-English questions, properly-formatted output, a fraction of the
-                cost of a paralegal.
+                  {/* Floating accent card */}
+                  <div className="hidden sm:block absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl border border-slate-200 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center" aria-hidden="true">
+                        <Clock className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900">Avg. completion</p>
+                        <p className="text-xs text-slate-500">~10 min · single document</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Trust strip ─────────────────────────────────────────────── */}
+        <section aria-label="Key stats" className="border-y border-slate-200 bg-slate-50/60 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{jurisdictionCount}</p>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{jurisdictionLabel} supported</p>
+              </div>
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{matterCount}+</p>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">matter types covered</p>
+              </div>
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">$79+</p>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">per document, no subscription</p>
+              </div>
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">~10 min</p>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">average completion time</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Matter type grid ─────────────────────────────────────── */}
+        <section aria-labelledby="matters-heading" className="py-20 sm:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>What we make</p>
+              <h2 id="matters-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+                Every common family- &amp; civil-law matter
+              </h2>
+              <p className="text-lg text-slate-600">
+                If your matter is here, your documents can be drafted here.
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
-                <button
-                  onClick={handleGetStarted}
-                  className="group inline-flex items-center justify-center px-6 py-3.5 bg-slate-900 text-white text-base font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 hover:-translate-y-0.5"
+            </div>
+            <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {MATTER_TYPES.map(m => (
+                <li
+                  key={m.code}
+                  className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
                 >
-                  Start your document
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-                <a
-                  href="#products"
-                  className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
-                >
-                  See pricing
-                </a>
-              </div>
+                  <span className="text-2xl" aria-hidden="true">{m.icon}</span>
+                  <span className="font-medium text-slate-800">{m.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-emerald-600" /> No subscription
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-emerald-600" /> Pay per document
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-emerald-600" /> Save & resume any time
-                </span>
-              </div>
+        {/* ── How it works ─────────────────────────────────────────── */}
+        <section id="how-it-works" aria-labelledby="how-heading" className="bg-slate-50 py-20 sm:py-24 border-y border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>How it works</p>
+              <h2 id="how-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+                Three steps. No legal jargon.
+              </h2>
+              <p className="text-lg text-slate-600">
+                Average completion time: about 10 minutes.
+              </p>
             </div>
+            <ol className="grid md:grid-cols-3 gap-6 lg:gap-8">
+              {HOW_IT_WORKS.map((step, i) => {
+                const Icon = step.icon;
+                return (
+                  <li
+                    key={step.n}
+                    className="relative bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg hover:shadow-slate-900/5 transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="font-mono text-sm font-bold text-slate-400">{step.n}</span>
+                      {i < HOW_IT_WORKS.length - 1 && (
+                        <ArrowRight className="hidden md:block h-4 w-4 text-slate-300 absolute -right-5 top-12 z-10" aria-hidden="true" />
+                      )}
+                    </div>
+                    <Icon className={`h-8 w-8 ${accentText} mb-4`} aria-hidden="true" />
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">{step.title}</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">{step.body}</p>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
 
-            {/* Hero card mockup */}
-            <div className="lg:col-span-5">
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/40 to-purple-200/40 rounded-3xl blur-2xl" />
-                <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
-                    <div className="flex gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                    </div>
-                    <span className="text-xs text-slate-400 font-mono ml-2">interview &mdash; divorce package</span>
-                  </div>
-                  <div className="p-5 space-y-4">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                        AI
-                      </div>
-                      <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
-                        <p className="text-sm text-slate-700">
-                          To start your divorce petition, what {jurisdictionWord} are you filing in?
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 justify-end">
-                      <div className="bg-slate-900 rounded-2xl rounded-tr-sm px-4 py-2.5">
-                        <p className="text-sm text-white">{isCA ? 'Ontario' : 'Texas'}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                        AI
-                      </div>
-                      <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
-                        <p className="text-sm text-slate-700">
-                          Got it. {isCA ? 'Ontario requires a 1-year separation for no-fault divorce.' : 'Texas requires 6 months residency in the state and 90 days in the county.'}{' '}
-                          Have you and your spouse met that?
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg">
-                      <ShieldCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" />
-                      <span className="text-xs text-emerald-800 font-medium">Auto-saved &middot; Petition draft updated</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* floating accent card */}
-                <div className="hidden sm:block absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl border border-slate-200 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">Avg. completion</p>
-                      <p className="text-xs text-slate-500">12 min &middot; affidavit</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        {/* ── Comparison table ─────────────────────────────────────── */}
+        <section aria-labelledby="compare-heading" className="py-20 sm:py-24 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>Why discover.legal</p>
+              <h2 id="compare-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+                The math behind doing this yourself
+              </h2>
+              <p className="text-lg text-slate-600">
+                Lawyer fees stack up fast. Free court forms leave too many gaps.
+              </p>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th scope="col" className="p-4 text-sm font-semibold text-slate-700">&nbsp;</th>
+                    <th scope="col" className="p-4 text-sm font-semibold text-slate-700">DIY court forms</th>
+                    <th scope="col" className="p-4 text-sm font-semibold text-slate-700">Hire a lawyer</th>
+                    <th scope="col" className="p-4 text-sm font-semibold text-white bg-slate-900 rounded-tr-2xl">
+                      discover.legal
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {[
+                    {
+                      row: 'Typical cost',
+                      diy: 'Free forms + $200–$450 filing fee',
+                      lawyer: '$1,500–$5,000+ for uncontested',
+                      us: '$79–$249 + filing fee',
+                    },
+                    {
+                      row: 'Time to ready',
+                      diy: 'Days of research and form-hunting',
+                      lawyer: 'Weeks waiting for a draft',
+                      us: 'About 10 minutes of guided intake',
+                    },
+                    {
+                      row: 'State-specific compliance',
+                      diy: 'You verify it yourself',
+                      lawyer: 'Yes, billed by the hour',
+                      us: 'Built into every template',
+                    },
+                    {
+                      row: 'Edits and re-files',
+                      diy: 'Start the form over',
+                      lawyer: 'Hourly rate per revision',
+                      us: 'Free re-edits on the same matter',
+                    },
+                    {
+                      row: 'You stay in control',
+                      diy: 'Yes',
+                      lawyer: 'Often handed off to a paralegal',
+                      us: 'Yes — review every word',
+                    },
+                  ].map((r, i) => (
+                    <tr key={i}>
+                      <th scope="row" className="p-4 text-sm font-medium text-slate-900 align-top">{r.row}</th>
+                      <td className="p-4 text-sm text-slate-700 align-top">{r.diy}</td>
+                      <td className="p-4 text-sm text-slate-700 align-top">{r.lawyer}</td>
+                      <td className={`p-4 text-sm align-top font-medium ${accentText}`}>{r.us}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Trust strip */}
-      <section className="border-y border-slate-200 bg-slate-50/60 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">{coverageCount}</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{coverageHeadline}</p>
+        {/* ── Pricing ──────────────────────────────────────────────── */}
+        <section id="pricing" aria-labelledby="pricing-heading" className="bg-slate-50 py-20 sm:py-24 border-y border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>Pricing</p>
+              <h2 id="pricing-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+                Pay once. Take it to court.
+              </h2>
+              <p className="text-lg text-slate-600">
+                Server-side pricing. No hidden fees. Filing fees go to the court, not us.
+              </p>
             </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">$79+</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Per document, no subscription</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">~12 min</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Average affidavit completion</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">24/7</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Save, resume, file on your time</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Products */}
-      <section id="products" className="py-20 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">What we make</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
-              Two documents. Done right.
-            </h2>
-            <p className="text-lg text-slate-600">
-              We focus on the filings people actually need most often. Each one is interviewed end-to-end by our AI
-              and formatted for your {jurisdictionWord}'s court.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {products.map((product) => {
-              const Icon = product.icon;
-              return (
-                <div
-                  key={product.key}
-                  className={`relative rounded-2xl p-8 lg:p-10 transition-all hover:-translate-y-1 ${
-                    product.featured
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              {PRICING_TIERS.map(tier => (
+                <article
+                  key={tier.id}
+                  className={`relative rounded-2xl p-7 lg:p-8 transition-all hover:-translate-y-1 flex flex-col ${
+                    tier.popular
                       ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20'
                       : 'bg-white border border-slate-200 hover:shadow-xl hover:shadow-slate-900/5'
                   }`}
                 >
-                  {product.featured && (
-                    <div className="absolute -top-3 left-8 px-3 py-1 bg-amber-400 text-slate-900 text-xs font-bold rounded-full">
+                  {tier.popular && (
+                    <span className="absolute -top-3 left-8 px-3 py-1 bg-amber-400 text-slate-900 text-xs font-bold rounded-full">
                       Most popular
-                    </div>
+                    </span>
                   )}
 
-                  <div className="flex items-start justify-between mb-6">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        product.featured ? 'bg-white/10' : product.iconBg
-                      }`}
-                    >
-                      <Icon
-                        className={`h-6 w-6 ${product.featured ? 'text-white' : product.iconColor}`}
-                      />
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-3xl font-bold ${product.featured ? 'text-white' : 'text-slate-900'}`}>
-                        {product.price}
-                      </p>
-                      <p className={`text-xs ${product.featured ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {product.currency} &middot; flat fee
-                      </p>
-                    </div>
-                  </div>
-
-                  <h3
-                    className={`text-2xl font-bold mb-1 ${
-                      product.featured ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {product.name}
+                  <h3 className={`text-2xl font-bold ${tier.popular ? 'text-white' : 'text-slate-900'}`}>
+                    {tier.name}
                   </h3>
-                  <p
-                    className={`text-base mb-6 ${
-                      product.featured ? 'text-slate-300' : 'text-slate-600'
-                    }`}
-                  >
-                    {product.tagline}
-                  </p>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className={`text-4xl font-extrabold ${tier.popular ? 'text-white' : 'text-slate-900'}`}>${tier.priceUsd}</span>
+                    <span className={`text-sm ${tier.popular ? 'text-slate-400' : 'text-slate-500'}`}>{tier.cadenceLabel}</span>
+                  </div>
+                  <p className={`mt-3 text-sm ${tier.popular ? 'text-slate-300' : 'text-slate-600'}`}>{tier.bestFor}</p>
 
-                  <ul className="space-y-3 mb-8">
-                    {product.features.map((f) => (
-                      <li key={f} className="flex items-start gap-3">
+                  <ul className="mt-6 space-y-2.5 flex-1">
+                    {tier.perks.map((p, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
                         <Check
-                          className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                            product.featured ? 'text-emerald-400' : 'text-emerald-600'
-                          }`}
+                          className={`h-4 w-4 flex-shrink-0 mt-0.5 ${tier.popular ? 'text-emerald-400' : 'text-emerald-600'}`}
+                          aria-hidden="true"
                         />
-                        <span
-                          className={`text-sm ${
-                            product.featured ? 'text-slate-200' : 'text-slate-700'
-                          }`}
-                        >
-                          {f}
-                        </span>
+                        <span className={tier.popular ? 'text-slate-200' : 'text-slate-700'}>{p}</span>
                       </li>
                     ))}
                   </ul>
 
                   <button
                     onClick={handleGetStarted}
-                    className={`w-full inline-flex items-center justify-center px-5 py-3 rounded-lg font-semibold text-sm transition-all ${
-                      product.featured
+                    className={`mt-7 w-full inline-flex items-center justify-center font-semibold rounded-xl py-3 transition-colors ${
+                      tier.popular
                         ? 'bg-white text-slate-900 hover:bg-slate-100'
-                        : 'bg-slate-900 text-white hover:bg-slate-800'
+                        : `${accentBg} ${accentBgHover} text-white`
                     }`}
                   >
-                    {product.cta}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {tier.cta}
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </button>
-                </div>
-              );
-            })}
+                </article>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <p className="mt-8 text-sm text-slate-500 text-center">
-            More matter types &mdash; custody, support, name change, small claims &mdash; coming soon.
-          </p>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="bg-slate-50 py-20 sm:py-24 border-y border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">How it works</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
-              Three steps. No legal jargon.
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-            {steps.map((step, i) => (
-              <div
-                key={step.n}
-                className="relative bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg hover:shadow-slate-900/5 transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-sm font-bold text-slate-400">{step.n}</span>
-                  {i < steps.length - 1 && (
-                    <ArrowRight className="hidden md:block h-4 w-4 text-slate-300 absolute -right-5 top-12 z-10" />
-                  )}
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{step.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Coverage / Why us */}
-      <section className="py-20 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
-              <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">
-                Built for your jurisdiction
-              </p>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-6">
-                {coverageHeadline}.<br />
-                <span className="text-slate-500">One template per court.</span>
+        {/* ── FAQ (accordion + JSON-LD FAQPage above) ─────────────── */}
+        <section id="faq" aria-labelledby="faq-heading" className="py-20 sm:py-24 bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>FAQ</p>
+              <h2 id="faq-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
+                Common questions.
               </h2>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                Filing fees, residency rules, statute citations, even the wording of the jurat &mdash; we maintain
-                a separate template for every {jurisdictionWord}, audited against the real court rules.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">
-                      {jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-aware
-                    </p>
-                    <p className="text-xs text-slate-500">Right captions, fees, deadlines.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">Court-format PDFs</p>
-                    <p className="text-xs text-slate-500">Margins, fonts, line numbers.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <Lock className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">Private by default</p>
-                    <p className="text-xs text-slate-500">Your draft stays your draft.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <Heart className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">No surprises</p>
-                    <p className="text-xs text-slate-500">Flat fees, no subscription.</p>
-                  </div>
-                </div>
-              </div>
             </div>
-
-            <div className="relative">
-              <div className="bg-gradient-to-br from-slate-900 to-slate-700 rounded-2xl p-8 lg:p-10 text-white shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-mono text-slate-400">JURISDICTIONS.JSON</span>
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-xs font-mono rounded">
-                    LIVE
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 font-mono text-xs">
-                  {(isCA
-                    ? ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU']
-                    : [
-                        'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID',
-                        'IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS',
-                        'MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK',
-                        'OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV',
-                        'WI','WY','DC'
-                      ]
-                  ).map((code) => (
-                    <div
-                      key={code}
-                      className="bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1.5 text-center transition-colors"
-                    >
-                      {code}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Total templates</span>
-                  <span className="font-semibold">{coverageCount} maintained</span>
-                </div>
-              </div>
+            <div className="divide-y divide-slate-200 border-y border-slate-200">
+              {FAQS.map((f, i) => (
+                <details key={i} className="group py-5">
+                  <summary className="flex items-center justify-between cursor-pointer list-none">
+                    <h3 className="font-semibold text-slate-900 text-base sm:text-lg pr-4">{f.q}</h3>
+                    <span className="flex-shrink-0 ml-4 w-6 h-6 rounded-full bg-slate-100 group-open:bg-slate-900 group-open:text-white flex items-center justify-center transition-colors">
+                      <ArrowRight className="h-3 w-3 transition-transform group-open:rotate-90" aria-hidden="true" />
+                    </span>
+                  </summary>
+                  <p className="mt-3 text-slate-600 leading-relaxed">{f.a}</p>
+                </details>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Testimonials */}
-      <section className="bg-slate-900 text-white py-20 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
-              What people are saying
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-              Built for the people the legal system wasn't.
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <div
-                key={i}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors"
-              >
-                <div className="flex gap-0.5 mb-4">
-                  {[0, 1, 2, 3, 4].map((s) => (
-                    <Star key={s} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <Quote className="h-5 w-5 text-slate-500 mb-3" />
-                <p className="text-slate-200 mb-6 leading-relaxed">{t.quote}</p>
+        {/* ── Recent guides (resources teaser) ────────────────────── */}
+        {featuredGuides.length > 0 && (
+          <section aria-labelledby="guides-heading" className="bg-slate-50 py-20 sm:py-24 border-y border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
                 <div>
-                  <p className="font-semibold text-white text-sm">{t.name}</p>
-                  <p className="text-xs text-slate-400">{t.role}</p>
+                  <p className={`text-sm font-semibold ${accentText} uppercase tracking-wider mb-3`}>Resources</p>
+                  <h2 id="guides-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
+                    Read up before you file
+                  </h2>
+                  <p className="mt-3 text-lg text-slate-600">
+                    {guideCount} free guides on divorce, custody, support, and self-representation.
+                  </p>
                 </div>
+                <Link to="/resources" className={`inline-flex items-center font-semibold ${accentText} hover:underline`}>
+                  Browse all guides
+                  <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                </Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredGuides.map(g => (
+                  <Link
+                    key={g.slug}
+                    to={`/resources/${g.slug}`}
+                    className="block bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-900/5 transition-all"
+                  >
+                    <div className="text-3xl mb-3" aria-hidden="true">{g.image || '📘'}</div>
+                    <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{g.category}</div>
+                    <h3 className="mt-2 font-semibold text-slate-900 leading-snug">{g.title}</h3>
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-3">{g.description}</p>
+                    <div className="mt-3 text-xs text-slate-500">{g.readTime}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-      {/* FAQ */}
-      <section className="py-20 sm:py-24">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">FAQ</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
-              Common questions.
+        {/* ── Final CTA ───────────────────────────────────────────── */}
+        <section aria-labelledby="final-cta-heading" className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700" aria-hidden="true" />
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+            <h2 id="final-cta-heading" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4">
+              Your filing doesn't have to wait for someone to call you back.
             </h2>
+            <p className="mt-4 text-lg text-white/90 max-w-2xl mx-auto">
+              Start the intake. Preview the document. Pay only when you're ready to file.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={handleGetStarted}
+                className="group inline-flex items-center justify-center px-7 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl shadow hover:shadow-md hover:bg-slate-50 transition-all"
+              >
+                Start your document
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+              </button>
+              <Link
+                to="/resources"
+                className="inline-flex items-center justify-center px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white text-base font-semibold rounded-xl border border-white/30 backdrop-blur transition-colors"
+              >
+                Read the guides first
+              </Link>
+            </div>
           </div>
+        </section>
+      </main>
 
-          <div className="divide-y divide-slate-200 border-y border-slate-200">
-            {faqs.map((faq) => (
-              <details key={faq.q} className="group py-5">
-                <summary className="flex items-center justify-between cursor-pointer list-none">
-                  <h3 className="font-semibold text-slate-900 text-base sm:text-lg pr-4">{faq.q}</h3>
-                  <span className="flex-shrink-0 ml-4 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-open:bg-slate-900 group-open:text-white transition-colors">
-                    <span className="block w-3 h-px bg-current" />
-                    <span className="block w-px h-3 bg-current absolute group-open:hidden" />
-                  </span>
-                </summary>
-                <p className="mt-3 text-slate-600 leading-relaxed">{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700" />
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px)',
-          backgroundSize: '60px 60px'
-        }} />
-        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4">
-            Ready to start?
-          </h2>
-          <p className="text-lg sm:text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Pick your document, answer the questions, download a court-ready PDF. From $79.
-          </p>
-          <button
-            onClick={handleGetStarted}
-            className="inline-flex items-center px-8 py-4 bg-white text-slate-900 text-base font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
-          >
-            Start your document
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 py-12">
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="bg-slate-900 text-slate-300 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-10">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2 mb-3">
-                <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg p-1.5">
-                  <Scale className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-lg font-bold text-white">
-                  discover<span className="text-blue-400">.</span>legal
-                </span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
+            <div>
+              <div className="flex items-center gap-2">
+                <Scale className="h-5 w-5 text-white" aria-hidden="true" />
+                <span className="text-base font-bold tracking-tight text-white">discover.legal</span>
               </div>
-              <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
-                AI-assisted legal document preparation for everyday people. Not a law firm; not a substitute for legal advice.
+              <p className="mt-3 text-slate-400">
+                AI-guided legal documents for self-represented litigants in the US and Canada.
               </p>
             </div>
-
             <div>
-              <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-3">Products</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#products" className="hover:text-white transition-colors">General Affidavit</a></li>
-                <li><a href="#products" className="hover:text-white transition-colors">Divorce Package</a></li>
-                <li><Link to="/resources" className="hover:text-white transition-colors">Resources</Link></li>
+              <h3 className="text-white font-semibold mb-3">Product</h3>
+              <ul className="space-y-2">
+                <li><a href="#how-it-works" className="hover:text-white">How it works</a></li>
+                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+                <li><a href="#faq" className="hover:text-white">FAQ</a></li>
               </ul>
             </div>
-
             <div>
-              <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-3">Legal</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/tos" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <h3 className="text-white font-semibold mb-3">Resources</h3>
+              <ul className="space-y-2">
+                <li><Link to="/resources" className="hover:text-white">All guides</Link></li>
+                <li><Link to="/brand" className="hover:text-white">Brand &amp; press</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-3">Legal</h3>
+              <ul className="space-y-2">
+                <li><Link to="/tos" className="hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
               </ul>
             </div>
           </div>
-
-          <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} discover.legal. All rights reserved.
-            </p>
-            <p className="text-xs text-slate-500 max-w-md text-center sm:text-right">
-              We are not a law firm and do not provide legal advice. Use of this site does not create an attorney-client relationship.
-            </p>
+          <div className="mt-10 pt-6 border-t border-slate-800 text-xs text-slate-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <span>© {new Date().getFullYear()} discover.legal. All rights reserved.</span>
+            <span>
+              discover.legal is not a law firm and does not provide legal advice. Documents we generate are self-help templates; for advice about your specific legal matter, consult a licensed attorney.
+            </span>
           </div>
         </div>
       </footer>

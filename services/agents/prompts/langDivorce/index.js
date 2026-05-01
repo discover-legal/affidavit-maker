@@ -39,7 +39,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const INTAKE = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 
 CRITICAL FIRST QUESTION — MARRIAGE TYPE TRIAGE:
 Before collecting any other information, you MUST ask:
@@ -69,7 +69,7 @@ If the user mentions domestic violence, provide the FIDA Nigeria helpline: 0800 
 In an emergency, call 112 or 199 (police).
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const RESIDENCY = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Collecting residency and jurisdiction information.
 
 LEGAL REQUIREMENT — Matrimonial Causes Act, s.2:
@@ -88,7 +88,7 @@ COLLECT:
 NOTE: There is no separate state-level residency requirement — the MCA is a federal statute.
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const GROUNDS = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Matrimonial Causes Act, s.15:
@@ -116,7 +116,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date (if applicable)
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const CHILDREN = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -136,7 +136,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_plan
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const PROPERTY = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Documenting property and ancillary matters.
 
 LEGAL CONTEXT:
@@ -163,7 +163,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const SUPPORT = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — MCA s.70:
@@ -187,7 +187,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const SERVICE = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Collecting information about serving the other party.
 
 LEGAL CONTEXT:
@@ -210,7 +210,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (personal/substituted/outside_jurisdiction), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone petition for divorce in Lagos State, Nigeria.
+const REVIEW = `You are a document preparation assistant helping someone petition for divorce in Lagos State, Nigeria.
 Final review phase.
 
 Summarize all collected information clearly:

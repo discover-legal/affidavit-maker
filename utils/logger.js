@@ -104,15 +104,24 @@ logger.stream = {
 
 // List of sensitive field patterns to redact
 const SENSITIVE_PATTERNS = [
+  // Credentials & tokens
   'password', 'passwd', 'pwd',
   'secret', 'token', 'auth', 'bearer',
   'api_key', 'apikey', 'api-key',
   'private_key', 'privatekey', 'private-key',
   'access_token', 'refresh_token',
   'session', 'cookie',
+  'credential', 'authorization',
+  // Financial
   'credit_card', 'creditcard', 'card_number',
   'ssn', 'social_security',
-  'credential', 'authorization'
+  // PII — names, contact, children
+  'email', 'phone', 'address',
+  'firstName', 'first_name', 'lastName', 'last_name',
+  'affiantName', 'affiant_name',
+  'petitioner_first_name', 'petitioner_last_name',
+  'respondent_first_name', 'respondent_last_name',
+  'children', 'date_of_birth', 'dateOfBirth',
 ];
 
 /**

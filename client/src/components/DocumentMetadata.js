@@ -3,15 +3,7 @@ import React from 'react';
 import { useDocumentData, useDocumentActions } from '../contexts/DocumentContext';
 import '../styles/DocumentMetadata.css';
 
-const SUPPORTED_STATES = [
-  { code: 'TX', name: 'Texas' },
-  { code: 'UT', name: 'Utah' },
-  { code: 'AZ', name: 'Arizona' },
-  { code: 'CA', name: 'California' },
-  { code: 'FL', name: 'Florida' },
-  { code: 'IL', name: 'Illinois' },
-  { code: 'NY', name: 'New York' }
-];
+import { SUPPORTED_JURISDICTIONS as SUPPORTED_STATES } from '../config/jurisdictions';
 
 /**
  * Component for collecting document metadata including case caption information.

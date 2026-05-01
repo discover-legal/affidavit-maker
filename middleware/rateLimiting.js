@@ -191,32 +191,33 @@ const pdfLimiter = rateLimit({
 });
 
 /**
- * Dynamic rate limiter based on user type
- * SECURITY FIX: Uses user ID for all tiers
+ * Premium rate limiter - 200 requests per 15 minutes (double standard)
+ * SECURITY FIX: Pre-instantiated so the store persists across requests.
+ * Previously, a new instance was created per request, resetting counters each time.
+ */
+const premiumLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return `premium:${req.user.id}`;
+    }
+    return `ip:${req.ip}`;
+  },
+  handler: rateLimitHandler
+});
+
+/**
+ * Dynamic rate limiter based on user subscription tier.
+ * Routes premium users to the higher-limit limiter, standard users to the default.
  */
 const dynamicLimiter = (req, res, next) => {
   const user = req.user;
-
-  // Premium users get higher limits
   if (user?.subscription_type === 'premium' || user?.subscription_tier === 'premium') {
-    const premiumLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 200, // Double the standard limit
-      standardHeaders: true,
-      legacyHeaders: false,
-      keyGenerator: (req) => {
-        if (req.user?.id) {
-          return `user:${req.user.id}`;
-        }
-        return `ip:${req.ip}`;
-      },
-      handler: rateLimitHandler
-    });
-
     return premiumLimiter(req, res, next);
   }
-
-  // Standard users
   return standardLimiter(req, res, next);
 };
 

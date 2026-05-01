@@ -13,8 +13,18 @@
   ],
   "version": "2.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "county"],
-  "optionalFields": ["caseNumber", "courtName", "causeNumber", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "causeNumber",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": false,
     "notaryBlock": true,
@@ -23,6 +33,10 @@
     "caseNumberRequired": false,
     "headerFormat": "uppercase",
     "venueFormat": "uppercase"
+  },
+  "courtSystem": {
+    "trialCourt": "District Court",
+    "familyDivision": "District Court"
   },
   "legalCitations": [
     {

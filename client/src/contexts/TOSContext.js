@@ -3,6 +3,9 @@ import { useAuth0 } from '@auth0/auth0-react';
 
 const TOSContext = createContext();
 
+/**
+ * @returns {{ tosVerified: boolean, isCheckingTos: boolean, markTosVerified: () => void }}
+ */
 export const useTOS = () => {
   const context = useContext(TOSContext);
   if (!context) {
@@ -29,12 +32,11 @@ export const TOSProvider = ({ children }) => {
       return;
     }
 
-    // Check if TOS is already cached
-    const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
-    const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
+    // SECURITY: Only use sessionStorage (tab-scoped, set after server confirmation).
+    // localStorage was removed — users could manually set the key to bypass TOS.
+    const tosVerifiedThisSession = sessionStorage.getItem(`tos_verified_${user?.sub}`);
 
-    if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
-      console.log('[TOSContext] TOS already verified (cached)');
+    if (tosVerifiedThisSession === 'true') {
       setTosVerified(true);
       setIsCheckingTos(false);
     } else {
@@ -45,7 +47,6 @@ export const TOSProvider = ({ children }) => {
 
   // Method to mark TOS as verified (called by TOSGuard after successful check)
   const markTosVerified = () => {
-    console.log('[TOSContext] Marking TOS as verified');
     setTosVerified(true);
     setIsCheckingTos(false);
   };

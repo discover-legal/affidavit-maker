@@ -60,14 +60,21 @@ class CourtNameService {
 
   /**
    * Get default court name format for a state/county
-   * @param {string} state - State code (TX, UT, AZ)
-   * @param {string} county - County name
+   * @param {string} state - State code (e.g., TX, UT, AZ, ENG, IN_DL)
+   * @param {string} county - County name (may be null for international)
    * @param {string} judicialDistrict - Optional specific district number
+   * @param {Object} metadata - Optional jurisdiction metadata with courtSystem
    * @returns {string|null} Formatted court name
    */
-  getDefaultCourtName(state, county, judicialDistrict = null) {
+  getDefaultCourtName(state, county, judicialDistrict = null, metadata = null) {
+    // 1. Check metadata first (works for all 110 jurisdictions)
+    if (metadata?.courtSystem) {
+      return this.getCourtFromMetadata(state, county, metadata);
+    }
+
     if (!state || !county) return null;
 
+    // 2. Fall back to existing hardcoded TX/UT/AZ logic
     switch (state.toUpperCase()) {
       case 'TX':
         return this.getTexasCourtName(county, judicialDistrict);
@@ -76,9 +83,49 @@ class CourtNameService {
       case 'AZ':
         return this.getArizonaCourtName(county);
       default:
-        logger.warn('Unknown state for court name', { state });
+        logger.warn('Unknown state for court name and no metadata provided', { state });
         return null;
     }
+  }
+
+  /**
+   * Determine whether a jurisdiction code represents a US state (or DC)
+   * US codes are exactly 2 uppercase letters (e.g., TX, CA, DC).
+   * International codes contain underscores or are 3+ characters (e.g., ENG, IN_DL, LA_NG).
+   * @param {string} stateCode - Jurisdiction code
+   * @returns {boolean}
+   */
+  isUSJurisdiction(stateCode) {
+    if (!stateCode) return false;
+    return /^[A-Z]{2}$/.test(stateCode.toUpperCase());
+  }
+
+  /**
+   * Build a court name from metadata.json courtSystem data.
+   * Prefers familyDivision (family law context) over trialCourt.
+   * For US states appends ", {County} County"; for international returns court name as-is.
+   * @param {string} stateCode - Jurisdiction code
+   * @param {string} county - County name (may be null/undefined for international)
+   * @param {Object} metadata - Jurisdiction metadata containing courtSystem
+   * @returns {string} Formatted court name
+   */
+  getCourtFromMetadata(stateCode, county, metadata) {
+    const courtSystem = metadata.courtSystem;
+    const courtName = courtSystem.familyDivision || courtSystem.trialCourt;
+
+    if (!courtName) {
+      return null;
+    }
+
+    const isUS = this.isUSJurisdiction(stateCode);
+
+    if (isUS && county) {
+      const normalizedCounty = this.normalizeCountyName(county);
+      return `${courtName}, ${normalizedCounty} County`;
+    }
+
+    // International or no county — return court name as-is
+    return courtName;
   }
 
   /**
@@ -160,32 +207,81 @@ class CourtNameService {
    * @param {string} courtName - User-provided court name
    * @param {string} state - State code
    * @param {string} county - County name
+   * @param {Object} metadata - Optional jurisdiction metadata with courtSystem
    * @returns {Object} Validation result with normalized court name
    */
-  validateCourtName(courtName, state, county) {
+  validateCourtName(courtName, state, county, metadata = null) {
     if (!courtName) {
-      return { 
-        isValid: false, 
+      return {
+        isValid: false,
         normalized: null,
-        suggestion: this.getDefaultCourtName(state, county)
+        suggestion: this.getDefaultCourtName(state, county, null, metadata)
       };
     }
 
     const normalized = courtName.trim();
-    
-    // Check if it matches expected format for state
+
+    // If we have metadata, validate against its courtSystem
+    if (metadata?.courtSystem) {
+      const expected = metadata.courtSystem.familyDivision || metadata.courtSystem.trialCourt;
+      if (expected && normalized.toLowerCase().includes(expected.toLowerCase())) {
+        return {
+          isValid: true,
+          normalized,
+          confidence: 'high'
+        };
+      }
+    }
+
+    // Check if it matches expected format for state — hardcoded patterns
     const patterns = {
-      'TX': /district court.*texas/i,
-      'UT': /district court.*utah/i,
-      'AZ': /superior court.*arizona/i,
+      'TX': /district court/i,
+      'UT': /district court/i,
+      'AZ': /superior court/i,
+      'CA': /superior court/i,
+      'FL': /circuit court/i,
+      'IL': /circuit court/i,
+      'NY': /supreme court/i,
+      'OH': /court of common pleas/i,
+      'PA': /court of common pleas/i,
+      'GA': /superior court/i,
+      'NJ': /superior court/i,
+      'VA': /circuit court/i,
+      'WA': /superior court/i,
+      'CO': /district court/i,
+      'MS': /chancery court/i,
+      'SC': /family court/i,
+      'DE': /family court/i,
+      'HI': /family court/i,
+      'RI': /family court/i,
+      'DC': /superior court/i,
     };
 
     const pattern = patterns[state?.toUpperCase()];
     if (pattern && pattern.test(normalized)) {
-      return { 
-        isValid: true, 
+      return {
+        isValid: true,
         normalized,
         confidence: 'high'
+      };
+    }
+
+    // Generic court-name patterns for broader validation
+    const genericCourtPatterns = [
+      /circuit court/i,
+      /district court/i,
+      /superior court/i,
+      /family court/i,
+      /court of common pleas/i,
+      /chancery court/i,
+      /supreme court/i,
+    ];
+
+    if (genericCourtPatterns.some(p => p.test(normalized))) {
+      return {
+        isValid: true,
+        normalized,
+        confidence: 'medium'
       };
     }
 
@@ -193,21 +289,21 @@ class CourtNameService {
     if (state?.toUpperCase() === 'TX') {
       if (/^\d+(st|nd|rd|th)\s*district/i.test(normalized)) {
         const fixed = `${normalized}, ${this.normalizeCountyName(county)} County, Texas`;
-        return { 
-          isValid: true, 
-          normalized: fixed, 
+        return {
+          isValid: true,
+          normalized: fixed,
           wasFixed: true,
           confidence: 'medium'
         };
       }
     }
 
-    return { 
-      isValid: true, 
-      normalized, 
+    return {
+      isValid: true,
+      normalized,
       warning: 'Format may not match state convention',
       confidence: 'low',
-      suggestion: this.getDefaultCourtName(state, county)
+      suggestion: this.getDefaultCourtName(state, county, null, metadata)
     };
   }
 
@@ -302,9 +398,18 @@ class CourtNameService {
   /**
    * Get court type description (for user help)
    * @param {string} state - State code
+   * @param {Object} metadata - Optional jurisdiction metadata with courtSystem and stateName
    * @returns {string} Description
    */
-  getCourtTypeDescription(state) {
+  getCourtTypeDescription(state, metadata = null) {
+    // Metadata-driven description for any jurisdiction
+    if (metadata?.courtSystem) {
+      const court = metadata.courtSystem.familyDivision || metadata.courtSystem.trialCourt;
+      const name = metadata.stateName || state;
+      return `Family law cases in ${name} are heard in the ${court}.`;
+    }
+
+    // Hardcoded fallbacks for TX/UT/AZ
     const descriptions = {
       'TX': 'Texas family law cases are typically heard in District Courts. Each county has one or more numbered district courts.',
       'UT': 'Utah family law cases are heard in District Courts, organized by judicial district.',

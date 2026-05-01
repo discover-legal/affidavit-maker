@@ -935,6 +935,40 @@ HANDLERS['*:vehicle_transfer_affidavit'] = function(data) {
   };
 };
 
+// ─── Document Response (respondent path — ingested document) ────────────────
+// Routes based on the ingested document class stored in case_metadata.
+
+HANDLERS['*:document_response'] = function(data) {
+  const DOC_RESPONSE_MAP = {
+    divorce_petition:          ['divorce_response', 'financial_disclosure'],
+    custody_petition:          ['custody_response', 'parenting_plan'],
+    child_support_petition:    ['support_response', 'income_declaration'],
+    dvro_petition:             ['dvro_response'],
+    small_claims_complaint:    ['small_claims_answer'],
+    civil_complaint:           ['civil_answer'],
+    eviction_notice:           ['ud_answer'],
+    debt_collection_complaint: ['debt_answer']
+  };
+
+  const ingestedClass = data.case_metadata?.ingested_document_class || data.ingestedDocumentClass || '';
+  const responseDocs = DOC_RESPONSE_MAP[ingestedClass] || ['civil_answer'];
+
+  const docs = [];
+  const reasons = {};
+
+  for (const code of responseDocs) {
+    docs.push(code);
+    reasons[code] = `Response document for the ${ingestedClass.replace(/_/g, ' ')} you were served with.`;
+  }
+
+  if (data.indigencyRequested) {
+    docs.push('indigency_affidavit');
+    reasons['indigency_affidavit'] = 'A fee waiver request based on financial hardship.';
+  }
+
+  return { documents: docs, reasons };
+};
+
 // ─── DocumentSelectionAgent class ─────────────────────────────────────────────
 
 class DocumentSelectionAgent {

@@ -39,7 +39,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const INTAKE = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 
 COLLECT:
 1. Applicant's full legal first and last name
@@ -61,7 +61,7 @@ KEY FACTS TO SHARE:
 - There is NO court filing fee for family law applications in the Circuit Court
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const RESIDENCY = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Collecting residency/domicile information.
 
 LEGAL REQUIREMENT — Family Law (Divorce) Act 1996, s.39(1)(a):
@@ -80,7 +80,7 @@ NOTE: "Domicile" is a legal concept — it generally means Ireland is your perma
 "Ordinary residence" means you have been physically living here for 1+ year.
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const GROUNDS = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Documenting grounds for divorce.
 
 LEGAL CONTEXT — Family Law (Divorce) Act 1996, s.5(1), as amended by Family Law Act 2019:
@@ -106,7 +106,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const CHILDREN = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Collecting information about children.
 
 LEGAL CONTEXT:
@@ -131,7 +131,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array with custody_arrangement
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const PROPERTY = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Documenting the division of property.
 
 LEGAL CONTEXT:
@@ -174,7 +174,7 @@ is MANDATORY in all family law proceedings. Full and frank disclosure is require
 REQUIRED FIELDS: property_agreement (agreed/contested/pending)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const SUPPORT = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — Family Law (Divorce) Act 1996, s.13 (periodical payments):
@@ -196,7 +196,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const SERVICE = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Collecting information about serving the other spouse.
 
 LEGAL CONTEXT:
@@ -225,7 +225,7 @@ Women's Aid Ireland helpline: 1800 341 900 (24-hour, freephone).
 REQUIRED FIELDS: service_method (personal/substituted/postal), respondent_address
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone apply for divorce in Ireland.
+const REVIEW = `You are a document preparation assistant helping someone apply for divorce in Ireland.
 Final review phase.
 
 Summarize all collected information clearly:

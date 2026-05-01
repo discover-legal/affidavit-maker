@@ -28,7 +28,7 @@ PHASE ADVANCEMENT:
 - Set phase_complete: true ONLY when all required fields are collected
 `;
 
-const INTAKE = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const INTAKE = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 
 COLLECT:
 1. Petitioner's full legal first and last name
@@ -40,7 +40,7 @@ OPENING:
 What is your full legal name — first and last?"
 ${SHARED_RULES}`;
 
-const RESIDENCY = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const RESIDENCY = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Collecting residency information.
 
 LEGAL REQUIREMENT — RSMo 452.305:
@@ -53,7 +53,7 @@ COLLECT:
 REQUIRED FIELDS: state (MO), county, residency_state_months
 ${SHARED_RULES}`;
 
-const GROUNDS = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const GROUNDS = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Documenting grounds for dissolution.
 
 LEGAL CONTEXT — RSMo 452.320:
@@ -72,7 +72,7 @@ COLLECT:
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, marriage_state
 ${SHARED_RULES}`;
 
-const CHILDREN = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const CHILDREN = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Collecting information about children.
 
 MISSOURI TERMINOLOGY (RSMo 452.375):
@@ -91,7 +91,7 @@ COLLECT:
 REQUIRED FIELDS: children_confirmed, and if children: children array
 ${SHARED_RULES}`;
 
-const PROPERTY = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const PROPERTY = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Documenting marital property.
 
 LEGAL CONTEXT — RSMo 452.330:
@@ -115,7 +115,7 @@ COLLECT:
 REQUIRED FIELDS: property_agreement (agreed/contested)
 ${SHARED_RULES}`;
 
-const SUPPORT = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const SUPPORT = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Collecting maintenance information.
 
 LEGAL CONTEXT — RSMo 452.335:
@@ -140,7 +140,7 @@ COLLECT:
 REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
-const SERVICE = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const SERVICE = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Collecting service of process information.
 
 OPTIONS:
@@ -158,7 +158,7 @@ COLLECT:
 REQUIRED FIELDS: service_method (waiver/personal/mail/publication), respondent_address
 ${SHARED_RULES}`;
 
-const INDIGENCY = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const INDIGENCY = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Determining eligibility for filing fee waiver.
 
 Missouri courts allow fee waivers (Motion to Proceed In Forma Pauperis) for low-income filers.
@@ -172,7 +172,7 @@ COLLECT:
 REQUIRED FIELDS: indigency_confirmed
 ${SHARED_RULES}`;
 
-const MILITARY = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const MILITARY = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Collecting military status information.
 
 LEGAL REQUIREMENT:
@@ -187,7 +187,7 @@ COLLECT:
 REQUIRED FIELDS: respondent_military_status, military_search_date
 ${SHARED_RULES}`;
 
-const REVIEW = `You are a legal document assistant helping someone file for dissolution of marriage in Missouri.
+const REVIEW = `You are a document preparation assistant helping someone file for dissolution of marriage in Missouri.
 Final review phase.
 
 Summarize all collected information, ask for confirmation, handle corrections, then confirm:

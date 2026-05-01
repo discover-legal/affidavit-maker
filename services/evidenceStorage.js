@@ -11,6 +11,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileType = require('file-type');
 const logger = require('../utils/logger');
+const { validatePath, isValidFilename } = require('../utils/pathSecurity');
 
 // Allowed file types with their MIME types
 const ALLOWED_FILE_TYPES = new Map([
@@ -69,15 +70,25 @@ class EvidenceStorage {
       const userDir = this.getUserEvidenceDir(userId, documentId);
       await fs.mkdir(userDir, { recursive: true });
 
-      const ext = path.extname(file.originalname);
+      // Use user-supplied extension temporarily for the initial write
+      const tempExt = path.extname(file.originalname);
+      const tempFilename = `${evidenceId}${tempExt}`;
+      const tempFilepath = path.join(userDir, tempFilename);
+
+      // Move uploaded file to temp location
+      await fs.rename(file.path, tempFilepath);
+
+      // SECURITY: Validate file content via magic bytes (prevents MIME spoofing)
+      // Derive the canonical extension from the detected type, not the user-supplied name
+      const detected = await this.validateFileContent(tempFilepath);
+      const ext = `.${detected.ext}`;
       const filename = `${evidenceId}${ext}`;
       const filepath = path.join(userDir, filename);
 
-      // Move uploaded file to final location
-      await fs.rename(file.path, filepath);
-
-      // SECURITY: Validate file content via magic bytes (prevents MIME spoofing)
-      await this.validateFileContent(filepath);
+      // Rename to use the verified extension if it differs
+      if (tempFilepath !== filepath) {
+        await fs.rename(tempFilepath, filepath);
+      }
 
       // Get file metadata (includes PDF bomb protection)
       const metadata = await this.getFileMetadata(filepath, ext);
@@ -158,37 +169,38 @@ class EvidenceStorage {
    */
   async generateThumbnail(filepath, ext, evidenceId) {
     try {
-      const thumbnailFilename = `${evidenceId}_thumb.jpg`;
+      const thumbnailFilename = `${evidenceId}_thumb.json`;
       const thumbnailFullPath = path.join(this.thumbnailPath, thumbnailFilename);
 
       const fileType = this.getFileType(ext);
+      const stats = await fs.stat(filepath);
+
+      const metadata = {
+        type: fileType,
+        originalFile: path.basename(filepath),
+        fileSizeBytes: stats.size,
+        createdAt: new Date().toISOString()
+      };
 
       if (fileType === 'pdf') {
-        // For PDF, create a placeholder thumbnail for now
-        // In production, use pdf-thumbnail or similar
-        await this.createPlaceholderThumbnail(thumbnailFullPath, 'PDF');
+        // Extract page count from PDF
+        const pdfBuffer = await fs.readFile(filepath);
+        const pdfText = pdfBuffer.toString('latin1');
+        const pageMatches = pdfText.match(/\/Type\s*\/Page[^s]/g);
+        metadata.pages = pageMatches ? pageMatches.length : 1;
+        metadata.thumbnail = 'pdf-placeholder';
       } else if (['jpg', 'jpeg', 'png'].includes(fileType)) {
-        // For images, copy the original (we'll add sharp resizing later)
-        await fs.copyFile(filepath, thumbnailFullPath);
+        metadata.thumbnail = 'original';
+        // Store reference to original — frontend uses CSS object-fit for display
+        metadata.originalPath = path.relative(this.basePath, filepath);
       }
 
+      await fs.writeFile(thumbnailFullPath, JSON.stringify(metadata, null, 2));
       return path.relative(this.basePath, thumbnailFullPath);
     } catch (error) {
       logger.warn('Could not generate thumbnail:', error.message);
       return null;
     }
-  }
-
-  /**
-   * Create placeholder thumbnail
-   * @param {string} thumbnailPath - Thumbnail path
-   * @param {string} label - Label text
-   */
-  async createPlaceholderThumbnail(thumbnailPath, label) {
-    // Create a simple text file placeholder for now
-    // In production, use canvas or image library to create actual image
-    const placeholder = `Thumbnail placeholder for ${label}`;
-    await fs.writeFile(thumbnailPath, placeholder);
   }
 
   /**
@@ -200,11 +212,15 @@ class EvidenceStorage {
    */
   async getEvidence(userId, documentId, fileKey) {
     try {
-      const filepath = path.join(this.basePath, fileKey);
+      // SECURITY: Validate filename and use path traversal prevention
+      if (!isValidFilename(fileKey)) {
+        throw new Error('Invalid file key');
+      }
+      const filepath = validatePath(this.basePath, fileKey);
 
-      // Verify file belongs to user
+      // Verify file belongs to this user's document directory
       const expectedDir = this.getUserEvidenceDir(userId, documentId);
-      if (!filepath.startsWith(expectedDir)) {
+      if (!filepath.startsWith(expectedDir + path.sep) && filepath !== expectedDir) {
         throw new Error('Unauthorized access to evidence file');
       }
 
@@ -232,22 +248,27 @@ class EvidenceStorage {
     try {
       // Delete main file
       if (fileKey) {
-        const filepath = path.join(this.basePath, fileKey);
+        if (!isValidFilename(fileKey)) {
+          throw new Error('Invalid file key');
+        }
+        const filepath = validatePath(this.basePath, fileKey);
         const expectedDir = this.getUserEvidenceDir(userId, documentId);
 
-        if (filepath.startsWith(expectedDir)) {
+        if (filepath.startsWith(expectedDir + path.sep) || filepath === expectedDir) {
           await fs.unlink(filepath).catch(() => {});
         }
       }
 
-      // Delete thumbnail
+      // Delete thumbnail — validated against thumbnailPath, not evidence basePath
       if (thumbnailKey) {
-        const thumbnailPath = path.join(this.basePath, thumbnailKey);
-        const expectedThumbnailDir = this.getUserEvidenceDir(userId, documentId);
+        if (!isValidFilename(thumbnailKey)) {
+          throw new Error('Invalid thumbnail key');
+        }
+        const thumbFullPath = validatePath(this.thumbnailPath, thumbnailKey);
 
-        // SECURITY: Verify thumbnail is in expected directory (prevent path traversal)
-        if (thumbnailPath.startsWith(expectedThumbnailDir)) {
-          await fs.unlink(thumbnailPath).catch(() => {});
+        // SECURITY: Verify thumbnail is within the thumbnails directory
+        if (thumbFullPath.startsWith(this.thumbnailPath + path.sep)) {
+          await fs.unlink(thumbFullPath).catch(() => {});
         }
       }
 

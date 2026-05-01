@@ -400,7 +400,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">$79</span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">General Affidavit</h4>
-                <p className="text-sm text-gray-600">A sworn statement of facts for court filings, declarations, and supporting evidence. AI-guided interview, court-ready output.</p>
+                <p className="text-sm text-gray-600">A sworn statement of facts for court filings, custody matters, and more. AI-guided interview.</p>
               </div>
               <button
                 onClick={() => handleNewDocumentClick('affidavit', 'family')}

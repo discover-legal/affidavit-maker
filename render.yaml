@@ -90,9 +90,10 @@ services:
         sync: false
 
       # Frontend Configuration
-      # Frontend URL (will be your Render URL)
+      # Canonical frontend URL (apex). The SPA also serves www, make,
+      # ca, and canada — all listed as Custom Domains in Render.
       - key: FRONTEND_URL
-        value: https://make.discover.legal
+        value: https://discover.legal
 
       # API URL for React app - Empty = use relative URLs (works with any domain)
       - key: REACT_APP_API_URL

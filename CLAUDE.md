@@ -21,7 +21,7 @@ npm run lint:fix      # Auto-fix linting issues
 - **North America (64)**: 51 US (all 50 states + DC) + 13 CA (10 provinces + 3 territories)
 - **International (46, behind `ENABLE_INTERNATIONAL` flag)**: UK (ENG, SCO, NIR), Ireland, New Zealand, Australia (8 states/territories), Singapore, Hong Kong, South Africa, Kenya, Ghana, Nigeria (12 jurisdictions), India (16 jurisdictions)
 
-**Live URL**: `https://make.discover.legal` (app) — landing/marketing is on Webflow at `discover.legal`
+**Live URL**: `https://discover.legal` (canonical). The same SPA also serves `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, and `canada.discover.legal`. Marketing, app, and resources are all served by the React SPA — there is no separate marketing host.
 
 **Key Directories**:
 - `/routes/` - API endpoints (11 route files incl. `cases.js`, `catalog.js`)
@@ -42,7 +42,7 @@ npm run lint:fix      # Auto-fix linting issues
 
 ## Project Overview
 
-A **full-stack web application** at `make.discover.legal` that helps users create legally-compliant legal documents using AI assistance. The marketing/landing site lives separately on Webflow at `discover.legal`.
+A **full-stack web application** at `discover.legal` that helps users create legally-compliant legal documents using AI assistance. The React SPA serves both marketing (landing page, resources, articles, brand, legal pages) and the authenticated app (dashboard, editor) — there is no separate marketing host.
 
 Users can:
 - Chat with an AI assistant to document facts
@@ -74,12 +74,12 @@ Users can:
 - Lucide React (icons)
 - CRACO (CRA config override — needed for ESM package handling)
 
-**No pre-rendering**: react-snap was removed. SEO for the marketing site is handled by Webflow. The app at `make.discover.legal` is a pure client-side SPA.
+**No pre-rendering**: react-snap was removed. The site is a pure client-side SPA; SEO meta tags (title, description, canonical, OpenGraph, Twitter, JSON-LD) are managed in-app via `react-helmet-async` on each public route (`/`, `/resources`, `/resources/:slug`, `/privacy`, `/tos`, `/brand`). Search engines index via client-side rendering — slower than SSR/pre-render, but simpler to ship.
 
 **Deployment**:
 - Docker on Render.com (branch: `main`)
 - PostgreSQL managed database (`affidavit-db`)
-- `FRONTEND_URL=https://make.discover.legal`
+- `FRONTEND_URL=https://discover.legal`
 
 ---
 
@@ -102,9 +102,9 @@ Browser → Auth0 (if unauthenticated) → React SPA
 ### Allowed Origins (CORS + CSRF + CSP)
 
 All three configs (`server.js`, `middleware/csrfProtection.js`, `middleware/validation.js`) must stay in sync:
-- `https://make.discover.legal`
-- `https://discover.legal`
+- `https://discover.legal` (canonical)
 - `https://www.discover.legal`
+- `https://make.discover.legal` (legacy alias)
 - `https://ca.discover.legal` / `https://canada.discover.legal`
 
 **If adding a new domain**, update all three files.
@@ -453,12 +453,12 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 **REACT_APP_* vars are baked into the JS bundle at build time** via Docker `--build-arg`. If they change, a full redeploy is required.
 
-**Custom domain**: `make.discover.legal` → CNAME → Render service. `discover.legal` and `www.discover.legal` point to Webflow — do NOT add them to Render's custom domains.
+**Custom domains** (all on the same Render service): `discover.legal` (apex, canonical), `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, `canada.discover.legal`. See `docs/DNS_SETTINGS.md`.
 
-**Auth0 required URLs for `make.discover.legal`**:
-- Allowed Callback URLs: `https://make.discover.legal/callback`
-- Allowed Logout URLs: `https://make.discover.legal`
-- Allowed Web Origins: `https://make.discover.legal`
+**Auth0 required URLs**:
+- Allowed Callback URLs: `https://discover.legal`, `https://make.discover.legal` (and `/callback` paths if the redirect_uri is updated)
+- Allowed Logout URLs:   `https://discover.legal`, `https://make.discover.legal`
+- Allowed Web Origins:   `https://discover.legal`, `https://make.discover.legal`
 
 ---
 
@@ -472,7 +472,7 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 **Stripe webhook 400**: Must use raw body (`req.rawBody`), not parsed JSON. `STRIPE_WEBHOOK_SECRET` must match Render env var, not local `.env`.
 
-**CORS blocked**: `make.discover.legal` must be in all three places: `server.js` `getAllowedOrigins()`, `middleware/csrfProtection.js`, `middleware/validation.js` `connectSrc`.
+**CORS blocked**: `discover.legal` (and any subdomain you serve) must be in all three places: `server.js` `getAllowedOrigins()`, `middleware/csrfProtection.js`, `middleware/validation.js` `connectSrc`.
 
 **"Database pool not available"**: `app.locals.pool` must be set before routes load — it is, at line `app.locals.pool = dbService.pool` in `server.js`.
 
@@ -482,7 +482,14 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 ## Version History
 
-### v4.0.0 (2026-03-13) — current branch
+### v4.1.0 (2026-05-04) — current branch
+- **Hosting consolidation**: Retired Webflow. The Render-hosted SPA now serves marketing + app from `https://discover.legal` (canonical apex). `www`, `make`, `ca`, and `canada` subdomains all point to the same service.
+- **Routing**: `/` now renders `LandingPage` (the existing component, already wired with Helmet + structured data) for unauthenticated visitors and shows a "Dashboard" CTA for logged-in users. Auth0 callbacks at `/?code=&state=…` are still detected and deferred to the loading handler. Catch-all `*` redirects to `/`.
+- **Canonicalization**: All canonical URLs, sitemap, and robots.txt now use `https://discover.legal`. `FRONTEND_URL` env var updated.
+- **DNS**: New `docs/DNS_SETTINGS.md` documents the single-SPA zone (apex via ALIAS/ANAME or A `216.24.57.1`, plus CNAMEs for `www`, `make`, `ca`, `canada`).
+- **SEO**: SPA-only — search engines must client-render. Helmet meta tags (title, description, canonical, OG, Twitter, JSON-LD) are present on every public route. Pre-rendering / SSR is intentionally deferred.
+
+### v4.0.0 (2026-03-13)
 - **Jurisdictions**: Expanded from 7 to 110 directories (64 NA + 46 international)
   - All 50 US states + DC with full divorce support
   - 13 Canadian provinces/territories (10 provinces + NT, YT, NU)

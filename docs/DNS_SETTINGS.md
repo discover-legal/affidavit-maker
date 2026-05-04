@@ -75,18 +75,20 @@ Do not change. Keep MX, SPF (`TXT @`), DKIM (`TXT *._domainkey…`), and DMARC (
 
 ## After DNS Updates
 
-1. **`FRONTEND_URL`** — consider whether the canonical app URL should be `https://discover.legal` instead of `https://make.discover.legal`. If so, update the Render env var and the equivalent in `render.yaml`. (Keeping it on `make.` is fine; both resolve to the same SPA.)
+1. **`FRONTEND_URL`** — already set to `https://discover.legal` in `render.yaml`. The Render env var should match.
 
-2. **Auth0 → Application Settings** — already includes `make.discover.legal`. Add the apex too if you want users to sign in from `discover.legal`:
-   - Allowed Callback URLs: `https://discover.legal/callback`, `https://make.discover.legal/callback`
+2. **Auth0 → Application Settings** — apex must be added:
+   - Allowed Callback URLs: `https://discover.legal`, `https://make.discover.legal` (legacy)
    - Allowed Logout URLs:   `https://discover.legal`, `https://make.discover.legal`
    - Allowed Web Origins:   `https://discover.legal`, `https://make.discover.legal`
 
-3. **Stripe webhooks**: endpoint URL is unchanged.
+   Note: the SPA's `redirect_uri` is `window.location.origin` (no `/callback` path), so Auth0 redirects back to `/`. The `RootRoute` component detects `?code=&state=` query params and defers to the loading handler.
+
+3. **Stripe webhooks**: endpoint URL is unchanged at the application level (path is the same; host migrates with the canonical).
 
 4. **CORS / CSRF / CSP** — already include `discover.legal`, `www.discover.legal`, `make.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. No change needed.
 
-5. **CLAUDE.md** — update the "Live URL" line; marketing is no longer on Webflow.
+5. **CLAUDE.md** — already updated to reflect Render-only hosting.
 
 ---
 

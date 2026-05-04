@@ -67,7 +67,7 @@ const LandingPage = ({ onGetStarted }) => {
     ? 'Court-ready affidavits and complete divorce packages prepared in minutes. Province-specific templates for all 13 Canadian provinces and territories. From $79.'
     : 'Court-ready affidavits and complete divorce packages prepared in minutes. State-specific templates for all 50 states and D.C. From $79.';
 
-  const pageUrl = 'https://make.discover.legal/';
+  const pageUrl = 'https://discover.legal/';
 
   const structuredData = {
     '@context': 'https://schema.org',

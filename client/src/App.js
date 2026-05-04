@@ -14,6 +14,7 @@ import TermsOfServicePage from './components/TermsOfServicePage';
 import ResourcesPage from './components/ResourcesPage';
 import ArticlePage from './components/ArticlePage';
 import BrandAssetsPage from './components/BrandAssetsPage';
+import LandingPage from './components/LandingPage';
 import { trackPageView } from './utils/analytics';
 
 const AUTH0_CONFIG = {
@@ -59,10 +60,10 @@ const AnalyticsTracker = () => {
   return null;
 };
 
-// Handles root route and /callback — waits for Auth0 to finish processing
-// the callback (code/state query params) before redirecting to /dashboard.
-// Without this, <Navigate> fires before Auth0Provider reads the params,
-// stripping them from the URL and causing an infinite login loop.
+// Handles /callback — waits for Auth0 to finish processing the callback
+// (code/state query params) before redirecting to /dashboard. Without this,
+// <Navigate> fires before Auth0Provider reads the params, stripping them
+// from the URL and causing an infinite login loop.
 const AuthCallbackHandler = () => {
   const { isLoading } = useAuth0();
 
@@ -78,6 +79,21 @@ const AuthCallbackHandler = () => {
   }
 
   return <Navigate to="/dashboard" replace />;
+};
+
+// Root `/` — marketing landing page by default. When Auth0 redirects back
+// here with `?code=&state=`, defer to AuthCallbackHandler so the SDK can
+// consume the params before any navigation fires.
+const RootRoute = ({ onGetStarted }) => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const isAuth0Callback = params.has('code') && params.has('state');
+
+  if (isAuth0Callback) {
+    return <AuthCallbackHandler />;
+  }
+
+  return <LandingPage onGetStarted={onGetStarted} />;
 };
 
 // Main routing component
@@ -107,12 +123,12 @@ const AppRoutes = () => {
     <>
       <AnalyticsTracker />
       <Routes>
-        {/* Root route: must wait for Auth0 callback processing before redirecting.
-            Auth0 redirects back here with ?code=...&state=... query params.
-            Immediately navigating away would strip those params before Auth0 reads them. */}
+        {/* Root route: marketing landing page. When Auth0 returns with code/state
+            query params, RootRoute defers to AuthCallbackHandler so the SDK can
+            consume them before any navigation fires. */}
         <Route
           path="/"
-          element={<AuthCallbackHandler />}
+          element={<RootRoute onGetStarted={() => navigate('/dashboard')} />}
         />
 
         {/* Explicit callback route for Auth0 redirect (matches Auth0 dashboard config) */}
@@ -195,10 +211,10 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Catch-all — also uses AuthCallbackHandler to be safe */}
+      {/* Catch-all — send unknown URLs back to the landing page (apex). */}
       <Route
         path="*"
-        element={<AuthCallbackHandler />}
+        element={<Navigate to="/" replace />}
       />
       </Routes>
     </>

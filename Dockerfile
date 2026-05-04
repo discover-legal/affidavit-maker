@@ -1,85 +1,56 @@
-# Use Node.js 18 LTS
-FROM node:18-bullseye-slim
+# Multi-stage build for Next.js standalone output. Slim runtime image, no
+# Chromium / Puppeteer (react-snap is gone) — Next handles SSG natively.
 
-# Install dependencies for Puppeteer/Chrome (needed for react-snap pre-rendering)
-RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-sandbox \
-    fonts-liberation \
-    libappindicator3-1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-6 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+# ─── Stage 1: deps + build ────────────────────────────────────────────────────
+FROM node:20-bullseye-slim AS builder
 
-# Tell Puppeteer to use the installed Chromium instead of downloading its own
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-
-# Accept build arguments for React environment variables
-# These must be provided during docker build via --build-arg
-ARG REACT_APP_AUTH0_DOMAIN
-ARG REACT_APP_AUTH0_CLIENT_ID
-ARG REACT_APP_AUTH0_AUDIENCE
-ARG REACT_APP_API_URL
-ARG REACT_APP_STRIPE_PUBLISHABLE_KEY
-
-# Convert build args to environment variables for the build process
-ENV REACT_APP_AUTH0_DOMAIN=$REACT_APP_AUTH0_DOMAIN
-ENV REACT_APP_AUTH0_CLIENT_ID=$REACT_APP_AUTH0_CLIENT_ID
-ENV REACT_APP_AUTH0_AUDIENCE=$REACT_APP_AUTH0_AUDIENCE
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_STRIPE_PUBLISHABLE_KEY=$REACT_APP_STRIPE_PUBLISHABLE_KEY
-
-# Create app directory
 WORKDIR /app
 
-# Copy package files
+# Build-time React/Next env vars baked into the client bundle.
+ARG NEXT_PUBLIC_AUTH0_DOMAIN
+ARG NEXT_PUBLIC_AUTH0_CLIENT_ID
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_AUTH0_DOMAIN=$NEXT_PUBLIC_AUTH0_DOMAIN \
+    NEXT_PUBLIC_AUTH0_CLIENT_ID=$NEXT_PUBLIC_AUTH0_CLIENT_ID \
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY \
+    NEXT_TELEMETRY_DISABLED=1
+
+# Install deps from a clean lockfile.
 COPY package*.json ./
-
-# Install backend dependencies
-RUN npm ci --only=production
-
-# Copy client package files
-COPY client/package*.json ./client/
-
-# Install client dependencies (including devDependencies needed for build)
-WORKDIR /app/client
 RUN npm ci
 
-# Copy all application files
-WORKDIR /app
+# Copy the source and build the Next standalone bundle.
 COPY . .
-
-# Build the React frontend (environment variables are now available)
-WORKDIR /app/client
 RUN npm run build
 
-# Back to app root
+# ─── Stage 2: minimal runtime ─────────────────────────────────────────────────
+FROM node:20-bullseye-slim AS runner
+
 WORKDIR /app
 
-# Create documents directory for ephemeral PDF storage
-RUN mkdir -p documents
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000
 
-# Expose the port (Render will override with PORT env var)
-EXPOSE 3001
+# Create non-root user
+RUN groupadd --system --gid 1001 nodejs \
+ && useradd  --system --uid 1001 --gid nodejs nextjs
 
-# Health check
+# Copy the standalone server output. The standalone bundle includes its own
+# minimal node_modules — no need to install anything in the runtime image.
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# The migration script runs as a Render preDeployCommand, so we copy it in too.
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+
+USER nextjs
+
+EXPOSE 3000
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/api/health', (res) => { process.exit(res.statusCode < 500 ? 0 : 1); });"
 
-# Start the application (migrations will run via start command in render.yaml)
 CMD ["node", "server.js"]

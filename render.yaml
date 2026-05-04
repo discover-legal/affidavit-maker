@@ -1,166 +1,94 @@
 services:
-  # Web Service (Backend + Frontend)
   - type: web
     name: affidavit-maker
     env: docker
-    plan: starter # or 'free' for testing
+    plan: starter
     dockerfilePath: ./Dockerfile
-    region: oregon # Change to your preferred region
-    branch: main # Change to your deployment branch
+    region: oregon
+    branch: main
 
-    # Run migrations before starting the server
     preDeployCommand: node scripts/migrate.js
-
-    # Health check endpoint
-    healthCheckPath: /health
-
-    # Auto-deploy on git push
+    healthCheckPath: /api/health
     autoDeploy: true
 
-    # Environment variables
     envVars:
-      # Server Configuration
       - key: NODE_ENV
         value: production
-
-      - key: LOG_LEVEL
-        value: info
+      - key: NEXT_TELEMETRY_DISABLED
+        value: 1
 
       # Database (auto-populated from Render PostgreSQL)
       - key: DATABASE_URL
         fromDatabase:
           name: affidavit-db
           property: connectionString
-
       - key: DATABASE_POOL_MAX
         value: 20
 
-      # Auth0 - YOU MUST SET THESE IN RENDER DASHBOARD
-      - key: AUTH0_DOMAIN
-        sync: false # Mark as secret, set manually
-
+      # Auth0 — server side
+      - key: AUTH0_SECRET
+        sync: false           # 32-byte random hex; openssl rand -hex 32
+      - key: AUTH0_BASE_URL
+        value: https://discover.legal
+      - key: AUTH0_ISSUER_BASE_URL
+        sync: false           # https://your-tenant.auth0.com
       - key: AUTH0_CLIENT_ID
         sync: false
-
       - key: AUTH0_CLIENT_SECRET
         sync: false
-
       - key: AUTH0_AUDIENCE
         sync: false
-
-      - key: AUTH0_ISSUER_BASE_URL
-        sync: false # e.g. https://your-tenant.auth0.com
-
       - key: AUTH0_WEBHOOK_SECRET
         sync: false
 
-      # Auth0 Frontend (React) - REQUIRED for build
-      # These must be set for the React build to work
-      - key: REACT_APP_AUTH0_DOMAIN
+      # Auth0 — exposed to the client bundle
+      - key: NEXT_PUBLIC_AUTH0_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_AUTH0_CLIENT_ID
         sync: false
 
-      - key: REACT_APP_AUTH0_CLIENT_ID
-        sync: false
-
-      - key: REACT_APP_AUTH0_AUDIENCE
-        sync: false
-
-      # OpenAI - YOU MUST SET THESE IN RENDER DASHBOARD
+      # OpenAI / LLM
       - key: OPENAI_API_KEY
         sync: false
-
-      - key: OPENAI_MODEL
-        value: gpt-4-turbo
-
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_MODEL
+        value: gpt-4o-2024-08-06
       - key: OPENAI_MAX_TOKENS
         value: 2000
-
       - key: OPENAI_TEMPERATURE
         value: 0.3
 
-      # Stripe - YOU MUST SET THESE IN RENDER DASHBOARD
+      # Stripe
       - key: STRIPE_SECRET_KEY
         sync: false
-
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-
-      # Stripe Frontend (React) - REQUIRED for build
-      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         sync: false
 
-      # Frontend Configuration
-      # Canonical frontend URL (apex). The SPA also serves www, make,
-      # ca, and canada — all listed as Custom Domains in Render.
-      - key: FRONTEND_URL
-        value: https://discover.legal
-
-      # API URL for React app - Empty = use relative URLs (works with any domain)
-      - key: REACT_APP_API_URL
-        value: ""
-
-      # Security
-      - key: SESSION_SECRET
-        generateValue: true # Render will auto-generate
-
-      - key: BCRYPT_ROUNDS
-        value: 10
-
-      - key: JWT_EXPIRES_IN
-        value: 24h
-
-      - key: TRUSTED_PROXIES
-        value: 1
-
-      # Rate Limiting
-      - key: RATE_LIMIT_WINDOW_MS
-        value: 900000
-
-      - key: RATE_LIMIT_MAX_REQUESTS
-        value: 100
-
-      - key: RATE_LIMIT_AUTH_ATTEMPTS
-        value: 5
-
-      # File Storage
-      # By default uses ephemeral storage (files deleted on restart/deploy)
-      # For persistent storage, see: docs/RENDER_PERSISTENT_DISK.md
-      # After adding a persistent disk, DOCUMENTS_PATH should match the mount path
+      # File storage (PDFs, evidence)
       - key: DOCUMENTS_PATH
-        value: ./documents
-
+        value: /app/documents
       - key: MAX_FILE_SIZE
         value: 10485760
 
-      # Feature Flags
+      # Feature flags
+      - key: ENABLE_INTERNATIONAL
+        value: false
       - key: ENABLE_WEBHOOKS
         value: true
-
-      - key: ENABLE_EMAIL_NOTIFICATIONS
-        value: false
-
       - key: ENABLE_ANALYTICS
         value: true
-
       - key: MAINTENANCE_MODE
         value: false
 
 databases:
-  # PostgreSQL Database
   - name: affidavit-db
-    plan: free 
+    plan: free
     databaseName: affidavit_maker
     user: affidavit_user
-    region: oregon # Should match web service region
+    region: oregon
 
-# Note: Persistent Disks
-# Persistent disks cannot be configured in render.yaml
-# You must create them manually in the Render Dashboard
-# See: docs/RENDER_PERSISTENT_DISK.md for step-by-step instructions
-# 
-# To add persistent storage for PDFs:
-# 1. Go to your web service in Render Dashboard
-# 2. Click "Disks" tab
-# 3. Add a disk with mount path: /app/documents
-# 4. Recommended size: 1GB (can be increased later)
-# 5. Service will auto-restart to mount the disk
+# NOTE: Persistent disks must be configured in the Render dashboard.
+# Mount path /app/documents matches DOCUMENTS_PATH above.

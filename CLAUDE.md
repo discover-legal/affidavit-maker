@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Affidavit Maker
 
-**Last Updated**: 2026-03-13
-**Version**: 4.0.0
+**Last Updated**: 2026-05-04
+**Version**: 5.0.0 — Next.js 14 + TypeScript
 
 ---
 
@@ -9,45 +9,48 @@
 
 **Essential Commands**:
 ```bash
-npm run dev           # Start backend (port 3001)
-npm run client        # Start frontend (port 3000)
-npm run dev:full      # Start both concurrently
-npm test              # Run tests with coverage
+npm install           # First-time setup
+npm run dev           # Next.js dev server on :3000
+npm run build         # Production build (Next.js standalone)
+npm start             # Run production server
+npm test              # Jest (next/jest preset, jsdom)
+npm run type-check    # tsc --noEmit
+npm run lint          # next lint
 npm run db:migrate    # Run database migrations
-npm run lint:fix      # Auto-fix linting issues
 ```
 
-**Jurisdictions**: 110 total directories in `templates/states/`
-- **North America (64)**: 51 US (all 50 states + DC) + 13 CA (10 provinces + 3 territories)
-- **International (46, behind `ENABLE_INTERNATIONAL` flag)**: UK (ENG, SCO, NIR), Ireland, New Zealand, Australia (8 states/territories), Singapore, Hong Kong, South Africa, Kenya, Ghana, Nigeria (12 jurisdictions), India (16 jurisdictions)
+**Live URL**: `https://discover.legal` (canonical apex). Same Next.js service also serves `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, `canada.discover.legal`.
 
-**Live URL**: `https://discover.legal` (canonical). The same SPA also serves `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, and `canada.discover.legal`. Marketing, app, and resources are all served by the React SPA — there is no separate marketing host.
+**Stack**: Next.js 14 App Router + TypeScript + Tailwind CSS + PostgreSQL + Auth0 (`@auth0/nextjs-auth0` v3) + OpenAI + Stripe.
 
 **Key Directories**:
-- `/routes/` - API endpoints (11 route files incl. `cases.js`, `catalog.js`)
-- `/services/` - Business logic
-- `/services/agents/` - 134 orchestrator/agent files (divorce orchestrators per jurisdiction + 16 matter orchestrators)
-- `/middleware/` - Auth, validation, error handling
-- `/templates/states/` - Jurisdiction-specific templates (110 directories)
-- `/config/` - Feature flags (`jurisdictions.js`)
-- `/client/src/components/` - React components
+- `app/` — App Router (marketing pages at root, authed pages under `(app)/`, API routes under `api/`)
+- `components/` — React components: `marketing/` (SSG-friendly) and `app/` (interactive)
+- `lib/` — Shared modules: `db.ts`, `auth.ts`, `auth0-client.ts` shim, `api/*` (auth wrapper, errors, rate limit, services), `content/*`, `utils/*`
+- `contexts/`, `hooks/` — Client-side React contexts and hooks (mostly `.js`, ported from CRA pending TS conversion)
+- `services/` — CommonJS business-logic modules (LLM, PDF, validation, agents). Imported by Route Handlers via `lib/api/services.ts`.
+- `templates/` — 110 jurisdiction directories + core base classes
+- `migrations/` — 13 SQL migrations
+- `__tests__/` — Jest tests
+- `docs/` — DNS, deployment, audit logs
 
 **Critical Security Notes**:
-- Always use parameterized SQL queries
-- Verify resource ownership (`user_id`) on all operations
-- Server-side pricing only (never trust client prices)
-- RLS enabled at database level for data isolation
+- Always use parameterized SQL via `lib/db.ts`'s `query()` helper
+- Verify `user_id` ownership on every authed Route Handler
+- Server-side pricing only — never trust client-supplied amounts
+- RLS enabled at the database level for data isolation
+- Stripe webhook reads `await req.text()` (raw body) for signature verification — never `.json()`
 
 ---
 
 ## Project Overview
 
-A **full-stack web application** at `discover.legal` that helps users create legally-compliant legal documents using AI assistance. The React SPA serves both marketing (landing page, resources, articles, brand, legal pages) and the authenticated app (dashboard, editor) — there is no separate marketing host.
+A **full-stack Next.js application** at `discover.legal` that helps users create legally-compliant legal documents using AI assistance. The same Next.js service serves marketing (landing, resources, articles, brand, legal), the authenticated app (dashboard, editor), and the API (`/api/*`).
 
 Users can:
-- Chat with an AI assistant to document facts
+- Chat with an AI to document facts
 - Generate jurisdiction-specific affidavits (all 50 US states + DC, 13 Canadian provinces/territories)
-- Create divorce petitions, divorce decrees, and other family law documents
+- Create divorce petitions, divorce decrees, and other family-law documents
 - Access 16+ civil/family law matter types (custody, child support, DVRO, paternity, etc.)
 - Validate facts for legal sufficiency
 - Upload supporting evidence
@@ -56,58 +59,47 @@ Users can:
 
 ### Tech Stack
 
-**Backend**:
-- Node.js + Express 4.21.2
-- PostgreSQL (via pg 8.16.3)
-- Auth0 (JWT authentication)
-- OpenAI GPT-4 (with multi-provider support: OpenAI, Gemini, Anthropic)
-- Stripe (payments)
-- PDFKit + pdf-lib (PDF generation)
+**Application**:
+- Next.js 14 (App Router) + TypeScript
+- React 18, Tailwind CSS
+- PostgreSQL (`pg` 8.16.3) with RLS
+- Auth0 (`@auth0/nextjs-auth0` v3, cookie session)
+- OpenAI GPT-4o (multi-provider via `services/MultiProviderLLM`)
+- Stripe (payments + webhooks)
+- PDFKit + pdf-lib (PDF generation, Phase-4 follow-up port)
+- Zod (input validation in Route Handlers)
+- React Helmet replaced by Next's `metadata` export
 
-**Frontend**:
-- React 18.2.0
-- React Router DOM 7.x
-- Tailwind CSS
-- Auth0 React SDK 2.2.0
-- Stripe React SDK 2.4.0
-- React Helmet Async (meta tag management)
-- Lucide React (icons)
-- CRACO (CRA config override — needed for ESM package handling)
-
-**Pre-rendering**: `react-snap` (devDependency) runs as a `postbuild` step. It uses headless Chromium to snapshot the public marketing routes (`/`, `/resources`, each `/resources/:slug`, `/privacy`, `/tos`, `/brand`) into static HTML at build time. The list lives in `client/package.json` under `reactSnap.include` — keep it in sync with `PRE_RENDERED_ROUTES` in `client/src/index.js`. Helmet meta tags (title, description, canonical, OG, Twitter, JSON-LD) are present per route; pre-rendering means crawlers see them without executing JS.
-
-**Deployment**:
-- Docker on Render.com (branch: `main`)
+**Infrastructure**:
+- Render.com — single web service, Docker (multi-stage, `output: 'standalone'`)
 - PostgreSQL managed database (`affidavit-db`)
-- `FRONTEND_URL=https://discover.legal`
+- DNS: apex `discover.legal` ALIAS/A → Render; CNAMEs for `www`, `make`, `ca`, `canada`. See `docs/DNS_SETTINGS.md`.
 
 ---
 
 ## Architecture
 
-**Monolithic full-stack**: Express serves both the REST API (`/api/*`) and the React SPA (`client/build/`).
+**Single Next.js service**: same process serves SSG marketing pages, server-rendered app pages (auth-gated via `withPageAuthRequired`), and API Route Handlers under `app/api/*`. There is no separate Express backend any more — `services/` modules are imported directly from Route Handlers.
 
 ### Request Flow
 
 ```
-Browser → Auth0 (if unauthenticated) → React SPA
-         → API call (/api/*)
-         → Express middleware chain
-           (trust proxy → request ID → response helpers →
-            www redirect → helmet → CORS → compression →
-            body parsing → morgan → CSRF → rate limiting)
-         → Route handler → Auth middleware → Validation → Service → DB → Response
+Browser → Next.js (middleware.ts: request id) → Route Handler / Page
+       → withAuth (resolves Auth0 session, upserts user, attaches AppUser)
+       → Zod input validation
+       → service / db query
+       → JSON / streaming response
 ```
 
-### Allowed Origins (CORS + CSRF + CSP)
+### Allowed Hosts (Auth0 + DNS)
 
-All three configs (`server.js`, `middleware/csrfProtection.js`, `middleware/validation.js`) must stay in sync:
+All point to the same Next.js Render service:
 - `https://discover.legal` (canonical)
-- `https://www.discover.legal`
+- `https://www.discover.legal` (Next config redirect → apex)
 - `https://make.discover.legal` (legacy alias)
 - `https://ca.discover.legal` / `https://canada.discover.legal`
 
-**If adding a new domain**, update all three files.
+CORS is unnecessary for same-origin API calls; Next.js Route Handlers accept the cookie session directly. CSP is set in `next.config.mjs` `headers()`.
 
 ---
 
@@ -115,420 +107,328 @@ All three configs (`server.js`, `middleware/csrfProtection.js`, `middleware/vali
 
 ```
 affidavit-maker/
-├── server.js                    # Express app entry point
-├── package.json                 # Backend dependencies
-├── Dockerfile                   # Container build (installs Chromium for react-snap prerender)
-├── render.yaml                  # Render.com deployment config
-├── .env.example.sh              # Environment variable template
+├── package.json                 # All deps (single root, no client/ subtree)
+├── next.config.mjs              # Security headers + www→apex redirect
+├── tsconfig.json                # Strict mode + @/ path aliases
+├── tailwind.config.ts
+├── postcss.config.js
+├── middleware.ts                # Edge: request id, CSP passthrough
+├── Dockerfile                   # Multi-stage standalone build
+├── render.yaml
 │
-├── middleware/
-│   ├── auth.js                  # Auth0 JWT verification (primary)
-│   ├── auth0Middleware.js       # Auth wrapper
-│   ├── csrfProtection.js        # CSRF — hardcoded allowed origins here
-│   ├── errorMiddleware.js       # Error handling + custom error classes
-│   ├── rateLimiting.js          # Rate limiters
-│   └── validation.js            # Input validation + secondary CSP config
+├── app/
+│   ├── layout.tsx               # Root layout: metadata, GTM, UserProvider
+│   ├── page.tsx                 # LandingPage (Server Component shell)
+│   ├── error.tsx                # Global error boundary
+│   ├── loading.tsx
+│   ├── not-found.tsx
+│   ├── sitemap.ts               # Generated sitemap.xml
+│   ├── robots.ts                # Generated robots.txt
+│   ├── globals.css
+│   ├── providers.tsx            # UserProvider client wrapper
+│   │
+│   ├── privacy/page.tsx
+│   ├── tos/page.tsx
+│   ├── brand/page.tsx
+│   ├── resources/
+│   │   ├── page.tsx
+│   │   └── [slug]/page.tsx      # generateStaticParams over ARTICLES
+│   │
+│   ├── (app)/                   # Auth-gated route group
+│   │   ├── layout.tsx           # AppShell (TOSProvider + DocumentProvider + TOSGuard)
+│   │   ├── AppShell.tsx
+│   │   ├── dashboard/page.tsx
+│   │   ├── editor/new/page.tsx
+│   │   ├── editor/[documentId]/page.tsx
+│   │   └── payment-success/page.tsx
+│   │
+│   └── api/
+│       ├── auth/[auth0]/route.ts          # handleAuth() — login/logout/callback/me
+│       ├── webhooks/auth0/route.ts        # HMAC-verified user upsert webhook
+│       ├── health/route.ts
+│       ├── catalog/                       # 5 read-only endpoints (matters, states, etc.)
+│       ├── cases/                         # Full CRUD + linking
+│       ├── templates/                     # Read-only metadata
+│       ├── facts/rewrite/route.ts
+│       ├── validation/route.ts
+│       ├── payment/                       # create-intent, status, history, pricing, webhook
+│       ├── documents/                     # GET/save/rename/delete (preview+generate stubbed)
+│       ├── chat/                          # STUBBED 501 — Phase-4 follow-up
+│       └── evidence/                      # STUBBED 501 — Phase-4 follow-up
 │
-├── config/
-│   └── jurisdictions.js         # Feature flags (ENABLE_INTERNATIONAL)
+├── components/
+│   ├── marketing/               # MarketingHeader, LandingPage, ResourcesContent,
+│   │                            # ArticleMarkdown, MarkdownContent, TermsMarkdown, Tooltip
+│   └── app/                     # 19 ported app components + EditorClient/UserDashboardClient TS wrappers
 │
-├── routes/
-│   ├── auth.js                  # Legacy auth routes
-│   ├── auth0-webhooks.js        # Auth0 lifecycle webhooks
-│   ├── cases.js                 # Case profile CRUD (GET/POST/PUT /api/cases)
-│   ├── catalog.js               # Matter/document type catalog (/api/catalog)
-│   ├── chat.js                  # AI chat interface (country-aware routing)
-│   ├── documents.js             # Document CRUD, preview, PDF
-│   ├── evidence.js              # Evidence/exhibit uploads
-│   ├── factRoutes.js            # Fact validation
-│   ├── payment.js               # Stripe payment intents/webhooks
-│   ├── templates.js             # Template metadata
-│   └── validation.js            # Enhanced validation endpoint
+├── contexts/                    # DocumentContext, TOSContext (legacy .js, pending TS conversion)
+├── hooks/                       # useAffidavitData, useCountyValidation, useSaveDocument
 │
-├── services/
-│   ├── DatabaseService.js       # PostgreSQL connection pool
-│   ├── MultiProviderLLM.js      # OpenAI/Gemini/Anthropic wrapper
-│   ├── ResilientOpenAIService.js # Circuit breaker, retry logic
-│   ├── affidavitService.js      # Core affidavit/chat processing
-│   ├── courtNameService.js      # Court name validation
-│   ├── documentService.js       # Document business logic
+├── lib/
+│   ├── db.ts                    # pg.Pool singleton on globalThis
+│   ├── auth.ts                  # getCurrentSession + getCurrentUser (auto-provisions row)
+│   ├── auth0-client.ts          # Compat shim recreating @auth0/auth0-react surface
+│   ├── responses.ts             # ok/fail JSON helpers
+│   ├── api/
+│   │   ├── auth.ts              # withAuth() Route Handler wrapper
+│   │   ├── errors.ts            # AppError + Zod-aware toErrorResponse
+│   │   ├── rateLimit.ts         # In-memory sliding-window limiter
+│   │   ├── services.ts          # Lazy singletons of CommonJS services
+│   │   ├── stripe.ts            # Stripe SDK + PRICING_CONFIG
+│   │   ├── catalog-data.ts      # Matter types, docs-by-matter, jurisdictions
+│   │   └── notImplemented.ts    # Structured 501 for stubbed routes
+│   ├── content/                 # privacyPolicy.js, termsOfService.js, articles.js (with .d.ts)
+│   ├── services/authService.ts  # useAuthenticatedApi() hook
+│   └── utils/                   # analytics.js, factNormalizer.js
+│
+├── services/                    # Unchanged CommonJS business-logic
+│   ├── DatabaseService.js       # Legacy; new code uses lib/db.ts directly
+│   ├── MultiProviderLLM.js
+│   ├── ResilientOpenAIService.js
+│   ├── affidavitService.js
 │   ├── enhancedFactValidationService.js
-│   ├── evidenceStorage.js       # File storage management
-│   ├── pdfService.js            # Two-pass PDF generation
-│   ├── previewRenderer.js       # HTML preview rendering
-│   └── agents/                  # 134 files
-│       ├── BaseMatterOrchestrator.js   # Base class for all matter orchestrators
-│       ├── [XX]DivorceOrchestrator.js  # Per-jurisdiction divorce orchestrators (110)
-│       ├── AdoptionOrchestrator.js     # Matter-type orchestrators (16)
-│       ├── CustodyOrchestrator.js
-│       ├── ChildSupportOrchestrator.js
-│       ├── DVROOrchestrator.js
-│       ├── PaternityOrchestrator.js
-│       ├── LegalSeparationOrchestrator.js
-│       ├── AnnulmentOrchestrator.js
-│       ├── GuardianshipOrchestrator.js
-│       ├── EmancipationOrchestrator.js
-│       ├── SmallClaimsOrchestrator.js
-│       ├── NameChangeOrchestrator.js
-│       ├── DebtDefenseOrchestrator.js
-│       ├── LandlordTenantOrchestrator.js
-│       ├── CivilHarassmentOrchestrator.js
-│       ├── GeneralCivilOrchestrator.js
-│       ├── ProbateOrchestrator.js
-│       ├── DocumentSelectionAgent.js
-│       ├── FactOrganizer.js
-│       └── AffidavitRequirementsChecker.js
+│   ├── pdfService.js
+│   ├── previewRenderer.js
+│   ├── courtNameService.js
+│   ├── documentService.js
+│   ├── evidenceStorage.js
+│   ├── agents/                  # 134 orchestrators (per-jurisdiction divorce + 16 matter types)
+│   └── affidavits/              # AffidavitTypeRegistry + per-type prompts
 │
-├── templates/
-│   ├── StateTemplateManager.js  # Master template coordinator
-│   ├── initialize.js            # Auto-discovery loader
-│   ├── core/
-│   │   ├── BaseAffidavitTemplate.js
-│   │   ├── TemplateRegistry.js
-│   │   ├── TemplateLoader.js
-│   │   └── validateMetadata.js
-│   └── states/                  # 110 jurisdiction directories
-│       └── [jurisdiction]/
-│           ├── metadata.json
-│           ├── divorce-metadata.json
-│           ├── AffidavitTemplate.js
-│           ├── DivorcePetitionTemplate.js
-│           ├── DivorceDecreeTemplate.js
-│           └── prompts/[xx]Divorce/index.js
+├── templates/                   # 110 jurisdiction directories
 │
-├── utils/
-│   ├── logger.js                # Winston structured logging
-│   ├── factNormalizer.js        # Fact format normalization
-│   ├── pathSecurity.js          # Path traversal prevention
-│   └── responseHelpers.js       # Standard API responses
-│
-├── migrations/                  # 13 SQL migrations
-│   ├── 000_initial_schema.sql
-│   ├── 010_enable_rls_all_tables.sql  # Row Level Security
-│   ├── 011_webhook_idempotency.sql
-│   ├── 012_add_cases_table.sql        # Case profiles with RLS
-│   └── 013_document_catalog.sql       # Matter/doc types, interview phases
-│
+├── migrations/                  # 13 SQL files; runs via scripts/migrate.js (Render preDeployCommand)
 ├── scripts/
 │   ├── migrate.js
-│   └── cleanDatabase.js
+│   ├── cleanDatabase.js
+│   └── deploy.sh
 │
-├── __tests__/
-│   ├── api/endpoints.test.js
-│   ├── middleware/
-│   ├── security/rls.test.js
-│   ├── services/
-│   ├── templates/
-│   └── utils/
+├── __tests__/                   # next/jest, jsdom by default
+│   ├── lib/api/catalog.test.ts
+│   ├── marketing/sitemap.test.ts
+│   └── (services/, templates/, utils/ — legacy backend tests, scoped for cleanup)
 │
-└── client/
-    ├── package.json
-    ├── craco.config.js          # Webpack ESM fix (fullySpecified: false)
-    ├── public/
-    │   ├── index.html
-    │   ├── gtm.js               # Google Analytics init
-    │   ├── manifest.json
-    │   ├── robots.txt
-    │   └── sitemap.xml
-    └── src/
-        ├── index.js             # createRoot only (no hydration)
-        ├── App.js               # Root component, routing
-        ├── components/          # 26+ React components
-        ├── contexts/            # DocumentContext, TOSContext
-        ├── hooks/               # useAffidavitData, useCountyValidation, useSaveDocument
-        ├── services/authService.js
-        ├── utils/               # analytics.js, factNormalizer.js
-        ├── views/EditorView.js
-        └── content/             # termsOfService.js, privacyPolicy.js
+└── docs/                        # DNS_SETTINGS.md, etc.
 ```
 
 ---
 
 ## Development Setup
 
-### Prerequisites
-
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-- PostgreSQL >= 12
-- Auth0 account
-- OpenAI API key (or Gemini/Anthropic)
-- Stripe account
-
-### Setup
-
 ```bash
 git clone <repo-url> && cd affidavit-maker
 npm install
-cd client && npm install && cd ..
 createdb affidavit_maker
-cp .env.example.sh .env   # fill in credentials
+cp .env.example.sh .env.local
 npm run db:migrate
+npm run dev
 ```
 
-### Environment Variables
+### Environment Variables (`.env.local`)
 
-**Backend (.env)**:
 ```bash
-NODE_ENV=development
-PORT=3001
+# Database
 DATABASE_URL=postgresql://localhost:5432/affidavit_maker
-AUTH0_DOMAIN=your-tenant.auth0.com
-AUTH0_CLIENT_ID=...
-AUTH0_CLIENT_SECRET=...
-AUTH0_AUDIENCE=https://your-api-identifier
-AUTH0_WEBHOOK_SECRET=whsec_...
-LLM_PROVIDER=openai         # or gemini, anthropic
+
+# Auth0 — required by @auth0/nextjs-auth0
+AUTH0_SECRET=               # openssl rand -hex 32
+AUTH0_BASE_URL=http://localhost:3000
+AUTH0_ISSUER_BASE_URL=https://your-tenant.auth0.com
+AUTH0_CLIENT_ID=
+AUTH0_CLIENT_SECRET=
+AUTH0_AUDIENCE=             # optional API audience
+AUTH0_WEBHOOK_SECRET=       # for /api/webhooks/auth0
+
+# Auth0 — exposed to the client bundle
+NEXT_PUBLIC_AUTH0_DOMAIN=your-tenant.auth0.com
+NEXT_PUBLIC_AUTH0_CLIENT_ID=
+
+# OpenAI
+OPENAI_API_KEY=
+LLM_PROVIDER=openai
 LLM_MODEL=gpt-4o-2024-08-06
-OPENAI_API_KEY=sk-...
+
+# Stripe
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-FRONTEND_URL=http://localhost:3000
-SESSION_SECRET=change-this
-TRUSTED_PROXIES=1
-ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
-```
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
-**Frontend (client/.env)**:
-```bash
-REACT_APP_API_URL=           # empty = relative URLs (proxies to :3001 in dev)
-REACT_APP_AUTH0_DOMAIN=your-tenant.auth0.com
-REACT_APP_AUTH0_CLIENT_ID=...
-REACT_APP_AUTH0_AUDIENCE=https://your-api-identifier
-REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_...
+# Feature flags
+ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
 ```
 
 ---
 
 ## Code Patterns & Conventions
 
-- **Backend**: CommonJS (`require`/`module.exports`), camelCase files
-- **Frontend**: ES6 modules, PascalCase component files
-- **DB tables/columns**: snake_case
-- **Indentation**: 2 spaces, single quotes
+- **TypeScript**: `app/`, `components/marketing/`, `lib/api/`, `lib/auth*.ts`, `lib/db.ts`, `lib/responses.ts` are TS. Legacy app components/contexts/hooks remain `.js` with `allowJs: true` until converted file-by-file.
+- **Path aliases**: `@/lib/...`, `@/components/...`, `@/contexts/...`, `@/hooks/...`, `@/services/...`, `@/templates/...`, `@/utils/...`.
+- **DB columns**: snake_case.
+- **Indentation**: 2 spaces, single quotes, semicolons.
 
 ### API Response Format
 
-```javascript
-// Success
-{ "success": true, "data": { ... }, "timestamp": "..." }
-
-// Error
-{ "success": false, "error": "...", "errorType": "...", "requestId": "...", "timestamp": "..." }
+Successful Route Handlers wrap data in:
+```ts
+{ success: true, data: {...}, timestamp: "..." }
 ```
 
-### Route Pattern
-
-```javascript
-router.post('/endpoint',
-  rateLimiter,
-  auth0Middleware,
-  validateInput,
-  asyncHandler(async (req, res) => {
-    const result = await someService.doWork(req.user.id, req.body);
-    res.sendSuccess(result);
-  })
-);
+Errors use `lib/api/errors.toErrorResponse()`:
+```ts
+{ success: false, error: "...", errorType: "...", requestId, timestamp }
 ```
 
-### Database — Always Parameterized
+### Route Handler Pattern
 
-```javascript
-// ✅ GOOD
-await pool.query('SELECT * FROM documents WHERE user_id = $1 AND id = $2', [userId, docId]);
+```ts
+import { withAuth } from '@/lib/api/auth';
+import { z } from 'zod';
+import { toErrorResponse } from '@/lib/api/errors';
+import { query } from '@/lib/db';
 
-// ❌ NEVER
-await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
+const bodySchema = z.object({ /* ... */ });
+
+export const POST = withAuth(async (req, { user }) => {
+  try {
+    const body = bodySchema.parse(await req.json());
+    const rows = await query('SELECT ... WHERE user_id = $1', [user.id]);
+    return Response.json({ success: true, data: rows });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+});
 ```
 
-### Error Classes
+### Auth0 Patterns
 
-`AppError`, `ValidationError` (400), `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `RateLimitError` (429), `ExternalServiceError` (503)
+- **Server Components / Route Handlers**: `import { getSession } from '@auth0/nextjs-auth0'` or use `withAuth` which wraps `getCurrentUser()`.
+- **Client Components**: `import { useUser } from '@auth0/nextjs-auth0/client'`. Legacy components still use the `useAuth0` shim from `@/lib/auth0-client`.
+- **Page-level auth gating**: `withPageAuthRequired` from `@auth0/nextjs-auth0`.
+- **Login/logout URLs**: `/api/auth/login`, `/api/auth/signup` (sets `screen_hint=signup`), `/api/auth/logout`, `/api/auth/callback`, `/api/auth/me`.
 
 ---
 
-## Authentication & Authorization
+## Auth0 Required URLs (production)
 
-**Flow**: Auth0 Universal Login → JWT issued → frontend stores in memory → `Authorization: Bearer <token>` on API requests → backend verifies RS256 JWT → looks up user via `user_identities` table → attaches `req.user`.
+- Allowed Callback URLs: `https://discover.legal/api/auth/callback`
+- Allowed Logout URLs:   `https://discover.legal`
+- Allowed Web Origins:   `https://discover.legal`
 
-**Resource ownership**: Always verify `doc.user_id === req.user.id` before returning/modifying data.
-
-**Duplicate email protection**: Signing up with an existing email via a different provider returns HTTP 409 (prevents account takeover).
+Add `http://localhost:3000` equivalents for development.
 
 ---
 
 ## Database
 
-**Core tables**: `users`, `user_identities`, `documents`, `cases`, `payments`, `audit_log`, `processed_webhooks`, `document_catalog`, `interview_phases`
+Same schema as before — Auth0 user provisioning is now in `lib/auth.ts` `getCurrentUser` (with idempotent ON CONFLICT) and the `/api/webhooks/auth0` route. RLS still enabled (migration `010`).
 
-**RLS**: Row Level Security enabled (migration 010) — database-level isolation.
+### Singleton pool
 
-**Migrations**: Numbered SQL files in `/migrations/`. Run with `npm run db:migrate`. Each runs exactly once via the `migrations` tracking table.
+`lib/db.ts` exports a `pg.Pool` cached on `globalThis.__pgPool` so it survives Next.js HMR in dev.
 
-**JSONB fields**:
-- `documents.content` — `{ affiantName, state, county, facts[], caseNumber, courtName }`
-- `documents.conversation_history` — `[{ role, content }]`
-
----
-
-## AI/LLM Integration
-
-**Providers**: OpenAI (default), Gemini, Anthropic — configured via `LLM_PROVIDER` env var.
-
-**Resilience** (`ResilientOpenAIService`): circuit breaker, 3 retries with exponential backoff, 45s timeout.
-
-**Chat flow**: message + history + affidavit data → chunk to 6000 tokens / last 20 messages → LLM → extract facts → return response + updated data.
-
----
-
-## Template System
-
-**Auto-discovery**: `templates/initialize.js` scans `templates/states/` on startup — no manual registration needed. Always registry mode (no legacy `USE_NEW_TEMPLATE_SYSTEM` flag).
-
-**Each jurisdiction has up to 7 files**:
-1. `metadata.json` — general legal requirements
-2. `divorce-metadata.json` — divorce-specific requirements (grounds, fees, waiting periods)
-3. `AffidavitTemplate.js` — extends `BaseAffidavitTemplate`
-4. `DivorcePetitionTemplate.js` — divorce petition generation
-5. `DivorceDecreeTemplate.js` — divorce decree generation
-6. `[XX]DivorceOrchestrator.js` — in `services/agents/`, interview flow for that jurisdiction
-7. `prompts/[xx]Divorce/index.js` — LLM prompts for divorce interviews
-
-**Adding a jurisdiction**:
-1. `mkdir templates/states/[jurisdiction-name]`
-2. Create the template files above (at minimum `metadata.json` + `AffidavitTemplate.js`)
-3. For divorce support: add all 7 files + the orchestrator in `services/agents/`
-4. Add tests in `__tests__/templates/states/[jurisdiction-name]/`
-5. For international jurisdictions: add to `config/jurisdictions.js` mapping
-
-**Feature flag**: `ENABLE_INTERNATIONAL=false` (default) hides non-NA jurisdictions. Gated at:
-- `TemplateLoader` — skips international directories
-- `catalog.js` — filters `ALL_JURISDICTIONS`
-- `chat.js` — clamps `detectCountry()` to US/CA
-
-**Country-aware routing**: `detectCountry()` in `chat.js` uses subdomain and `countryCode` to default to ON (Ontario) for Canadian users, TX for US users.
+```ts
+import { query } from '@/lib/db';
+const result = await query<{ id: string }>('SELECT id FROM users WHERE auth0_id = $1', [auth0Id]);
+```
 
 ---
 
 ## Payment Processing
 
-**Server-side pricing only** — client sends `documentType`, server looks up price from `PRICING_CONFIG`. Never accept amounts from the client.
-
-**Webhook security**: verify `stripe-signature` header using raw body buffer (`req.rawBody`), not parsed JSON.
-
-**Idempotency**: `processed_webhooks` table (migration 011) prevents duplicate processing.
+- Server-side pricing only (`lib/api/stripe.ts` `PRICING_CONFIG`).
+- Stripe webhook: `app/api/payment/webhook/route.ts` reads `await req.text()` for signature verification (raw bytes), then `stripe.webhooks.constructEvent`. Idempotency via `processed_webhook_events` table inside the same transaction as the row updates.
 
 ---
 
-## Security
+## Phase-4 follow-up: API routes still to port
 
-**Always**:
-- Parameterized SQL queries
-- Verify `user_id` ownership on every resource operation
-- Server-side pricing
-- Verify webhook signatures (Stripe, Auth0)
-- Rate limit all endpoints
+These return structured 501 responses today (see `lib/api/notImplemented.ts`). Each cites the legacy file in `routes/*.js` (deleted, but still in git history) for the source-of-truth implementation:
 
-**Never**:
-- Commit `.env` files
-- Log passwords, tokens, card numbers
-- String concatenate SQL
-- Trust client-supplied prices or IDs for authorization
+- `POST /api/documents/preview` — HTML preview via `services/previewRenderer`
+- `POST /api/documents/generate` — PDF generation via `services/pdfService`
+- `POST /api/chat` — streaming LLM chat (consider `ReadableStream` for SSE)
+- `GET/DELETE /api/chat/session/[sessionId]`
+- `POST /api/evidence/upload` — switch from multer to `req.formData()`
+- `GET/DELETE /api/evidence/[documentId]/[fileKey]`
+- `GET /api/evidence/document/[documentId]`
+- Templates: `affidavit-types/*`, `divorce/*` (read-only metadata)
 
-**Rate limits**: Standard 100/15min, Strict 20/15min, Chat 50/15min, Payment 5/hour, PDF 10/hour, Auth 10/15min.
+Pattern: write a TS Route Handler that imports the relevant module from `services/`, drop the Express middleware (replaced by `withAuth` + `checkRateLimit`), and return JSON via `NextResponse.json`.
+
+---
+
+## SEO
+
+Built into Next.js — no react-snap, no Chromium, no postbuild hacks:
+
+- Every public page exports `metadata` (or `generateMetadata` for dynamic).
+- JSON-LD inlined per page via a `<script type="application/ld+json">`.
+- `app/sitemap.ts` regenerates the sitemap on every build, driven by `lib/content/articles.js`.
+- `app/robots.ts` disallows `/api/`, `/dashboard`, `/editor/`, `/payment-success`.
+- All marketing pages are SSG by default (Server Components). Interactive bits (auth-aware nav, category filter) are isolated `'use client'` islands so the static HTML still ships full content.
 
 ---
 
 ## Deployment
 
-**Platform**: Render.com, Docker, branch `main`
+**Platform**: Render.com, Docker (multi-stage), branch `main`.
 
-**Build process**:
-1. Docker build (installs deps, runs `craco build`)
-2. Pre-deploy: `node scripts/migrate.js`
-3. Start: `node server.js`
-4. Health check: `/health`
+**Build process** (`Dockerfile`):
+1. Builder stage: `npm ci && next build` with `NEXT_PUBLIC_*` build-args baked in.
+2. Runner stage: copy `.next/standalone` + `.next/static` + `public` + `scripts/` + `migrations/`. Runs as non-root `nextjs:nodejs`.
+3. Pre-deploy: `node scripts/migrate.js`
+4. Start: `node server.js` (the standalone bundle's entrypoint).
+5. Health check: `/api/health`.
 
-**Chromium in Docker** — installed via apt for react-snap's headless prerender. `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` and `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium` point Puppeteer at the system Chromium so the build doesn't try to download its own (which fails on Render).
+**REACT_APP_* → NEXT_PUBLIC_*** rename: client-bundled env vars now use the Next.js convention. Re-set them in Render dashboard.
 
-**REACT_APP_* vars are baked into the JS bundle at build time** via Docker `--build-arg`. If they change, a full redeploy is required.
-
-**Custom domains** (all on the same Render service): `discover.legal` (apex, canonical), `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, `canada.discover.legal`. See `docs/DNS_SETTINGS.md`.
-
-**Auth0 required URLs**:
-- Allowed Callback URLs: `https://discover.legal`, `https://make.discover.legal` (and `/callback` paths if the redirect_uri is updated)
-- Allowed Logout URLs:   `https://discover.legal`, `https://make.discover.legal`
-- Allowed Web Origins:   `https://discover.legal`, `https://make.discover.legal`
+**Custom domains** (all on the same Render service): `discover.legal`, `www.discover.legal`, `make.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. See `docs/DNS_SETTINGS.md`.
 
 ---
 
 ## Troubleshooting
 
-**White/blank page**: Check Render build logs. If Docker build failed, the old container stays live. Most common cause is react-snap failing during `postbuild` — usually a missing Chromium dep, a route in `reactSnap.include` that throws on render, or Auth0/Stripe network calls timing out. Check the Docker apt install step and the prerender output.
+**Build fails with type errors**: `npm run type-check` locally. Strict mode is on; legacy `.js` files are untyped (allowJs).
 
-**Hydration mismatch warnings in console**: If the static HTML produced by react-snap doesn't match what React renders on hydrate, you'll see a mismatch warning. Usually caused by code that branches on `window`, `navigator.userAgent`, or `Date.now()` during render. Move that logic into `useEffect` so it only runs client-side.
+**Auth0 redirects to localhost in production**: `AUTH0_BASE_URL` env var must be `https://discover.legal`, not the default.
 
-**"Unexpected token 'export'"**: ESM package not handled by webpack. Fix is in `craco.config.js` (`fullySpecified: false`). If a new ESM-only package is added, it's handled automatically.
+**Stripe webhook 400**: `app/api/payment/webhook/route.ts` reads `await req.text()`. If you replaced that with `req.json()` you broke signature verification.
 
-**Auth0 JWT fails**: Check `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` match. Verify JWKS endpoint is reachable. Token must not be expired. Algorithm must be RS256.
+**`useUser()` returns `null` even after login**: `app/providers.tsx` (UserProvider) must wrap the tree. It's mounted by `app/layout.tsx`.
 
-**Stripe webhook 400**: Must use raw body (`req.rawBody`), not parsed JSON. `STRIPE_WEBHOOK_SECRET` must match Render env var, not local `.env`.
+**`prisma`-style queries don't work**: this app uses raw `pg.Pool` via `lib/db.ts` — there's no ORM.
 
-**CORS blocked**: `discover.legal` (and any subdomain you serve) must be in all three places: `server.js` `getAllowedOrigins()`, `middleware/csrfProtection.js`, `middleware/validation.js` `connectSrc`.
-
-**"Database pool not available"**: `app.locals.pool` must be set before routes load — it is, at line `app.locals.pool = dbService.pool` in `server.js`.
-
-**PDF generation fails**: Check facts are normalized, template jurisdiction is recognized, `documents/` dir is writable. Note: PDFService currently only handles affidavit-style layouts; international A4 options are defined but not yet wired up.
+**Hydration mismatch on landing page**: most likely `country` detection running differently on server vs. client. The detection sits inside a `useEffect` so initial render matches; if you see this elsewhere, move browser-only logic into `useEffect`.
 
 ---
 
 ## Version History
 
-### v4.2.0 (2026-05-04) — current branch
-- **SEO**: Restored react-snap pre-rendering. The 11 public marketing routes are snapshotted at build time so crawlers see real HTML without executing JS. Hydration logic is back in `client/src/index.js`; PaymentModal and `gtm.js` once again skip themselves under the prerender user-agent. Dockerfile reinstalls Chromium + libs and points Puppeteer at it via `PUPPETEER_EXECUTABLE_PATH`.
-- **Sitemap generator**: `client/scripts/generate-sitemap.js` now uses `https://discover.legal` as the canonical base.
+### v5.0.0 (2026-05-04) — current
+**Migration to Next.js 14 + TypeScript.** CRA + Express both retired.
+
+- **Next.js 14 App Router** at the repo root. `app/` houses pages + API Route Handlers; legacy `client/` and `server.js` deleted.
+- **TypeScript** with strict mode. New code (`app/`, `lib/api/`, `components/marketing/`) is TS; legacy app components/contexts/hooks remain `.js` with `allowJs` while incrementally converted.
+- **`@auth0/nextjs-auth0`** replaces `@auth0/auth0-react`. Cookie-based session, no more bearer tokens on the client. `/api/auth/[auth0]/route.ts` exposes login/logout/callback/me. A compatibility shim (`lib/auth0-client.ts`) keeps unconverted legacy components working with the old `useAuth0()` surface.
+- **Native SEO**: every page uses Next's `metadata` / `generateMetadata`. `app/sitemap.ts` and `app/robots.ts` replace static files. `react-snap` and Chromium are gone.
+- **Single Render service**: same Next.js process serves marketing + app + API. No more Express. `services/` modules are imported by Route Handlers.
+- **Phase-4 follow-up**: chat, document preview/generate, evidence upload, and a handful of templates endpoints are scoped 501 stubs that cite the (deleted-but-in-history) `routes/*.js` source. See "Phase-4 follow-up" section above.
+- **Dockerfile**: multi-stage with `output: 'standalone'`. No Chromium, faster builds.
+- **Auth0 dashboard URL changes**: callback now `/api/auth/callback` (not `/callback`).
+- **Env-var rename**: `REACT_APP_*` → `NEXT_PUBLIC_*`.
+
+### v4.2.0 (2026-05-04)
+- Restored react-snap pre-rendering for marketing routes (later replaced by native Next.js SSG in v5.0.0).
 
 ### v4.1.0 (2026-05-04)
-- **Hosting consolidation**: Retired Webflow. The Render-hosted SPA now serves marketing + app from `https://discover.legal` (canonical apex). `www`, `make`, `ca`, and `canada` subdomains all point to the same service.
-- **Routing**: `/` now renders `LandingPage` (the existing component, already wired with Helmet + structured data) for unauthenticated visitors and shows a "Dashboard" CTA for logged-in users. Auth0 callbacks at `/?code=&state=…` are still detected and deferred to the loading handler. Catch-all `*` redirects to `/`.
-- **Canonicalization**: All canonical URLs, sitemap, and robots.txt now use `https://discover.legal`. `FRONTEND_URL` env var updated.
-- **DNS**: New `docs/DNS_SETTINGS.md` documents the single-SPA zone (apex via ALIAS/ANAME or A `216.24.57.1`, plus CNAMEs for `www`, `make`, `ca`, `canada`).
-- **SEO**: SPA-only — search engines must client-render. Helmet meta tags (title, description, canonical, OG, Twitter, JSON-LD) are present on every public route. Pre-rendering / SSR is intentionally deferred.
+- **Hosting consolidation**: Retired Webflow. Render-hosted SPA serves marketing + app from `https://discover.legal` (canonical apex).
+- **DNS**: New `docs/DNS_SETTINGS.md` documents the single-SPA zone.
 
 ### v4.0.0 (2026-03-13)
-- **Jurisdictions**: Expanded from 7 to 110 directories (64 NA + 46 international)
-  - All 50 US states + DC with full divorce support
-  - 13 Canadian provinces/territories (10 provinces + NT, YT, NU)
-  - Wave 1 international: UK, Ireland, NZ, Australia, Singapore, Hong Kong, South Africa, Kenya, Ghana, Nigeria, India
-- **Divorce orchestration**: Per-jurisdiction interview orchestrators with state-specific legal requirements
-- **Matter types**: 16 civil/family law orchestrators (custody, child support, DVRO, paternity, legal separation, annulment, guardianship, adoption, emancipation, small claims, name change, debt defense, landlord-tenant, civil harassment, general civil, probate)
-- **Catalog API**: In-memory catalog at `/api/catalog/matters` and `/api/catalog/states/:state/matters`
-- **Cases**: New `cases` table (migration 012) with RLS for case profile management
-- **Document catalog**: DB-backed catalog (migration 013) for matter/doc types and interview phases
-- **Triage orchestrator**: Routes users to correct matter type when intent is unknown
-- **Country-aware routing**: `detectCountry()` defaults Canadian users to ON, US users to TX
-- **Feature flag**: `ENABLE_INTERNATIONAL=false` gates non-NA jurisdictions
-- **Security**: `pathSecurity.js` path traversal prevention utility
-- **Legal audit**: 160+ corrections across 130 files (filing fees, statute citations, waiting periods, court names)
+- Jurisdictions: Expanded to 110 directories (64 NA + 46 international).
+- Per-jurisdiction divorce orchestrators + 16 matter type orchestrators.
+- Catalog API, cases table (migration 012), document_catalog (migration 013).
+- Triage orchestrator, country-aware routing.
 
-### v3.2.0 (2026-03-02)
-- **Deployment**: App moved to `make.discover.legal`; landing page migrated to Webflow
-- **Build**: Removed react-snap and Chromium/Puppeteer from Docker — faster builds, no more build failures
-- **Build**: Added CRACO webpack config to handle ESM-only packages (react-markdown v10+)
-- **Security**: Added `make.discover.legal` to CORS, CSRF, and CSP configs across all three middleware files
-- **Frontend**: Simplified `index.js` to pure `createRoot` (no hydration logic)
-- **Frontend**: Removed pre-render guards from PaymentModal and gtm.js
-
-### v3.1.0 (2026-01-26)
-- State support expanded to 7 (added CA, FL, IL, NY)
-- Row Level Security via migration 010
-- Webhook idempotency via migration 011
-- React Helmet Async, sitemap generation, GTM integration
-- BrandAssetsPage, ResourcesPage, ArticlePage components
-
-### v3.0.0 (2026-01-08)
-- Initial comprehensive documentation
-- Dynamic template discovery
-- Multi-provider LLM support
-- Auth0 with duplicate email protection
-- Stripe with server-side pricing
+### v3.x and earlier
+See `docs/audit-fix-log-2026-03-10.md` for the consolidated changelog.

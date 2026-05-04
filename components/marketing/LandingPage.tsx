@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import {
   ArrowRight,
   Check,
@@ -17,14 +18,8 @@ import {
   Star,
 } from 'lucide-react';
 
-// Auth state stub. Phase 2 swaps this for `useUser()` from
-// `@auth0/nextjs-auth0/client`. For now the page renders as if signed out.
-function useStubAuth() {
-  return { user: null as { sub: string } | null, isLoading: false };
-}
-
 export default function LandingPage() {
-  const { user } = useStubAuth();
+  const { user } = useUser();
   const isAuthenticated = Boolean(user);
   const [country, setCountry] = useState<'US' | 'CA'>('US');
 

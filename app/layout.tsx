@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import Providers from './providers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -46,7 +47,9 @@ export default function RootLayout({
         />
         <Script src="/gtm.js" strategy="afterInteractive" />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

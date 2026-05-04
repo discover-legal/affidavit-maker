@@ -1,30 +1,95 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import LandingPage from '@/components/marketing/LandingPage';
+
+const pageTitle =
+  'AI Legal Documents — Affidavits & Divorce Filings for All 50 States';
+const pageDescription =
+  'Court-ready affidavits and complete divorce packages prepared in minutes. State-specific templates for all 50 states and D.C. From $79.';
+const pageUrl = 'https://discover.legal/';
+
+export const metadata: Metadata = {
+  title: { absolute: `${pageTitle} | discover.legal` },
+  description: pageDescription,
+  alternates: { canonical: pageUrl },
+  openGraph: {
+    type: 'website',
+    url: pageUrl,
+    title: `${pageTitle} | discover.legal`,
+    description: pageDescription,
+    siteName: 'discover.legal',
+    images: [
+      {
+        url: 'https://discover.legal/app-icon-1024.png',
+        width: 1024,
+        height: 1024,
+        alt: 'discover.legal — AI-Powered Legal Documents',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${pageTitle} | discover.legal`,
+    description: pageDescription,
+    images: ['https://discover.legal/app-icon-1024.png'],
+  },
+  keywords: [
+    'affidavit generator',
+    'divorce papers online',
+    'divorce package',
+    'AI legal documents',
+    'sworn statement',
+    'court forms',
+    'family law',
+    'legal document preparation',
+  ],
+  robots: { index: true, follow: true },
+};
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://discover.legal/#organization',
+      name: 'discover.legal',
+      url: 'https://discover.legal',
+      logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
+      description:
+        'AI-powered legal document preparation — affidavits and divorce filings tailored to every U.S. state and Canadian province.',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://discover.legal/#website',
+      url: 'https://discover.legal',
+      name: 'discover.legal',
+      description: pageDescription,
+      publisher: { '@id': 'https://discover.legal/#organization' },
+    },
+    {
+      '@type': 'Product',
+      name: 'General Affidavit',
+      description:
+        "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
+      offers: { '@type': 'Offer', price: '79.00', priceCurrency: 'USD' },
+    },
+    {
+      '@type': 'Product',
+      name: 'Divorce Package',
+      description:
+        'Complete divorce filing package — petition, decree, and supporting documents.',
+      offers: { '@type': 'Offer', price: '249.00', priceCurrency: 'USD' },
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
-      <div className="max-w-xl text-center space-y-6">
-        <h1 className="text-3xl font-bold text-slate-900">
-          discover<span className="text-blue-600">.</span>legal
-        </h1>
-        <p className="text-slate-600">
-          Migration in progress — full landing page being ported to Next.js App Router.
-        </p>
-        <div className="flex justify-center gap-3">
-          <Link
-            href="/resources"
-            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 text-sm font-semibold"
-          >
-            Resources
-          </Link>
-          <Link
-            href="/privacy"
-            className="px-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-semibold"
-          >
-            Privacy
-          </Link>
-        </div>
-      </div>
-    </main>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <LandingPage />
+    </>
   );
 }

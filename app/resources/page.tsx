@@ -1,0 +1,80 @@
+import type { Metadata } from 'next';
+import MarketingHeader from '@/components/marketing/MarketingHeader';
+import ResourcesContent from '@/components/marketing/ResourcesContent';
+import {
+  ARTICLES,
+  getCategories,
+  getFeaturedArticles,
+} from '@/lib/content/articles';
+
+const pageTitle = 'Legal Resources & Guides';
+const pageDescription =
+  'Free guides and articles to help you understand legal documents and navigate the legal system. Expert advice on affidavits, legal forms, and court procedures.';
+const pageUrl = 'https://discover.legal/resources';
+
+export const metadata: Metadata = {
+  title: pageTitle,
+  description: pageDescription,
+  alternates: { canonical: pageUrl },
+  openGraph: {
+    type: 'website',
+    url: pageUrl,
+    title: `${pageTitle} | discover.legal`,
+    description: pageDescription,
+    siteName: 'discover.legal',
+    images: [
+      {
+        url: 'https://discover.legal/app-icon-1024.png',
+        width: 1024,
+        height: 1024,
+        alt: 'discover.legal — AI-Powered Legal Documents',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${pageTitle} | discover.legal`,
+    description: pageDescription,
+    images: ['https://discover.legal/app-icon-1024.png'],
+  },
+  robots: { index: true, follow: true },
+};
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': pageUrl,
+  url: pageUrl,
+  name: `${pageTitle} | discover.legal`,
+  description: pageDescription,
+  publisher: {
+    '@type': 'Organization',
+    name: 'discover.legal',
+    url: 'https://discover.legal',
+  },
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: ARTICLES.map((article, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `https://discover.legal/resources/${article.slug}`,
+      name: article.title,
+    })),
+  },
+};
+
+export default function ResourcesPage() {
+  const categories = ['All', ...getCategories()];
+  const featured = getFeaturedArticles();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <MarketingHeader />
+      <ResourcesContent articles={ARTICLES} featured={featured} categories={categories} />
+    </div>
+  );
+}

@@ -11,7 +11,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL !== undefined
   ? process.env.REACT_APP_API_URL
   : 'http://localhost:3001';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+// Skip Stripe during react-snap prerender — its script load fails in headless Chromium and crashes the build.
+const isPrerendering = typeof navigator !== 'undefined' &&
+  /ReactSnap|Prerender|HeadlessChrome/.test(navigator.userAgent);
+
+const stripePromise = isPrerendering
+  ? Promise.resolve(null)
+  : loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 // Payment Form Component (inside Elements provider)
 const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) => {

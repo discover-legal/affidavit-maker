@@ -74,7 +74,7 @@ Users can:
 - Lucide React (icons)
 - CRACO (CRA config override — needed for ESM package handling)
 
-**No pre-rendering**: react-snap was removed. The site is a pure client-side SPA; SEO meta tags (title, description, canonical, OpenGraph, Twitter, JSON-LD) are managed in-app via `react-helmet-async` on each public route (`/`, `/resources`, `/resources/:slug`, `/privacy`, `/tos`, `/brand`). Search engines index via client-side rendering — slower than SSR/pre-render, but simpler to ship.
+**Pre-rendering**: `react-snap` (devDependency) runs as a `postbuild` step. It uses headless Chromium to snapshot the public marketing routes (`/`, `/resources`, each `/resources/:slug`, `/privacy`, `/tos`, `/brand`) into static HTML at build time. The list lives in `client/package.json` under `reactSnap.include` — keep it in sync with `PRE_RENDERED_ROUTES` in `client/src/index.js`. Helmet meta tags (title, description, canonical, OG, Twitter, JSON-LD) are present per route; pre-rendering means crawlers see them without executing JS.
 
 **Deployment**:
 - Docker on Render.com (branch: `main`)
@@ -117,7 +117,7 @@ All three configs (`server.js`, `middleware/csrfProtection.js`, `middleware/vali
 affidavit-maker/
 ├── server.js                    # Express app entry point
 ├── package.json                 # Backend dependencies
-├── Dockerfile                   # Container build (no Chromium — react-snap removed)
+├── Dockerfile                   # Container build (installs Chromium for react-snap prerender)
 ├── render.yaml                  # Render.com deployment config
 ├── .env.example.sh              # Environment variable template
 │
@@ -449,7 +449,7 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 3. Start: `node server.js`
 4. Health check: `/health`
 
-**No Chromium/Puppeteer in Docker** — react-snap was removed. The Dockerfile is lean.
+**Chromium in Docker** — installed via apt for react-snap's headless prerender. `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` and `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium` point Puppeteer at the system Chromium so the build doesn't try to download its own (which fails on Render).
 
 **REACT_APP_* vars are baked into the JS bundle at build time** via Docker `--build-arg`. If they change, a full redeploy is required.
 
@@ -464,7 +464,9 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 ## Troubleshooting
 
-**White/blank page**: Check Render build logs. If Docker build failed, old container stays live. Most common cause was react-snap (now removed).
+**White/blank page**: Check Render build logs. If Docker build failed, the old container stays live. Most common cause is react-snap failing during `postbuild` — usually a missing Chromium dep, a route in `reactSnap.include` that throws on render, or Auth0/Stripe network calls timing out. Check the Docker apt install step and the prerender output.
+
+**Hydration mismatch warnings in console**: If the static HTML produced by react-snap doesn't match what React renders on hydrate, you'll see a mismatch warning. Usually caused by code that branches on `window`, `navigator.userAgent`, or `Date.now()` during render. Move that logic into `useEffect` so it only runs client-side.
 
 **"Unexpected token 'export'"**: ESM package not handled by webpack. Fix is in `craco.config.js` (`fullySpecified: false`). If a new ESM-only package is added, it's handled automatically.
 
@@ -482,7 +484,11 @@ await pool.query(`SELECT * FROM documents WHERE user_id = ${userId}`);
 
 ## Version History
 
-### v4.1.0 (2026-05-04) — current branch
+### v4.2.0 (2026-05-04) — current branch
+- **SEO**: Restored react-snap pre-rendering. The 11 public marketing routes are snapshotted at build time so crawlers see real HTML without executing JS. Hydration logic is back in `client/src/index.js`; PaymentModal and `gtm.js` once again skip themselves under the prerender user-agent. Dockerfile reinstalls Chromium + libs and points Puppeteer at it via `PUPPETEER_EXECUTABLE_PATH`.
+- **Sitemap generator**: `client/scripts/generate-sitemap.js` now uses `https://discover.legal` as the canonical base.
+
+### v4.1.0 (2026-05-04)
 - **Hosting consolidation**: Retired Webflow. The Render-hosted SPA now serves marketing + app from `https://discover.legal` (canonical apex). `www`, `make`, `ca`, and `canada` subdomains all point to the same service.
 - **Routing**: `/` now renders `LandingPage` (the existing component, already wired with Helmet + structured data) for unauthenticated visitors and shows a "Dashboard" CTA for logged-in users. Auth0 callbacks at `/?code=&state=…` are still detected and deferred to the loading handler. Catch-all `*` redirects to `/`.
 - **Canonicalization**: All canonical URLs, sitemap, and robots.txt now use `https://discover.legal`. `FRONTEND_URL` env var updated.

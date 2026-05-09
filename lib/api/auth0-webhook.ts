@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { query } from '@/lib/db';
+import { query, withRLSBypass } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Shared helpers for the Auth0 webhook routes. The Auth0 dashboard posts to
 // two separate URLs (user-update and email-update); each Route Handler
@@ -118,16 +119,15 @@ export async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> 
   );
 
   if (result.rowCount === 0) {
-    console.warn('[auth0-webhook] email-update for unknown user', { auth0Id: user.user_id });
+    logger.warn('auth0_webhook_email_update_unknown_user', { auth0Id: user.user_id });
   }
   return NextResponse.json({ success: true });
 }
 
 /**
  * Shared request shell: verify HMAC, parse JSON, validate Auth0 ID, then hand
- * the user object to the per-event handler. Each Route Handler is a thin
- * wrapper around this so /user-update and /email-update behave identically
- * apart from which db op runs.
+ * the user object to the per-event handler inside an RLS-bypass transaction
+ * (webhooks are system operations writing across users).
  */
 export async function processAuth0Webhook(
   req: NextRequest,
@@ -160,9 +160,9 @@ export async function processAuth0Webhook(
   }
 
   try {
-    return await handler(user);
+    return await withRLSBypass(() => handler(user));
   } catch (err) {
-    console.error('[auth0-webhook] processing failed', err);
+    logger.error('auth0_webhook_processing_failed', { error: err });
     return NextResponse.json(
       { success: false, error: 'Internal error' },
       { status: 500 },

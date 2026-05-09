@@ -42,7 +42,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const amount = PRICING_CONFIG[body.documentType] ?? PRICING_CONFIG.single_affidavit;
 
     if (documentId) {
-      const docRow = await query<{ id: string; user_id: string }>(
+      const docRow = await query<{ id: number; user_id: number }>(
         'SELECT id, user_id FROM documents WHERE id = $1',
         [documentId],
       );

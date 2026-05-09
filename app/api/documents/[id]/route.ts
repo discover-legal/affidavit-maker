@@ -53,7 +53,7 @@ export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
     }
 
     const id = getId(params);
-    const row = await query<{ user_id: string }>(
+    const row = await query<{ user_id: number }>(
       'SELECT user_id FROM documents WHERE id = $1',
       [id],
     );

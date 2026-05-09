@@ -54,7 +54,7 @@ export const GET = withAuth<{ id: string | string[] }>(async (_req, { user, para
     }
 
     const caseId = parseCaseId(params.id);
-    const caseResult = await query<{ user_id: string }>(
+    const caseResult = await query<{ user_id: number }>(
       'SELECT * FROM cases WHERE id = $1',
       [caseId],
     );
@@ -91,7 +91,7 @@ export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, 
 
     const caseId = parseCaseId(params.id);
 
-    const existing = await query<{ user_id: string }>(
+    const existing = await query<{ user_id: number }>(
       'SELECT user_id FROM cases WHERE id = $1',
       [caseId],
     );

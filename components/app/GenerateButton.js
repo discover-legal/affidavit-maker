@@ -58,10 +58,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
 
       const response = await fetch(`${API_BASE_URL}/api/documents/generate?format=${format}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           affidavitData,
           documentId: affidavitData.documentId,

@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/core/TemplateRegistry.test.js
 const TemplateRegistry = require('../../../templates/core/TemplateRegistry');
 const BaseAffidavitTemplate = require('../../../templates/core/BaseAffidavitTemplate');

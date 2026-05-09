@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/states/newyork/AffidavitTemplate.test.js
 const NewYorkAffidavitTemplate = require('../../../../templates/states/newyork/AffidavitTemplate');
 const BaseAffidavitTemplate = require('../../../../templates/core/BaseAffidavitTemplate');

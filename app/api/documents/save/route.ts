@@ -64,7 +64,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     if (data.documentId) {
       const id = String(data.documentId);
-      const existing = await query<{ user_id: string }>(
+      const existing = await query<{ user_id: number }>(
         'SELECT user_id FROM documents WHERE id = $1',
         [id],
       );

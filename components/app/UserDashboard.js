@@ -137,10 +137,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const loadCases = async () => {
     setIsCasesLoading(true);
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${API_BASE}/api/cases`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(`${API_BASE}/api/cases`);
       if (response.ok) {
         const data = await response.json();
         setCases(data.data?.cases || []);
@@ -159,12 +156,8 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     console.log('🗑️ Attempting to delete document:', docId);
 
     try {
-      // ✅ This is correct - calling the hook at component level, not inside nested function
-      const token = await getAccessTokenSilently();
-
       const response = await fetch(`${API_BASE}/api/documents/${docId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
@@ -203,14 +196,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     if (!newName || newName.trim() === '') return;
     setIsSubmittingRename(true);
     try {
-      const token = await getAccessTokenSilently();
       const response = await fetch(`${API_BASE}/api/documents/${docId}/rename`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ newName: newName.trim() })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName: newName.trim() }),
       });
       if (response.ok) {
         await loadDocuments();

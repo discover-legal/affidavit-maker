@@ -102,7 +102,6 @@ const ChatInterface = () => {
 
       if (isAuthenticated) {
         const token = await getAccessTokenSilently();
-        headers.Authorization = `Bearer ${token}`;
       }
 
       const factList = facts.map(fact =>
@@ -269,7 +268,6 @@ First, please select your state above. Each state has different legal requiremen
       
       if (isAuthenticated) {
         const token = await getAccessTokenSilently();
-        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/chat`, {

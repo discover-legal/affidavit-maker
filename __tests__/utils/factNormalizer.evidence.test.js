@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/utils/factNormalizer.evidence.test.js
 /**
  * Tests for evidence functionality in factNormalizer

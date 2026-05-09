@@ -52,10 +52,7 @@ const CountyValidationInput = ({
       
       if (isAuthenticated) {
         try {
-          const token = await getAccessTokenSilently({
-            authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
-          });
-          headers['Authorization'] = `Bearer ${token}`;
+          const token = await getAccessTokenSilently();
         } catch (authError) {
           // Continue without auth if token fails
         }

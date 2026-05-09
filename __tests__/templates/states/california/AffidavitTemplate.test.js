@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/states/california/AffidavitTemplate.test.js
 const CaliforniaAffidavitTemplate = require('../../../../templates/states/california/AffidavitTemplate');
 const BaseAffidavitTemplate = require('../../../../templates/core/BaseAffidavitTemplate');

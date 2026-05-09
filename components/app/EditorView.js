@@ -128,13 +128,9 @@ const EditorView = ({ isNew = false, onBack }) => {
   const checkPaymentStatus = useCallback(async (docId) => {
     try {
       setIsCheckingPayment(true);
-      const token = await getAccessTokenSilently();
 
       const response = await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       if (!response.ok) {
@@ -299,14 +295,9 @@ const EditorView = ({ isNew = false, onBack }) => {
         affiantName: currentDocument.affiantName
       });
 
-      const token = await getAccessTokenSilently();
-
       const response = await fetch(`${API_BASE_URL}/api/documents/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           affidavitData: currentDocument,
           documentId: currentDocument.documentId,

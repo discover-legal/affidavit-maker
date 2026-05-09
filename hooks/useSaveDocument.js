@@ -45,10 +45,7 @@ const useSaveDocument = () => {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: affidavitData,
           status: options.status || 'draft',

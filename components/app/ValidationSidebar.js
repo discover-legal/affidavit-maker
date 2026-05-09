@@ -591,10 +591,7 @@ const ValidationSidebar = () => {
         let headers = { 'Content-Type': 'application/json' };
         if (isAuthenticated) {
           try {
-            const token = await getAccessTokenSilently({
-              authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE }
-            });
-            headers['Authorization'] = `Bearer ${token}`;
+            const token = await getAccessTokenSilently();
           } catch (authError) {
             console.warn('Auth failed for rewrite request');
           }

@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/compatibility.test.js
 // Validates that the template system (registry-based) produces correct output
 // for all original states (TX, UT, AZ, CA).

@@ -30,7 +30,7 @@ export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, 
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
     const { title } = bodySchema.parse(await req.json().catch(() => ({})));
 
-    const row = await query<{ user_id: string }>(
+    const row = await query<{ user_id: number }>(
       'SELECT user_id FROM documents WHERE id = $1',
       [id],
     );

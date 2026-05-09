@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Webhooks write across users (any user's payment may settle), so they
+    // must bypass RLS. Scoped to this transaction via is_local=true.
+    await client.query('SELECT set_config($1, $2, true)', ['app.bypass_rls', 'true']);
 
     // Idempotency
     const existing = await client.query<{ id: string; status: string }>(

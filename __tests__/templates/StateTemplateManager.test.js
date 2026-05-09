@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/StateTemplateManager.test.js
 // Tests for StateTemplateManager using the registry-based approach.
 // All templates are loaded via auto-discovery from templates/states/.

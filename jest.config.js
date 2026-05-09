@@ -9,8 +9,10 @@ const createJestConfig = nextJest({ dir: './' });
 
 /** @type {import('jest').Config} */
 const config = {
+  // jsdom by default for component tests; backend tests under
+  // __tests__/{services,templates,utils}/ override per-file via the
+  // /** @jest-environment node */ pragma.
   testEnvironment: 'jsdom',
-  setupFilesAfterEach: [],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },

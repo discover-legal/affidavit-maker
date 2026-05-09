@@ -36,14 +36,14 @@ export const POST = withAuth<{ id: string | string[] }>(async (req: NextRequest,
     const body = linkSchema.parse(await req.json().catch(() => ({})));
     const documentId = String(body.document_id);
 
-    const caseRow = await query<{ user_id: string }>(
+    const caseRow = await query<{ user_id: number }>(
       'SELECT user_id FROM cases WHERE id = $1',
       [caseId],
     );
     if (!caseRow.rows.length) throw new NotFoundError('Case not found');
     if (caseRow.rows[0].user_id !== user.id) throw new AuthorizationError('Access denied');
 
-    const docRow = await query<{ user_id: string }>(
+    const docRow = await query<{ user_id: number }>(
       'SELECT user_id FROM documents WHERE id = $1',
       [documentId],
     );

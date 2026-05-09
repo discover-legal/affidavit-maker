@@ -137,10 +137,7 @@ const EvidenceUploadModal = ({
 
       const response = await fetch('/api/evidence/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        body: formData,
       });
 
       const data = await response.json();

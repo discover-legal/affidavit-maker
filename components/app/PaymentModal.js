@@ -11,13 +11,7 @@ import { trackEvent } from '@/lib/utils/analytics';
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
 
-// Skip Stripe during react-snap prerender — its script load fails in headless Chromium and crashes the build.
-const isPrerendering = typeof navigator !== 'undefined' &&
-  /ReactSnap|Prerender|HeadlessChrome/.test(navigator.userAgent);
-
-const stripePromise = isPrerendering
-  ? Promise.resolve(null)
-  : loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 // Payment Form Component (inside Elements provider)
 const PaymentForm = ({ amount, onSuccess, onCancel, documentId, documentType }) => {
@@ -158,10 +152,7 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
 
         const response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             documentType,
             documentId,

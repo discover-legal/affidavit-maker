@@ -2,8 +2,16 @@ import { getSession, type Session } from '@auth0/nextjs-auth0';
 import { query } from './db';
 
 export type AppUser = {
-  id: string;
+  /** Internal numeric primary key (SERIAL). */
+  id: number;
   auth0Id: string;
+  email: string;
+  name: string | null;
+};
+
+type UserRow = {
+  id: number;
+  auth0_id: string;
   email: string;
   name: string | null;
 };
@@ -17,7 +25,8 @@ export async function getCurrentSession(): Promise<Session | null | undefined> {
  * Resolve the local DB row for the currently logged-in user. Auto-provisions a
  * row on first sign-in (the Auth0 webhook usually does this first, but this
  * handles the race where a user hits an authed endpoint before the webhook
- * fires).
+ * fires). Idempotent under concurrent first-time logins thanks to the UNIQUE
+ * constraint on users.auth0_id (migration 000_initial_schema.sql).
  *
  * Returns null when the request is unauthenticated.
  */
@@ -29,8 +38,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   const email = (session.user.email as string) ?? '';
   const name = (session.user.name as string) ?? (session.user.nickname as string) ?? email;
 
-  // Try to fetch existing
-  const existing = await query<{ id: string; auth0_id: string; email: string; name: string | null }>(
+  const existing = await query<UserRow>(
     'SELECT id, auth0_id, email, name FROM users WHERE auth0_id = $1',
     [auth0Id],
   );
@@ -40,8 +48,10 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     return { id: row.id, auth0Id: row.auth0_id, email: row.email, name: row.name };
   }
 
-  // First-time provision (race with webhook). ON CONFLICT no-op + RETURNING.
-  const inserted = await query<{ id: string; auth0_id: string; email: string; name: string | null }>(
+  // First-time provision (race with the Auth0 webhook is possible). ON CONFLICT
+  // is safe because users.auth0_id is UNIQUE NOT NULL — see
+  // migrations/000_initial_schema.sql line 13.
+  const inserted = await query<UserRow>(
     `INSERT INTO users (auth0_id, email, name, email_verified, created_at, updated_at, last_login)
      VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
      ON CONFLICT (auth0_id) DO UPDATE SET last_login = NOW()

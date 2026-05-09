@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/components/marketing/LandingPage';
+import { jsonLd } from '@/lib/json-ld';
 
 const pageTitle =
   'AI Legal Documents — Affidavits & Divorce Filings for All 50 States';
@@ -87,7 +88,7 @@ export default function HomePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
       <LandingPage />
     </>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ArrowLeft, Download } from 'lucide-react';
 import MarketingHeader from '@/components/marketing/MarketingHeader';
+import { jsonLd } from '@/lib/json-ld';
 
 const pageTitle = 'Brand Assets & Logos';
 const pageDescription =
@@ -90,7 +91,7 @@ export default function BrandAssetsPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
 
       <MarketingHeader />

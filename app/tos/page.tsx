@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import MarketingHeader from '@/components/marketing/MarketingHeader';
 import TermsMarkdown from '@/components/marketing/TermsMarkdown';
+import { jsonLd } from '@/lib/json-ld';
 import {
   TERMS_OF_SERVICE,
   TOS_VERSION,
@@ -65,7 +66,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
 
       <MarketingHeader />

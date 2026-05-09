@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import MarketingHeader from '@/components/marketing/MarketingHeader';
 import ResourcesContent from '@/components/marketing/ResourcesContent';
+import { jsonLd } from '@/lib/json-ld';
 import {
   ARTICLES,
   getCategories,
@@ -71,7 +72,7 @@ export default function ResourcesPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
       <MarketingHeader />
       <ResourcesContent articles={ARTICLES} featured={featured} categories={categories} />

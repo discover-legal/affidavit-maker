@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { ArrowLeft, Clock, ChevronRight, Scale } from 'lucide-react';
 import ArticleMarkdown from '@/components/marketing/ArticleMarkdown';
 import { ARTICLES, getArticleBySlug, type Article } from '@/lib/content/articles';
+import { jsonLd } from '@/lib/json-ld';
 
 type ArticlePageProps = {
   params: { slug: string };
@@ -106,7 +107,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
 
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">

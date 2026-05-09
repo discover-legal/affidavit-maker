@@ -47,7 +47,7 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { params, user }) 
     }
 
     const { sessionId } = params;
-    assertOwnsSession(sessionId, user.id);
+    assertOwnsSession(sessionId, String(user.id));
 
     return NextResponse.json({
       success: true,
@@ -78,7 +78,7 @@ export const DELETE = withAuth<Params>(async (_req: NextRequest, { params, user 
     }
 
     const { sessionId } = params;
-    assertOwnsSession(sessionId, user.id);
+    assertOwnsSession(sessionId, String(user.id));
 
     logger.info('chat_session_cleared', { sessionId, userId: user.id });
 

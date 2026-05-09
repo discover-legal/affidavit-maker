@@ -18,7 +18,7 @@ export const GET = withAuth(async (_req, { user }) => {
       );
     }
 
-    const result = await query(
+    const result = await query<Record<string, unknown>>(
       `SELECT id, title, document_type, template_state, status, payment_status,
               case_id, created_at, updated_at, content
          FROM documents

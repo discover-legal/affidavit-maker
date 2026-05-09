@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-// @ts-expect-error — JS file with no TS types yet; converted incrementally.
 import UserDashboard from './UserDashboard';
 
 type DocumentLite = { id: number | string };

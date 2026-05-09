@@ -48,7 +48,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const json = (await req.json().catch(() => ({}))) as unknown;
     const { affidavitData } = previewSchema.parse(json);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const previewRenderer = require('@/services/previewRenderer');
 
     let formatted: string;

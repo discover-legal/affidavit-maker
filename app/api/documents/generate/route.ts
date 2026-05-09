@@ -169,7 +169,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     // ── STEP 3: Run pdfService two-pass generation ───────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const PDFService = require('@/services/pdfService');
     const pdfService = new PDFService({ templateManager });
 
@@ -202,7 +201,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     pdfFilepath = result.filepath;
 
     // ── STEP 4: Read file → buffer → unlink → respond ────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const fs = require('fs') as typeof import('fs');
     const fsPromises = fs.promises;
     const fileBuffer = await fsPromises.readFile(pdfFilepath);
@@ -280,7 +278,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // the response.
     if (pdfFilepath) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const fs = require('fs') as typeof import('fs');
         await fs.promises.unlink(pdfFilepath).catch(() => undefined);
       } catch {

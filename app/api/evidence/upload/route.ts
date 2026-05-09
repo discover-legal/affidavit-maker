@@ -131,7 +131,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Sniff actual content via magic bytes. file-type@16 ships fromBuffer.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const FileType = require('file-type') as {
       fromBuffer: (
         buf: Buffer,
@@ -161,7 +160,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     let result: Record<string, unknown>;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const evidenceStorage = require('@/services/evidenceStorage') as {
         uploadEvidence: (
           file: { path: string; originalname: string; mimetype: string; size: number },
@@ -231,7 +229,6 @@ function mimeToExt(mime: string): string {
 function cryptoRandomId(): string {
   // Lightweight evidence id when client doesn't supply one. We import lazily
   // to avoid pulling node:crypto at module-load time.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { randomUUID } = require('node:crypto') as typeof import('node:crypto');
   return randomUUID();
 }

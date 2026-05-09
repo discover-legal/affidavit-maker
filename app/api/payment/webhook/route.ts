@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
+import type { PoolClient } from 'pg';
 import { getStripe } from '@/lib/api/stripe';
 import { pool } from '@/lib/db';
 
@@ -8,7 +9,7 @@ export const runtime = 'nodejs';
 // Next.js Route Handlers expose `await req.text()` for the raw body.
 export const dynamic = 'force-dynamic';
 
-async function processPaymentSucceeded(client: Awaited<ReturnType<typeof pool.connect>>, intent: Stripe.PaymentIntent) {
+async function processPaymentSucceeded(client: PoolClient, intent: Stripe.PaymentIntent) {
   const billingDetails = (intent as unknown as { charges?: { data?: Array<{ billing_details?: { address?: { postal_code?: string } } }> } })
     .charges?.data?.[0]?.billing_details;
   const postalCode = billingDetails?.address?.postal_code ?? null;
@@ -31,7 +32,7 @@ async function processPaymentSucceeded(client: Awaited<ReturnType<typeof pool.co
   }
 }
 
-async function processPaymentFailed(client: Awaited<ReturnType<typeof pool.connect>>, intent: Stripe.PaymentIntent) {
+async function processPaymentFailed(client: PoolClient, intent: Stripe.PaymentIntent) {
   await client.query(
     `UPDATE payments SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $1`,
     [intent.id],

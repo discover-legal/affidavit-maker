@@ -3,7 +3,7 @@
 // client/src/components/DocumentMetadata.js
 import React from 'react';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
-import '../styles/DocumentMetadata.css';
+import '@/styles/DocumentMetadata.css';
 
 const SUPPORTED_STATES = [
   { code: 'TX', name: 'Texas' },

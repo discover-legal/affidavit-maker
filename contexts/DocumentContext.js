@@ -364,7 +364,7 @@ export const DocumentProvider = ({ children }) => {
         }
       };
 
-      const data = await authFetch('/api/preview', {
+      const data = await authFetch('/api/documents/preview', {
         method: 'POST',
         body: JSON.stringify(payload)
       });

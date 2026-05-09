@@ -45,7 +45,7 @@ export async function GET(
     }
 
     const stateCode = state.toUpperCase();
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     const tm = templateManager as TemplateManagerLike;
 
     const allDocTypes = tm.getDocumentTypes(stateCode);

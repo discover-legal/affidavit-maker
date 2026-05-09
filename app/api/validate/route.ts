@@ -29,7 +29,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const { affidavitData } = bodySchema.parse(json);
     if (!affidavitData) throw new ValidationError('affidavitData is required');
 
-    const { templateManager, factValidator } = getServices();
+    const { templateManager, factValidator } = await getServices();
     const validation = (templateManager as { validateDocument: (d: unknown) => Record<string, unknown> })
       .validateDocument(affidavitData);
 

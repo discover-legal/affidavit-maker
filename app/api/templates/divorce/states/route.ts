@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     const tm = templateManager as TemplateManagerLike;
     const states = tm.getSupportedStates();
 

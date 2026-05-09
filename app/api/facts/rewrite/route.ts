@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       throw new ValidationError('Fact content is required');
     }
 
-    const { factValidator } = getServices();
+    const { factValidator } = await getServices();
     const professionalRewrite = await (factValidator as {
       generateProfessionalRewriteWithLLM: (
         fact: unknown,

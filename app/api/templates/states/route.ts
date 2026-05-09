@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     const states = (templateManager as {
       getSupportedStates: () => Array<{ code: string; name: string; requirements: unknown }>;
     }).getSupportedStates();

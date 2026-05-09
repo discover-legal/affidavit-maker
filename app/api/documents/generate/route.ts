@@ -145,7 +145,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     // ── STEP 2: Build document structure via the template manager ─────────
-    const services = getServices();
+    const services = await getServices();
     const templateManager = services.templateManager as TemplateManager | null;
     if (!templateManager) {
       throw new AppError('Template manager unavailable', 503, 'ServiceUnavailable');

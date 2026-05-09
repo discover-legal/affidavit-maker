@@ -228,7 +228,7 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
     const { getServices } = require('@/lib/api/services') as {
       getServices: () => { templateManager: unknown };
     };
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     registry.affidavitService = new AffidavitServiceCtor(templateManager);
   } catch (err) {
     logger.warn('affidavit_service_unavailable', { error: (err as Error).message });

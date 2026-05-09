@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     if (!affidavitData || !state) {
       throw new ValidationError('affidavitData and state are required');
     }
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     const validation = (templateManager as {
       validateAffidavitData: (state: string, data: unknown) => unknown;
     }).validateAffidavitData(state, affidavitData);

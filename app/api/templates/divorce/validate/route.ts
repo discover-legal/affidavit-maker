@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     const stateCode = state.toUpperCase();
 
-    const { templateManager } = getServices();
+    const { templateManager } = await getServices();
     const tm = templateManager as TemplateManagerLike;
 
     let validation: ValidationResult;

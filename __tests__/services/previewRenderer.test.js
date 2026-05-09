@@ -1,3 +1,4 @@
+/** @jest-environment node */
 const previewRenderer = require('../../services/previewRenderer');
 
 describe('previewRenderer', () => {

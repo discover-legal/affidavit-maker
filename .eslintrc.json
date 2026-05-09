@@ -1,0 +1,10 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    "client/**",
+    "node_modules/**",
+    ".next/**",
+    "documents/**",
+    "coverage/**"
+  ]
+}

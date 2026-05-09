@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/states/utah/AffidavitTemplate.test.js
 const UtahAffidavitTemplate = require('../../../../templates/states/utah/AffidavitTemplate');
 const BaseAffidavitTemplate = require('../../../../templates/core/BaseAffidavitTemplate');

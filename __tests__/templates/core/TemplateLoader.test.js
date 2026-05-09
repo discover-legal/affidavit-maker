@@ -1,3 +1,4 @@
+/** @jest-environment node */
 // __tests__/templates/core/TemplateLoader.test.js
 const TemplateLoader = require('../../../templates/core/TemplateLoader');
 const TemplateRegistry = require('../../../templates/core/TemplateRegistry');

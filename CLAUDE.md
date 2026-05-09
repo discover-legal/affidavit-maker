@@ -66,7 +66,7 @@ Users can:
 - Auth0 (`@auth0/nextjs-auth0` v3, cookie session)
 - OpenAI GPT-4o (multi-provider via `services/MultiProviderLLM`)
 - Stripe (payments + webhooks)
-- PDFKit + pdf-lib (PDF generation, Phase-4 follow-up port)
+- PDFKit + pdf-lib (PDF generation)
 - Zod (input validation in Route Handlers)
 - React Helmet replaced by Next's `metadata` export
 
@@ -150,11 +150,12 @@ affidavit-maker/
 │       ├── cases/                         # Full CRUD + linking
 │       ├── templates/                     # Read-only metadata
 │       ├── facts/rewrite/route.ts
-│       ├── validation/route.ts
+│       ├── validate/                      # validation, validate/county, validate/counties/batch
+│       ├── counties/[state]/route.ts      # county listing
 │       ├── payment/                       # create-intent, status, history, pricing, webhook
-│       ├── documents/                     # GET/save/rename/delete (preview+generate stubbed)
-│       ├── chat/                          # STUBBED 501 — Phase-4 follow-up
-│       └── evidence/                      # STUBBED 501 — Phase-4 follow-up
+│       ├── documents/                     # list/GET/save/rename/delete + preview + generate + render
+│       ├── chat/                          # POST + session GET/DELETE
+│       └── evidence/                      # upload + read/delete + list-by-document
 │
 ├── components/
 │   ├── marketing/               # MarketingHeader, LandingPage, ResourcesContent,
@@ -340,20 +341,39 @@ const result = await query<{ id: string }>('SELECT id FROM users WHERE auth0_id 
 
 ---
 
-## Phase-4 follow-up: API routes still to port
+## API routes (all ported)
 
-These return structured 501 responses today (see `lib/api/notImplemented.ts`). Each cites the legacy file in `routes/*.js` (deleted, but still in git history) for the source-of-truth implementation:
+Every endpoint the SPA calls is now backed by a Next.js Route Handler. Full inventory:
 
-- `POST /api/documents/preview` — HTML preview via `services/previewRenderer`
-- `POST /api/documents/generate` — PDF generation via `services/pdfService`
-- `POST /api/chat` — streaming LLM chat (consider `ReadableStream` for SSE)
-- `GET/DELETE /api/chat/session/[sessionId]`
-- `POST /api/evidence/upload` — switch from multer to `req.formData()`
-- `GET/DELETE /api/evidence/[documentId]/[fileKey]`
-- `GET /api/evidence/document/[documentId]`
-- Templates: `affidavit-types/*`, `divorce/*` (read-only metadata)
+**Auth**: `[auth0]` (login/logout/callback/me via handleAuth), `accept-tos`, `tos-status`, `webhook/user-update`, `webhook/email-update`.
 
-Pattern: write a TS Route Handler that imports the relevant module from `services/`, drop the Express middleware (replaced by `withAuth` + `checkRateLimit`), and return JSON via `NextResponse.json`.
+**Catalog**: `matters`, `matters/[code]`, `matters/[code]/documents`, `states/[state]/matters`, `document-types/[code]`.
+
+**Cases**: list/create, GET/PUT `[id]`, POST `[id]/documents` (link).
+
+**Documents**: list, GET/DELETE `[id]`, PUT `[id]/rename`, POST `[id]/render`, POST `save`, POST `preview`, POST `generate` (PDF, payment-gated).
+
+**Chat**: POST (orchestrator dispatch — triage/divorce/matter/general), GET/DELETE `session/[sessionId]`.
+
+**Evidence**: POST `upload` (Web FormData, magic-byte sniff, allow-listed MIMEs), GET/DELETE `[documentId]/[fileKey]`, GET `document/[documentId]`.
+
+**Facts**: POST `rewrite` (LLM-backed, optional auth, rate-limited).
+
+**Validation**: POST `validate` (LLM fact validation), POST `validate/county`, POST `validate/counties/batch`.
+
+**Counties**: GET `counties/[state]` (curated list).
+
+**Payment**: POST `create-intent`, GET `status/[paymentIntentId]`, GET `history`, GET `pricing`, POST `webhook` (raw-body Stripe verification + idempotency).
+
+**Templates**: `affidavit-types`, `affidavit-types/by-category`, `affidavit-types/[typeId]`, `states`, `document-types`, `validate`, `divorce/states`, `divorce/requirements/[state]`, `divorce/document-types/[state]`, `divorce/validate`.
+
+**Health**: GET `/api/health` (DB ping).
+
+Common patterns:
+- Authed handlers go through `withAuth` from `lib/api/auth.ts`, which resolves the user, sets per-request RLS context (`app.user_id` / `app.current_user_id`) inside a transaction via `withRLSContext` (lib/db.ts), and rolls back on thrown errors.
+- Webhooks (Auth0 + Stripe) bypass RLS via `withRLSBypass` and authenticate by signature.
+- Body validation uses Zod schemas; errors flow through `lib/api/errors.toErrorResponse` which produces the `{ success, error, errorType, requestId, timestamp }` shape the SPA expects.
+- Rate-limited per endpoint via `lib/api/rateLimit.ts` (bucketed sliding-window, in-memory).
 
 ---
 
@@ -412,7 +432,7 @@ Built into Next.js — no react-snap, no Chromium, no postbuild hacks:
 - **`@auth0/nextjs-auth0`** replaces `@auth0/auth0-react`. Cookie-based session, no more bearer tokens on the client. `/api/auth/[auth0]/route.ts` exposes login/logout/callback/me. A compatibility shim (`lib/auth0-client.ts`) keeps unconverted legacy components working with the old `useAuth0()` surface.
 - **Native SEO**: every page uses Next's `metadata` / `generateMetadata`. `app/sitemap.ts` and `app/robots.ts` replace static files. `react-snap` and Chromium are gone.
 - **Single Render service**: same Next.js process serves marketing + app + API. No more Express. `services/` modules are imported by Route Handlers.
-- **Phase-4 follow-up**: chat, document preview/generate, evidence upload, and a handful of templates endpoints are scoped 501 stubs that cite the (deleted-but-in-history) `routes/*.js` source. See "Phase-4 follow-up" section above.
+- **Phase-4 follow-up complete**: chat, document preview/generate/render, evidence upload/read/delete/list, every templates metadata endpoint, and the validate + counties endpoints are all live. See "API routes (all ported)" section above.
 - **Dockerfile**: multi-stage with `output: 'standalone'`. No Chromium, faster builds.
 - **Auth0 dashboard URL changes**: callback now `/api/auth/callback` (not `/callback`).
 - **Env-var rename**: `REACT_APP_*` → `NEXT_PUBLIC_*`.

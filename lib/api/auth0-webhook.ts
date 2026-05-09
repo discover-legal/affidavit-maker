@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { query } from '@/lib/db';
 
-// Auth0 webhook: handles user create/update events. Verifies the
-// `auth0-signature` header (HMAC-SHA256 of the raw request body keyed by
-// AUTH0_WEBHOOK_SECRET) before doing anything.
+// Shared helpers for the Auth0 webhook routes. The Auth0 dashboard posts to
+// two separate URLs (user-update and email-update); each Route Handler
+// imports verifySignature + the matching handler from this module.
 
-export const runtime = 'nodejs';
-
-type Auth0WebhookEvent = 'user-update' | 'email-update';
-
-type Auth0User = {
+export type Auth0User = {
   user_id: string;
   email: string;
   email_verified?: boolean;
@@ -18,22 +14,21 @@ type Auth0User = {
   nickname?: string;
 };
 
-type Auth0WebhookBody = {
+export type Auth0WebhookBody = {
   user?: Auth0User;
   updateTime?: string;
-  event?: Auth0WebhookEvent;
 };
 
 /**
  * Auth0 IDs are: provider|userid (e.g., "auth0|123abc"). Validate to prevent
  * injection of arbitrary strings into queries / log fields.
  */
-function isValidAuth0Id(id: unknown): id is string {
+export function isValidAuth0Id(id: unknown): id is string {
   if (typeof id !== 'string' || id.length > 128) return false;
   return /^[a-z0-9-]+\|[a-zA-Z0-9_-]+$/.test(id);
 }
 
-function constantTimeEqualsHex(a: string, b: string): boolean {
+export function constantTimeEqualsHex(a: string, b: string): boolean {
   let aBuf: Buffer;
   let bBuf: Buffer;
   try {
@@ -46,7 +41,11 @@ function constantTimeEqualsHex(a: string, b: string): boolean {
   return timingSafeEqual(aBuf, bBuf);
 }
 
-async function verifySignature(req: NextRequest): Promise<{ ok: true; body: string } | { ok: false; status: number; error: string }> {
+export type VerifyResult =
+  | { ok: true; body: string }
+  | { ok: false; status: number; error: string };
+
+export async function verifySignature(req: NextRequest): Promise<VerifyResult> {
   const secret = process.env.AUTH0_WEBHOOK_SECRET;
   if (!secret) {
     console.error('[auth0-webhook] AUTH0_WEBHOOK_SECRET not configured');
@@ -70,7 +69,7 @@ async function verifySignature(req: NextRequest): Promise<{ ok: true; body: stri
   return { ok: true, body };
 }
 
-async function handleUserUpsert(user: Auth0User): Promise<NextResponse> {
+export async function handleUserUpsert(user: Auth0User): Promise<NextResponse> {
   const existing = await query<{ id: string }>(
     'SELECT id FROM users WHERE auth0_id = $1',
     [user.user_id],
@@ -101,7 +100,7 @@ async function handleUserUpsert(user: Auth0User): Promise<NextResponse> {
   return NextResponse.json({ success: true });
 }
 
-async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> {
+export async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> {
   if (!user.email) {
     return NextResponse.json(
       { success: false, error: 'Invalid webhook payload' },
@@ -124,7 +123,16 @@ async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> {
   return NextResponse.json({ success: true });
 }
 
-export async function POST(req: NextRequest) {
+/**
+ * Shared request shell: verify HMAC, parse JSON, validate Auth0 ID, then hand
+ * the user object to the per-event handler. Each Route Handler is a thin
+ * wrapper around this so /user-update and /email-update behave identically
+ * apart from which db op runs.
+ */
+export async function processAuth0Webhook(
+  req: NextRequest,
+  handler: (user: Auth0User) => Promise<NextResponse>,
+): Promise<NextResponse> {
   const verification = await verifySignature(req);
   if (!verification.ok) {
     return NextResponse.json(
@@ -151,16 +159,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // The original Express version split into two routes (/user-update and /email-update).
-  // We collapse them into one and dispatch on payload.event for Auth0 Actions to call.
-  // Default to user-update behavior to preserve existing webhook URLs.
-  const event: Auth0WebhookEvent = payload.event === 'email-update' ? 'email-update' : 'user-update';
-
   try {
-    if (event === 'email-update') {
-      return await handleEmailUpdate(user);
-    }
-    return await handleUserUpsert(user);
+    return await handler(user);
   } catch (err) {
     console.error('[auth0-webhook] processing failed', err);
     return NextResponse.json(

@@ -1,16 +1,20 @@
 'use client';
 
 /**
- * Compatibility shim for components that were written against
- * `@auth0/auth0-react`. The Next.js SDK has a different surface
- * (`useUser()` only — no token getter, no login/logout helpers), so
- * this shim recreates the old API on top of it.
+ * Compatibility shim for legacy components that were written against
+ * `@auth0/auth0-react`. The Next.js SDK has a different surface (`useUser()`
+ * only — no token getter, no login/logout helpers), so this shim recreates
+ * the old API on top of it.
  *
- * KEY DIFFERENCE: getAccessTokenSilently() now returns an empty string.
- * Auth0 nextjs-auth0 keeps tokens server-side and uses an HttpOnly
- * cookie session for client→API calls. Components passing
- * `Authorization: Bearer ${token}` to /api/* will succeed because the
- * Route Handlers read the session from the cookie, not the header.
+ * Auth model: HttpOnly SameSite=Lax cookie session managed by
+ * `@auth0/nextjs-auth0`. Client → API calls succeed via the cookie alone;
+ * `getAccessTokenSilently` exists only to satisfy legacy call sites and
+ * always returns an empty string. Don't add it to fetch() headers — the
+ * legacy bearer-header pattern was removed in the comprehensive review pass.
+ *
+ * Migration target: as each consumer is converted to TypeScript, replace
+ * `useAuth0()` with `useUser()` from `@auth0/nextjs-auth0/client` directly
+ * and delete this shim.
  */
 
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -53,8 +57,10 @@ export function useAuth0() {
     window.location.assign(url);
   }, []);
 
-  // Tokens live server-side now. Calls to /api/* succeed via cookie session;
-  // any Authorization: Bearer header is harmless (route handlers ignore it).
+  // Tokens are server-side only (Route Handlers read the cookie session via
+  // getSession()). This stub exists so the legacy `useAuth0()` surface keeps
+  // type-checking and never throws; callers should drop the call rather than
+  // pass the empty string anywhere.
   const getAccessTokenSilently = useCallback(async () => '', []);
 
   return {

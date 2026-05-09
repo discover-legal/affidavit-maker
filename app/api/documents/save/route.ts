@@ -57,7 +57,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const documentTitle =
       data.documentTitle ?? (affiantName ? `Affidavit of ${affiantName}` : 'Untitled Affidavit');
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { factSummary: _fs, factSignature: _fsig, ...persistable } = data as Record<string, unknown>;
     const contentToSave = JSON.stringify(persistable);
     const validationJson = JSON.stringify(parsed.validation ?? null);

@@ -32,7 +32,6 @@ function buildOpenAIClient(): unknown {
   if (!process.env.OPENAI_API_KEY) {
     return null;
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const openaiModule = require('openai');
   // The `openai` package has shipped under several export shapes across
   // versions: a default export, a named `OpenAI` export, and (older) a
@@ -51,11 +50,8 @@ function buildOpenAIClient(): unknown {
 }
 
 async function buildServices(): Promise<AppServices> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const EnhancedFactValidationService = require('@/services/enhancedFactValidationService');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { StateTemplateManager } = require('@/templates/StateTemplateManager');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { initializeTemplates } = require('@/templates/initialize');
 
   // initializeTemplates is async and returns the populated TemplateRegistry.

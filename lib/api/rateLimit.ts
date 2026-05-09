@@ -17,9 +17,10 @@ export type RateLimitResult = {
 
 export function checkRateLimit(
   bucket: string,
-  key: string,
+  key: string | number,
   options: { max: number; windowMs: number },
 ): RateLimitResult {
+  const stringKey = typeof key === 'number' ? String(key) : key;
   const now = Date.now();
   let store = buckets.get(bucket);
   if (!store) {
@@ -27,10 +28,10 @@ export function checkRateLimit(
     buckets.set(bucket, store);
   }
 
-  const existing = store.get(key);
+  const existing = store.get(stringKey);
   if (!existing || existing.resetAt <= now) {
     const resetAt = now + options.windowMs;
-    store.set(key, { count: 1, resetAt });
+    store.set(stringKey, { count: 1, resetAt });
     return { ok: true, remaining: options.max - 1, resetAt };
   }
 

@@ -58,7 +58,6 @@ export const POST = withAuth<{ id: string | string[] }>(async (
     let formatted: string;
     let items: unknown[] | undefined;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const previewRenderer = require('@/services/previewRenderer') as {
         generateFormattedString: (data: unknown) => string;
         generateFormattedItems?: (data: unknown) => unknown[];

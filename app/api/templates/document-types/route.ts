@@ -7,7 +7,6 @@ export async function GET() {
   try {
     let documentTypes: string[];
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const registry = require('@/services/affidavits/AffidavitTypeRegistry');
       documentTypes = Object.keys(registry?.all ?? {});
       if (documentTypes.length === 0) {

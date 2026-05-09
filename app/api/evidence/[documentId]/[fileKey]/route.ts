@@ -98,7 +98,6 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) 
 
     await ensureOwnership(documentId, user.id);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const evidenceStorage = require('@/services/evidenceStorage') as {
       getEvidence: (
         userId: number,
@@ -198,7 +197,6 @@ export const DELETE = withAuth<Params>(async (req: NextRequest, { user, params }
 
     await ensureOwnership(documentId, user.id);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const evidenceStorage = require('@/services/evidenceStorage') as {
       deleteEvidence: (
         userId: number,

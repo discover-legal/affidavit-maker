@@ -51,7 +51,6 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) 
       throw new AuthorizationError('Access denied');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const evidenceStorage = require('@/services/evidenceStorage') as {
       listEvidenceForDocument: (
         userId: number,

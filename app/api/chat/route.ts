@@ -60,7 +60,7 @@ type RawMessage = {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __chatOrchestrators: ChatOrchestratorRegistry | undefined;
+  var __chatOrchestratorsPromise: Promise<ChatOrchestratorRegistry> | undefined;
 }
 
 type ChatOrchestratorRegistry = {
@@ -160,7 +160,7 @@ const DIVORCE_ORCHESTRATOR_MODULES: Array<[string, string]> = [
   ['NU', '@/services/agents/NUDivorceOrchestrator'],
 ];
 
-function loadOrchestrators(): ChatOrchestratorRegistry {
+async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
   const registry: ChatOrchestratorRegistry = {
     triage: null,
     general: null,
@@ -171,21 +171,18 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
   };
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     registry.triage = require('@/services/agents/TriageOrchestrator') as Orchestrator;
   } catch (err) {
     logger.warn('triage_orchestrator_unavailable', { error: (err as Error).message });
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     registry.general = require('@/services/agents/GeneralAffidavitOrchestrator') as Orchestrator;
   } catch (err) {
     logger.warn('general_affidavit_orchestrator_unavailable', { error: (err as Error).message });
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const registryModule = require('@/services/affidavits/AffidavitTypeRegistry') as {
       all: Record<string, { id: string; routesTo?: string }>;
     };
@@ -200,7 +197,6 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
 
   for (const [code, mod] of MATTER_ORCHESTRATOR_MODULES) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       registry.matter[code] = require(mod) as Orchestrator;
     } catch (err) {
       logger.warn('matter_orchestrator_unavailable', { code, error: (err as Error).message });
@@ -209,7 +205,6 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
 
   for (const [code, mod] of DIVORCE_ORCHESTRATOR_MODULES) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       registry.divorce[code] = require(mod) as Orchestrator;
     } catch (err) {
       logger.warn('divorce_orchestrator_unavailable', { code, error: (err as Error).message });
@@ -220,11 +215,9 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
   // singleton used elsewhere (lib/api/services.ts). The class constructor takes
   // a templateManager and reads global.openAIService for chat completions.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const AffidavitServiceCtor = require('@/services/affidavitService') as new (
       tm: unknown,
     ) => Orchestrator;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { getServices } = require('@/lib/api/services') as {
       getServices: () => { templateManager: unknown };
     };
@@ -237,11 +230,14 @@ function loadOrchestrators(): ChatOrchestratorRegistry {
   return registry;
 }
 
-function getOrchestrators(): ChatOrchestratorRegistry {
-  if (!global.__chatOrchestrators) {
-    global.__chatOrchestrators = loadOrchestrators();
+async function getOrchestrators(): Promise<ChatOrchestratorRegistry> {
+  if (!global.__chatOrchestratorsPromise) {
+    global.__chatOrchestratorsPromise = loadOrchestrators().catch((err) => {
+      global.__chatOrchestratorsPromise = undefined;
+      throw err;
+    });
   }
-  return global.__chatOrchestrators;
+  return global.__chatOrchestratorsPromise;
 }
 
 // ─── Country detection (mirrors legacy chat.js#detectCountry) ─────────────────
@@ -474,7 +470,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       countryCode: affidavitData.countryCode,
     });
 
-    const registry = getOrchestrators();
+    const registry = await getOrchestrators();
     const chunkedHistory = chunkConversation(conversationHistory);
 
     const triageOrch = getTriageOrchestrator(registry, affidavitData);
@@ -508,9 +504,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
               s: string,
               skip?: boolean,
             ) => Promise<ReturnType<Orchestrator['processMessage']> extends Promise<infer R> ? R : never>;
-          }).processMessage(message, chunkedHistory, affidavitData, user.id, sessionId, skipExtraction);
+          }).processMessage(message, chunkedHistory, affidavitData, String(user.id), sessionId, skipExtraction);
         } else {
-          result = await orchestrator.processMessage(message, chunkedHistory, affidavitData, user.id, sessionId);
+          result = await orchestrator.processMessage(message, chunkedHistory, affidavitData, String(user.id), sessionId);
         }
         break;
       } catch (err) {

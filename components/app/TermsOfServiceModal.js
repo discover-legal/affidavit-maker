@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { TERMS_OF_SERVICE, TOS_VERSION, TOS_LAST_UPDATED, TOOLTIP_DEFINITIONS } from '@/lib/content/termsOfService';
-import Tooltip from './Tooltip';
+import Tooltip from '@/components/marketing/Tooltip';
 
 // Helper function to parse tooltip syntax {{term}} and render Tooltip components
 const parseTooltips = (content) => {

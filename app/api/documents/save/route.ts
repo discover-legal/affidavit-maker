@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
   AuthorizationError,
   NotFoundError,
@@ -36,6 +37,14 @@ const bodySchema = z.object({
 // upsert: if affidavitData.documentId is set, UPDATE; else INSERT.
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
+    const limit = checkRateLimit('documents-save', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const json = (await req.json().catch(() => ({}))) as unknown;
     const parsed = bodySchema.parse(json);
     const data = parsed.affidavitData;

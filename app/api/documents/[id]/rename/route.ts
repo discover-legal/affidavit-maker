@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
   AuthorizationError,
   NotFoundError,
@@ -18,6 +19,14 @@ const bodySchema = z.object({
 
 export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
+    const limit = checkRateLimit('documents-rename', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
     const { title } = bodySchema.parse(await req.json().catch(() => ({})));
 

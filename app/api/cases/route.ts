@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { ValidationError, toErrorResponse } from '@/lib/api/errors';
 
 export const runtime = 'nodejs';
@@ -28,6 +29,14 @@ const createCaseSchema = z.object({
 // GET /api/cases — list cases for the current user
 export const GET = withAuth(async (_req, { user }) => {
   try {
+    const limit = checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const result = await query(
       `SELECT
          c.*,
@@ -61,6 +70,14 @@ export const GET = withAuth(async (_req, { user }) => {
 // POST /api/cases — create a new case
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
+    const limit = checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const json = (await req.json().catch(() => ({}))) as unknown;
     const body = createCaseSchema.parse(json);
 

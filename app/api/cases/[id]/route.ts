@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
   AuthorizationError,
   NotFoundError,
@@ -44,6 +45,14 @@ function parseCaseId(raw: string | string[] | undefined): number {
 // GET /api/cases/[id]
 export const GET = withAuth<{ id: string | string[] }>(async (_req, { user, params }) => {
   try {
+    const limit = checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const caseId = parseCaseId(params.id);
     const caseResult = await query<{ user_id: string }>(
       'SELECT * FROM cases WHERE id = $1',
@@ -72,6 +81,14 @@ export const GET = withAuth<{ id: string | string[] }>(async (_req, { user, para
 // PUT /api/cases/[id]
 export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
+    const limit = checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const caseId = parseCaseId(params.id);
 
     const existing = await query<{ user_id: string }>(

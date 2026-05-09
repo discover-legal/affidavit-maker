@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
   AuthorizationError,
   NotFoundError,
@@ -19,6 +20,14 @@ function getId(params: IdParams): string {
 // GET /api/documents/[id]
 export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
+    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const id = getId(params);
     const row = await query<Record<string, unknown>>(
       `SELECT * FROM documents WHERE id = $1`,
@@ -35,6 +44,14 @@ export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
 // DELETE /api/documents/[id]
 export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
+    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const id = getId(params);
     const row = await query<{ user_id: string }>(
       'SELECT user_id FROM documents WHERE id = $1',

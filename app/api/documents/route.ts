@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse } from '@/lib/api/errors';
 
 export const runtime = 'nodejs';
@@ -9,6 +10,14 @@ export const dynamic = 'force-dynamic';
 // GET /api/documents — list documents for the current user.
 export const GET = withAuth(async (_req, { user }) => {
   try {
+    const limit = checkRateLimit('documents-list', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const result = await query(
       `SELECT id, title, document_type, template_state, status, payment_status,
               case_id, created_at, updated_at, content

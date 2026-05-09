@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
   AuthorizationError,
   NotFoundError,
@@ -19,6 +20,14 @@ const linkSchema = z.object({
 // POST /api/cases/[id]/documents — link an existing document to a case.
 export const POST = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
+    const limit = checkRateLimit('cases-link-doc', user.id, RATE_LIMITS.standard);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 },
+      );
+    }
+
     const raw = Array.isArray(params.id) ? params.id[0] : params.id;
     const caseId = Number.parseInt(raw ?? '', 10);
     if (!Number.isFinite(caseId) || caseId <= 0) {

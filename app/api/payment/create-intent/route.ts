@@ -65,8 +65,28 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         email,
         metadata: { userId: user.id, source: 'affidavit-maker' },
       });
-      customerId = customer.id;
-      await query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', [customerId, user.id]);
+      // TOCTOU mitigation: two concurrent first-time payment requests can both
+      // observe stripe_customer_id IS NULL above and both create a Stripe
+      // customer. Use a conditional UPDATE so only one wins persistence; if we
+      // lose the race, re-fetch the persisted id and discard our newly-created
+      // customer (orphaned in Stripe but never billed unless used).
+      const claim = await query<{ stripe_customer_id: string }>(
+        `UPDATE users SET stripe_customer_id = $1
+           WHERE id = $2 AND stripe_customer_id IS NULL
+         RETURNING stripe_customer_id`,
+        [customer.id, user.id],
+      );
+      if (claim.rows.length > 0) {
+        customerId = claim.rows[0].stripe_customer_id;
+      } else {
+        // Lost the race — re-fetch the winner's customerId.
+        const refresh = await query<{ stripe_customer_id: string }>(
+          'SELECT stripe_customer_id FROM users WHERE id = $1',
+          [user.id],
+        );
+        customerId = refresh.rows[0]?.stripe_customer_id ?? customer.id;
+        // (orphaned Stripe customer is the runtime cost of losing the race)
+      }
     }
 
     const paymentIntent = await stripe.paymentIntents.create({

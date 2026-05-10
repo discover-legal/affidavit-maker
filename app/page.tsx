@@ -3,9 +3,9 @@ import LandingPage from '@/components/marketing/LandingPage';
 import { jsonLd } from '@/lib/json-ld';
 
 const pageTitle =
-  'AI Legal Documents — Affidavits & Divorce Filings for All 50 States';
+  'AI Divorce Packages & Affidavits — Court-Ready Filings for All 50 States';
 const pageDescription =
-  'Court-ready affidavits and complete divorce packages prepared in minutes. State-specific templates for all 50 states and D.C. From $79.';
+  'Complete divorce packages and court-ready affidavits prepared in minutes. State-specific templates for all 50 states and D.C. Divorce from $249, affidavits from $79.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {
@@ -34,13 +34,15 @@ export const metadata: Metadata = {
     images: ['https://discover.legal/app-icon-1024.png'],
   },
   keywords: [
-    'affidavit generator',
-    'divorce papers online',
     'divorce package',
+    'divorce papers online',
+    'online divorce filing',
+    'uncontested divorce',
     'AI legal documents',
+    'affidavit generator',
     'sworn statement',
-    'court forms',
     'family law',
+    'court forms',
     'legal document preparation',
   ],
   robots: { index: true, follow: true },
@@ -68,17 +70,17 @@ const structuredData = {
     },
     {
       '@type': 'Product',
+      name: 'Divorce Package',
+      description:
+        'Complete divorce filing package — petition, decree, and supporting documents tailored to your state.',
+      offers: { '@type': 'Offer', price: '249.00', priceCurrency: 'USD' },
+    },
+    {
+      '@type': 'Product',
       name: 'General Affidavit',
       description:
         "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
       offers: { '@type': 'Offer', price: '79.00', priceCurrency: 'USD' },
-    },
-    {
-      '@type': 'Product',
-      name: 'Divorce Package',
-      description:
-        'Complete divorce filing package — petition, decree, and supporting documents.',
-      offers: { '@type': 'Offer', price: '249.00', priceCurrency: 'USD' },
     },
   ],
 };

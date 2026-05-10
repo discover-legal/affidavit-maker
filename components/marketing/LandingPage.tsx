@@ -42,24 +42,6 @@ export default function LandingPage() {
 
   const products = [
     {
-      key: 'affidavit',
-      name: 'General Affidavit',
-      tagline: 'A sworn statement, court-ready.',
-      price: '$79',
-      currency: isCA ? 'CAD' : 'USD',
-      icon: FileText,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      features: [
-        'AI-guided fact interview',
-        `${jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-specific formatting`,
-        'Notary block & jurat included',
-        'Evidence/exhibit uploads',
-        'Professional PDF output',
-      ],
-      cta: 'Start an affidavit',
-    },
-    {
       key: 'divorce',
       name: 'Divorce Package',
       tagline: 'Petition, decree, and every supporting form.',
@@ -77,6 +59,24 @@ export default function LandingPage() {
         `Tailored to your ${jurisdictionWord}'s waiting periods & grounds`,
       ],
       cta: 'Start a divorce package',
+    },
+    {
+      key: 'affidavit',
+      name: 'General Affidavit',
+      tagline: 'A sworn statement, court-ready.',
+      price: '$79',
+      currency: isCA ? 'CAD' : 'USD',
+      icon: FileText,
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      features: [
+        'AI-guided fact interview',
+        `${jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-specific formatting`,
+        'Notary block & jurat included',
+        'Evidence/exhibit uploads',
+        'Professional PDF output',
+      ],
+      cta: 'Start an affidavit',
     },
   ] as const;
 
@@ -251,9 +251,9 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                Affidavits and full divorce packages, prepared by an AI interviewer trained on your{' '}
-                {jurisdictionWord}&rsquo;s rules. Plain-English questions, properly-formatted output, a
-                fraction of the cost of a paralegal.
+                Complete divorce packages and court-ready affidavits, prepared by an AI interviewer
+                trained on your {jurisdictionWord}&rsquo;s rules. Plain-English questions,
+                properly-formatted output, a fraction of the cost of a paralegal.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
@@ -344,8 +344,8 @@ export default function LandingPage() {
                       <Clock className="h-4 w-4 text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-900">Avg. completion</p>
-                      <p className="text-xs text-slate-500">12 min &middot; affidavit</p>
+                      <p className="text-xs font-semibold text-slate-900">Petition + decree</p>
+                      <p className="text-xs text-slate-500">Generated together</p>
                     </div>
                   </div>
                 </div>
@@ -367,8 +367,8 @@ export default function LandingPage() {
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Per document, no subscription</p>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">~12 min</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Average affidavit completion</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900">10&ndash;90 min</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Affidavit to full divorce</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-slate-900">24/7</p>
@@ -719,12 +719,12 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm">
                 <li>
                   <a href="#products" className="hover:text-white transition-colors">
-                    General Affidavit
+                    Divorce Package
                   </a>
                 </li>
                 <li>
                   <a href="#products" className="hover:text-white transition-colors">
-                    Divorce Package
+                    General Affidavit
                   </a>
                 </li>
                 <li>

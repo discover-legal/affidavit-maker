@@ -2,7 +2,7 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+try { require('dotenv').config(); } catch (_) { /* dotenv is dev-only; Render injects env directly */ }
 
 async function runMigrations() {
   const pool = new Pool({

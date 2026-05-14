@@ -2,6 +2,7 @@
 // Auto-discovery and loading system for state templates with multi-document type support
 
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const logger = require('../../utils/logger');
 const { validateMetadata } = require('./validateMetadata');
@@ -91,7 +92,40 @@ const DOCUMENT_TYPE_CONFIGS = [
  */
 class TemplateLoader {
   constructor() {
-    this.statesDir = path.join(__dirname, '..', 'states');
+    this.statesDir = TemplateLoader.resolveStatesDir();
+  }
+
+  /**
+   * Find templates/states/ regardless of where this file is executing from.
+   *
+   * In Next.js standalone, this module is bundled into
+   * `.next/server/chunks/<hash>.js`, so `__dirname` no longer points anywhere
+   * near the source tree — `__dirname + '../states'` resolves to a non-existent
+   * `.next/server/states`. The templates ARE copied into the standalone build
+   * via `next.config.mjs` `outputFileTracingIncludes`, but they land at
+   * `<cwd>/templates/states/` (preserving the project layout).
+   *
+   * Try cwd-relative first (works in Next.js + tests run from project root)
+   * and fall back to `__dirname`-relative (works for plain-Node scripts where
+   * cwd may not be the project root).
+   */
+  static resolveStatesDir() {
+    const candidates = [
+      path.join(process.cwd(), 'templates', 'states'),
+      path.join(__dirname, '..', 'states'),
+    ];
+    for (const candidate of candidates) {
+      try {
+        if (fsSync.statSync(candidate).isDirectory()) {
+          return candidate;
+        }
+      } catch {
+        // not present at this path, try the next
+      }
+    }
+    // None matched — return the cwd-relative path so the downstream error
+    // message points users at the conventional location.
+    return candidates[0];
   }
 
   /**

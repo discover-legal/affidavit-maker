@@ -16,7 +16,6 @@ import type { NextRequest } from 'next/server';
 const ALLOWED_API_ORIGINS = new Set([
   'discover.legal',
   'www.discover.legal',
-  'make.discover.legal',
   'ca.discover.legal',
   'canada.discover.legal',
   // Local development

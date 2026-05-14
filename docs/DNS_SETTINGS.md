@@ -13,7 +13,6 @@ All hostnames point to the **same** Render service (`affidavit-maker`). The SPA'
 | -------------------------- | -------------------------- | ------------------------------------ |
 | `discover.legal` (apex)    | `affidavit-maker` (Render) | Primary canonical host               |
 | `www.discover.legal`       | `affidavit-maker` (Render) | 301 → apex (Render redirect setting) |
-| `make.discover.legal`      | `affidavit-maker` (Render) | Kept — baked into Auth0/Stripe       |
 | `ca.discover.legal`        | `affidavit-maker` (Render) | Canada locale                        |
 | `canada.discover.legal`    | `affidavit-maker` (Render) | Canada locale alias                  |
 
@@ -50,7 +49,6 @@ A       @      216.24.57.1     300
 ```
 Type    Name      Value                              TTL
 CNAME   www       affidavit-maker.onrender.com.      300
-CNAME   make      affidavit-maker.onrender.com.      300
 CNAME   ca        affidavit-maker.onrender.com.      300
 CNAME   canada    affidavit-maker.onrender.com.      300
 ```
@@ -77,16 +75,16 @@ Do not change. Keep MX, SPF (`TXT @`), DKIM (`TXT *._domainkey…`), and DMARC (
 
 1. **`FRONTEND_URL`** — already set to `https://discover.legal` in `render.yaml`. The Render env var should match.
 
-2. **Auth0 → Application Settings** — apex must be added:
-   - Allowed Callback URLs: `https://discover.legal`, `https://make.discover.legal` (legacy)
-   - Allowed Logout URLs:   `https://discover.legal`, `https://make.discover.legal`
-   - Allowed Web Origins:   `https://discover.legal`, `https://make.discover.legal`
+2. **Auth0 → Application Settings** — every hostname that hits the app must be present:
+   - Allowed Callback URLs: `https://discover.legal`, `https://www.discover.legal`, `https://ca.discover.legal`, `https://canada.discover.legal`
+   - Allowed Logout URLs:   `https://discover.legal`, `https://www.discover.legal`, `https://ca.discover.legal`, `https://canada.discover.legal`
+   - Allowed Web Origins:   `https://discover.legal`, `https://www.discover.legal`, `https://ca.discover.legal`, `https://canada.discover.legal`
 
    Note: the SPA's `redirect_uri` is `window.location.origin` (no `/callback` path), so Auth0 redirects back to `/`. The `RootRoute` component detects `?code=&state=` query params and defers to the loading handler.
 
 3. **Stripe webhooks**: endpoint URL is unchanged at the application level (path is the same; host migrates with the canonical).
 
-4. **CORS / CSRF / CSP** — already include `discover.legal`, `www.discover.legal`, `make.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. No change needed.
+4. **CORS / CSRF / CSP** — already include `discover.legal`, `www.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. No change needed.
 
 5. **CLAUDE.md** — already updated to reflect Render-only hosting.
 
@@ -105,10 +103,9 @@ curl -I https://www.discover.legal/
 # Expect: 301 → https://discover.legal/
 
 # SPA hostnames all healthy
-curl -I https://discover.legal/health
-curl -I https://make.discover.legal/health
-curl -I https://ca.discover.legal/health
-curl -I https://canada.discover.legal/health
+curl -I https://discover.legal/api/health
+curl -I https://ca.discover.legal/api/health
+curl -I https://canada.discover.legal/api/health
 # Expect: HTTP/2 200
 ```
 

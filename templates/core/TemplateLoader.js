@@ -2,12 +2,40 @@
 // Auto-discovery and loading system for state templates with multi-document type support
 
 const fs = require('fs').promises;
-const fsSync = require('fs');
 const path = require('path');
 const logger = require('../../utils/logger');
 const { validateMetadata } = require('./validateMetadata');
-const BaseAffidavitTemplate = require('./BaseAffidavitTemplate');
 const { isAllowedJurisdiction } = require('../../config/jurisdictions');
+
+/**
+ * Node's real `require`, reached via `eval` so Webpack's static analyzer
+ * can't rewrite it. When this file is bundled into .next/server/chunks/
+ * by Next.js, regular `require(dynamicPath)` is replaced with Webpack's
+ * own module resolution — which only knows about modules webpack itself
+ * bundled, not the filesystem-included templates copied in via
+ * `outputFileTracingIncludes`. `eval('require')` returns the underlying
+ * Node require, which resolves absolute filesystem paths normally.
+ *
+ * Security/correctness identical to a plain require: paths come from
+ * `fs.readdir(templates/states/)`, never from user input.
+ *
+ * Also used for the Base*Template classes below: we MUST load them through
+ * the same require path as the dynamically-loaded template subclasses so
+ * `instanceof Base*Template` works. If we statically required Base* here,
+ * Webpack would bundle that copy, while the template files (loaded via
+ * nodeRequire) would pull their own Base* from disk via Node, and the two
+ * class objects would have different identity → instanceof always false.
+ *
+ * TODO(arch): replace with a build-time codegen step that emits a static
+ * module map (`templates/_generated/registry.js` with explicit imports)
+ * so Webpack can statically resolve every template and this escape
+ * hatch goes away.
+ */
+// eslint-disable-next-line no-eval
+const nodeRequire = eval('require');
+
+const TEMPLATES_CORE_DIR = path.join(process.cwd(), 'templates', 'core');
+const BaseAffidavitTemplate = nodeRequire(path.join(TEMPLATES_CORE_DIR, 'BaseAffidavitTemplate.js'));
 
 // Lazy load divorce templates to avoid circular dependencies
 let BaseDivorcePetitionTemplate = null;
@@ -92,40 +120,17 @@ const DOCUMENT_TYPE_CONFIGS = [
  */
 class TemplateLoader {
   constructor() {
-    this.statesDir = TemplateLoader.resolveStatesDir();
-  }
-
-  /**
-   * Find templates/states/ regardless of where this file is executing from.
-   *
-   * In Next.js standalone, this module is bundled into
-   * `.next/server/chunks/<hash>.js`, so `__dirname` no longer points anywhere
-   * near the source tree — `__dirname + '../states'` resolves to a non-existent
-   * `.next/server/states`. The templates ARE copied into the standalone build
-   * via `next.config.mjs` `outputFileTracingIncludes`, but they land at
-   * `<cwd>/templates/states/` (preserving the project layout).
-   *
-   * Try cwd-relative first (works in Next.js + tests run from project root)
-   * and fall back to `__dirname`-relative (works for plain-Node scripts where
-   * cwd may not be the project root).
-   */
-  static resolveStatesDir() {
-    const candidates = [
-      path.join(process.cwd(), 'templates', 'states'),
-      path.join(__dirname, '..', 'states'),
-    ];
-    for (const candidate of candidates) {
-      try {
-        if (fsSync.statSync(candidate).isDirectory()) {
-          return candidate;
-        }
-      } catch {
-        // not present at this path, try the next
-      }
-    }
-    // None matched — return the cwd-relative path so the downstream error
-    // message points users at the conventional location.
-    return candidates[0];
+    // Canonical location: `<project-root>/templates/states/`. process.cwd()
+    // is the project root in every environment we run in:
+    //   - `next dev` / `next build` / `next start`           cwd = project root
+    //   - Next.js standalone runtime (Dockerfile WORKDIR)    cwd = /app
+    //   - Jest                                               cwd = project root
+    //   - npm scripts (`node scripts/*.js` via npm)          cwd = project root
+    // No __dirname fallback: after Next.js bundles this module into
+    // .next/server/chunks/<hash>.js, __dirname points into the build
+    // output, and silently loading templates from the wrong location
+    // is a worse failure mode than a loud "directory not found" error.
+    this.statesDir = path.join(process.cwd(), 'templates', 'states');
   }
 
   /**
@@ -140,12 +145,19 @@ class TemplateLoader {
         return BaseAffidavitTemplate;
       case 'BaseDivorcePetitionTemplate':
         if (!BaseDivorcePetitionTemplate) {
-          BaseDivorcePetitionTemplate = require('./BaseDivorcePetitionTemplate');
+          // Same module-identity reasoning as BaseAffidavitTemplate above:
+          // load via Node's require so instanceof matches the dynamically
+          // loaded subclasses.
+          BaseDivorcePetitionTemplate = nodeRequire(
+            path.join(TEMPLATES_CORE_DIR, 'BaseDivorcePetitionTemplate.js'),
+          );
         }
         return BaseDivorcePetitionTemplate;
       case 'BaseDivorceDecreeTemplate':
         if (!BaseDivorceDecreeTemplate) {
-          BaseDivorceDecreeTemplate = require('./BaseDivorceDecreeTemplate');
+          BaseDivorceDecreeTemplate = nodeRequire(
+            path.join(TEMPLATES_CORE_DIR, 'BaseDivorceDecreeTemplate.js'),
+          );
         }
         return BaseDivorceDecreeTemplate;
       default:
@@ -335,8 +347,9 @@ class TemplateLoader {
       }
     }
 
-    // Load template class
-    const TemplateClass = require(templatePath);
+    // Load template class. See nodeRequire definition at the top of this
+    // file for why this can't be a regular `require()` under Next.js.
+    const TemplateClass = nodeRequire(templatePath);
 
     // Validate that template extends the correct base class
     const BaseClass = this._getBaseClass(config.baseClass);

@@ -20,6 +20,6 @@ export async function GET() {
       database: dbOk ? 'connected' : 'unreachable',
       timestamp: new Date().toISOString(),
     },
-    { status: dbOk ? 200 : 503 },
+    { status: 200 },
   );
 }

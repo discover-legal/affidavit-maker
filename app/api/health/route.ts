@@ -1,25 +1,24 @@
-import { NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * Liveness probe. Render's external health check hits this path
+ * (render.yaml: healthCheckPath: /api/health).
+ *
+ * Intentionally minimal: no DB query, no service imports. Liveness should
+ * answer "is the process responsive?" — not "is the whole stack green?"
+ * A degraded DB must not kill the container, and the probe must not block
+ * on a 10s pg connect timeout. For deep-state checks add a separate /api/ready.
+ */
 export async function GET() {
-  let dbOk = false;
-  try {
-    await pool.query('SELECT 1');
-    dbOk = true;
-  } catch (err) {
-    console.error('[health] db check failed', err);
-  }
-
-  return NextResponse.json(
+  return new Response(
+    JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }),
     {
-      success: true,
-      status: dbOk ? 'ok' : 'degraded',
-      database: dbOk ? 'connected' : 'unreachable',
-      timestamp: new Date().toISOString(),
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'cache-control': 'no-store',
+      },
     },
-    { status: 200 },
   );
 }

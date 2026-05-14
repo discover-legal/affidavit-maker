@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Locale-aware brand tokens.
+ *
+ * Default (US): blue-600. Canadian variants override these on the
+ * <html data-locale="ca"> root to switch the accent to Canadian red
+ * (#D52B1E — the Pantone red used in the Canadian flag) and supporting
+ * tints. Components use `text-brand`, `bg-brand`, `border-brand` etc.
+ * (configured in tailwind.config.ts) instead of hard-coded color shades.
+ *
+ * Format: space-separated RGB triplets so Tailwind's `<alpha-value>`
+ * substitution works (`text-brand/80` etc.).
+ */
+:root {
+  --brand: 37 99 235;          /* blue-600  #2563eb */
+  --brand-strong: 29 78 216;   /* blue-700  #1d4ed8 */
+  --brand-soft: 219 234 254;   /* blue-100  #dbeafe */
+  --brand-tint: 239 246 255;   /* blue-50   #eff6ff */
+  --brand-on: 255 255 255;     /* white     foreground on brand fills */
+}
+
+html[data-locale='ca'] {
+  --brand: 213 43 30;          /* Canadian red  #D52B1E */
+  --brand-strong: 169 31 21;   /*               #A91F15 */
+  --brand-soft: 254 226 226;   /* rose-100 ish  #FEE2E2 */
+  --brand-tint: 254 242 242;   /* rose-50 ish   #FEF2F2 */
+  --brand-on: 255 255 255;
+}

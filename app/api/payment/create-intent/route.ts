@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
-import { getStripe, PRICING_CONFIG } from '@/lib/api/stripe';
+import { getStripe } from '@/lib/api/stripe';
+import { getLocale } from '@/lib/locale';
+import { getPrice } from '@/lib/pricing';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
@@ -38,8 +40,11 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const body = bodySchema.parse(await req.json().catch(() => ({})));
     const documentId = body.documentId ? String(body.documentId) : null;
 
-    // Server-side pricing — never trust client.
-    const amount = PRICING_CONFIG[body.documentType] ?? PRICING_CONFIG.single_affidavit;
+    // Server-side pricing — never trust client. Locale is resolved from the
+    // host header / `locale` cookie so a request from ca.discover.legal (or
+    // a user who flipped the toggle) is billed in CAD.
+    const locale = getLocale();
+    const { amount, currency } = getPrice(locale, body.documentType);
 
     if (documentId) {
       const docRow = await query<{ id: number; user_id: number }>(
@@ -91,13 +96,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: 'usd',
+      currency,
       customer: customerId,
       metadata: {
         userId: user.id,
         documentId: documentId ?? 'new',
         documentType: body.documentType,
         userEmail: email ?? 'unknown',
+        locale,
       },
       receipt_email: email ?? undefined,
     });
@@ -106,12 +112,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       `INSERT INTO payments (
          user_id, stripe_payment_intent_id, amount_cents, currency,
          status, metadata, created_at
-       ) VALUES ($1, $2, $3, 'usd', 'pending', $4, CURRENT_TIMESTAMP)`,
+       ) VALUES ($1, $2, $3, $4, 'pending', $5, CURRENT_TIMESTAMP)`,
       [
         user.id,
         paymentIntent.id,
         amount,
-        JSON.stringify({ documentId, documentType: body.documentType }),
+        currency,
+        JSON.stringify({ documentId, documentType: body.documentType, locale }),
       ],
     );
 
@@ -121,7 +128,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         amount,
-        currency: 'usd',
+        currency,
       },
     });
   } catch (err) {

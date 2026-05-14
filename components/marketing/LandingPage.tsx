@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import {
   ArrowRight,
@@ -14,25 +13,16 @@ import {
   Clock,
   MapPin,
   Lock,
-  Quote,
-  Star,
 } from 'lucide-react';
+import type { Locale } from '@/lib/locale';
+import { formatPrice } from '@/lib/pricing';
+import { LocaleToggle } from '@/components/LocaleToggle';
 
-export default function LandingPage() {
+export default function LandingPage({ locale }: { locale: Locale }) {
   const { user } = useUser();
   const isAuthenticated = Boolean(user);
-  const [country, setCountry] = useState<'US' | 'CA'>('US');
+  const isCA = locale === 'ca';
 
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    if (hostname.startsWith('ca.') || hostname.startsWith('canada.')) {
-      setCountry('CA');
-    } else {
-      setCountry('US');
-    }
-  }, []);
-
-  const isCA = country === 'CA';
   const jurisdictionWord = isCA ? 'province' : 'state';
   const jurisdictionWordPlural = isCA ? 'provinces' : 'states';
   const coverageHeadline = isCA
@@ -40,13 +30,15 @@ export default function LandingPage() {
     : 'All 50 states + D.C.';
   const coverageCount = isCA ? '13' : '51';
 
+  const divorcePrice = formatPrice(locale, 'divorce_package');
+  const affidavitPrice = formatPrice(locale, 'single_affidavit');
+
   const products = [
     {
       key: 'divorce',
       name: 'Divorce Package',
       tagline: 'Petition, decree, and every supporting form.',
-      price: '$249',
-      currency: isCA ? 'CAD' : 'USD',
+      price: divorcePrice,
       icon: Scale,
       iconBg: 'bg-purple-50',
       iconColor: 'text-purple-600',
@@ -64,15 +56,14 @@ export default function LandingPage() {
       key: 'affidavit',
       name: 'General Affidavit',
       tagline: 'A sworn statement, court-ready.',
-      price: '$79',
-      currency: isCA ? 'CAD' : 'USD',
+      price: affidavitPrice,
       icon: FileText,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      iconBg: 'bg-brand-tint',
+      iconColor: 'text-brand',
       features: [
         'AI-guided fact interview',
         `${jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-specific formatting`,
-        'Notary block & jurat included',
+        isCA ? 'Commissioner of Oaths / Notary jurat' : 'Notary block & jurat included',
         'Evidence/exhibit uploads',
         'Professional PDF output',
       ],
@@ -89,7 +80,9 @@ export default function LandingPage() {
     {
       n: '02',
       title: 'Chat through the facts',
-      body: 'Our AI interviewer asks the questions a paralegal would. Answer in plain English — no legalese required.',
+      body: isCA
+        ? 'Our AI interviewer asks the questions a Canadian paralegal would. Answer in plain English — no legalese required.'
+        : 'Our AI interviewer asks the questions a paralegal would. Answer in plain English — no legalese required.',
     },
     {
       n: '03',
@@ -98,36 +91,17 @@ export default function LandingPage() {
     },
   ];
 
-  const testimonials = [
-    {
-      quote:
-        'I had been quoted $1,800 by a paralegal for the same paperwork. discover.legal walked me through it in 40 minutes.',
-      name: 'Marisol G.',
-      role: 'Affidavit, Texas',
-    },
-    {
-      quote:
-        'The divorce package included everything the clerk asked for. I genuinely could not believe the price.',
-      name: 'Daniel R.',
-      role: 'Divorce Package, Florida',
-    },
-    {
-      quote:
-        "Finally a legal tool that doesn't feel like it was built in 2003. The interview is genuinely smart.",
-      name: 'Priya S.',
-      role: 'Affidavit, Ontario',
-    },
-  ];
-
   const faqs = [
     {
       q: 'Is this a substitute for a lawyer?',
-      a: "No. discover.legal is a self-help document preparation tool. We don't provide legal advice or represent you. For complex matters or contested disputes, consult a licensed attorney.",
+      a: isCA
+        ? "No. discover.legal is a self-help document preparation tool. We don't provide legal advice and aren't a law firm. For contested or complex matters, consult a lawyer licensed in your province."
+        : "No. discover.legal is a self-help document preparation tool. We don't provide legal advice or represent you. For complex matters or contested disputes, consult a licensed attorney.",
     },
     {
       q: `Which ${jurisdictionWordPlural} are supported?`,
       a: isCA
-        ? 'We support all 10 Canadian provinces plus the Northwest Territories, Yukon, and Nunavut.'
+        ? 'All 10 Canadian provinces plus the Northwest Territories, Yukon, and Nunavut. Divorce filings follow the federal Divorce Act and your province\'s family-court rules.'
         : 'All 50 U.S. states plus the District of Columbia. Each comes with its own template, statute references, and required forms.',
     },
     {
@@ -140,14 +114,24 @@ export default function LandingPage() {
     },
     {
       q: 'Do I still need to file with the court myself?',
-      a: 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).',
+      a: isCA
+        ? 'Yes. We prepare the documents and a filing checklist. You file with the appropriate court (Superior Court of Justice in Ontario, Cour supérieure in Quebec, etc.) by the method your court accepts.'
+        : 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).',
     },
   ];
 
-  // Until Phase 2 wires Auth0, "Get started" / "Sign in" link to login routes
-  // that will exist once the @auth0/nextjs-auth0 handler ships at /api/auth/*.
   const startDocumentHref = isAuthenticated ? '/dashboard' : '/api/auth/login?screen_hint=signup';
   const signInHref = isAuthenticated ? '/dashboard' : '/api/auth/login';
+
+  const jurisdictionCodes = isCA
+    ? ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU']
+    : [
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
+        'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
+        'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
+        'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
+        'WI', 'WY', 'DC',
+      ];
 
   return (
     <div className="min-h-screen bg-white text-slate-900 antialiased">
@@ -156,14 +140,14 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur-sm opacity-40" />
+                <div className="absolute inset-0 bg-gradient-to-br from-brand to-brand-strong rounded-lg blur-sm opacity-40" />
                 <div className="relative bg-gradient-to-br from-slate-900 to-slate-700 rounded-lg p-1.5">
                   <Scale className="h-5 w-5 text-white" />
                 </div>
               </div>
               <div className="text-left">
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                  discover<span className="text-blue-600">.</span>legal
+                  discover<span className="text-brand">.</span>legal
                 </h1>
               </div>
             </Link>
@@ -187,6 +171,7 @@ export default function LandingPage() {
               >
                 Resources
               </Link>
+              <LocaleToggle active={locale} />
               {isAuthenticated ? (
                 <Link
                   href="/dashboard"
@@ -198,7 +183,7 @@ export default function LandingPage() {
                 <>
                   <Link
                     href={signInHref}
-                    className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2"
+                    className="hidden sm:inline text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2"
                   >
                     Sign in
                   </Link>
@@ -217,7 +202,7 @@ export default function LandingPage() {
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-blue-100/60 rounded-full blur-3xl" />
+          <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-brand-soft/60 rounded-full blur-3xl" />
           <div className="absolute -top-20 right-0 w-[500px] h-[500px] bg-purple-100/50 rounded-full blur-3xl" />
           <div className="absolute top-60 left-1/3 w-[400px] h-[400px] bg-amber-50 rounded-full blur-3xl" />
           <div
@@ -287,7 +272,7 @@ export default function LandingPage() {
 
             <div className="lg:col-span-5">
               <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/40 to-purple-200/40 rounded-3xl blur-2xl" />
+                <div className="absolute -inset-4 bg-gradient-to-br from-brand-soft/40 to-purple-200/40 rounded-3xl blur-2xl" />
                 <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200 overflow-hidden">
                   <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
                     <div className="flex gap-1.5">
@@ -301,7 +286,7 @@ export default function LandingPage() {
                   </div>
                   <div className="p-5 space-y-4">
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-white text-xs font-bold">
                         AI
                       </div>
                       <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
@@ -316,14 +301,14 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-white text-xs font-bold">
                         AI
                       </div>
                       <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
                         <p className="text-sm text-slate-700">
                           Got it.{' '}
                           {isCA
-                            ? 'Ontario requires a 1-year separation for no-fault divorce.'
+                            ? 'The federal Divorce Act requires a 1-year separation for no-fault divorce.'
                             : 'Texas requires 6 months residency in the state and 90 days in the county.'}{' '}
                           Have you and your spouse met that?
                         </p>
@@ -363,7 +348,7 @@ export default function LandingPage() {
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{coverageHeadline}</p>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">$79+</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900">{affidavitPrice}+</p>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Per document, no subscription</p>
             </div>
             <div>
@@ -381,7 +366,7 @@ export default function LandingPage() {
       <section id="products" className="py-20 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">
+            <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-3">
               What we make
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
@@ -427,7 +412,7 @@ export default function LandingPage() {
                         {product.price}
                       </p>
                       <p className={`text-xs ${featured ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {product.currency} &middot; flat fee
+                        Flat fee
                       </p>
                     </div>
                   </div>
@@ -483,7 +468,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="bg-slate-50 py-20 sm:py-24 border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">
+            <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-3">
               How it works
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-4">
@@ -515,7 +500,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
-              <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">
+              <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-3">
                 Built for your jurisdiction
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-6">
@@ -525,13 +510,13 @@ export default function LandingPage() {
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
                 Filing fees, residency rules, statute citations, even the wording of the jurat
                 &mdash; we maintain a separate template for every {jurisdictionWord}, audited against
-                the real court rules.
+                the real court rules{isCA ? ' and the federal Divorce Act' : ''}.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-4 w-4 text-blue-600" />
+                  <div className="w-9 h-9 rounded-lg bg-brand-tint flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-brand" />
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 text-sm">
@@ -579,16 +564,7 @@ export default function LandingPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 font-mono text-xs">
-                  {(isCA
-                    ? ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU']
-                    : [
-                        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
-                        'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
-                        'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
-                        'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
-                        'WI', 'WY', 'DC',
-                      ]
-                  ).map((code) => (
+                  {jurisdictionCodes.map((code) => (
                     <div
                       key={code}
                       className="bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1.5 text-center transition-colors"
@@ -607,44 +583,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-slate-900 text-white py-20 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
-              What people are saying
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-              Built for the people the legal system wasn&rsquo;t.
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div
-                key={t.name}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors"
-              >
-                <div className="flex gap-0.5 mb-4">
-                  {[0, 1, 2, 3, 4].map((s) => (
-                    <Star key={s} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <Quote className="h-5 w-5 text-slate-500 mb-3" />
-                <p className="text-slate-200 mb-6 leading-relaxed">{t.quote}</p>
-                <div>
-                  <p className="font-semibold text-white text-sm">{t.name}</p>
-                  <p className="text-xs text-slate-400">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-20 sm:py-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-3">FAQ</p>
+            <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-3">FAQ</p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
               Common questions.
             </h2>
@@ -668,7 +610,7 @@ export default function LandingPage() {
       </section>
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand-strong to-purple-700" />
         <div
           className="absolute inset-0 opacity-20"
           style={{
@@ -681,8 +623,8 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4">
             Ready to start?
           </h2>
-          <p className="text-lg sm:text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Pick your document, answer the questions, download a court-ready PDF. From $79.
+          <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            Pick your document, answer the questions, download a court-ready PDF. From {affidavitPrice}.
           </p>
           <Link
             href={startDocumentHref}
@@ -703,7 +645,7 @@ export default function LandingPage() {
                   <Scale className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-lg font-bold text-white">
-                  discover<span className="text-blue-400">.</span>legal
+                  discover<span className="text-brand">.</span>legal
                 </span>
               </div>
               <p className="text-sm text-slate-500 max-w-sm leading-relaxed">

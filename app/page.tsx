@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/components/marketing/LandingPage';
 import { jsonLd } from '@/lib/json-ld';
+import { getLocale } from '@/lib/locale.server';
+import { getPrice } from '@/lib/pricing';
 
 const pageTitle =
   'AI Divorce Packages & Affidavits — Court-Ready Filings for All 50 States';
@@ -48,51 +50,63 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const structuredData = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Organization',
-      '@id': 'https://discover.legal/#organization',
-      name: 'discover.legal',
-      url: 'https://discover.legal',
-      logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
-      description:
-        'AI-powered legal document preparation — affidavits and divorce filings tailored to every U.S. state and Canadian province.',
-    },
-    {
-      '@type': 'WebSite',
-      '@id': 'https://discover.legal/#website',
-      url: 'https://discover.legal',
-      name: 'discover.legal',
-      description: pageDescription,
-      publisher: { '@id': 'https://discover.legal/#organization' },
-    },
-    {
-      '@type': 'Product',
-      name: 'Divorce Package',
-      description:
-        'Complete divorce filing package — petition, decree, and supporting documents tailored to your state.',
-      offers: { '@type': 'Offer', price: '249.00', priceCurrency: 'USD' },
-    },
-    {
-      '@type': 'Product',
-      name: 'General Affidavit',
-      description:
-        "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
-      offers: { '@type': 'Offer', price: '79.00', priceCurrency: 'USD' },
-    },
-  ],
-};
-
 export default function HomePage() {
+  const locale = getLocale();
+  const divorce = getPrice(locale, 'divorce_package');
+  const affidavit = getPrice(locale, 'single_affidavit');
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': 'https://discover.legal/#organization',
+        name: 'discover.legal',
+        url: 'https://discover.legal',
+        logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
+        description:
+          'AI-powered legal document preparation — affidavits and divorce filings tailored to every U.S. state and Canadian province.',
+      },
+      {
+        '@type': 'WebSite',
+        '@id': 'https://discover.legal/#website',
+        url: 'https://discover.legal',
+        name: 'discover.legal',
+        description: pageDescription,
+        publisher: { '@id': 'https://discover.legal/#organization' },
+      },
+      {
+        '@type': 'Product',
+        name: 'Divorce Package',
+        description:
+          'Complete divorce filing package — petition, decree, and supporting documents tailored to your jurisdiction.',
+        offers: {
+          '@type': 'Offer',
+          price: (divorce.amount / 100).toFixed(2),
+          priceCurrency: divorce.currency.toUpperCase(),
+        },
+      },
+      {
+        '@type': 'Product',
+        name: 'General Affidavit',
+        description:
+          "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
+        offers: {
+          '@type': 'Offer',
+          price: (affidavit.amount / 100).toFixed(2),
+          priceCurrency: affidavit.currency.toUpperCase(),
+        },
+      },
+    ],
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
-      <LandingPage />
+      <LandingPage locale={locale} />
     </>
   );
 }

@@ -8,7 +8,20 @@ const config: Config = {
     './hooks/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // CSS-variable-driven brand tokens. See app/globals.css for the
+        // values and the [data-locale='ca'] override that switches the
+        // accent from blue (US) to Canadian red (CA).
+        brand: {
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          strong: 'rgb(var(--brand-strong) / <alpha-value>)',
+          soft: 'rgb(var(--brand-soft) / <alpha-value>)',
+          tint: 'rgb(var(--brand-tint) / <alpha-value>)',
+          on: 'rgb(var(--brand-on) / <alpha-value>)',
+        },
+      },
+    },
   },
   plugins: [],
 };

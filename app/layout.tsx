@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import Providers from './providers';
+import { getLocale } from '@/lib/locale.server';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -38,8 +39,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Locale is resolved server-side per request (host header + cookie
+  // override). Stamped on <html> so [data-locale='ca'] CSS variant
+  // selectors in globals.css can swap brand colors without a flicker.
+  const locale = getLocale();
   return (
-    <html lang="en">
+    <html lang={locale === 'ca' ? 'en-CA' : 'en'} data-locale={locale}>
       <head>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-LZE32YYQ9P"

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import Providers from './providers';
-import { getLocale } from '@/lib/locale';
+import { getLocale } from '@/lib/locale.server';
 import './globals.css';
 
 export const metadata: Metadata = {

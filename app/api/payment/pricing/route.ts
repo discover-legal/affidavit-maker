@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLocale } from '@/lib/locale';
+import { getLocale } from '@/lib/locale.server';
 import { getPrice } from '@/lib/pricing';
 
 export const runtime = 'nodejs';

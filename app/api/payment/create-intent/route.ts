@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { getStripe } from '@/lib/api/stripe';
-import { getLocale } from '@/lib/locale';
+import { getLocale } from '@/lib/locale.server';
 import { getPrice } from '@/lib/pricing';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';

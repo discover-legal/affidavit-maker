@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/components/marketing/LandingPage';
 import { jsonLd } from '@/lib/json-ld';
-import { getLocale } from '@/lib/locale';
+import { getLocale } from '@/lib/locale.server';
 import { getPrice } from '@/lib/pricing';
 
 const pageTitle =

@@ -19,7 +19,7 @@ npm run lint          # next lint
 npm run db:migrate    # Run database migrations
 ```
 
-**Live URL**: `https://discover.legal` (canonical apex). Same Next.js service also serves `www.discover.legal` (301 → apex), `make.discover.legal` (legacy alias), `ca.discover.legal`, `canada.discover.legal`.
+**Live URL**: `https://discover.legal` (canonical apex). Same Next.js service also serves `www.discover.legal` (301 → apex), `ca.discover.legal`, `canada.discover.legal`.
 
 **Stack**: Next.js 14 App Router + TypeScript + Tailwind CSS + PostgreSQL + Auth0 (`@auth0/nextjs-auth0` v3) + OpenAI + Stripe.
 
@@ -96,7 +96,6 @@ Browser → Next.js (middleware.ts: request id) → Route Handler / Page
 All point to the same Next.js Render service:
 - `https://discover.legal` (canonical)
 - `https://www.discover.legal` (Next config redirect → apex)
-- `https://make.discover.legal` (legacy alias)
 - `https://ca.discover.legal` / `https://canada.discover.legal`
 
 CORS is unnecessary for same-origin API calls; Next.js Route Handlers accept the cookie session directly. CSP is set in `next.config.mjs` `headers()`.
@@ -402,7 +401,7 @@ Built into Next.js — no react-snap, no Chromium, no postbuild hacks:
 
 **REACT_APP_* → NEXT_PUBLIC_*** rename: client-bundled env vars now use the Next.js convention. Re-set them in Render dashboard.
 
-**Custom domains** (all on the same Render service): `discover.legal`, `www.discover.legal`, `make.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. See `docs/DNS_SETTINGS.md`.
+**Custom domains** (all on the same Render service): `discover.legal`, `www.discover.legal`, `ca.discover.legal`, `canada.discover.legal`. See `docs/DNS_SETTINGS.md`.
 
 ---
 

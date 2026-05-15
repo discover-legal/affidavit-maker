@@ -3,10 +3,11 @@ import MarketingHeader from '@/components/marketing/MarketingHeader';
 import ResourcesContent from '@/components/marketing/ResourcesContent';
 import { jsonLd } from '@/lib/json-ld';
 import {
-  ARTICLES,
-  getCategories,
-  getFeaturedArticles,
+  getArticlesForLocale,
+  getCategoriesForLocale,
+  getFeaturedArticlesForLocale,
 } from '@/lib/content/articles';
+import { getLocale } from '@/lib/locale.server';
 
 const pageTitle = 'Legal Resources & Guides';
 const pageDescription =
@@ -41,32 +42,39 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const structuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'CollectionPage',
-  '@id': pageUrl,
-  url: pageUrl,
-  name: `${pageTitle} | discover.legal`,
-  description: pageDescription,
-  publisher: {
-    '@type': 'Organization',
-    name: 'discover.legal',
-    url: 'https://discover.legal',
-  },
-  mainEntity: {
-    '@type': 'ItemList',
-    itemListElement: ARTICLES.map((article, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      url: `https://discover.legal/resources/${article.slug}`,
-      name: article.title,
-    })),
-  },
-};
-
 export default function ResourcesPage() {
-  const categories = ['All', ...getCategories()];
-  const featured = getFeaturedArticles();
+  // Locale is resolved server-side from the host header (or `locale` cookie
+  // set by the in-nav flag toggle). Articles, featured list, and categories
+  // are filtered to what's relevant for the current locale — Canadian
+  // visitors see Canadian-tagged guides, US visitors see US-tagged guides,
+  // and 'both'-tagged articles surface for everyone.
+  const locale = getLocale();
+  const articles = getArticlesForLocale(locale);
+  const featured = getFeaturedArticlesForLocale(locale);
+  const categories = ['All', ...getCategoriesForLocale(locale)];
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': pageUrl,
+    url: pageUrl,
+    name: `${pageTitle} | discover.legal`,
+    description: pageDescription,
+    publisher: {
+      '@type': 'Organization',
+      name: 'discover.legal',
+      url: 'https://discover.legal',
+    },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: articles.map((article, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `https://discover.legal/resources/${article.slug}`,
+        name: article.title,
+      })),
+    },
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -75,7 +83,7 @@ export default function ResourcesPage() {
         dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
       <MarketingHeader />
-      <ResourcesContent articles={ARTICLES} featured={featured} categories={categories} />
+      <ResourcesContent articles={articles} featured={featured} categories={categories} />
     </div>
   );
 }

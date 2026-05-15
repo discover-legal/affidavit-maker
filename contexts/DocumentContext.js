@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { useTOS } from './TOSContext';
+import { detectLocaleClient, defaultJurisdictionFor } from '@/lib/locale-client';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
@@ -521,10 +522,17 @@ export const DocumentProvider = ({ children }) => {
       console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
+      // Pre-populate the jurisdiction when the visitor is on the Canadian
+      // locale — Ontario is the natural default for new Canadian filings
+      // (also matches the chat orchestrator's `detectCountry()` fallback).
+      // Users can change it before saving. US visitors get no default so
+      // we don't silently bias them toward Texas etc.
+      const defaultState = defaultJurisdictionFor(detectLocaleClient());
+
       // Create empty document
       const payload = {
         affidavitData: {
-          state: '',
+          state: defaultState,
           affiantName: '',
           caseNumber: '',
           courtName: '',
@@ -539,7 +547,7 @@ export const DocumentProvider = ({ children }) => {
         },
         title: defaultTitle,
         content: JSON.stringify({
-          state: '',
+          state: defaultState,
           affiantName: '',
           documentType: internalDocType,
           practiceArea: practiceArea,

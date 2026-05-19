@@ -91,9 +91,16 @@ export default function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  const relatedArticles = ARTICLES.filter(
-    (a) => a.category === article.category && a.slug !== article.slug,
-  ).slice(0, 3);
+  // Related-article suggestions match the locale of the article being viewed
+  // (not the visitor's), so a Canadian article links to other Canadian
+  // articles even if a US visitor lands here from an external link.
+  const articleLocale = article.locale ?? 'us';
+  const relatedArticles = ARTICLES.filter((a) => {
+    if (a.slug === article.slug) return false;
+    if (a.category !== article.category) return false;
+    const tag = a.locale ?? 'us';
+    return tag === 'both' || tag === articleLocale;
+  }).slice(0, 3);
 
   // Replace #cta links with internal navigation to home
   const processedContent = article.content.replace(

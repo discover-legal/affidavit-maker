@@ -29,7 +29,7 @@ async function getHandler() {
             screen_hint: 'signup',
           },
         }),
-        callback: handleCallback(),
+        callback: handleCallback,
         logout: handleLogout({ returnTo: '/' }),
       }) as (req: NextRequest, ctx: { params: { auth0: string } }) => Promise<Response>;
     })().catch((err) => {

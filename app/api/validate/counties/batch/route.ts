@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse } from '@/lib/api/errors';
 import { getCurrentSession } from '@/lib/auth';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,11 +31,9 @@ function titleCase(input: string): string {
 export async function POST(req: NextRequest) {
   try {
     const session = await getCurrentSession();
-    const ipKey =
-      (session?.user?.sub as string | undefined) ??
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      'anonymous';
-    const limit = checkRateLimit('validate-county-batch', ipKey, RATE_LIMITS.standard);
+    const sub = session?.user?.sub as string | undefined;
+    const key = sub ? `auth:${sub}` : rateLimitKey(req, 'validate-county-batch');
+    const limit = checkRateLimit('validate-county-batch', key, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

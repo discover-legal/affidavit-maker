@@ -27,20 +27,20 @@ export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, 
       );
     }
 
-    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    const idRaw = Array.isArray(params.id) ? params.id[0] : params.id;
+    if (!idRaw || !/^[1-9]\d{0,9}$/.test(String(idRaw).trim())) {
+      throw new ValidationError('Invalid document ID');
+    }
+    const id = Number(idRaw);
     const { title } = bodySchema.parse(await req.json().catch(() => ({})));
 
-    const row = await query<{ user_id: number }>(
-      'SELECT user_id FROM documents WHERE id = $1',
-      [id],
+    // Update + return: zero rows touched → 404 (no probe oracle).
+    const updated = await query<{ id: number }>(
+      'UPDATE documents SET title = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3 RETURNING id',
+      [title, id, user.id],
     );
-    if (!row.rows.length) throw new NotFoundError('Document not found');
-    if (row.rows[0].user_id !== user.id) throw new AuthorizationError('Access denied');
-
-    await query(
-      'UPDATE documents SET title = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [title, id],
-    );
+    if (updated.rowCount === 0) throw new NotFoundError('Document not found');
+    void AuthorizationError; // referenced for symmetry; runtime no-op
     return NextResponse.json({ success: true, id, title });
   } catch (err) {
     if (err instanceof z.ZodError) {

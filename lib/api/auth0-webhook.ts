@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { query, withRLSBypass } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 // Shared helpers for the Auth0 webhook routes. The Auth0 dashboard posts to
 // two separate URLs (user-update and email-update); each Route Handler
@@ -133,6 +135,17 @@ export async function processAuth0Webhook(
   req: NextRequest,
   handler: (user: Auth0User) => Promise<NextResponse>,
 ): Promise<NextResponse> {
+  // Per-IP rate limit on the webhook surface. HMAC verification is the
+  // primary control — but if AUTH0_WEBHOOK_SECRET ever leaks we want a
+  // throttle that contains the blast radius. `auth` bucket: 10 / 15min.
+  const limit = checkRateLimit('auth0-webhook', rateLimitKey(req, 'auth0-webhook'), RATE_LIMITS.auth);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests' },
+      { status: 429 },
+    );
+  }
+
   const verification = await verifySignature(req);
   if (!verification.ok) {
     return NextResponse.json(

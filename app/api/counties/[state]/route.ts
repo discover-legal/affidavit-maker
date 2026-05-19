@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,8 +33,7 @@ const COUNTIES: Record<string, string[]> = {
 
 export async function GET(req: Request, { params }: { params: { state: string } }) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    const limit = checkRateLimit('counties', ip, RATE_LIMITS.standard);
+    const limit = checkRateLimit('counties', rateLimitKey(req, 'counties'), RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

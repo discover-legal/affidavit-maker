@@ -17,21 +17,24 @@ const bodySchema = z.object({
   affidavitData: z
     .object({
       documentId: z.union([z.string(), z.number()]).optional(),
-      documentTitle: z.string().optional(),
-      affiantName: z.string().optional(),
-      firstName: z.string().optional(),
-      lastName: z.string().optional(),
-      state: z.string().optional(),
-      county: z.string().optional(),
-      facts: z.array(z.unknown()).optional(),
-      caseNumber: z.string().optional(),
-      courtName: z.string().optional(),
-      documentType: z.string().optional(),
+      documentTitle: z.string().max(255).optional(),
+      affiantName: z.string().max(255).optional(),
+      firstName: z.string().max(120).optional(),
+      lastName: z.string().max(120).optional(),
+      state: z.string().max(8).optional(),
+      county: z.string().max(100).optional(),
+      facts: z.array(z.unknown()).max(500).optional(),
+      caseNumber: z.string().max(80).optional(),
+      courtName: z.string().max(200).optional(),
+      documentType: z.string().max(64).optional(),
     })
     .passthrough(),
   validation: z.unknown().optional(),
   categories: z.unknown().optional(),
 });
+
+/** Cap the serialized document blob saved to documents.content. */
+const MAX_SAVED_DOCUMENT_BYTES = 1024 * 1024;
 
 // POST /api/documents/save — create or update a document. Mirrors the legacy
 // upsert: if affidavitData.documentId is set, UPDATE; else INSERT.
@@ -59,7 +62,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const { factSummary: _fs, factSignature: _fsig, ...persistable } = data as Record<string, unknown>;
     const contentToSave = JSON.stringify(persistable);
+    if (contentToSave.length > MAX_SAVED_DOCUMENT_BYTES) {
+      throw new ValidationError('Document content too large');
+    }
     const validationJson = JSON.stringify(parsed.validation ?? null);
+    if (validationJson.length > MAX_SAVED_DOCUMENT_BYTES) {
+      throw new ValidationError('Validation payload too large');
+    }
 
     if (data.documentId) {
       const id = String(data.documentId);

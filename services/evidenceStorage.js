@@ -192,6 +192,27 @@ class EvidenceStorage {
   }
 
   /**
+   * Assert that `candidate` resolves to a path strictly inside `expectedDir`.
+   * Uses `path.relative` so the comparison is structural, not a fragile
+   * `startsWith` prefix match (which would let `/.../1/10/file` pass when
+   * the expected dir is `/.../1/1`).
+   *
+   * Throws if the resolved path escapes the expected directory.
+   *
+   * @param {string} candidate - Untrusted absolute path
+   * @param {string} expectedDir - Trusted absolute directory
+   */
+  assertWithin(candidate, expectedDir) {
+    const resolvedCandidate = path.resolve(candidate);
+    const resolvedExpected = path.resolve(expectedDir);
+    const rel = path.relative(resolvedExpected, resolvedCandidate);
+    if (rel === '' || rel === '.') return; // candidate == expected dir, fine
+    if (rel.startsWith('..') || path.isAbsolute(rel) || rel.includes('\0')) {
+      throw new Error('Path traversal blocked');
+    }
+  }
+
+  /**
    * Get evidence file
    * @param {number} userId - User ID
    * @param {number} documentId - Document ID
@@ -201,12 +222,11 @@ class EvidenceStorage {
   async getEvidence(userId, documentId, fileKey) {
     try {
       const filepath = path.join(this.basePath, fileKey);
-
-      // Verify file belongs to user
       const expectedDir = this.getUserEvidenceDir(userId, documentId);
-      if (!filepath.startsWith(expectedDir)) {
-        throw new Error('Unauthorized access to evidence file');
-      }
+
+      // Defense in depth — refuse paths that resolve outside the user/doc
+      // sandbox, even if a future caller hands us untrusted input.
+      this.assertWithin(filepath, expectedDir);
 
       // Check file exists
       await fs.access(filepath);
@@ -230,24 +250,28 @@ class EvidenceStorage {
    */
   async deleteEvidence(userId, documentId, fileKey, thumbnailKey) {
     try {
+      const expectedDir = this.getUserEvidenceDir(userId, documentId);
+
       // Delete main file
       if (fileKey) {
         const filepath = path.join(this.basePath, fileKey);
-        const expectedDir = this.getUserEvidenceDir(userId, documentId);
-
-        if (filepath.startsWith(expectedDir)) {
+        try {
+          this.assertWithin(filepath, expectedDir);
           await fs.unlink(filepath).catch(() => {});
+        } catch (err) {
+          logger.warn('Refusing to delete out-of-bounds evidence path:', err.message);
         }
       }
 
-      // Delete thumbnail
+      // Delete thumbnail (thumbnails live under the main file's user/doc dir
+      // by storage convention; if anything escapes the bound we refuse).
       if (thumbnailKey) {
         const thumbnailPath = path.join(this.basePath, thumbnailKey);
-        const expectedThumbnailDir = this.getUserEvidenceDir(userId, documentId);
-
-        // SECURITY: Verify thumbnail is in expected directory (prevent path traversal)
-        if (thumbnailPath.startsWith(expectedThumbnailDir)) {
+        try {
+          this.assertWithin(thumbnailPath, expectedDir);
           await fs.unlink(thumbnailPath).catch(() => {});
+        } catch (err) {
+          logger.warn('Refusing to delete out-of-bounds thumbnail path:', err.message);
         }
       }
 

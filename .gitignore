@@ -151,3 +151,20 @@ temp/
 .claude/memory.db
 .swarm/
 .claude/worktrees/
+
+# Binaries / executables — these have no business in a Node app repo
+# and previous commits accidentally checked in a Windows Stripe CLI build.
+*.exe
+*.dll
+*.dylib
+*.so
+*.bin
+
+# Secrets / certs (defense-in-depth on top of dotenv block above)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+private/

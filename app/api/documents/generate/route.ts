@@ -11,6 +11,7 @@ import {
   ValidationError,
   toErrorResponse,
 } from '@/lib/api/errors';
+import { ALL_STATES, ALL_PROVINCES, isInternationalEnabled } from '@/lib/api/catalog-data';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -110,6 +111,26 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     if (!affidavitData.state || affidavitData.state.trim() === '') {
       throw new ValidationError('State selection is required before generating a document');
     }
+    // Allow-list check. The user-supplied state code is used to drive
+    // template loading; restrict to known jurisdictions so a request can't
+    // ask the template manager to load an unexpected path. International
+    // jurisdictions are gated by the same feature flag the rest of the app
+    // uses for them.
+    const stateCode = affidavitData.state.toUpperCase();
+    const allowed = new Set<string>([...ALL_STATES, ...ALL_PROVINCES]);
+    if (isInternationalEnabled()) {
+      // International codes are short (2-5 chars). Re-import here to avoid
+      // a circular import in the catalog module; the catalog already vets
+      // its own list, so we trust whatever getAllJurisdictions returns.
+      const { getAllJurisdictions } = require('@/lib/api/catalog-data') as {
+        getAllJurisdictions: () => string[];
+      };
+      for (const j of getAllJurisdictions()) allowed.add(j);
+    }
+    if (!allowed.has(stateCode)) {
+      throw new ValidationError('Unsupported state / province');
+    }
+    affidavitData.state = stateCode;
 
     // ── STEP 1: Payment gate ────────────────────────────────────────────────
     // Reproduces the legacy guard: documents.payment_status must be one of

@@ -35,11 +35,22 @@ npm run db:migrate    # Run database migrations
 - `docs/` — DNS, deployment, audit logs
 
 **Critical Security Notes**:
-- Always use parameterized SQL via `lib/db.ts`'s `query()` helper
-- Verify `user_id` ownership on every authed Route Handler
-- Server-side pricing only — never trust client-supplied amounts
-- RLS enabled at the database level for data isolation
-- Stripe webhook reads `await req.text()` (raw body) for signature verification — never `.json()`
+- Always use parameterized SQL via `lib/db.ts`'s `query()` helper.
+- Verify `user_id` ownership on every authed Route Handler. RLS is ON
+  with FORCE (migrations 010 + 014), but treat it as defense-in-depth,
+  not the only barrier.
+- Server-side pricing only — never trust client-supplied amounts.
+- Stripe webhook reads `await req.text()` (raw body) for signature
+  verification — never `.json()`.
+- Trusted client IP lives in `lib/util/clientIp.ts` — DO NOT roll your
+  own `req.headers.get('x-forwarded-for')?.split(',')[0]`, it's
+  client-spoofable on every reverse-proxy setup.
+- Auth-gating: never write a new Route Handler under `/api/*` without
+  one of: `withAuth`, a webhook HMAC verification, or a documented
+  reason it's public + `rateLimitKey(req, …)` for the IP-based limit.
+- CSP is enforced in `next.config.mjs.headers()`. Extend
+  `CSP_DIRECTIVES` rather than dropping `'unsafe-eval'` or new
+  `'unsafe-inline'` allowances.
 
 ---
 

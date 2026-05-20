@@ -123,7 +123,11 @@ const nextConfig = {
 
   async headers() {
     const csp = buildCsp();
-    const securityHeaders = [
+
+    // Headers that are safe on every response (pages AND API redirects).
+    // These don't change Content-Type, don't restrict cross-origin
+    // navigation, and don't interfere with Auth0/Stripe redirect flows.
+    const baseSecurityHeaders = [
       { key: 'X-Frame-Options', value: 'DENY' },
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-DNS-Prefetch-Control', value: 'off' },
@@ -141,22 +145,36 @@ const nextConfig = {
         value:
           'camera=(), microphone=(), geolocation=(), payment=(self), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()',
       },
-      // Cross-Origin isolation. COEP/COOP are conservative defaults that
-      // prevent cross-origin window access AND opt into a coherent origin
-      // group. CORP=same-origin makes our static assets unembeddable on
-      // other sites — appropriate for a private legal app.
+    ];
+
+    // Headers that are safe on RENDERED PAGES only. We deliberately do
+    // NOT apply these to /api/* because:
+    //   - CSP doesn't affect a redirect's body, but it ships header bytes
+    //     for nothing.
+    //   - Cross-Origin-Opener-Policy:same-origin and
+    //     Cross-Origin-Resource-Policy:same-origin on a 302 response that
+    //     redirects to an external origin (Auth0, Stripe) have been
+    //     observed to confuse some browsers / Next.js Link client
+    //     navigation into treating the response as a downloadable
+    //     resource instead of a redirect.
+    const pageOnlySecurityHeaders = [
       { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
       { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
-      // COEP intentionally NOT set globally — it conflicts with Stripe's
-      // iframe (which is loaded cross-origin without CORP headers). If/when
-      // Stripe Elements moves to credentialless we can set 'require-corp'.
       { key: 'Content-Security-Policy', value: csp },
     ];
 
     return [
+      // Everything gets the base set.
       {
         source: '/:path*',
-        headers: securityHeaders,
+        headers: baseSecurityHeaders,
+      },
+      // Pages (anything not under /api/) additionally get COOP/CORP/CSP.
+      // path-to-regexp negative-lookahead syntax: any path that does NOT
+      // start with `api/`.
+      {
+        source: '/((?!api/).*)',
+        headers: pageOnlySecurityHeaders,
       },
       // The Auth0 callback writes the session cookie; ensure no caching
       // for any /api/auth/* route.

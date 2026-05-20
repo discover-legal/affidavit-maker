@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { getStripe } from '@/lib/api/stripe';
 import { getLocale } from '@/lib/locale.server';
-import { getPrice } from '@/lib/pricing';
+import {
+  getPrice,
+  getOriginalPrice,
+  LAUNCH_PRICING_ACTIVE,
+  LAUNCH_DISCOUNT_PCT,
+} from '@/lib/pricing';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
@@ -45,6 +50,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // a user who flipped the toggle) is billed in CAD.
     const locale = getLocale();
     const { amount, currency } = getPrice(locale, body.documentType);
+    const original = getOriginalPrice(locale, body.documentType);
 
     if (documentId) {
       const docRow = await query<{ id: number; user_id: number }>(
@@ -129,6 +135,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         paymentIntentId: paymentIntent.id,
         amount,
         currency,
+        originalAmount: original.amount,
+        launchDiscountActive: LAUNCH_PRICING_ACTIVE,
+        launchDiscountPct: LAUNCH_PRICING_ACTIVE ? LAUNCH_DISCOUNT_PCT : 0,
       },
     });
   } catch (err) {

@@ -7,12 +7,10 @@ import type { Locale } from '@/lib/locale';
  * amounts are set as round retail prices rather than a live FX conversion
  * so the customer sees stable numbers; revisit when FX volatility matters.
  *
- * NOTE: This is the DISPLAY pricing used on marketing surfaces and what we
- * pass to Stripe `payment_intent` creation. Charging in CAD requires the
- * connected Stripe account to support CAD (most do by default for
- * North-American businesses); if a CA payment intent fails with
- * "currency not supported", switch the locale to 'us' or enable CAD in the
- * Stripe dashboard.
+ * NOTE: The values below are the LIST / regular prices. The launch
+ * promotion (see LAUNCH_DISCOUNT_PCT) is applied centrally in `getPrice`
+ * so every consumer — marketing surfaces, the pricing API, and the
+ * Stripe payment intent — bills the discounted amount automatically.
  */
 export type PriceKey = 'single_affidavit' | 'divorce_package' | 'all_state_access';
 
@@ -31,18 +29,60 @@ const PRICES: PriceTable = {
   },
 };
 
-export function getPrice(locale: Locale, key: PriceKey): { amount: number; currency: 'usd' | 'cad' } {
+/**
+ * Special launch promotion. Set LAUNCH_PRICING_ACTIVE to false to revert
+ * to list prices everywhere (marketing, API, Stripe intent) in one edit.
+ */
+export const LAUNCH_PRICING_ACTIVE = true;
+export const LAUNCH_DISCOUNT_PCT = 0.8; // 80% off
+export const LAUNCH_LABEL = 'Launch special — 80% off';
+
+type Price = { amount: number; currency: 'usd' | 'cad' };
+
+function applyDiscount(amount: number): number {
+  // Round to the nearest cent to keep Stripe happy with integer cents.
+  return Math.round(amount * (1 - LAUNCH_DISCOUNT_PCT));
+}
+
+/**
+ * Returns the LIST (pre-discount) price.
+ */
+export function getOriginalPrice(locale: Locale, key: PriceKey): Price {
   return PRICES[locale][key];
 }
 
 /**
- * Render a price for display. Returns e.g. "$79" (USD) or "$99 CAD".
- * Strips cents when the amount is whole dollars.
+ * Returns the price the customer is actually charged. When the launch
+ * promotion is active this is the discounted amount; otherwise it equals
+ * the list price.
  */
-export function formatPrice(locale: Locale, key: PriceKey): string {
-  const { amount, currency } = getPrice(locale, key);
-  const dollars = amount / 100;
+export function getPrice(locale: Locale, key: PriceKey): Price {
+  const list = PRICES[locale][key];
+  if (!LAUNCH_PRICING_ACTIVE) return list;
+  return { amount: applyDiscount(list.amount), currency: list.currency };
+}
+
+function renderAmount(price: Price): string {
+  const dollars = price.amount / 100;
   const isWhole = Number.isInteger(dollars);
   const value = isWhole ? `$${dollars}` : `$${dollars.toFixed(2)}`;
-  return currency === 'cad' ? `${value} CAD` : value;
+  return price.currency === 'cad' ? `${value} CAD` : value;
+}
+
+/**
+ * Render the customer-facing (discounted, when applicable) price.
+ */
+export function formatPrice(locale: Locale, key: PriceKey): string {
+  return renderAmount(getPrice(locale, key));
+}
+
+/**
+ * Render the list / pre-discount price (for strike-through display).
+ */
+export function formatOriginalPrice(locale: Locale, key: PriceKey): string {
+  return renderAmount(getOriginalPrice(locale, key));
+}
+
+export function getDiscountPercentLabel(): string {
+  return `${Math.round(LAUNCH_DISCOUNT_PCT * 100)}% OFF`;
 }

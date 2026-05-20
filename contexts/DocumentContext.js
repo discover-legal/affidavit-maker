@@ -404,19 +404,25 @@ export const DocumentProvider = ({ children }) => {
       dispatch({ type: ActionTypes.SET_DOCUMENTS_LOADING, payload: true });
       
       const data = await authFetch('/api/documents');
-      
-      if (data.success && data.documents) {
-        dispatch({ 
-          type: ActionTypes.SET_DOCUMENTS, 
-          payload: data.documents 
+
+      // API returns { success, data: { documents } }; older shape was { success, documents }.
+      const documents = data?.data?.documents ?? data?.documents;
+      if (data?.success && Array.isArray(documents)) {
+        dispatch({
+          type: ActionTypes.SET_DOCUMENTS,
+          payload: documents
         });
+      } else {
+        dispatch({ type: ActionTypes.SET_DOCUMENTS, payload: [] });
       }
     } catch (error) {
       console.error('Failed to load documents:', error);
-      dispatch({ 
-        type: ActionTypes.SET_ERROR, 
-        payload: 'Failed to load documents' 
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: 'Failed to load documents'
       });
+    } finally {
+      dispatch({ type: ActionTypes.SET_DOCUMENTS_LOADING, payload: false });
     }
   }, [authFetch, isAuthenticated]);
 

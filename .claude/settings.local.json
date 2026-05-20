@@ -8,7 +8,17 @@
       "Bash(node:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(do sed:*)"
+      "Bash(do sed:*)",
+      "Bash(gh run *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(awk '{print $2}')",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(npm run *)"
     ]
   },
   "enableAllProjectMcpServers": true,

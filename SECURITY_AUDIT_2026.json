@@ -1,0 +1,131 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 104,
+      "type": "authentication",
+      "description": "Auth0 access token is fetched but never used. Line 104 calls getAccessTokenSilently() but doesn't add token to request headers on line 115. This bypasses authentication on the /api/chat endpoint if server only checks Authorization header (though session cookie may fall back).",
+      "impact": "Requests may bypass proper authentication validation if backend relies on Authorization header",
+      "recommendation": "Add token to headers: headers['Authorization'] = `Bearer ${token}`"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 128,
+      "type": "authentication",
+      "description": "Auth0 access token is fetched on line 128 but NEVER used in the FormData fetch on line 138. The request is sent without Authorization header.",
+      "impact": "Evidence upload endpoint may not properly authenticate requests if it expects Authorization header",
+      "recommendation": "Add Authorization header to fetch call: headers['Authorization'] = `Bearer ${token}`"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 47,
+      "type": "authentication",
+      "description": "Token is fetched in try/catch block (line 46-48) but catch silently continues and the token is never added to request headers. Requests proceed without authentication.",
+      "impact": "County validation endpoint may bypass authentication checks",
+      "recommendation": "Add token to headers or ensure session cookie provides fallback authentication"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TOSGuard.js",
+      "line": 146,
+      "type": "authorization",
+      "description": "TOS acceptance state is cached in localStorage/sessionStorage using client-side keys. An attacker can open browser dev console and execute: `localStorage.setItem('tos_accepted_<user_sub>', 'true')` to bypass TOS verification, forcing server-side check to be the only safeguard.",
+      "impact": "Users can spoof TOS acceptance; relies entirely on server-side validation which could be bypassed if misconfigured",
+      "recommendation": "Remove client-side caching of TOS acceptance. Always fetch server state. Consider using HTTP-only session storage."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 74,
+      "type": "authorization",
+      "description": "skipPayment flag is set to true when NODE_ENV === 'development'. While NODE_ENV is set at build time, this flag is sent to the backend where payment validation occurs. If backend checks this flag, it could be exploited.",
+      "impact": "If backend trusts skipPayment from client, payments could be bypassed in development builds accidentally deployed to production",
+      "recommendation": "Remove client-side skipPayment flag. Payment gating should be purely server-side based on user account state, not client flags."
+    },
+    {
+      "severity": "medium",
+      "file": "lib/api/rateLimit.ts",
+      "line": null,
+      "type": "rate_limiting",
+      "description": "CountyValidationInput uses only client-side debouncing (800ms). While server-side rate limiting exists per CLAUDE.md, this is mentioned as in-memory sliding-window which could be exhausted by coordinated requests.",
+      "impact": "Rate limiting could be bypassed with multiple concurrent requests from different clients",
+      "recommendation": "Verify in-memory rate limiter is being used. Consider Redis-backed rate limiting for production."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/DocumentMetadata.js",
+      "line": 50,
+      "type": "input_validation",
+      "description": "First name, last name, and other document metadata fields accept user input without visible length limits or content validation in the component (client-side validation only).",
+      "impact": "Users could submit extremely long strings or special characters that may cause issues in database or PDF generation",
+      "recommendation": "Add maxLength attributes to input fields. Server should validate input length (0-255 chars for names)"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 38,
+      "type": "information_disclosure",
+      "description": "Error details are displayed in development mode via details/summary element, which exposes component stack traces and error messages.",
+      "impact": "In development, error information could leak implementation details; properly hidden in production but good practice to redact even in dev",
+      "recommendation": "Consider sanitizing error messages to not leak sensitive system information even in development"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/PaymentModal.js",
+      "line": 55,
+      "type": "sensitive_data",
+      "description": "Stripe publishable key is correctly used (via NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) but ensure secret key is never exposed in any client-side code.",
+      "impact": "If secret key were accidentally exposed, attacker could create charges",
+      "recommendation": "Audit environment variables to ensure STRIPE_SECRET_KEY is never used in client code"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/ChatInterface.js",
+      "line": 112,
+      "type": "input_validation",
+      "description": "User name is directly interpolated into LLM prompt instructions without escaping. While unlikely to cause issues with the LLM itself, this could potentially be exploited via prompt injection if names are not validated.",
+      "impact": "Potential prompt injection if affiantName contains malicious instructions, though LLM safety guards should prevent exploitation",
+      "recommendation": "Sanitize/escape user inputs before including in LLM prompts. Use parameterized prompts with separate variables for user data."
+    }
+  ],
+  "riskScore": 42,
+  "riskScoreRationale": "Risk score calculated from: 3 high-severity auth issues (token not used), 2 medium-severity auth issues (TOS bypass, skipPayment flag), 1 medium validation issue, 1 medium rate-limiting concern, and 3 low-severity issues. Backend appears to use parameterized SQL queries properly, and RLS is configured. Main risks are in client-side auth token handling and TOS state caching.",
+  "recommendations": [
+    "CRITICAL: Fix missing Authorization headers in ChatInterface.js, EvidenceUploadModal.js, and CountyValidationInput.js by adding fetched tokens to fetch headers",
+    "CRITICAL: Verify server-side auth on all endpoints - backend should validate session/Authorization header, not trust client state",
+    "HIGH: Remove localStorage caching of TOS acceptance; always fetch from server. Ensure server validates on every protected route access",
+    "HIGH: Remove skipPayment flag from client code. Move all payment gating to server-side based on user account/subscription state",
+    "MEDIUM: Verify server-side rate limiting is Redis-backed or persistent, not just in-memory which can be exhausted",
+    "MEDIUM: Add input validation (maxLength, allowed chars) to form fields: names, document titles, etc.",
+    "MEDIUM: Audit all environment variables to ensure no secret keys (STRIPE_SECRET_KEY, AUTH0_CLIENT_SECRET, DATABASE_URL) appear in client code or build artifacts",
+    "LOW: Sanitize user inputs before including in LLM prompts to prevent prompt injection attacks",
+    "LOW: Review error messages to ensure they don't leak implementation details even in development mode",
+    "VERIFY: Confirm session cookie is HTTP-only and Secure flags are set in Auth0 configuration",
+    "VERIFY: Ensure CSRF protection is configured in Next.js middleware (check middleware.ts)",
+    "VERIFY: Run `npm audit` to check for known vulnerabilities in dependencies"
+  ],
+  "securityPositives": [
+    "✅ All Route Handlers use parameterized SQL queries via lib/db.ts (no SQL injection risk)",
+    "✅ Row-Level Security (RLS) is enabled at the database level (migration 010)",
+    "✅ No dangerouslySetInnerHTML or innerHTML found in React components",
+    "✅ Auth0 session management properly configured with @auth0/nextjs-auth0 v3",
+    "✅ Stripe integration uses correct configuration (publishable key public, secret key server-side)",
+    "✅ File upload validates MIME types and file size on client and server",
+    "✅ Relative URLs used for same-origin API calls (no CORS issues)",
+    "✅ React components automatically escape user input (no direct XSS risk)",
+    "✅ Server-side validation and error handling present in Route Handlers"
+  ],
+  "auditDate": "2026-05-18",
+  "auditScope": "Client-side React components (app/components/), Route Handlers, authentication flow, API integrations, payment processing, file uploads, form validation",
+  "nextSteps": [
+    "1. Fix missing Authorization headers (high priority - affects multiple endpoints)",
+    "2. Audit server-side auth checks for all Route Handlers",
+    "3. Implement server-side session validation for TOS guard",
+    "4. Add input validation constraints to all form fields",
+    "5. Run npm audit and resolve any vulnerable dependencies",
+    "6. Perform penetration testing on payment flow after fixes"
+  ]
+}

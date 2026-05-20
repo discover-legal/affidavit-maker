@@ -1,0 +1,286 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "AUTH-001",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 107,
+      "description": "Access token fetched but never used in subsequent API call. Token from getAccessTokenSilently() is awaited but not passed in fetch headers, breaking authentication.",
+      "code": "const token = await getAccessTokenSilently();\n// token is never used in the fetch() call below",
+      "impact": "API calls may succeed without proper authentication; security model bypassed for evidence upload endpoint",
+      "recommendation": "Add Authorization header: headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }"
+    },
+    {
+      "id": "AUTH-002",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/ChatInterface.js",
+      "line": 166,
+      "description": "Access token fetched via getAccessTokenSilently() but never included in fetch headers for /api/chat endpoint.",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "Chat API endpoint may not validate user identity properly; authentication enforcement bypassed",
+      "recommendation": "Include token in fetch headers: headers: { 'Authorization': `Bearer ${token}`, ...headers }"
+    },
+    {
+      "id": "AUTH-003",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 65,
+      "description": "Token fetch attempted but token variable is never used in subsequent API request",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "County validation endpoint lacks proper authentication; rate limiting and user tracking disabled",
+      "recommendation": "Pass token in Authorization header for county validation endpoint"
+    },
+    {
+      "id": "AUTH-004",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/PaymentModal.js",
+      "line": 92,
+      "description": "Token fetch attempt present but token never used. Payment creation endpoint requires proper authentication.",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "Critical: Payment API endpoint may process requests without user verification; potential for unauthorized payment intents",
+      "recommendation": "Include token in all payment API calls: headers: { 'Authorization': `Bearer ${token}`, ...}"
+    },
+    {
+      "id": "AUTH-005",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/GenerateButton.js",
+      "line": 87,
+      "description": "getAccessTokenSilently() called but token never used in fetch to /api/documents/generate",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "Document generation (payment-gated) may not properly authenticate users; potential access control bypass",
+      "recommendation": "Include token in Authorization header for generate endpoint"
+    },
+    {
+      "id": "AUTH-006",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/EditorView.js",
+      "line": 180,
+      "description": "Token-fetching pattern visible but incomplete in component initialization flow",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "Potential authentication bypass in editor operations",
+      "recommendation": "Verify all API calls in EditorView include proper Authorization headers"
+    },
+    {
+      "id": "UPLOAD-001",
+      "severity": "medium",
+      "category": "File Upload Security",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 42,
+      "description": "File type validation relies only on MIME type checking. MIME type can be spoofed by renaming files.",
+      "code": "const ALLOWED_TYPES = { 'application/pdf': {...}, 'image/jpeg': {...}, 'image/png': {...} };",
+      "impact": "Malicious files could bypass client-side validation by spoofing MIME types; relies on server-side magic byte verification",
+      "recommendation": "Code mentions 'magic-byte sniff' in comments - verify server-side validation in lib/api/services.ts is enforced"
+    },
+    {
+      "id": "UPLOAD-002",
+      "severity": "medium",
+      "category": "File Upload Security",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 48,
+      "description": "25MB file size limit may be insufficient for large document scans and could lead to storage exhaustion",
+      "code": "const MAX_FILE_SIZE = 25 * 1024 * 1024;",
+      "impact": "Storage exhaustion attacks possible; no per-user quota visible in client code",
+      "recommendation": "Implement server-side per-user storage quotas and rate limiting on uploads"
+    },
+    {
+      "id": "XSS-001",
+      "severity": "medium",
+      "category": "Cross-Site Scripting",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 12,
+      "description": "ReactMarkdown component renders content without explicit HTML sanitization configuration",
+      "code": "<ReactMarkdown components={...}>",
+      "impact": "If TERMS_OF_SERVICE content source is compromised, arbitrary HTML/JS could execute",
+      "recommendation": "Add sanitization config: disallowedElements={['script', 'iframe', 'object']}, defaultChecked sanitizer like DOMPurify"
+    },
+    {
+      "id": "XSS-002",
+      "severity": "low",
+      "category": "Cross-Site Scripting",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 33,
+      "description": "Custom tooltip parsing with {{term}} syntax - while safer than dangerouslySetInnerHTML, relies on TOOLTIP_DEFINITIONS being secure",
+      "code": "const definition = TOOLTIP_DEFINITIONS[term]",
+      "impact": "Low risk due to React's built-in escaping, but TOOLTIP_DEFINITIONS source should be audited",
+      "recommendation": "Verify TOOLTIP_DEFINITIONS in lib/content/termsOfService.js contains no user-supplied content"
+    },
+    {
+      "id": "STATE-001",
+      "severity": "medium",
+      "category": "Race Conditions / State Management",
+      "file": "components/app/TOSGuard.js",
+      "line": 42,
+      "description": "Complex authentication flow with ref-based duplicate redirect prevention. Race condition possible between SDK state changes.",
+      "code": "if (isRedirectingRef.current) return; isRedirectingRef.current = true;",
+      "impact": "Potential infinite login loops or missed TOS validation under concurrent updates",
+      "recommendation": "Simplify state management using a single source of truth; consider moving TOS check to server-side middleware"
+    },
+    {
+      "id": "STORAGE-001",
+      "severity": "low",
+      "category": "Local Storage Security",
+      "file": "components/app/TOSGuard.js",
+      "line": 95,
+      "description": "TOS acceptance status stored in localStorage with user.sub as key: localStorage.getItem(`tos_accepted_${user?.sub}`)",
+      "code": "localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');",
+      "impact": "Low: Users can clear localStorage to re-see TOS, but server-side TOS status in database is authoritative",
+      "recommendation": "This is acceptable as long as server validates tosAccepted status on every auth check. Verify /api/auth/tos-status endpoint enforces this."
+    },
+    {
+      "id": "ERROR-001",
+      "severity": "low",
+      "category": "Information Disclosure",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 45,
+      "description": "Error details logged to console and potentially sent to monitoring service with stack traces",
+      "code": "if (window.logError) { window.logError({...errorInfo.componentStack...}); }",
+      "impact": "Low in production (assuming window.logError is a trusted service), but error details exposed in dev console",
+      "recommendation": "Sanitize component stack traces before sending to monitoring; avoid exposing file paths in production logs"
+    },
+    {
+      "id": "CONFIG-001",
+      "severity": "low",
+      "category": "Configuration Security",
+      "file": "components/app/ChatInterface.js",
+      "line": 32,
+      "description": "Hardcoded supported states list in component; changes require code modification",
+      "code": "const SUPPORTED_STATES = [{ code: 'TX', name: 'Texas' }, ...];",
+      "impact": "Low: This is a frontend convenience list, not a security boundary. API should enforce supported jurisdictions server-side.",
+      "recommendation": "Fetch SUPPORTED_STATES from /api/templates/states; verify API enforces jurisdiction restrictions"
+    },
+    {
+      "id": "PAYMENT-001",
+      "severity": "low",
+      "category": "Payment Processing",
+      "file": "components/app/PaymentModal.js",
+      "line": 98,
+      "description": "Stripe publishable key used in client (NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is intentionally public), but secret key handling must be server-side",
+      "code": "const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);",
+      "impact": "Low: Publishable keys are meant to be public. Verify secret key is NEVER in client code.",
+      "recommendation": "Audit all .env files and ensure STRIPE_SECRET_KEY only appears in server-side code"
+    },
+    {
+      "id": "TOKEN-001",
+      "severity": "low",
+      "category": "Token Management",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 107,
+      "description": "Token obtained but not used - while not a direct vulnerability, suggests incomplete auth integration",
+      "code": "const token = await getAccessTokenSilently();",
+      "impact": "Inconsistent authentication pattern; may indicate multiple bugs across components",
+      "recommendation": "Search codebase for all getAccessTokenSilently() calls and verify each is used in corresponding API request"
+    }
+  ],
+  "riskScore": 72,
+  "riskLevel": "HIGH",
+  "summary": {
+    "criticalIssues": 6,
+    "highIssues": 6,
+    "mediumIssues": 4,
+    "lowIssues": 4,
+    "totalIssues": 14
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "title": "URGENT: Fix Authentication Token Usage in API Calls",
+      "description": "Multiple components fetch access tokens but never use them. This breaks the authentication model for evidence upload, chat, payment, and document generation endpoints. Create a utility function to consistently add Authorization headers.",
+      "affectedFiles": [
+        "components/app/EvidenceUploadModal.js",
+        "components/app/ChatInterface.js",
+        "components/app/CountyValidationInput.js",
+        "components/app/PaymentModal.js",
+        "components/app/GenerateButton.js"
+      ],
+      "effort": "HIGH",
+      "impact": "CRITICAL"
+    },
+    {
+      "priority": 2,
+      "title": "Add HTML Sanitization to ReactMarkdown Components",
+      "description": "TermsOfServiceModal uses ReactMarkdown without sanitization config. Add explicit sanitization to prevent XSS if content source is compromised.",
+      "affectedFiles": ["components/app/TermsOfServiceModal.js"],
+      "effort": "MEDIUM",
+      "impact": "MEDIUM"
+    },
+    {
+      "priority": 3,
+      "title": "Verify Server-Side File Upload Validation",
+      "description": "Client-side MIME type validation can be spoofed. Ensure server-side magic byte validation exists in lib/api/services.ts for evidence files.",
+      "affectedFiles": ["components/app/EvidenceUploadModal.js", "lib/api/services.ts"],
+      "effort": "MEDIUM",
+      "impact": "MEDIUM"
+    },
+    {
+      "priority": 4,
+      "title": "Implement Server-Side Storage Quotas",
+      "description": "No per-user storage quotas visible in client code. Implement server-side limits to prevent storage exhaustion attacks.",
+      "affectedFiles": ["app/api/evidence/upload/route.ts"],
+      "effort": "MEDIUM",
+      "impact": "MEDIUM"
+    },
+    {
+      "priority": 5,
+      "title": "Simplify TOSGuard Authentication Flow",
+      "description": "Complex state management with ref-based guards creates race condition risk. Move TOS validation to server-side middleware or use simpler client state pattern.",
+      "affectedFiles": ["components/app/TOSGuard.js"],
+      "effort": "HIGH",
+      "impact": "MEDIUM"
+    },
+    {
+      "priority": 6,
+      "title": "Create Consistent Auth Headers Utility",
+      "description": "Build a reusable `makeAuthenticatedRequest()` utility that automatically attaches tokens to all API calls.",
+      "effort": "LOW",
+      "impact": "HIGH"
+    },
+    {
+      "priority": 7,
+      "title": "Audit .env Files for Secret Key Exposure",
+      "description": "Verify STRIPE_SECRET_KEY and other secrets never appear in client-bundled code. Check .env.local, .env.example, and build artifacts.",
+      "effort": "MEDIUM",
+      "impact": "CRITICAL"
+    },
+    {
+      "priority": 8,
+      "title": "Sanitize Error Logs Before External Transmission",
+      "description": "Remove sensitive information (file paths, stack traces) before sending errors to monitoring services.",
+      "affectedFiles": ["components/app/ErrorBoundary.js"],
+      "effort": "LOW",
+      "impact": "MEDIUM"
+    }
+  ],
+  "securityPatterns": {
+    "strengths": [
+      "Parameterized SQL queries via pg library - SQL injection risk LOW",
+      "Auth0 integration for centralized authentication",
+      "RLS (Row-Level Security) enforced at database level",
+      "Relative URLs in API calls prevent CORS bypasses",
+      "Server-side payment processing via Stripe",
+      "Proper use of TypeScript for type safety in Route Handlers",
+      "AsyncLocalStorage for per-request RLS context"
+    ],
+    "weaknesses": [
+      "Inconsistent authentication token usage across components",
+      "Client-side validation as primary security boundary in some cases",
+      "Complex state management in auth flows increases bug likelihood",
+      "Limited error sanitization in error boundary",
+      "No visible rate limiting configuration on client"
+    ]
+  },
+  "complianceNotes": {
+    "dataProtection": "TOS acceptance tracking exists but localStorage-based; server-side enforcement critical",
+    "authentication": "Auth0-based with good RLS policies, but token usage inconsistency weakens model",
+    "fileHandling": "25MB limit reasonable for documents; magic-byte validation required server-side",
+    "paymentProcessing": "Stripe integration appears compliant; secret keys must never be client-side"
+  },
+  "scanDate": "2026-05-18",
+  "codebaseVersion": "v5.0.0 - Next.js 14 + TypeScript",
+  "analysisMethod": "Manual code review of client components and API routes with focus on authentication, file handling, and data validation patterns"
+}

@@ -1,0 +1,78 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 157,
+      "description": "Auth token obtained but not used in API request headers. Token retrieved via getAccessTokenSilently() is never added to fetch headers for /api/chat endpoint."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 68,
+      "description": "Critical: Token obtained but discarded before fetch to /api/validate/county. Token is retrieved but never added to request headers, allowing unauthenticated access."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 140,
+      "description": "Missing authentication on file upload. Token obtained via getAccessTokenSilently() is never included in fetch to /api/evidence/upload, allowing unauthorized file uploads."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/GenerateButton.js",
+      "line": 80,
+      "description": "Auth token obtained but never added to headers for POST to /api/documents/generate. Payment-gated endpoint could be bypassed with unauthenticated requests."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 62,
+      "description": "Development bypass in production: skipPayment flag set based on NODE_ENV. If NODE_ENV is misset, payment processing bypassed."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 95,
+      "description": "Client-side file type validation via MIME only. No magic byte verification. Malicious files with spoofed extensions could pass validation."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 68,
+      "description": "ReactMarkdown renders TOS content. If source is user-supplied or untrusted, malicious markdown could execute (XSS risk)."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TOSGuard.js",
+      "line": 85,
+      "description": "TOS acceptance cached in localStorage. Client-side state can be spoofed. Backend is authoritative but caching obscures this."
+    },
+    {
+      "severity": "low",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 57,
+      "description": "Silent auth failure: when getAccessTokenSilently() fails, catch block silently continues. User unaware request is unauthenticated."
+    },
+    {
+      "severity": "low",
+      "file": "components/app/PaymentModal.js",
+      "line": 92,
+      "description": "No timeout on loadStripe(). If Stripe.js CDN is unreachable, promise hangs indefinitely."
+    }
+  ],
+  "riskScore": 72,
+  "recommendations": [
+    "CRITICAL: Add Authorization headers to all authenticated API calls. Fix: ChatInterface.js, CountyValidationInput.js, EvidenceUploadModal.js, GenerateButton.js",
+    "Remove silent auth failure in CountyValidationInput.js. Let token retrieval errors surface.",
+    "Guard or remove skipPayment NODE_ENV flag in GenerateButton.js. Use explicit feature flag instead.",
+    "Verify /api/evidence/upload validates file content via magic bytes, not just extension/MIME type.",
+    "Sanitize TERMS_OF_SERVICE content before ReactMarkdown if source is dynamic.",
+    "In TOSGuard.js: treat localStorage cache as UX-only, not security. Rely on backend /api/auth/tos-status.",
+    "Add timeout handling to all fetch() calls (30-60 second timeout).",
+    "Review next.config.mjs security headers: verify CSP policy, CSRF token handling, X-Frame-Options.",
+    "Audit all Route Handlers in app/api to ensure user_id ownership checks on protected endpoints.",
+    "Implement per-endpoint rate limiting on validation and county endpoints.",
+    "Comprehensive audit: remove all unused getAccessTokenSilently() calls or properly send tokens."
+  ]
+}

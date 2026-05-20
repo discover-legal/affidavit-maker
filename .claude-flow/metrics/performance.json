@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-05-19T14:03:34.737Z",
+  "mode": "headless",
+  "workerType": "optimize",
+  "model": "sonnet",
+  "durationMs": 247612,
+  "executionId": "optimize_1779199167125_0610si",
+  "success": true,
+  "findings": {
+    "sections": [
+      {
+        "title": "Performance Analysis: affidavit-maker",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 Query Patterns — CLEAN",
+        "content": "\nNo critical N+1 patterns found. The `/api/cases` route uses `json_agg` with GROUP BY, and `/api/documents` fetches in a single query. The DB layer is well-structured.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. React Re-renders — MEDIUM PRIORITY",
+        "content": "\n**Inline callbacks in `components/app/ChatInterface.js` (lines 371–382, 414)**\n\nEvery render creates new function references, causing child re-renders.\n\n```jsx\n// Problem — new function on every render\n<button onClick={() => {\n  updateDocumentData({ state: state.code });\n  setMessages(prev => [...prev, ...]);\n}}>\n\n// Fix — memoize with useCallback\nconst handleStateSelect = useCallback((stateCode) => {\n  updateDocumentData({ state: stateCode });\n  setMessages(prev => [...prev, { type: 'bot', content: ... }]);\n}, [updateDocumentData]);\n\n<button onClick={() => handleStateSelect(state.code)}>\n```\n\n**Inline style objects in `components/app/EditorView.js` (lines 56, 435, 451, 467)**\n\n```jsx\n// Problem — new object every render\n<div style={{ width: `${chatWidth}%` }}>\n\n// Fix — memoize\nconst layoutStyles = useMemo(() => ({\n  chat: { width: `${chatWidth}%` },\n  preview: { width: `${previewWidth}%` },\n}), [chatWidth, previewWidth]);\n<div style={layoutStyles.chat}>\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities — HIGH PRIORITY (easiest wins)",
+        "content": "\n**`app/api/catalog/matters/route.ts` — static data served without caching**\n\n```typescript\n// Problem\nexport const dynamic = 'force-dynamic'; // cache miss every request\n\n// Fix — ISR with stale-while-revalidate\nexport const revalidate = 3600;\n\nreturn NextResponse.json(\n  { success: true, data: { matters } },\n  { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }\n);\n```\n\n**`app/api/templates/states/route.ts` — same pattern, same fix.** `getSupportedStates()` returns static data. Add `export const revalidate = 3600` and matching `Cache-Control` header.\n\nBoth routes serve read-only data that never changes between deploys. These are the highest-impact fixes — zero code complexity, big latency reduction for repeat visitors.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks — LOW-MEDIUM PRIORITY",
+        "content": "\n**`components/app/CountyValidationInput.js` line 202** — `setTimeout` in an event handler with no cleanup:\n\n```jsx\n// Problem\nonBlur={() => { setTimeout(() => setShowSuggestions(false), 200); }}\n\n// Fix — track and cancel\nconst blurTimeoutRef = useRef(null);\nonBlur={() => {\n  blurTimeoutRef.current = setTimeout(() => setShowSuggestions(false), 200);\n}}\nuseEffect(() => () => clearTimeout(blurTimeoutRef.current), []);\n```\n\n**`components/app/AffidavitForm.js` lines 295–300** — same pattern for the save-status clear timeout. Same fix: store in a ref and clear on unmount.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations — MEDIUM PRIORITY",
+        "content": "\n**`components/app/ChatInterface.js` lines 75–83** — `generateFactSignature` runs `JSON.stringify` on the full facts array on every summary check:\n\n```jsx\n// Problem — called repeatedly, O(n) on every render\nconst generateFactSignature = (facts) => JSON.stringify(\n  facts.map(f => typeof f === 'string' ? f : f.content)\n);\n\n// Fix — memoize with useMemo so it only recomputes when facts change\nconst factSignature = useMemo(\n  () => JSON.stringify(facts.map(f => typeof f === 'string' ? f : f.content)),\n  [facts]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Recommended Action Order",
+        "content": "| Priority | File | Fix | Effort |\n|----------|------|-----|--------|\n| **1** | `app/api/catalog/matters/route.ts` | Remove `force-dynamic`, add cache headers | 2 lines |\n| **2** | `app/api/templates/states/route.ts` | Add `revalidate` + cache headers | 2 lines |\n| **3** | `components/app/ChatInterface.js:371` | Wrap state handlers in `useCallback` | 30 min |\n| **4** | `components/app/ChatInterface.js:75` | `useMemo` for `generateFactSignature` | 5 min |\n| **5** | `components/app/EditorView.js:56` | `useMemo` for layout styles | 10 min |\n| **6** | `CountyValidationInput.js:202`, `AffidavitForm.js:295` | Store timeout in ref, clear on unmount | 15 min |\n\nItems 1–2 are pure configuration changes with zero risk and immediate CDN/browser cache benefits for every catalog/template API consumer.",
+        "level": 2
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "jsx",
+        "code": "// Problem — new function on every render\n<button onClick={() => {\n  updateDocumentData({ state: state.code });\n  setMessages(prev => [...prev, ...]);\n}}>\n\n// Fix — memoize with useCallback\nconst handleStateSelect = useCallback((stateCode) => {\n  updateDocumentData({ state: stateCode });\n  setMessages(prev => [...prev, { type: 'bot', content: ... }]);\n}, [updateDocumentData]);\n\n<button onClick={() => handleStateSelect(state.code)}>"
+      },
+      {
+        "language": "jsx",
+        "code": "// Problem — new object every render\n<div style={{ width: `${chatWidth}%` }}>\n\n// Fix — memoize\nconst layoutStyles = useMemo(() => ({\n  chat: { width: `${chatWidth}%` },\n  preview: { width: `${previewWidth}%` },\n}), [chatWidth, previewWidth]);\n<div style={layoutStyles.chat}>"
+      },
+      {
+        "language": "typescript",
+        "code": "// Problem\nexport const dynamic = 'force-dynamic'; // cache miss every request\n\n// Fix — ISR with stale-while-revalidate\nexport const revalidate = 3600;\n\nreturn NextResponse.json(\n  { success: true, data: { matters } },\n  { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }\n);"
+      },
+      {
+        "language": "jsx",
+        "code": "// Problem\nonBlur={() => { setTimeout(() => setShowSuggestions(false), 200); }}\n\n// Fix — track and cancel\nconst blurTimeoutRef = useRef(null);\nonBlur={() => {\n  blurTimeoutRef.current = setTimeout(() => setShowSuggestions(false), 200);\n}}\nuseEffect(() => () => clearTimeout(blurTimeoutRef.current), []);"
+      },
+      {
+        "language": "jsx",
+        "code": "// Problem — called repeatedly, O(n) on every render\nconst generateFactSignature = (facts) => JSON.stringify(\n  facts.map(f => typeof f === 'string' ? f : f.content)\n);\n\n// Fix — memoize with useMemo so it only recomputes when facts change\nconst factSignature = useMemo(\n  () => JSON.stringify(facts.map(f => typeof f === 'string' ? f : f.content)),\n  [facts]\n);"
+      }
+    ]
+  },
+  "rawOutputPreview": "Here's the full performance analysis with actionable recommendations:\n\n---\n\n## Performance Analysis: affidavit-maker\n\n### 1. N+1 Query Patterns — CLEAN\n\nNo critical N+1 patterns found. The `/api/cases` route uses `json_agg` with GROUP BY, and `/api/documents` fetches in a single query. The DB layer is well-structured.\n\n---\n\n### 2. React Re-renders — MEDIUM PRIORITY\n\n**Inline callbacks in `components/app/ChatInterface.js` (lines 371–382, 414)**\n\nEvery render creates new function references, causing child re-renders.\n\n```jsx\n// Problem — new function on every render\n<button onClick={() => {\n  updateDocumentData({ state: state.code });\n  setMessages(prev => [...prev, ...]);\n}}>\n\n// Fix — memoize with useCallback\nconst handleStateSelect = useCallback((stateCode) => {\n  updateDocumentData({ state: stateCode });\n  setMessages(prev => [...prev, { type: 'bot', content: ... }]);\n}, [updateDocumentData]);\n\n<button onClick={() => handleStateSelect(state.code)}>\n```\n\n**Inline style objects in `components/app/EditorView.js` (lines 56, 435, 451, 467)**\n\n```jsx\n// Problem — new object every render\n<div style={{ width: `${chatWidth}%` }}>\n\n// Fix — memoize\nconst layoutStyles = useMemo(() => ({\n  chat: { width: `${chatWidth}%` },\n  preview: { width: `${previewWidth}%` },\n}), [chatWidth, previewWidth]);\n<div style={layoutStyles.chat}>\n```\n\n---\n\n### 3. Caching Opportunities — HIGH PRIORITY (easiest wins)\n\n**`app/api/catalog/matters/route.ts` — static data served without caching**\n\n```typescript\n// Problem\nexport const dynamic = 'force-dynamic'; // cache miss every request\n\n// Fix — ISR with stale-while-revalidate\nexport const revalidate = 3600;\n\nreturn NextResponse.json(\n  { success: true, data: { matters } },\n  { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }\n);\n```\n\n**`app/api/templates/states/route.ts` — same pattern, same fix.** `getSupportedStates()` returns static data. Add `export const revalidate = 3600` and matching `Cache-Control` heade",
+  "rawOutputLength": 4209
+}

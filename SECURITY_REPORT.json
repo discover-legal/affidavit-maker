@@ -1,0 +1,167 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 55,
+      "type": "Missing Authentication Token in Request",
+      "description": "Token is fetched via getAccessTokenSilently() but never added to fetch headers. Request sent with only Content-Type header.",
+      "impact": "API cannot verify user authentication; should fail server-side but represents broken auth protocol",
+      "recommendation": "Add: headers['Authorization'] = 'Bearer ' + token; before fetch at line 61"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 128,
+      "type": "Missing Authentication Token in Upload",
+      "description": "Token fetched but never added to request. Evidence upload at line 138 lacks Authorization header.",
+      "impact": "File upload lacks user authentication; server-side RLS should protect but client-side auth incomplete",
+      "recommendation": "Add Authorization header to fetch request"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 270,
+      "type": "Missing Authentication Token in Chat API",
+      "description": "Token fetched at line 270 but not added to headers in chat requests (lines 115, 273)",
+      "impact": "Chat messages sent without authentication; RLS enforcement depends entirely on server",
+      "recommendation": "Add token to headers before fetch requests"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/GenerateButton.js",
+      "line": 57,
+      "type": "Missing Authentication Token in Generate",
+      "description": "Token fetched but not added to headers. Document generation at line 59 lacks Authorization.",
+      "impact": "Generation endpoint unauthed; payment verification at risk if server-side validation is weak",
+      "recommendation": "Add Authorization header to fetch"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/PaymentModal.js",
+      "line": 151,
+      "type": "Missing Authentication Token in Payment",
+      "description": "Token fetched but not used in payment intent creation at line 153",
+      "impact": "CRITICAL: Payment requests lack authentication; users could potentially create payment intents for other users",
+      "recommendation": "Add Authorization header before payment API call"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 126,
+      "type": "XSS: Unescaped API Response",
+      "description": "data.response from API rendered directly without sanitization in fact summary generation",
+      "impact": "Malicious API response or MITM attack could inject arbitrary JavaScript",
+      "recommendation": "Sanitize with DOMPurify: DOMPurify.sanitize(data.response)"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/UserDashboard.js",
+      "line": 165,
+      "type": "XSS: Unescaped User Data",
+      "description": "Document title constructed from doc.affiantName, doc.documentTitle without sanitization",
+      "impact": "If database contains user-controlled XSS payload, it executes in browser",
+      "recommendation": "Ensure data is text-only; use textContent instead of innerHTML"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 73,
+      "type": "XSS: Unsanitized Validation Response",
+      "description": "validation.normalizedCounty, validation.reasoning rendered directly from API",
+      "impact": "Compromised API or MITM could inject XSS payload via validation response",
+      "recommendation": "Sanitize all API responses before rendering"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 80,
+      "type": "Client-Side File Validation Only",
+      "description": "File validation uses file.type check only. No magic-byte verification or server-side validation visible.",
+      "impact": "Attacker can upload malicious files by spoofing MIME type; depends entirely on server validation",
+      "recommendation": "Implement server-side: verify magic bytes, validate content type, scan for malware"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 157,
+      "type": "Information Disclosure via Error Messages",
+      "description": "API error messages displayed directly to user without sanitization",
+      "impact": "Error details could reveal system internals, file paths, or database structure",
+      "recommendation": "Use generic error messages; log details server-side only"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 65,
+      "type": "Client Sends Payment Bypass Flag",
+      "description": "skipPayment flag sent to server based on NODE_ENV. Server must enforce payment independently.",
+      "impact": "If server trusts client flag for payment skipping, payments could be bypassed in production",
+      "recommendation": "Never trust client. Enforce payment based on server-side subscription/tier status only."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/DocumentMetadata.js",
+      "line": 90,
+      "type": "Missing Client-Side Input Validation",
+      "description": "Form inputs lack validation before submission. Relies entirely on server-side Zod validation.",
+      "impact": "UX issue; server-side validation should catch but client-side validation provides early feedback",
+      "recommendation": "Add Zod schemas to client-side forms"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EditorView.js",
+      "line": 65,
+      "type": "Sensitive Data in Console Logs",
+      "description": "console.log statements throughout codebase log user data, tokens, and state in production",
+      "impact": "Sensitive info exposed in browser console; could be captured by monitoring tools",
+      "recommendation": "Remove all console.log before production; use proper logging service"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/TOSGuard.js",
+      "line": 200,
+      "type": "Non-HttpOnly Token Storage",
+      "description": "Auth tokens stored in localStorage accessible to JavaScript; TOS status in localStorage",
+      "impact": "Standard for browser apps; mitigated by short token expiry and server-side validation",
+      "recommendation": "Use httpOnly cookies where possible; implement auto-logout on inactivity"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 52,
+      "type": "Markdown Rendering",
+      "description": "ReactMarkdown renders Terms of Service; low risk if content is from trusted source",
+      "impact": "Low; ensure markdown never includes user input",
+      "recommendation": "Verify TOS content is immutable and from trusted source"
+    }
+  ],
+  "riskScore": 74,
+  "riskLevel": "HIGH",
+  "summary": "Critical authentication issues found: 5 API endpoints have missing Authorization headers despite tokens being fetched. Multiple XSS vulnerabilities from unsanitized API responses. File upload validation is client-side only. Server-side security (RLS, Zod, OAuth) appears adequate but client-side authentication protocol is broken.",
+  "recommendations": [
+    "🔴 URGENT: Fix all 5 missing Authorization headers immediately - audit every fetch() call",
+    "🔴 CRITICAL: Sanitize ALL API responses before rendering - implement DOMPurify library",
+    "🔴 CRITICAL: Implement server-side file validation - verify magic bytes, scan for malware",
+    "🟠 HIGH: Remove sensitive console.log statements before production deployment",
+    "🟠 HIGH: Never trust client payment flags - enforce payment via server state only",
+    "🟡 MEDIUM: Add comprehensive error handling that doesn't expose system details",
+    "🟡 MEDIUM: Implement CSP headers to mitigate XSS impact",
+    "🟡 MEDIUM: Add client-side form validation with Zod schemas",
+    "🟢 LOW: Use httpOnly cookies for session tokens instead of localStorage"
+  ],
+  "criticalFindings": [
+    "Missing Auth Headers: CountyValidationInput.js:55, EvidenceUploadModal.js:128, ChatInterface.js:270, GenerateButton.js:57, PaymentModal.js:151",
+    "XSS Risks: ChatInterface.js:126 (API response), UserDashboard.js:165 (user data), CountyValidationInput.js:73 (validation response)",
+    "Payment Risk: GenerateButton.js:65 sends skipPayment flag to server",
+    "File Upload: Only client-side MIME validation at EvidenceUploadModal.js:80"
+  ],
+  "positiveFindings": [
+    "✓ Secrets in environment variables, not hardcoded",
+    "✓ Auth0 OAuth for authentication",
+    "✓ Parameterized SQL queries in backend",
+    "✓ RLS policies for data isolation",
+    "✓ Zod validation in Route Handlers",
+    "✓ Stripe for PCI-compliant payments"
+  ]
+}

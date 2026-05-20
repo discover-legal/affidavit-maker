@@ -170,6 +170,15 @@ END $$;
 
 -- ----------------------------------------------------------------------------
 -- Verification view: extend rls_status to include FORCE state.
+--
+-- Migration 010 already created rls_status with columns
+--   (schemaname, tablename, rls_enabled, policy_count)
+--
+-- PostgreSQL's `CREATE OR REPLACE VIEW` will not allow renaming or
+-- re-ordering existing columns — you can only APPEND new ones at the
+-- end. So `rls_forced` is added as the trailing column. (An earlier
+-- iteration inserted it between `rls_enabled` and `policy_count`,
+-- which crashed pre-deploy with 'cannot change name of view column'.)
 -- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW rls_status AS
@@ -177,15 +186,15 @@ SELECT
     schemaname,
     tablename,
     rowsecurity AS rls_enabled,
+    (SELECT COUNT(*) FROM pg_policies
+      WHERE schemaname = t.schemaname AND tablename = t.tablename
+    ) AS policy_count,
     -- pg_class.relforcerowsecurity is the source of truth for FORCE.
     (SELECT c.relforcerowsecurity
        FROM pg_class c
        JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = t.schemaname AND c.relname = t.tablename
-    ) AS rls_forced,
-    (SELECT COUNT(*) FROM pg_policies
-      WHERE schemaname = t.schemaname AND tablename = t.tablename
-    ) AS policy_count
+    ) AS rls_forced
 FROM pg_tables t
 WHERE schemaname = 'public'
   AND tablename IN (

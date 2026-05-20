@@ -30,8 +30,9 @@ services:
       # Set DATABASE_CA_CERT to the Render-supplied PEM bundle (paste the
       # whole certificate, BEGIN CERTIFICATE…END CERTIFICATE) to enable
       # certificate verification on the Postgres TLS handshake. Without it
-      # we still require TLS, but verify against the container's system
-      # trust store (which on Render covers the public CA Render uses).
+      # the connection is still TLS-encrypted but the server certificate
+      # is not authenticated (Render's managed PG uses a self-signed cert
+      # outside the system trust store).
       - key: DATABASE_CA_CERT
         sync: false
 

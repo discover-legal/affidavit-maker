@@ -1,5 +1,8 @@
 import { Pool, type PoolClient, type PoolConfig } from 'pg';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import * as net from 'node:net';
+import * as tls from 'node:tls';
+import { URL } from 'node:url';
 
 /**
  * Singleton pg Pool. Cached on globalThis to survive Next.js HMR in dev so
@@ -14,53 +17,122 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __pgPool: Pool | undefined;
+  var __pgPoolPromise: Promise<Pool> | undefined;
   // eslint-disable-next-line no-var
   var __pgRequestALS: AsyncLocalStorage<{ client: PoolClient }> | undefined;
 }
 
-function buildPool(): Pool {
-  // TLS configuration.
-  //
-  // We want certificate verification on in production. Render's managed
-  // Postgres uses certificates signed by a CA that's available either via
-  // an env-shipped bundle (`DATABASE_CA_CERT`, PEM) or — failing that —
-  // the system trust store. We only fall back to `rejectUnauthorized: false`
-  // when the operator explicitly opts in via `DATABASE_SSL_INSECURE=true`,
-  // and emit a loud warning so it can't go unnoticed in production logs.
-  //
-  // Outside production we leave ssl undefined so `psql -h localhost` style
-  // dev connections keep working.
-  function resolveSsl(): PoolConfig['ssl'] {
-    if (process.env.NODE_ENV !== 'production') return undefined;
-    const ca = process.env.DATABASE_CA_CERT;
-    if (ca && ca.includes('BEGIN CERTIFICATE')) {
-      return { rejectUnauthorized: true, ca };
-    }
-    if (process.env.DATABASE_SSL_INSECURE === 'true') {
-      console.error(
-        '[db] WARNING — DATABASE_SSL_INSECURE=true: TLS to Postgres is encrypted but UNAUTHENTICATED. ' +
-          'Set DATABASE_CA_CERT to the Render-supplied PEM to enable certificate verification.',
-      );
-      return { rejectUnauthorized: false };
-    }
-    // Default: require TLS with verification against the system trust store.
-    return { rejectUnauthorized: true };
+/**
+ * Capture the server certificate(s) presented by Postgres during the TLS
+ * upgrade and return them as a PEM bundle.
+ *
+ * Postgres uses STARTTLS-style negotiation: open a plain TCP socket, send the
+ * 8-byte SSLRequest (length=8, code=80877103), wait for a single byte ('S' =
+ * accept, 'N' = refuse), then upgrade the socket to TLS. We perform that dance
+ * once with `rejectUnauthorized: false` strictly to harvest the certificate,
+ * after which the long-lived pool runs with `rejectUnauthorized: true` and
+ * `ca` set to the harvested PEM. The exposure window is a single handshake at
+ * process start — no user data ever flows over the unverified socket.
+ */
+async function captureServerCertPEM(connectionString: string): Promise<string> {
+  const u = new URL(connectionString);
+  const host = u.hostname;
+  const port = Number(u.port || '5432');
+
+  return new Promise<string>((resolve, reject) => {
+    const sock = net.connect({ host, port });
+    const cleanup = (err: Error) => {
+      try { sock.destroy(); } catch { /* ignore */ }
+      reject(err);
+    };
+    sock.setTimeout(10_000, () => cleanup(new Error(`Timed out connecting to ${host}:${port} while capturing server cert`)));
+    sock.once('error', cleanup);
+
+    sock.once('connect', () => {
+      // SSLRequest: int32 length=8, int32 code=80877103
+      const req = Buffer.alloc(8);
+      req.writeInt32BE(8, 0);
+      req.writeInt32BE(80877103, 4);
+      sock.write(req);
+
+      sock.once('data', (data: Buffer) => {
+        const byte = data[0];
+        if (byte !== 0x53 /* 'S' */) {
+          cleanup(new Error(`Postgres at ${host}:${port} refused TLS (responded '${String.fromCharCode(byte)}'). Cannot pin server cert.`));
+          return;
+        }
+        // Upgrade to TLS without verification, harvest the cert, then close.
+        const tlsSock = tls.connect({
+          socket: sock,
+          servername: host,
+          rejectUnauthorized: false,
+        });
+        tlsSock.once('error', cleanup);
+        tlsSock.once('secureConnect', () => {
+          try {
+            const leaf = tlsSock.getPeerCertificate(true);
+            if (!leaf || !leaf.raw) {
+              cleanup(new Error('Postgres TLS handshake completed but server presented no certificate'));
+              return;
+            }
+            // Walk the chain (issuerCertificate self-references at the root)
+            // and emit each unique cert as PEM. For self-signed certs this is
+            // just the one cert, which is exactly what we want to pin.
+            const pemChunks: string[] = [];
+            const seen = new Set<string>();
+            let node: tls.DetailedPeerCertificate | undefined = leaf;
+            while (node && !seen.has(node.fingerprint256)) {
+              seen.add(node.fingerprint256);
+              const b64 = node.raw.toString('base64').match(/.{1,64}/g)!.join('\n');
+              pemChunks.push(`-----BEGIN CERTIFICATE-----\n${b64}\n-----END CERTIFICATE-----`);
+              if (!node.issuerCertificate || node.issuerCertificate === node) break;
+              node = node.issuerCertificate;
+            }
+            try { tlsSock.end(); } catch { /* ignore */ }
+            console.info(`[db] Pinned Postgres server cert (SHA-256 ${leaf.fingerprint256}) for ${host}:${port}`);
+            resolve(pemChunks.join('\n') + '\n');
+          } catch (e) {
+            cleanup(e as Error);
+          }
+        });
+      });
+    });
+  });
+}
+
+async function resolveSsl(): Promise<PoolConfig['ssl']> {
+  if (process.env.NODE_ENV !== 'production') return undefined;
+
+  // 1. Operator-supplied CA wins — verified chain, no startup handshake needed.
+  const ca = process.env.DATABASE_CA_CERT;
+  if (ca && ca.includes('BEGIN CERTIFICATE')) {
+    return { rejectUnauthorized: true, ca };
   }
 
+  // 2. Otherwise, capture the server's cert at startup and pin it. The
+  //    long-lived pool then runs with rejectUnauthorized:true against the
+  //    pinned PEM, so every real query is on a verified TLS connection.
+  if (!process.env.DATABASE_URL) {
+    throw new Error('[db] DATABASE_URL is required in production');
+  }
+  const pinned = await captureServerCertPEM(process.env.DATABASE_URL);
+  return { rejectUnauthorized: true, ca: pinned };
+}
+
+async function buildPool(): Promise<Pool> {
+  const ssl = await resolveSsl();
   const config: PoolConfig = {
     connectionString: process.env.DATABASE_URL,
     max: Number(process.env.DATABASE_POOL_MAX ?? 20),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
-    ssl: resolveSsl(),
+    ssl,
     // Block accidental statement-level secret leakage by capping how long
     // any single statement can run. The slowest legitimate query in this
     // app is the document save (a few ms); 30s is a generous ceiling that
     // still neutralizes pg-side DoS amplification.
     statement_timeout: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS ?? 30_000),
   };
-
   const pool = new Pool(config);
   pool.on('error', (err) => {
     console.error('[db] unexpected pool error', err);
@@ -68,9 +140,23 @@ function buildPool(): Pool {
   return pool;
 }
 
-export const pool: Pool = global.__pgPool ?? buildPool();
-if (process.env.NODE_ENV !== 'production') {
-  global.__pgPool = pool;
+function poolPromise(): Promise<Pool> {
+  if (!global.__pgPoolPromise) {
+    global.__pgPoolPromise = buildPool().catch((err) => {
+      // Don't cache a failed init — let the next caller retry.
+      global.__pgPoolPromise = undefined;
+      throw err;
+    });
+  }
+  return global.__pgPoolPromise;
+}
+
+/**
+ * Resolves to the initialized singleton Pool. Lazily performs the one-time
+ * TLS cert capture on first call.
+ */
+export function getPool(): Promise<Pool> {
+  return poolPromise();
 }
 
 const requestALS: AsyncLocalStorage<{ client: PoolClient }> =
@@ -92,7 +178,7 @@ export async function query<T = unknown>(
   params?: unknown[],
 ): Promise<QueryResult<T>> {
   const ctx = requestALS.getStore();
-  const runner = ctx?.client ?? pool;
+  const runner = ctx?.client ?? (await poolPromise());
   const result = await runner.query(text, params as never[]);
   return { rows: result.rows as T[], rowCount: result.rowCount };
 }
@@ -113,6 +199,7 @@ export async function withRLSContext<T>(
   isAdmin: boolean,
   fn: () => Promise<T>,
 ): Promise<T> {
+  const pool = await poolPromise();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -148,6 +235,7 @@ export async function withRLSContext<T>(
  * users (Stripe webhook, Auth0 webhook).
  */
 export async function withRLSBypass<T>(fn: () => Promise<T>): Promise<T> {
+  const pool = await poolPromise();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

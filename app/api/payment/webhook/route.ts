@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import type { PoolClient } from 'pg';
 import { getStripe } from '@/lib/api/stripe';
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 
 export const runtime = 'nodejs';
 // Webhook handlers must NOT consume the body before signature verification.
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const client = await pool.connect();
+  const client = await (await getPool()).connect();
   try {
     await client.query('BEGIN');
     // Webhooks write across users (any user's payment may settle), so they

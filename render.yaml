@@ -64,11 +64,15 @@ services:
       # HttpOnly + Secure (because AUTH0_BASE_URL is https). We force
       # SameSite=Lax explicitly so an SDK default change can't loosen it,
       # and bound the session lifetime.
-      - key: AUTH0_SESSION_COOKIE_SAME_SITE
+      #
+      # IMPORTANT — the v3 SDK reads cookie attributes from AUTH0_COOKIE_*
+      # (NOT AUTH0_SESSION_COOKIE_*); the latter are silently ignored.
+      # Source: node_modules/@auth0/nextjs-auth0/dist/config.js.
+      - key: AUTH0_COOKIE_SAME_SITE
         value: lax
-      - key: AUTH0_SESSION_COOKIE_SECURE
+      - key: AUTH0_COOKIE_SECURE
         value: 'true'
-      - key: AUTH0_SESSION_COOKIE_HTTP_ONLY
+      - key: AUTH0_COOKIE_HTTP_ONLY
         value: 'true'
       - key: AUTH0_SESSION_ABSOLUTE_DURATION
         value: '86400' # 24h hard ceiling on session length

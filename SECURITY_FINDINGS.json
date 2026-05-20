@@ -1,0 +1,84 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 95,
+      "description": "Auth token obtained via getAccessTokenSilently() but never sent in API request headers. Token is fetched but discarded, breaking authentication chain. Backend cannot verify user identity or enforce ownership checks."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 68,
+      "description": "Auth token obtained via getAccessTokenSilently() but never included in fetch request headers. Token is retrieved then ignored, leaving request unauthenticated."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 159,
+      "description": "Auth token obtained but never added to fetch headers. FormData sent without Authorization header despite authenticated user context."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 24,
+      "description": "Content processed through ReactMarkdown without sanitization. If TERMS_OF_SERVICE is ever sourced from dynamic content, XSS is possible via markdown injection."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/PaymentModal.js",
+      "line": 117,
+      "description": "Auth token obtained but never used in fetch headers. Payment intent creation request sent without authentication."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 40,
+      "description": "Full error stack traces sent to window.logError without sanitization. If sent to external service, leaks application architecture and internal structure."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 129,
+      "description": "File size validation (25MB limit) is client-side only. Backend must also validate to prevent resource exhaustion."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TOSGuard.js",
+      "line": 87,
+      "description": "TOS acceptance stored in localStorage. Backend should re-verify independently on each request rather than trusting client cache."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/PaymentModal.js",
+      "line": 104,
+      "description": "Payment amount logic depends on client state. Backend must recalculate price from documentType, never trust client-provided amounts."
+    },
+    {
+      "severity": "low",
+      "file": "components/app/GenerateButton.js",
+      "line": 75,
+      "description": "Development-only skipPayment bypass could be exploited if NODE_ENV check fails. Remove this bypass in production."
+    },
+    {
+      "severity": "low",
+      "file": "components/app/DocumentMetadata.js",
+      "line": 40,
+      "description": "Form inputs stored in state without sanitization. If rendered as HTML elsewhere, DOM-based XSS is possible."
+    }
+  ],
+  "riskScore": 76,
+  "recommendations": [
+    "CRITICAL: Fix missing Authorization headers - tokens are obtained but never sent. Add token to all API calls: headers: { 'Authorization': `Bearer ${token}` }",
+    "CRITICAL: Backend must verify user_id ownership on every authed route. Ensure RLS context is set via withAuth on ALL protected handlers",
+    "CRITICAL: Recalculate payment amounts server-side. Never trust client-provided documentType or amount. Fetch document, verify user owns it, recalculate price from PRICING_CONFIG",
+    "HIGH: Secure error logging - do not send full stack traces to external services. Filter sensitive data in ErrorBoundary",
+    "HIGH: Backend must validate file uploads (size, MIME type, magic bytes). Never trust client-side validation alone",
+    "HIGH: Add server-side TOS verification - don't rely on client-side localStorage cache for sensitive acceptance checks",
+    "MEDIUM: If TERMS_OF_SERVICE becomes dynamic, sanitize markdown with DOMPurify and restrict HTML rendering",
+    "MEDIUM: Sanitize user form inputs (firstName, lastName, etc.) with Zod or DOMPurify before storing in state",
+    "MEDIUM: Remove skipPayment development bypass from GenerateButton.js - use staging environment for testing instead",
+    "LOW: Run 'npm audit' and update dependencies, particularly react-markdown and @auth0/nextjs-auth0",
+    "LOW: Verify CSP headers in next.config.mjs are set correctly and CSP violations are logged"
+  ]
+}

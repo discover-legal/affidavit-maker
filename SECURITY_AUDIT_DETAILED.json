@@ -1,0 +1,278 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "critical",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 128,
+      "type": "Authentication Token Unused",
+      "description": "Auth0 token obtained via getAccessTokenSilently() but never included in fetch request headers. Token is discarded, making the API call unauthenticated. Attacker can upload files without valid authentication.",
+      "code": "const token = await getAccessTokenSilently();\n...\nconst response = await fetch('/api/evidence/upload', { method: 'POST', body: formData }); // NO Authorization header",
+      "remediation": "Add Authorization header: headers: { 'Authorization': `Bearer ${token}` }"
+    },
+    {
+      "severity": "critical",
+      "file": "components/app/GenerateButton.js",
+      "line": 57,
+      "type": "Authentication Token Unused",
+      "description": "Auth0 token obtained but never used in fetch request for document generation. API calls are made without authentication tokens.",
+      "code": "const token = await getAccessTokenSilently();\n...\nconst response = await fetch(`${API_BASE_URL}/api/documents/generate?format=${format}`, { headers: { 'Content-Type': 'application/json' } }); // NO Authorization",
+      "remediation": "Add Authorization header to all authenticated requests"
+    },
+    {
+      "severity": "critical",
+      "file": "components/app/ChatInterface.js",
+      "line": 104,
+      "type": "Authentication Token Unused",
+      "description": "Auth0 token obtained but never added to request headers. Multiple instances throughout component where token is discarded.",
+      "code": "if (isAuthenticated) { const token = await getAccessTokenSilently(); } // token never used",
+      "remediation": "Add token to Authorization headers in all fetch requests"
+    },
+    {
+      "severity": "critical",
+      "file": "components/app/GenerateButton.js",
+      "line": 65,
+      "type": "Payment Bypass Vulnerability",
+      "description": "Client-side payment bypass flag: skipPayment: process.env.NODE_ENV === 'development' sent to API. Attacker can modify environment variable or intercept to bypass payment requirements.",
+      "code": "skipPayment: process.env.NODE_ENV === 'development'",
+      "remediation": "NEVER send payment bypass flags from client. Enforce payment logic entirely server-side based on user account status."
+    },
+    {
+      "severity": "high",
+      "file": "templates/core/TemplateLoader.js",
+      "line": 35,
+      "type": "Use of eval()",
+      "description": "Dynamic require via eval() to load template modules. While commented as necessary for Webpack bypass, this creates security risk if template names are user-controlled.",
+      "code": "const nodeRequire = eval('require');",
+      "remediation": "Consider using dynamic import() or require.resolve() with strict whitelist validation"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 5,
+      "type": "Markdown Rendering Without Sanitization",
+      "description": "ReactMarkdown renders user-controlled TOS content. While React provides escaping, malicious Markdown could contain scripts or unsafe HTML if combined with custom renderers.",
+      "code": "<ReactMarkdown components={{...}}>{TERMS_OF_SERVICE}</ReactMarkdown>",
+      "remediation": "Use sanitize-html library or ensure reactmarkdown config has allowHtml: false"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 50,
+      "type": "MIME Type Validation Only",
+      "description": "File type validation relies only on MIME type header which can be easily spoofed. No actual file content validation (magic byte checking).",
+      "code": "if (!ALLOWED_TYPES[file.type]) { setError(...); return; }",
+      "remediation": "Implement server-side magic byte verification in /api/evidence/upload for PDF/JPG/PNG"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 55,
+      "type": "Authentication Token Unused",
+      "description": "Token obtained but not used in validation API request",
+      "code": "const token = await getAccessTokenSilently(); // Never used",
+      "remediation": "Add Authorization header to fetch request"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/ValidationSidebar.js",
+      "line": 594,
+      "type": "Authentication Token Unused",
+      "description": "Token obtained for fact rewrite request but not included in headers",
+      "code": "const token = await getAccessTokenSilently(); // Not added to headers",
+      "remediation": "Include token in Authorization header"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/PaymentModal.js",
+      "line": 151,
+      "type": "Authentication Token Unused",
+      "description": "Token obtained for payment intent creation but not used in API request",
+      "code": "const token = await getAccessTokenSilently(); // Not added to request",
+      "remediation": "Add Authorization header"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/DocumentMetadata.js",
+      "line": 1,
+      "type": "PII Stored in Client State",
+      "description": "Personal information (names, addresses, case details) stored in unencrypted React state. Could be exposed in browser memory or dev tools.",
+      "code": "updateDocumentData({ firstName, lastName, respondentFirstName, ... })",
+      "remediation": "Consider encrypting sensitive fields or implementing field-level access controls server-side"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 63,
+      "type": "User Input Reflected Without Sanitization",
+      "description": "userName prop passed to component and rendered in JSX without sanitization. While React escapes by default, could be vulnerable to edge cases.",
+      "code": "<p>Welcome{userName ? `, ${userName}` : ''}!</p>",
+      "remediation": "Use a sanitization library like DOMPurify or ensure names are validated server-side"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ChatInterface.js",
+      "line": 120,
+      "type": "User Prompt Injection Risk",
+      "description": "User-provided affiantName directly interpolated into AI prompt without escaping. Could allow prompt injection attacks.",
+      "code": "`You went to the store instead of \"${affiantName} went to the store\"`",
+      "remediation": "Use templated prompts or sanitize/escape user inputs before LLM calls"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 76,
+      "type": "Directory Traversal in Filename",
+      "description": "affiantName sanitized only for spaces/special chars but not for path traversal. File name could potentially contain ../ sequences.",
+      "code": "const nameSlug = affidavitData.affiantName.replace(/[^a-zA-Z0-9]/g, '_');",
+      "remediation": "Use stricter regex: replace(/[^a-zA-Z0-9_-]/g, '_') and reject names starting with '.'"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 1,
+      "type": "Error Details Exposure",
+      "description": "Error details sent to window.logError without sanitization. Could expose system paths or sensitive information in production.",
+      "code": "window.logError({ error: error.toString(), errorInfo: errorInfo.componentStack, ... })",
+      "remediation": "Filter error messages before sending; only log sanitized error codes"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 143,
+      "type": "Unvalidated API Response",
+      "description": "API response fields accessed directly without type validation or sanitization before use",
+      "code": "const data = await response.json(); ... data.evidence.fileName",
+      "remediation": "Validate response structure with Zod before using fields"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/ChatInterface.js",
+      "line": 53,
+      "type": "Hardcoded API Base URL",
+      "description": "API_BASE_URL set to empty string for relative URLs. Could be vulnerable to CNAME-based attacks if DNS is misconfigured.",
+      "code": "const API_BASE_URL = '';",
+      "remediation": "Consider enforcing absolute URLs with domain validation"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/UnsupportedStateMessage.js",
+      "line": 42,
+      "type": "CORS Header Missing",
+      "description": "Fetch to /api/templates/states has no explicit CORS handling shown. Fallback to hardcoded list could expose default states.",
+      "code": "fetch('/api/templates/states').then(...).catch(() => { setSupportedStates([...]) })",
+      "remediation": "Ensure CORS headers are properly set server-side"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/ValidationSidebar.js",
+      "line": 1,
+      "type": "Client-Side Validation Only",
+      "description": "Validation messages and suggestions from API rendered directly without escaping",
+      "code": "<p className=\"text-sm mb-2\">{validation.reasoning}</p>",
+      "remediation": "Validate API response structure and escape HTML in strings"
+    }
+  ],
+  "riskScore": 78,
+  "riskBreakdown": {
+    "critical": 4,
+    "high": 6,
+    "medium": 6,
+    "low": 3
+  },
+  "recommendations": [
+    {
+      "priority": "P0",
+      "title": "Fix Authentication Token Usage",
+      "description": "CRITICAL: Multiple API calls (evidence upload, document generation, chat, validation, payment) obtain Auth0 tokens but never use them. This completely breaks authentication on these endpoints.",
+      "affectedFiles": ["EvidenceUploadModal.js", "GenerateButton.js", "ChatInterface.js", "CountyValidationInput.js", "ValidationSidebar.js", "PaymentModal.js"],
+      "action": "Add Authorization headers with Bearer tokens to all authenticated fetch requests"
+    },
+    {
+      "priority": "P0",
+      "title": "Remove Client-Side Payment Bypass",
+      "description": "CRITICAL: skipPayment flag in GenerateButton allows bypassing payment logic if environment variable is controlled by attacker.",
+      "affectedFiles": ["GenerateButton.js"],
+      "action": "Remove skipPayment from client code entirely. Enforce all payment logic server-side only based on user subscription status from database"
+    },
+    {
+      "priority": "P1",
+      "title": "Implement Server-Side File Validation",
+      "description": "File upload validation relies on client-side MIME type checking which is easily spoofed. No magic byte verification exists.",
+      "affectedFiles": ["EvidenceUploadModal.js", "app/api/evidence/upload"],
+      "action": "Implement magic byte/file signature verification in upload endpoint for PDF, JPG, PNG"
+    },
+    {
+      "priority": "P1",
+      "title": "Sanitize Markdown Rendering",
+      "description": "ReactMarkdown renders TOS content without explicit sanitization configuration. Could allow unsafe HTML/script injection.",
+      "affectedFiles": ["TermsOfServiceModal.js"],
+      "action": "Install sanitize-html and sanitize Markdown output before rendering"
+    },
+    {
+      "priority": "P1",
+      "title": "Validate All API Responses",
+      "description": "API responses are used directly without schema validation. No protection against server returning malicious data.",
+      "affectedFiles": ["Multiple - all components making API calls"],
+      "action": "Use Zod or io-ts to validate all API response structures before accessing properties"
+    },
+    {
+      "priority": "P1",
+      "title": "Protect Sensitive User Input",
+      "description": "Personal information (names, addresses) stored in client state without encryption. Could be exposed in dev tools or memory dumps.",
+      "affectedFiles": ["DocumentMetadata.js", "DocumentContext.js"],
+      "action": "Minimize PII storage in client state. Fetch from secure server context when needed."
+    },
+    {
+      "priority": "P2",
+      "title": "Sanitize AI Prompt Inputs",
+      "description": "User-provided data (affiantName, facts) interpolated directly into LLM prompts without escaping. Could allow prompt injection.",
+      "affectedFiles": ["ChatInterface.js", "ValidationSidebar.js"],
+      "action": "Use prompt templating libraries and sanitize all user inputs before LLM calls"
+    },
+    {
+      "priority": "P2",
+      "title": "Audit eval() Usage",
+      "description": "TemplateLoader.js uses eval('require') for dynamic template loading. While necessary for Webpack bypass, restrict template names to whitelist.",
+      "affectedFiles": ["templates/core/TemplateLoader.js"],
+      "action": "Implement strict whitelist of valid template names before dynamic require"
+    },
+    {
+      "priority": "P2",
+      "title": "Implement Rate Limiting",
+      "description": "Client-side debouncing on validation requests but no server-side rate limiting visible. Could enable DoS attacks.",
+      "affectedFiles": ["app/api/validate/*", "app/api/chat"],
+      "action": "Implement server-side rate limiting in lib/api/rateLimit.ts for all user-facing endpoints"
+    },
+    {
+      "priority": "P2",
+      "title": "Audit Error Logging",
+      "description": "Error details sent to monitoring without sanitization. Could expose system paths, stack traces, or sensitive data.",
+      "affectedFiles": ["ErrorBoundary.js", "lib/utils/analytics.js"],
+      "action": "Filter error messages and only log non-sensitive error codes and types"
+    }
+  ],
+  "summary": {
+    "totalVulnerabilities": 19,
+    "criticalIssues": 4,
+    "authenticationGaps": 6,
+    "inputValidationGaps": 4,
+    "dataProtectionGaps": 3,
+    "thirdPartyRisks": 2,
+    "overallRisk": "HIGH",
+    "estimatedCVSS": 8.9
+  },
+  "checklist": {
+    "hardcodedSecrets": "PASS - No API keys found in client code",
+    "sqlInjection": "PASS - Using parameterized queries via pg.Pool in lib/db.ts",
+    "xssVulnerabilities": "FAIL - Markdown rendering and AI prompt injection risks identified",
+    "csrfProtection": "UNCLEAR - No CSRF token visible in form submissions",
+    "authenticationBypass": "FAIL - Unused auth tokens in multiple components",
+    "paymentBypass": "FAIL - Client-side skipPayment flag",
+    "insecureDependencies": "UNKNOWN - npm audit needed",
+    "rateLimiting": "PARTIAL - Client-side only, server-side needed",
+    "dataEncryption": "FAIL - PII stored in plaintext client state",
+    "errorHandling": "FAIL - Sensitive error details exposed to client"
+  },
+  "generatedAt": "2026-05-17T00:00:00Z",
+  "version": "1.0"
+}

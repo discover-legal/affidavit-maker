@@ -1,0 +1,147 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "category": "Authentication Bypass",
+      "file": "components/app/ChatInterface.js",
+      "line": 103,
+      "description": "Token acquired via getAccessTokenSilently() but never sent to API. Authorization header missing from fetch request at line 115. API call to /api/chat proceeds without authentication despite user being authenticated.",
+      "impact": "Unauthenticated users could potentially call the chat API. Server-side RLS checks may catch this, but client-side auth is weak.",
+      "recommendation": "Add token to Authorization header: headers['Authorization'] = `Bearer ${token}`"
+    },
+    {
+      "severity": "high",
+      "category": "Authentication Bypass",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 59,
+      "description": "Token acquired via getAccessTokenSilently() but never sent to API at line 77. Authorization header missing from /api/validate/county request.",
+      "impact": "County validation API unprotected on client side. Server-side auth required.",
+      "recommendation": "Add acquired token to request headers"
+    },
+    {
+      "severity": "high",
+      "category": "Authentication Bypass",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 148,
+      "description": "Token acquired via getAccessTokenSilently() but never sent to /api/evidence/upload at line 165. FormData request lacks Authorization header.",
+      "impact": "Evidence upload endpoint unprotected on client side. Could allow unauthorized file uploads if server doesn't validate user ownership.",
+      "recommendation": "Add Authorization header even with FormData: headers.Authorization = `Bearer ${token}`"
+    },
+    {
+      "severity": "high",
+      "category": "Authentication Bypass",
+      "file": "components/app/GenerateButton.js",
+      "line": 118,
+      "description": "Token acquired via getAccessTokenSilently() but never sent to /api/documents/generate at line 125. Request lacks Authorization header.",
+      "impact": "Document generation API unprotected on client. Server must verify user owns the document, but client-side auth is missing.",
+      "recommendation": "Add: headers.Authorization = `Bearer ${token}` before fetch call"
+    },
+    {
+      "severity": "high",
+      "category": "Missing Authentication",
+      "file": "components/app/PaymentModal.js",
+      "line": 145,
+      "description": "Payment intent creation at /api/payment/create-intent has NO authentication. Stripe is called without verifying user identity or document ownership.",
+      "impact": "Any user could potentially create payment intents for any documentId. Critical for payment processing.",
+      "recommendation": "Add authentication: acquire token with getAccessTokenSilently() and add Authorization header. Server must verify user_id matches document owner."
+    },
+    {
+      "severity": "high",
+      "category": "Authorization Flaw - Missing Ownership Verification",
+      "file": "components/app/GenerateButton.js",
+      "line": 94,
+      "description": "Document generation passes documentId but has no verification that current user owns it. Relies entirely on server-side RLS.",
+      "impact": "If server RLS fails or has a bug, users could generate other users' documents.",
+      "recommendation": "Client should verify ownership before sending. Server MUST validate via RLS (row-level security). Add audit logging."
+    },
+    {
+      "severity": "high",
+      "category": "Authorization Flaw - Missing Ownership Verification",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 146,
+      "description": "Evidence upload associates file with documentId but doesn't verify user owns the document. Server-side RLS required.",
+      "impact": "Users could upload evidence to documents they don't own if RLS verification fails.",
+      "recommendation": "Server Route Handler must verify: SELECT user_id FROM documents WHERE id = $1 AND user_id = current_user_id"
+    },
+    {
+      "severity": "medium",
+      "category": "XSS - LLM Response",
+      "file": "components/app/ChatInterface.js",
+      "line": 131,
+      "description": "LLM response (data.response) is stored directly in state as factSummary without sanitization. If rendered as HTML anywhere, XSS possible.",
+      "impact": "Malicious LLM response (or prompt injection attack on LLM) could execute client-side scripts if summary is rendered with dangerouslySetInnerHTML.",
+      "recommendation": "Sanitize LLM responses with DOMPurify before storing. If rendered with ReactMarkdown, ensure sanitize plugin is enabled."
+    },
+    {
+      "severity": "medium",
+      "category": "Information Disclosure",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 65,
+      "description": "Error details including componentStack, userAgent, and URL sent to external window.logError service without sanitization.",
+      "impact": "Error messages could contain sensitive data (API keys, document IDs, personal information). External service receives unredacted errors.",
+      "recommendation": "Sanitize error messages before logging. Never send full componentStack. Use request ID for tracing instead of sensitive data."
+    },
+    {
+      "severity": "medium",
+      "category": "MIME Type Validation Only",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 72,
+      "description": "File type validation checks MIME type only (application/pdf, image/jpeg, image/png). MIME type can be spoofed by users.",
+      "impact": "Malicious files could be uploaded if server-side magic-byte validation fails. Relies on server 'magic-byte sniff' mentioned in CLAUDE.md.",
+      "recommendation": "Good: server-side validation required. Consider client-side warning if magic bytes don't match MIME type."
+    },
+    {
+      "severity": "medium",
+      "category": "Unvalidated Redirect",
+      "file": "components/app/Header.js",
+      "line": 33,
+      "description": "Logout redirect uses window.location.origin without validating against a whitelist.",
+      "impact": "Low risk in browser context, but better practice to use whitelist. Could be exploited if window.location is somehow compromised.",
+      "recommendation": "Use whitelist of allowed logout URLs: const ALLOWED_LOGOUT_URLS = ['https://discover.legal', ...]"
+    },
+    {
+      "severity": "low",
+      "category": "Input Validation - Country Detection",
+      "file": "components/app/UnsupportedStateMessage.js",
+      "line": 16,
+      "description": "Country detection based on subdomain can be spoofed. No server-side validation of jurisdiction.",
+      "impact": "User can manipulate subdomain to bypass jurisdiction checks on client side. Server must validate jurisdiction.",
+      "recommendation": "Country/subdomain should come from server response, not detected client-side."
+    },
+    {
+      "severity": "low",
+      "category": "Sensitive Data in Filenames",
+      "file": "components/app/GenerateButton.js",
+      "line": 100,
+      "description": "Downloaded filenames include affiant name which may be PII: `${prefix}-${nameSlug}.${ext}`",
+      "impact": "Client-side filename is visible to user, acceptable. But ensure server logging doesn't expose full paths.",
+      "recommendation": "Filenames OK on client. Ensure server logs use generic names, not full paths with PII."
+    }
+  ],
+  "riskScore": 78,
+  "riskLevel": "HIGH",
+  "summary": "Critical authentication issues identified: 5 API endpoints acquire auth tokens but fail to send them (ChatInterface, CountyValidationInput, EvidenceUploadModal, GenerateButton). PaymentModal has NO authentication at all. Authorization flaws missing ownership verification on document operations. LLM responses not sanitized for XSS. Error logging exposes sensitive data.",
+  "recommendations": [
+    "CRITICAL: Fix authentication bypass in ChatInterface, CountyValidationInput, EvidenceUploadModal, GenerateButton - add token to Authorization headers immediately",
+    "CRITICAL: Add authentication to PaymentModal - acquire token and verify user owns document before creating payment intent",
+    "CRITICAL: Audit all Route Handlers in app/api/* to ensure RLS context is set with withAuth wrapper and user_id verification",
+    "HIGH: Sanitize all LLM responses with DOMPurify before storing or rendering",
+    "HIGH: Implement ownership verification on document operations (generate, upload evidence, save)",
+    "MEDIUM: Add error sanitization - never log componentStack or userAgent to external services",
+    "MEDIUM: Implement whitelist for logout redirect URLs",
+    "MEDIUM: Server-side file validation must verify magic bytes match MIME type (already mentioned in CLAUDE.md, ensure implemented)",
+    "LOW: Add client-side warnings if file magic bytes don't match declared MIME type",
+    "Review CLAUDE.md RLS Pattern section - verify all Route Handlers use withRLSContext(userId, ...)"
+  ],
+  "findings": {
+    "hardcodedSecrets": 0,
+    "sqlInjectionRisks": 0,
+    "xssVulnerabilities": 1,
+    "authenticationBypassFlaws": 5,
+    "authorizationFlaws": 2,
+    "informationDisclosure": 1,
+    "insecureDependencies": 0,
+    "totalVulnerabilities": 12
+  },
+  "notes": "Codebase uses Next.js 14 App Router with good server-side patterns (parameterized queries via lib/db.ts, RLS enabled). Client-side auth implementation has systematic issue where tokens are acquired but not transmitted. Server-side validation appears comprehensive (per CLAUDE.md) but must be verified in actual Route Handler implementations. No hardcoded secrets found. Dependencies appear legitimate. Main issues are client-side auth/authorization gaps that could be caught by server-side RLS if properly implemented."
+}

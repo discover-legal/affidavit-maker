@@ -1,0 +1,96 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 108,
+      "description": "Token fetched but not used in authorization headers. Line gets token via getAccessTokenSilently() but never adds it to fetch request headers. Either remove the unused token call or add Authorization header. Inconsistent with backend auth pattern (cookie-based vs token-based).",
+      "cwe": "CWE-639: Authorization Bypass Through User-Controlled Key"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 141,
+      "description": "FormData fetch missing Authorization header and credentials. POST to /api/evidence/upload does not include 'credentials: include' for cookie auth or 'Authorization' header for token auth. If backend expects explicit auth headers, this request will be unauthorized.",
+      "cwe": "CWE-269: Improper Authentication"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/GenerateButton.js",
+      "line": 62,
+      "description": "Token fetched but potentially not added to request headers. getAccessTokenSilently() is called but the token variable appears unused in the subsequent fetch() call to /api/documents/generate. Missing Authorization header.",
+      "cwe": "CWE-639: Authorization Bypass Through User-Controlled Key"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 58,
+      "description": "Token fetched inside try block but usage unclear. Token obtained via getAccessTokenSilently() but not explicitly used in fetch headers. Falls back to no auth if token retrieval fails (silent catch).",
+      "cwe": "CWE-620: Unverified Password Change"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 37,
+      "description": "Error details logged without sanitization. window.logError() receives raw error objects including error.toString() and errorInfo.componentStack which may contain sensitive data (auth tokens in URLs, user IDs, database errors).",
+      "cwe": "CWE-532: Insertion of Sensitive Information into Log File"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 200,
+      "description": "Client-side file type validation insufficient. ALLOWED_TYPES check is only for UI feedback. A malicious user can bypass this and upload any file type. Server must enforce MIME type validation (appears to be done in route handler, but client should not rely solely on client validation).",
+      "cwe": "CWE-434: Unrestricted Upload of File with Dangerous Type"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 48,
+      "description": "LocalStorage used to cache TOS acceptance state. TOS acceptance cached in localStorage for 'current user' but localStorage is vulnerable to XSS and accessible to any script on the domain. Mitigated by backend check, but could be exploited if other XSS vulnerabilities exist.",
+      "cwe": "CWE-922: Insecure Storage of Sensitive Information"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/ChatInterface.js",
+      "line": 1,
+      "description": "'use client' directive at top indicates this is client-side code. Multiple API calls to /api/* routes should verify they're properly authenticated. Relative URLs are good (prevents CSRF), but auth pattern inconsistency creates confusion.",
+      "cwe": "CWE-798: Use of Hard-Coded Credentials"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/PaymentModal.js",
+      "line": 80,
+      "description": "Stripe publishable key exposed via process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. This is by design (Stripe requires public key on client), but ensure this is the actual PUBLIC key, not a secret key. Public key exposure is acceptable.",
+      "cwe": "CWE-798: Use of Hard-Coded Credentials"
+    }
+  ],
+  "riskScore": 38,
+  "riskScoreExplanation": "Score reflects: (3 high × 3) + (4 medium × 2) + (2 low × 1) = 17 points. Baseline server-side controls (RLS, parameterized queries, rate limiting) are strong (+15 baseline). Client-side auth inconsistencies and missing credentials in FormData upload are primary concerns. No hardcoded secrets, SQLi, or XSS vectors found.",
+  "recommendations": [
+    "URGENT: Fix token handling in ChatInterface.js, GenerateButton.js, CountyValidationInput.js - either remove unused token calls OR consistently add Authorization headers to all authenticated API requests. Document auth pattern (cookie vs bearer token) clearly.",
+    "CRITICAL: Add credentials: 'include' to EvidenceUploadModal.js FormData fetch, or add Authorization header if using token-based auth. Same fix needed for any other FormData uploads.",
+    "Audit all fetch() calls that expect authentication - create a helper function to consistently add auth headers (Authorization: Bearer $token) or ensure 'credentials: include' is set for cookie-based auth.",
+    "Add error sanitization to ErrorBoundary.js before sending to logging service - filter out sensitive fields (tokens, user data, query params containing secrets).",
+    "Add server-side MIME type verification to all file upload endpoints (appears to be done in /api/evidence/upload, verify all others have same validation).",
+    "Move TOS acceptance verification from localStorage to sessionStorage only, or remove client-side caching entirely - rely on server-side /api/auth/tos-status check for truth.",
+    "Review all API error responses to ensure sensitive details (database errors, file paths, internal IDs) are not exposed to client.",
+    "Add CSRF token validation to state-changing endpoints (POST/PUT/DELETE) - verify Next.js security headers cover this.",
+    "Verify RLS policies are tested and enforced - audit migrations 010, 012, 013 to confirm user_id constraints work correctly.",
+    "Document auth pattern (Auth0 cookie-based) in code comments - multiple auth attempts suggest developer confusion about session vs token auth."
+  ],
+  "configurationReview": {
+    "databaseSecurity": "GOOD - Uses parameterized queries via lib/db.ts query() helper. RLS enabled via AsyncLocalStorage context. Transactions properly scoped.",
+    "authenticationPattern": "INCONSISTENT - Auth0 uses cookie-based session (@auth0/nextjs-auth0 v3), but client code attempts bearer token auth in some places. Mixed pattern creates security confusion.",
+    "uploadSecurity": "GOOD - Server-side file validation (MIME, size, filename), rate limiting, proper authorization checks in evidence/upload route.",
+    "paymentHandling": "GOOD - Stripe webhook uses raw body for signature verification. Server-side pricing only. Payment intent idempotency implemented.",
+    "corsAndHeaders": "GOOD - Relative API URLs prevent CSRF. CSP/security headers set in next.config.mjs. No CORS headers needed (same-origin).",
+    "secretsManagement": "GOOD - No hardcoded secrets in code. Environment variables properly scoped (NEXT_PUBLIC_* for client, private for server).",
+    "loggingAndMonitoring": "NEEDS_IMPROVEMENT - Error logging lacks sanitization. Sensitive data could leak to logging service."
+  },
+  "priorityFixes": [
+    "1. Fix token handling inconsistency (HIGH - affects auth reliability)",
+    "2. Add auth headers to FormData uploads (HIGH - affects authorization)",
+    "3. Sanitize error logs (MEDIUM - prevents data leaks)",
+    "4. Test RLS policies under concurrent load (MEDIUM - defense-in-depth)"
+  ]
+}

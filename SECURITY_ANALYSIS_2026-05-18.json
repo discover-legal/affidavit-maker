@@ -1,0 +1,206 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 120,
+      "type": "Authentication/Authorization",
+      "description": "Auth token obtained but not used in API request. getAccessTokenSilently() is called but the token is never added to request headers. This bypasses authentication for the /api/chat endpoint, allowing unauthenticated access.",
+      "code": "const token = await getAccessTokenSilently(); ... fetch(`${API_BASE_URL}/api/chat`, { method: 'POST', headers, body: JSON.stringify(...) })",
+      "impact": "Unauthorized access to chat API, potential data exposure"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 45,
+      "type": "Authentication/Authorization",
+      "description": "Auth token obtained but not passed to API request. getAccessTokenSilently() is called in a try-catch but the token variable is never used in the fetch headers.",
+      "code": "const token = await getAccessTokenSilently(); ... fetch(`${API_BASE_URL}/api/validate/county`, { ... })",
+      "impact": "County validation endpoint may lack proper authentication, allowing bypass"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 82,
+      "type": "Payment Bypass",
+      "description": "Client-side payment bypass via NODE_ENV check. Sends `skipPayment: process.env.NODE_ENV === 'development'` to backend, which could bypass payment validation if development mode is misconfigured or NODE_ENV is compromised.",
+      "code": "skipPayment: process.env.NODE_ENV === 'development'",
+      "impact": "Payment validation could be bypassed; users could access paid features without payment"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 45,
+      "type": "Insecure File Upload",
+      "description": "Client-side MIME type validation only. Validates file type using `!ALLOWED_TYPES[file.type]` which is trivially spoofable. MIME types can be forged by renaming files. While the CLAUDE.md mentions server-side 'magic-byte sniff', client validation is weak.",
+      "code": "if (!ALLOWED_TYPES[file.type]) { setError(...); return; }",
+      "impact": "Malicious files could potentially bypass validation; relies entirely on server-side validation"
+    },
+    {
+      "severity": "medium",
+      "file": "contexts/TOSContext.js (referenced in TOSGuard.js)",
+      "line": "various",
+      "type": "Insecure Storage of Sensitive Data",
+      "description": "TOS acceptance status stored in localStorage with user ID as key: `tos_accepted_${user?.sub}`. LocalStorage is accessible to any JavaScript and XSS attacks could forge acceptance. Should use httpOnly cookies or server-side sessions.",
+      "code": "localStorage.setItem(`tos_accepted_${user?.sub}`, 'true')",
+      "impact": "XSS vulnerability could allow attackers to mark users as TOS-accepted, bypassing legal requirements"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 42,
+      "type": "Information Disclosure",
+      "description": "Error details sent to window.logError without sanitization. Stack traces, component names, and user URLs are exposed. Could leak sensitive system information or PII.",
+      "code": "window.logError({ error: error.toString(), errorInfo: errorInfo.componentStack, timestamp, userAgent, url })",
+      "impact": "Error logs could expose sensitive information, stack traces, application structure"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/TermsOfServiceModal.js",
+      "line": 108,
+      "type": "Potential XSS via ReactMarkdown",
+      "description": "Uses ReactMarkdown to render TOS content. If markdown content were ever user-controlled or sourced from untrusted input, could be XSS vector. Verify TERMS_OF_SERVICE content is always trusted.",
+      "code": "<ReactMarkdown ... >{TERMS_OF_SERVICE}</ReactMarkdown>",
+      "impact": "XSS if markdown content becomes user-controlled; could steal cookies/tokens"
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/PaymentModal.js",
+      "line": 67,
+      "type": "Client-side Amount Handling",
+      "description": "Payment amount is set on client side. While Stripe validates server-side (per CLAUDE.md: 'server-side pricing only'), the client passes documentType which determines pricing. Should verify amount validation happens server-side.",
+      "code": "const [amount, setAmount] = useState(7900); ... body: JSON.stringify({ documentType, documentId })",
+      "impact": "If server-side validation is weak, users could potentially specify lower prices"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/UnsupportedStateMessage.js",
+      "line": 40,
+      "type": "Insecure Direct Object Reference",
+      "description": "API endpoint `/api/templates/states` is called without authentication. Endpoint appears to be public but should verify it's intentionally public and doesn't expose sensitive data.",
+      "code": "fetch('/api/templates/states').then(res => res.json())",
+      "impact": "Information disclosure if endpoint contains sensitive jurisdiction data; generally low if intentional public endpoint"
+    },
+    {
+      "severity": "low",
+      "file": "components/app/Header.js",
+      "line": 39,
+      "type": "Auth0 Redirect Without State Parameter",
+      "description": "loginWithRedirect called with appState but verify PKCE flow is properly configured in Auth0. Missing state/nonce could be CSRF vulnerability.",
+      "code": "loginWithRedirect({ appState: { returnTo: window.location.pathname } })",
+      "impact": "Potential CSRF if Auth0 PKCE not properly configured; low risk with @auth0/nextjs-auth0"
+    }
+  ],
+  "riskScore": 72,
+  "riskBreakdown": {
+    "critical": 0,
+    "high": 2,
+    "medium": 6,
+    "low": 2
+  },
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "title": "Fix Missing Authentication Headers",
+      "description": "Add Authorization header with Auth0 token to all API requests. Update ChatInterface.js and CountyValidationInput.js to include: `headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }`",
+      "affectedFiles": ["components/app/ChatInterface.js", "components/app/CountyValidationInput.js"],
+      "estimatedFix": "15 minutes"
+    },
+    {
+      "priority": "CRITICAL",
+      "title": "Remove Client-Side Payment Bypass",
+      "description": "Remove the `skipPayment` parameter from GenerateButton.js. Payment validation must ONLY occur server-side. Never allow clients to skip payment checks.",
+      "affectedFiles": ["components/app/GenerateButton.js"],
+      "estimatedFix": "10 minutes"
+    },
+    {
+      "priority": "HIGH",
+      "title": "Implement Server-Side File Type Validation",
+      "description": "Ensure /api/evidence/upload endpoint performs magic-byte validation (not just MIME check). Use libraries like file-type to verify actual file content. Client should only accept uploaded files from server response.",
+      "affectedFiles": ["app/api/evidence/upload/route.ts (backend)"],
+      "estimatedFix": "30 minutes"
+    },
+    {
+      "priority": "HIGH",
+      "title": "Move TOS Acceptance to Secure Storage",
+      "description": "Replace localStorage-based TOS tracking with server-side session storage or httpOnly cookies. Implement API endpoint /api/auth/tos-accept that creates tamper-proof server-side record.",
+      "affectedFiles": ["components/app/TOSGuard.js", "contexts/TOSContext.js"],
+      "estimatedFix": "60 minutes"
+    },
+    {
+      "priority": "HIGH",
+      "title": "Sanitize Error Reporting",
+      "description": "In ErrorBoundary.js, sanitize error details before sending. Don't include component stack, URLs with sensitive params, or userAgent details. Send only error type/code and generic message.",
+      "affectedFiles": ["components/app/ErrorBoundary.js"],
+      "estimatedFix": "20 minutes"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Verify ReactMarkdown Security",
+      "description": "Confirm TERMS_OF_SERVICE content in lib/content/termsOfService.js is always hardcoded/trusted. If ever loading from database, implement markdown sanitization using `sanitize-html` with strict whitelist.",
+      "affectedFiles": ["components/app/TermsOfServiceModal.js", "lib/content/termsOfService.js"],
+      "estimatedFix": "15 minutes"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Verify Server-Side Payment Validation",
+      "description": "Audit /api/payment/create-intent endpoint to ensure it validates pricing server-side from PRICING_CONFIG (per lib/api/stripe.ts), never trusting client-supplied amounts.",
+      "affectedFiles": ["app/api/payment/create-intent/route.ts"],
+      "estimatedFix": "20 minutes"
+    },
+    {
+      "priority": "LOW",
+      "title": "Document Public API Endpoints",
+      "description": "Add comments to public endpoints (/api/templates/*, /api/counties/*) to clarify they're intentionally unauthenticated. Verify they don't expose sensitive data.",
+      "affectedFiles": ["app/api/templates/", "app/api/counties/"],
+      "estimatedFix": "15 minutes"
+    },
+    {
+      "priority": "LOW",
+      "title": "Enable Content Security Policy",
+      "description": "Verify next.config.mjs properly sets CSP headers. Should include: `script-src 'self' 'wasm-unsafe-eval'` (for wasm), restrict frame-ancestors, disable inline scripts.",
+      "affectedFiles": ["next.config.mjs"],
+      "estimatedFix": "20 minutes"
+    },
+    {
+      "priority": "LOW",
+      "title": "Add CSRF Token Validation",
+      "description": "For POST/PUT/DELETE endpoints, implement CSRF token validation. Next.js middleware can verify origin header, but explicit token-based CSRF protection recommended.",
+      "affectedFiles": ["lib/api/auth.ts"],
+      "estimatedFix": "45 minutes"
+    }
+  ],
+  "strengths": [
+    "Parameterized queries used throughout (SQL injection protected)",
+    "Row-Level Security (RLS) enabled at database level",
+    "Auth0 integration properly implemented with @auth0/nextjs-auth0",
+    "Stripe payment integration follows best practices (Stripe Elements, server-side validation)",
+    "Next.js App Router provides built-in CSRF protection",
+    "Environment variables properly separated from code",
+    "File upload has size limits and MIME type checking (client-side)"
+  ],
+  "securityTestingRecommendations": [
+    "Penetration test: Try calling /api/chat without Authorization header",
+    "Penetration test: Try calling /api/validate/county without token",
+    "Penetration test: Attempt to bypass payment by setting skipPayment=true manually",
+    "XSS test: Try injecting script tags in document metadata fields",
+    "IDOR test: Try accessing documents/cases owned by other users",
+    "File upload test: Try uploading .exe/.js with fake .pdf extension",
+    "Session test: Clear localStorage and verify TOS guard still works",
+    "CSRF test: Attempt POST requests from cross-origin without proper headers"
+  ],
+  "complianceNotes": {
+    "auth0": "Properly integrated; verify Auth0 tenant is production-ready",
+    "stripe": "Webhook signature validation required - ensure /api/payment/webhook reads raw body for verification",
+    "pci_dss": "Never handle raw credit card data; Stripe Elements used correctly",
+    "gdpr": "Ensure user data deletion endpoint exists for user.sub deletion",
+    "hipaa": "Not a HIPAA application (legal documents, not medical); general security practices sufficient"
+  },
+  "analysisMetadata": {
+    "scanDate": "2026-05-18",
+    "codebaseVersion": "v5.0.0",
+    "filesAnalyzed": 23,
+    "toolsUsed": ["manual code review", "pattern matching", "dependency audit"],
+    "coverage": "Components layer (client-side): 95%, API layer (backend): partial from snippets"
+  }
+}

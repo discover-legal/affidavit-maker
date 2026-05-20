@@ -1,0 +1,217 @@
+{
+  "auditDate": "2026-05-14",
+  "auditScope": "Client-side React components + TypeScript API handlers",
+  "riskScore": 42,
+  "overallRating": "MEDIUM",
+  "summary": "Moderate security posture. Backend properly implements session auth via Auth0 with RLS enforcement. Client components have structural issues with auth token handling in API requests. No critical hardcoded secrets detected.",
+  "vulnerabilities": [
+    {
+      "id": "AUTH-001",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/ChatInterface.js",
+      "lineRange": "85-110",
+      "title": "Auth token retrieved but not sent in API request",
+      "description": "getAccessTokenSilently() is called but the token is never added to request headers. The fetch call includes 'Content-Type': 'application/json' but missing Authorization header. This breaks per-request auth verification.",
+      "codeSnippet": "const token = await getAccessTokenSilently(); // Token retrieved\nconst response = await fetch(`${API_BASE_URL}/api/chat`, {\n  method: 'POST',\n  headers, // Token never added here\n  body: JSON.stringify({...})\n});",
+      "impact": "Server-side auth validation may fail or be skipped. API calls could be intercepted without authentication verification.",
+      "recommendation": "Add token to headers: headers.Authorization = `Bearer ${token}`",
+      "affectedEndpoints": ["/api/chat"]
+    },
+    {
+      "id": "AUTH-002",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/CountyValidationInput.js",
+      "lineRange": "65-85",
+      "title": "Auth token not sent in county validation request",
+      "description": "Token is retrieved with getAccessTokenSilently() but not included in the fetch request headers.",
+      "codeSnippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE_URL}/api/validate/county`, {\n  method: 'POST',\n  headers, // Missing Authorization header with token\n  body: JSON.stringify({ county, state })\n});",
+      "impact": "Unauthenticated API call to validation endpoint.",
+      "recommendation": "Include Authorization header with Bearer token",
+      "affectedEndpoints": ["/api/validate/county"]
+    },
+    {
+      "id": "AUTH-003",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/GenerateButton.js",
+      "lineRange": "68-75",
+      "title": "Auth token retrieved but not sent to /api/documents/generate",
+      "description": "Token is retrieved with getAccessTokenSilently() but not passed to the API endpoint that handles payment and document generation.",
+      "codeSnippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE_URL}/api/documents/generate?format=${format}`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' }, // Missing Authorization\n  body: JSON.stringify({...})\n});",
+      "impact": "Payment authorization and user identity verification may fail. Critical for payment processing security.",
+      "recommendation": "Add Authorization header before fetch",
+      "affectedEndpoints": ["/api/documents/generate"]
+    },
+    {
+      "id": "AUTH-004",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/EvidenceUploadModal.js",
+      "lineRange": "155-175",
+      "title": "Auth token not sent in evidence upload request",
+      "description": "Token is obtained via getAccessTokenSilently() but FormData request doesn't include Authorization header.",
+      "codeSnippet": "const token = await getAccessTokenSilently();\nconst formData = new FormData();\nconst response = await fetch('/api/evidence/upload', {\n  method: 'POST',\n  body: formData // No Authorization header\n});",
+      "impact": "Evidence uploads could be performed without proper user authentication verification.",
+      "recommendation": "Add Authorization header to fetch: headers.Authorization = `Bearer ${token}`",
+      "affectedEndpoints": ["/api/evidence/upload"]
+    },
+    {
+      "id": "AUTH-005",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/PaymentModal.js",
+      "lineRange": "120-135",
+      "title": "Auth token not sent to /api/payment/create-intent",
+      "description": "Token is retrieved but not sent with payment intent creation request. This is critical for payment processing security.",
+      "codeSnippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' }, // Missing Authorization\n  body: JSON.stringify({...})\n});",
+      "impact": "Payment intent creation could be spoofed. Attacker could create intents for other users or manipulate amounts.",
+      "recommendation": "Include Bearer token in Authorization header",
+      "affectedEndpoints": ["/api/payment/create-intent"]
+    },
+    {
+      "id": "VAL-001",
+      "severity": "medium",
+      "category": "Input Validation",
+      "file": "components/app/EvidenceUploadModal.js",
+      "lineRange": "75-95",
+      "title": "Client-side file type validation can be bypassed",
+      "description": "MIME type is validated only on the client. An attacker can modify the MIME type to bypass the check and upload malicious files.",
+      "codeSnippet": "const ALLOWED_TYPES = {\n  'application/pdf': {...},\n  'image/jpeg': {...},\n  'image/png': {...}\n};\nif (!ALLOWED_TYPES[file.type]) { // Easy to bypass with modified MIME type\n  setError('Invalid file type');\n  return;\n}",
+      "impact": "Malicious files (executables, scripts) could be uploaded and potentially executed if server doesn't validate.",
+      "recommendation": "Implement server-side magic-byte verification (first 4-8 bytes). CLAUDE.md mentions 'magic-byte sniff' so ensure it's implemented on server.",
+      "affectedEndpoints": ["/api/evidence/upload"]
+    },
+    {
+      "id": "XSS-001",
+      "severity": "low",
+      "category": "Cross-Site Scripting (XSS)",
+      "file": "components/app/ErrorBoundary.js",
+      "lineRange": "95-105",
+      "title": "Error messages rendered without sanitization (dev only)",
+      "description": "Error stack traces and error info are rendered directly to DOM in development mode. If error contains user-controlled content, could lead to XSS.",
+      "codeSnippet": "<pre style={styles.errorDetails}>\n  {this.state.error && this.state.error.toString()}\n  {this.state.errorInfo && this.state.errorInfo.componentStack}\n</pre>",
+      "impact": "Low - only in development mode. But if error object contains unsanitized user data, could lead to XSS.",
+      "recommendation": "Sanitize error messages or ensure only safe error data is displayed. Consider using JSON.stringify with safe replacer.",
+      "affectedEndpoints": []
+    },
+    {
+      "id": "VUL-001",
+      "severity": "low",
+      "category": "Information Disclosure",
+      "file": "components/app/ErrorBoundary.js",
+      "lineRange": "40-50",
+      "title": "Detailed error information sent to monitoring service",
+      "description": "Error details including stack traces are logged to external monitoring service (window.logError). No filtering of sensitive data visible.",
+      "codeSnippet": "if (window.logError) {\n  window.logError({\n    error: error.toString(),\n    errorInfo: errorInfo.componentStack,\n    timestamp: new Date().toISOString(),\n    userAgent: navigator.userAgent,\n    url: window.location.href\n  });\n}",
+      "impact": "Stack traces and URLs could leak sensitive application internals to monitoring service.",
+      "recommendation": "Filter sensitive data before sending to external services. Implement whitelist of safe fields.",
+      "affectedEndpoints": []
+    },
+    {
+      "id": "AUTH-006",
+      "severity": "medium",
+      "category": "Authorization",
+      "file": "components/app/TOSGuard.js",
+      "lineRange": "30-45",
+      "title": "Potential race condition in redirect guard",
+      "description": "Uses a Ref to prevent duplicate loginWithRedirect calls, but timing between state updates and redirect completion could cause race conditions.",
+      "codeSnippet": "if (!isAuthenticated) {\n  if (isRedirectingRef.current) {\n    console.log('[TOSGuard] Already redirecting...');\n    return;\n  }\n  isRedirectingRef.current = true;\n  loginWithRedirect({...});\n  return;\n}",
+      "impact": "In rare cases, multiple redirects could be initiated, causing auth flow issues.",
+      "recommendation": "Use a state variable instead of Ref, or add a timeout to reset the guard.",
+      "affectedEndpoints": []
+    },
+    {
+      "id": "VAL-002",
+      "severity": "medium",
+      "category": "Business Logic",
+      "file": "components/app/GenerateButton.js",
+      "lineRange": "38-40",
+      "title": "Client-side skipPayment flag in development",
+      "description": "skipPayment: process.env.NODE_ENV === 'development' is sent to server. If server trusts this, attackers could bypass payment.",
+      "codeSnippet": "body: JSON.stringify({\n  affidavitData,\n  documentId,\n  skipPayment: process.env.NODE_ENV === 'development' // Attacker can set NODE_ENV\n})",
+      "impact": "If server uses this flag to skip payment validation, serious payment processing vulnerability.",
+      "recommendation": "Never trust client-provided payment status. Server must independently verify payment state from Stripe.",
+      "affectedEndpoints": ["/api/documents/generate"]
+    }
+  ],
+  "strengths": [
+    {
+      "title": "Backend Session Authentication",
+      "description": "Proper implementation of Auth0 integration with @auth0/nextjs-auth0. Sessions use secure SameSite cookies.",
+      "file": "lib/api/auth.ts"
+    },
+    {
+      "title": "Row-Level Security (RLS)",
+      "description": "Database RLS policies enforce data isolation at the database layer (migrations 010/012/013). withRLSContext properly sets per-request session variables.",
+      "file": "lib/db.ts"
+    },
+    {
+      "title": "CSRF Protection",
+      "description": "Middleware implements Origin checking for state-changing requests and exempts webhooks. SameSite cookies provide defense-in-depth.",
+      "file": "middleware.ts"
+    },
+    {
+      "title": "Parameterized SQL Queries",
+      "description": "CLAUDE.md enforces use of lib/db.ts query() helper which uses parameterized queries. No raw SQL concatenation visible.",
+      "file": "lib/db.ts"
+    },
+    {
+      "title": "Server-Side Validation",
+      "description": "CLAUDE.md states 'Server-side pricing only'. Zod validation on Route Handlers ensures untrusted input is validated server-side.",
+      "file": "lib/api/*"
+    },
+    {
+      "title": "No Hardcoded Secrets",
+      "description": "No API keys, passwords, or secrets found in client code. Environment variables properly used.",
+      "file": "All files"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "action": "Fix Auth Token Passing",
+      "details": "Add auth tokens to all API requests. Create a wrapper function for fetch that automatically includes Authorization headers. Affects ChatInterface.js, CountyValidationInput.js, GenerateButton.js, EvidenceUploadModal.js, PaymentModal.js.",
+      "estimatedEffort": "2-3 hours"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Verify Server-Side Payment Validation",
+      "details": "Ensure /api/payment/create-intent and /api/documents/generate validate user identity and payment status from Stripe, not from client-supplied data. Never trust skipPayment flag.",
+      "estimatedEffort": "1-2 hours"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Implement Server-Side File Validation",
+      "details": "Verify magic bytes (first 4-8 bytes) of uploaded files match expected format. CLAUDE.md mentions 'magic-byte sniff' — confirm implementation exists in /api/evidence/upload.",
+      "estimatedEffort": "1 hour"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Add Error Data Filtering",
+      "details": "Filter sensitive information from ErrorBoundary and monitoring service. Whitelist safe fields only. Strip stack traces from external logging.",
+      "estimatedEffort": "1 hour"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Audit Monitoring Service Integration",
+      "details": "Review what data is being sent to window.logError. Ensure no PII, auth tokens, or sensitive data is leaked.",
+      "estimatedEffort": "1 hour"
+    },
+    {
+      "priority": "LOW",
+      "action": "Refactor TOSGuard Redirect Logic",
+      "details": "Replace Ref-based guard with state-based approach or add timeout reset to prevent potential race conditions.",
+      "estimatedEffort": "30 minutes"
+    }
+  ],
+  "complianceNotes": {
+    "csrf": "PASS - Middleware validates Origin for state-changing requests",
+    "authentication": "PARTIAL - Backend correct, but client-side token passing is broken",
+    "authorization": "PASS - RLS enforces data access control at database layer",
+    "inputValidation": "PARTIAL - Client-side validation present, server-side validation assumed (need to verify)",
+    "secretsManagement": "PASS - No hardcoded secrets found",
+    "fileUpload": "PARTIAL - Client-side MIME check only. Server-side magic-byte check assumed (need to verify)"
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "audit_date": "2026-05-14",
+  "codebase": "affidavit-maker",
+  "vulnerabilities": [
+    {
+      "severity": "high",
+      "file": "components/app/TOSGuard.js",
+      "line": 155,
+      "description": "Authorization bypass via client-side TOS acceptance caching. User can manipulate localStorage to bypass TOS guard. Code checks `localStorage.getItem('tos_accepted_' + user.sub)` without server verification.",
+      "code_snippet": "const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`); if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') { markTosVerified(); setIsCheckingTos(false); return; }",
+      "impact": "User can bypass Terms of Service acceptance by manually setting localStorage key in browser DevTools. Completely circumvents TOS requirement.",
+      "recommendation": "1) Move TOS verification entirely to server. 2) Store acceptance state in database with timestamp. 3) Verify TOS acceptance on every protected operation, not just on page load. 4) Never rely on client-side localStorage for authorization decisions."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/GenerateButton.js",
+      "line": 67,
+      "description": "Server-side payment validation bypassed via client-side NODE_ENV check. Attacker can set skipPayment=true by building with NODE_ENV='development'.",
+      "code_snippet": "skipPayment: process.env.NODE_ENV === 'development'",
+      "impact": "User can generate paid documents without payment by manipulating build environment or client-side code. Direct revenue loss.",
+      "recommendation": "1) Remove CLIENT-SIDE skipPayment flag entirely. 2) Implement server-side payment verification that checks payment_intent status in database. 3) Validate on every generate request: `SELECT status FROM payments WHERE document_id = $1`. 4) Return 402 Payment Required if not paid. 5) Never trust client claims about payment status."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 45,
+      "description": "File type validation only checks file.type (MIME type header), which can be spoofed by client. No server-side validation of actual file content.",
+      "code_snippet": "if (!ALLOWED_TYPES[file.type]) { setError('Invalid file type...'); return; }",
+      "impact": "Attacker can upload malicious files (executables, scripts) by renaming them with .pdf/.jpg/.png extensions. Server receives unvalidated binary data.",
+      "recommendation": "1) Remove client-side file type checking (it's security theater). 2) Implement server-side magic byte validation: check file signatures (PDF: %PDF, JPEG: FFD8FF, PNG: 89504E47). 3) Use a library like `file-type` (npm) to validate. 4) Scan uploaded files with antivirus. 5) Store files outside webroot. 6) Set Content-Disposition: attachment on file downloads."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 122,
+      "description": "Auth token retrieved but not included in API request headers. Token is fetched with getAccessTokenSilently() but never attached to fetch request.",
+      "code_snippet": "const token = await getAccessTokenSilently(); const formData = new FormData(); ... const response = await fetch('/api/evidence/upload', { method: 'POST', body: formData, });",
+      "impact": "Evidence upload endpoint receives unauthenticated request despite token being available. If server relies on Authorization header for user_id, file could be associated with wrong user.",
+      "recommendation": "Add Authorization header to fetch request: `headers: { 'Authorization': 'Bearer ' + token }`. Or set it on FormData if backend expects it there."
+    },
+    {
+      "severity": "high",
+      "file": "components/app/ChatInterface.js",
+      "line": 107,
+      "description": "Auth token retrieved but not used in /api/chat request. Same issue as EvidenceUploadModal.",
+      "code_snippet": "if (isAuthenticated) { const token = await getAccessTokenSilently(); } const response = await fetch(`${API_BASE_URL}/api/chat`, { method: 'POST', headers, body: JSON.stringify({...",
+      "impact": "Chat endpoint may not properly identify user if it relies on Authorization header. Could lead to data leakage between users.",
+      "recommendation": "Include token in headers: `headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }`"
+    },
+    {
+      "severity": "high",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 75,
+      "description": "Auth token retrieved in try-catch that silently fails, but token is never used in validation request.",
+      "code_snippet": "if (isAuthenticated) { try { const token = await getAccessTokenSilently(); } catch (authError) { } } const response = await fetch(`${API_BASE}/api/validate/county`, { method: 'POST', headers, body: JSON.stringify({ county: county.trim(), state: currentState }) });",
+      "impact": "If county validation endpoint checks user_id for rate limiting or personalization, missing auth header causes bypass.",
+      "recommendation": "Same as ChatInterface - include Authorization header if endpoint is supposed to be authenticated."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 36,
+      "description": "Full error details (including stack trace and component stack) sent to window.logError callback without sanitization. Could expose sensitive information.",
+      "code_snippet": "if (window.logError) { window.logError({ error: error.toString(), errorInfo: errorInfo.componentStack, timestamp: new Date().toISOString(), userAgent: navigator.userAgent, url: window.location.href }); }",
+      "impact": "If logError sends to public endpoint without auth, error messages containing user data, API keys, or file paths are exposed. Stack traces can reveal application structure.",
+      "recommendation": "1) Ensure logError endpoint is authenticated and validates origin. 2) Sanitize error messages before logging - strip sensitive paths, user IDs, API responses. 3) Never log full errorInfo.componentStack to public endpoints. 4) Log only error type and user action that caused it."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 109,
+      "description": "Development error details exposed in production if NODE_ENV check is compromised. Error boundary shows full stack trace in a <pre> tag.",
+      "code_snippet": "if (process.env.NODE_ENV === 'development' && ( <details>... <pre>{this.state.error && this.state.error.toString()}{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>",
+      "impact": "If build process doesn't strip NODE_ENV check, error details visible in UI. Stack traces help attackers map application structure.",
+      "recommendation": "Use boolean constant set at build time, not runtime check. Or use Sentry/error tracking service with proper filtering instead of showing in UI."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/PaymentModal.js",
+      "line": 75,
+      "description": "Stripe publishable key loaded without pinning. If Stripe CDN is compromised or DNS is hijacked, malicious Stripe.js could be loaded.",
+      "code_snippet": "const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);",
+      "impact": "MitM attacker could inject malicious Stripe.js to intercept payment data before encryption.",
+      "recommendation": "1) Use Subresource Integrity (SRI) hash on Stripe script tag if using <script>. 2) Pin Stripe CDN domain in CSP. 3) Monitor Stripe domain in your CSP violations log. 4) Use latest Stripe library version."
+    },
+    {
+      "severity": "medium",
+      "file": "components/app/GenerateButton.js",
+      "line": 40,
+      "description": "Generated filename uses user input (affidavitData.affiantName) without sanitization. Could allow directory traversal or special character injection.",
+      "code_snippet": "const nameSlug = (affidavitData.affiantName || affidavitData.petitionerName || 'document').replace(/[^a-zA-Z0-9]/g, '_');",
+      "impact": "While the sanitization regex removes most dangerous characters, Unicode characters or unusual encodings could bypass it. Low risk but filename should be further validated.",
+      "recommendation": "1) Whitelist only: `[a-zA-Z0-9_-]`. 2) Limit length to 50 chars. 3) Prepend document ID: `${documentId}_${nameSlug}.pdf` to prevent collisions. 4) Don't trust user input for filenames."
+    },
+    {
+      "severity": "low",
+      "file": "components/app/UnsupportedStateMessage.js",
+      "line": 22,
+      "description": "Fetches supported states from /api/templates/states without error handling if response structure is unexpected.",
+      "code_snippet": "if (Array.isArray(data)) { const filtered = country === 'CA' ? data.filter(...) }",
+      "impact": "If API returns unexpected structure, filtered array could be undefined. Not a direct security issue but could cause UI breakage.",
+      "recommendation": "Add validation: `if (!Array.isArray(data)) { console.error(...); return; }`"
+    }
+  ],
+  "riskScore": 78,
+  "riskLevel": "HIGH",
+  "summary": {
+    "critical_count": 4,
+    "high_count": 3,
+    "medium_count": 2,
+    "low_count": 1
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "category": "Authorization",
+      "description": "Move TOS verification to server-side only. Remove localStorage-based caching of TOS acceptance. Verify on every protected operation."
+    },
+    {
+      "priority": 2,
+      "category": "Payment Security",
+      "description": "Remove all client-side payment verification. Implement server-side validation: check payment_intent status in database before allowing document generation."
+    },
+    {
+      "priority": 3,
+      "category": "File Upload",
+      "description": "Implement server-side file validation using magic bytes. Scan uploaded files with antivirus. Store outside webroot."
+    },
+    {
+      "priority": 4,
+      "category": "Authentication",
+      "description": "Audit all API requests (ChatInterface, CountyValidationInput, EvidenceUploadModal) - ensure Authorization header is included on all authenticated endpoints."
+    },
+    {
+      "priority": 5,
+      "category": "Error Handling",
+      "description": "Sanitize error messages before sending to logging endpoints. Never expose stack traces to clients. Use proper error tracking service (Sentry)."
+    },
+    {
+      "priority": 6,
+      "category": "Supply Chain",
+      "description": "Pin external dependencies (Stripe.js) using Subresource Integrity (SRI). Monitor CDN in CSP."
+    },
+    {
+      "priority": 7,
+      "category": "Code Review",
+      "description": "Audit all Route Handlers in app/api/* to verify they properly validate:\n- User ownership (check user_id on every protected endpoint)\n- Payment status (check before generating paid documents)\n- TOS acceptance (query database, not client-side cache)\n- RLS context (withRLSContext must be called)"
+    }
+  ],
+  "dependencies_to_review": [
+    "next.js 14",
+    "@auth0/nextjs-auth0 v3",
+    "@stripe/stripe-js",
+    "@stripe/react-stripe-js",
+    "lodash (used in AffidavitForm)",
+    "react-markdown (used in TermsOfServiceModal)"
+  ],
+  "testing_recommendations": [
+    "Test TOS bypass: Open DevTools, set localStorage.setItem('tos_accepted_<userId>', 'true'), reload - should not show TOS modal",
+    "Test payment bypass: Change NODE_ENV to development in build, attempt document generation without paying",
+    "Test file upload: Upload .exe renamed as .pdf - check if server validates magic bytes",
+    "Test auth: Intercept /api/chat request, verify Authorization header is present",
+    "Test error logging: Trigger error with sensitive data, check if leaked to logError endpoint"
+  ]
+}

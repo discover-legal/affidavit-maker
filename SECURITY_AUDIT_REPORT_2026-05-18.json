@@ -1,0 +1,245 @@
+{
+  "audit_date": "2026-05-18",
+  "codebase": "affidavit-maker",
+  "scope": "Client-side React components + API patterns",
+  "vulnerabilities": [
+    {
+      "id": "AUTH-001",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/ChatInterface.js",
+      "line": 145,
+      "description": "Authentication token fetched but not transmitted to API. Token is retrieved via getAccessTokenSilently() but never added to request headers, defeating auth mechanism",
+      "code_snippet": "const token = await getAccessTokenSilently();\n// ... token never used in fetch headers",
+      "impact": "API endpoints may not be authenticating requests, allowing unauthorized access if backend relies on header-based auth",
+      "recommendation": "Add Authorization header: headers['Authorization'] = `Bearer ${token}`; OR verify backend uses cookie-based session validation"
+    },
+    {
+      "id": "AUTH-002",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/CountyValidationInput.js",
+      "line": 62,
+      "description": "Authentication token fetched but not transmitted. Same pattern as AUTH-001 - token ignored",
+      "code_snippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE}/api/validate/county`, {",
+      "impact": "County validation endpoint called without auth credentials despite fetching token",
+      "recommendation": "Use useAuthenticatedApi() helper from lib/services/authService.ts which properly handles token transmission"
+    },
+    {
+      "id": "AUTH-003",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/PaymentModal.js",
+      "line": 120,
+      "description": "Payment intent creation calls API without transmitting auth token",
+      "code_snippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE_URL}/api/payment/create-intent`, {",
+      "impact": "Payment endpoints could be accessed without authentication, potential for payment fraud or unauthorized access",
+      "recommendation": "Include token in Authorization header before payment processing"
+    },
+    {
+      "id": "AUTH-004",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/GenerateButton.js",
+      "line": 85,
+      "description": "Document generation API called without transmitting auth token despite fetching it",
+      "code_snippet": "const token = await getAccessTokenSilently();\nconst response = await fetch(`${API_BASE_URL}/api/documents/generate?format=${format}`, {",
+      "impact": "PDF/document generation endpoint accessible without auth, could allow unauthorized document creation",
+      "recommendation": "Add Authorization header with token before fetch"
+    },
+    {
+      "id": "AUTH-005",
+      "severity": "high",
+      "category": "Authentication/Authorization",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 145,
+      "description": "File upload endpoint called without Authorization header despite fetching token. FormData is sent without auth credentials",
+      "code_snippet": "const token = await getAccessTokenSilently();\nconst formData = new FormData();\nformData.append('evidence', selectedFile);\nconst response = await fetch('/api/evidence/upload', {",
+      "impact": "Evidence upload endpoint may not authenticate user, allowing unauthorized file uploads",
+      "recommendation": "Include token in query parameter or Authorization header for multipart/form-data requests"
+    },
+    {
+      "id": "VULN-006",
+      "severity": "high",
+      "category": "File Upload Validation",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 82,
+      "description": "File type validation relies only on client-side MIME type checking. File.type property can be spoofed",
+      "code_snippet": "const ALLOWED_TYPES = { 'application/pdf': {...}, 'image/jpeg': {...}, 'image/png': {...} };\nif (!ALLOWED_TYPES[file.type]) { setError(...); return; }",
+      "impact": "Attacker can bypass client validation by spoofing MIME type, uploading malicious files (executables, scripts)",
+      "recommendation": "Implement server-side magic byte validation. CLAUDE.md mentions this exists, but ensure it's enforced on all file uploads"
+    },
+    {
+      "id": "INJECT-007",
+      "severity": "medium",
+      "category": "Prompt Injection",
+      "file": "components/app/ChatInterface.js",
+      "line": 110,
+      "description": "User-provided facts and names interpolated directly into AI prompt without sanitization",
+      "code_snippet": "const factList = facts.map(...).join('\\n- ');\nconst nameInstruction = affiantName ? ` IMPORTANT: Address the person directly using \"you\"...` : '';\nconst response = await fetch(`${API_BASE_URL}/api/chat`, {\n  body: JSON.stringify({\n    message: `...${factList}${nameInstruction}`",
+      "impact": "Prompt injection attack: user can craft facts/names to manipulate AI behavior, bypass instructions, extract system prompts",
+      "recommendation": "Sanitize user input before including in prompts. Use structured prompting with separated user input fields"
+    },
+    {
+      "id": "INPUT-008",
+      "severity": "medium",
+      "category": "Input Validation",
+      "file": "components/app/DocumentMetadata.js",
+      "line": 68,
+      "description": "User input (names, document title) assigned directly to state without client-side validation before sending to API",
+      "code_snippet": "const handleNameChange = (field, value) => {\n  const updates = { [field]: value };\n  updateDocumentData(updates);",
+      "impact": "While CLAUDE.md indicates server-side Zod validation exists, client should validate length, special characters early",
+      "recommendation": "Add client-side validation: max length, character whitelist, required field checks"
+    },
+    {
+      "id": "CREDS-009",
+      "severity": "medium",
+      "category": "Sensitive Data in Logs",
+      "file": "components/app/EvidenceUploadModal.js",
+      "line": 125,
+      "description": "File upload logging includes documentId and evidence details without access control verification",
+      "code_snippet": "console.log('🔼 Upload initiated:', {\n  hasFile: !!selectedFile,\n  hasEvidence: !!evidence,\n  hasDocId: !!documentId,\n  evidenceId: evidence?.id",
+      "impact": "Browser console logs may be captured by malicious scripts or visible to other users on shared devices",
+      "recommendation": "Remove sensitive data from logs, or only log in development mode"
+    },
+    {
+      "id": "XSS-010",
+      "severity": "low",
+      "category": "XSS - Error Disclosure",
+      "file": "components/app/ErrorBoundary.js",
+      "line": 108,
+      "description": "Error details displayed in DOM (development only). While React escapes content, best practice is to avoid raw error output",
+      "code_snippet": "{process.env.NODE_ENV === 'development' && (\n  <pre>{this.state.error && this.state.error.toString()}\n       {this.state.errorInfo && this.state.errorInfo.componentStack}</pre>\n)}",
+      "impact": "Low risk due to development-only guard and React escaping, but error stacks could leak implementation details",
+      "recommendation": "Limit error details to non-sensitive information; implement error tracking service (Sentry) instead"
+    },
+    {
+      "id": "CRYPTO-011",
+      "severity": "medium",
+      "category": "Client-side Secret Storage",
+      "file": "components/app/TOSGuard.js",
+      "line": 60,
+      "description": "TOS acceptance flag stored in localStorage without encryption. While authenticated, key is predictable (tos_accepted_${user.sub})",
+      "code_snippet": "localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');\nconst tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);",
+      "impact": "User sub is visible; localStorage is domain-accessible by any script on domain; attacker could set flag to bypass TOS",
+      "recommendation": "Use sessionStorage instead (cleared on logout), rely on server-side TOS verification as source of truth"
+    },
+    {
+      "id": "RACE-012",
+      "severity": "low",
+      "category": "Race Condition",
+      "file": "components/app/EditorView.js",
+      "line": 180,
+      "description": "Multiple concurrent save operations possible if user rapidly clicks save button or auto-save triggers",
+      "code_snippet": "const [isSaving, setIsSaving] = useState(false);\n// In handleSave, if isSaving is false, can start new save while previous completes",
+      "impact": "Low risk due to idempotent nature of save operations, but could cause inconsistent UI state",
+      "recommendation": "Ensure save handler properly guards against concurrent calls using isSaving state flag"
+    },
+    {
+      "id": "DEPS-013",
+      "severity": "low",
+      "category": "Dependency Risk",
+      "file": "package.json (inferred)",
+      "line": 0,
+      "description": "AffidavitForm.js imports from 'lodash' - large library, consider tree-shaking",
+      "code_snippet": "import { debounce } from 'lodash';",
+      "impact": "Entire lodash library bundled even if only debounce used. Low security risk but bloats bundle",
+      "recommendation": "Use lodash.debounce or implement lightweight debounce: const debounce = (fn, delay) => { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); }; }"
+    },
+    {
+      "id": "PATTERN-014",
+      "severity": "medium",
+      "category": "Security Pattern Inconsistency",
+      "file": "components/app/UserDashboard.js vs other components",
+      "line": 0,
+      "description": "UserDashboard.js correctly uses useAuthenticatedApi() helper, but other components fetch tokens manually and don't use them",
+      "code_snippet": "// Good (UserDashboard):\nconst { makeAuthenticatedRequest } = useAuthenticatedApi();\n\n// Bad (ChatInterface, CountyValidationInput, etc):\nconst token = await getAccessTokenSilently();",
+      "impact": "Inconsistent auth patterns suggest copy-paste errors or misunderstanding of auth model",
+      "recommendation": "Audit all API calls. Replace manual token patterns with useAuthenticatedApi() helper consistently"
+    }
+  ],
+  "risk_assessment": {
+    "critical_findings": 5,
+    "high_findings": 9,
+    "medium_findings": 6,
+    "low_findings": 2,
+    "overall_risk_score": 68,
+    "risk_level": "HIGH"
+  },
+  "summary": {
+    "strengths": [
+      "Server-side parameterized SQL queries (lib/db.ts)",
+      "Input validation with Zod on Route Handlers",
+      "RLS (Row-Level Security) enabled in database",
+      "Cookie-based session management via @auth0/nextjs-auth0",
+      "Proper React escaping prevents DOM-based XSS",
+      "Development-only error disclosure",
+      "No hardcoded API secrets in client code",
+      "Stripe webhook signature verification uses raw body"
+    ],
+    "critical_issues": [
+      "Multiple API endpoints called without Auth header despite fetching token (5 instances) - suggests either missing security or auth tokens improperly configured",
+      "Client-side file type validation can be easily bypassed - no magic byte checking on client",
+      "Prompt injection risk via unsanitized user input in AI prompts",
+      "Inconsistent authentication patterns across components"
+    ],
+    "root_cause_analysis": "The codebase appears to rely on cookie-based auth (per CLAUDE.md: '@auth0/nextjs-auth0 v3, cookie session'). However, fetching tokens and not using them suggests either: (1) developer confusion about the auth model, (2) incomplete refactoring from bearer token to cookie-based auth, or (3) cargo-cult code copying. The useAuthenticatedApi() helper exists but isn't used consistently."
+  },
+  "recommendations": [
+    {
+      "priority": "P0 - CRITICAL",
+      "action": "Audit and fix all API authentication calls. Either: (a) add Authorization headers to all token-fetching components, OR (b) remove all getAccessTokenSilently() calls if relying on cookies. Verify with backend engineer which auth model is intended.",
+      "affected_components": [
+        "ChatInterface.js",
+        "CountyValidationInput.js",
+        "PaymentModal.js",
+        "GenerateButton.js",
+        "EvidenceUploadModal.js"
+      ]
+    },
+    {
+      "priority": "P0 - CRITICAL",
+      "action": "Verify server-side file upload validation with magic byte checking. Document that client-side MIME validation can be spoofed and must never be sole validation method.",
+      "files": ["services/evidenceStorage.js", "app/api/evidence/upload/route.ts"]
+    },
+    {
+      "priority": "P1 - HIGH",
+      "action": "Replace all manual token handling with consistent useAuthenticatedApi() helper. Enforce pattern via ESLint rule.",
+      "implementation": "Create ESLint rule to catch 'getAccessTokenSilently' outside of proper auth context"
+    },
+    {
+      "priority": "P1 - HIGH",
+      "action": "Implement prompt injection protection. Sanitize user inputs before including in AI prompts. Use structured fields instead of interpolation.",
+      "files": ["components/app/ChatInterface.js", "services/affidavitService.js"]
+    },
+    {
+      "priority": "P1 - HIGH",
+      "action": "Remove or redact sensitive data from console.log statements. Implement structured logging via error tracking service.",
+      "files": ["components/app/EvidenceUploadModal.js", "components/app/ChatInterface.js"]
+    },
+    {
+      "priority": "P2 - MEDIUM",
+      "action": "Add client-side input validation for all user inputs with max lengths, character restrictions, required field checks.",
+      "files": ["components/app/DocumentMetadata.js", "components/app/AffidavitForm.js"]
+    },
+    {
+      "priority": "P2 - MEDIUM",
+      "action": "Use sessionStorage instead of localStorage for TOS flag; rely on server-side verification as source of truth.",
+      "files": ["components/app/TOSGuard.js"]
+    },
+    {
+      "priority": "P3 - LOW",
+      "action": "Replace lodash.debounce with lightweight custom implementation or use lodash.debounce only.",
+      "impact": "Bundle size reduction"
+    }
+  ],
+  "testing_recommendations": [
+    "Penetration test: Attempt to call API endpoints with missing/invalid tokens",
+    "Security test: Spoof file MIME types in evidence upload and verify server rejects",
+    "Prompt injection test: Inject prompt-breaking characters in fact inputs and verify output",
+    "Auth flow test: Verify token is present in all authenticated API requests via browser DevTools Network tab",
+    "XSS test: Attempt to inject HTML/scripts in name, fact, and document title fields"
+  ],
+  "generated_by": "claude-ai-security-analyzer",
+  "report_version": "1.0"
+}

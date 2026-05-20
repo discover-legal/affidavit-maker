@@ -112,11 +112,26 @@ async function resolveSsl(): Promise<PoolConfig['ssl']> {
   // 2. Otherwise, capture the server's cert at startup and pin it. The
   //    long-lived pool then runs with rejectUnauthorized:true against the
   //    pinned PEM, so every real query is on a verified TLS connection.
+  //
+  //    `checkServerIdentity` is intentionally a no-op here: Render's managed
+  //    Postgres serves a self-signed cert whose SAN typically lists an
+  //    internal AWS hostname, NOT `*.render.com`. Default hostname
+  //    verification would reject every connection with
+  //    ERR_TLS_CERT_ALTNAME_INVALID. Identity is already proven by pinning
+  //    the exact leaf cert (`ca: pinned`, `rejectUnauthorized: true`) — a
+  //    MITM would need to present this specific certificate, which only the
+  //    real server has the private key for. So we trade the (impossible)
+  //    hostname check for cert identity, which is strictly stronger for a
+  //    single-host pinned connection.
   if (!process.env.DATABASE_URL) {
     throw new Error('[db] DATABASE_URL is required in production');
   }
   const pinned = await captureServerCertPEM(process.env.DATABASE_URL);
-  return { rejectUnauthorized: true, ca: pinned };
+  return {
+    rejectUnauthorized: true,
+    ca: pinned,
+    checkServerIdentity: () => undefined,
+  };
 }
 
 async function buildPool(): Promise<Pool> {

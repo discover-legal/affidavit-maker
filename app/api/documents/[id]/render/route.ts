@@ -38,17 +38,18 @@ export const POST = withAuth<{ id: string | string[] }>(async (
       );
     }
 
-    const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    if (!id) throw new ValidationError('Document ID is required');
+    const idRaw = Array.isArray(params.id) ? params.id[0] : params.id;
+    if (!idRaw || !/^[1-9]\d{0,9}$/.test(String(idRaw).trim())) {
+      throw new ValidationError('Invalid document ID');
+    }
+    const id = Number(idRaw);
 
     const row = await query<{ id: string; user_id: number; content: unknown }>(
-      'SELECT id, user_id, content FROM documents WHERE id = $1',
-      [id],
+      'SELECT id, user_id, content FROM documents WHERE id = $1 AND user_id = $2',
+      [id, user.id],
     );
     if (!row.rows.length) throw new NotFoundError('Document not found');
-    if (row.rows[0].user_id !== user.id) {
-      throw new AuthorizationError('Access denied');
-    }
+    void AuthorizationError;
 
     const content = row.rows[0].content as Record<string, unknown> | null;
     if (!content) {

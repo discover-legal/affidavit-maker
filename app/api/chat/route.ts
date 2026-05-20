@@ -401,26 +401,35 @@ function chunkConversation(messages: RawMessage[]): NormalizedMessage[] {
 
 // ─── Request body schema ─────────────────────────────────────────────────────
 
+// Tight bounds on each conversation message: caps both prompt-injection
+// volume and OpenAI token spend per request.
 const messageSchema = z
   .object({
-    role: z.string().optional(),
-    type: z.string().optional(),
-    content: z.string().optional(),
+    role: z.enum(['system', 'assistant', 'user']).optional(),
+    type: z.string().max(32).optional(),
+    content: z.string().max(6000).optional(),
   })
   .passthrough();
 
+// SECURITY: the orchestrators run this blob through an LLM. Every field that
+// reaches a prompt is bounded so a single request can't expand the context
+// to an unbounded size. `affidavitData` keeps `.passthrough()` for editor
+// compatibility but we cap the serialized form below.
 const chatBodySchema = z
   .object({
     message: z.string().min(1, 'message is required').max(5000),
-    sessionId: z.string().max(100).optional(),
-    conversationHistory: z.array(messageSchema).optional().default([]),
+    sessionId: z.string().max(100).regex(/^[A-Za-z0-9_.-]+$/).optional(),
+    conversationHistory: z.array(messageSchema).max(40).optional().default([]),
     affidavitData: z.record(z.unknown()).optional().default({}),
     skipExtraction: z.boolean().optional().default(false),
-    documentType: z.string().optional(),
-    state: z.string().optional(),
-    country: z.string().optional(),
+    documentType: z.string().max(64).optional(),
+    state: z.string().max(8).optional(),
+    country: z.string().max(8).optional(),
   })
   .passthrough();
+
+/** Hard ceiling on the serialized affidavitData payload (in bytes). */
+const MAX_AFFIDAVIT_DATA_BYTES = 256 * 1024;
 
 // ─── POST /api/chat ──────────────────────────────────────────────────────────
 
@@ -439,6 +448,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const json = (await req.json().catch(() => ({}))) as unknown;
     const body = chatBodySchema.parse(json);
+
+    // Enforce a byte cap on the unbounded `affidavitData` blob — a tightly
+    // typed Zod schema would break the editor's evolving shape, but the
+    // serialized size is a safe proxy for "is this request reasonable".
+    const serializedSize = JSON.stringify(body.affidavitData ?? {}).length;
+    if (serializedSize > MAX_AFFIDAVIT_DATA_BYTES) {
+      throw new ValidationError('affidavitData payload too large');
+    }
 
     const message = body.message;
     const conversationHistory = body.conversationHistory as RawMessage[];

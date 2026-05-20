@@ -3,39 +3,56 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const Module = require('node:module');
 const logger = require('../../utils/logger');
 const { validateMetadata } = require('./validateMetadata');
 const { isAllowedJurisdiction } = require('../../config/jurisdictions');
 
 /**
- * Node's real `require`, reached via `eval` so Webpack's static analyzer
- * can't rewrite it. When this file is bundled into .next/server/chunks/
- * by Next.js, regular `require(dynamicPath)` is replaced with Webpack's
- * own module resolution — which only knows about modules webpack itself
- * bundled, not the filesystem-included templates copied in via
- * `outputFileTracingIncludes`. `eval('require')` returns the underlying
- * Node require, which resolves absolute filesystem paths normally.
+ * Node's real `require`, obtained without `eval`. When this file is
+ * bundled into .next/server/chunks/ by Next.js, the in-scope `require`
+ * is Webpack's own module resolver — which only knows about modules
+ * Webpack bundled, not the filesystem-included templates copied in via
+ * `outputFileTracingIncludes`. `Module.createRequire(__filename)`
+ * synthesises a real Node require anchored at this file's location, so
+ * absolute filesystem paths (and Base*Template peers) resolve normally.
  *
- * Security/correctness identical to a plain require: paths come from
- * `fs.readdir(templates/states/)`, never from user input.
+ * The previous implementation used `eval('require')` to dodge Webpack;
+ * `createRequire` is the documented, non-eval equivalent. Same correctness
+ * properties:
+ *   - paths come from `fs.readdir(templates/states/)`, never user input;
+ *   - Base*Template peers load through the same require so `instanceof`
+ *     matches the dynamically loaded subclasses.
  *
- * Also used for the Base*Template classes below: we MUST load them through
- * the same require path as the dynamically-loaded template subclasses so
- * `instanceof Base*Template` works. If we statically required Base* here,
- * Webpack would bundle that copy, while the template files (loaded via
- * nodeRequire) would pull their own Base* from disk via Node, and the two
- * class objects would have different identity → instanceof always false.
+ * Defense in depth: every dynamic path passes through `safeTemplatePath`
+ * below, which `path.relative`-checks the resolved file against the
+ * trusted templates root and refuses anything that escapes the sandbox.
  *
  * TODO(arch): replace with a build-time codegen step that emits a static
  * module map (`templates/_generated/registry.js` with explicit imports)
  * so Webpack can statically resolve every template and this escape
  * hatch goes away.
  */
-// eslint-disable-next-line no-eval
-const nodeRequire = eval('require');
+const nodeRequire = Module.createRequire(__filename);
+
+const TEMPLATES_ROOT = path.resolve(path.join(process.cwd(), 'templates'));
+
+/**
+ * Resolve a template path and require it ONLY if it lives under the
+ * trusted `<cwd>/templates/` root. Throws otherwise. Belt-and-braces on
+ * top of the fact that all callers compose paths from `fs.readdir` results.
+ */
+function safeTemplateRequire(candidate) {
+  const resolved = path.resolve(candidate);
+  const rel = path.relative(TEMPLATES_ROOT, resolved);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel) || rel.includes('\0')) {
+    throw new Error(`Template path escapes the templates root: ${candidate}`);
+  }
+  return nodeRequire(resolved);
+}
 
 const TEMPLATES_CORE_DIR = path.join(process.cwd(), 'templates', 'core');
-const BaseAffidavitTemplate = nodeRequire(path.join(TEMPLATES_CORE_DIR, 'BaseAffidavitTemplate.js'));
+const BaseAffidavitTemplate = safeTemplateRequire(path.join(TEMPLATES_CORE_DIR, 'BaseAffidavitTemplate.js'));
 
 // Lazy load divorce templates to avoid circular dependencies
 let BaseDivorcePetitionTemplate = null;
@@ -148,14 +165,14 @@ class TemplateLoader {
           // Same module-identity reasoning as BaseAffidavitTemplate above:
           // load via Node's require so instanceof matches the dynamically
           // loaded subclasses.
-          BaseDivorcePetitionTemplate = nodeRequire(
+          BaseDivorcePetitionTemplate = safeTemplateRequire(
             path.join(TEMPLATES_CORE_DIR, 'BaseDivorcePetitionTemplate.js'),
           );
         }
         return BaseDivorcePetitionTemplate;
       case 'BaseDivorceDecreeTemplate':
         if (!BaseDivorceDecreeTemplate) {
-          BaseDivorceDecreeTemplate = nodeRequire(
+          BaseDivorceDecreeTemplate = safeTemplateRequire(
             path.join(TEMPLATES_CORE_DIR, 'BaseDivorceDecreeTemplate.js'),
           );
         }
@@ -349,7 +366,9 @@ class TemplateLoader {
 
     // Load template class. See nodeRequire definition at the top of this
     // file for why this can't be a regular `require()` under Next.js.
-    const TemplateClass = nodeRequire(templatePath);
+    // `safeTemplateRequire` rejects anything that resolves outside the
+    // templates/ tree.
+    const TemplateClass = safeTemplateRequire(templatePath);
 
     // Validate that template extends the correct base class
     const BaseClass = this._getBaseClass(config.baseClass);

@@ -181,18 +181,28 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                 </Link>
               ) : (
                 <>
-                  <Link
+                  {/*
+                    Plain <a> rather than next/link: when the user is logged
+                    out these point at /api/auth/login (the Auth0 SDK route
+                    handler), which returns a 302 to Auth0. Next.js Link's
+                    client-side routing layer was observed (2026-05-19) to
+                    turn that redirect response into a download in the
+                    browser instead of following it. A normal anchor sends
+                    the user via plain browser navigation and the redirect
+                    works as expected.
+                  */}
+                  <a
                     href={signInHref}
                     className="hidden sm:inline text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2"
                   >
                     Sign in
-                  </Link>
-                  <Link
+                  </a>
+                  <a
                     href={startDocumentHref}
                     className="bg-slate-900 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold"
                   >
                     Get started
-                  </Link>
+                  </a>
                 </>
               )}
             </div>
@@ -242,13 +252,13 @@ export default function LandingPage({ locale }: { locale: Locale }) {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
-                <Link
+                <a
                   href={startDocumentHref}
                   className="group inline-flex items-center justify-center px-6 py-3.5 bg-slate-900 text-white text-base font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 hover:-translate-y-0.5"
                 >
                   Start your document
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+                </a>
                 <a
                   href="#products"
                   className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
@@ -443,7 +453,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                     ))}
                   </ul>
 
-                  <Link
+                  <a
                     href={startDocumentHref}
                     className={`w-full inline-flex items-center justify-center px-5 py-3 rounded-lg font-semibold text-sm transition-all ${
                       featured
@@ -453,7 +463,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                   >
                     {product.cta}
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  </a>
                 </div>
               );
             })}
@@ -626,13 +636,13 @@ export default function LandingPage({ locale }: { locale: Locale }) {
           <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Pick your document, answer the questions, download a court-ready PDF. From {affidavitPrice}.
           </p>
-          <Link
+          <a
             href={startDocumentHref}
             className="inline-flex items-center px-8 py-4 bg-white text-slate-900 text-base font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
           >
             Start your document
             <ArrowRight className="ml-2 h-5 w-5" />
-          </Link>
+          </a>
         </div>
       </section>
 

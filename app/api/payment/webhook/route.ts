@@ -14,21 +14,85 @@ async function processPaymentSucceeded(client: PoolClient, intent: Stripe.Paymen
     .charges?.data?.[0]?.billing_details;
   const postalCode = billingDetails?.address?.postal_code ?? null;
 
+  // Bind the payment row by BOTH the intent id and the user id captured in
+  // metadata at intent-creation time (lib/api/payment/create-intent sets
+  // metadata.userId server-side). If the intent's metadata is missing or
+  // mismatched against our local payments row, the UPDATE matches zero rows
+  // and we log loudly — better than a silent cross-user write.
+  const metaUserId = parseIntegerMetadata(intent.metadata?.userId);
+  const paymentLookup = await client.query<{ user_id: number; id: number }>(
+    `SELECT id, user_id FROM payments WHERE stripe_payment_intent_id = $1`,
+    [intent.id],
+  );
+  if (paymentLookup.rows.length === 0) {
+    console.error(
+      JSON.stringify({
+        level: 'warn',
+        event: 'stripe_webhook_payment_row_missing',
+        intentId: intent.id,
+      }),
+    );
+    return;
+  }
+  const paymentRow = paymentLookup.rows[0];
+  if (metaUserId !== null && paymentRow.user_id !== metaUserId) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        event: 'stripe_webhook_user_mismatch',
+        intentId: intent.id,
+        paymentUserId: paymentRow.user_id,
+        metadataUserId: metaUserId,
+      }),
+    );
+    // Don't update — refuse to act on a tampered metadata payload.
+    return;
+  }
+
   await client.query(
     `UPDATE payments
         SET status = 'succeeded',
             postal_code = COALESCE($1, postal_code),
             updated_at = CURRENT_TIMESTAMP
-      WHERE stripe_payment_intent_id = $2`,
-    [postalCode, intent.id],
+      WHERE stripe_payment_intent_id = $2 AND user_id = $3`,
+    [postalCode, intent.id, paymentRow.user_id],
   );
 
-  const documentId = intent.metadata?.documentId;
-  if (documentId && documentId !== 'new') {
-    await client.query(
-      `UPDATE documents SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-      [documentId],
+  const documentIdRaw = intent.metadata?.documentId;
+  if (documentIdRaw && documentIdRaw !== 'new') {
+    const documentId = parseIntegerMetadata(documentIdRaw);
+    if (documentId === null) {
+      console.error(
+        JSON.stringify({
+          level: 'warn',
+          event: 'stripe_webhook_invalid_document_id',
+          intentId: intent.id,
+          documentId: String(documentIdRaw).slice(0, 64),
+        }),
+      );
+      return;
+    }
+    // Defense in depth: only flip payment_status when the document belongs
+    // to the same user the payment is bound to. Metadata is server-set so
+    // this should always hold; if it doesn't, something is very wrong.
+    const updated = await client.query<{ id: number }>(
+      `UPDATE documents
+          SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND user_id = $2
+        RETURNING id`,
+      [documentId, paymentRow.user_id],
     );
+    if (updated.rowCount === 0) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          event: 'stripe_webhook_document_mismatch',
+          intentId: intent.id,
+          documentId,
+          expectedUserId: paymentRow.user_id,
+        }),
+      );
+    }
   }
 }
 
@@ -37,6 +101,15 @@ async function processPaymentFailed(client: PoolClient, intent: Stripe.PaymentIn
     `UPDATE payments SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE stripe_payment_intent_id = $1`,
     [intent.id],
   );
+}
+
+/** Stripe metadata values are strings; validate they parse to a positive int. */
+function parseIntegerMetadata(raw: unknown): number | null {
+  if (raw === undefined || raw === null) return null;
+  const s = String(raw);
+  if (!/^[1-9]\d{0,9}$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 && n <= 2_147_483_647 ? n : null;
 }
 
 export async function POST(req: NextRequest) {

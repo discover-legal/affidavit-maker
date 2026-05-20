@@ -48,8 +48,15 @@ class TriageOrchestrator {
       messageLength: message.length
     });
 
-    // Inject country context so the LLM uses the right legal references
-    const countryCode = matterData.countryCode || 'US';
+    // Inject country context so the LLM uses the right legal references.
+    // SECURITY: countryCode flows in from chat.js, which itself reads from
+    // user-supplied body fields and the Origin header. We treat it as
+    // untrusted and only honour a fixed allow-list — anything else falls
+    // back to 'US'. This prevents prompt injection via newline-laden values
+    // smuggled inside the country field.
+    const ALLOWED_COUNTRY_CODES = new Set(['US', 'CA', 'UK', 'IE', 'AU', 'NZ']);
+    const rawCountryCode = String(matterData.countryCode || '').toUpperCase();
+    const countryCode = ALLOWED_COUNTRY_CODES.has(rawCountryCode) ? rawCountryCode : 'US';
     const countryHint = countryCode === 'CA'
       ? '\n[CONTEXT: This user is accessing from Canada. Use Canadian legal references, terminology, and resources.]'
       : '';

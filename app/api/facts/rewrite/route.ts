@@ -1,27 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentSession } from '@/lib/auth';
+import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+/**
+ * POST /api/facts/rewrite
+ *
+ * Authenticated endpoint that calls the LLM to professionally rewrite a
+ * fact the user typed in the editor. Auth + per-user rate limits are
+ * mandatory — this route was previously unauthenticated with an
+ * IP-keyed limiter that was trivially spoofable (security audit
+ * finding C-3 / H-1, May 2026). Letting unauthenticated traffic hit
+ * the LLM means a stranger can run up the OpenAI bill at will.
+ */
 
 const factSchema = z.object({
-  fact: z.object({
-    content: z.string().max(1000),
-    category: z.string().optional(),
-  }).passthrough(),
-  allFacts: z.array(z.unknown()).optional(),
-  factIndex: z.number().int().nonnegative().optional(),
+  fact: z
+    .object({
+      content: z.string().min(1).max(1000),
+      category: z.string().max(64).optional(),
+    })
+    .passthrough(),
+  // The other inputs travel as opaque blobs to the LLM prompt. We cap the
+  // total payload to keep prompt-injection-by-volume bounded and to limit
+  // the OpenAI tokens billed per request.
+  allFacts: z.array(z.unknown()).max(200).optional(),
+  factIndex: z.number().int().nonnegative().max(1000).optional(),
   context: z.record(z.unknown()).optional(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const session = await getCurrentSession();
-    const userKey = (session?.user?.sub as string) ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
-    const limit = checkRateLimit('facts-rewrite', userKey, RATE_LIMITS.chat);
+    const limit = checkRateLimit('facts-rewrite', user.id, RATE_LIMITS.chat);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -35,19 +51,27 @@ export async function POST(req: NextRequest) {
     }
 
     const { factValidator } = await getServices();
-    const professionalRewrite = await (factValidator as {
-      generateProfessionalRewriteWithLLM: (
-        fact: unknown,
-        ctx: unknown,
-        all: unknown,
-        idx: unknown,
-      ) => Promise<string>;
-    }).generateProfessionalRewriteWithLLM(
+    const professionalRewrite = await (
+      factValidator as {
+        generateProfessionalRewriteWithLLM: (
+          fact: unknown,
+          ctx: unknown,
+          all: unknown,
+          idx: unknown,
+        ) => Promise<string>;
+      }
+    ).generateProfessionalRewriteWithLLM(
       body.fact,
       body.context,
       body.allFacts,
       body.factIndex,
     );
+
+    logger.info('facts_rewrite', {
+      userId: user.id,
+      inputLength: body.fact.content.length,
+      outputLength: professionalRewrite?.length ?? 0,
+    });
 
     return NextResponse.json({
       success: true,
@@ -58,4 +82,4 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return toErrorResponse(err);
   }
-}
+});

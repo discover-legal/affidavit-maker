@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
+import { headers } from 'next/headers';
 import { ZodError } from 'zod';
 
 export class AppError extends Error {
@@ -48,8 +49,25 @@ export class ExternalServiceError extends AppError {
   }
 }
 
+/**
+ * Resolve the request id stamped by `middleware.ts`. Falling back to a fresh
+ * UUID keeps the contract intact when this helper is used outside a Route
+ * Handler context (e.g. server actions), but the common path emits the same
+ * id that's on the request/response headers, so client error reports can
+ * be correlated to server logs.
+ */
+function resolveRequestId(): string {
+  try {
+    const incoming = headers().get('x-request-id');
+    if (incoming && /^[A-Za-z0-9_.-]{1,128}$/.test(incoming)) return incoming;
+  } catch {
+    // headers() throws outside a request scope — fall through to a random id.
+  }
+  return randomUUID();
+}
+
 export function toErrorResponse(err: unknown): NextResponse {
-  const requestId = randomUUID();
+  const requestId = resolveRequestId();
   const timestamp = new Date().toISOString();
 
   if (err instanceof ZodError) {
@@ -62,7 +80,7 @@ export function toErrorResponse(err: unknown): NextResponse {
         requestId,
         timestamp,
       },
-      { status: 400 },
+      { status: 400, headers: { 'x-request-id': requestId } },
     );
   }
 
@@ -75,11 +93,22 @@ export function toErrorResponse(err: unknown): NextResponse {
         requestId,
         timestamp,
       },
-      { status: err.status },
+      { status: err.status, headers: { 'x-request-id': requestId } },
     );
   }
 
-  console.error('[api] unhandled error', err);
+  // Never leak internal error messages — log structurally, return generic
+  // text to the client. The requestId is the bridge.
+  // eslint-disable-next-line no-console
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      event: 'unhandled_error',
+      requestId,
+      timestamp,
+      error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : String(err),
+    }),
+  );
   return NextResponse.json(
     {
       success: false,
@@ -88,7 +117,7 @@ export function toErrorResponse(err: unknown): NextResponse {
       requestId,
       timestamp,
     },
-    { status: 500 },
+    { status: 500, headers: { 'x-request-id': requestId } },
   );
 }
 

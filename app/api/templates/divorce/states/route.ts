@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { toErrorResponse } from '@/lib/api/errors';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { getServices } from '@/lib/api/services';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,8 +19,7 @@ type TemplateManagerLike = {
  * Returns the list of states/provinces with full divorce document support.
  */
 export async function GET(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const limit = checkRateLimit('templates', ip, RATE_LIMITS.standard);
+  const limit = checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

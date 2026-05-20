@@ -1059,13 +1059,22 @@ class PDFService {
           continue;
         }
 
-        // Check if file exists
-        if (!fssync.existsSync(filePath)) {
-          logger.warn('Skipping evidence - file not found', { exhibitLabel });
+        // Read the file directly — let fs.readFile throw if the file is
+        // missing (no TOCTOU window between an existsSync check and the
+        // read). We catch the ENOENT below.
+        logger.debug('Attaching exhibit', { exhibitLabel });
+
+        let fileBuffer;
+        try {
+          fileBuffer = await fs.readFile(filePath);
+        } catch (readErr) {
+          if (readErr && readErr.code === 'ENOENT') {
+            logger.warn('Skipping evidence - file not found', { exhibitLabel });
+          } else {
+            logger.warn('Skipping evidence - read failed', { exhibitLabel, code: readErr?.code });
+          }
           continue;
         }
-
-        logger.debug('Attaching exhibit', { exhibitLabel });
 
         try {
           // Add cover page if required
@@ -1083,15 +1092,28 @@ class PDFService {
             }
           }
 
-          // Add the actual exhibit file
-          const fileBuffer = await fs.readFile(filePath);
-          const fileType = evidenceData.fileType || '';
-          const fileName = evidenceData.fileName || '';
+          // SECURITY: identify the embedded file type by magic bytes, not by
+          // user-controlled metadata (evidenceData.fileType / fileName). The
+          // upload path validates magic bytes on the way in, but defense-in
+          // -depth means we also refuse to treat a buffer as a PDF unless
+          // its first bytes are `%PDF`. PDFLib.load() would fail loudly on
+          // a non-PDF, but pdf-lib's error message is less actionable than
+          // a deliberate refusal here.
+          const PDF_MAGIC = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
+          const JPG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
+          const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+          const head = fileBuffer.subarray(0, 8);
+          const isPDF = head.subarray(0, 4).equals(PDF_MAGIC);
+          const isJPG = head.subarray(0, 3).equals(JPG_MAGIC);
+          const isPNG = head.subarray(0, 8).equals(PNG_MAGIC);
 
-          // Determine file type from both fileType field and fileName extension
-          const isPDF = fileType === 'application/pdf' || fileType === 'pdf' || fileName.toLowerCase().endsWith('.pdf');
-          const isJPG = fileType === 'image/jpeg' || fileType === 'jpg' || fileName.toLowerCase().match(/\.(jpg|jpeg)$/);
-          const isPNG = fileType === 'image/png' || fileType === 'png' || fileName.toLowerCase().endsWith('.png');
+          if (!isPDF && !isJPG && !isPNG) {
+            logger.warn('Skipping evidence - unrecognized magic bytes', {
+              exhibitLabel,
+              head: head.toString('hex'),
+            });
+            continue;
+          }
 
           if (isPDF) {
             // Merge PDF

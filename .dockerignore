@@ -67,3 +67,16 @@ documents/*
 .dockerignore
 Dockerfile
 docker-compose.yml
+
+# Binaries that should never ship to a Linux container
+*.exe
+*.dll
+
+# Pre-built secret material (we mount via env vars on Render)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+private/

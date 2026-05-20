@@ -131,10 +131,17 @@ class EnhancedFactValidationService {
   }
   
   generateCacheKey(factText, context = {}) {
+    // SECURITY: the cache value includes the LLM's "professionalRewrite"
+    // which embeds the affiantName from this user's context. If two users
+    // submit identical fact text from the same state with the same
+    // documentType, they would share a cache entry — meaning user B's
+    // response would contain user A's name. Scope the cache by the
+    // affiantName so the rewrite stays per-tenant.
     const contextString = JSON.stringify({
       state: context.state,
       caseType: context.caseType,
-      language: this.language
+      affiantName: context.affiantName || '',
+      language: this.language,
     });
     return `${factText.toLowerCase().trim()}_${contextString}`;
   }
@@ -556,13 +563,34 @@ Provide a professional rewrite following these guidelines and specific feedback.
   
   // ✅ FIXED: Properly declared async function
   async validateFactProfessional(fact, existingFacts = [], context = {}) {
-    const factText = fact.content || fact;
+    // SECURITY: cap raw fact length before it touches any regex-heavy
+    // pre-analysis (local language scoring uses alternation patterns that
+    // could be catastrophic on adversarial input) and before it lands in
+    // an LLM prompt (cost amplification). 5000 chars is the same ceiling
+    // we enforce on the API route's input schema.
+    const FACT_TEXT_MAX = 5000;
+    const rawText = String(fact?.content ?? fact ?? '');
+    const factText = rawText.length > FACT_TEXT_MAX
+      ? rawText.slice(0, FACT_TEXT_MAX)
+      : rawText;
+
+    // Cap the context window of "existing facts" to keep prompt size and
+    // PII-leakage scope bounded — only the 10 most-relevant facts.
+    const trimmedExisting = Array.isArray(existingFacts)
+      ? existingFacts.slice(0, 10)
+      : [];
+
     const cacheKey = this.generateCacheKey(factText, context);
-    
+
     if (this.validationCache.has(cacheKey)) {
       const cached = this.validationCache.get(cacheKey);
       return { ...cached, fromCache: true };
     }
+
+    // Replace the existing-facts slot with the bounded version everywhere
+    // below; the original was passed in as a parameter so this rebinding
+    // keeps the downstream code unchanged.
+    existingFacts = trimmedExisting;
     
     try {
       const localAnalysis = this.analyzeLanguageLocally(factText);
@@ -605,11 +633,51 @@ Provide a professional rewrite following these guidelines and specific feedback.
       };
     }
 
-    const results = await Promise.all(
-      facts.map((fact, index) =>
-        this.validateFactProfessional(fact, facts.filter((_, i) => i !== index), context)
-      )
-    );
+    // SECURITY: cap fan-out. Each fact triggers an LLM call inside
+    // `validateFactProfessional`. Without bounds, submitting N facts costs
+    // N OpenAI calls in parallel — a direct cost-burn vector and a way to
+    // exhaust the OpenAI rate-limit budget for the whole tenant. We cap
+    // the number of facts processed and run them with a small concurrency
+    // pool.
+    const MAX_FACTS = Number(process.env.FACT_VALIDATION_MAX_FACTS || 50);
+    const CONCURRENCY = Number(process.env.FACT_VALIDATION_CONCURRENCY || 4);
+    const bounded = facts.slice(0, MAX_FACTS);
+    const overflow = facts.length - bounded.length;
+
+    // Each fact's validator gets the other facts as context — but capped
+    // to a small recent set so the prompt size doesn't explode with N.
+    const otherContextOf = (idx) => {
+      const start = Math.max(0, idx - 5);
+      const end = Math.min(bounded.length, idx + 5);
+      return bounded.slice(start, end).filter((_, i) => start + i !== idx);
+    };
+
+    const results = new Array(bounded.length);
+    let cursor = 0;
+    const runWorker = async () => {
+      while (cursor < bounded.length) {
+        const i = cursor++;
+        try {
+          results[i] = await this.validateFactProfessional(
+            bounded[i],
+            otherContextOf(i),
+            context,
+          );
+        } catch (err) {
+          results[i] = this.buildFallbackResult(bounded[i], String(bounded[i]?.content ?? ''), context);
+          logger.warn('Fact validation worker errored', { error: err.message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, bounded.length) }, runWorker));
+
+    if (overflow > 0) {
+      logger.warn('Fact validation batch truncated', {
+        receivedCount: facts.length,
+        processedCount: bounded.length,
+        overflow,
+      });
+    }
 
     const hasErrors = results.some(r => !r.isValid);
     const criticalCount = results.filter(r => r.severity === VALIDATION_SEVERITY.CRITICAL).length;

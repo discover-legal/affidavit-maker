@@ -20,15 +20,45 @@ declare global {
 }
 
 function buildPool(): Pool {
+  // TLS configuration.
+  //
+  // We want certificate verification on in production. Render's managed
+  // Postgres uses certificates signed by a CA that's available either via
+  // an env-shipped bundle (`DATABASE_CA_CERT`, PEM) or — failing that —
+  // the system trust store. We only fall back to `rejectUnauthorized: false`
+  // when the operator explicitly opts in via `DATABASE_SSL_INSECURE=true`,
+  // and emit a loud warning so it can't go unnoticed in production logs.
+  //
+  // Outside production we leave ssl undefined so `psql -h localhost` style
+  // dev connections keep working.
+  function resolveSsl(): PoolConfig['ssl'] {
+    if (process.env.NODE_ENV !== 'production') return undefined;
+    const ca = process.env.DATABASE_CA_CERT;
+    if (ca && ca.includes('BEGIN CERTIFICATE')) {
+      return { rejectUnauthorized: true, ca };
+    }
+    if (process.env.DATABASE_SSL_INSECURE === 'true') {
+      console.error(
+        '[db] WARNING — DATABASE_SSL_INSECURE=true: TLS to Postgres is encrypted but UNAUTHENTICATED. ' +
+          'Set DATABASE_CA_CERT to the Render-supplied PEM to enable certificate verification.',
+      );
+      return { rejectUnauthorized: false };
+    }
+    // Default: require TLS with verification against the system trust store.
+    return { rejectUnauthorized: true };
+  }
+
   const config: PoolConfig = {
     connectionString: process.env.DATABASE_URL,
     max: Number(process.env.DATABASE_POOL_MAX ?? 20),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
-    ssl:
-      process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : undefined,
+    ssl: resolveSsl(),
+    // Block accidental statement-level secret leakage by capping how long
+    // any single statement can run. The slowest legitimate query in this
+    // app is the document save (a few ms); 30s is a generous ceiling that
+    // still neutralizes pg-side DoS amplification.
+    statement_timeout: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS ?? 30_000),
   };
 
   const pool = new Pool(config);

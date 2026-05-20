@@ -5,6 +5,7 @@ import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { ValidationError, toErrorResponse } from '@/lib/api/errors';
 import { logger } from '@/lib/logger';
+import { getClientIp } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,10 +38,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       throw new ValidationError('TOS version is required');
     }
 
-    const ip =
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      req.headers.get('x-real-ip') ??
-      'unknown';
+    // Use the trusted-edge IP. The leftmost X-Forwarded-For is client-set
+    // and would let users plant arbitrary values in their own audit row.
+    const ip = getClientIp(req) ?? 'unknown';
     const userAgent = req.headers.get('user-agent') ?? 'unknown';
 
     await query(

@@ -7,7 +7,7 @@ import { getPrice } from '@/lib/pricing';
 const pageTitle =
   'AI Divorce Packages & Affidavits — Court-Ready Filings for All 50 States';
 const pageDescription =
-  'Complete divorce packages and court-ready affidavits prepared in minutes. State-specific templates for all 50 states and D.C. Divorce from $249, affidavits from $79.';
+  'Complete divorce packages and court-ready affidavits prepared in minutes. State-specific templates for all 50 states and D.C. Launch special — 80% off.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {

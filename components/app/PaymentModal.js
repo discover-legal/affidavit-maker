@@ -131,6 +131,9 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
   const { getAccessTokenSilently } = useAuth0();
   const [clientSecret, setClientSecret] = useState(null);
   const [amount, setAmount] = useState(7900); // Default: $79.00
+  const [originalAmount, setOriginalAmount] = useState(null);
+  const [launchDiscountActive, setLaunchDiscountActive] = useState(false);
+  const [launchDiscountPct, setLaunchDiscountPct] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -167,6 +170,9 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
 
         setClientSecret(data.data?.clientSecret);
         setAmount(data.data?.amount);
+        setOriginalAmount(data.data?.originalAmount ?? null);
+        setLaunchDiscountActive(Boolean(data.data?.launchDiscountActive));
+        setLaunchDiscountPct(data.data?.launchDiscountPct ?? 0);
         setLoading(false);
       } catch (err) {
         setError(err.message || 'Failed to initialize payment');
@@ -207,10 +213,29 @@ const PaymentModal = ({ isOpen, onClose, affidavitData, onPaymentSuccess, docume
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4">
           <div className="mb-6">
+            {launchDiscountActive && originalAmount && (
+              <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                  Launch special — {Math.round(launchDiscountPct * 100)}% off
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between py-2">
               <span>{documentType === 'divorce_package' ? 'Divorce Package' : 'Professional Affidavit'}</span>
-              <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
+              {launchDiscountActive && originalAmount ? (
+                <span className="text-gray-400 line-through">${(originalAmount / 100).toFixed(2)}</span>
+              ) : (
+                <span className="font-semibold">${(amount / 100).toFixed(2)}</span>
+              )}
             </div>
+            {launchDiscountActive && originalAmount && (
+              <div className="flex items-center justify-between py-1 text-emerald-700">
+                <span className="text-sm">Launch discount ({Math.round(launchDiscountPct * 100)}% off)</span>
+                <span className="text-sm font-medium">
+                  -${((originalAmount - amount) / 100).toFixed(2)}
+                </span>
+              </div>
+            )}
             <div className="border-t pt-2">
               <div className="flex items-center justify-between font-semibold text-lg">
                 <span>Total</span>

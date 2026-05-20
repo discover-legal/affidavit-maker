@@ -15,7 +15,13 @@ import {
   Lock,
 } from 'lucide-react';
 import type { Locale } from '@/lib/locale';
-import { formatPrice } from '@/lib/pricing';
+import {
+  formatPrice,
+  formatOriginalPrice,
+  getDiscountPercentLabel,
+  LAUNCH_PRICING_ACTIVE,
+  LAUNCH_LABEL,
+} from '@/lib/pricing';
 import { LocaleToggle } from '@/components/LocaleToggle';
 
 export default function LandingPage({ locale }: { locale: Locale }) {
@@ -32,6 +38,9 @@ export default function LandingPage({ locale }: { locale: Locale }) {
 
   const divorcePrice = formatPrice(locale, 'divorce_package');
   const affidavitPrice = formatPrice(locale, 'single_affidavit');
+  const divorcePriceOriginal = formatOriginalPrice(locale, 'divorce_package');
+  const affidavitPriceOriginal = formatOriginalPrice(locale, 'single_affidavit');
+  const discountLabel = getDiscountPercentLabel();
 
   const products = [
     {
@@ -39,6 +48,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
       name: 'Divorce Package',
       tagline: 'Petition, decree, and every supporting form.',
       price: divorcePrice,
+      originalPrice: divorcePriceOriginal,
       icon: Scale,
       iconBg: 'bg-purple-50',
       iconColor: 'text-purple-600',
@@ -57,6 +67,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
       name: 'General Affidavit',
       tagline: 'A sworn statement, court-ready.',
       price: affidavitPrice,
+      originalPrice: affidavitPriceOriginal,
       icon: FileText,
       iconBg: 'bg-brand-tint',
       iconColor: 'text-brand',
@@ -228,7 +239,15 @@ export default function LandingPage({ locale }: { locale: Locale }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-28 pb-16 sm:pb-20">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6">
+              {LAUNCH_PRICING_ACTIVE && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 shadow-sm mb-3">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                    {LAUNCH_LABEL}
+                  </span>
+                </div>
+              )}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6 ml-0 sm:ml-2">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                 <span className="text-xs font-medium text-slate-700">
                   AI-powered &middot; {coverageCount} {jurisdictionWordPlural} supported
@@ -416,14 +435,29 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                       <Icon className={`h-6 w-6 ${featured ? 'text-white' : product.iconColor}`} />
                     </div>
                     <div className="text-right">
+                      {LAUNCH_PRICING_ACTIVE && (
+                        <p
+                          className={`text-sm font-medium line-through ${
+                            featured ? 'text-slate-400' : 'text-slate-400'
+                          }`}
+                        >
+                          {product.originalPrice}
+                        </p>
+                      )}
                       <p
                         className={`text-3xl font-bold ${featured ? 'text-white' : 'text-slate-900'}`}
                       >
                         {product.price}
                       </p>
-                      <p className={`text-xs ${featured ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Flat fee
-                      </p>
+                      {LAUNCH_PRICING_ACTIVE ? (
+                        <p className="text-xs font-bold text-amber-500 mt-0.5">
+                          {discountLabel}
+                        </p>
+                      ) : (
+                        <p className={`text-xs ${featured ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Flat fee
+                        </p>
+                      )}
                     </div>
                   </div>
 

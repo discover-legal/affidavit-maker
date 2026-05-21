@@ -22,20 +22,24 @@ export type AppServices = {
 };
 
 /**
- * Construct an OpenAI client from `OPENAI_API_KEY` if available. Returns
- * `null` when the key is unset so the singleton itself doesn't crash at
- * import time in environments without the secret (CI, build phase, etc.).
- * The downstream validator surfaces a "service unavailable" message in
- * that case rather than throwing on `this.openai.chat.completions.create`.
+ * Build an OpenAI SDK client from `OPENAI_API_KEY`. Returns `null` when
+ * the key is unset so the singleton itself doesn't crash at import time
+ * in environments without the secret (CI, build phase, etc.). Legacy
+ * orchestrators and the fact validator surface a "service unavailable"
+ * message in that case rather than throwing on `.chat.completions.create`.
+ *
+ * We deliberately skip MultiProviderLLM here even though it's the more
+ * featureful wrapper: it pulls in `@anthropic-ai/sdk` and
+ * `@google/generative-ai` via top-level requires, which Webpack tries to
+ * resolve statically at build time and which aren't in package.json. The
+ * raw OpenAI client is OpenAI-compatible (same `.chat.completions.create`
+ * shape) and is what production has been running with.
  */
-function buildOpenAIClient(): unknown {
+function buildLLMClient(): unknown {
   if (!process.env.OPENAI_API_KEY) {
     return null;
   }
   const openaiModule = require('openai');
-  // The `openai` package has shipped under several export shapes across
-  // versions: a default export, a named `OpenAI` export, and (older) a
-  // direct `module.exports = OpenAI` form. Resolve any of them.
   const OpenAI =
     openaiModule.default ?? openaiModule.OpenAI ?? openaiModule;
   try {
@@ -43,6 +47,30 @@ function buildOpenAIClient(): unknown {
       apiKey: process.env.OPENAI_API_KEY,
       timeout: 45000,
       maxRetries: 0,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wrap the raw LLM client in the resilient circuit-breaker / retry layer
+ * the legacy orchestrators expect at `global.openAIService.chat(...)`.
+ * Pre-Next-migration, server.js performed this wiring; in the Next.js
+ * service we have to do it from the services singleton so route handlers
+ * that fall back to the legacy AffidavitService and the per-jurisdiction
+ * orchestrators (services/agents/*) can find the client.
+ */
+function buildResilientLLMService(llmClient: unknown): unknown {
+  if (!llmClient) return null;
+  try {
+    const { ResilientOpenAIService } = require('@/services/ResilientOpenAIService');
+    return new ResilientOpenAIService(llmClient, {
+      maxRetries: 3,
+      initialRetryDelay: 1000,
+      chatTimeout: 45000,
+      chatThreshold: 5,
+      resetTimeout: 120000,
     });
   } catch {
     return null;
@@ -60,11 +88,25 @@ async function buildServices(): Promise<AppServices> {
   const registry = await initializeTemplates();
   const templateManager = new StateTemplateManager({ registry });
 
-  const openaiClient = buildOpenAIClient();
+  const llmClient = buildLLMClient();
+  const resilientLLM = buildResilientLLMService(llmClient);
+
+  // Legacy AffidavitService + every services/agents/* orchestrator reads
+  // the resilient client off `global.openAIService` at request time (this
+  // was previously initialised in server.js before the Next.js migration).
+  // Set it once per process — the services singleton is itself cached on
+  // globalThis, so this assignment runs at most once.
+  if (resilientLLM) {
+    (global as unknown as { openAIService?: unknown }).openAIService = resilientLLM;
+  }
+
   const language = process.env.LLM_LANGUAGE || 'en';
 
   return {
-    factValidator: new EnhancedFactValidationService(openaiClient, language),
+    // EnhancedFactValidationService expects the raw multi-provider client
+    // (uses `.chat.completions.create` directly), NOT the resilient wrapper
+    // (which exposes `.chat(messages, options)`).
+    factValidator: new EnhancedFactValidationService(llmClient, language),
     templateManager,
     affidavitService: null,
   };

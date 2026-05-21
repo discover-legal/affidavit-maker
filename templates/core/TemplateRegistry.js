@@ -15,7 +15,14 @@ const DEFAULT_DOCUMENT_TYPE = 'affidavit';
 const VALID_DOCUMENT_TYPES = new Set([
   'affidavit',
   'divorce_petition',
-  'divorce_decree'
+  'divorce_decree',
+  // Texas-specific divorce supporting documents (the loader discovers
+  // these wherever the matching template files exist).
+  'indigency_affidavit',
+  'waiver_of_service',
+  'cert_last_known_address',
+  'military_status_affidavit',
+  'prove_up_affidavit'
 ]);
 
 /**

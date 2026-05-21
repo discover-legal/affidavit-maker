@@ -270,8 +270,12 @@ class TemplateLoader {
                 error: error.message
               });
             } else {
-              // For optional document types, only log if files exist but failed to load
-              logger.debug(`${config.documentType} not available for ${stateName}: ${error.message}`);
+              // Non-required document type threw while loading. The
+              // template file exists (otherwise loadStateDocumentType
+              // returns false silently), so a throw here is a real
+              // failure — log at warn so silent-skip regressions show
+              // up in production rather than disappearing into debug.
+              logger.warn(`${config.documentType} failed to load for ${stateName}: ${error.message}`);
             }
           }
         }

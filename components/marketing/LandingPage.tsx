@@ -14,7 +14,6 @@ import {
   MapPin,
   Lock,
 } from 'lucide-react';
-import type { Locale } from '@/lib/locale';
 import {
   formatPrice,
   formatOriginalPrice,
@@ -22,24 +21,20 @@ import {
   LAUNCH_PRICING_ACTIVE,
   LAUNCH_LABEL,
 } from '@/lib/pricing';
-import { LocaleToggle } from '@/components/LocaleToggle';
 
-export default function LandingPage({ locale }: { locale: Locale }) {
+export default function LandingPage() {
   const { user } = useUser();
   const isAuthenticated = Boolean(user);
-  const isCA = locale === 'ca';
 
-  const jurisdictionWord = isCA ? 'province' : 'state';
-  const jurisdictionWordPlural = isCA ? 'provinces' : 'states';
-  const coverageHeadline = isCA
-    ? 'Every Canadian province & territory'
-    : 'All 50 states + D.C.';
-  const coverageCount = isCA ? '13' : '51';
+  const jurisdictionWord = 'state';
+  const jurisdictionWordPlural = 'states';
+  const coverageHeadline = 'All 50 states + D.C.';
+  const coverageCount = '51';
 
-  const divorcePrice = formatPrice(locale, 'divorce_package');
-  const affidavitPrice = formatPrice(locale, 'single_affidavit');
-  const divorcePriceOriginal = formatOriginalPrice(locale, 'divorce_package');
-  const affidavitPriceOriginal = formatOriginalPrice(locale, 'single_affidavit');
+  const divorcePrice = formatPrice('us', 'divorce_package');
+  const affidavitPrice = formatPrice('us', 'single_affidavit');
+  const divorcePriceOriginal = formatOriginalPrice('us', 'divorce_package');
+  const affidavitPriceOriginal = formatOriginalPrice('us', 'single_affidavit');
   const discountLabel = getDiscountPercentLabel();
 
   const products = [
@@ -73,8 +68,8 @@ export default function LandingPage({ locale }: { locale: Locale }) {
       iconColor: 'text-brand',
       features: [
         'AI-guided fact interview',
-        `${jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-specific formatting`,
-        isCA ? 'Commissioner of Oaths / Notary jurat' : 'Notary block & jurat included',
+        'State-specific formatting',
+        'Notary block & jurat included',
         'Evidence/exhibit uploads',
         'Professional PDF output',
       ],
@@ -91,9 +86,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
     {
       n: '02',
       title: 'Chat through the facts',
-      body: isCA
-        ? 'Our AI interviewer asks the questions a Canadian paralegal would. Answer in plain English — no legalese required.'
-        : 'Our AI interviewer asks the questions a paralegal would. Answer in plain English — no legalese required.',
+      body: 'Our AI interviewer asks the questions a paralegal would. Answer in plain English — no legalese required.',
     },
     {
       n: '03',
@@ -105,15 +98,11 @@ export default function LandingPage({ locale }: { locale: Locale }) {
   const faqs = [
     {
       q: 'Is this a substitute for a lawyer?',
-      a: isCA
-        ? "No. discover.legal is a self-help document preparation tool. We don't provide legal advice and aren't a law firm. For contested or complex matters, consult a lawyer licensed in your province."
-        : "No. discover.legal is a self-help document preparation tool. We don't provide legal advice or represent you. For complex matters or contested disputes, consult a licensed attorney.",
+      a: "No. discover.legal is a self-help document preparation tool. We don't provide legal advice or represent you. For complex matters or contested disputes, consult a licensed attorney.",
     },
     {
-      q: `Which ${jurisdictionWordPlural} are supported?`,
-      a: isCA
-        ? 'All 10 Canadian provinces plus the Northwest Territories, Yukon, and Nunavut. Divorce filings follow the federal Divorce Act and your province\'s family-court rules.'
-        : 'All 50 U.S. states plus the District of Columbia. Each comes with its own template, statute references, and required forms.',
+      q: 'Which states are supported?',
+      a: 'All 50 U.S. states plus the District of Columbia. Each comes with its own template, statute references, and required forms.',
     },
     {
       q: 'How long does it take?',
@@ -125,24 +114,20 @@ export default function LandingPage({ locale }: { locale: Locale }) {
     },
     {
       q: 'Do I still need to file with the court myself?',
-      a: isCA
-        ? 'Yes. We prepare the documents and a filing checklist. You file with the appropriate court (Superior Court of Justice in Ontario, Cour supérieure in Quebec, etc.) by the method your court accepts.'
-        : 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).',
+      a: 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).',
     },
   ];
 
   const startDocumentHref = isAuthenticated ? '/dashboard' : '/api/auth/login?screen_hint=signup';
   const signInHref = isAuthenticated ? '/dashboard' : '/api/auth/login';
 
-  const jurisdictionCodes = isCA
-    ? ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU']
-    : [
-        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
-        'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
-        'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
-        'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
-        'WI', 'WY', 'DC',
-      ];
+  const jurisdictionCodes = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
+    'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
+    'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
+    'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
+    'WI', 'WY', 'DC',
+  ];
 
   return (
     <div className="min-h-screen bg-white text-slate-900 antialiased">
@@ -182,7 +167,6 @@ export default function LandingPage({ locale }: { locale: Locale }) {
               >
                 Resources
               </Link>
-              <LocaleToggle active={locale} />
               {isAuthenticated ? (
                 <Link
                   href="/dashboard"
@@ -326,7 +310,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                     </div>
                     <div className="flex gap-3 justify-end">
                       <div className="bg-slate-900 rounded-2xl rounded-tr-sm px-4 py-2.5">
-                        <p className="text-sm text-white">{isCA ? 'Ontario' : 'Texas'}</p>
+                        <p className="text-sm text-white">Texas</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
@@ -335,11 +319,8 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                       </div>
                       <div className="flex-1 bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-2.5">
                         <p className="text-sm text-slate-700">
-                          Got it.{' '}
-                          {isCA
-                            ? 'The federal Divorce Act requires a 1-year separation for no-fault divorce.'
-                            : 'Texas requires 6 months residency in the state and 90 days in the county.'}{' '}
-                          Have you and your spouse met that?
+                          Got it. Texas requires 6 months residency in the state and 90 days in the
+                          county. Have you and your spouse met that?
                         </p>
                       </div>
                     </div>
@@ -554,7 +535,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
                 Filing fees, residency rules, statute citations, even the wording of the jurat
                 &mdash; we maintain a separate template for every {jurisdictionWord}, audited against
-                the real court rules{isCA ? ' and the federal Divorce Act' : ''}.
+                the real court rules.
               </p>
 
               <div className="grid grid-cols-2 gap-4">

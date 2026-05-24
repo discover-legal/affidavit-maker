@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/components/marketing/LandingPage';
 import { jsonLd } from '@/lib/json-ld';
-import { getLocale } from '@/lib/locale.server';
 import { getPrice } from '@/lib/pricing';
 
 const pageTitle =
@@ -51,9 +50,8 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const locale = getLocale();
-  const divorce = getPrice(locale, 'divorce_package');
-  const affidavit = getPrice(locale, 'single_affidavit');
+  const divorce = getPrice('us', 'divorce_package');
+  const affidavit = getPrice('us', 'single_affidavit');
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -106,7 +104,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
-      <LandingPage locale={locale} />
+      <LandingPage />
     </>
   );
 }

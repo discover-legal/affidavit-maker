@@ -13,9 +13,17 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const bodySchema = z.object({
-  title: z.string().trim().min(1).max(255),
-});
+// UserDashboard.js submits `{ newName }`, matching the legacy Express route.
+// Accept either key so existing clients keep working and `title` stays the
+// canonical name for future callers.
+const bodySchema = z
+  .object({
+    title: z.string().trim().min(1).max(255).optional(),
+    newName: z.string().trim().min(1).max(255).optional(),
+  })
+  .refine((v) => Boolean(v.title || v.newName), {
+    message: 'title is required',
+  });
 
 export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
@@ -32,7 +40,8 @@ export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, 
       throw new ValidationError('Invalid document ID');
     }
     const id = Number(idRaw);
-    const { title } = bodySchema.parse(await req.json().catch(() => ({})));
+    const parsed = bodySchema.parse(await req.json().catch(() => ({})));
+    const title = (parsed.title ?? parsed.newName) as string;
 
     // Update + return: zero rows touched → 404 (no probe oracle).
     const updated = await query<{ id: number }>(

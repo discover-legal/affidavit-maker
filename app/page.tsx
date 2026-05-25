@@ -49,6 +49,62 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// One year out — bumps automatically with each deploy so Google never
+// flags the offer as expired. Format is YYYY-MM-DD per schema.org.
+function offerValidUntil(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Build the Offer block for a digital-delivery product. Google's
+ * Merchant Listings rich result requires `availability`,
+ * `hasMerchantReturnPolicy`, and `shippingDetails` even for digital
+ * goods — we model instant, free, US+CA delivery and a no-returns
+ * policy (these are completed legal documents, not subscriptions).
+ */
+function digitalOffer(opts: {
+  url: string;
+  price: string;
+  priceCurrency: string;
+}) {
+  return {
+    '@type': 'Offer',
+    url: opts.url,
+    price: opts.price,
+    priceCurrency: opts.priceCurrency,
+    priceValidUntil: offerValidUntil(),
+    availability: 'https://schema.org/InStock',
+    itemCondition: 'https://schema.org/NewCondition',
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: ['US', 'CA'],
+      returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+    },
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: '0',
+        currency: opts.priceCurrency,
+      },
+      shippingDestination: [
+        { '@type': 'DefinedRegion', addressCountry: 'US' },
+        { '@type': 'DefinedRegion', addressCountry: 'CA' },
+      ],
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
+        transitTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
+      },
+    },
+  };
+}
+
+const BRAND = { '@type': 'Brand', name: 'discover.legal' } as const;
+const PRODUCT_IMAGE = 'https://discover.legal/app-icon-1024.png';
+
 export default function HomePage() {
   const divorce = getPrice('us', 'divorce_package');
   const affidavit = getPrice('us', 'single_affidavit');
@@ -75,25 +131,33 @@ export default function HomePage() {
       },
       {
         '@type': 'Product',
+        '@id': 'https://discover.legal/#product-divorce-package',
         name: 'Divorce Package',
         description:
           'Complete divorce filing package — petition, decree, and supporting documents tailored to your jurisdiction.',
-        offers: {
-          '@type': 'Offer',
+        image: [PRODUCT_IMAGE],
+        brand: BRAND,
+        category: 'Legal document preparation',
+        offers: digitalOffer({
+          url: 'https://discover.legal/',
           price: (divorce.amount / 100).toFixed(2),
           priceCurrency: divorce.currency.toUpperCase(),
-        },
+        }),
       },
       {
         '@type': 'Product',
+        '@id': 'https://discover.legal/#product-general-affidavit',
         name: 'General Affidavit',
         description:
           "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
-        offers: {
-          '@type': 'Offer',
+        image: [PRODUCT_IMAGE],
+        brand: BRAND,
+        category: 'Legal document preparation',
+        offers: digitalOffer({
+          url: 'https://discover.legal/',
           price: (affidavit.amount / 100).toFixed(2),
           priceCurrency: affidavit.currency.toUpperCase(),
-        },
+        }),
       },
     ],
   };

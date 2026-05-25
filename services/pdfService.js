@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const fssync = require('fs');
 const path = require('path');
 const previewRenderer = require('./previewRenderer');
+const { makeSectionPrefixer } = require('../utils/sectionNumbering');
 const { prepareFactsForDisplay, isEvidence, evidenceHasFile, getEvidenceItems } = require('../utils/factNormalizer');
 const { validatePath } = require('../utils/pathSecurity');
 const { PDFDocument: PDFLib } = require('pdf-lib');
@@ -603,16 +604,25 @@ class PDFService {
       }
 
       if (section.items && Array.isArray(section.items)) {
+        // Match the preview's per-section numbering (utils/sectionNumbering).
+        const nextPrefix = makeSectionPrefixer(section.items);
         section.items.forEach(item => {
           const estimatedHeight = this.estimateTextHeight(doc, item.content, 12) + 15;
           this.checkPageBreak(doc, estimatedHeight);
 
-          doc.fontSize(12).font('Times-Roman');
-          if (item.type === 'order') {
-            doc.font('Times-Bold');
+          const prefix = nextPrefix(item);
+          const bold = item.type === 'order';
+          if (prefix) {
+            // Trim the "N." prefix back to "N" — renderNumberedParagraph
+            // adds the ". " separator itself.
+            const m = prefix.match(/^(\S+)\.\s/);
+            const label = m ? m[1] : prefix.replace(/\.\s*$/, '');
+            this.renderNumberedParagraph(doc, label, item.content, { bold });
+          } else {
+            doc.fontSize(12).font(bold ? 'Times-Bold' : 'Times-Roman');
+            doc.text(item.content, { align: 'justify', indent: 36, lineGap: 6 });
+            doc.font('Times-Roman');
           }
-          doc.text(item.content, { align: 'justify', indent: 36, lineGap: 6 });
-          doc.font('Times-Roman');
           doc.moveDown(0.6);
         });
       }
@@ -718,9 +728,13 @@ class PDFService {
 
   /**
    * Render a numbered paragraph: "N. content"
+   *
+   * `bold` keeps the operative-clause styling the decree relies on for
+   * "IT IS ORDERED…" items — the function used to hard-code Times-Roman,
+   * which silently dropped any bold the caller had set on the doc.
    */
-  renderNumberedParagraph(doc, number, content) {
-    doc.fontSize(12).font('Times-Roman');
+  renderNumberedParagraph(doc, number, content, { bold = false } = {}) {
+    doc.fontSize(12).font(bold ? 'Times-Bold' : 'Times-Roman');
     const numberText = `${number}. `;
     const numberWidth = doc.widthOfString(numberText);
     const textWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -734,6 +748,7 @@ class PDFService {
       align: 'justify', width: textWidth - numberWidth, lineBreak: true, lineGap: 6
     });
     doc.x = doc.page.margins.left;
+    doc.font('Times-Roman');
   }
 
   /**
@@ -1412,10 +1427,13 @@ class PDFService {
       }
 
       if (section.items) {
+        // Same per-section numbering as preview/PDF (utils/sectionNumbering).
+        const nextPrefix = makeSectionPrefixer(section.items);
         section.items.forEach(item => {
           const isBold = item.type === 'order';
+          const prefix = nextPrefix(item);
           children.push(new docx.Paragraph({
-            children: [new docx.TextRun({ text: item.content, bold: isBold, size: 24 })],
+            children: [new docx.TextRun({ text: `${prefix}${item.content}`, bold: isBold, size: 24 })],
             alignment: docx.AlignmentType.JUSTIFIED, indent: { firstLine: 720 },
             spacing: { after: 120 }
           }));

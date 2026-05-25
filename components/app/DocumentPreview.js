@@ -14,6 +14,7 @@ import {
   ScrollText
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
+import { makeSectionPrefixer } from '@/utils/sectionNumbering';
 
 // Metadata for all divorce sub-document tabs across all supported states.
 // Orchestrators return `requiredDocuments` — only those keys present here are shown.
@@ -252,14 +253,12 @@ const DocumentPreview = () => {
         });
       }
       if (section.items && Array.isArray(section.items)) {
+        // Use the shared section-prefixer (utils/sectionNumbering) so the
+        // preview and the PDF/DOCX renderers can't disagree about which
+        // paragraphs get numbered. See that file for the rules.
+        const nextPrefix = makeSectionPrefixer(section.items);
         section.items.forEach((item) => {
-          // Use letter prefix for relief items, number prefix for numbered items
-          let prefix = '';
-          if (item.letter) {
-            prefix = `${item.letter}. `;
-          } else if (item.number != null) {
-            prefix = `${item.number}. `;
-          }
+          const prefix = nextPrefix(item);
           allContent.push({
             type: item.type === 'relief_item' ? 'relief_item' : 'paragraph',
             content: `${prefix}${item.content || ''}`,

@@ -14,6 +14,7 @@ import {
   ScrollText
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
+import { makeSectionPrefixer } from '@/utils/sectionNumbering';
 
 // Metadata for all divorce sub-document tabs across all supported states.
 // Orchestrators return `requiredDocuments` — only those keys present here are shown.
@@ -252,35 +253,12 @@ const DocumentPreview = () => {
         });
       }
       if (section.items && Array.isArray(section.items)) {
-        // Auto-number substantive items per section when the template
-        // supplies no numbering at all. Texas decree sections push raw
-        // "IT IS ORDERED" paragraphs with no `.number`/`.letter`, which
-        // previously rendered as unprefixed text. We only kick in when
-        // EVERY item in the section lacks both fields — sections that
-        // already mix letters and prose (e.g. petition relief intros +
-        // lettered relief items) keep their existing rendering. Bullets
-        // and pre-numbered child rows are skipped from the counter so
-        // we don't double-prefix.
-        const sectionHasNumbering = section.items.some(
-          (it) => it.letter || it.number != null,
-        );
-        let autoCounter = 0;
+        // Use the shared section-prefixer (utils/sectionNumbering) so the
+        // preview and the PDF/DOCX renderers can't disagree about which
+        // paragraphs get numbered. See that file for the rules.
+        const nextPrefix = makeSectionPrefixer(section.items);
         section.items.forEach((item) => {
-          const content = String(item.content || '');
-          const isBullet =
-            /^[•○▪◦●–\-]\s/.test(content.trim()) ||
-            /_item$/.test(item.type || '') ||
-            /^\s*\d+[.)]\s/.test(content);
-
-          let prefix = '';
-          if (item.letter) {
-            prefix = `${item.letter}. `;
-          } else if (item.number != null) {
-            prefix = `${item.number}. `;
-          } else if (!sectionHasNumbering && !isBullet) {
-            autoCounter += 1;
-            prefix = `${autoCounter}. `;
-          }
+          const prefix = nextPrefix(item);
           allContent.push({
             type: item.type === 'relief_item' ? 'relief_item' : 'paragraph',
             content: `${prefix}${item.content || ''}`,

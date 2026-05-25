@@ -170,6 +170,23 @@ async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
     affidavitService: null,
   };
 
+  // Wire `global.openAIService` FIRST, before any orchestrator selection runs.
+  // Every services/agents/* orchestrator reads it lazily at processMessage
+  // time, and AffidavitService caches it in its constructor — so the singleton
+  // must exist before either path is exercised. Doing this in its own try/catch
+  // (rather than only inside the affidavitService block below) keeps the LLM
+  // available even when the legacy AffidavitService fails to instantiate.
+  let templateManager: unknown = null;
+  try {
+    const { getServices } = require('@/lib/api/services') as {
+      getServices: () => Promise<{ templateManager: unknown }>;
+    };
+    const services = await getServices();
+    templateManager = services.templateManager;
+  } catch (err) {
+    logger.error('services_init_failed', { error: (err as Error).message });
+  }
+
   try {
     registry.triage = require('@/services/agents/TriageOrchestrator') as Orchestrator;
   } catch (err) {
@@ -211,20 +228,20 @@ async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
     }
   }
 
-  // Legacy fallback: instantiate AffidavitService with the same template manager
-  // singleton used elsewhere (lib/api/services.ts). The class constructor takes
-  // a templateManager and reads global.openAIService for chat completions.
-  try {
-    const AffidavitServiceCtor = require('@/services/affidavitService') as new (
-      tm: unknown,
-    ) => Orchestrator;
-    const { getServices } = require('@/lib/api/services') as {
-      getServices: () => { templateManager: unknown };
-    };
-    const { templateManager } = await getServices();
-    registry.affidavitService = new AffidavitServiceCtor(templateManager);
-  } catch (err) {
-    logger.warn('affidavit_service_unavailable', { error: (err as Error).message });
+  // Legacy fallback: instantiate AffidavitService with the same templateManager
+  // resolved above. Its constructor reads `global.openAIService` synchronously,
+  // which is now guaranteed wired (or absent — in which case the service will
+  // surface a clear "LLM service not available" error at request time instead
+  // of caching `undefined`).
+  if (templateManager) {
+    try {
+      const AffidavitServiceCtor = require('@/services/affidavitService') as new (
+        tm: unknown,
+      ) => Orchestrator;
+      registry.affidavitService = new AffidavitServiceCtor(templateManager);
+    } catch (err) {
+      logger.warn('affidavit_service_unavailable', { error: (err as Error).message });
+    }
   }
 
   return registry;
@@ -551,6 +568,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       result.response = result.chatResponse;
     }
     if (result.success === false) {
+      // The orchestrator handled the error internally — surface its message
+      // and log loudly so production traces show the failing path (otherwise
+      // the user sees "Sorry, I encountered an error…" with no breadcrumb).
+      logger.error('chat_orchestrator_soft_failure', {
+        sessionId,
+        userId: user.id,
+        orchestratorError: result.error,
+      });
       result.response =
         result.response ||
         result.chatResponse ||

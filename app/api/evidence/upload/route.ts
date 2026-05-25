@@ -75,7 +75,10 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const form = await req.formData().catch(() => null);
     if (!form) throw new ValidationError('Invalid multipart form data');
 
-    const file = form.get('file');
+    // The legacy Express route used multer's `upload.single('evidence')`, so
+    // EvidenceUploadModal sends the file under `evidence`. Accept that as
+    // the canonical name and fall back to `file` for future callers.
+    const file = form.get('evidence') ?? form.get('file');
     if (!(file instanceof File)) {
       throw new ValidationError('No file uploaded');
     }

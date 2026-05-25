@@ -91,7 +91,14 @@ const DIVORCE_CATEGORIES = {
 class AffidavitService {
   constructor(templateManager) {
     this.templateManager = templateManager;
-    this.openAIService = global.openAIService;
+    // Read `global.openAIService` lazily — the chat route caches this
+    // service singleton, so construction can race ahead of the LLM wiring
+    // in `lib/api/services.ts`. A getter resolves the latest value each
+    // call instead of caching `undefined` for the lifetime of the process.
+    Object.defineProperty(this, 'openAIService', {
+      get() { return global.openAIService; },
+      configurable: true,
+    });
     this.processingQueue = new Map();
 
     this.constants = {

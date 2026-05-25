@@ -30,8 +30,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     if (!affidavitData) throw new ValidationError('affidavitData is required');
 
     const { templateManager, factValidator } = await getServices();
-    const validation = (templateManager as { validateDocument: (d: unknown) => Record<string, unknown> })
-      .validateDocument(affidavitData);
+    // StateTemplateManager exposes validateAffidavitData(stateCode, data) —
+    // the older draft of this route called a non-existent `validateDocument`
+    // which threw at runtime and bricked the validation sidebar. Falls back
+    // to TX when no state is set so the call still returns a usable shape.
+    const stateCode = (affidavitData.state || 'TX').toUpperCase();
+    const validation = (templateManager as {
+      validateAffidavitData: (state: string, data: unknown) => Record<string, unknown>;
+    }).validateAffidavitData(stateCode, affidavitData);
 
     if (Array.isArray(affidavitData.facts) && affidavitData.facts.length > 0) {
       const factValidation = await (factValidator as {

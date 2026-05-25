@@ -52,26 +52,32 @@ export async function POST(req: NextRequest) {
     const trimmed = body.county.trim();
     const normalized = titleCase(trimmed.replace(/\bcounty\b/gi, '').trim());
 
+    // `useCountyValidation` reads the result off `data.validation` (matches
+    // the legacy shape). The earlier draft returned the fields at the top
+    // level so the hook always read `undefined` and treated every county as
+    // failed. Keep top-level fields too for any direct API consumer.
     if (!normalized || normalized.length < 2) {
-      return NextResponse.json({
-        success: true,
+      const validation = {
         isValid: false,
         county: trimmed,
         normalizedCounty: trimmed,
         confidence: 0,
         reasoning: 'County name appears empty or too short',
-      });
+        suggestions: [],
+      };
+      return NextResponse.json({ success: true, validation, ...validation });
     }
 
-    return NextResponse.json({
-      success: true,
+    const validation = {
       isValid: true,
       county: trimmed,
       normalizedCounty: normalized,
       state: body.state.toUpperCase(),
       confidence: 0.85,
       reasoning: 'Accepted (deterministic normalization)',
-    });
+      suggestions: [],
+    };
+    return NextResponse.json({ success: true, validation, ...validation });
   } catch (err) {
     return toErrorResponse(err);
   }

@@ -63,7 +63,10 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, state, results });
+    // `useCountyValidation.validateMultipleCounties` iterates `data.validations`
+    // — the older draft returned `results` so the hook silently skipped every
+    // batch result. Keep `results` too for any direct API consumer.
+    return NextResponse.json({ success: true, state, validations: results, results });
   } catch (err) {
     return toErrorResponse(err);
   }

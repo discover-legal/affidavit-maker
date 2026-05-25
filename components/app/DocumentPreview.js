@@ -252,13 +252,34 @@ const DocumentPreview = () => {
         });
       }
       if (section.items && Array.isArray(section.items)) {
+        // Auto-number substantive items per section when the template
+        // supplies no numbering at all. Texas decree sections push raw
+        // "IT IS ORDERED" paragraphs with no `.number`/`.letter`, which
+        // previously rendered as unprefixed text. We only kick in when
+        // EVERY item in the section lacks both fields — sections that
+        // already mix letters and prose (e.g. petition relief intros +
+        // lettered relief items) keep their existing rendering. Bullets
+        // and pre-numbered child rows are skipped from the counter so
+        // we don't double-prefix.
+        const sectionHasNumbering = section.items.some(
+          (it) => it.letter || it.number != null,
+        );
+        let autoCounter = 0;
         section.items.forEach((item) => {
-          // Use letter prefix for relief items, number prefix for numbered items
+          const content = String(item.content || '');
+          const isBullet =
+            /^[•○▪◦●–\-]\s/.test(content.trim()) ||
+            /_item$/.test(item.type || '') ||
+            /^\s*\d+[.)]\s/.test(content);
+
           let prefix = '';
           if (item.letter) {
             prefix = `${item.letter}. `;
           } else if (item.number != null) {
             prefix = `${item.number}. `;
+          } else if (!sectionHasNumbering && !isBullet) {
+            autoCounter += 1;
+            prefix = `${autoCounter}. `;
           }
           allContent.push({
             type: item.type === 'relief_item' ? 'relief_item' : 'paragraph',

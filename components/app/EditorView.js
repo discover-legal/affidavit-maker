@@ -185,8 +185,12 @@ const EditorView = ({ isNew = false, onBack }) => {
         return;
       }
 
-      // For existing documents, wait for authentication before proceeding
-      if (documentId && !isNew && !isAuthenticated) {
+      // Wait for Auth0 session to finish loading before proceeding.
+      // Without this guard, initializationDone gets set to true while
+      // isAuthenticated is still false (the useUser() hook fetches /api/auth/me
+      // asynchronously on mount), and the document is never created when the
+      // session finally resolves and the effect re-fires.
+      if (!isAuthenticated) {
         return;
       }
 
@@ -194,11 +198,12 @@ const EditorView = ({ isNew = false, onBack }) => {
       console.log('📂 Loading document from URL:', documentId, 'isNew:', isNew);
 
       if (isNew) {
-        // For new documents, initialize with forceNew=true and document type
-        initializationDone.current = true;
-
+        // For new documents, initialize with forceNew=true and document type.
+        // Only mark done AFTER success so a retry is possible if auth was
+        // still loading when this first ran.
         try {
           await initializeNewDocument(true, documentTypeFromUrl, caseTypeFromUrl);
+          initializationDone.current = true;
           // Track new document editor opened
           trackEvent('editor_opened', {
             is_new_document: true,

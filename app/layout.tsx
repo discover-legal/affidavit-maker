@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { getSession } from '@auth0/nextjs-auth0';
 import Providers from './providers';
 import './globals.css';
 
@@ -33,11 +34,18 @@ export const viewport: Viewport = {
   themeColor: '#2563eb',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Pre-populate the client-side UserProvider with the server-side session so
+  // useUser() returns the user on the very first render instead of starting
+  // with isLoading:true. Without this, the editor's initialization effect fires
+  // before auth resolves, marking the document as initialized while
+  // isAuthenticated is still false — the document is then never created.
+  const session = await getSession();
+
   return (
     <html lang="en">
       <head>
@@ -48,7 +56,7 @@ export default function RootLayout({
         <Script src="/gtm.js" strategy="afterInteractive" />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers user={session?.user}>{children}</Providers>
       </body>
     </html>
   );

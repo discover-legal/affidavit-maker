@@ -130,12 +130,12 @@ services:
         value: 'false'
 
 databases:
-  # SECURITY/RELIABILITY — `plan: free` Postgres on Render expires after 30
-  # days and lacks automated backups. Promote to a paid plan before this
-  # service holds production customer data. Free is acceptable only for
-  # staging environments.
+  # Paid flexible plan (Basic-256mb). Includes automated backups and no
+  # expiry, unlike the former `free` plan. Storage can be scaled up
+  # without downtime; bump `plan` to a larger flexible tier (e.g.
+  # basic_1gb, pro_4gb) as load grows.
   - name: affidavit-db
-    plan: free
+    plan: basic_256mb
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon

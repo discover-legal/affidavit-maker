@@ -4,17 +4,19 @@
 /**
  * routingConsistency.test.js
  *
- * Verifies that catalog.js and chat.js are in sync:
+ * Verifies that the catalog data and the chat route are in sync:
  * - The set of divorce-supported state codes matches between both files
  * - ALL_STATES has exactly 51 entries (50 states + DC)
  * - ALL_PROVINCES has exactly 13 entries (10 provinces + 3 territories)
- * - CANADIAN_PROVINCES in chat.js includes NT, YT, NU
+ * - JURISDICTION_COUNTRY in the chat route maps all 13 Canadian codes
  * - Every supported code has a matching template directory
  * - Every supported code has a matching orchestrator file
  * - Every supported code has a matching prompts directory
  *
- * Uses fs.readFileSync + regex to extract data from the route files,
- * avoiding require() which would pull in Express and other server deps.
+ * Catalog data is imported directly (lib/api/catalog-data.ts is pure data,
+ * no server deps). The chat route is parsed with fs.readFileSync + regex —
+ * requiring it would pull in withAuth, the db pool, and the rest of the
+ * request stack.
  *
  * No mocks, no network calls, no DB.
  */
@@ -22,11 +24,16 @@
 const fs = require('fs');
 const path = require('path');
 
+const {
+  ALL_STATES,
+  ALL_PROVINCES,
+  SUPPORTED_STATES,
+} = require('@/lib/api/catalog-data');
+
 // ── Paths ───────────────────────────────────────────────────────────────────
 
 const PROJECT_ROOT   = path.join(__dirname, '..', '..');
-const CATALOG_PATH   = path.join(PROJECT_ROOT, 'routes', 'catalog.js');
-const CHAT_PATH      = path.join(PROJECT_ROOT, 'routes', 'chat.js');
+const CHAT_PATH      = path.join(PROJECT_ROOT, 'app', 'api', 'chat', 'route.ts');
 const TEMPLATES_ROOT = path.join(PROJECT_ROOT, 'templates', 'states');
 const AGENTS_ROOT    = path.join(PROJECT_ROOT, 'services', 'agents');
 const PROMPTS_ROOT   = path.join(AGENTS_ROOT, 'prompts');
@@ -58,39 +65,22 @@ const CODE_TO_DIR = {
 // ── Extraction helpers ──────────────────────────────────────────────────────
 
 /**
- * Extract all 2-letter state codes from the SUPPORTED_STATES.divorce array
- * in catalog.js. The array spans multiple lines and contains string literals
- * like 'TX', 'AZ', etc.
- */
-function extractCatalogDivorceCodes(source) {
-  // Must anchor to SUPPORTED_STATES to avoid matching DOCS_BY_MATTER.divorce first
-  const supportedMatch = source.match(/SUPPORTED_STATES\s*=\s*\{[\s\S]*?divorce:\s*\[([\s\S]*?)\]/);
-  if (!supportedMatch) return [];
-
-  const block = supportedMatch[1];
-  const codes = [];
-  const codeRegex = /'([A-Z]{2})'/g;
-  let m;
-  while ((m = codeRegex.exec(block)) !== null) {
-    codes.push(m[1]);
-  }
-  return codes;
-}
-
-/**
- * Extract divorce orchestrator state codes from chat.js.
- * These appear as entries like ['TX', '../services/agents/TXDivorceOrchestrator']
- * inside the divorceOrchestrators initialization loop.
+ * Extract divorce orchestrator state codes from the chat route. These appear
+ * as entries like ['TX', () => require('@/services/agents/TXDivorceOrchestrator')]
+ * inside DIVORCE_ORCHESTRATOR_LOADERS.
  */
 function extractChatDivorceCodes(source) {
+  // `[^\n]*` skips the rest of the declaration line — the type annotation
+  // `Array<[string, () => unknown]>` contains `=` and `[` characters that
+  // would otherwise derail the match.
   const blockMatch = source.match(
-    /const\s+divorceOrchestrators\s*=\s*\{\};[\s\S]*?for\s*\(\s*const\s+\[stateCode,\s*modulePath\]\s+of\s+\[([\s\S]*?)\]\s*\)/
+    /const\s+DIVORCE_ORCHESTRATOR_LOADERS[^\n]*\n([\s\S]*?)\n\];/
   );
   if (!blockMatch) return [];
 
   const block = blockMatch[1];
   const codes = [];
-  const codeRegex = /\[\s*'([A-Z]{2})'/g;
+  const codeRegex = /\[\s*'([A-Z]{2})'\s*,/g;
   let m;
   while ((m = codeRegex.exec(block)) !== null) {
     codes.push(m[1]);
@@ -99,43 +89,14 @@ function extractChatDivorceCodes(source) {
 }
 
 /**
- * Extract ALL_STATES array from catalog.js.
- */
-function extractAllStates(source) {
-  const match = source.match(/const\s+ALL_STATES\s*=\s*\[([\s\S]*?)\]/);
-  if (!match) return [];
-  const codes = [];
-  const codeRegex = /'([A-Z]{2})'/g;
-  let m;
-  while ((m = codeRegex.exec(match[1])) !== null) {
-    codes.push(m[1]);
-  }
-  return codes;
-}
-
-/**
- * Extract ALL_PROVINCES array from catalog.js.
- */
-function extractAllProvinces(source) {
-  const match = source.match(/const\s+ALL_PROVINCES\s*=\s*\[([\s\S]*?)\]/);
-  if (!match) return [];
-  const codes = [];
-  const codeRegex = /'([A-Z]{2})'/g;
-  let m;
-  while ((m = codeRegex.exec(match[1])) !== null) {
-    codes.push(m[1]);
-  }
-  return codes;
-}
-
-/**
- * Extract CANADIAN_PROVINCES set from chat.js.
+ * Extract the jurisdiction codes mapped to country 'CA' from the chat route's
+ * JURISDICTION_COUNTRY table (successor of the legacy CANADIAN_PROVINCES set).
  */
 function extractCanadianProvinces(source) {
-  const match = source.match(/const\s+CANADIAN_PROVINCES\s*=\s*new\s+Set\(\[([\s\S]*?)\]\)/);
+  const match = source.match(/JURISDICTION_COUNTRY[^=]*=\s*\{([\s\S]*?)\};/);
   if (!match) return [];
   const codes = [];
-  const codeRegex = /'([A-Z]{2})'/g;
+  const codeRegex = /([A-Z]{2}):\s*'CA'/g;
   let m;
   while ((m = codeRegex.exec(match[1])) !== null) {
     codes.push(m[1]);
@@ -145,29 +106,28 @@ function extractCanadianProvinces(source) {
 
 // ── Eagerly load data at module level (needed for it.each/describe.each) ────
 
-const catalogSource = fs.readFileSync(CATALOG_PATH, 'utf-8');
-const chatSource    = fs.readFileSync(CHAT_PATH, 'utf-8');
+const chatSource = fs.readFileSync(CHAT_PATH, 'utf-8');
 
-const catalogDivorceCodes = extractCatalogDivorceCodes(catalogSource);
+const catalogDivorceCodes = SUPPORTED_STATES.divorce;
 const chatDivorceCodes    = extractChatDivorceCodes(chatSource);
-const allStates           = extractAllStates(catalogSource);
-const allProvinces        = extractAllProvinces(catalogSource);
+const allStates           = ALL_STATES;
+const allProvinces        = ALL_PROVINCES;
 const canadianProvinces   = extractCanadianProvinces(chatSource);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('Routing Consistency - catalog.js and chat.js', () => {
+describe('Routing Consistency - catalog-data.ts and chat route', () => {
 
   // ── 1 & 2 & 3. Catalog and chat divorce codes match ────────────────────
 
   describe('divorce code extraction sanity', () => {
-    it('should extract codes from catalog.js SUPPORTED_STATES.divorce', () => {
+    it('should expose codes via SUPPORTED_STATES.divorce', () => {
       expect(catalogDivorceCodes.length).toBeGreaterThan(0);
     });
 
-    it('should extract codes from chat.js divorceOrchestrators', () => {
+    it('should extract codes from the chat route DIVORCE_ORCHESTRATOR_LOADERS', () => {
       expect(chatDivorceCodes.length).toBeGreaterThan(0);
     });
   });
@@ -226,9 +186,9 @@ describe('Routing Consistency - catalog.js and chat.js', () => {
     });
   });
 
-  // ── 6. CANADIAN_PROVINCES in chat.js includes NT, YT, NU ──────────────
+  // ── 6. JURISDICTION_COUNTRY in the chat route covers all 13 CA codes ───
 
-  describe('CANADIAN_PROVINCES in chat.js', () => {
+  describe('Canadian jurisdictions in the chat route', () => {
     it('should include NT (Northwest Territories)', () => {
       expect(canadianProvinces).toContain('NT');
     });

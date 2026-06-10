@@ -78,7 +78,9 @@ describe('logger.sanitize', () => {
   it('emits the timestamp / event / level fields it documents', () => {
     const out = captureError(() => logger.error('event_name', { foo: 'bar' }));
     expect(out).toContain('event_name');
-    expect(out).toContain('"level":"error"');
+    // JSON in production, pretty `timestamp [level] event {detail}` otherwise —
+    // the level marker differs but must be present in both formats.
+    expect(out).toMatch(/"level":"error"|\[error\]/);
     expect(out).toContain('"foo":"bar"');
   });
 });

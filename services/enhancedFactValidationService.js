@@ -2,6 +2,7 @@
 // FIXED VERSION - Corrected async/await syntax
 
 const logger = require('../utils/logger');
+const { DEFAULT_LLM_MODEL, normalizeChatParams } = require('./llmConfig');
 
 // LRU Cache
 class LRUCache {
@@ -455,8 +456,11 @@ Use natural, persuasive affidavit language:
 
 Provide a professional rewrite following these guidelines and specific feedback.`;
 
-    const completion = await this.openai.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    // normalizeChatParams renames max_tokens / strips sampling params when
+    // the target is a GPT-5-family model (this call bypasses the resilient
+    // wrapper, so it has to normalize for itself).
+    const completion = await this.openai.chat.completions.create(normalizeChatParams({
+      model: DEFAULT_LLM_MODEL,
       messages: [
         {
           role: "system",
@@ -532,8 +536,8 @@ Provide a professional rewrite following these guidelines and specific feedback.
           }
         }
       }
-    });
-    
+    }));
+
     return JSON.parse(completion.choices[0].message.content);
   }
   

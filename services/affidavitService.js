@@ -1,6 +1,7 @@
 // services/affidavitService.js - UPDATED WITH COUNTY & CASE CAPTION COLLECTION
 const logger = require('../utils/logger');
 const courtNameService = require('./courtNameService');
+const { DEFAULT_LLM_MODEL } = require('./llmConfig');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -901,7 +902,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
       try {
         const completion = await this.openAIService.chat(messages, {
-          model: 'gpt-4o-2024-08-06',
+          model: DEFAULT_LLM_MODEL,
           temperature: 0.5,
           max_tokens: 500
         });
@@ -953,7 +954,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     try {
       const completion = await this.openAIService.chat(messages, {
-        model: 'gpt-4o-2024-08-06',
+        model: DEFAULT_LLM_MODEL,
         tools,
         tool_choice: { type: "function", function: { name: functionName } },
         temperature: 0.3,

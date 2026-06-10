@@ -92,7 +92,7 @@ services:
       - key: LLM_PROVIDER
         value: openai
       - key: LLM_MODEL
-        value: gpt-4o-2024-08-06
+        value: gpt-5.5
       - key: OPENAI_MAX_TOKENS
         value: 2000
       - key: OPENAI_TEMPERATURE

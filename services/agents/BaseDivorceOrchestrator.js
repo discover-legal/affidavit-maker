@@ -19,6 +19,7 @@
  */
 
 const logger = require('../../utils/logger');
+const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { organizeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 
@@ -270,7 +271,7 @@ class BaseDivorceOrchestrator {
     ];
 
     const completion = await openAIService.chat(messages, {
-      model:       process.env.LLM_MODEL || 'gpt-4o-2024-08-06',
+      model:       DEFAULT_LLM_MODEL,
       tools:       [this.tool],
       tool_choice: { type: 'function', function: { name: 'process_phase_data' } },
       temperature: 0.3,

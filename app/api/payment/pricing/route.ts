@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLocale } from '@/lib/locale.server';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
+import { rateLimitKey } from '@/lib/util/clientIp';
 import {
   getPrice,
   getOriginalPrice,
@@ -11,7 +13,15 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // reads request-bound headers/cookies
 
-export async function GET() {
+export async function GET(req: Request) {
+  const limit = checkRateLimit('payment-pricing', rateLimitKey(req, 'payment-pricing'), RATE_LIMITS.standard);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests' },
+      { status: 429 },
+    );
+  }
+
   const locale = getLocale();
 
   const build = (key: 'single_affidavit' | 'divorce_package' | 'all_state_access', label: string) => {

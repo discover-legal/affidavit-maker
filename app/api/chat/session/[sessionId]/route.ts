@@ -10,16 +10,19 @@ export const dynamic = 'force-dynamic';
 type Params = { sessionId: string };
 
 /**
- * Session ID format: `chat_{timestamp}_{userId}`. Verify ownership by checking
- * the suffix or embedded segment against the authenticated user. Mirrors the
- * SECURITY (MED-01) check in legacy chat.js.
+ * Session ID format: `chat_{timestamp}_{userId}` (generated server-side in
+ * app/api/chat/route.ts). Ownership requires an exact format match with the
+ * authenticated user's id as the final segment — substring checks like
+ * `endsWith('_1')` / `includes('_1_')` are ambiguous between user ids that
+ * are prefixes of each other. Hardens the SECURITY (MED-01) check from
+ * legacy chat.js.
  */
 function assertOwnsSession(sessionId: string, userId: string): void {
   if (!sessionId || sessionId.length > 100) {
     throw new ValidationError('Invalid session ID');
   }
-  const expectedSuffix = `_${userId}`;
-  const ownsSession = sessionId.endsWith(expectedSuffix) || sessionId.includes(`_${userId}_`);
+  const match = /^chat_(\d{1,17})_(\d+)$/.exec(sessionId);
+  const ownsSession = match !== null && match[2] === userId;
   if (!ownsSession) {
     logger.warn('session_ownership_violation', {
       sessionId: sessionId.substring(0, 50),

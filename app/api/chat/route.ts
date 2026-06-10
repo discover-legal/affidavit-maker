@@ -72,92 +72,97 @@ type ChatOrchestratorRegistry = {
   affidavitService: Orchestrator | null;
 };
 
-const MATTER_ORCHESTRATOR_MODULES: Array<[string, string]> = [
-  ['custody',            '@/services/agents/CustodyOrchestrator'],
-  ['child_support',      '@/services/agents/ChildSupportOrchestrator'],
-  ['dvro',               '@/services/agents/DVROOrchestrator'],
-  ['paternity',          '@/services/agents/PaternityOrchestrator'],
-  ['legal_separation',   '@/services/agents/LegalSeparationOrchestrator'],
-  ['annulment',          '@/services/agents/AnnulmentOrchestrator'],
-  ['guardianship_minor', '@/services/agents/GuardianshipOrchestrator'],
-  ['adoption',           '@/services/agents/AdoptionOrchestrator'],
-  ['emancipation',       '@/services/agents/EmancipationOrchestrator'],
-  ['small_claims',       '@/services/agents/SmallClaimsOrchestrator'],
-  ['name_change',        '@/services/agents/NameChangeOrchestrator'],
-  ['debt_defense',       '@/services/agents/DebtDefenseOrchestrator'],
-  ['landlord_tenant',    '@/services/agents/LandlordTenantOrchestrator'],
-  ['civil_harassment',   '@/services/agents/CivilHarassmentOrchestrator'],
-  ['general_civil',      '@/services/agents/GeneralCivilOrchestrator'],
-  ['probate',            '@/services/agents/ProbateOrchestrator'],
+// IMPORTANT: every require() below must take a string LITERAL. Webpack only
+// bundles modules it can resolve statically — `require(someVariable)` is left
+// as a runtime require, where the '@/' alias doesn't exist and every module
+// fails with "Cannot find module". Each entry is a thunk so one broken module
+// still only fails its own try/catch in loadOrchestrators().
+const MATTER_ORCHESTRATOR_LOADERS: Array<[string, () => unknown]> = [
+  ['custody',            () => require('@/services/agents/CustodyOrchestrator')],
+  ['child_support',      () => require('@/services/agents/ChildSupportOrchestrator')],
+  ['dvro',               () => require('@/services/agents/DVROOrchestrator')],
+  ['paternity',          () => require('@/services/agents/PaternityOrchestrator')],
+  ['legal_separation',   () => require('@/services/agents/LegalSeparationOrchestrator')],
+  ['annulment',          () => require('@/services/agents/AnnulmentOrchestrator')],
+  ['guardianship_minor', () => require('@/services/agents/GuardianshipOrchestrator')],
+  ['adoption',           () => require('@/services/agents/AdoptionOrchestrator')],
+  ['emancipation',       () => require('@/services/agents/EmancipationOrchestrator')],
+  ['small_claims',       () => require('@/services/agents/SmallClaimsOrchestrator')],
+  ['name_change',        () => require('@/services/agents/NameChangeOrchestrator')],
+  ['debt_defense',       () => require('@/services/agents/DebtDefenseOrchestrator')],
+  ['landlord_tenant',    () => require('@/services/agents/LandlordTenantOrchestrator')],
+  ['civil_harassment',   () => require('@/services/agents/CivilHarassmentOrchestrator')],
+  ['general_civil',      () => require('@/services/agents/GeneralCivilOrchestrator')],
+  ['probate',            () => require('@/services/agents/ProbateOrchestrator')],
 ];
 
-const DIVORCE_ORCHESTRATOR_MODULES: Array<[string, string]> = [
+const DIVORCE_ORCHESTRATOR_LOADERS: Array<[string, () => unknown]> = [
   // US states
-  ['TX', '@/services/agents/TXDivorceOrchestrator'],
-  ['AZ', '@/services/agents/AZDivorceOrchestrator'],
-  ['CA', '@/services/agents/CADivorceOrchestrator'],
-  ['FL', '@/services/agents/FLDivorceOrchestrator'],
-  ['IL', '@/services/agents/ILDivorceOrchestrator'],
-  ['NY', '@/services/agents/NYDivorceOrchestrator'],
-  ['UT', '@/services/agents/UTDivorceOrchestrator'],
-  ['CO', '@/services/agents/CODivorceOrchestrator'],
-  ['GA', '@/services/agents/GADivorceOrchestrator'],
-  ['MA', '@/services/agents/MADivorceOrchestrator'],
-  ['MI', '@/services/agents/MIDivorceOrchestrator'],
-  ['NC', '@/services/agents/NCDivorceOrchestrator'],
-  ['NJ', '@/services/agents/NJDivorceOrchestrator'],
-  ['OH', '@/services/agents/OHDivorceOrchestrator'],
-  ['PA', '@/services/agents/PADivorceOrchestrator'],
-  ['VA', '@/services/agents/VADivorceOrchestrator'],
-  ['WA', '@/services/agents/WADivorceOrchestrator'],
-  ['IN', '@/services/agents/INDivorceOrchestrator'],
-  ['TN', '@/services/agents/TNDivorceOrchestrator'],
-  ['MO', '@/services/agents/MODivorceOrchestrator'],
-  ['MD', '@/services/agents/MDDivorceOrchestrator'],
-  ['MN', '@/services/agents/MNDivorceOrchestrator'],
-  ['KY', '@/services/agents/KYDivorceOrchestrator'],
-  ['WI', '@/services/agents/WIDivorceOrchestrator'],
-  ['SC', '@/services/agents/SCDivorceOrchestrator'],
-  ['AL', '@/services/agents/ALDivorceOrchestrator'],
-  ['OR', '@/services/agents/ORDivorceOrchestrator'],
-  ['OK', '@/services/agents/OKDivorceOrchestrator'],
-  ['LA', '@/services/agents/LADivorceOrchestrator'],
-  ['CT', '@/services/agents/CTDivorceOrchestrator'],
-  ['NV', '@/services/agents/NVDivorceOrchestrator'],
-  ['NM', '@/services/agents/NMDivorceOrchestrator'],
-  ['ID', '@/services/agents/IDDivorceOrchestrator'],
-  ['IA', '@/services/agents/IADivorceOrchestrator'],
-  ['AR', '@/services/agents/ARDivorceOrchestrator'],
-  ['KS', '@/services/agents/KSDivorceOrchestrator'],
-  ['MS', '@/services/agents/MSDivorceOrchestrator'],
-  ['NE', '@/services/agents/NEDivorceOrchestrator'],
-  ['WV', '@/services/agents/WVDivorceOrchestrator'],
-  ['HI', '@/services/agents/HIDivorceOrchestrator'],
-  ['ME', '@/services/agents/MEDivorceOrchestrator'],
-  ['NH', '@/services/agents/NHDivorceOrchestrator'],
-  ['RI', '@/services/agents/RIDivorceOrchestrator'],
-  ['MT', '@/services/agents/MTDivorceOrchestrator'],
-  ['DE', '@/services/agents/DEDivorceOrchestrator'],
-  ['DC', '@/services/agents/DCDivorceOrchestrator'],
-  ['AK', '@/services/agents/AKDivorceOrchestrator'],
-  ['ND', '@/services/agents/NDDivorceOrchestrator'],
-  ['SD', '@/services/agents/SDDivorceOrchestrator'],
-  ['VT', '@/services/agents/VTDivorceOrchestrator'],
-  ['WY', '@/services/agents/WYDivorceOrchestrator'],
+  ['TX', () => require('@/services/agents/TXDivorceOrchestrator')],
+  ['AZ', () => require('@/services/agents/AZDivorceOrchestrator')],
+  ['CA', () => require('@/services/agents/CADivorceOrchestrator')],
+  ['FL', () => require('@/services/agents/FLDivorceOrchestrator')],
+  ['IL', () => require('@/services/agents/ILDivorceOrchestrator')],
+  ['NY', () => require('@/services/agents/NYDivorceOrchestrator')],
+  ['UT', () => require('@/services/agents/UTDivorceOrchestrator')],
+  ['CO', () => require('@/services/agents/CODivorceOrchestrator')],
+  ['GA', () => require('@/services/agents/GADivorceOrchestrator')],
+  ['MA', () => require('@/services/agents/MADivorceOrchestrator')],
+  ['MI', () => require('@/services/agents/MIDivorceOrchestrator')],
+  ['NC', () => require('@/services/agents/NCDivorceOrchestrator')],
+  ['NJ', () => require('@/services/agents/NJDivorceOrchestrator')],
+  ['OH', () => require('@/services/agents/OHDivorceOrchestrator')],
+  ['PA', () => require('@/services/agents/PADivorceOrchestrator')],
+  ['VA', () => require('@/services/agents/VADivorceOrchestrator')],
+  ['WA', () => require('@/services/agents/WADivorceOrchestrator')],
+  ['IN', () => require('@/services/agents/INDivorceOrchestrator')],
+  ['TN', () => require('@/services/agents/TNDivorceOrchestrator')],
+  ['MO', () => require('@/services/agents/MODivorceOrchestrator')],
+  ['MD', () => require('@/services/agents/MDDivorceOrchestrator')],
+  ['MN', () => require('@/services/agents/MNDivorceOrchestrator')],
+  ['KY', () => require('@/services/agents/KYDivorceOrchestrator')],
+  ['WI', () => require('@/services/agents/WIDivorceOrchestrator')],
+  ['SC', () => require('@/services/agents/SCDivorceOrchestrator')],
+  ['AL', () => require('@/services/agents/ALDivorceOrchestrator')],
+  ['OR', () => require('@/services/agents/ORDivorceOrchestrator')],
+  ['OK', () => require('@/services/agents/OKDivorceOrchestrator')],
+  ['LA', () => require('@/services/agents/LADivorceOrchestrator')],
+  ['CT', () => require('@/services/agents/CTDivorceOrchestrator')],
+  ['NV', () => require('@/services/agents/NVDivorceOrchestrator')],
+  ['NM', () => require('@/services/agents/NMDivorceOrchestrator')],
+  ['ID', () => require('@/services/agents/IDDivorceOrchestrator')],
+  ['IA', () => require('@/services/agents/IADivorceOrchestrator')],
+  ['AR', () => require('@/services/agents/ARDivorceOrchestrator')],
+  ['KS', () => require('@/services/agents/KSDivorceOrchestrator')],
+  ['MS', () => require('@/services/agents/MSDivorceOrchestrator')],
+  ['NE', () => require('@/services/agents/NEDivorceOrchestrator')],
+  ['WV', () => require('@/services/agents/WVDivorceOrchestrator')],
+  ['HI', () => require('@/services/agents/HIDivorceOrchestrator')],
+  ['ME', () => require('@/services/agents/MEDivorceOrchestrator')],
+  ['NH', () => require('@/services/agents/NHDivorceOrchestrator')],
+  ['RI', () => require('@/services/agents/RIDivorceOrchestrator')],
+  ['MT', () => require('@/services/agents/MTDivorceOrchestrator')],
+  ['DE', () => require('@/services/agents/DEDivorceOrchestrator')],
+  ['DC', () => require('@/services/agents/DCDivorceOrchestrator')],
+  ['AK', () => require('@/services/agents/AKDivorceOrchestrator')],
+  ['ND', () => require('@/services/agents/NDDivorceOrchestrator')],
+  ['SD', () => require('@/services/agents/SDDivorceOrchestrator')],
+  ['VT', () => require('@/services/agents/VTDivorceOrchestrator')],
+  ['WY', () => require('@/services/agents/WYDivorceOrchestrator')],
   // Canadian provinces & territories — federal Divorce Act
-  ['ON', '@/services/agents/ONDivorceOrchestrator'],
-  ['BC', '@/services/agents/BCDivorceOrchestrator'],
-  ['AB', '@/services/agents/ABDivorceOrchestrator'],
-  ['QC', '@/services/agents/QCDivorceOrchestrator'],
-  ['MB', '@/services/agents/MBDivorceOrchestrator'],
-  ['NB', '@/services/agents/NBDivorceOrchestrator'],
-  ['NL', '@/services/agents/NLDivorceOrchestrator'],
-  ['NS', '@/services/agents/NSDivorceOrchestrator'],
-  ['PE', '@/services/agents/PEDivorceOrchestrator'],
-  ['SK', '@/services/agents/SKDivorceOrchestrator'],
-  ['NT', '@/services/agents/NTDivorceOrchestrator'],
-  ['YT', '@/services/agents/YTDivorceOrchestrator'],
-  ['NU', '@/services/agents/NUDivorceOrchestrator'],
+  ['ON', () => require('@/services/agents/ONDivorceOrchestrator')],
+  ['BC', () => require('@/services/agents/BCDivorceOrchestrator')],
+  ['AB', () => require('@/services/agents/ABDivorceOrchestrator')],
+  ['QC', () => require('@/services/agents/QCDivorceOrchestrator')],
+  ['MB', () => require('@/services/agents/MBDivorceOrchestrator')],
+  ['NB', () => require('@/services/agents/NBDivorceOrchestrator')],
+  ['NL', () => require('@/services/agents/NLDivorceOrchestrator')],
+  ['NS', () => require('@/services/agents/NSDivorceOrchestrator')],
+  ['PE', () => require('@/services/agents/PEDivorceOrchestrator')],
+  ['SK', () => require('@/services/agents/SKDivorceOrchestrator')],
+  ['NT', () => require('@/services/agents/NTDivorceOrchestrator')],
+  ['YT', () => require('@/services/agents/YTDivorceOrchestrator')],
+  ['NU', () => require('@/services/agents/NUDivorceOrchestrator')],
 ];
 
 async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
@@ -212,17 +217,17 @@ async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
     logger.warn('affidavit_type_registry_unavailable', { error: (err as Error).message });
   }
 
-  for (const [code, mod] of MATTER_ORCHESTRATOR_MODULES) {
+  for (const [code, load] of MATTER_ORCHESTRATOR_LOADERS) {
     try {
-      registry.matter[code] = require(mod) as Orchestrator;
+      registry.matter[code] = load() as Orchestrator;
     } catch (err) {
       logger.warn('matter_orchestrator_unavailable', { code, error: (err as Error).message });
     }
   }
 
-  for (const [code, mod] of DIVORCE_ORCHESTRATOR_MODULES) {
+  for (const [code, load] of DIVORCE_ORCHESTRATOR_LOADERS) {
     try {
-      registry.divorce[code] = require(mod) as Orchestrator;
+      registry.divorce[code] = load() as Orchestrator;
     } catch (err) {
       logger.warn('divorce_orchestrator_unavailable', { code, error: (err as Error).message });
     }

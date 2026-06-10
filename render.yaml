@@ -1,7 +1,7 @@
 services:
   - type: web
     name: affidavit-maker
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
     region: oregon
@@ -130,7 +130,7 @@ services:
         value: 'false'
 
 databases:
-  # SECURITY/RELIABILITY — `plan: free` Postgres on Render expires after 90
+  # SECURITY/RELIABILITY — `plan: free` Postgres on Render expires after 30
   # days and lacks automated backups. Promote to a paid plan before this
   # service holds production customer data. Free is acceptable only for
   # staging environments.

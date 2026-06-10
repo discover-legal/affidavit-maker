@@ -2,6 +2,7 @@
 // services/ResilientOpenAIService.js 
 
 const winston = require('winston');
+const { DEFAULT_LLM_MODEL, normalizeChatParams } = require('./llmConfig');
 
 // Configure logger if not already available
 const logger = winston.createLogger({
@@ -231,7 +232,7 @@ class ResilientOpenAIService {
   filterOpenAIOptions(options) {
     // Complete list of valid OpenAI Chat Completion parameters
     const validParams = [
-      'model', 'messages', 'max_tokens', 'temperature', 'top_p', 'n', 
+      'model', 'messages', 'max_tokens', 'max_completion_tokens', 'temperature', 'top_p', 'n',
       'stream', 'stop', 'presence_penalty', 'frequency_penalty', 'logit_bias',
       'user', 'response_format', 'seed', 'tools', 'tool_choice', 'parallel_tool_calls'
     ];
@@ -286,7 +287,7 @@ class ResilientOpenAIService {
           completion_tokens: 0, 
           total_tokens: 0 
         },
-        model: options.model || 'gpt-4o-mini',
+        model: options.model || DEFAULT_LLM_MODEL,
         object: 'chat.completion'
       };
     };
@@ -294,9 +295,11 @@ class ResilientOpenAIService {
     // ✅ FIXED: Operation with proper parameter filtering
     const operation = async () => {
       return await this.retryPolicy.execute(async () => {
-        // Filter out ALL invalid parameters before sending to OpenAI
-        const cleanOptions = this.filterOpenAIOptions({
-          model: options.model || "gpt-4o-mini",
+        // Filter out ALL invalid parameters before sending to OpenAI, then
+        // normalize for the target model family (GPT-5 models reject
+        // max_tokens and sampling params — see services/llmConfig.js).
+        const cleanOptions = normalizeChatParams(this.filterOpenAIOptions({
+          model: options.model || DEFAULT_LLM_MODEL,
           messages,
           temperature: options.temperature || 0.7,
           max_tokens: options.max_tokens || 1000,
@@ -311,12 +314,12 @@ class ResilientOpenAIService {
           tools: options.tools,
           tool_choice: options.tool_choice,
           parallel_tool_calls: options.parallel_tool_calls
-        });
-        
+        }));
+
         logger.debug('Sending to OpenAI:', {
           model: cleanOptions.model,
           messageCount: cleanOptions.messages.length,
-          maxTokens: cleanOptions.max_tokens,
+          maxTokens: cleanOptions.max_tokens ?? cleanOptions.max_completion_tokens,
           stream: cleanOptions.stream,
           filteredParams: Object.keys(cleanOptions)
         });
@@ -339,8 +342,8 @@ class ResilientOpenAIService {
     this.metrics.totalRequests++;
     
     const operation = async () => {
-      const cleanOptions = this.filterOpenAIOptions({
-        model: options.model || "gpt-4o-mini",
+      const cleanOptions = normalizeChatParams(this.filterOpenAIOptions({
+        model: options.model || DEFAULT_LLM_MODEL,
         messages,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || 1000,
@@ -353,7 +356,7 @@ class ResilientOpenAIService {
         tools: options.tools,
         tool_choice: options.tool_choice,
         parallel_tool_calls: options.parallel_tool_calls
-      });
+      }));
       
       logger.debug('Starting OpenAI stream with params:', Object.keys(cleanOptions));
       

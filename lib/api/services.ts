@@ -9,6 +9,7 @@
  */
 
 import type { Pool as _Pool } from 'pg';
+import { logger } from '@/lib/logger';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -37,18 +38,24 @@ export type AppServices = {
  */
 function buildLLMClient(): unknown {
   if (!process.env.OPENAI_API_KEY) {
+    // Every chat / validation / rewrite request will fail downstream with an
+    // opaque "reading 'chat'" error, so make the root cause unmissable here.
+    logger.error('llm_client_unconfigured', {
+      reason: 'OPENAI_API_KEY is not set; chat, validation, and rewrite endpoints will fail',
+    });
     return null;
   }
-  const openaiModule = require('openai');
-  const OpenAI =
-    openaiModule.default ?? openaiModule.OpenAI ?? openaiModule;
   try {
+    const openaiModule = require('openai');
+    const OpenAI =
+      openaiModule.default ?? openaiModule.OpenAI ?? openaiModule;
     return new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
       timeout: 45000,
       maxRetries: 0,
     });
-  } catch {
+  } catch (err) {
+    logger.error('llm_client_init_failed', { error: (err as Error).message });
     return null;
   }
 }
@@ -72,7 +79,8 @@ function buildResilientLLMService(llmClient: unknown): unknown {
       chatThreshold: 5,
       resetTimeout: 120000,
     });
-  } catch {
+  } catch (err) {
+    logger.error('llm_resilient_wrapper_init_failed', { error: (err as Error).message });
     return null;
   }
 }
@@ -98,6 +106,7 @@ async function buildServices(): Promise<AppServices> {
   // globalThis, so this assignment runs at most once.
   if (resilientLLM) {
     (global as unknown as { openAIService?: unknown }).openAIService = resilientLLM;
+    logger.info('llm_service_wired');
   }
 
   const language = process.env.LLM_LANGUAGE || 'en';

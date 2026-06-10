@@ -11,7 +11,7 @@ const logger = require('../utils/logger');
 class MultiProviderLLM {
   constructor() {
     this.provider = (process.env.LLM_PROVIDER || 'openai').toLowerCase();
-    this.model = process.env.LLM_MODEL || 'gpt-4o-2024-08-06';
+    this.model = require('./llmConfig').DEFAULT_LLM_MODEL;
     this.client = this.initializeProvider();
     
     logger.info(`LLM Provider initialized: ${this.provider} with model ${this.model}`);

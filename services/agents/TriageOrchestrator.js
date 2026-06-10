@@ -21,6 +21,7 @@
  */
 
 const logger = require('../../utils/logger');
+const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { TRIAGE_PROMPT, buildTriageTool } = require('./prompts/triage/index');
 
 class TriageOrchestrator {
@@ -68,7 +69,7 @@ class TriageOrchestrator {
     ];
 
     const completion = await openAIService.chat(messages, {
-      model:       process.env.LLM_MODEL || 'gpt-4o-2024-08-06',
+      model:       DEFAULT_LLM_MODEL,
       tools:       [this.tool],
       tool_choice: { type: 'function', function: { name: 'classify_matter_type' } },
       temperature: 0.4,

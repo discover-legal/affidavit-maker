@@ -133,9 +133,10 @@ databases:
   # Paid flexible plan (Basic-256mb). Includes automated backups and no
   # expiry, unlike the former `free` plan. Storage can be scaled up
   # without downtime; bump `plan` to a larger flexible tier (e.g.
-  # basic_1gb, pro_4gb) as load grows.
+  # basic-1gb, pro-4gb) as load grows. NOTE: flexible-plan slugs are
+  # hyphenated (basic-256mb), not underscored.
   - name: affidavit-db
-    plan: basic_256mb
+    plan: basic-256mb
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon

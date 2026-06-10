@@ -14,12 +14,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/brand`, lastModified, changeFrequency: 'monthly', priority: 0.5 },
   ];
 
-  const articleRoutes: MetadataRoute.Sitemap = ARTICLES.map((article) => ({
-    url: `${BASE_URL}/resources/${article.slug}`,
-    lastModified,
-    changeFrequency: 'monthly',
-    priority: article.featured ? 0.9 : 0.7,
-  }));
+  const articleRoutes: MetadataRoute.Sitemap = ARTICLES.map((article) => {
+    // Use the article's own publish date so crawlers don't see every URL
+    // "modified" on each deploy; fall back to build time if it won't parse.
+    const published = new Date(article.publishDate);
+    return {
+      url: `${BASE_URL}/resources/${article.slug}`,
+      lastModified: Number.isNaN(published.getTime()) ? lastModified : published,
+      changeFrequency: 'monthly',
+      priority: article.featured ? 0.9 : 0.7,
+    };
+  });
 
   return [...staticRoutes, ...articleRoutes];
 }

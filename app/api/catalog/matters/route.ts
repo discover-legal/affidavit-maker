@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MATTER_TYPES } from '@/lib/api/catalog-data';
 import { ValidationError, toErrorResponse } from '@/lib/api/errors';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const limit = checkRateLimit('catalog', ip, RATE_LIMITS.standard);
+  const limit = checkRateLimit('catalog', rateLimitKey(req, 'catalog'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

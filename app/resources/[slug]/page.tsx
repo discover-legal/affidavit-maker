@@ -14,6 +14,18 @@ export function generateStaticParams() {
   return ARTICLES.map((article) => ({ slug: article.slug }));
 }
 
+// Article publishDate is human-readable ("June 10, 2026"); schema.org and
+// og:article:published_time require ISO 8601. Format from local date parts
+// rather than toISOString() so the UTC conversion can't shift the day.
+function toIsoDate(humanDate: string): string {
+  const parsed = new Date(humanDate);
+  if (Number.isNaN(parsed.getTime())) return humanDate;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, '0');
+  const d = String(parsed.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function generateMetadata({ params }: ArticlePageProps): Metadata {
   const article = getArticleBySlug(params.slug);
   if (!article) {
@@ -32,7 +44,7 @@ export function generateMetadata({ params }: ArticlePageProps): Metadata {
       title: `${article.title} | discover.legal`,
       description: article.description,
       siteName: 'discover.legal',
-      publishedTime: article.publishDate,
+      publishedTime: toIsoDate(article.publishDate),
       section: article.category,
       images: [
         {
@@ -61,8 +73,8 @@ function buildStructuredData(article: Article) {
     headline: article.title,
     description: article.description,
     url: pageUrl,
-    datePublished: article.publishDate,
-    dateModified: article.publishDate,
+    datePublished: toIsoDate(article.publishDate),
+    dateModified: toIsoDate(article.publishDate),
     author: {
       '@type': 'Organization',
       name: 'discover.legal',

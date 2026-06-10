@@ -8,11 +8,11 @@
 //   - Google Tag Manager + GA4 (loaded by app/layout.tsx)
 //   - Vercel/Next prefetch, dynamic imports (require 'self')
 //
-// `script-src` deliberately omits 'unsafe-inline' and 'unsafe-eval'. Next
-// emits a small inline runtime that needs a nonce or strict-dynamic; we use
-// strict-dynamic + a hash for the inline JSON-LD shipped by our marketing
-// pages (which is the only inline <script> we author). The Next runtime is
-// loaded as an external script from _next/static, which is allowed by 'self'.
+// `script-src` omits 'unsafe-eval' but currently INCLUDES 'unsafe-inline':
+// Next emits a small inline bootstrap runtime, and our marketing pages ship
+// inline JSON-LD <script> tags. Moving to nonces or hashes (with
+// strict-dynamic) would let the inline allowance drop — until then, do not
+// remove 'unsafe-inline' without verifying hydration and JSON-LD still load.
 //
 // `connect-src` includes Auth0 and Stripe API hosts so the SPA can reach
 // them, and 'self' for our own API routes.

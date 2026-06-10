@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { toErrorResponse } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
+import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const limit = checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests' },
+      { status: 429 },
+    );
+  }
+
   try {
     const { templateManager } = await getServices();
     const states = (templateManager as {

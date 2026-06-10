@@ -1,7 +1,7 @@
 services:
   - type: web
     name: affidavit-maker
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
     region: oregon
@@ -15,7 +15,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_TELEMETRY_DISABLED
-        value: 1
+        value: '1'
 
       # Database (auto-populated from Render PostgreSQL)
       - key: DATABASE_URL
@@ -23,10 +23,10 @@ services:
           name: affidavit-db
           property: connectionString
       - key: DATABASE_POOL_MAX
-        value: 20
+        value: '20'
       # Statement-level cap so a runaway query can't hold a worker.
       - key: DATABASE_STATEMENT_TIMEOUT_MS
-        value: 30000
+        value: '30000'
       # Set DATABASE_CA_CERT to the Render-supplied PEM bundle (paste the
       # whole certificate, BEGIN CERTIFICATE…END CERTIFICATE) to enable
       # certificate verification on the Postgres TLS handshake. Without it
@@ -40,11 +40,11 @@ services:
       # the rightmost value is the trusted client IP. If you add Cloudflare
       # in front, set TRUSTED_PROXY_HOPS=2.
       - key: TRUSTED_PROXY_HOPS
-        value: 1
+        value: '1'
       # Hard ceiling on any /api/* request body. Larger than the 10 MB
       # evidence upload limit to give multipart framing headroom.
       - key: API_MAX_BODY_BYTES
-        value: 26214400
+        value: '26214400'
 
       # Auth0 — server side
       - key: AUTH0_SECRET
@@ -94,9 +94,9 @@ services:
       - key: LLM_MODEL
         value: gpt-5.5
       - key: OPENAI_MAX_TOKENS
-        value: 2000
+        value: '2000'
       - key: OPENAI_TEMPERATURE
-        value: 0.3
+        value: '0.3'
 
       # Stripe
       - key: STRIPE_SECRET_KEY
@@ -113,7 +113,7 @@ services:
       - key: DOCUMENTS_PATH
         value: /app/documents
       - key: MAX_FILE_SIZE
-        value: 10485760
+        value: '10485760'
 
       # Logging
       - key: LOG_LEVEL
@@ -121,21 +121,21 @@ services:
 
       # Feature flags
       - key: ENABLE_INTERNATIONAL
-        value: false
+        value: 'false'
       - key: ENABLE_WEBHOOKS
-        value: true
+        value: 'true'
       - key: ENABLE_ANALYTICS
-        value: true
+        value: 'true'
       - key: MAINTENANCE_MODE
-        value: false
+        value: 'false'
 
 databases:
-  # SECURITY/RELIABILITY — `plan: free` Postgres on Render expires after 90
-  # days and lacks automated backups. Promote to a paid plan before this
-  # service holds production customer data. Free is acceptable only for
-  # staging environments.
+  # Paid flexible plan (Basic-256mb). Includes automated backups and no
+  # expiry, unlike the former `free` plan. Storage can be scaled up
+  # without downtime; bump `plan` to a larger flexible tier (e.g.
+  # basic_1gb, pro_4gb) as load grows.
   - name: affidavit-db
-    plan: free
+    plan: basic_256mb
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon

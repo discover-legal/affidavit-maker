@@ -2,8 +2,14 @@
   "name": "affidavit-maker",
   "version": "5.0.0-migration",
   "description": "Professional affidavit generation tool — Next.js + TypeScript",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev -p 3000",
+    "sdk:build": "npm run build --workspace @discover-legal/sdk",
+    "sdk:generate": "npm run generate --workspace @discover-legal/sdk",
+    "sdk:test": "npm test --workspace @discover-legal/sdk",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
@@ -17,6 +23,7 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@discover-legal/sdk": "*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

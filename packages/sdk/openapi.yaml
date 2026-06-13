@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: discover.legal Document Marketplace API
+  version: 0.1.0
+  description: >
+    Public read API for the discover.legal document marketplace. Lawyers author
+    document templates; clients browse, search, and (via the authenticated
+    purchase flow, documented separately) buy and complete them. This contract
+    covers the public, unauthenticated read surface that powers the marketplace
+    UI and partner integrations.
+
+    Every response is wrapped in a `{ success, data, timestamp }` envelope on
+    success, or `{ success: false, error, errorType, requestId, timestamp }` on
+    failure. The `@discover-legal/sdk` client unwraps `data` for you.
+  license:
+    name: UNLICENSED
+servers:
+  - url: https://discover.legal
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/marketplace/templates:
+    get:
+      operationId: listTemplates
+      summary: List / search published marketplace templates
+      description: >
+        Returns a cursor-paginated page of published templates. All parameters
+        are optional; with none supplied this lists published templates by
+        popularity. Disabled (404) unless the ENABLE_MARKETPLACE feature flag is
+        on.
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string }, description: Full-text query over title, description, and tags. }
+        - { name: matter_type, in: query, required: false, schema: { type: string } }
+        - { name: practice_area, in: query, required: false, schema: { $ref: '#/components/schemas/PracticeArea' } }
+        - { name: jurisdiction, in: query, required: false, schema: { type: string }, description: Two-letter jurisdiction code (e.g. TX, ON). }
+        - { name: min_price, in: query, required: false, schema: { type: integer, minimum: 0 }, description: Inclusive lower price bound, in cents. }
+        - { name: max_price, in: query, required: false, schema: { type: integer, minimum: 0 }, description: Inclusive upper price bound, in cents. }
+        - { name: min_rating, in: query, required: false, schema: { type: number, minimum: 0, maximum: 5 } }
+        - { name: sort, in: query, required: false, schema: { $ref: '#/components/schemas/TemplateSort' } }
+        - { name: cursor, in: query, required: false, schema: { type: string }, description: Opaque cursor from a prior page's nextCursor. }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: A page of templates.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/TemplateListPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/marketplace/templates/{slug}:
+    get:
+      operationId: getTemplateBySlug
+      summary: Fetch a single published template by slug
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The template.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [template]
+                        properties:
+                          template: { $ref: '#/components/schemas/MarketplaceTemplate' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+components:
+  responses:
+    Error:
+      description: Error envelope.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    PracticeArea:
+      type: string
+      enum: [family, civil]
+    DifficultyLevel:
+      type: string
+      enum: [basic, standard, complex]
+    TemplateSort:
+      type: string
+      enum: [popular, newest, rating, price_asc, price_desc]
+
+    LawyerSummary:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: integer }
+        displayName: { type: string }
+
+    MarketplaceTemplate:
+      type: object
+      required:
+        [id, slug, title, matterType, practiceArea, jurisdictions, priceCents,
+         tags, difficultyLevel, totalPurchases, avgRating, ratingCount]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        shortDescription: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        matterType: { type: string }
+        practiceArea: { $ref: '#/components/schemas/PracticeArea' }
+        jurisdictions: { type: array, items: { type: string } }
+        priceCents: { type: integer, description: Price in integer cents. }
+        coverImageUrl: { type: [string, 'null'] }
+        tags: { type: array, items: { type: string } }
+        estimatedMinutes: { type: [integer, 'null'] }
+        difficultyLevel: { $ref: '#/components/schemas/DifficultyLevel' }
+        totalPurchases: { type: integer }
+        avgRating: { type: number }
+        ratingCount: { type: integer }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        lawyer:
+          oneOf:
+            - $ref: '#/components/schemas/LawyerSummary'
+            - type: 'null'
+
+    TemplateListPage:
+      type: object
+      required: [templates, nextCursor, total]
+      properties:
+        templates:
+          type: array
+          items: { $ref: '#/components/schemas/MarketplaceTemplate' }
+        nextCursor: { type: [string, 'null'] }
+        total: { type: [integer, 'null'] }
+
+    SuccessEnvelope:
+      type: object
+      required: [success, data, timestamp]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: {}
+        timestamp: { type: string, format: date-time }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error: { type: string }
+        errorType: { type: string }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

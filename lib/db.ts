@@ -208,11 +208,15 @@ export async function query<T = unknown>(
  *   - app.user_id           (migration 010)
  *   - app.current_user_id   (migrations 012/013, integer cast)
  *   - app.is_admin          (migration 010)
+ *   - app.user_role         (migration 015, marketplace role policies) — only
+ *                           when `userRole` is supplied; defaults to 'client'
+ *                           in current_user_role() otherwise.
  */
 export async function withRLSContext<T>(
   userId: number,
   isAdmin: boolean,
   fn: () => Promise<T>,
+  userRole?: string,
 ): Promise<T> {
   const pool = await poolPromise();
   const client = await pool.connect();
@@ -228,6 +232,9 @@ export async function withRLSContext<T>(
       'app.is_admin',
       isAdmin ? 'true' : 'false',
     ]);
+    if (userRole) {
+      await client.query('SELECT set_config($1, $2, true)', ['app.user_role', userRole]);
+    }
 
     const result = await requestALS.run({ client }, fn);
     await client.query('COMMIT');

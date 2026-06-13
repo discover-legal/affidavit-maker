@@ -97,6 +97,12 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
+  // The marketplace SDK is an in-repo workspace package shipped as TypeScript
+  // source (main -> src/index.ts). transpilePackages tells Next to compile it
+  // through the app's pipeline rather than expecting a pre-built dist/, so the
+  // marketplace UI can import '@discover-legal/sdk' directly in dev and build.
+  transpilePackages: ['@discover-legal/sdk'],
+
   // The standalone build's tracer only ships modules reachable via static
   // import analysis. Our Route Handlers reach into the legacy CommonJS
   // services and templates trees via require() (lib/api/services.ts) and the

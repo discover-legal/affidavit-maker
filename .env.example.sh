@@ -86,6 +86,10 @@ MAX_FILE_SIZE=10485760
 # FEATURE FLAGS
 # ===========================
 ENABLE_INTERNATIONAL=false
+# Document marketplace (UI + /api/marketplace/* + SDK-backed reads). Default
+# off — when false the marketplace does not exist and current users see today's
+# product. Set true to develop/launch the marketplace.
+ENABLE_MARKETPLACE=false
 ENABLE_WEBHOOKS=true
 ENABLE_ANALYTICS=true
 ENABLE_EMAIL_NOTIFICATIONS=false

@@ -122,6 +122,11 @@ services:
       # Feature flags
       - key: ENABLE_INTERNATIONAL
         value: false
+      # Document marketplace — OFF in production until launch. When false the
+      # marketplace UI + /api/marketplace/* simply 404; current users are
+      # unaffected. Flip to true to go live.
+      - key: ENABLE_MARKETPLACE
+        value: false
       - key: ENABLE_WEBHOOKS
         value: true
       - key: ENABLE_ANALYTICS

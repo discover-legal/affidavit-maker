@@ -14,6 +14,10 @@ const config = {
   // /** @jest-environment node */ pragma.
   testEnvironment: 'jsdom',
   moduleNameMapper: {
+    // Resolve the in-repo SDK workspace to its TS source so tests run without
+    // a prior `npm run sdk:build`. Must precede the generic '@/' rule.
+    '^@discover-legal/sdk$': '<rootDir>/packages/sdk/src/index.ts',
+    '^@discover-legal/sdk/(.*)$': '<rootDir>/packages/sdk/src/$1',
     '^@/(.*)$': '<rootDir>/$1',
   },
   testPathIgnorePatterns: [

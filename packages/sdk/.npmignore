@@ -1,0 +1,6 @@
+# Source + dev artifacts — only dist/ + openapi.yaml + README ship (see "files").
+src
+tsconfig.json
+*.tsbuildinfo
+**/__tests__/**
+**/*.test.ts

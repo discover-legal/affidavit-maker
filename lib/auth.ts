@@ -1,12 +1,16 @@
 import { getSession, type Session } from '@auth0/nextjs-auth0';
 import { query, withRLSBypass } from './db';
 
+export type UserRole = 'client' | 'lawyer' | 'admin';
+
 export type AppUser = {
   /** Internal numeric primary key (SERIAL). */
   id: number;
   auth0Id: string;
   email: string;
   name: string | null;
+  /** Marketplace role (migration 015). Defaults to 'client'. */
+  role: UserRole;
 };
 
 type UserRow = {
@@ -14,7 +18,18 @@ type UserRow = {
   auth0_id: string;
   email: string;
   name: string | null;
+  user_role: UserRole | null;
 };
+
+function toAppUser(row: UserRow): AppUser {
+  return {
+    id: row.id,
+    auth0Id: row.auth0_id,
+    email: row.email,
+    name: row.name,
+    role: row.user_role ?? 'client',
+  };
+}
 
 /** Read the Auth0 session for the current request (server components and route handlers). */
 export async function getCurrentSession(): Promise<Session | null | undefined> {
@@ -50,13 +65,12 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   // user-scoped transaction.
   return withRLSBypass(async () => {
     const existing = await query<UserRow>(
-      'SELECT id, auth0_id, email, name FROM users WHERE auth0_id = $1',
+      'SELECT id, auth0_id, email, name, user_role FROM users WHERE auth0_id = $1',
       [auth0Id],
     );
 
     if (existing.rows[0]) {
-      const row = existing.rows[0];
-      return { id: row.id, auth0Id: row.auth0_id, email: row.email, name: row.name };
+      return toAppUser(existing.rows[0]);
     }
 
     // First-time provision (race with the Auth0 webhook is possible). ON CONFLICT
@@ -66,12 +80,11 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       `INSERT INTO users (auth0_id, email, name, email_verified, created_at, updated_at, last_login)
        VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
        ON CONFLICT (auth0_id) DO UPDATE SET last_login = NOW()
-       RETURNING id, auth0_id, email, name`,
+       RETURNING id, auth0_id, email, name, user_role`,
       [auth0Id, email, name, Boolean(session.user.email_verified)],
     );
 
-    const row = inserted.rows[0];
-    return { id: row.id, auth0Id: row.auth0_id, email: row.email, name: row.name };
+    return toAppUser(inserted.rows[0]);
   });
 }
 

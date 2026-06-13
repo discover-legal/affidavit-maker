@@ -23,7 +23,9 @@
       "@/lib/*": ["./lib/*"],
       "@/services/*": ["./services/*"],
       "@/templates/*": ["./templates/*"],
-      "@/utils/*": ["./utils/*"]
+      "@/utils/*": ["./utils/*"],
+      "@discover-legal/sdk": ["./packages/sdk/src/index.ts"],
+      "@discover-legal/sdk/*": ["./packages/sdk/src/*"]
     }
   },
   "include": [

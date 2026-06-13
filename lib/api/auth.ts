@@ -44,8 +44,11 @@ export function withAuth<P = Record<string, string | string[]>>(handler: AuthedH
       );
     }
 
-    return withRLSContext(user.id, /* isAdmin */ false, () =>
-      Promise.resolve(handler(req, { ...ctx, user })),
+    return withRLSContext(
+      user.id,
+      /* isAdmin */ user.role === 'admin',
+      () => Promise.resolve(handler(req, { ...ctx, user })),
+      /* userRole */ user.role,
     );
   };
 }

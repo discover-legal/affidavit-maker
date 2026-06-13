@@ -58,6 +58,32 @@ async function processPaymentSucceeded(client: PoolClient, intent: Stripe.Paymen
     [postalCode, intent.id, paymentRow.user_id],
   );
 
+  // Marketplace purchase settlement: flip the marketplace_purchases row bound
+  // to this intent to 'paid'. Scoped to the same buyer the payment is bound to
+  // (defense in depth against tampered metadata). RLS is already bypassed for
+  // this webhook transaction.
+  if (intent.metadata?.kind === 'marketplace_purchase') {
+    const settled = await client.query<{ id: number }>(
+      `UPDATE marketplace_purchases
+          SET status = 'paid', paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP),
+              updated_at = CURRENT_TIMESTAMP
+        WHERE stripe_payment_intent_id = $1 AND buyer_id = $2 AND status = 'pending'
+        RETURNING id`,
+      [intent.id, paymentRow.user_id],
+    );
+    if (settled.rowCount === 0) {
+      console.error(
+        JSON.stringify({
+          level: 'warn',
+          event: 'stripe_webhook_marketplace_purchase_unsettled',
+          intentId: intent.id,
+          buyerId: paymentRow.user_id,
+        }),
+      );
+    }
+    return;
+  }
+
   const documentIdRaw = intent.metadata?.documentId;
   if (documentIdRaw && documentIdRaw !== 'new') {
     const documentId = parseIntegerMetadata(documentIdRaw);

@@ -4,17 +4,32 @@
 const winston = require('winston');
 const { DEFAULT_LLM_MODEL, normalizeChatParams } = require('./llmConfig');
 
-// Configure logger if not already available
+// Configure logger if not already available.
+// Console always; file transport is best-effort. In containerized/read-only
+// deployments (e.g. Render running as non-root) the working dir isn't writable,
+// and a failed File transport would throw EACCES here at module load — which
+// previously took down the whole LLM service ("LLM service not available").
+const transports = [new winston.transports.Console()];
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const logsDir = path.join(process.cwd(), 'logs');
+  fs.mkdirSync(logsDir, { recursive: true });
+  transports.push(
+    new winston.transports.File({ filename: path.join(logsDir, 'openai-service.log') })
+  );
+} catch {
+  // logs dir not writable (read-only container FS) — console-only is fine;
+  // the platform (Render) already captures stdout.
+}
+
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
   ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'logs/openai-service.log' })
-  ]
+  transports
 });
 
 class CircuitBreaker {

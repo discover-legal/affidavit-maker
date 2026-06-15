@@ -2,11 +2,18 @@
 const winston = require('winston');
 const path = require('path');
 
-// Ensure logs directory exists
+// Ensure logs directory exists. Best-effort: in containerized/read-only
+// deployments (e.g. Render running as non-root) the working dir isn't writable.
+// A failed mkdir must NOT throw at module load — file logging simply degrades
+// to console-only, which the platform already captures from stdout.
 const fs = require('fs');
 const logsDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(logsDir)) {
+let fileLoggingEnabled = false;
+try {
   fs.mkdirSync(logsDir, { recursive: true });
+  fileLoggingEnabled = true;
+} catch {
+  // logs dir not writable — console-only.
 }
 
 // Define log levels
@@ -74,21 +81,24 @@ const logger = winston.createLogger({
       format: consoleFormat,
       silent: process.env.NODE_ENV === 'test'
     }),
-    // Error file transport
-    new winston.transports.File({
-      filename: path.join(logsDir, 'error.log'),
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-      format: jsonFormat
-    }),
-    // Combined file transport
-    new winston.transports.File({
-      filename: path.join(logsDir, 'combined.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-      format: jsonFormat
-    }),
+    // File transports only when the logs dir is writable (see above).
+    ...(fileLoggingEnabled ? [
+      // Error file transport
+      new winston.transports.File({
+        filename: path.join(logsDir, 'error.log'),
+        level: 'error',
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+        format: jsonFormat
+      }),
+      // Combined file transport
+      new winston.transports.File({
+        filename: path.join(logsDir, 'combined.log'),
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+        format: jsonFormat
+      }),
+    ] : []),
   ],
   exitOnError: false,
 });

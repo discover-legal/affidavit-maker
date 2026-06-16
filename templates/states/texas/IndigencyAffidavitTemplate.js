@@ -272,7 +272,7 @@ class TexasIndigencyAffidavitTemplate extends BaseAffidavitTemplate {
     const validation = this.validateData(data);
 
     // eslint-disable-next-line global-require
-    const { v4: uuidv4 } = require('uuid');
+    const { randomUUID: uuidv4 } = require('node:crypto');
     const id = uuidv4();
 
     const header = this.generateHeader();

@@ -184,8 +184,11 @@ class BaseAffidavitTemplate {
   generateDocument(affidavitData = {}) {
     const validation = this.validateData(affidavitData);
 
-    const uuid = require('uuid');
-    const id = uuid.v4();
+    // Built-in crypto.randomUUID — not the `uuid` npm package, which the
+    // Next.js standalone tracer doesn't ship for createRequire-loaded
+    // templates (see BaseDivorcePetitionTemplate.js). `require('uuid')` here
+    // threw at generation time in the production container.
+    const id = require('node:crypto').randomUUID();
 
     // Generate all sections
     const header = this.generateHeader();

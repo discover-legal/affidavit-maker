@@ -2,7 +2,14 @@
 // Base template class for final divorce decree/judgment generation
 // Provides common functionality across all states
 
-const { v4: uuidv4 } = require('uuid');
+// Use Node's built-in crypto.randomUUID (v4 UUID) instead of the `uuid`
+// npm package — see BaseDivorcePetitionTemplate.js for the full rationale.
+// In short: these templates load via createRequire against on-disk
+// node_modules, but the Next.js standalone tracer never ships
+// node_modules/uuid, so `require('uuid')` threw at load and silently
+// dropped every divorce decree from the registry. `node:crypto` is a
+// built-in and always resolvable.
+const { randomUUID: uuidv4 } = require('node:crypto');
 
 /**
  * Escape HTML special characters to prevent XSS/injection

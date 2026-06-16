@@ -60,7 +60,7 @@ class BaseMotionTemplate extends BaseDocument {
     const sections = { header, venue, caseCaption, title, intro, facts, prayer, signatureBlock, footer };
 
     return {
-      id:          require('uuid').v4(),
+      id:          require('node:crypto').randomUUID(),
       state:       this.state,
       timestamp:   new Date(),
       sections,

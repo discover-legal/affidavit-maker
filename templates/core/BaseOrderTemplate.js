@@ -68,7 +68,7 @@ class BaseOrderTemplate extends BaseDocument {
     const sections = { header, venue, caseCaption, title, preamble, findings, orders, judgeBlock, footer };
 
     return {
-      id:          require('uuid').v4(),
+      id:          require('node:crypto').randomUUID(),
       state:       this.state,
       timestamp:   new Date(),
       sections,

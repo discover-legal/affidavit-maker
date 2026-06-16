@@ -86,7 +86,7 @@ class BaseDeclarationTemplate extends BaseDocument {
     const sections = { header, caseCaption, title, intro, facts, declarationStatement, signatureBlock, footer };
 
     return {
-      id:          require('uuid').v4(),
+      id:          require('node:crypto').randomUUID(),
       state:       this.state,
       timestamp:   new Date(),
       sections,

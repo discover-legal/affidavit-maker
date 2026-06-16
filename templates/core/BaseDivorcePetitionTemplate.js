@@ -2,7 +2,16 @@
 // Base template class for divorce petition/complaint generation
 // Provides common functionality across all states
 
-const { v4: uuidv4 } = require('uuid');
+// Use Node's built-in crypto.randomUUID (v4 UUID) instead of the `uuid`
+// npm package. These templates are loaded at runtime via Node's
+// createRequire (see templates/core/TemplateLoader.js), which resolves
+// against the on-disk node_modules. Webpack inlines `uuid` into its own
+// bundle, so the standalone tracer never copies node_modules/uuid into
+// .next/standalone, and `require('uuid')` here throws "Cannot find module"
+// in the production container — which silently dropped every divorce
+// template from the registry. `node:crypto` is a built-in and always
+// resolvable, so the divorce templates load and register reliably.
+const { randomUUID: uuidv4 } = require('node:crypto');
 
 /**
  * Escape HTML special characters to prevent XSS/injection

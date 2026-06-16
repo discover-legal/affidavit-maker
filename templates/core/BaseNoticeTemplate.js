@@ -59,7 +59,7 @@ class BaseNoticeTemplate extends BaseDocument {
     const sections = { date, sender, addressee, subjectLine, body, closing, footer };
 
     return {
-      id:          require('uuid').v4(),
+      id:          require('node:crypto').randomUUID(),
       state:       this.state,
       timestamp:   new Date(),
       sections,

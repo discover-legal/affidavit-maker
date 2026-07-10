@@ -527,6 +527,30 @@ export const DocumentProvider = ({ children }) => {
       console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
+      // Life-story seed: returning users start new documents with the facts
+      // and identity they already told the AI (persisted in /api/profile),
+      // so neither they nor the interview has to re-collect them.
+      // Best-effort — a missing/failed profile must not block creation.
+      let profileSeed = {};
+      try {
+        const prof = await authFetch('/api/profile');
+        if (prof?.success && prof.data) {
+          const storedProfile = prof.data.profile || {};
+          const storedFacts = Array.isArray(prof.data.facts) ? prof.data.facts : [];
+          profileSeed = {
+            ...(storedFacts.length > 0 ? { facts: storedFacts } : {}),
+            ...(storedProfile.affiantName ? { affiantName: storedProfile.affiantName } : {}),
+            ...(storedProfile.firstName ? { firstName: storedProfile.firstName } : {}),
+            ...(storedProfile.lastName ? { lastName: storedProfile.lastName } : {}),
+            ...(Array.isArray(storedProfile.children) && storedProfile.children.length > 0
+              ? { children: storedProfile.children }
+              : {})
+          };
+        }
+      } catch (profileError) {
+        console.warn('📄 Profile seed unavailable:', profileError.message);
+      }
+
       // Never pre-fill the state — the user picks it explicitly in the
       // chat UI. A pre-filled value hides the state selector on mobile
       // and silently biases the document toward a jurisdiction the user
@@ -544,7 +568,8 @@ export const DocumentProvider = ({ children }) => {
           documentType: internalDocType,
           practiceArea: practiceArea,
           activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
-          facts: []
+          facts: [],
+          ...profileSeed
         },
         title: defaultTitle,
         content: JSON.stringify({
@@ -640,8 +665,21 @@ export const DocumentProvider = ({ children }) => {
         fullDocumentData.documentType === 'divorce_petition' ||
         fullDocumentData.documentType === 'divorce_decree';
 
+      // Persist the FULL document state, not a field whitelist. The
+      // orchestrators accumulate structured interview data (children,
+      // orchestratorState/phase, matterTypeCode, marriage + grounds fields,
+      // requiredDocuments, ...) that a whitelist silently drops — reloading
+      // the document would then restart the interview from scratch.
+      // factSummary/factSignature are derived caches the server strips anyway.
+      const {
+        factSummary: _factSummary,
+        factSignature: _factSignature,
+        ...persistableDocument
+      } = fullDocumentData;
+
       const payload = {
         affidavitData: {
+          ...persistableDocument,
           state: fullDocumentData.state || '',
           affiantName: fullDocumentData.affiantName || '',
           firstName: fullDocumentData.firstName || '',

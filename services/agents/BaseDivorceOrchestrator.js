@@ -22,6 +22,7 @@ const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { organizeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
+const { mergeChildren, removeChildrenByName, summarizeChildren } = require('../../utils/childrenMerge');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -72,6 +73,7 @@ function buildPhaseTool(stateCode) {
           children_confirmed: { type: 'boolean', description: 'true = section complete (no minor children or data collected)' },
           children: {
             type: 'array',
+            description: 'Children mentioned in THIS message only. Entries are MERGED into the already-collected list by name — previously recorded children are never removed by this field, so do not re-send them. To correct a child, re-send that child with the same name and the corrected details.',
             items: {
               type: 'object',
               properties: {
@@ -81,11 +83,18 @@ function buildPhaseTool(stateCode) {
               }
             }
           },
+          remove_children: {
+            type: 'array',
+            description: 'Names of previously recorded children to remove, ONLY when the user says a recorded child should not be on the record.',
+            items: { type: 'string' }
+          },
           custody_arrangement: { type: 'string' },
 
           // ── PROPERTY ──
           property_confirmed: { type: 'boolean' },
           property_agreement: { type: 'string', description: 'agreed | contested' },
+          has_property: { type: 'boolean', description: 'true if the parties accumulated community/marital property during the marriage, false if none' },
+          has_debts:    { type: 'boolean', description: 'true if the parties accumulated community/marital debts during the marriage, false if none' },
 
           // ── SPOUSAL SUPPORT ──
           spousal_support_confirmed: { type: 'boolean' },
@@ -162,6 +171,8 @@ const FIELD_MAP = {
   custody_arrangement:         'custodyArrangement',
   property_confirmed:          'propertyConfirmed',
   property_agreement:          'propertyAgreement',
+  has_property:                'hasProperty',
+  has_debts:                   'hasDebts',
   spousal_support_confirmed:   'spousalSupportConfirmed',
   spousal_support_requested:   'spousalSupportRequested',
   support_amount:              'supportAmount',
@@ -424,9 +435,12 @@ class BaseDivorceOrchestrator {
     if (d.county)               items.push(`${locationLabel}: ${d.county}`);
     if (d.marriageDate)         items.push(`Marriage date: ${d.marriageDate}`);
     if (d.groundsForDivorce)    items.push(`Grounds: ${d.groundsForDivorce}`);
-    if (typeof d.hasMinorChildren === 'boolean') {
+    if (Array.isArray(d.children) && d.children.length > 0) {
+      items.push(`Children recorded (${d.children.length}):\n${summarizeChildren(d.children)}`);
+    } else if (typeof d.hasMinorChildren === 'boolean') {
       items.push(`Minor children: ${d.hasMinorChildren ? 'yes' : 'no'}`);
     }
+    if (d.custodyArrangement)   items.push(`Custody arrangement: ${d.custodyArrangement}`);
     if (d.serviceMethod)        items.push(`Service method: ${d.serviceMethod}`);
     if (d.facts?.length)        items.push(`Facts documented: ${d.facts.length}`);
     return items.join('\n');
@@ -437,8 +451,21 @@ class BaseDivorceOrchestrator {
 
     for (const [snakeKey, camelKey] of Object.entries(FIELD_MAP)) {
       if (fields[snakeKey] !== undefined && fields[snakeKey] !== null && fields[snakeKey] !== '') {
-        updated[camelKey] = fields[snakeKey];
+        // Structured lists accumulate across turns — the LLM usually emits
+        // only the entry under discussion, so assignment would drop the rest.
+        if (snakeKey === 'children') {
+          updated.children = mergeChildren(divorceData.children, fields.children);
+        } else {
+          updated[camelKey] = fields[snakeKey];
+        }
       }
+    }
+
+    if (Array.isArray(fields.remove_children) && fields.remove_children.length > 0) {
+      updated.children = removeChildrenByName(updated.children, fields.remove_children);
+    }
+    if (Array.isArray(updated.children)) {
+      updated.hasMinorChildren = updated.children.length > 0;
     }
 
     // Derive full names for template compatibility
@@ -475,6 +502,12 @@ class BaseDivorceOrchestrator {
       updated.spousalSupportAwarded = true;
     } else if (updated.spousalSupportRequested === false) {
       updated.spousalSupportWaived = true;
+    }
+    // BaseDivorcePetitionTemplate gates the alimony relief item on
+    // requestSpousalSupport — without this alias a user who asked for
+    // spousal maintenance never gets it in the petition's prayer.
+    if (updated.spousalSupportRequested !== undefined && updated.requestSpousalSupport === undefined) {
+      updated.requestSpousalSupport = updated.spousalSupportRequested;
     }
 
     // Derive custodyType from custodyArrangement for decree template compatibility.

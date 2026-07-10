@@ -30,7 +30,7 @@ npm run db:migrate    # Run database migrations
 - `contexts/`, `hooks/` — Client-side React contexts and hooks (mostly `.js`, ported from CRA pending TS conversion)
 - `services/` — CommonJS business-logic modules (LLM, PDF, validation, agents). Imported by Route Handlers via `lib/api/services.ts`.
 - `templates/` — 110 jurisdiction directories + core base classes
-- `migrations/` — 13 SQL migrations
+- `migrations/` — 14 SQL migrations (015 adds `user_profiles` life-story table)
 - `__tests__/` — Jest tests
 - `docs/` — DNS, deployment, audit logs
 
@@ -208,7 +208,7 @@ affidavit-maker/
 │
 ├── templates/                   # 110 jurisdiction directories
 │
-├── migrations/                  # 13 SQL files; runs via scripts/migrate.js (Render preDeployCommand)
+├── migrations/                  # 14 SQL files; runs via scripts/migrate.js (Render preDeployCommand)
 ├── scripts/
 │   ├── migrate.js
 │   ├── cleanDatabase.js
@@ -266,6 +266,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 # Feature flags
 ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
+PAYMENTS_ENABLED=true       # Kill-switch: false stops charging — create-intent
+                            # refuses and document generation becomes free
 ```
 
 ---
@@ -376,6 +378,8 @@ Every endpoint the SPA calls is now backed by a Next.js Route Handler. Full inve
 **Payment**: POST `create-intent`, GET `status/[paymentIntentId]`, GET `history`, GET `pricing`, POST `webhook` (raw-body Stripe verification + idempotency).
 
 **Templates**: `affidavit-types`, `affidavit-types/by-category`, `affidavit-types/[typeId]`, `states`, `document-types`, `validate`, `divorce/states`, `divorce/requirements/[state]`, `divorce/document-types/[state]`, `divorce/validate`.
+
+**Profile**: GET `/api/profile` (life-story profile: structured fields + accumulated facts, table `user_profiles`), DELETE `/api/profile` (privacy erase). The chat route hydrates every conversation from this profile and merges each turn's extractions back, so facts persist across sessions and documents (`lib/api/profile.ts`).
 
 **Health**: GET `/api/health` (DB ping).
 

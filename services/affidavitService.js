@@ -2,6 +2,7 @@
 const logger = require('../utils/logger');
 const courtNameService = require('./courtNameService');
 const { DEFAULT_LLM_MODEL } = require('./llmConfig');
+const { mergeChildren } = require('../utils/childrenMerge');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -1248,13 +1249,15 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
       hasNewData = true;
     }
     if (args.children && Array.isArray(args.children) && args.children.length > 0) {
-      // Merge with existing children or replace
-      newData.children = args.children.map(child => ({
+      // Merge with existing children by identity — the LLM typically sends
+      // only the child under discussion, so assignment would drop the rest.
+      const incoming = args.children.map(child => ({
         name: child.name,
         dateOfBirth: child.date_of_birth,
         age: child.age,
         livesWith: child.lives_with
       }));
+      newData.children = mergeChildren(currentData.children, incoming);
       hasNewData = true;
     }
     if (args.custody_preference) {

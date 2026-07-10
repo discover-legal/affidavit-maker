@@ -86,6 +86,9 @@ MAX_FILE_SIZE=10485760
 # FEATURE FLAGS
 # ===========================
 ENABLE_INTERNATIONAL=false
+# Payments kill-switch: set to false to stop charging entirely —
+# create-intent refuses and document generation becomes free.
+PAYMENTS_ENABLED=true
 ENABLE_WEBHOOKS=true
 ENABLE_ANALYTICS=true
 ENABLE_EMAIL_NOTIFICATIONS=false

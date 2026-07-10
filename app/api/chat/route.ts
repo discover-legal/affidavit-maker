@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { isInternationalEnabled } from '@/lib/api/catalog-data';
+import { getUserProfile, hydrateAffidavitData, mergeUserProfileSafe } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -482,7 +483,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const message = body.message;
     const conversationHistory = body.conversationHistory as RawMessage[];
     const skipExtraction = body.skipExtraction;
-    const affidavitData: AffidavitData = {
+    let affidavitData: AffidavitData = {
       ...(body.affidavitData as AffidavitData),
     };
     if (body.documentType && !affidavitData.documentType) {
@@ -500,6 +501,20 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     if (body.sessionId) sessionId = body.sessionId;
+
+    // Life-story hydration: fill gaps from the user's persistent profile so
+    // returning users (new session, new document) never repeat themselves.
+    // Gap-fill only — anything the current conversation/document already has
+    // always wins. Best-effort: a profile read must never fail the chat turn.
+    try {
+      const storedProfile = await getUserProfile(user.id);
+      affidavitData = hydrateAffidavitData(storedProfile, affidavitData);
+    } catch (err) {
+      logger.warn('user_profile_hydration_failed', {
+        userId: user.id,
+        error: (err as Error).message,
+      });
+    }
 
     logger.info('chat_started', {
       sessionId,

@@ -61,8 +61,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           affidavitData,
-          documentId: affidavitData.documentId,
-          skipPayment: process.env.NODE_ENV === 'development'
+          documentId: affidavitData.documentId
         })
       });
 

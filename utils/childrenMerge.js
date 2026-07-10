@@ -1,0 +1,148 @@
+'use strict';
+
+/**
+ * Non-destructive merge for structured child lists collected across chat
+ * turns. The LLM usually emits only the child under discussion, so the
+ * previously collected entries must never be clobbered by assignment —
+ * match incoming entries to existing ones by identity and update in place,
+ * appending genuinely new children.
+ *
+ * Identity: normalized name when present, otherwise date of birth (any of
+ * the dob/dateOfBirth/birthDate aliases used across the codebase).
+ */
+
+const MAX_CHILDREN = 25;
+
+function normalizeName(name) {
+  if (typeof name !== 'string') return '';
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function birthDateOf(child) {
+  if (!child || typeof child !== 'object') return '';
+  const raw = child.dob ?? child.dateOfBirth ?? child.birthDate ?? child.date_of_birth;
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+function isEmptyValue(v) {
+  return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+}
+
+function findMatchIndex(list, child) {
+  const name = normalizeName(child.name);
+  if (name) {
+    const byName = list.findIndex((c) => normalizeName(c.name) === name);
+    if (byName !== -1) return byName;
+    // A first-name-only mention ("remind you about Emma") should update
+    // "Emma Smith" rather than duplicate her — but only when unambiguous.
+    const prefixMatches = list.reduce((acc, c, i) => {
+      const existing = normalizeName(c.name);
+      if (existing.startsWith(`${name} `) || name.startsWith(`${existing} `)) acc.push(i);
+      return acc;
+    }, []);
+    if (prefixMatches.length === 1) return prefixMatches[0];
+    return -1;
+  }
+  const dob = birthDateOf(child);
+  if (dob) {
+    return list.findIndex((c) => birthDateOf(c) === dob);
+  }
+  return -1;
+}
+
+/**
+ * The orchestrator tool emits `dob`, the legacy extraction path stores
+ * `dateOfBirth`, and the 100+ jurisdiction templates read `birthDate`.
+ * Stamp all three aliases so every consumer finds the date.
+ */
+function normalizeDateAliases(child) {
+  const dob = birthDateOf(child);
+  if (dob) {
+    child.dob = dob;
+    child.dateOfBirth = dob;
+    child.birthDate = dob;
+  }
+  return child;
+}
+
+/**
+ * @param {Array<Object>|undefined} existing - previously collected children
+ * @param {Array<Object>|undefined} incoming - children from the current turn
+ * @returns {Array<Object>} merged list; never loses an existing entry
+ */
+function mergeChildren(existing, incoming) {
+  const base = Array.isArray(existing)
+    ? existing.filter((c) => c && typeof c === 'object').map((c) => ({ ...c }))
+    : [];
+  if (Array.isArray(incoming)) {
+    for (const rawChild of incoming) {
+      if (!rawChild || typeof rawChild !== 'object') continue;
+      const child = { ...rawChild };
+      const idx = findMatchIndex(base, child);
+      if (idx === -1) {
+        if (base.length < MAX_CHILDREN) base.push(child);
+        continue;
+      }
+      for (const [key, value] of Object.entries(child)) {
+        if (isEmptyValue(value)) continue;
+        // Keep the more specific recorded name when the update only used a
+        // shorter form of it ("Emma" must not overwrite "Emma Smith").
+        if (
+          key === 'name' &&
+          typeof base[idx].name === 'string' &&
+          normalizeName(base[idx].name).startsWith(`${normalizeName(value)} `)
+        ) {
+          continue;
+        }
+        base[idx][key] = value;
+      }
+    }
+  }
+  return base.map(normalizeDateAliases);
+}
+
+/**
+ * Remove previously collected children by (fuzzy) name match. Used when the
+ * user corrects the record ("we only have two kids — drop Emma").
+ *
+ * @param {Array<Object>|undefined} existing
+ * @param {Array<string>|undefined} namesToRemove
+ * @returns {Array<Object>}
+ */
+function removeChildrenByName(existing, namesToRemove) {
+  if (!Array.isArray(existing) || existing.length === 0) return [];
+  if (!Array.isArray(namesToRemove) || namesToRemove.length === 0) {
+    return existing;
+  }
+  const targets = namesToRemove.map(normalizeName).filter(Boolean);
+  if (targets.length === 0) return existing;
+  return existing.filter((c) => {
+    const name = normalizeName(c && c.name);
+    return !targets.some(
+      (t) => name === t || name.startsWith(`${t} `) || t.startsWith(`${name} `),
+    );
+  });
+}
+
+/**
+ * Human-readable one-line-per-child summary for prompt context blocks.
+ * @param {Array<Object>|undefined} children
+ * @returns {string} e.g. "1. Emma Smith (DOB 2015-04-02)\n2. Liam Smith (age 7)"
+ */
+function summarizeChildren(children) {
+  if (!Array.isArray(children) || children.length === 0) return '';
+  return children
+    .map((c, i) => {
+      const name = (c && typeof c.name === 'string' && c.name.trim()) || 'Unnamed child';
+      const dob = birthDateOf(c);
+      const detail = dob
+        ? ` (DOB ${dob})`
+        : c && (c.age !== undefined && c.age !== null && c.age !== '')
+          ? ` (age ${c.age})`
+          : '';
+      return `${i + 1}. ${name}${detail}`;
+    })
+    .join('\n');
+}
+
+module.exports = { mergeChildren, removeChildrenByName, summarizeChildren, birthDateOf };

@@ -368,8 +368,24 @@ const EditorView = ({ isNew = false, onBack }) => {
         // Document already paid - proceed with download
         await performDownload();
       } else {
-        // Payment required - show payment modal
-        setIsPaymentModalOpen(true);
+        // Kill-switch: when payments are disabled server-side
+        // (PAYMENTS_ENABLED=false), the generate endpoint is free — go
+        // straight to download instead of a payment modal that can't charge.
+        let paymentsOn = true;
+        try {
+          const pricingRes = await fetch(`${API_BASE_URL}/api/payment/pricing`);
+          const pricing = await pricingRes.json();
+          if (pricing && pricing.paymentsEnabled === false) paymentsOn = false;
+        } catch (pricingError) {
+          console.warn('Pricing check failed, assuming payments enabled:', pricingError);
+        }
+
+        if (!paymentsOn) {
+          await performDownload();
+        } else {
+          // Payment required - show payment modal
+          setIsPaymentModalOpen(true);
+        }
       }
     } catch (error) {
       console.error('❌ Download initiation failed:', error);

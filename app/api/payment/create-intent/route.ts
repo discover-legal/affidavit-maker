@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
-import { getStripe } from '@/lib/api/stripe';
+import { getStripe, paymentsEnabled } from '@/lib/api/stripe';
 import { getLocale } from '@/lib/locale.server';
 import {
   getPrice,
@@ -31,6 +31,17 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 },
+      );
+    }
+
+    if (!paymentsEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payments are temporarily disabled',
+          errorType: 'payments_disabled',
+        },
+        { status: 503 },
       );
     }
 

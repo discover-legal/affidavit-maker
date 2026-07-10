@@ -27,6 +27,7 @@ const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { organizeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
+const { mergeChildren, summarizeChildren } = require('../../utils/childrenMerge');
 
 // ─── Phase → default fact category ───────────────────────────────────────────
 const DEFAULT_PHASE_CATEGORY = {
@@ -283,7 +284,7 @@ class BaseMatterOrchestrator {
     if (d.defendantName)    items.push(`Defendant: ${d.defendantName}`);
     if (d.state)            items.push(`State: ${d.state}`);
     if (d.county)           items.push(`County: ${d.county}`);
-    if (d.children?.length) items.push(`Children: ${d.children.map(c => c.name || c).join(', ')}`);
+    if (d.children?.length) items.push(`Children recorded (${d.children.length}):\n${summarizeChildren(d.children)}`);
     if (d.facts?.length)    items.push(`Facts documented: ${d.facts.length}`);
     return items.join('\n');
   }
@@ -293,7 +294,27 @@ class BaseMatterOrchestrator {
 
     for (const [snakeKey, camelKey] of Object.entries(this.fieldMap)) {
       if (fields[snakeKey] !== undefined && fields[snakeKey] !== null && fields[snakeKey] !== '') {
-        updated[camelKey] = fields[snakeKey];
+        // Children accumulate across turns (custody, DVRO, ...) — the LLM
+        // usually emits only the child under discussion, so a wholesale
+        // assignment would drop the previously collected entries.
+        if (camelKey === 'children') {
+          updated.children = mergeChildren(matterData.children, fields[snakeKey]);
+        } else if (Array.isArray(fields[snakeKey]) && Array.isArray(matterData[camelKey])) {
+          // Other list fields (e.g. DVRO relief_items): append new entries,
+          // never lose old ones. Dedupe by serialized value.
+          const seen = new Set(matterData[camelKey].map((v) => JSON.stringify(v)));
+          const merged = [...matterData[camelKey]];
+          for (const item of fields[snakeKey]) {
+            const key = JSON.stringify(item);
+            if (!seen.has(key)) {
+              seen.add(key);
+              merged.push(item);
+            }
+          }
+          updated[camelKey] = merged;
+        } else {
+          updated[camelKey] = fields[snakeKey];
+        }
       }
     }
 

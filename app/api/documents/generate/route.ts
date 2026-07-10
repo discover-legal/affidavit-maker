@@ -12,6 +12,7 @@ import {
   toErrorResponse,
 } from '@/lib/api/errors';
 import { ALL_STATES, ALL_PROVINCES, isInternationalEnabled } from '@/lib/api/catalog-data';
+import { paymentsEnabled } from '@/lib/api/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -138,7 +139,22 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // branch — by the time the SPA hits /generate, the payment webhook
     // should have already flipped payment_status. If a race surfaces we'll
     // reintroduce the fallback in a follow-up.
-    if (documentId) {
+    if (documentId && !paymentsEnabled()) {
+      // Payments kill-switch is on — generation is free. Ownership is still
+      // enforced (the document must belong to the requesting user).
+      const ownerCheck = await query<{ id: string }>(
+        'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
+        [documentId, user.id],
+      );
+      if (ownerCheck.rows.length === 0) {
+        throw new NotFoundError('Document not found');
+      }
+      logger.info('document_generate_payment_gate_bypassed', {
+        userId: user.id,
+        documentId,
+        reason: 'PAYMENTS_ENABLED=false',
+      });
+    } else if (documentId) {
       const paymentCheck = await query<{ payment_status: string | null }>(
         'SELECT payment_status FROM documents WHERE id = $1 AND user_id = $2',
         [documentId, user.id],

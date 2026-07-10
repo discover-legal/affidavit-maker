@@ -297,7 +297,18 @@ class BaseAffidavitTemplate {
    */
   generateIntroduction(affidavitData) {
     const name = affidavitData.affiantName || '[NAME]';
-    return `I, ${name}, being duly sworn, depose and state as follows:`;
+    // Residence clause — standard affidavit form, and required for the
+    // residency/domicile affidavit types whose interviews collect it.
+    const residence = [
+      affidavitData.affiantAddress,
+      affidavitData.affiantCity,
+      affidavitData.affiantStateName,
+      affidavitData.affiantZip,
+    ]
+      .filter((part) => typeof part === 'string' && part.trim() !== '')
+      .join(', ');
+    const residing = residence ? `, residing at ${residence}` : '';
+    return `I, ${name}${residing}, being duly sworn, depose and state as follows:`;
   }
 
   /**

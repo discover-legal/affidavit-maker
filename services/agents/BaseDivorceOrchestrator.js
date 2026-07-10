@@ -20,7 +20,7 @@
 
 const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
-const { organizeFacts } = require('./FactOrganizer');
+const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, removeChildrenByName, summarizeChildren } = require('../../utils/childrenMerge');
 
@@ -89,6 +89,9 @@ function buildPhaseTool(stateCode) {
             items: { type: 'string' }
           },
           custody_arrangement: { type: 'string' },
+          primary_custodian: { type: 'string', description: "Who has primary physical custody: 'petitioner', 'respondent', or the parent's name" },
+          child_support_amount: { type: 'number', description: 'Monthly child support amount in dollars, if agreed or known' },
+          child_support_payor: { type: 'string', description: "Who pays child support: 'petitioner' or 'respondent'" },
 
           // ── PROPERTY ──
           property_confirmed: { type: 'boolean' },
@@ -169,6 +172,9 @@ const FIELD_MAP = {
   children_confirmed:          'childrenConfirmed',
   children:                    'children',
   custody_arrangement:         'custodyArrangement',
+  primary_custodian:           'primaryCustodian',
+  child_support_amount:        'childSupportAmount',
+  child_support_payor:         'childSupportPayor',
   property_confirmed:          'propertyConfirmed',
   property_agreement:          'propertyAgreement',
   has_property:                'hasProperty',
@@ -305,10 +311,9 @@ class BaseDivorceOrchestrator {
 
     const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase);
     if (newFacts.length > 0) {
-      updatedData.facts = [...(updatedData.facts || []), ...newFacts];
-    }
-    if (updatedData.facts?.length > 0) {
-      updatedData.facts = organizeFacts(updatedData.facts);
+      // Upsert only — never re-sort. A wholesale organizeFacts() here would
+      // silently undo the user's manual fact ordering on every chat turn.
+      updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
     if (phase_complete) {
@@ -516,6 +521,28 @@ class BaseDivorceOrchestrator {
     // (from custody_arrangement). Without this alias the decree always defaults to 'joint'.
     if (updated.custodyArrangement !== undefined && updated.custodyType === undefined) {
       updated.custodyType = updated.custodyArrangement;
+    }
+
+    // The decree templates print these fields verbatim, so resolve
+    // party-role answers ('petitioner' / 'respondent') to the actual names.
+    const roleToName = (value) => {
+      const s = String(value || '').trim();
+      const role = s.toLowerCase();
+      if (role === 'petitioner' || role === 'plaintiff') return updated.petitionerName || s;
+      if (role === 'respondent' || role === 'defendant') return updated.respondentName || s;
+      return s;
+    };
+    if (updated.primaryCustodian) {
+      updated.primaryCustodian = roleToName(updated.primaryCustodian);
+    }
+    if (updated.childSupportPayor) {
+      const role = String(updated.childSupportPayor).trim().toLowerCase();
+      updated.childSupportObligor = roleToName(updated.childSupportPayor);
+      if (role === 'petitioner' && updated.respondentName) {
+        updated.childSupportObligee = updated.respondentName;
+      } else if (role === 'respondent' && updated.petitionerName) {
+        updated.childSupportObligee = updated.petitionerName;
+      }
     }
 
     return updated;

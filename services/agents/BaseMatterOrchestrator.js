@@ -25,7 +25,7 @@
 
 const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
-const { organizeFacts } = require('./FactOrganizer');
+const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, summarizeChildren } = require('../../utils/childrenMerge');
 
@@ -184,10 +184,9 @@ class BaseMatterOrchestrator {
 
     const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase);
     if (newFacts.length > 0) {
-      updatedData.facts = [...(updatedData.facts || []), ...newFacts];
-    }
-    if (updatedData.facts?.length > 0) {
-      updatedData.facts = organizeFacts(updatedData.facts);
+      // Upsert only — never re-sort. A wholesale organizeFacts() here would
+      // silently undo the user's manual fact ordering on every chat turn.
+      updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
     if (phase_complete) {

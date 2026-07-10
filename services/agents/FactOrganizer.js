@@ -122,6 +122,64 @@ function organizeFacts(facts) {
   return annotated.map(a => a.fact);
 }
 
+function normalizeContent(fact) {
+  const content = typeof fact === 'string' ? fact : fact && fact.content;
+  return String(content || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Per-turn fact upsert that PRESERVES the existing order.
+ *
+ * organizeFacts() re-sorts the whole list, which silently undoes any manual
+ * drag-and-drop ordering the user did in the review UI. This merge never
+ * moves an existing fact:
+ *   - a new fact that duplicates an existing one (by id, else by normalized
+ *     content) updates it in place;
+ *   - a genuinely new fact is inserted after the LAST existing fact of the
+ *     same section, so it lands with its topic;
+ *   - with no section sibling it is appended at the end.
+ *
+ * @param {Array} existingFacts - current facts, in user-approved order
+ * @param {Array} newFacts - facts extracted this turn
+ * @returns {Array} merged facts
+ */
+function mergeFacts(existingFacts, newFacts) {
+  const merged = Array.isArray(existingFacts) ? [...existingFacts] : [];
+  if (!Array.isArray(newFacts) || newFacts.length === 0) return merged;
+
+  for (const newFact of newFacts) {
+    if (!newFact) continue;
+
+    const id = typeof newFact === 'object' ? newFact.id : undefined;
+    const contentKey = normalizeContent(newFact);
+    const existingIndex = merged.findIndex((f) => {
+      if (id && f && typeof f === 'object' && f.id === id) return true;
+      return contentKey !== '' && normalizeContent(f) === contentKey;
+    });
+
+    if (existingIndex !== -1) {
+      const existing = merged[existingIndex];
+      merged[existingIndex] =
+        existing && typeof existing === 'object' && typeof newFact === 'object'
+          ? { ...existing, ...newFact, id: existing.id || newFact.id }
+          : newFact;
+      continue;
+    }
+
+    const section = getSectionForFact(newFact);
+    let insertAt = merged.length;
+    for (let i = merged.length - 1; i >= 0; i--) {
+      if (getSectionForFact(merged[i]) === section) {
+        insertAt = i + 1;
+        break;
+      }
+    }
+    merged.splice(insertAt, 0, newFact);
+  }
+
+  return merged;
+}
+
 /**
  * Get the human-readable section name for a fact (used for UI grouping).
  *
@@ -145,4 +203,4 @@ function getSectionName(fact) {
   return SECTION_NAMES[section] || 'General';
 }
 
-module.exports = { organizeFacts, getSectionForFact, getSectionName, SECTION_ORDER };
+module.exports = { organizeFacts, mergeFacts, getSectionForFact, getSectionName, SECTION_ORDER };

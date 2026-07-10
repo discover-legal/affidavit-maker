@@ -250,6 +250,36 @@ export function categoryLabel(category: unknown): string {
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/[_-]+/g, ' ');
 }
 
+export type StoryProgress = { known: number; total: number };
+
+/**
+ * How much of the core story has been shared — the friendly meter in the
+ * page header. Counts the universal slots only (optional sections like a
+ * protective order never count against the user).
+ */
+export function storyProgress(profile: Record<string, unknown>): StoryProgress {
+  const has = (v: unknown) =>
+    v !== undefined &&
+    v !== null &&
+    !(typeof v === 'string' && v.trim() === '') &&
+    !(Array.isArray(v) && v.length === 0);
+  const slots = [
+    has(profile.affiantName) ||
+      has(profile.petitionerFirstName) ||
+      has(profile.petitionerName) ||
+      has(profile.firstName),
+    has(profile.respondentName) || has(profile.respondentFirstName),
+    has(profile.marriageDate),
+    has(profile.marriageCity) || has(profile.marriageLocation) || has(profile.marriagePlace),
+    has(profile.state) || has(profile.county),
+    has(profile.residencyStateMonths),
+    has(profile.monthlyIncome),
+    has(profile.monthlyExpenses),
+    has(profile.children) || profile.hasMinorChildren === false,
+  ];
+  return { known: slots.filter(Boolean).length, total: slots.length };
+}
+
 export type FactChapter = { label: string; facts: string[] };
 
 /** Group first-person fact statements into labeled chapters, preserving order. */

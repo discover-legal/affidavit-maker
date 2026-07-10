@@ -236,14 +236,44 @@ const documentReducer = (state, action) => {
       };
 
     case ActionTypes.MERGE_PROFESSIONAL_REWRITES:
-      // Merge professional rewrites from validation results into facts
+      // Merge professional rewrites from validation results into facts.
+      // Results are index-parallel to the facts SENT with the validate
+      // request — not to the current facts array, which may have been
+      // reordered or extended by an in-flight chat turn since. When the
+      // dispatcher includes `factRefs` (a snapshot of the sent facts'
+      // id/content), match each result back to its fact by id, falling
+      // back to normalized content; only legacy callers without refs get
+      // the old index alignment.
       const validationResults = action.payload;
       if (!validationResults?.results || !Array.isArray(state.currentDocument.facts)) {
         return state;
       }
 
+      const normalizeFactContent = (value) =>
+        String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      const factRefs = Array.isArray(validationResults.factRefs)
+        ? validationResults.factRefs
+        : null;
+      const resultById = new Map();
+      const resultByContent = new Map();
+      if (factRefs) {
+        validationResults.results.forEach((result, index) => {
+          const ref = factRefs[index];
+          if (!result || !ref) return;
+          if (ref.id) resultById.set(ref.id, result);
+          const contentKey = normalizeFactContent(ref.content);
+          if (contentKey && !resultByContent.has(contentKey)) {
+            resultByContent.set(contentKey, result);
+          }
+        });
+      }
+
       const updatedFacts = state.currentDocument.facts.map((fact, index) => {
-        const validationResult = validationResults.results[index];
+        const validationResult = factRefs
+          ? (fact?.id && resultById.get(fact.id)) ||
+            resultByContent.get(normalizeFactContent(fact?.content))
+          : validationResults.results[index];
         if (validationResult && validationResult.professionalRewrite) {
           return {
             ...fact,
@@ -833,11 +863,20 @@ export const DocumentProvider = ({ children }) => {
           payload: data.validation
         });
 
-        // Optionally merge professional rewrites into facts
+        // Optionally merge professional rewrites into facts. Snapshot which
+        // facts were SENT (id + content) so the reducer can match results
+        // back even if the facts array changed while the request was
+        // in flight (new chat turn, manual reorder).
         if (mergeProfessionalRewrites && data.validation.factValidation) {
+          const factsSent = Array.isArray(payload.affidavitData.facts)
+            ? payload.affidavitData.facts
+            : [];
           dispatch({
             type: ActionTypes.MERGE_PROFESSIONAL_REWRITES,
-            payload: data.validation.factValidation
+            payload: {
+              ...data.validation.factValidation,
+              factRefs: factsSent.map((f) => ({ id: f?.id, content: f?.content }))
+            }
           });
         }
 

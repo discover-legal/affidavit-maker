@@ -2,13 +2,29 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Feather, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Banknote,
+  Feather,
+  Heart,
+  Loader2,
+  MapPin,
+  Quote,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Users,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   buildRecitals,
   childBirthDate,
   computeAge,
   formatFriendlyDate,
   groupFacts,
+  parseKnownDate,
+  storyProgress,
   type ProfileChild,
   type Recital,
   type Segment,
@@ -24,6 +40,20 @@ type ProfileResponse = {
 };
 
 type LoadState = 'loading' | 'ready' | 'error';
+
+// Mark colors validated for CVD + contrast on the paper surface
+// (dataviz six-checks): brand blue for "in"/figures, warm amber for "out".
+const INK_IN = '#2563eb';
+const INK_OUT = '#b45309';
+
+const CHAPTER_ICONS: Record<string, LucideIcon> = {
+  'Where you live': MapPin,
+  'Why you are filing': Scale,
+  'Your children': Users,
+  'Your relationships': Heart,
+  'Money matters': Banknote,
+  'What you own': Banknote,
+};
 
 function SegmentSpan({ segment }: { segment: Segment }) {
   if (segment.kind === 'value') {
@@ -43,40 +73,190 @@ function SegmentSpan({ segment }: { segment: Segment }) {
   return <>{segment.text}</>;
 }
 
-function RecitalLine({ recital, index }: { recital: Recital; index: number }) {
+/**
+ * A friendly standing person silhouette. Height scales with age so the
+ * family row reads like a portrait: grown-ups tall, little ones little.
+ */
+function PersonFigure({ heightScale }: { heightScale: number }) {
+  const h = Math.round(88 * heightScale);
   return (
-    <li
-      className="life-story-line flex gap-4"
-      style={{ animationDelay: `${150 + index * 120}ms` }}
+    <svg
+      width={Math.max(26, Math.round(40 * heightScale))}
+      height={h}
+      viewBox="0 0 40 96"
+      preserveAspectRatio="xMidYMax meet"
+      aria-hidden="true"
+      className="block"
     >
+      <circle cx="20" cy="13" r="11" fill={INK_IN} />
+      <path
+        d="M20 27 C9 27 6 36 6 47 L6 74 C6 79 10 82 14 82 L14 96 L26 96 L26 82 C30 82 34 79 34 74 L34 47 C34 36 31 27 20 27 Z"
+        fill={INK_IN}
+      />
+    </svg>
+  );
+}
+
+function FamilyRow({ members }: { members: ProfileChild[] }) {
+  return (
+    <div className="mt-4 flex items-end gap-5 overflow-x-auto border-b-2 border-gray-200 pb-0 sm:gap-7">
+      {members.map((child, i) => {
+        const age = computeAge(child);
+        // 4-year-olds come up to a grown-up's waist; cap growth at 18.
+        const scale = age === null ? 0.75 : 0.45 + 0.55 * Math.min(age, 18) / 18;
+        const dob = formatFriendlyDate(childBirthDate(child));
+        return (
+          <figure
+            key={`${child.name || 'child'}-${i}`}
+            className="flex min-w-0 flex-col items-center"
+            title={dob ? `Born ${dob}` : undefined}
+          >
+            <PersonFigure heightScale={scale} />
+            <figcaption className="mt-2 pb-2 text-center font-sans">
+              <span className="block max-w-[7rem] truncate text-sm font-semibold text-gray-800">
+                {(child.name || 'A child').split(' ')[0]}
+              </span>
+              {age !== null && <span className="block text-xs text-gray-500">age {age}</span>}
+            </figcaption>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Married ●────● separated ──→ today, positioned proportionally in time. */
+function MarriageTimeline({ profile }: { profile: Record<string, unknown> }) {
+  const married = parseKnownDate(profile.marriageDate);
+  if (!married) return null;
+  const separated = parseKnownDate(profile.separationDate);
+  const now = new Date();
+  const span = now.getTime() - married.getTime();
+  if (span <= 0) return null;
+
+  // Clamp so event labels never collide with the fixed "Today" label on
+  // narrow screens (a recent separation would otherwise sit at ~90%).
+  const posOf = (d: Date) =>
+    Math.min(68, Math.max(8, ((d.getTime() - married.getTime()) / span) * 100));
+  const events: Array<{ label: string; year: string; pos: number }> = [
+    { label: 'Married', year: String(married.getFullYear()), pos: 8 },
+  ];
+  if (separated && separated > married) {
+    events.push({ label: 'Separated', year: String(separated.getFullYear()), pos: posOf(separated) });
+  }
+
+  return (
+    <div className="mt-4 font-sans" aria-hidden="true">
+      <div className="relative h-2">
+        <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-gray-200" />
+        {events.map((e) => (
+          <span
+            key={e.label}
+            className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
+            style={{ left: `${e.pos}%`, backgroundColor: INK_IN }}
+          />
+        ))}
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300">▸</span>
+      </div>
+      <div className="relative mt-1.5 h-9 text-xs">
+        {events.map((e) => (
+          <span
+            key={e.label}
+            className="absolute -translate-x-1/2 text-center leading-tight"
+            style={{ left: `${e.pos}%` }}
+          >
+            <span className="block font-semibold text-gray-700">{e.label}</span>
+            <span className="block text-gray-400">{e.year}</span>
+          </span>
+        ))}
+        <span className="absolute right-0 text-right leading-tight">
+          <span className="block font-semibold text-gray-700">Today</span>
+          <span className="block text-gray-400">{now.getFullYear()}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Two thin labeled bars: what comes in vs what goes out. */
+function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
+  const income = Number(profile.monthlyIncome);
+  const expenses = Number(profile.monthlyExpenses);
+  const rows = [
+    { label: 'Comes in', amount: income, color: INK_IN },
+    { label: 'Goes out', amount: expenses, color: INK_OUT },
+  ].filter((r) => Number.isFinite(r.amount) && r.amount > 0);
+  if (rows.length === 0) return null;
+  const max = Math.max(...rows.map((r) => r.amount));
+
+  return (
+    <div className="mt-4 space-y-2 font-sans" aria-hidden="true">
+      {rows.map((row) => (
+        <div key={row.label} className="flex items-center gap-3 text-sm">
+          <span className="w-20 shrink-0 text-gray-500">{row.label}</span>
+          <div className="h-2.5 flex-1 rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${Math.max(4, (row.amount / max) * 100)}%`, backgroundColor: row.color }}
+            />
+          </div>
+          <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-gray-800">
+            ${Math.round(row.amount).toLocaleString('en-US')}
+            <span className="font-normal text-gray-400">/mo</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Segmented "how much of your story is told" meter. */
+function StoryMeter({ known, total }: { known: number; total: number }) {
+  return (
+    <div className="font-sans">
+      <div className="flex items-center gap-1.5" role="img" aria-label={`${known} of ${total} story details shared`}>
+        {Array.from({ length: total }, (_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 w-5 rounded-full ${i < known ? 'bg-brand' : 'bg-gray-200'}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-gray-500">
+        {known === total
+          ? 'Your core story is complete'
+          : `${known} of ${total} story details shared`}
+      </p>
+    </div>
+  );
+}
+
+function RecitalLine({
+  recital,
+  index,
+  visual,
+}: {
+  recital: Recital;
+  index: number;
+  visual?: React.ReactNode;
+}) {
+  return (
+    <li className="life-story-line flex gap-4" style={{ animationDelay: `${150 + index * 120}ms` }}>
       <span
         aria-hidden="true"
         className="mt-1 w-6 shrink-0 select-none text-right font-sans text-sm font-semibold tabular-nums text-gray-300"
       >
         {index + 1}.
       </span>
-      <p className="text-lg leading-relaxed text-gray-800 sm:text-xl">
-        {recital.segments.map((segment, i) => (
-          <SegmentSpan key={i} segment={segment} />
-        ))}
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="text-lg leading-relaxed text-gray-800 sm:text-xl">
+          {recital.segments.map((segment, i) => (
+            <SegmentSpan key={i} segment={segment} />
+          ))}
+        </p>
+        {visual}
+      </div>
     </li>
-  );
-}
-
-function ChildChip({ child }: { child: ProfileChild }) {
-  const age = computeAge(child);
-  const dob = formatFriendlyDate(childBirthDate(child));
-  return (
-    <span
-      className="inline-flex items-baseline gap-2 rounded-full border border-brand-soft bg-brand-tint/60 px-3.5 py-1.5"
-      title={dob ? `Born ${dob}` : undefined}
-    >
-      <span className="font-serif text-base font-medium text-gray-900">
-        {child.name || 'A child'}
-      </span>
-      {age !== null && <span className="text-sm text-brand-strong">{age}</span>}
-    </span>
   );
 }
 
@@ -126,8 +306,16 @@ export default function LifeStoryClient() {
   const recitals = buildRecitals(profile);
   const chapters = groupFacts(facts);
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
-  const knownCount = recitals.filter((r) => r.known).length;
-  const isEmpty = knownCount === 0 && children.length === 0 && chapters.length === 0;
+  const progress = storyProgress(profile);
+  const isEmpty =
+    recitals.every((r) => !r.known) && children.length === 0 && chapters.length === 0;
+
+  // Each recital can carry an illustration beneath its sentence.
+  const visualFor = (recital: Recital): React.ReactNode => {
+    if (recital.id === 'marriage') return <MarriageTimeline profile={profile} />;
+    if (recital.id === 'finances') return <MoneyBars profile={profile} />;
+    return null;
+  };
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -151,15 +339,20 @@ export default function LifeStoryClient() {
         Dashboard
       </button>
 
-      <header className="mb-8">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-          In the matter of
-        </p>
-        <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">Your life story</h1>
-        <p className="mt-3 max-w-xl text-gray-600">
-          Everything your assistant remembers from your conversations — so you never
-          have to repeat yourself, in any document.
-        </p>
+      <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+            In the matter of
+          </p>
+          <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">Your life story</h1>
+          <p className="mt-3 max-w-xl text-gray-600">
+            Everything your assistant remembers from your conversations — so you never
+            have to repeat yourself, in any document.
+          </p>
+        </div>
+        {loadState === 'ready' && !isEmpty && (
+          <StoryMeter known={progress.known} total={progress.total} />
+        )}
       </header>
 
       {loadState === 'loading' && (
@@ -215,17 +408,22 @@ export default function LifeStoryClient() {
 
       {loadState === 'ready' && !isEmpty && (
         <>
-          {/* The story — a warm page of numbered recitals, like the affidavits it feeds. */}
+          {/* The story — numbered recitals, each with its illustration. */}
           <section
             aria-label="What your assistant knows"
             className="rounded-2xl border border-gray-200 bg-[#FDFCF9] p-8 shadow-sm sm:p-10"
           >
-            <ol className="space-y-5 font-serif">
+            <ol className="space-y-7 font-serif">
               {recitals.map((recital, index) => (
-                <RecitalLine key={recital.id} recital={recital} index={index} />
+                <RecitalLine
+                  key={recital.id}
+                  recital={recital}
+                  index={index}
+                  visual={visualFor(recital)}
+                />
               ))}
 
-              {children.length > 0 && (
+              {(children.length > 0 || profile.hasMinorChildren === false) && (
                 <li
                   className="life-story-line flex gap-4"
                   style={{ animationDelay: `${150 + recitals.length * 120}ms` }}
@@ -236,17 +434,15 @@ export default function LifeStoryClient() {
                   >
                     {recitals.length + 1}.
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-lg leading-relaxed text-gray-800 sm:text-xl">
-                      {children.length === 1
-                        ? 'You have one child.'
-                        : `You have ${children.length} children.`}
+                      {children.length === 0
+                        ? 'You have no minor children.'
+                        : children.length === 1
+                          ? 'You have one child.'
+                          : `You have ${children.length} children.`}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {children.map((child, i) => (
-                        <ChildChip key={`${child.name || 'child'}-${i}`} child={child} />
-                      ))}
-                    </div>
+                    {children.length > 0 && <FamilyRow members={children} />}
                   </div>
                 </li>
               )}
@@ -259,22 +455,34 @@ export default function LifeStoryClient() {
               <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
                 In your own words
               </h2>
-              <div className="mt-4 space-y-6">
-                {chapters.map((chapter) => (
-                  <div key={chapter.label}>
-                    <h3 className="mb-2 font-semibold text-gray-900">{chapter.label}</h3>
-                    <ul className="space-y-2">
-                      {chapter.facts.map((fact, i) => (
-                        <li
-                          key={i}
-                          className="border-l-2 border-brand-soft pl-4 font-serif text-gray-700"
-                        >
-                          {fact}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {chapters.map((chapter) => {
+                  const Icon = CHAPTER_ICONS[chapter.label] ?? Sparkles;
+                  return (
+                    <div
+                      key={chapter.label}
+                      className="rounded-xl border border-gray-200 bg-white p-5"
+                    >
+                      <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-tint">
+                          <Icon className="h-4 w-4 text-brand" aria-hidden="true" />
+                        </span>
+                        {chapter.label}
+                      </h3>
+                      <ul className="mt-3 space-y-2.5">
+                        {chapter.facts.map((fact, i) => (
+                          <li key={i} className="flex gap-2 font-serif text-gray-700">
+                            <Quote
+                              className="mt-1.5 h-3 w-3 shrink-0 -scale-x-100 text-gray-300"
+                              aria-hidden="true"
+                            />
+                            <span>{fact}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

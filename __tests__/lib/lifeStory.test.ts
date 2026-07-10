@@ -96,3 +96,21 @@ describe('fact chapters', () => {
     expect(categoryLabel(undefined)).toBe('Your story');
   });
 });
+
+describe('storyProgress', () => {
+  test('counts known core slots', () => {
+    const { storyProgress } = require('@/components/app/lifeStory');
+    expect(storyProgress({})).toEqual({ known: 0, total: 9 });
+    expect(
+      storyProgress({
+        affiantName: 'B',
+        respondentName: 'A',
+        marriageDate: '2010-05-01',
+        state: 'TX',
+        children: [{ name: 'Emma' }],
+      }).known,
+    ).toBe(5);
+    // "no minor children" is an answer, not a gap
+    expect(storyProgress({ hasMinorChildren: false }).known).toBe(1);
+  });
+});

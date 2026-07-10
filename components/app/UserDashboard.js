@@ -3,7 +3,7 @@
 // client/src/components/UserDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight } from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
@@ -300,20 +300,31 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           <p className="text-sm sm:text-base text-gray-600">Create new documents or continue working on your drafts.</p>
         </div>
         {newDocStep === null && (
-          <button
-            onClick={() => {
-              // Skip case type step if user already has a preference
-              if (selectedCaseType) {
-                setNewDocStep('documentType');
-              } else {
-                setNewDocStep('caseType');
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-          >
-            <PlusCircle className="h-4 w-4" />
-            New Document
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 transition-colors font-semibold text-sm"
+              title="What your assistant remembers about you"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Your life story</span>
+              <span className="sm:hidden">Story</span>
+            </button>
+            <button
+              onClick={() => {
+                // Skip case type step if user already has a preference
+                if (selectedCaseType) {
+                  setNewDocStep('documentType');
+                } else {
+                  setNewDocStep('caseType');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Document
+            </button>
+          </div>
         )}
       </div>
 

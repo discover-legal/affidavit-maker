@@ -4,10 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowRight,
   Banknote,
+  Briefcase,
   CalendarPlus,
   Check,
+  Download,
+  ExternalLink,
   Feather,
+  Gavel,
   Heart,
   Loader2,
   MapPin,
@@ -23,7 +28,7 @@ import Tooltip from '@/components/marketing/Tooltip';
 import QuickExit from './QuickExit';
 // Pure step computation shared with the server (no server-only imports),
 // so the fetched procedure can be turned into steps right in the browser.
-import { computeNextSteps } from '@/lib/api/procedure';
+import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
 import { getInitialLang, setLang, t, type Lang } from '@/lib/i18n';
 import {
   MONEY_OTHER_LABELS,
@@ -433,10 +438,26 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
     }
   }, [profile, procedure]);
 
+  const perspective = useMemo(() => detectPerspective(profile), [profile]);
+
   if (!state || !procedure || steps.length === 0) return null;
 
   const nextIndex = steps.findIndex((s) => !s.done);
   const hasDatedDeadline = steps.some((s) => s.due && !s.done);
+
+  // Respondent: days left on the answer clock, when computable from the
+  // answer step's due date (local-date arithmetic, whole days).
+  let answerDaysLeft: number | null = null;
+  const answerStep = steps.find((s) => s.key === 'answer');
+  if (perspective === 'respondent' && answerStep?.due && !answerStep.done) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(answerStep.due);
+    if (m) {
+      const due = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      answerDaysLeft = Math.round((due.getTime() - todayStart.getTime()) / 86400000);
+    }
+  }
 
   return (
     <section aria-label={t(lang, 'next.aria')} className="mt-10 font-sans">
@@ -444,6 +465,35 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
         {t(lang, 'next.heading')}
       </h2>
       <p className="mt-2 text-sm text-gray-500">{t(lang, 'next.intro', { stateName })}</p>
+
+      {/* Respondent: the answer clock is theirs — surface /respond up top. */}
+      {perspective === 'respondent' && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="min-w-0 flex-1 text-sm text-amber-900">
+            <span className="font-semibold">{t(lang, 'respond.banner')}</span>
+            {answerDaysLeft !== null && (
+              <>
+                {' '}
+                {/* A deadline passes at the END of its calendar day, so due
+                    today (0) still means one day to act. */}
+                {answerDaysLeft >= 0
+                  ? t(lang, answerDaysLeft <= 1 ? 'respond.dayLeft' : 'respond.daysLeft', {
+                      n: answerDaysLeft,
+                    })
+                  : t(lang, 'respond.overdue')}
+              </>
+            )}
+          </p>
+          <a
+            href="/respond"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            {t(lang, 'respond.cta')}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </a>
+        </div>
+      )}
+
       <ol className="mt-4 space-y-2">
         {steps.map((step, i) => {
           const isNext = i === nextIndex;
@@ -477,7 +527,13 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
                 >
                   {step.title}
                   {step.due && !step.done && (
-                    <span className="rounded-full bg-brand-tint px-2 py-0.5 text-xs font-semibold text-brand-strong">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        step.urgent
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-brand-tint text-brand-strong'
+                      }`}
+                    >
                       {t(lang, 'next.due', { date: formatDueChip(step.due, lang) })}
                     </span>
                   )}
@@ -501,6 +557,207 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
           {t(lang, 'next.calendar')}
         </a>
       )}
+    </section>
+  );
+}
+
+type SupportKindMeta = {
+  key: string;
+  title: string;
+  titleEs?: string;
+  description?: string;
+  descriptionEs?: string;
+};
+
+type DownloadStatus = 'idle' | 'downloading' | 'error';
+
+/**
+ * "Papers you can create" — the support documents available for the user's
+ * state, one card per kind, each filled in from the life story on download.
+ * Two special kinds: 'answer' links to /respond (it needs the user's
+ * admit/deny choices, not a one-click PDF), and 'lawyer_handoff' gets an
+ * emphasized card of its own. Renders only when the profile has a state
+ * AND GET /api/documents/support answers — endpoint missing, no panel.
+ */
+function PapersPanel({ profile, lang }: { profile: Record<string, unknown>; lang: Lang }) {
+  const [kinds, setKinds] = useState<SupportKindMeta[]>([]);
+  const [status, setStatus] = useState<Record<string, DownloadStatus>>({});
+
+  const state = typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+
+  useEffect(() => {
+    setKinds([]);
+    if (!state) return;
+    let cancelled = false;
+    fetch(`/api/documents/support?state=${encodeURIComponent(state)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        const list = json.data?.kinds;
+        if (!Array.isArray(list)) return;
+        setKinds(
+          list.filter(
+            (k): k is SupportKindMeta =>
+              Boolean(k) && typeof k.key === 'string' && typeof k.title === 'string',
+          ),
+        );
+      })
+      .catch(() => {}); // best-effort: no catalog, no panel
+    return () => {
+      cancelled = true;
+    };
+  }, [state]);
+
+  // Blob-anchor download, same pattern as the serve-page helper forms.
+  const download = useCallback(
+    async (kind: string) => {
+      setStatus((s) => ({ ...s, [kind]: 'downloading' }));
+      try {
+        const res = await fetch('/api/documents/support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind, state }),
+        });
+        if (!res.ok) throw new Error('Download failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${kind.replace(/_/g, '-')}-${state}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        setStatus((s) => ({ ...s, [kind]: 'idle' }));
+      } catch (err) {
+        console.error('Support document download failed:', err);
+        setStatus((s) => ({ ...s, [kind]: 'error' }));
+        setTimeout(() => setStatus((s) => ({ ...s, [kind]: 'idle' })), 4000);
+      }
+    },
+    [state],
+  );
+
+  if (!state || kinds.length === 0) return null;
+
+  const title = (k: SupportKindMeta) => (lang === 'es' && k.titleEs) || k.title;
+  const description = (k: SupportKindMeta) =>
+    (lang === 'es' && k.descriptionEs) || k.description || '';
+
+  const handoff = kinds.find((k) => k.key === 'lawyer_handoff');
+  const rows = kinds.filter((k) => k.key !== 'lawyer_handoff');
+
+  return (
+    <section aria-label={t(lang, 'docs.aria')} className="mt-10 font-sans">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+        {t(lang, 'docs.heading')}
+      </h2>
+      <p className="mt-2 text-sm text-gray-500">{t(lang, 'docs.intro')}</p>
+
+      <div className="mt-4 space-y-2">
+        {rows.map((kind) => (
+          <div
+            key={kind.key}
+            className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4"
+          >
+            <div className="min-w-0 flex-1 basis-56">
+              <h3 className="text-sm font-semibold text-gray-900">{title(kind)}</h3>
+              {kind.key === 'answer' ? (
+                <p className="mt-0.5 text-sm text-gray-600">{t(lang, 'docs.answerNote')}</p>
+              ) : (
+                description(kind) && (
+                  <p className="mt-0.5 text-sm text-gray-600">{description(kind)}</p>
+                )
+              )}
+              {status[kind.key] === 'error' && (
+                <p className="mt-1 text-sm text-red-600">{t(lang, 'docs.error')}</p>
+              )}
+            </div>
+            {kind.key === 'answer' ? (
+              <a
+                href="/respond"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                {t(lang, 'docs.answerCta')}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : (
+              <button
+                onClick={() => download(kind.key)}
+                disabled={status[kind.key] === 'downloading'}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-60"
+              >
+                {status[kind.key] === 'downloading' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                )}
+                {status[kind.key] === 'downloading'
+                  ? t(lang, 'docs.preparing')
+                  : t(lang, 'docs.download')}
+              </button>
+            )}
+          </div>
+        ))}
+
+        {/* Taking the case to a lawyer — emphasized handoff card. */}
+        {handoff && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-soft bg-brand-tint/50 p-4">
+            <Briefcase className="h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
+            <div className="min-w-0 flex-1 basis-56">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(lang, 'docs.handoffTitle')}
+              </h3>
+              <p className="mt-0.5 text-sm text-gray-600">{t(lang, 'docs.handoffBody')}</p>
+              {status[handoff.key] === 'error' && (
+                <p className="mt-1 text-sm text-red-600">{t(lang, 'docs.error')}</p>
+              )}
+            </div>
+            <button
+              onClick={() => download(handoff.key)}
+              disabled={status[handoff.key] === 'downloading'}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-60"
+            >
+              {status[handoff.key] === 'downloading' ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Download className="h-4 w-4" aria-hidden="true" />
+              )}
+              {status[handoff.key] === 'downloading'
+                ? t(lang, 'docs.preparing')
+                : t(lang, 'docs.download')}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Check-our-work + hearing-prep pointers. */}
+      <div className="mt-3 space-y-1.5 text-sm">
+        {state === 'UT' && (
+          <p className="text-gray-600">
+            {t(lang, 'docs.ocapPre')}
+            <a
+              href="https://www.utcourts.gov/ocap/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-brand-strong underline hover:text-brand"
+            >
+              {t(lang, 'docs.ocapLink')}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+            .
+          </p>
+        )}
+        <p>
+          <a
+            href="/hearing"
+            className="inline-flex items-center gap-1.5 font-semibold text-brand-strong underline hover:text-brand"
+          >
+            <Gavel className="h-4 w-4" aria-hidden="true" />
+            {t(lang, 'docs.hearing')}
+          </a>
+        </p>
+      </div>
     </section>
   );
 }
@@ -1337,6 +1594,9 @@ export default function LifeStoryClient() {
 
           {/* The procedural roadmap — where the user is on the usual path. */}
           <WhatsNext profile={profile} lang={lang} />
+
+          {/* Support documents the user can generate from this story. */}
+          <PapersPanel profile={profile} lang={lang} />
 
           {/* Legal details ledger — known values and dotted gaps alike. */}
           <RecordLedger profile={profile} lang={lang} onAsk={handleAsk} />

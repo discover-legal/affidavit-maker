@@ -55,6 +55,34 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'next.done': 'Done',
     'next.calendar': 'Add my deadlines to my calendar',
 
+    'stepper.aria': 'Your case at a glance',
+    'stepper.caption':
+      'Where your case generally is — the court decides the real timeline.',
+    'stepper.due': 'due {date}',
+    'stepper.stepDone': 'done',
+    'stepper.stepCurrent': 'current step',
+
+    'respond.banner': 'You were served with papers — you can prepare your answer here.',
+    'respond.daysLeft': '{n} days left to file your answer.',
+    'respond.dayLeft': '1 day left to file your answer.',
+    'respond.overdue': 'The answer deadline may have passed — responding soon still matters.',
+    'respond.cta': 'Build your answer',
+
+    'docs.aria': 'Papers you can create',
+    'docs.heading': 'Papers you can create',
+    'docs.intro':
+      'Court-ready PDFs filled in from your story. Review everything before you sign or file.',
+    'docs.download': 'Download',
+    'docs.preparing': 'Preparing…',
+    'docs.error': 'The download didn’t work. Please try again.',
+    'docs.answerCta': 'Build your answer',
+    'docs.answerNote': 'This one is built step by step — you choose what to admit or deny.',
+    'docs.handoffTitle': 'Taking this to a lawyer?',
+    'docs.handoffBody': 'Download a case summary they can read in ten minutes.',
+    'docs.ocapPre': 'Utah has a free official tool you can use to check our work: ',
+    'docs.ocapLink': 'OCAP, the Utah Courts’ Online Court Assistance Program',
+    'docs.hearing': 'Your day in court — how to prepare',
+
     'ledger.aria': 'Legal details on record',
     'ledger.heading': 'Also on the record',
     'ledger.add': 'add this +',
@@ -176,6 +204,36 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'next.due': 'Vence {date}',
     'next.done': 'Hecho',
     'next.calendar': 'Agregar mis fechas límite a mi calendario',
+
+    'stepper.aria': 'Tu caso de un vistazo',
+    'stepper.caption':
+      'Dónde va tu caso en general — el tribunal decide el calendario real.',
+    'stepper.due': 'vence {date}',
+    'stepper.stepDone': 'hecho',
+    'stepper.stepCurrent': 'paso actual',
+
+    'respond.banner': 'Te entregaron papeles — aquí puedes preparar tu respuesta.',
+    'respond.daysLeft': 'Te quedan {n} días para presentar tu respuesta.',
+    'respond.dayLeft': 'Te queda 1 día para presentar tu respuesta.',
+    'respond.overdue':
+      'Es posible que el plazo para responder ya haya pasado — responder pronto todavía importa.',
+    'respond.cta': 'Prepara tu respuesta',
+
+    'docs.aria': 'Documentos que puedes crear',
+    'docs.heading': 'Documentos que puedes crear',
+    'docs.intro':
+      'PDFs listos para el tribunal, completados con tu historia. Revisa todo antes de firmar o presentar.',
+    'docs.download': 'Descargar',
+    'docs.preparing': 'Preparando…',
+    'docs.error': 'No se pudo descargar. Intenta de nuevo.',
+    'docs.answerCta': 'Prepara tu respuesta',
+    'docs.answerNote': 'Este se prepara paso a paso — tú eliges qué admitir o negar.',
+    'docs.handoffTitle': '¿Vas a llevar esto a un abogado?',
+    'docs.handoffBody': 'Descarga un resumen de tu caso que pueden leer en diez minutos.',
+    'docs.ocapPre':
+      'Utah tiene una herramienta oficial gratuita para verificar nuestro trabajo: ',
+    'docs.ocapLink': 'OCAP, el programa de asistencia en línea de los tribunales de Utah',
+    'docs.hearing': 'Tu día en el tribunal — cómo prepararte',
 
     'ledger.aria': 'Detalles legales registrados',
     'ledger.heading': 'También en el registro',

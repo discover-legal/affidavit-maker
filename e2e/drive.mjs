@@ -204,8 +204,11 @@ try {
     };
   });
   ok(
-    'support-doc catalog lists all 5 Utah kinds',
-    support.kinds.length === 5 && support.kinds.includes('financial_declaration'),
+    'support-doc catalog lists all 8 Utah kinds',
+    support.kinds.length >= 8 &&
+      ['financial_declaration', 'answer', 'fee_waiver_motion', 'lawyer_handoff'].every((k) =>
+        support.kinds.includes(k),
+      ),
     support.kinds.join(','),
   );
   ok(
@@ -213,6 +216,107 @@ try {
     support.status === 200 && String(support.type).includes('pdf') && support.magic === '%PDF-',
     `status=${support.status} bytes=${support.bytes}`,
   );
+
+  // ── 10. Respondent flow: /respond page + Answer PDF with positions ──────
+  await page.goto(`${BASE}/respond`);
+  await page.waitForLoadState('networkidle');
+  const respondText = await page.textContent('main');
+  ok(
+    'respond page renders (advisor note + position builder)',
+    /you were served/i.test(respondText) && /admit/i.test(respondText),
+  );
+  await page.screenshot({ path: `${SHOTS}/6-respond.png`, fullPage: true });
+
+  const answer = await page.evaluate(async () => {
+    const res = await fetch('/api/documents/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'answer',
+        state: 'UT',
+        signatureStyle: 'unsworn',
+        extra: {
+          role: 'respondent',
+          answerPositions: [
+            { paragraph: 1, position: 'admit' },
+            { paragraph: 2, position: 'deny' },
+            { paragraph: 3, position: 'lack_knowledge' },
+          ],
+          answerRequests: ['that the court divide the property fairly'],
+          includeCounterclaim: false,
+        },
+      }),
+    });
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return { status: res.status, magic: String.fromCharCode(...buf.slice(0, 5)), bytes: buf.length };
+  });
+  ok(
+    'answer PDF renders from admit/deny positions',
+    answer.status === 200 && answer.magic === '%PDF-',
+    `status=${answer.status} bytes=${answer.bytes}`,
+  );
+
+  // ── 11. Lawyer handoff (state-agnostic) + fee waiver (UT) ────────────────
+  const extraDocs = await page.evaluate(async () => {
+    const out = {};
+    for (const [name, body] of [
+      ['handoff', { kind: 'lawyer_handoff', state: 'TX' }],
+      ['feeWaiver', { kind: 'fee_waiver_motion', state: 'UT' }],
+    ]) {
+      const res = await fetch('/api/documents/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const buf = new Uint8Array(await res.arrayBuffer());
+      out[name] = { status: res.status, magic: String.fromCharCode(...buf.slice(0, 5)) };
+    }
+    return out;
+  });
+  ok(
+    'lawyer handoff renders for ANY state; fee waiver renders for UT',
+    extraDocs.handoff.status === 200 && extraDocs.handoff.magic === '%PDF-' &&
+      extraDocs.feeWaiver.status === 200 && extraDocs.feeWaiver.magic === '%PDF-',
+    `handoff=${extraDocs.handoff.status} feeWaiver=${extraDocs.feeWaiver.status}`,
+  );
+
+  // ── 12. Hearing prep page ────────────────────────────────────────────────
+  await page.goto(`${BASE}/hearing`);
+  await page.waitForLoadState('networkidle');
+  const hearingText = await page.textContent('main');
+  ok(
+    'hearing page renders (day in court + practice questions)',
+    /day in court/i.test(hearingText) && /practice/i.test(hearingText),
+  );
+  await page.screenshot({ path: `${SHOTS}/7-hearing.png`, fullPage: true });
+
+  // ── 13. Filing packet: merged PDF for the saved document ────────────────
+  const packet = await page.evaluate(async () => {
+    const docs = (await fetch('/api/documents').then((r) => r.json())).data.documents;
+    const res = await fetch('/api/documents/packet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId: docs[0].id }),
+    });
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return { status: res.status, magic: String.fromCharCode(...buf.slice(0, 5)), bytes: buf.length };
+  });
+  ok(
+    'filing packet assembles as a real PDF',
+    packet.status === 200 && packet.magic === '%PDF-',
+    `status=${packet.status} bytes=${packet.bytes}`,
+  );
+
+  // ── 14. Profile: papers panel + dashboard entry points ──────────────────
+  await page.goto(`${BASE}/profile`);
+  await page.waitForLoadState('networkidle');
+  const profileText2 = await page.textContent('main');
+  ok('papers panel lists creatable documents on the profile', /Papers you can create/i.test(profileText2));
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForLoadState('networkidle');
+  const dashText = await page.textContent('main');
+  ok('dashboard links the hearing-prep page', /day in court/i.test(dashText));
+  await page.screenshot({ path: `${SHOTS}/8-dashboard.png`, fullPage: true });
 } catch (err) {
   ok('driver completed without exception', false, err.message);
 } finally {

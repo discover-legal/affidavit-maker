@@ -162,6 +162,11 @@ function buildPhaseTool(stateCode) {
           // ── MARRIAGE TYPE (Ghana — ordinance/customary/Mohammedan) ──
           marriage_type: { type: 'string', description: 'Type of marriage: ordinance, customary, or mohammedan' },
 
+          // ── FORMER-NAME RESTORATION (any phase) ──
+          restore_previous_name: { type: 'boolean', description: 'true ONLY when the user affirmatively says they (or their spouse) want a former name restored as part of the divorce; false ONLY when they explicitly decline. NEVER suggest, recommend, or imply that anyone should change their name — record this only when the user raises it themselves.' },
+          previous_name: { type: 'string', description: 'The exact former name to be restored, in the user\'s words, ONLY when the user affirmatively provided it. Never guess, propose, or construct a name (e.g., never assume a maiden name).' },
+          name_change_party: { type: 'string', description: "Whose former name is restored: 'petitioner' or 'respondent'. Record ONLY when the user stated whose name it is; if unstated, ask instead of assuming." },
+
           // ── REVIEW ──
           user_confirmed_review: { type: 'boolean' },
 
@@ -239,6 +244,9 @@ const FIELD_MAP = {
   user_confirmed_review:       'userConfirmedReview',
   reconciliation_acknowledged: 'reconciliationAcknowledged',
   marriage_type:               'marriageType',
+  restore_previous_name:       'restorePreviousName',
+  previous_name:               'previousName',
+  name_change_party:           'nameChangeParty',
   // TX legacy compat
   residency_tx_months:         'residencyStateMonths',
 };
@@ -636,6 +644,22 @@ class BaseDivorceOrchestrator {
       } else if (role === 'respondent' && updated.petitionerName) {
         updated.childSupportObligee = updated.petitionerName;
       }
+    }
+
+    // Derive the former-name-restoration gate the templates read.
+    // The petition relief items and the decree's RESTORATION OF NAME section
+    // both gate on divorceData.requestNameChange && divorceData.previousName;
+    // the interview stores restorePreviousName. Mirror it every turn so a
+    // user who changes their mind ("actually, keep my married name") flips
+    // the gate off again instead of freezing the first answer.
+    if (updated.restorePreviousName !== undefined) {
+      updated.requestNameChange = updated.restorePreviousName;
+    }
+    // The decree prints nameChangeParty verbatim as WHOSE name is restored
+    // (falling back to petitionerName) — resolve a party-role answer to the
+    // actual name, same as primaryCustodian above.
+    if (updated.nameChangeParty) {
+      updated.nameChangeParty = roleToName(updated.nameChangeParty);
     }
 
     return updated;

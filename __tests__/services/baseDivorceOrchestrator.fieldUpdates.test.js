@@ -165,6 +165,49 @@ describe('parent-time election capture', () => {
   });
 });
 
+describe('former-name restoration capture', () => {
+  test('maps previous_name / restore_previous_name and derives the template gate', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      restore_previous_name: true,
+      previous_name: 'Casey Jordan Miller',
+    });
+    expect(data.restorePreviousName).toBe(true);
+    expect(data.previousName).toBe('Casey Jordan Miller');
+    // Templates gate the RESTORATION OF NAME section on requestNameChange.
+    expect(data.requestNameChange).toBe(true);
+  });
+
+  test('an explicit decline flips the gate off, even set on an earlier turn', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { restorePreviousName: true, requestNameChange: true, previousName: 'Casey Jordan Miller' },
+      { restore_previous_name: false },
+    );
+    expect(data.restorePreviousName).toBe(false);
+    expect(data.requestNameChange).toBe(false);
+  });
+
+  test('name_change_party resolves party roles to actual names for the decree', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { restore_previous_name: true, previous_name: 'Casey Jordan Miller', name_change_party: 'respondent' },
+    );
+    expect(data.nameChangeParty).toBe('Casey Pritchard');
+  });
+
+  test('untouched turns leave the name fields alone (non-destructive merge)', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { restorePreviousName: true, requestNameChange: true, previousName: 'Casey Jordan Miller' },
+      { grounds: 'insupportability' },
+    );
+    expect(data.previousName).toBe('Casey Jordan Miller');
+    expect(data.requestNameChange).toBe(true);
+  });
+});
+
 describe('affiant derivation', () => {
   test('petitioner name doubles as affiantName for divorce filings', () => {
     const orch = makeOrchestrator();

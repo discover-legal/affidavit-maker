@@ -20,6 +20,8 @@ export type StateProcedure = {
   answerDeadlineDays: { inState: number; outOfState: number };
   /** Plain-language text, or null when the state has no such requirement. */
   educationRequirement: string | null;
+  /** Pre-trial mediation requirement, or null when the state has none. */
+  mediation: { required: boolean; text: string } | null;
   serviceMethods: Array<{ key: string; title: string; steps: string[] }>;
   defaultJudgment: { eligibleAfterText: string; steps: string[] };
   unswornDeclaration: { allowed: boolean; statute: string; wording: string };
@@ -46,6 +48,8 @@ export type NextStep = {
   detail: string;
   /** Calendar deadline in YYYY-MM-DD, present when computable. */
   due?: string;
+  /** True when the step's deadline needs immediate attention (within 7 days or already past). */
+  urgent?: boolean;
   done: boolean;
 };
 
@@ -100,9 +104,32 @@ function isoDate(d: Date): string {
 type ParsedEvent = { label: string; date: Date | null };
 
 /**
+ * Which side of the case the profile belongs to. Respondent when the
+ * profile says so explicitly (role: 'respondent') or when the ingest
+ * pipeline recorded a service event phrased at the user ("Original
+ * petition served on you" / "you were served"). Defaults to petitioner —
+ * the interview's historical framing.
+ */
+export function detectPerspective(
+  profile: Record<string, unknown>,
+): 'petitioner' | 'respondent' {
+  if (str(profile.role).toLowerCase() === 'respondent') return 'respondent';
+  const rawEvents = Array.isArray(profile.keyEvents) ? profile.keyEvents : [];
+  for (const entry of rawEvents) {
+    const rec = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {};
+    if (/served on you|you were served/i.test(str(rec.label))) return 'respondent';
+  }
+  return 'petitioner';
+}
+
+/**
  * Ordered next steps for a divorce case in `procedure`'s state, computed
  * from the user's life-story profile (keyEvents labels like "Filed" /
  * "Served", children, serviceMethod). Pure function — no I/O.
+ *
+ * Steps are petitioner-framed unless detectPerspective() reads the profile
+ * as a respondent's — then "File your answer" (with the respondent's own
+ * deadline) leads, and the serve/default steps are omitted.
  *
  * Dates are treated day-granular; a deadline "passes" at the end of its
  * calendar day. All detail text is information about procedure, not advice.
@@ -129,6 +156,7 @@ export function computeNextSteps(
   const answered = findEvent(/answer/i);
   const educationEvent = findEvent(/educat|orient/i);
   const financialEvent = findEvent(/financial/i);
+  const mediationEvent = findEvent(/mediat/i);
 
   const children = Array.isArray(profile.children) ? profile.children : [];
   const hasChildren = children.length > 0;
@@ -136,52 +164,87 @@ export function computeNextSteps(
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const steps: NextStep[] = [];
 
-  // 1. Serve the papers (method-appropriate detail).
-  const method = str(profile.serviceMethod).toLowerCase();
-  const acceptance = procedure.serviceMethods.find((m) => /accept|waiv/i.test(m.key));
-  const personal = procedure.serviceMethods.find((m) => /personal|formal/i.test(m.key));
-  let serveDetail: string;
-  if (/waiv|accept/.test(method) && acceptance) {
-    serveDetail = `${acceptance.title}: ${acceptance.steps.join(' ')}`;
-  } else if (method && personal) {
-    serveDetail = `${personal.title}: ${personal.steps.join(' ')}`;
-  } else {
-    serveDetail = `Your spouse generally must receive the papers before the case can move forward. Common options: ${procedure.serviceMethods
-      .map((m) => m.title)
-      .join('; ')}.`;
-  }
-  steps.push({
-    key: 'serve',
-    title: 'Serve your spouse',
-    detail: serveDetail,
-    done: Boolean(served),
-  });
+  // Petitioner-framed by default; respondents get their own step set (no
+  // "serve your spouse", no "default may be available" — those describe
+  // actions taken AGAINST them, not steps for them).
+  const perspective = detectPerspective(profile);
 
-  // 2/3. Answer window vs. default eligibility, keyed off the served date.
+  // Answer deadline, keyed off the served date (both perspectives use it).
   const answerDue = served?.date ? addDays(served.date, procedure.answerDeadlineDays.inState) : null;
   const answerWindowOpen = answerDue !== null && todayStart <= answerDue;
-  const defaultEligible = answerDue !== null && todayStart > answerDue && !answered;
+  const defaultEligible =
+    perspective === 'petitioner' && answerDue !== null && todayStart > answerDue && !answered;
 
-  if (answerDue && answerWindowOpen) {
+  if (perspective === 'respondent') {
+    // 1. File the answer — the respondent's own deadline, so it leads and
+    // carries an urgency flag when the clock is nearly (or already) out.
+    const urgent = !answered && answerDue !== null && answerDue <= addDays(todayStart, 7);
     steps.push({
       key: 'answer',
-      title: 'Answer window',
+      title: 'File your answer',
       detail:
-        `Your spouse generally has ${procedure.answerDeadlineDays.inState} days after being served in ${procedure.stateName} ` +
-        `(${procedure.answerDeadlineDays.outOfState} days if served outside ${procedure.stateName}) to file an answer. ` +
-        'During this window they may agree, respond, or counter-petition; if they do nothing, you may be able to ask for a default.',
-      due: isoDate(answerDue),
+        `You generally have ${procedure.answerDeadlineDays.inState} days after being served in ${procedure.stateName} ` +
+        `(${procedure.answerDeadlineDays.outOfState} days if you were served outside ${procedure.stateName}) to file an answer. ` +
+        'This deadline matters: if no answer is filed in time, the court can enter a default judgment against you and the case may be decided without your side of the story.',
+      ...(answerDue ? { due: isoDate(answerDue) } : {}),
+      ...(urgent ? { urgent: true } : {}),
       done: Boolean(answered),
     });
+  } else {
+    // 1. Serve the papers (method-appropriate detail).
+    const method = str(profile.serviceMethod).toLowerCase();
+    const acceptance = procedure.serviceMethods.find((m) => /accept|waiv/i.test(m.key));
+    const personal = procedure.serviceMethods.find((m) => /personal|formal/i.test(m.key));
+    let serveDetail: string;
+    if (/waiv|accept/.test(method) && acceptance) {
+      serveDetail = `${acceptance.title}: ${acceptance.steps.join(' ')}`;
+    } else if (method && personal) {
+      serveDetail = `${personal.title}: ${personal.steps.join(' ')}`;
+    } else {
+      serveDetail = `Your spouse generally must receive the papers before the case can move forward. Common options: ${procedure.serviceMethods
+        .map((m) => m.title)
+        .join('; ')}.`;
+    }
+    steps.push({
+      key: 'serve',
+      title: 'Serve your spouse',
+      detail: serveDetail,
+      done: Boolean(served),
+    });
+
+    // 2/3. Answer window vs. default eligibility.
+    if (answerDue && answerWindowOpen) {
+      steps.push({
+        key: 'answer',
+        title: 'Answer window',
+        detail:
+          `Your spouse generally has ${procedure.answerDeadlineDays.inState} days after being served in ${procedure.stateName} ` +
+          `(${procedure.answerDeadlineDays.outOfState} days if served outside ${procedure.stateName}) to file an answer. ` +
+          'During this window they may agree, respond, or counter-petition; if they do nothing, you may be able to ask for a default.',
+        due: isoDate(answerDue),
+        done: Boolean(answered),
+      });
+    }
+
+    if (answerDue && defaultEligible) {
+      steps.push({
+        key: 'default',
+        title: 'Default may be available',
+        detail: `${procedure.defaultJudgment.eligibleAfterText} ${procedure.defaultJudgment.steps.join(' ')}`,
+        due: isoDate(answerDue),
+        done: false,
+      });
+    }
   }
 
-  if (answerDue && defaultEligible) {
+  // Mediation — once an answer is on file the case is contested, and states
+  // like Utah generally require a good-faith mediation attempt before trial.
+  if (answered && procedure.mediation?.required) {
     steps.push({
-      key: 'default',
-      title: 'Default may be available',
-      detail: `${procedure.defaultJudgment.eligibleAfterText} ${procedure.defaultJudgment.steps.join(' ')}`,
-      due: isoDate(answerDue),
-      done: false,
+      key: 'mediation',
+      title: 'Mediation',
+      detail: procedure.mediation.text,
+      done: Boolean(mediationEvent),
     });
   }
 
@@ -213,13 +276,23 @@ export function computeNextSteps(
     done: Boolean(financialEvent),
   });
 
-  // 7. Finalize — last; the path differs for default vs. uncontested.
+  // 7. Finalize — last. Petitioners see the default vs. uncontested path;
+  // respondents get neutral framing (they are not the one seeking a default).
+  let finalizeDetail: string;
+  if (perspective === 'respondent') {
+    finalizeDetail =
+      'When the waiting period has run and the required steps are complete, the final papers (the proposed decree and supporting declarations) generally go to the judge for review. Agreed cases are often finished on the papers without a hearing — the court decides whether one is needed and whether to sign the decree.';
+  } else if (defaultEligible) {
+    finalizeDetail =
+      'If the court enters a default, you generally submit the final papers (findings, conclusions, and the proposed decree, with a supporting declaration) for the judge to review. The court decides whether to sign the decree.';
+  } else {
+    finalizeDetail =
+      'When the waiting period has run and the required steps are complete, you generally submit the final papers (the proposed decree and a supporting declaration). Uncontested cases are often finished on the papers without a hearing — the court decides whether one is needed.';
+  }
   steps.push({
     key: 'finalize',
     title: 'Finish the case',
-    detail: defaultEligible
-      ? 'If the court enters a default, you generally submit the final papers (findings, conclusions, and the proposed decree, with a supporting declaration) for the judge to review. The court decides whether to sign the decree.'
-      : 'When the waiting period has run and the required steps are complete, you generally submit the final papers (the proposed decree and a supporting declaration). Uncontested cases are often finished on the papers without a hearing — the court decides whether one is needed.',
+    detail: finalizeDetail,
     done: false,
   });
 

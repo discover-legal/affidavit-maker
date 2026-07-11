@@ -38,6 +38,20 @@ export const UT_PROCEDURE: StateProcedure = {
   educationRequirement:
     'Parents of minor children generally must complete two short courses — the divorce orientation and the divorce education course — before the court will sign the decree. The court may excuse attendance in some situations.',
 
+  // Utah Code § 30-3-39 (mediation in divorce actions): when an answer is
+  // filed, the parties must participate in good faith in at least one
+  // mediation session before trial. Either party may ask the court to excuse
+  // mediation for good cause, and courts routinely do where there are
+  // domestic-violence or other safety concerns.
+  // LEGAL REVIEW: Utah's 2024–25 Title 81 recodification may have moved this
+  // provision (possibly to the § 81-4-403 area). Both cites kept here until
+  // counsel confirms the current section number.
+  mediation: {
+    required: true,
+    text:
+      'Once an answer has been filed in a Utah divorce, both sides generally must attempt at least one mediation session in good faith before the case can go to trial. Either side may ask the court to excuse mediation for good cause — courts take safety and domestic-violence concerns seriously here. Court-qualified mediators are available, and reduced-fee mediation programs exist for people who qualify.',
+  },
+
   // Utah R. Civ. P. 4: who may serve process and how; proof of service must
   // be filed with the court. Acceptance of service substitutes for formal
   // service when the respondent signs.

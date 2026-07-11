@@ -53,6 +53,7 @@ export type UserProfile = {
  */
 const GENERAL_FIELDS: readonly string[] = [
   'firstName', 'lastName', 'affiantName',
+  'role', // which side of the case the user is on: 'petitioner' | 'respondent'
   'monthlyIncome', 'monthlyExpenses', 'incomeBreakdown', 'expenseBreakdown',
   'assetsDescription', 'dependentsCount',
   'indigencyRequested',
@@ -99,6 +100,14 @@ function isEmptyValue(v: unknown): boolean {
 
 function normalizeFactContent(fact: ProfileFact): string {
   return String(fact?.content ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** `role` is an enum, not free text: lowercase, keep only the two party roles, else drop. */
+function sanitizeRole(profile: Record<string, unknown>): void {
+  if (!('role' in profile)) return;
+  const role = String(profile.role ?? '').trim().toLowerCase();
+  if (role === 'petitioner' || role === 'respondent') profile.role = role;
+  else delete profile.role;
 }
 
 /** Load the user's life-story profile. Returns an empty profile when none exists. */
@@ -189,6 +198,7 @@ export async function mergeUserProfile(
     const incoming = affidavitData[field];
     if (!isEmptyValue(incoming)) profile[field] = incoming;
   }
+  sanitizeRole(profile);
   profile.children =
     options.replaceChildren && Array.isArray(affidavitData.children)
       ? (affidavitData.children as unknown[]).filter((c) => c && typeof c === 'object')
@@ -297,6 +307,8 @@ export async function updateUserProfile(
       profile[field] = typeof value === 'string' ? value.trim().slice(0, 500) : value;
     }
   }
+
+  sanitizeRole(profile);
 
   if ('children' in patch) {
     const replaced = mergeChildren([], patch.children as unknown[] | undefined);

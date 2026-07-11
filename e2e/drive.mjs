@@ -8,7 +8,10 @@ const ok = (name, pass, detail = '') => {
   console.log(`${pass ? 'PASS' : 'FAIL'} — ${name}${detail ? ` (${detail})` : ''}`);
 };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
+// Chromium binary: CHROMIUM_PATH (set by CI from `npx playwright install`),
+// falling back to the local container's preinstalled build.
+const executablePath = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
+const browser = await chromium.launch({ executablePath, args: ['--no-proxy-server'] });
 
 async function newPage(context) {
   const page = await context.newPage();

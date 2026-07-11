@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+  e2e:
+    needs: unit
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: affidavit
+          POSTGRES_PASSWORD: affidavit
+          POSTGRES_DB: affidavit_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U affidavit -d affidavit_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://affidavit:affidavit@127.0.0.1:5432/affidavit_e2e
+    steps:
+      # setup-worktree.sh runs `git worktree add`, so we need real history.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build patched E2E worktree
+        run: bash e2e/setup-worktree.sh /tmp/e2e-app
+
+      - name: Point worktree at the CI Postgres service
+        # setup-worktree.sh writes a .env.local aimed at the local recipe's
+        # Postgres on :5433; rewrite it for the service container on :5432.
+        run: |
+          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=${DATABASE_URL}#" /tmp/e2e-app/.env.local
+          grep '^DATABASE_URL=' /tmp/e2e-app/.env.local
+
+      - name: Run migrations
+        working-directory: /tmp/e2e-app
+        run: node scripts/migrate.js
+
+      - name: Install Playwright driver + Chromium
+        working-directory: /tmp/e2e-app/e2e
+        run: |
+          npm init -y > /dev/null
+          npm i playwright
+          # Local `playwright` bin installs the Chromium build matching its
+          # own version (plus OS deps).
+          npx playwright install --with-deps chromium
+          # `playwright` exact-pins `playwright-core`, which npm hoists to
+          # node_modules/playwright-core here — so drive.mjs's
+          # `import { chromium } from 'playwright-core'` and this
+          # executablePath() resolution both use the exact playwright-core
+          # version whose Chromium build we just installed.
+          echo "CHROMIUM_PATH=$(node -e "console.log(require('playwright-core').chromium.executablePath())")" >> "$GITHUB_ENV"
+
+      - name: Start dev server on :3100
+        working-directory: /tmp/e2e-app
+        run: |
+          nohup npm run dev -- -p 3100 > /tmp/next-dev.log 2>&1 &
+          echo "waiting for /api/health..."
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:3100/api/health > /dev/null; then
+              echo "server ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "server did not become ready within 120s"
+          tail -n 100 /tmp/next-dev.log
+          exit 1
+
+      - name: Run E2E driver
+        working-directory: /tmp/e2e-app/e2e
+        run: |
+          mkdir -p shots
+          node drive.mjs
+
+      - name: Dump dev server log on failure
+        if: failure()
+        run: tail -n 300 /tmp/next-dev.log || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shots
+          path: /tmp/e2e-app/e2e/shots
+          if-no-files-found: ignore

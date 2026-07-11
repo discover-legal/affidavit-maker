@@ -22,6 +22,9 @@ const SUPPORT_DOC_KINDS = [
   'financial_declaration',
   'default_package',
   'finalization_prep',
+  'answer',
+  'fee_waiver_motion',
+  'lawyer_handoff',
 ] as const;
 
 const supportSchema = z.object({
@@ -29,6 +32,10 @@ const supportSchema = z.object({
   state: z.string().length(2),
   documentId: z.union([z.string(), z.number()]).optional(),
   signatureStyle: z.enum(['unsworn', 'notary']).optional(),
+  // Kind-specific user input (e.g. the answer's admit/deny positions),
+  // merged over the profile + document data below — extra wins. Builders
+  // sanitize and cap what they read from it.
+  extra: z.record(z.unknown()).optional(),
 });
 
 type SupportDocBuilder = (
@@ -171,7 +178,25 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       // specific, more recent record of this case.
       merged = { ...merged, ...docContent };
     }
+    if (body.extra) {
+      // Explicit per-request input (answer positions, etc.) wins over both.
+      merged = { ...merged, ...body.extra };
+    }
     merged.state = stateCode;
+    // The lawyer handoff summarizes the user's own account and paperwork;
+    // give every builder the profile facts (with provenance) and the list
+    // of documents prepared so far.
+    merged.profileFacts = profile.facts;
+    if (body.kind === 'lawyer_handoff') {
+      const docs = await query<{ title: string | null; document_type: string | null }>(
+        'SELECT title, document_type FROM documents WHERE user_id = $1 ORDER BY created_at',
+        [user.id],
+      );
+      merged.generatedDocuments = docs.rows
+        .map((d) => (d.title || d.document_type || '').trim())
+        .filter(Boolean)
+        .slice(0, 40);
+    }
 
     // ── Build the document structure ───────────────────────────────────
     let documentStructure: unknown;
@@ -227,8 +252,10 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     });
     pdfFilepath = undefined;
 
+    // The respondent signs acceptances and answers; everything else is
+    // petitioner-signed (or unsigned, like the handoff).
     const nameSource =
-      body.kind === 'acceptance_of_service'
+      body.kind === 'acceptance_of_service' || body.kind === 'answer'
         ? (merged.respondentName as string | undefined)
         : (merged.petitionerName as string | undefined);
     const baseName = sanitizeFilename(nameSource, 'document');

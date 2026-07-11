@@ -4,6 +4,25 @@
 // services/pdfService.js renders on its generic affidavit path.
 
 const utah = require('./utah');
+const { answerToPetition } = require('./utahAnswer');
+const { feeWaiverMotion } = require('./utahFeeWaiver');
+const { lawyerHandoff } = require('./lawyerHandoff');
+
+// State-agnostic kinds, available for every state (merged into list()).
+const GENERAL = {
+  lawyer_handoff: {
+    build: lawyerHandoff,
+    title: 'Case summary for attorney review',
+    titleEs: 'Resumen del caso para revisión de un abogado',
+    description:
+      'Not a filing — a summary of your story, timeline, and finances a lawyer ' +
+      'can read in ten minutes, for a consult or limited-scope help.',
+    descriptionEs:
+      'No es un documento judicial — un resumen de tu historia, cronología y ' +
+      'finanzas que un abogado puede leer en diez minutos, para una consulta o ' +
+      'ayuda de alcance limitado.',
+  },
+};
 
 const REGISTRY = {
   UT: {
@@ -50,6 +69,29 @@ const REGISTRY = {
         'dentro de los 21 días posteriores a la notificación, con una declaración de apoyo ' +
         'que relata los hechos de la notificación.',
     },
+    answer: {
+      build: answerToPetition,
+      title: 'Answer to the petition',
+      titleEs: 'Respuesta a la petición',
+      description:
+        'The Respondent\'s formal response — you choose admit, deny, or ' +
+        '"don\'t know" for each paragraph of the petition, with an optional ' +
+        'counterclaim.',
+      descriptionEs:
+        'La respuesta formal del demandado — tú eliges admitir, negar o ' +
+        '"no sé" para cada párrafo de la petición, con una contrademanda opcional.',
+    },
+    fee_waiver_motion: {
+      build: feeWaiverMotion,
+      title: 'Motion to waive fees',
+      titleEs: 'Moción para eximir cuotas',
+      description:
+        'Asks the court to waive filing fees because you cannot afford them, ' +
+        'with a sworn statement of your finances. The court decides.',
+      descriptionEs:
+        'Pide al tribunal que exima las cuotas de presentación porque no puedes ' +
+        'pagarlas, con una declaración jurada de tus finanzas. El tribunal decide.',
+    },
     finalization_prep: {
       build: utah.finalizationPrep,
       title: 'Finalization prep sheet',
@@ -70,26 +112,30 @@ const SUPPORT_DOC_KINDS = [
   'financial_declaration',
   'default_package',
   'finalization_prep',
+  'answer',
+  'fee_waiver_motion',
+  'lawyer_handoff',
 ];
 
 /**
  * Look up a builder. Returns (data, opts) => documentStructure, or null when
- * the state or kind isn't supported.
+ * the state or kind isn't supported. State-agnostic kinds (GENERAL) resolve
+ * for every state.
  */
 function getSupportDoc(state, kind) {
   const stateEntry = REGISTRY[String(state || '').toUpperCase()];
-  const entry = stateEntry && stateEntry[kind];
+  const entry = (stateEntry && stateEntry[kind]) || GENERAL[kind];
   return entry ? entry.build : null;
 }
 
 /**
  * List available kinds for a state with human titles + descriptions (EN + ES).
- * Returns [] for unsupported states.
+ * State-agnostic kinds are always included, so even unsupported states get
+ * the lawyer handoff.
  */
 function list(state) {
-  const stateEntry = REGISTRY[String(state || '').toUpperCase()];
-  if (!stateEntry) return [];
-  return Object.entries(stateEntry).map(([key, entry]) => ({
+  const stateEntry = REGISTRY[String(state || '').toUpperCase()] || {};
+  return Object.entries({ ...stateEntry, ...GENERAL }).map(([key, entry]) => ({
     key,
     title: entry.title,
     titleEs: entry.titleEs,

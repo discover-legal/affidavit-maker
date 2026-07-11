@@ -292,7 +292,8 @@ describe('registry (services/supportDocs)', () => {
     expect(getSupportDoc(undefined, 'financial_declaration')).toBeNull();
   });
 
-  test('list of an unsupported state is empty', () => {
-    expect(list('TX')).toEqual([]);
+  test('unsupported states still get the state-agnostic kinds only', () => {
+    const kinds = list('TX').map((k) => k.key);
+    expect(kinds).toEqual(['lawyer_handoff']);
   });
 });

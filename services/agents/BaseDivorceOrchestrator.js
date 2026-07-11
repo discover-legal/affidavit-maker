@@ -91,6 +91,8 @@ function buildPhaseTool(stateCode) {
           },
           custody_arrangement: { type: 'string' },
           primary_custodian: { type: 'string', description: "Who has primary physical custody: 'petitioner', 'respondent', or the parent's name" },
+          parent_time_plan: { type: 'string', description: "How the non-custodial parent's time is set: 'statutory_minimum' (the state's standard schedule), 'expanded' (the optional expanded statutory schedule), 'equal' (50/50), or 'custom'. Extract ONLY the user's explicit choice." },
+          parent_time_details: { type: 'string', description: "The custom schedule in the user's words, ONLY when parent_time_plan is 'custom'." },
           child_support_amount: { type: 'number', description: 'Monthly child support amount in dollars, if agreed or known' },
           child_support_payor: { type: 'string', description: "Who pays child support: 'petitioner' or 'respondent'" },
 
@@ -203,6 +205,8 @@ const FIELD_MAP = {
   children:                    'children',
   custody_arrangement:         'custodyArrangement',
   primary_custodian:           'primaryCustodian',
+  parent_time_plan:            'parentTimePlan',
+  parent_time_details:         'parentTimeDetails',
   child_support_amount:        'childSupportAmount',
   child_support_payor:         'childSupportPayor',
   property_confirmed:          'propertyConfirmed',

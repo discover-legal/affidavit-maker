@@ -316,6 +316,17 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Get Utah parent-time language
+   *
+   * Honors the interview's parent-time election (divorceData.parentTimePlan):
+   * - 'statutory_minimum' — the statutory minimum schedules (Utah Code
+   *   § 30-3-35 for children 5-18; § 30-3-35.5 for children under 5)
+   * - 'expanded' — the optional expanded (~40%) schedule (Utah Code § 30-3-35.1)
+   * - 'equal' — equal (50/50) parent-time, with divorceData.parentTimeDetails
+   *   when the parties described their schedule
+   * - 'custom' — divorceData.parentTimeDetails verbatim; falls back to the
+   *   statutory minimum when no details were captured
+   * - no election — the pre-existing default language, unchanged
+   *
    * @param {Object} divorceData - Divorce data
    * @returns {string} Parent-time language
    */
@@ -323,8 +334,31 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const nonCustodial = divorceData.primaryCustodian === divorceData.petitionerName
       ? divorceData.respondentName
       : divorceData.petitionerName;
+    const parent = nonCustodial || 'the non-custodial parent';
+    const details = typeof divorceData.parentTimeDetails === 'string'
+      ? divorceData.parentTimeDetails.trim()
+      : '';
 
-    return `IT IS ORDERED that ${nonCustodial || 'the non-custodial parent'} shall have parent-time with the minor child(ren) in accordance with Utah Code § 81-9-302 (minimum schedule) or as otherwise agreed by the parties.`;
+    const statutoryMinimum = `IT IS ORDERED that ${parent} shall have parent-time with the minor child(ren) as provided in the minimum schedules of Utah Code §§ 30-3-35 and 30-3-35.5, unless the parties agree otherwise in writing.`;
+
+    switch (divorceData.parentTimePlan) {
+      case 'statutory_minimum':
+        return statutoryMinimum;
+      case 'expanded':
+        return `IT IS ORDERED that ${parent} shall have parent-time with the minor child(ren) as provided in the optional expanded parent-time schedule of Utah Code § 30-3-35.1, unless the parties agree otherwise in writing.`;
+      case 'equal':
+        if (details) {
+          return `IT IS ORDERED that the parties shall have equal (50/50) parent-time with the minor child(ren) as follows: ${details}`;
+        }
+        return 'IT IS ORDERED that the parties shall have equal (50/50) parent-time with the minor child(ren) on a schedule the parties agree to in writing.';
+      case 'custom':
+        if (details) {
+          return `IT IS ORDERED that ${parent} shall have parent-time with the minor child(ren) as follows: ${details}`;
+        }
+        return statutoryMinimum;
+      default:
+        return `IT IS ORDERED that ${parent} shall have parent-time with the minor child(ren) in accordance with Utah Code § 81-9-302 (minimum schedule) or as otherwise agreed by the parties.`;
+    }
   }
 
   /**

@@ -142,6 +142,29 @@ describe('spousal support payor/payee derivation', () => {
   });
 });
 
+describe('parent-time election capture', () => {
+  test('maps parent_time_plan and parent_time_details straight through as scalars', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      parent_time_plan: 'custom',
+      parent_time_details: 'alternating weeks, exchanges Sunday at 6 pm at the McDonald\'s in Lehi',
+    });
+    expect(data.parentTimePlan).toBe('custom');
+    expect(data.parentTimeDetails).toBe('alternating weeks, exchanges Sunday at 6 pm at the McDonald\'s in Lehi');
+  });
+
+  test('a later election overwrites the earlier one without touching details semantics', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { parentTimePlan: 'custom', parentTimeDetails: 'every other weekend' },
+      { parent_time_plan: 'statutory_minimum' },
+    );
+    expect(data.parentTimePlan).toBe('statutory_minimum');
+    // Scalars only overwrite when re-sent; prior details remain recorded.
+    expect(data.parentTimeDetails).toBe('every other weekend');
+  });
+});
+
 describe('affiant derivation', () => {
   test('petitioner name doubles as affiantName for divorce filings', () => {
     const orch = makeOrchestrator();

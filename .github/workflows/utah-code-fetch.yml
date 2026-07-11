@@ -1,0 +1,55 @@
+name: utah-code-fetch
+on:
+  push:
+    branches: ['claude/utah-code-fetch-temp']
+permissions:
+  contents: write
+jobs:
+  fetch:
+    if: github.ref == 'refs/heads/claude/utah-code-fetch-temp'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poppler
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Fetch Utah Code Title 81 Chapter 6
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+          mkdir -p utah-code-out
+          fetch() {
+            url="$1"; out="$2"
+            code=$(curl -sS -L --retry 2 --max-time 60 \
+              -A "$UA" \
+              -H "Accept: text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.8" \
+              -H "Accept-Language: en-US,en;q=0.9" \
+              -o "utah-code-out/$out" -w "%{http_code}" "$url") || code="curl-fail"
+            echo "$out <- $url : $code" >> utah-code-out/status.txt
+          }
+          fetch "https://le.utah.gov/xcode/Title81/Chapter6/81-6.html" index.html
+          fetch "https://le.utah.gov/xcode/Title81/Chapter6/81-6-P2.html" P2-index.html
+          fetch "https://le.utah.gov/xcode/Title81/Chapter6/81-6-P3.html" P3-index.html
+          fetch "https://le.utah.gov/xcode/Title81/Chapter6/C81-6-P3_2024090120240501.pdf" P3.pdf
+          fetch "https://le.utah.gov/xcode/Title81/Chapter6/C81-6-P2_2024090120240501.pdf" P2.pdf
+          for f in P2 P3; do
+            if file "utah-code-out/$f.pdf" | grep -qi 'pdf document'; then
+              pdftotext -layout "utah-code-out/$f.pdf" "utah-code-out/$f.txt" || true
+            fi
+          done
+          # Fallback mirror (Justia 2024 Utah Code) in case le.utah.gov blocks runner IPs
+          if ! file utah-code-out/P3.pdf | grep -qi 'pdf document'; then
+            for part in part-2 part-3; do
+              fetch "https://law.justia.com/codes/utah/title-81/chapter-6/$part/" "justia-$part.html"
+              grep -oE "/codes/utah/title-81/chapter-6/$part/[a-z0-9-]+/" "utah-code-out/justia-$part.html" 2>/dev/null | sort -u | while read -r p; do
+                slug=$(echo "$p" | tr '/' '_')
+                fetch "https://law.justia.com$p" "justia$slug.html"
+              done
+            done
+          fi
+          cat utah-code-out/status.txt
+      - name: Commit results
+        run: |
+          git config user.name "utah-code-fetch"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f utah-code-out
+          git commit -m "utah-code-fetch: output"
+          git push

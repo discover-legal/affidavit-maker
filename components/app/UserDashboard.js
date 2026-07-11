@@ -3,7 +3,7 @@
 // client/src/components/UserDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen } from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
@@ -309,6 +309,15 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Your life story</span>
               <span className="sm:hidden">Story</span>
+            </button>
+            <button
+              onClick={() => navigate('/serve')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 transition-colors font-semibold text-sm"
+              title="How to serve your papers on the other party"
+            >
+              <Send className="h-4 w-4" />
+              <span className="hidden sm:inline">Serve the papers</span>
+              <span className="sm:hidden">Serve</span>
             </button>
             <button
               onClick={() => {

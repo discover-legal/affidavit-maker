@@ -18,12 +18,12 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
+  buildFamily,
+  buildLedger,
   buildRecitals,
-  childBirthDate,
-  computeAge,
-  formatFriendlyDate,
+  buildTimeline,
   groupFacts,
-  parseKnownDate,
+  moneyLeftover,
   storyProgress,
   type ProfileChild,
   type Recital,
@@ -97,61 +97,67 @@ function PersonFigure({ heightScale }: { heightScale: number }) {
   );
 }
 
-function FamilyRow({ members }: { members: ProfileChild[] }) {
+/** The whole family, labeled and standing on one baseline. */
+function FamilyPortrait({ profile }: { profile: Record<string, unknown> }) {
+  const members = buildFamily(profile);
   return (
-    <div className="mt-4 flex items-end gap-5 overflow-x-auto border-b-2 border-gray-200 pb-0 sm:gap-7">
-      {members.map((child, i) => {
-        const age = computeAge(child);
-        // 4-year-olds come up to a grown-up's waist; cap growth at 18.
-        const scale = age === null ? 0.75 : 0.45 + 0.55 * Math.min(age, 18) / 18;
-        const dob = formatFriendlyDate(childBirthDate(child));
-        return (
-          <figure
-            key={`${child.name || 'child'}-${i}`}
-            className="flex min-w-0 flex-col items-center"
-            title={dob ? `Born ${dob}` : undefined}
-          >
-            <PersonFigure heightScale={scale} />
-            <figcaption className="mt-2 pb-2 text-center font-sans">
-              <span className="block max-w-[7rem] truncate text-sm font-semibold text-gray-800">
-                {(child.name || 'A child').split(' ')[0]}
-              </span>
-              {age !== null && <span className="block text-xs text-gray-500">age {age}</span>}
-            </figcaption>
-          </figure>
-        );
-      })}
+    <div className="mt-4 flex items-end gap-3 overflow-x-auto border-b-2 border-gray-200 pb-0 sm:gap-8">
+      {members.map((member, i) => (
+        <figure
+          key={`${member.label}-${i}`}
+          className="flex min-w-[3.25rem] flex-col items-center"
+          title={member.title}
+        >
+          <PersonFigure heightScale={member.heightScale} />
+          <figcaption className="mt-2 pb-2 text-center font-sans">
+            <span className="block max-w-[7rem] truncate text-sm font-semibold text-gray-800">
+              {member.label}
+            </span>
+            <span className="block h-4 whitespace-nowrap text-xs text-gray-500">
+              {member.sublabel}
+            </span>
+          </figcaption>
+        </figure>
+      ))}
     </div>
   );
 }
 
-/** Married ●────● separated ──→ today, positioned proportionally in time. */
-function MarriageTimeline({ profile }: { profile: Record<string, unknown> }) {
-  const married = parseKnownDate(profile.marriageDate);
-  if (!married) return null;
-  const separated = parseKnownDate(profile.separationDate);
-  const now = new Date();
-  const span = now.getTime() - married.getTime();
-  if (span <= 0) return null;
-
-  // Clamp so event labels never collide with the fixed "Today" label on
-  // narrow screens (a recent separation would otherwise sit at ~90%).
-  const posOf = (d: Date) =>
-    Math.min(68, Math.max(8, ((d.getTime() - married.getTime()) / span) * 100));
-  const events: Array<{ label: string; year: string; pos: number }> = [
-    { label: 'Married', year: String(married.getFullYear()), pos: 8 },
-  ];
-  if (separated && separated > married) {
-    events.push({ label: 'Separated', year: String(separated.getFullYear()), pos: posOf(separated) });
-  }
+/** Married → births → separated → today, positioned proportionally in time. */
+function LifeTimeline({ profile }: { profile: Record<string, unknown> }) {
+  const timeline = buildTimeline(profile);
+  if (!timeline) return null;
 
   return (
     <div className="mt-4 font-sans" aria-hidden="true">
+      {/* Children's births sit above the line as small initialed marks. */}
+      {timeline.births.length > 0 && (
+        <div className="relative mb-1 h-4 text-[10px] font-semibold text-brand-strong">
+          {timeline.births.map((b) => (
+            <span
+              key={b.key}
+              title={b.title}
+              className="absolute -translate-x-1/2"
+              style={{ left: `${b.pos}%` }}
+            >
+              {b.initial}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="relative h-2">
         <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-gray-200" />
-        {events.map((e) => (
+        {timeline.births.map((b) => (
           <span
-            key={e.label}
+            key={b.key}
+            title={b.title}
+            className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white"
+            style={{ left: `${b.pos}%`, borderColor: INK_IN }}
+          />
+        ))}
+        {timeline.majors.map((e) => (
+          <span
+            key={e.key}
             className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
             style={{ left: `${e.pos}%`, backgroundColor: INK_IN }}
           />
@@ -159,9 +165,9 @@ function MarriageTimeline({ profile }: { profile: Record<string, unknown> }) {
         <span className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300">▸</span>
       </div>
       <div className="relative mt-1.5 h-9 text-xs">
-        {events.map((e) => (
+        {timeline.majors.map((e) => (
           <span
-            key={e.label}
+            key={e.key}
             className="absolute -translate-x-1/2 text-center leading-tight"
             style={{ left: `${e.pos}%` }}
           >
@@ -171,14 +177,14 @@ function MarriageTimeline({ profile }: { profile: Record<string, unknown> }) {
         ))}
         <span className="absolute right-0 text-right leading-tight">
           <span className="block font-semibold text-gray-700">Today</span>
-          <span className="block text-gray-400">{now.getFullYear()}</span>
+          <span className="block text-gray-400">{new Date().getFullYear()}</span>
         </span>
       </div>
     </div>
   );
 }
 
-/** Two thin labeled bars: what comes in vs what goes out. */
+/** Two thin labeled bars plus the bottom line: what's left each month. */
 function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
   const income = Number(profile.monthlyIncome);
   const expenses = Number(profile.monthlyExpenses);
@@ -188,25 +194,71 @@ function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
   ].filter((r) => Number.isFinite(r.amount) && r.amount > 0);
   if (rows.length === 0) return null;
   const max = Math.max(...rows.map((r) => r.amount));
+  const leftover = moneyLeftover(profile);
 
   return (
-    <div className="mt-4 space-y-2 font-sans" aria-hidden="true">
-      {rows.map((row) => (
-        <div key={row.label} className="flex items-center gap-3 text-sm">
-          <span className="w-20 shrink-0 text-gray-500">{row.label}</span>
-          <div className="h-2.5 flex-1 rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${Math.max(4, (row.amount / max) * 100)}%`, backgroundColor: row.color }}
-            />
+    <div className="mt-4 font-sans" aria-hidden="true">
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center gap-3 text-sm">
+            <span className="w-20 shrink-0 text-gray-500">{row.label}</span>
+            <div className="h-2.5 flex-1 rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.max(4, (row.amount / max) * 100)}%`, backgroundColor: row.color }}
+              />
+            </div>
+            <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-gray-800">
+              ${Math.round(row.amount).toLocaleString('en-US')}
+              <span className="font-normal text-gray-400">/mo</span>
+            </span>
           </div>
-          <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-gray-800">
-            ${Math.round(row.amount).toLocaleString('en-US')}
-            <span className="font-normal text-gray-400">/mo</span>
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
+      {leftover !== null && leftover !== 0 && (
+        <p className="mt-2 text-sm text-gray-500">
+          ≈{' '}
+          <span className="font-semibold text-gray-800">
+            ${Math.abs(leftover).toLocaleString('en-US')}
+          </span>{' '}
+          {leftover > 0 ? 'left over each month' : 'short each month'}
+        </p>
+      )}
     </div>
+  );
+}
+
+/** "Also on the record" — every legal detail, known or still blank. */
+function RecordLedger({ profile }: { profile: Record<string, unknown> }) {
+  const items = buildLedger(profile);
+  return (
+    <section aria-label="Legal details on record" className="mt-10">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+        Also on the record
+      </h2>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border border-gray-200 bg-white p-6 sm:grid-cols-3">
+        {items.map((item) => (
+          <div key={item.key} className="flex items-start gap-2">
+            <span
+              aria-hidden="true"
+              className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                item.value ? 'bg-brand' : 'border border-gray-300 bg-transparent'
+              }`}
+            />
+            <div className="min-w-0">
+              <dt className="text-xs text-gray-500">{item.label}</dt>
+              <dd className="text-sm font-medium text-gray-800">
+                {item.value ?? (
+                  <span className="border-b border-dotted border-gray-300 font-normal italic text-gray-400">
+                    not yet
+                  </span>
+                )}
+              </dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -312,7 +364,7 @@ export default function LifeStoryClient() {
 
   // Each recital can carry an illustration beneath its sentence.
   const visualFor = (recital: Recital): React.ReactNode => {
-    if (recital.id === 'marriage') return <MarriageTimeline profile={profile} />;
+    if (recital.id === 'marriage') return <LifeTimeline profile={profile} />;
     if (recital.id === 'finances') return <MoneyBars profile={profile} />;
     return null;
   };
@@ -442,12 +494,15 @@ export default function LifeStoryClient() {
                           ? 'You have one child.'
                           : `You have ${children.length} children.`}
                     </p>
-                    {children.length > 0 && <FamilyRow members={children} />}
+                    {children.length > 0 && <FamilyPortrait profile={profile} />}
                   </div>
                 </li>
               )}
             </ol>
           </section>
+
+          {/* Legal details ledger — known values and dotted gaps alike. */}
+          <RecordLedger profile={profile} />
 
           {/* Chapters — the facts, in the user's own words. */}
           {chapters.length > 0 && (

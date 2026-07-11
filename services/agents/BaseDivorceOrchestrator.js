@@ -22,7 +22,7 @@ const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
-const { mergeChildren, removeChildrenByName, summarizeChildren } = require('../../utils/childrenMerge');
+const { mergeChildren, removeChildrenByName, summarizeChildren, hasMinors } = require('../../utils/childrenMerge');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -469,8 +469,12 @@ class BaseDivorceOrchestrator {
     if (Array.isArray(fields.remove_children) && fields.remove_children.length > 0) {
       updated.children = removeChildrenByName(updated.children, fields.remove_children);
     }
-    if (Array.isArray(updated.children)) {
-      updated.hasMinorChildren = updated.children.length > 0;
+    // Re-derive only on turns that touched the children list, from actual
+    // ages — adult children must not flip the minor-children flag (it gates
+    // custody/support document selection), and an explicit "no minors"
+    // answer must not be overwritten on unrelated turns.
+    if (fields.children !== undefined || fields.remove_children !== undefined) {
+      updated.hasMinorChildren = hasMinors(updated.children);
     }
 
     // Derive full names for template compatibility
@@ -528,8 +532,14 @@ class BaseDivorceOrchestrator {
     const roleToName = (value) => {
       const s = String(value || '').trim();
       const role = s.toLowerCase();
-      if (role === 'petitioner' || role === 'plaintiff') return updated.petitionerName || s;
-      if (role === 'respondent' || role === 'defendant') return updated.respondentName || s;
+      // Fall back to the capitalized role word — decrees print this field
+      // verbatim, and a lowercase 'petitioner' mid-sentence reads broken.
+      if (role === 'petitioner' || role === 'plaintiff') {
+        return updated.petitionerName || (s.charAt(0).toUpperCase() + role.slice(1));
+      }
+      if (role === 'respondent' || role === 'defendant') {
+        return updated.respondentName || (s.charAt(0).toUpperCase() + role.slice(1));
+      }
       return s;
     };
     if (updated.primaryCustodian) {

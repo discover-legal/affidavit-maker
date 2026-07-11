@@ -567,12 +567,18 @@ export const DocumentProvider = ({ children }) => {
         if (prof?.success && prof.data) {
           const storedProfile = prof.data.profile || {};
           const storedFacts = Array.isArray(prof.data.facts) ? prof.data.facts : [];
+          // Identity always seeds; family data (children, accumulated facts —
+          // which are mostly family-law statements) only seeds family
+          // documents, so a small-claims or name-change affidavit isn't
+          // contaminated with the user's divorce record.
           profileSeed = {
-            ...(storedFacts.length > 0 ? { facts: storedFacts } : {}),
             ...(storedProfile.affiantName ? { affiantName: storedProfile.affiantName } : {}),
             ...(storedProfile.firstName ? { firstName: storedProfile.firstName } : {}),
             ...(storedProfile.lastName ? { lastName: storedProfile.lastName } : {}),
-            ...(Array.isArray(storedProfile.children) && storedProfile.children.length > 0
+            ...(isDivorcePackage && storedFacts.length > 0 ? { facts: storedFacts } : {}),
+            ...(isDivorcePackage &&
+            Array.isArray(storedProfile.children) &&
+            storedProfile.children.length > 0
               ? { children: storedProfile.children }
               : {})
           };
@@ -704,6 +710,7 @@ export const DocumentProvider = ({ children }) => {
       const {
         factSummary: _factSummary,
         factSignature: _factSignature,
+        profileHydrated: _profileHydrated,
         ...persistableDocument
       } = fullDocumentData;
 
@@ -734,7 +741,7 @@ export const DocumentProvider = ({ children }) => {
             : (fullDocumentData.affiantName
               ? `Affidavit of ${fullDocumentData.affiantName}`
               : 'Untitled Affidavit')),
-        content: JSON.stringify(fullDocumentData)
+        content: JSON.stringify(persistableDocument)
       };
 
       const data = await authFetch('/api/documents/save', {

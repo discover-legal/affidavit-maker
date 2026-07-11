@@ -284,6 +284,24 @@ const DEFAULT_JURISDICTION: Record<string, string> = {
   US: 'TX', CA: 'ON', UK: 'ENG', IE: 'IRL', AU: 'NSW', NZ: 'NZ',
 };
 
+// Matter types whose interviews involve spouse/children/marriage details —
+// the only ones the life-story profile's family fields may hydrate into.
+const FAMILY_MATTER_CODES = new Set([
+  'custody', 'child_support', 'dvro', 'paternity', 'legal_separation',
+  'annulment', 'guardianship_minor', 'adoption', 'emancipation',
+]);
+
+function isFamilyMatter(affidavitData: AffidavitData): boolean {
+  // Deliberately NOT keyed on practiceArea — the client defaults every new
+  // document to practiceArea 'family', which would leak divorce data into
+  // general affidavits. Only explicit divorce docs / family matter codes.
+  const docType = String(
+    affidavitData.documentType || affidavitData.document_type || affidavitData.affidavitType || '',
+  ).toLowerCase();
+  if (docType.includes('divorce')) return true;
+  return FAMILY_MATTER_CODES.has(String(affidavitData.matterTypeCode || '').toLowerCase());
+}
+
 function detectCountry(req: NextRequest, affidavitData: AffidavitData): string {
   const NA_COUNTRIES = new Set(['US', 'CA']);
 
@@ -505,10 +523,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // Life-story hydration: fill gaps from the user's persistent profile so
     // returning users (new session, new document) never repeat themselves.
     // Gap-fill only — anything the current conversation/document already has
-    // always wins. Best-effort: a profile read must never fail the chat turn.
+    // always wins. Scoped: spouse/children/marriage details flow only into
+    // family-law matters, and jurisdiction fields never hydrate (each new
+    // document confirms where it's filed — see lib/api/profile.ts).
+    // Best-effort: a profile read must never fail the chat turn.
+    const hydrationScope = isFamilyMatter(affidavitData) ? 'family' : 'general';
     try {
       const storedProfile = await getUserProfile(user.id);
-      affidavitData = hydrateAffidavitData(storedProfile, affidavitData);
+      affidavitData = hydrateAffidavitData(storedProfile, affidavitData, hydrationScope);
     } catch (err) {
       logger.warn('user_profile_hydration_failed', {
         userId: user.id,
@@ -617,6 +639,20 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     });
 
     const finalAffidavitData = result.affidavitData || affidavitData;
+
+    // Merge this turn's extractions back into the durable life-story profile.
+    // In family scope the conversation started from the profile's full
+    // children list, so its post-turn list is authoritative — replacement
+    // lets explicit removals propagate instead of resurrecting.
+    await mergeUserProfileSafe(
+      user.id,
+      finalAffidavitData as Record<string, unknown>,
+      (result.newFacts || []) as Array<Record<string, unknown>>,
+      {
+        replaceChildren:
+          hydrationScope === 'family' && Array.isArray(finalAffidavitData.children),
+      },
+    );
 
     return NextResponse.json({
       success: true,

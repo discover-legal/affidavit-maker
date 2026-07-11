@@ -112,3 +112,24 @@ describe('summarizeChildren', () => {
     expect(summarizeChildren(undefined)).toBe('');
   });
 });
+
+describe('dob fallback and hasMinors', () => {
+  const { hasMinors } = require('../../utils/childrenMerge');
+
+  test('a re-spelled name with the same dob corrects instead of duplicating', () => {
+    const merged = require('../../utils/childrenMerge').mergeChildren(
+      [{ name: 'Emma Smith', dob: '2015-04-02' }],
+      [{ name: 'Emma Smyth', dob: '2015-04-02' }],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].name).toBe('Emma Smyth');
+  });
+
+  test('hasMinors uses real ages — adult children do not count', () => {
+    const now = new Date(2026, 6, 10);
+    expect(hasMinors([{ name: 'A', age: 22 }, { name: 'B', age: 25 }], now)).toBe(false);
+    expect(hasMinors([{ name: 'A', age: 22 }, { name: 'B', dob: '2015-04-02' }], now)).toBe(true);
+    expect(hasMinors([{ name: 'Unknown kid' }], now)).toBe(true); // unknown age = assume minor
+    expect(hasMinors([], now)).toBe(false);
+  });
+});

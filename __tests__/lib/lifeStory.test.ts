@@ -114,3 +114,84 @@ describe('storyProgress', () => {
     expect(storyProgress({ hasMinorChildren: false }).known).toBe(1);
   });
 });
+
+describe('rich visuals helpers', () => {
+  const { buildTimeline, buildLedger, moneyLeftover, buildFamily } =
+    require('@/components/app/lifeStory');
+  const profile = {
+    respondentFirstName: 'Alex',
+    marriageDate: '2010-05-01',
+    separationDate: '2024-11-15',
+    children: [
+      { name: 'Emma', dob: '2015-04-02' },
+      { name: 'Liam', dob: '2017-06-15' },
+    ],
+  };
+
+  test('buildTimeline places births between married and today, clamped', () => {
+    const t = buildTimeline(profile, new Date(2026, 6, 10));
+    expect(t.majors.map((m: { key: string }) => m.key)).toEqual(['married', 'separated']);
+    expect(t.births).toHaveLength(2);
+    expect(t.births[0].initial).toBe('E');
+    for (const b of t.births) {
+      expect(b.pos).toBeGreaterThanOrEqual(10);
+      expect(b.pos).toBeLessThanOrEqual(88);
+    }
+    expect(t.births[1].pos - t.births[0].pos).toBeGreaterThanOrEqual(6);
+  });
+
+  test('buildTimeline handles bad dates safely', () => {
+    expect(buildTimeline({})).toBeNull();
+    expect(buildTimeline({ marriageDate: 'sometime' })).toBeNull();
+    const t = buildTimeline(
+      { marriageDate: '2020-01-01', separationDate: '2019-01-01' },
+      new Date(2026, 0, 1),
+    );
+    expect(t.majors.map((m: { key: string }) => m.key)).toEqual(['married']); // bad separation dropped
+  });
+
+  test('buildFamily puts You first, spouse last, children scaled between', () => {
+    const fam = buildFamily(profile);
+    expect(fam[0].label).toBe('You');
+    expect(fam[fam.length - 1].label).toBe('Alex');
+    expect(fam[1].heightScale).toBeLessThan(1);
+  });
+
+  test('moneyLeftover computes margin only when both sides known', () => {
+    expect(moneyLeftover({ monthlyIncome: 5200, monthlyExpenses: 4100 })).toBe(1100);
+    expect(moneyLeftover({ monthlyIncome: 4000, monthlyExpenses: 4500 })).toBe(-500);
+    expect(moneyLeftover({ monthlyIncome: 5200 })).toBeNull();
+  });
+
+  test('buildLedger humanizes values and leaves gaps null', () => {
+    const items = buildLedger({
+      groundsForDivorce: 'insupportability',
+      custodyArrangement: 'joint',
+      primaryCustodian: 'Brandon Pritchard',
+      childSupportAmount: 800,
+      childSupportObligor: 'Alex Pritchard',
+      spousalSupportRequested: false,
+      serviceMethod: 'waiver',
+      hasProtectiveOrder: false,
+    });
+    const by = Object.fromEntries(items.map((i: { key: string; value: string | null }) => [i.key, i.value]));
+    expect(by.grounds).toBe('insupportability');
+    expect(by.custody).toBe('Joint, with Brandon');
+    expect(by.child_support).toBe('$800/mo from Alex');
+    expect(by.spousal_support).toBe('Not requested');
+    expect(by.service).toBe('Waiver of service');
+    expect(by.protective_order).toBe('None');
+    expect(by.military).toBeNull();
+    expect(by.fee_waiver).toBeNull();
+  });
+});
+
+describe('parseKnownDate strictness', () => {
+  const { parseKnownDate } = require('@/components/app/lifeStory');
+  test('rejects rollover dates instead of silently shifting them', () => {
+    expect(parseKnownDate('13/01/2015')).toBeNull(); // DD/MM entry, not month 13
+    expect(parseKnownDate('2015-13-45')).toBeNull();
+    expect(parseKnownDate('2015-02-30')).toBeNull();
+    expect(parseKnownDate('12/31/2015')).not.toBeNull();
+  });
+});

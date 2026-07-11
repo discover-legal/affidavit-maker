@@ -41,13 +41,41 @@ function findMatchIndex(list, child) {
       return acc;
     }, []);
     if (prefixMatches.length === 1) return prefixMatches[0];
-    return -1;
+    // Same birth date = same child even when the name was re-spelled
+    // ("Emma Smith" → "Emma Smyth" must correct, not duplicate).
   }
   const dob = birthDateOf(child);
   if (dob) {
     return list.findIndex((c) => birthDateOf(c) === dob);
   }
   return -1;
+}
+
+/**
+ * Does the recorded list contain any minor (or age-unknown) child?
+ * Used to derive hasMinorChildren without forcing `true` for families
+ * whose recorded children are all adults.
+ */
+function hasMinors(children, now = new Date()) {
+  if (!Array.isArray(children) || children.length === 0) return false;
+  return children.some((child) => {
+    if (!child || typeof child !== 'object') return false;
+    const numericAge = Number(child.age);
+    if (Number.isFinite(numericAge)) return numericAge < 18;
+    const dobRaw = birthDateOf(child);
+    if (dobRaw) {
+      const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(dobRaw);
+      const dob = iso
+        ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+        : new Date(dobRaw);
+      if (!Number.isNaN(dob.getTime())) {
+        return now.getTime() - dob.getTime() < 18 * 365.25 * 24 * 3600 * 1000;
+      }
+    }
+    // Age unknown — assume minor; family-law children lists are minors
+    // unless stated otherwise.
+    return true;
+  });
 }
 
 /**
@@ -145,4 +173,4 @@ function summarizeChildren(children) {
     .join('\n');
 }
 
-module.exports = { mergeChildren, removeChildrenByName, summarizeChildren, birthDateOf };
+module.exports = { mergeChildren, removeChildrenByName, summarizeChildren, birthDateOf, hasMinors };

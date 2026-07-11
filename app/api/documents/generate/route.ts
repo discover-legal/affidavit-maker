@@ -139,6 +139,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // branch — by the time the SPA hits /generate, the payment webhook
     // should have already flipped payment_status. If a race surfaces we'll
     // reintroduce the fallback in a follow-up.
+    //
+    // SECURITY: a request without documentId must not slip past the gate —
+    // the SPA always saves before generating, so a missing id is either a
+    // bug or a bypass attempt. Only the kill-switch waives the requirement.
+    if (!documentId && paymentsEnabled()) {
+      throw new ValidationError('documentId is required to generate a document');
+    }
     if (documentId && !paymentsEnabled()) {
       // Payments kill-switch is on — generation is free. Ownership is still
       // enforced (the document must belong to the requesting user).

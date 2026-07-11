@@ -23,9 +23,13 @@ beforeEach(() => {
 describe('hydrateAffidavitData', () => {
   const stored: UserProfile = {
     profile: {
+      firstName: 'Brandon',
       petitionerFirstName: 'Brandon',
       petitionerLastName: 'Pritchard',
       marriageDate: '2010-05-01',
+      state: 'TX',
+      county: 'Travis',
+      monthlyIncome: 5200,
       children: [
         { name: 'Emma', dob: '2015-04-02' },
         { name: 'Liam', dob: '2017-06-15' },
@@ -35,36 +39,51 @@ describe('hydrateAffidavitData', () => {
     facts: [{ id: '1', content: 'I was married in Texas.', category: 'general' }],
   };
 
-  test('fills gaps from the stored profile', () => {
-    const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>);
+  test('family scope fills family gaps from the stored profile', () => {
+    const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'family');
     expect(hydrated.petitionerFirstName).toBe('Brandon');
     expect(hydrated.marriageDate).toBe('2010-05-01');
     expect((hydrated.children as unknown[]).length).toBe(3);
     expect((hydrated.facts as unknown[]).length).toBe(1);
-    expect(hydrated.profileHydrated).toBe(true);
+  });
+
+  test('general scope hydrates identity/finances but NOT family data', () => {
+    const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'general');
+    expect(hydrated.firstName).toBe('Brandon');
+    expect(hydrated.monthlyIncome).toBe(5200);
+    expect(hydrated.marriageDate).toBeUndefined();
+    expect(hydrated.children).toBeUndefined();
+    expect(hydrated.facts).toBeUndefined();
+  });
+
+  test('jurisdiction fields never hydrate — routing must be confirmed per document', () => {
+    const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'family');
+    expect(hydrated.state).toBeUndefined();
+    expect(hydrated.county).toBeUndefined();
   });
 
   test('never overwrites what the current conversation already has', () => {
-    const hydrated = hydrateAffidavitData(stored, {
-      petitionerFirstName: 'Robert',
-      facts: [{ id: '9', content: 'Fresh fact.' }],
-    });
+    const hydrated = hydrateAffidavitData(
+      stored,
+      {
+        petitionerFirstName: 'Robert',
+        facts: [{ id: '9', content: 'Fresh fact.' }],
+      },
+      'family',
+    );
     expect(hydrated.petitionerFirstName).toBe('Robert');
     expect((hydrated.facts as { id: string }[])[0].id).toBe('9');
   });
 
   test('merges profile children with conversation children by identity', () => {
-    const hydrated = hydrateAffidavitData(stored, {
-      children: [{ name: 'Emma', age: 11 }],
-    });
+    const hydrated = hydrateAffidavitData(
+      stored,
+      { children: [{ name: 'Emma', age: 11 }] },
+      'family',
+    );
     const children = hydrated.children as { name: string }[];
     expect(children).toHaveLength(3);
     expect(children.map((c) => c.name).sort()).toEqual(['Ava', 'Emma', 'Liam']);
-  });
-
-  test('does not flag hydration when there is nothing to add', () => {
-    const hydrated = hydrateAffidavitData({ profile: {}, facts: [] }, { state: 'TX' });
-    expect(hydrated.profileHydrated).toBeUndefined();
   });
 });
 
@@ -133,5 +152,34 @@ describe('mergeUserProfile', () => {
 
     const savedFacts = JSON.parse(params[2] as string);
     expect(savedFacts.map((f: { id: string }) => f.id).sort()).toEqual(['1', '2', '3']);
+  });
+});
+
+describe('mergeUserProfile replaceChildren', () => {
+  test('replacement lets an explicit removal propagate to the profile', async () => {
+    queryMock.mockResolvedValueOnce({
+      rows: [
+        {
+          profile: {
+            children: [
+              { name: 'Emma', dob: '2015-04-02' },
+              { name: 'Liam', dob: '2017-06-15' },
+            ],
+          },
+          facts: [],
+        },
+      ],
+      rowCount: 1,
+    });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    // Conversation was family-hydrated, user removed Liam mid-interview.
+    await mergeUserProfile(7, { children: [{ name: 'Emma', dob: '2015-04-02' }] }, [], {
+      replaceChildren: true,
+    });
+
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.children.map((c: { name: string }) => c.name)).toEqual(['Emma']);
   });
 });

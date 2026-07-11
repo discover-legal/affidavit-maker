@@ -19,15 +19,16 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import Tooltip from '@/components/marketing/Tooltip';
 import QuickExit from './QuickExit';
+import { getInitialLang, setLang, t, type Lang } from '@/lib/i18n';
 import {
-  ASK_TOPICS,
-  GLOSSARY,
+  MONEY_OTHER_LABELS,
   advisorFlags,
   buildFamily,
   buildLedger,
   buildRecitals,
   buildTimeline,
   feeWaiverHint,
+  getGlossary,
   groupFacts,
   moneyLeftover,
   moneySegments,
@@ -61,6 +62,8 @@ const INK_OUT = '#b45309';
 const MONEY_PALETTE = ['#2563eb', '#0d9488', '#7c3aed', '#b45309', '#be185d'];
 const MONEY_OTHER = '#9ca3af';
 
+// Keyed by chapter label in both languages (chapter labels come from
+// categoryLabel, which is language-aware).
 const CHAPTER_ICONS: Record<string, LucideIcon> = {
   'Where you live': MapPin,
   'Why you are filing': Scale,
@@ -68,9 +71,23 @@ const CHAPTER_ICONS: Record<string, LucideIcon> = {
   'Your relationships': Heart,
   'Money matters': Banknote,
   'What you own': Banknote,
+  'Dónde vives': MapPin,
+  'Por qué presentas tu caso': Scale,
+  'Tus hijos': Users,
+  'Tus relaciones': Heart,
+  'Asuntos de dinero': Banknote,
+  'Lo que posees': Banknote,
 };
 
-function SegmentSpan({ segment, onAsk }: { segment: Segment; onAsk?: () => void }) {
+function SegmentSpan({
+  segment,
+  lang,
+  onAsk,
+}: {
+  segment: Segment;
+  lang: Lang;
+  onAsk?: () => void;
+}) {
   if (segment.kind === 'value') {
     return (
       <mark className="rounded bg-brand-tint px-1 font-medium text-brand-strong">
@@ -86,7 +103,7 @@ function SegmentSpan({ segment, onAsk }: { segment: Segment; onAsk?: () => void 
         <button
           onClick={onAsk}
           className="border-b-2 border-dotted border-gray-400 px-0.5 italic text-gray-400 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          title="Add this to your story"
+          title={t(lang, 'story.addTitle')}
         >
           {segment.text} +
         </button>
@@ -126,8 +143,8 @@ function PersonFigure({ heightScale }: { heightScale: number }) {
 }
 
 /** The whole family, labeled and standing on one baseline. */
-function FamilyPortrait({ profile }: { profile: Record<string, unknown> }) {
-  const members = buildFamily(profile);
+function FamilyPortrait({ profile, lang }: { profile: Record<string, unknown>; lang: Lang }) {
+  const members = buildFamily(profile, lang);
   return (
     <div className="mt-4 flex items-end gap-3 overflow-x-auto border-b-2 border-gray-200 pb-0 sm:gap-8">
       {members.map((member, i) => (
@@ -152,8 +169,8 @@ function FamilyPortrait({ profile }: { profile: Record<string, unknown> }) {
 }
 
 /** Married → births → separated → today, positioned proportionally in time. */
-function LifeTimeline({ profile }: { profile: Record<string, unknown> }) {
-  const timeline = buildTimeline(profile);
+function LifeTimeline({ profile, lang }: { profile: Record<string, unknown>; lang: Lang }) {
+  const timeline = buildTimeline(profile, new Date(), lang);
   if (!timeline) return null;
 
   return (
@@ -204,7 +221,7 @@ function LifeTimeline({ profile }: { profile: Record<string, unknown> }) {
           </span>
         ))}
         <span className="absolute right-0 text-right leading-tight">
-          <span className="block font-semibold text-gray-700">Today</span>
+          <span className="block font-semibold text-gray-700">{t(lang, 'timeline.today')}</span>
           <span className="block text-gray-400">{new Date().getFullYear()}</span>
         </span>
       </div>
@@ -213,7 +230,8 @@ function LifeTimeline({ profile }: { profile: Record<string, unknown> }) {
 }
 
 function segmentColor(index: number, label: string): string {
-  return label === 'Other' ? MONEY_OTHER : MONEY_PALETTE[index % MONEY_PALETTE.length];
+  const isOtherFold = label === MONEY_OTHER_LABELS.en || label === MONEY_OTHER_LABELS.es;
+  return isOtherFold ? MONEY_OTHER : MONEY_PALETTE[index % MONEY_PALETTE.length];
 }
 
 /**
@@ -227,14 +245,17 @@ function MoneyRow({
   max,
   segments,
   fallbackColor,
+  lang,
 }: {
   label: string;
   total: number;
   max: number;
   segments: MoneySegment[];
   fallbackColor: string;
+  lang: Lang;
 }) {
   const widthPct = Math.max(4, (total / max) * 100);
+  const perMonth = t(lang, 'money.perMonth');
   return (
     <div>
       {/* Phones: label + total on one line, full-width bar below.
@@ -243,7 +264,7 @@ function MoneyRow({
         <span className="order-1 w-20 shrink-0 text-gray-500">{label}</span>
         <span className="order-2 ml-auto shrink-0 text-right font-semibold tabular-nums text-gray-800 sm:order-3 sm:ml-0 sm:w-24">
           ${Math.round(total).toLocaleString('en-US')}
-          <span className="font-normal text-gray-400">/mo</span>
+          <span className="font-normal text-gray-400">{perMonth}</span>
         </span>
         <div className="order-3 h-3 w-full rounded-full bg-gray-100 sm:order-2 sm:w-auto sm:flex-1">
           {segments.length > 1 ? (
@@ -251,7 +272,7 @@ function MoneyRow({
               {segments.map((seg, i) => (
                 <div
                   key={seg.label}
-                  title={`${seg.label}: $${seg.amount.toLocaleString('en-US')}/mo`}
+                  title={`${seg.label}: $${seg.amount.toLocaleString('en-US')}${perMonth}`}
                   className="h-full first:rounded-l-full last:rounded-r-full"
                   style={{
                     width: `${(seg.amount / total) * 100}%`,
@@ -290,21 +311,21 @@ function MoneyRow({
 }
 
 /** Money in vs out — itemized by source/person and category when known. */
-function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
+function MoneyBars({ profile, lang }: { profile: Record<string, unknown>; lang: Lang }) {
   const income = Number(profile.monthlyIncome);
   const expenses = Number(profile.monthlyExpenses);
   const rows = [
     {
-      label: 'Comes in',
+      label: t(lang, 'money.in'),
       amount: income,
       color: INK_IN,
-      segments: moneySegments(profile.incomeBreakdown, profile),
+      segments: moneySegments(profile.incomeBreakdown, profile, lang),
     },
     {
-      label: 'Goes out',
+      label: t(lang, 'money.out'),
       amount: expenses,
       color: INK_OUT,
-      segments: moneySegments(profile.expenseBreakdown, profile),
+      segments: moneySegments(profile.expenseBreakdown, profile, lang),
     },
   ]
     .map((r) => ({
@@ -332,6 +353,7 @@ function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
           max={max}
           segments={row.segments}
           fallbackColor={row.color}
+          lang={lang}
         />
       ))}
       {leftover !== null && leftover !== 0 && (
@@ -340,7 +362,7 @@ function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
           <span className="font-semibold text-gray-800">
             ${Math.abs(leftover).toLocaleString('en-US')}
           </span>{' '}
-          {leftover > 0 ? 'left over each month' : 'short each month'}
+          {leftover > 0 ? t(lang, 'money.leftOver') : t(lang, 'money.short')}
         </p>
       )}
     </div>
@@ -354,16 +376,19 @@ function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
  */
 function RecordLedger({
   profile,
+  lang,
   onAsk,
 }: {
   profile: Record<string, unknown>;
+  lang: Lang;
   onAsk: (topic: string) => void;
 }) {
-  const items = buildLedger(profile);
+  const items = buildLedger(profile, lang);
+  const glossary = getGlossary(lang);
   return (
-    <section aria-label="Legal details on record" className="mt-10">
+    <section aria-label={t(lang, 'ledger.aria')} className="mt-10">
       <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-        Also on the record
+        {t(lang, 'ledger.heading')}
       </h2>
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border border-gray-200 bg-white p-6 sm:grid-cols-3">
         {items.map((item) => (
@@ -376,8 +401,8 @@ function RecordLedger({
             />
             <div className="min-w-0">
               <dt className="text-xs text-gray-500">
-                {GLOSSARY[item.label] ? (
-                  <Tooltip term={item.label} definition={GLOSSARY[item.label]} />
+                {glossary[item.label] ? (
+                  <Tooltip term={item.label} definition={glossary[item.label]} />
                 ) : (
                   item.label
                 )}
@@ -387,9 +412,9 @@ function RecordLedger({
                   <button
                     onClick={() => onAsk(item.key)}
                     className="border-b border-dotted border-gray-400 font-normal italic text-gray-400 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-                    title="Add this to your story"
+                    title={t(lang, 'story.addTitle')}
                   >
-                    add this +
+                    {t(lang, 'ledger.add')}
                   </button>
                 )}
               </dd>
@@ -406,36 +431,38 @@ function RecordLedger({
  * about a court process the user may qualify for, with a pointer to real
  * advice — never a determination.
  */
-function FeeWaiverNote({ onAsk }: { onAsk: (topic: string) => void }) {
+function FeeWaiverNote({ lang, onAsk }: { lang: Lang; onAsk: (topic: string) => void }) {
   return (
     <div className="mt-3 rounded-lg border border-brand-soft bg-brand-tint/50 p-3 font-sans text-sm text-gray-700">
-      Based on the income you&apos;ve shared, you <span className="font-semibold">may qualify</span>{' '}
-      to ask the court to waive its filing fees (a &quot;fee waiver&quot;).{' '}
+      {t(lang, 'feeWaiver.p1a')}
+      <span className="font-semibold">{t(lang, 'feeWaiver.may')}</span>
+      {t(lang, 'feeWaiver.p1b')}{' '}
       <button
         onClick={() => onAsk('fee_waiver')}
         className="font-semibold text-brand-strong underline hover:text-brand"
       >
-        Add this to your documents
+        {t(lang, 'feeWaiver.add')}
       </button>
-      . This is general information, not legal advice — a{' '}
+      {t(lang, 'feeWaiver.p2a')}
       <a
         href="https://www.lawhelp.org/find-help"
         target="_blank"
         rel="noopener noreferrer"
         className="font-semibold text-brand-strong underline hover:text-brand"
       >
-        legal-aid office
-      </a>{' '}
-      can confirm what applies to you.
+        {t(lang, 'feeWaiver.legalAid')}
+      </a>
+      {t(lang, 'feeWaiver.p2b')}
     </div>
   );
 }
 
 /** Segmented "how much of your story is told" meter. */
-function StoryMeter({ known, total }: { known: number; total: number }) {
+function StoryMeter({ known, total, lang }: { known: number; total: number; lang: Lang }) {
+  const progress = t(lang, 'meter.progress', { known, total });
   return (
     <div className="font-sans">
-      <div className="flex items-center gap-1.5" role="img" aria-label={`${known} of ${total} story details shared`}>
+      <div className="flex items-center gap-1.5" role="img" aria-label={progress}>
         {Array.from({ length: total }, (_, i) => (
           <span
             key={i}
@@ -444,9 +471,7 @@ function StoryMeter({ known, total }: { known: number; total: number }) {
         ))}
       </div>
       <p className="mt-1.5 text-xs text-gray-500">
-        {known === total
-          ? 'Your core story is complete'
-          : `${known} of ${total} story details shared`}
+        {known === total ? t(lang, 'meter.complete') : progress}
       </p>
     </div>
   );
@@ -455,11 +480,13 @@ function StoryMeter({ known, total }: { known: number; total: number }) {
 function RecitalLine({
   recital,
   index,
+  lang,
   visual,
   onAsk,
 }: {
   recital: Recital;
   index: number;
+  lang: Lang;
   visual?: React.ReactNode;
   onAsk?: (topic: string) => void;
 }) {
@@ -477,6 +504,7 @@ function RecitalLine({
             <SegmentSpan
               key={i}
               segment={segment}
+              lang={lang}
               onAsk={onAsk ? () => onAsk(recital.id) : undefined}
             />
           ))}
@@ -488,16 +516,23 @@ function RecitalLine({
 }
 
 /** Persistent (not dismissable) note when an issue calls for a lawyer. */
-function AdvisorBanner({ flags }: { flags: Array<{ key: string; label: string }> }) {
+function AdvisorBanner({
+  flags,
+  lang,
+}: {
+  flags: Array<{ key: string; label: string }>;
+  lang: Lang;
+}) {
   if (flags.length === 0) return null;
   return (
     <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 font-sans">
       <Scale className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
       <p className="text-sm text-amber-900">
         <span className="font-semibold">
-          A lawyer&apos;s advice is recommended for: {flags.map((f) => f.label).join(', ')}.
-        </span>{' '}
-        You can keep working here — and free or low-cost legal help is available through{' '}
+          {t(lang, 'advisor.lead')}
+          {flags.map((f) => f.label).join(', ')}.
+        </span>
+        {t(lang, 'advisor.body')}
         <a
           href="https://www.lawhelp.org/find-help"
           target="_blank"
@@ -517,10 +552,12 @@ type ChildDraft = { name: string; dob: string };
 /** "Fix my story" — direct edits to the core facts, saved via PATCH. */
 function EditStoryPanel({
   profile,
+  lang,
   onSaved,
   onClose,
 }: {
   profile: Record<string, unknown>;
+  lang: Lang;
   onSaved: () => void;
   onClose: () => void;
 }) {
@@ -571,7 +608,7 @@ function EditStoryPanel({
         body: JSON.stringify(patch),
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
+      if (!res.ok || !json.success) throw new Error(json.error || t(lang, 'edit.saveFailed'));
       onSaved();
     } catch (err) {
       setError((err as Error).message);
@@ -585,37 +622,34 @@ function EditStoryPanel({
 
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 font-sans">
-      <h3 className="font-semibold text-gray-900">Fix your story</h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Changes here update what the assistant remembers. Existing documents keep
-        their own copy until you continue them in chat.
-      </p>
+      <h3 className="font-semibold text-gray-900">{t(lang, 'edit.title')}</h3>
+      <p className="mt-1 text-sm text-gray-500">{t(lang, 'edit.body')}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Your name</span>
+          <span className="mb-1 block text-gray-600">{t(lang, 'edit.yourName')}</span>
           <input className={field} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Spouse&apos;s name</span>
+          <span className="mb-1 block text-gray-600">{t(lang, 'edit.spouseName')}</span>
           <input className={field} value={spouse} onChange={(e) => setSpouse(e.target.value)} />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Marriage date</span>
+          <span className="mb-1 block text-gray-600">{t(lang, 'edit.marriageDate')}</span>
           <input className={field} placeholder="YYYY-MM-DD" value={marriageDate} onChange={(e) => setMarriageDate(e.target.value)} />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Separation date</span>
+          <span className="mb-1 block text-gray-600">{t(lang, 'edit.separationDate')}</span>
           <input className={field} placeholder="YYYY-MM-DD" value={separationDate} onChange={(e) => setSeparationDate(e.target.value)} />
         </label>
       </div>
       <div className="mt-4">
-        <span className="mb-1 block text-sm text-gray-600">Children</span>
+        <span className="mb-1 block text-sm text-gray-600">{t(lang, 'edit.children')}</span>
         <div className="space-y-2">
           {children.map((child, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
                 className={field}
-                placeholder="Name"
+                placeholder={t(lang, 'edit.childName')}
                 value={child.name}
                 onChange={(e) =>
                   setChildren(children.map((c, j) => (j === i ? { ...c, name: e.target.value } : c)))
@@ -623,7 +657,7 @@ function EditStoryPanel({
               />
               <input
                 className={field}
-                placeholder="Born YYYY-MM-DD"
+                placeholder={t(lang, 'edit.childDob')}
                 value={child.dob}
                 onChange={(e) =>
                   setChildren(children.map((c, j) => (j === i ? { ...c, dob: e.target.value } : c)))
@@ -632,7 +666,9 @@ function EditStoryPanel({
               <button
                 onClick={() => setChildren(children.filter((_, j) => j !== i))}
                 className="shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                aria-label={`Remove ${child.name || 'child'}`}
+                aria-label={t(lang, 'edit.removeChild', {
+                  name: child.name || t(lang, 'edit.aChild'),
+                })}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -642,7 +678,7 @@ function EditStoryPanel({
             onClick={() => setChildren([...children, { name: '', dob: '' }])}
             className="text-sm font-semibold text-brand-strong hover:text-brand"
           >
-            + Add a child
+            {t(lang, 'edit.addChild')}
           </button>
         </div>
       </div>
@@ -654,14 +690,14 @@ function EditStoryPanel({
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong disabled:opacity-60"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          Save changes
+          {t(lang, 'edit.save')}
         </button>
         <button
           onClick={onClose}
           disabled={saving}
           className="rounded-lg px-3.5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
         >
-          Cancel
+          {t(lang, 'edit.cancel')}
         </button>
       </div>
     </div>
@@ -672,9 +708,11 @@ function EditStoryPanel({
  * the timeline, its statements join the record labeled with the document
  * they came from. */
 function IngestPanel({
+  lang,
   onDone,
   onClose,
 }: {
+  lang: Lang;
   onDone: (summary: string) => void;
   onClose: () => void;
 }) {
@@ -688,16 +726,16 @@ function IngestPanel({
     setError('');
     if (!file) return;
     if (!['image/png', 'image/jpeg'].includes(file.type)) {
-      setError('Only PNG and JPEG photos are supported.');
+      setError(t(lang, 'ingest.errType'));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError('That photo is too large — 8MB max. Try a smaller one or paste the text.');
+      setError(t(lang, 'ingest.errSize'));
       return;
     }
     const reader = new FileReader();
     reader.onload = () => setPhoto({ name: file.name, dataUrl: String(reader.result) });
-    reader.onerror = () => setError('Could not read that file — try again or paste the text.');
+    reader.onerror = () => setError(t(lang, 'ingest.errRead'));
     reader.readAsDataURL(file);
   };
 
@@ -715,10 +753,18 @@ function IngestPanel({
         ),
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Could not read this document');
+      if (!res.ok || !json.success) throw new Error(json.error || t(lang, 'ingest.errFail'));
       const d = json.data || {};
+      const events = d.eventsAdded || 0;
+      const facts = d.factsAdded || 0;
       onDone(
-        `Read "${d.documentKind || 'document'}" — added ${d.eventsAdded || 0} event${d.eventsAdded === 1 ? '' : 's'} to your timeline and ${d.factsAdded || 0} statement${d.factsAdded === 1 ? '' : 's'} to your record.`,
+        t(lang, 'ingest.summary', {
+          kind: d.documentKind || t(lang, 'ingest.defaultKind'),
+          events,
+          eventsNoun: t(lang, events === 1 ? 'ingest.event' : 'ingest.events'),
+          facts,
+          factsNoun: t(lang, facts === 1 ? 'ingest.statement' : 'ingest.statements'),
+        }),
       );
     } catch (err) {
       setError((err as Error).message);
@@ -729,22 +775,20 @@ function IngestPanel({
 
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 font-sans">
-      <h3 className="font-semibold text-gray-900">Add a court paper</h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Got served or received something from the court? Paste its text here —
-        or add a photo of it — dates go on your timeline and what it says
-        joins your story, marked as coming from that document.
-      </p>
+      <h3 className="font-semibold text-gray-900">{t(lang, 'ingest.title')}</h3>
+      <p className="mt-1 text-sm text-gray-500">{t(lang, 'ingest.body')}</p>
       <input
         className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        placeholder="What is it? (e.g. 'Papers I was served', 'Hearing notice') — optional"
+        placeholder={t(lang, 'ingest.labelPlaceholder')}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         maxLength={120}
       />
       <textarea
         className="mt-2 h-40 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        placeholder={photo ? 'Photo attached — text is optional' : "Paste the document's text here…"}
+        placeholder={
+          photo ? t(lang, 'ingest.textPlaceholderPhoto') : t(lang, 'ingest.textPlaceholder')
+        }
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={20000}
@@ -765,7 +809,7 @@ function IngestPanel({
           htmlFor="ingest-photo-input"
           className={`cursor-pointer rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 ${busy ? 'pointer-events-none opacity-60' : ''}`}
         >
-          {photo ? 'Choose a different photo' : 'or add a photo'}
+          {photo ? t(lang, 'ingest.photoChange') : t(lang, 'ingest.photoAdd')}
         </label>
         {photo && (
           <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
@@ -776,9 +820,9 @@ function IngestPanel({
               onClick={() => setPhoto(null)}
               disabled={busy}
               className="font-semibold text-gray-500 hover:text-gray-900"
-              aria-label="Remove photo"
+              aria-label={t(lang, 'ingest.photoRemoveAria')}
             >
-              Remove
+              {t(lang, 'ingest.photoRemove')}
             </button>
           </span>
         )}
@@ -791,14 +835,14 @@ function IngestPanel({
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong disabled:opacity-60"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          {busy && photo ? 'Reading your photo…' : 'Read this document'}
+          {busy && photo ? t(lang, 'ingest.submitBusyPhoto') : t(lang, 'ingest.submit')}
         </button>
         <button
           onClick={onClose}
           disabled={busy}
           className="rounded-lg px-3.5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
         >
-          Cancel
+          {t(lang, 'edit.cancel')}
         </button>
       </div>
     </div>
@@ -807,6 +851,10 @@ function IngestPanel({
 
 export default function LifeStoryClient() {
   const router = useRouter();
+  // Language starts as 'en' so the first client render matches the
+  // server-rendered HTML; the saved/browser preference applies in an
+  // effect right after hydration.
+  const [lang, setLangState] = useState<Lang>('en');
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [profile, setProfile] = useState<Record<string, unknown>>({});
   const [facts, setFacts] = useState<Array<Record<string, unknown>>>([]);
@@ -830,6 +878,15 @@ export default function LifeStoryClient() {
       console.error('Failed to load life story:', err);
       setLoadState('error');
     }
+  }, []);
+
+  useEffect(() => {
+    setLangState(getInitialLang());
+  }, []);
+
+  const chooseLang = useCallback((next: Lang) => {
+    setLangState(next);
+    setLang(next); // persists to localStorage for future visits
   }, []);
 
   useEffect(() => {
@@ -869,14 +926,16 @@ export default function LifeStoryClient() {
         const days = Number(json.data?.waitingPeriod?.days);
         const stateName = String(json.data?.stateName || state);
         setWaitingNote(
-          Number.isFinite(days) ? waitingPeriodNote(profile, days, stateName) : null,
+          Number.isFinite(days)
+            ? waitingPeriodNote(profile, days, stateName, new Date(), lang)
+            : null,
         );
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+  }, [profile, lang]);
 
   // Tapping a gap opens the chat with the user's own "I want to add…"
   // message prefilled (they can edit it before sending) — data completion
@@ -905,14 +964,14 @@ export default function LifeStoryClient() {
     }
   };
 
-  const recitals = buildRecitals(profile);
-  const chapters = groupFacts(facts);
+  const recitals = buildRecitals(profile, lang);
+  const chapters = groupFacts(facts, lang);
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
   const progress = storyProgress(profile);
   const isEmpty =
     recitals.every((r) => !r.known) && children.length === 0 && chapters.length === 0;
 
-  const flags = advisorFlags(profile);
+  const flags = advisorFlags(profile, lang);
   const showQuickExit = profile.hasProtectiveOrder === true;
 
   // Each recital can carry an illustration beneath its sentence.
@@ -920,7 +979,7 @@ export default function LifeStoryClient() {
     if (recital.id === 'marriage') {
       return (
         <>
-          <LifeTimeline profile={profile} />
+          <LifeTimeline profile={profile} lang={lang} />
           {waitingNote && (
             <p className="mt-1 font-sans text-xs text-gray-500">{waitingNote}</p>
           )}
@@ -930,8 +989,8 @@ export default function LifeStoryClient() {
     if (recital.id === 'finances') {
       return (
         <>
-          <MoneyBars profile={profile} />
-          {feeWaiverHint(profile) && <FeeWaiverNote onAsk={handleAsk} />}
+          <MoneyBars profile={profile} lang={lang} />
+          {feeWaiverHint(profile) && <FeeWaiverNote lang={lang} onAsk={handleAsk} />}
         </>
       );
     }
@@ -954,27 +1013,51 @@ export default function LifeStoryClient() {
 
       {showQuickExit && <QuickExit />}
 
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="mb-8 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Dashboard
-      </button>
+      <div className="mb-8 flex items-center justify-between">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t(lang, 'nav.dashboard')}
+        </button>
+
+        {/* EN/ES pill — the choice persists (localStorage) across visits. */}
+        <div
+          role="group"
+          aria-label={t(lang, 'lang.toggleAria')}
+          className="inline-flex rounded-full border border-gray-300 p-0.5 font-sans"
+        >
+          {(['en', 'es'] as const).map((code) => (
+            <button
+              key={code}
+              onClick={() => chooseLang(code)}
+              aria-pressed={lang === code}
+              aria-label={t(lang, `lang.${code}`)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                lang === code
+                  ? 'bg-brand text-brand-on'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              {code === 'en' ? 'EN' : 'ES'}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-            In the matter of
+            {t(lang, 'header.eyebrow')}
           </p>
-          <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">Your life story</h1>
-          <p className="mt-3 max-w-xl text-gray-600">
-            Everything your assistant remembers from your conversations — so you never
-            have to repeat yourself, in any document.
-          </p>
+          <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">
+            {t(lang, 'header.title')}
+          </h1>
+          <p className="mt-3 max-w-xl text-gray-600">{t(lang, 'header.subtitle')}</p>
         </div>
         {loadState === 'ready' && !isEmpty && (
-          <StoryMeter known={progress.known} total={progress.total} />
+          <StoryMeter known={progress.known} total={progress.total} lang={lang} />
         )}
       </header>
 
@@ -990,19 +1073,19 @@ export default function LifeStoryClient() {
           </div>
           <p className="mt-8 flex items-center gap-2 text-sm text-gray-400">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Opening your story…
+            {t(lang, 'loading.opening')}
           </p>
         </div>
       )}
 
       {loadState === 'error' && (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-gray-700">Your story couldn&apos;t be opened.</p>
+          <p className="text-gray-700">{t(lang, 'error.cantOpen')}</p>
           <button
             onClick={loadProfile}
             className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong"
           >
-            Try again
+            {t(lang, 'error.tryAgain')}
           </button>
         </div>
       )}
@@ -1010,28 +1093,23 @@ export default function LifeStoryClient() {
       {loadState === 'ready' && isEmpty && (
         <div className="rounded-2xl border border-gray-200 bg-[#FDFCF9] p-10 text-center shadow-sm sm:p-14">
           <Feather className="mx-auto h-8 w-8 text-brand" aria-hidden="true" />
-          <h2 className="mt-4 font-serif text-2xl text-gray-900">
-            Your story hasn&apos;t started yet
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-gray-600">
-            Start a document and tell the assistant about your situation. Everything
-            you share is remembered here, ready for the next document.
-          </p>
+          <h2 className="mt-4 font-serif text-2xl text-gray-900">{t(lang, 'empty.title')}</h2>
+          <p className="mx-auto mt-2 max-w-md text-gray-600">{t(lang, 'empty.body')}</p>
           <span className="mx-auto mt-6 block max-w-xs border-b-2 border-dotted border-gray-300 pb-1 font-serif text-lg italic text-gray-300">
-            Your name is …
+            {t(lang, 'empty.blank')}
           </span>
           <button
             onClick={() => router.push('/editor/new')}
             className="mt-8 rounded-lg bg-brand px-5 py-2.5 font-semibold text-brand-on transition-colors hover:bg-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
-            Start your first document
+            {t(lang, 'empty.cta')}
           </button>
         </div>
       )}
 
       {loadState === 'ready' && !isEmpty && (
         <>
-          <AdvisorBanner flags={flags} />
+          <AdvisorBanner flags={flags} lang={lang} />
 
           {ingestSummary && (
             <div className="mb-6 rounded-xl border border-brand-soft bg-brand-tint/50 p-4 font-sans text-sm text-gray-700">
@@ -1041,7 +1119,7 @@ export default function LifeStoryClient() {
 
           {/* The story — numbered recitals, each with its illustration. */}
           <section
-            aria-label="What your assistant knows"
+            aria-label={t(lang, 'story.aria')}
             className="rounded-2xl border border-gray-200 bg-[#FDFCF9] p-8 shadow-sm sm:p-10"
           >
             <ol className="space-y-7 font-serif">
@@ -1050,6 +1128,7 @@ export default function LifeStoryClient() {
                   key={recital.id}
                   recital={recital}
                   index={index}
+                  lang={lang}
                   visual={visualFor(recital)}
                   onAsk={handleAsk}
                 />
@@ -1069,12 +1148,12 @@ export default function LifeStoryClient() {
                   <div className="min-w-0 flex-1">
                     <p className="text-lg leading-relaxed text-gray-800 sm:text-xl">
                       {children.length === 0
-                        ? 'You have no minor children.'
+                        ? t(lang, 'children.none')
                         : children.length === 1
-                          ? 'You have one child.'
-                          : `You have ${children.length} children.`}
+                          ? t(lang, 'children.one')
+                          : t(lang, 'children.many', { n: children.length })}
                     </p>
-                    {children.length > 0 && <FamilyPortrait profile={profile} />}
+                    {children.length > 0 && <FamilyPortrait profile={profile} lang={lang} />}
                   </div>
                 </li>
               )}
@@ -1087,19 +1166,20 @@ export default function LifeStoryClient() {
               onClick={() => setPanel(panel === 'edit' ? 'none' : 'edit')}
               className="rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong"
             >
-              Fix my story
+              {t(lang, 'actions.fix')}
             </button>
             <button
               onClick={() => setPanel(panel === 'ingest' ? 'none' : 'ingest')}
               className="rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong"
             >
-              Add a court paper
+              {t(lang, 'actions.addPaper')}
             </button>
           </div>
 
           {panel === 'edit' && (
             <EditStoryPanel
               profile={profile}
+              lang={lang}
               onSaved={() => {
                 setPanel('none');
                 loadProfile();
@@ -1109,6 +1189,7 @@ export default function LifeStoryClient() {
           )}
           {panel === 'ingest' && (
             <IngestPanel
+              lang={lang}
               onDone={(summary) => {
                 setPanel('none');
                 setIngestSummary(summary);
@@ -1119,13 +1200,13 @@ export default function LifeStoryClient() {
           )}
 
           {/* Legal details ledger — known values and dotted gaps alike. */}
-          <RecordLedger profile={profile} onAsk={handleAsk} />
+          <RecordLedger profile={profile} lang={lang} onAsk={handleAsk} />
 
           {/* Chapters — the facts, in the user's own words. */}
           {chapters.length > 0 && (
-            <section aria-label="Facts you have shared" className="mt-10">
+            <section aria-label={t(lang, 'chapters.aria')} className="mt-10">
               <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-                In your own words
+                {t(lang, 'chapters.heading')}
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {chapters.map((chapter) => {
@@ -1168,15 +1249,14 @@ export default function LifeStoryClient() {
 
           {/* Privacy — the story belongs to the user. */}
           <section
-            aria-label="Privacy"
+            aria-label={t(lang, 'privacy.aria')}
             className="mt-10 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
               <p className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">This story is yours.</span>{' '}
-                It stays private to your account and is used only to fill in your
-                documents. Erasing it won&apos;t touch any saved documents.
+                <span className="font-semibold text-gray-900">{t(lang, 'privacy.title')}</span>{' '}
+                {t(lang, 'privacy.body')}
               </p>
             </div>
             {confirmingErase ? (
@@ -1191,14 +1271,14 @@ export default function LifeStoryClient() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  Erase everything
+                  {t(lang, 'privacy.eraseAll')}
                 </button>
                 <button
                   onClick={() => setConfirmingErase(false)}
                   disabled={erasing}
                   className="rounded-lg px-3.5 py-2 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-900"
                 >
-                  Keep it
+                  {t(lang, 'privacy.keep')}
                 </button>
               </div>
             ) : (
@@ -1206,7 +1286,7 @@ export default function LifeStoryClient() {
                 onClick={() => setConfirmingErase(true)}
                 className="shrink-0 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-600 transition-colors hover:border-red-300 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               >
-                Erase my story
+                {t(lang, 'privacy.erase')}
               </button>
             )}
           </section>

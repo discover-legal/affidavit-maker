@@ -5,7 +5,14 @@
  * A recital is one numbered sentence of the story. Known details render as
  * highlighted value tokens; missing ones render as dotted blanks so the
  * page shows both what the assistant knows and what it's still missing.
+ *
+ * Every language-bearing builder takes an optional trailing
+ * `lang: 'en' | 'es' = 'en'` so the page can render fully in Spanish;
+ * the default keeps every existing caller (and test) unchanged.
+ * Dates still format via en-US month names — a known v1 limit.
  */
+
+import type { Lang } from '@/lib/i18n';
 
 export type Segment =
   | { kind: 'text'; text: string }
@@ -133,7 +140,11 @@ function money(v: unknown): string {
  * always appear (with blanks when unknown) so the page invites completion;
  * the rest appear only once something is known.
  */
-export function buildRecitals(profile: Record<string, unknown>): Recital[] {
+export function buildRecitals(
+  profile: Record<string, unknown>,
+  lang: Lang = 'en',
+): Recital[] {
+  const es = lang === 'es';
   const recitals: Recital[] = [];
 
   // 1 — who you are
@@ -142,8 +153,8 @@ export function buildRecitals(profile: Record<string, unknown>): Recital[] {
     id: 'identity',
     known: Boolean(name),
     segments: [
-      text('Your name is '),
-      name ? value(name) : blank('your name'),
+      text(es ? 'Tu nombre es ' : 'Your name is '),
+      name ? value(name) : blank(es ? 'tu nombre' : 'your name'),
       text('.'),
     ],
   });
@@ -152,17 +163,21 @@ export function buildRecitals(profile: Record<string, unknown>): Recital[] {
   const spouse = spouseName(profile);
   const married = formatFriendlyDate(profile.marriageDate);
   const place = marriagePlace(profile);
-  const marriageSegments: Segment[] = [text('You married ')];
-  marriageSegments.push(spouse ? value(spouse) : blank('your spouse'));
-  marriageSegments.push(text(' on '));
-  marriageSegments.push(married ? value(married) : blank('a date'));
+  const marriageSegments: Segment[] = [text(es ? 'Te casaste con ' : 'You married ')];
+  marriageSegments.push(spouse ? value(spouse) : blank(es ? 'tu cónyuge' : 'your spouse'));
+  marriageSegments.push(text(es ? ' el ' : ' on '));
+  marriageSegments.push(married ? value(married) : blank(es ? 'una fecha' : 'a date'));
   if (place) {
-    marriageSegments.push(text(' in '), value(place));
+    marriageSegments.push(text(es ? ' en ' : ' in '), value(place));
   }
   marriageSegments.push(text('.'));
   const separated = formatFriendlyDate(profile.separationDate);
   if (separated) {
-    marriageSegments.push(text(' You separated on '), value(separated), text('.'));
+    marriageSegments.push(
+      text(es ? ' Se separaron el ' : ' You separated on '),
+      value(separated),
+      text('.'),
+    );
   }
   recitals.push({
     id: 'marriage',
@@ -173,17 +188,25 @@ export function buildRecitals(profile: Record<string, unknown>): Recital[] {
   // 3 — where you live
   const county = str(profile.county);
   const state = str(profile.state).toUpperCase();
-  const homeSegments: Segment[] = [text('Home is ')];
+  const homeSegments: Segment[] = [text(es ? 'Tu hogar está en ' : 'Home is ')];
   if (county || state) {
-    homeSegments.push(value([county && `${county} County`, state].filter(Boolean).join(', ')));
+    homeSegments.push(
+      value(
+        [county && (es ? `el condado de ${county}` : `${county} County`), state]
+          .filter(Boolean)
+          .join(', '),
+      ),
+    );
   } else {
-    homeSegments.push(blank('a place'));
+    homeSegments.push(blank(es ? 'un lugar' : 'a place'));
   }
   const months = Number(profile.residencyStateMonths);
   if (Number.isFinite(months) && months > 0) {
     homeSegments.push(
-      text(' — where you have lived for '),
-      value(months === 1 ? '1 month' : `${months} months`),
+      text(es ? ' — donde has vivido por ' : ' — where you have lived for '),
+      value(
+        months === 1 ? (es ? '1 mes' : '1 month') : `${months} ${es ? 'meses' : 'months'}`,
+      ),
     );
   }
   homeSegments.push(text('.'));
@@ -198,19 +221,31 @@ export function buildRecitals(profile: Record<string, unknown>): Recital[] {
   const expenses = money(profile.monthlyExpenses);
   if (income || expenses) {
     const segments: Segment[] = [];
-    if (income) segments.push(text('About '), value(`${income} a month`), text(' comes in'));
-    if (income && expenses) segments.push(text(', and '));
+    if (income) {
+      segments.push(
+        text(es ? 'Entran unos ' : 'About '),
+        value(es ? `${income} al mes` : `${income} a month`),
+        text(es ? '' : ' comes in'),
+      );
+    }
+    if (income && expenses) segments.push(text(es ? ', y ' : ', and '));
     if (expenses) {
       segments.push(
-        text(income ? 'about ' : 'About '),
-        value(`${expenses} a month`),
-        text(' goes out'),
+        text(es ? (income ? 'salen unos ' : 'Salen unos ') : income ? 'about ' : 'About '),
+        value(es ? `${expenses} al mes` : `${expenses} a month`),
+        text(es ? '' : ' goes out'),
       );
     }
     segments.push(text('.'));
     const assets = str(profile.assetsDescription);
-    if (assets) segments.push(text(' You own '), value(assets), text('.'));
-    recitals.push({ id: 'finances', known: true, segments });
+    if (assets) {
+      segments.push(text(es ? ' Tienes ' : ' You own '), value(assets), text('.'));
+    }
+    recitals.push({
+      id: 'finances',
+      known: true,
+      segments: segments.filter((s) => s.text !== ''),
+    });
   }
 
   // 5 — safety (only when affirmatively shared; worded with care)
@@ -218,7 +253,9 @@ export function buildRecitals(profile: Record<string, unknown>): Recital[] {
     recitals.push({
       id: 'safety',
       known: true,
-      segments: [text('A '), value('protective order'), text(' is in place.')],
+      segments: es
+        ? [text('Hay una '), value('orden de protección'), text(' vigente.')]
+        : [text('A '), value('protective order'), text(' is in place.')],
     });
   }
 
@@ -249,10 +286,34 @@ const CATEGORY_LABELS: Record<string, string> = {
   response: 'From court papers',
 };
 
-export function categoryLabel(category: unknown): string {
+const CATEGORY_LABELS_ES: Record<string, string> = {
+  general: 'Tu historia',
+  identity: 'Sobre ti',
+  residency: 'Dónde vives',
+  grounds: 'Por qué presentas tu caso',
+  children: 'Tus hijos',
+  property: 'Lo que posees',
+  support: 'Manutención',
+  service: 'Entrega de papeles',
+  indigency: 'Cuotas del tribunal',
+  military: 'Estatus militar',
+  financial: 'Asuntos de dinero',
+  safety: 'Tu seguridad',
+  relational: 'Tus relaciones',
+  event: 'Lo que pasó',
+  injury: 'Lo que pasó',
+  pattern: 'Un patrón de eventos',
+  evidence: 'Tu evidencia',
+  heirship: 'Familia y herencia',
+  exemption: 'Tus defensas',
+  response: 'De documentos del tribunal',
+};
+
+export function categoryLabel(category: unknown, lang: Lang = 'en'): string {
+  const labels = lang === 'es' ? CATEGORY_LABELS_ES : CATEGORY_LABELS;
   const key = str(category).toLowerCase();
-  if (!key) return CATEGORY_LABELS.general;
-  if (CATEGORY_LABELS[key]) return CATEGORY_LABELS[key];
+  if (!key) return labels.general;
+  if (labels[key]) return labels[key];
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/[_-]+/g, ' ');
 }
 
@@ -268,7 +329,11 @@ export type FamilyMember = {
  * The family portrait: the user first, children between (as recorded,
  * height by age), spouse last — everyone labeled.
  */
-export function buildFamily(profile: Record<string, unknown>): FamilyMember[] {
+export function buildFamily(
+  profile: Record<string, unknown>,
+  lang: Lang = 'en',
+): FamilyMember[] {
+  const es = lang === 'es';
   const members: FamilyMember[] = [];
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
   const spouse = str(
@@ -276,15 +341,15 @@ export function buildFamily(profile: Record<string, unknown>): FamilyMember[] {
       String(profile.respondentName || '').split(' ')[0],
   );
 
-  members.push({ kind: 'adult', label: 'You', sublabel: '', heightScale: 1 });
+  members.push({ kind: 'adult', label: es ? 'Tú' : 'You', sublabel: '', heightScale: 1 });
   for (const child of children) {
     const age = computeAge(child);
     const dob = formatFriendlyDate(childBirthDate(child));
     members.push({
       kind: 'child',
-      label: (str(child.name) || 'A child').split(' ')[0],
-      sublabel: age === null ? '' : `age ${age}`,
-      title: dob ? `Born ${dob}` : undefined,
+      label: (str(child.name) || (es ? 'Menor' : 'A child')).split(' ')[0],
+      sublabel: age === null ? '' : es ? `${age} años` : `age ${age}`,
+      title: dob ? (es ? `Nació el ${dob}` : `Born ${dob}`) : undefined,
       // 4-year-olds come up to a grown-up's waist; growth caps at 18.
       heightScale: age === null ? 0.7 : 0.42 + 0.5 * (Math.min(age, 18) / 18),
     });
@@ -319,7 +384,9 @@ const MAX_TIMELINE_EVENTS = 3;
 export function buildTimeline(
   profile: Record<string, unknown>,
   now: Date = new Date(),
+  lang: Lang = 'en',
 ): Timeline | null {
+  const es = lang === 'es';
   const married = parseKnownDate(profile.marriageDate);
   const separated = parseKnownDate(profile.separationDate);
 
@@ -349,12 +416,17 @@ export function buildTimeline(
 
   const majors: TimelineEvent[] = [];
   if (married) {
-    majors.push({ key: 'married', label: 'Married', year: String(married.getFullYear()), pos: posOf(married) });
+    majors.push({
+      key: 'married',
+      label: es ? 'Matrimonio' : 'Married',
+      year: String(married.getFullYear()),
+      pos: posOf(married),
+    });
   }
   if (separated && (!married || separated > married) && separated <= now) {
     majors.push({
       key: 'separated',
-      label: 'Separated',
+      label: es ? 'Separación' : 'Separated',
       year: String(separated.getFullYear()),
       pos: posOf(separated),
     });
@@ -390,11 +462,13 @@ export function buildTimeline(
     for (const child of children) {
       const dob = parseKnownDate(childBirthDate(child));
       if (!dob || dob < married || dob > now) continue;
-      const name = str(child.name) || 'Child';
+      const name = str(child.name) || (es ? 'Menor' : 'Child');
       births.push({
         key: `${name}-${dob.getTime()}`,
         initial: name.charAt(0).toUpperCase(),
-        title: `${name.split(' ')[0]} born ${dob.getFullYear()}`,
+        title: es
+          ? `${name.split(' ')[0]} nació en ${dob.getFullYear()}`
+          : `${name.split(' ')[0]} born ${dob.getFullYear()}`,
         pos: Math.min(88, Math.max(10, posOf(dob))),
       });
     }
@@ -425,8 +499,10 @@ export function waitingPeriodNote(
   waitingDays: number | null | undefined,
   stateName: string,
   now: Date = new Date(),
+  lang: Lang = 'en',
 ): string | null {
   if (!waitingDays || waitingDays <= 0) return null;
+  const es = lang === 'es';
   const keyEvents = Array.isArray(profile.keyEvents) ? profile.keyEvents : [];
   for (const e of keyEvents as KeyEventLike[]) {
     if (!/\bfil/i.test(str(e?.label))) continue;
@@ -434,11 +510,16 @@ export function waitingPeriodNote(
     if (!filed) continue;
     const earliest = new Date(filed.getTime() + waitingDays * 24 * 3600 * 1000);
     if (earliest > now) {
-      return `${stateName} has a ${waitingDays}-day waiting period — based on the filing date on record, the earliest a court could finalize is ${formatFriendlyDate(earliest.toISOString().slice(0, 10))}.`;
+      const earliestDate = formatFriendlyDate(earliest.toISOString().slice(0, 10));
+      return es
+        ? `${stateName} tiene un período de espera de ${waitingDays} días — según la fecha de presentación registrada, lo más pronto que un tribunal podría finalizar es el ${earliestDate}.`
+        : `${stateName} has a ${waitingDays}-day waiting period — based on the filing date on record, the earliest a court could finalize is ${earliestDate}.`;
     }
     return null; // waiting period already passed — nothing to flag
   }
-  return `${stateName} has a ${waitingDays}-day waiting period: a court can't finalize a divorce until ${waitingDays} days after filing.`;
+  return es
+    ? `${stateName} tiene un período de espera de ${waitingDays} días: un tribunal no puede finalizar un divorcio hasta ${waitingDays} días después de la presentación.`
+    : `${stateName} has a ${waitingDays}-day waiting period: a court can't finalize a divorce until ${waitingDays} days after filing.`;
 }
 
 /** Monthly margin: positive = left over, negative = short. Null until both known. */
@@ -460,15 +541,22 @@ const MAX_MONEY_SEGMENTS = 5;
  * "Other" (categorical hues are assigned in fixed order, never cycled).
  * Income labels get the person's name folded in when it isn't already there.
  */
+/** Fold labels for the beyond-the-palette money segments, per language.
+ * The chart colors the fold neutral gray by matching either label. */
+export const MONEY_OTHER_LABELS: Record<Lang, string> = { en: 'Other', es: 'Otros' };
+
 export function moneySegments(
   raw: unknown,
   profile?: Record<string, unknown>,
+  lang: Lang = 'en',
 ): MoneySegment[] {
   if (!Array.isArray(raw)) return [];
+  const es = lang === 'es';
   const spouse = profile
     ? str(profile.respondentFirstName as string) ||
       String(profile.respondentName || '').split(' ')[0]
     : '';
+  const youRe = es ? /\btus?\b|tú/i : /\byour?\b/i;
   const items: MoneySegment[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue;
@@ -479,8 +567,8 @@ export function moneySegments(
     const person = str(e.person).toLowerCase();
     if (person === 'respondent' && spouse && !label.toLowerCase().includes(spouse.toLowerCase())) {
       label = `${label} (${spouse})`;
-    } else if (person === 'petitioner' && !/\byour?\b/i.test(label)) {
-      label = `${label} (you)`;
+    } else if (person === 'petitioner' && !youRe.test(label)) {
+      label = es ? `${label} (tú)` : `${label} (you)`;
     }
     items.push({ label, amount: Math.round(amount) });
   }
@@ -490,19 +578,52 @@ export function moneySegments(
   const otherTotal = items
     .slice(MAX_MONEY_SEGMENTS - 1)
     .reduce((sum, i) => sum + i.amount, 0);
-  return [...head, { label: 'Other', amount: otherTotal }];
+  return [...head, { label: MONEY_OTHER_LABELS[lang], amount: otherTotal }];
 }
 
 export type LedgerItem = { key: string; label: string; value: string | null };
 
-const SERVICE_LABELS: Record<string, string> = {
-  waiver: 'Waiver of service',
-  formal: 'Formal service',
+const SERVICE_LABELS: Record<Lang, Record<string, string>> = {
+  en: { waiver: 'Waiver of service', formal: 'Formal service' },
+  es: { waiver: 'Renuncia a la entrega', formal: 'Entrega formal' },
 };
-const MILITARY_LABELS: Record<string, string> = {
-  not_military: 'Not in the military',
-  military: 'In the military',
-  unknown: 'Being checked',
+const MILITARY_LABELS: Record<Lang, Record<string, string>> = {
+  en: {
+    not_military: 'Not in the military',
+    military: 'In the military',
+    unknown: 'Being checked',
+  },
+  es: {
+    not_military: 'No está en el ejército',
+    military: 'En el ejército',
+    unknown: 'En verificación',
+  },
+};
+
+/** Ledger row labels per language — also the keys of getGlossary(lang). */
+const LEDGER_LABELS: Record<Lang, Record<string, string>> = {
+  en: {
+    grounds: 'Grounds',
+    custody: 'Custody',
+    child_support: 'Child support',
+    spousal_support: 'Spousal support',
+    property: 'Property',
+    service: 'Serving papers',
+    military: 'Military check',
+    protective_order: 'Protective order',
+    fee_waiver: 'Court-fee waiver',
+  },
+  es: {
+    grounds: 'Causales',
+    custody: 'Custodia',
+    child_support: 'Manutención de los hijos',
+    spousal_support: 'Manutención del cónyuge',
+    property: 'Bienes',
+    service: 'Entrega de papeles',
+    military: 'Verificación militar',
+    protective_order: 'Orden de protección',
+    fee_waiver: 'Exención de cuotas',
+  },
 };
 
 function titleCase(s: string): string {
@@ -514,32 +635,41 @@ function titleCase(s: string): string {
  * humanized, with null marking a detail not yet shared. The page renders
  * nulls as dotted blanks, so per-topic gaps are visible at a glance.
  */
-export function buildLedger(profile: Record<string, unknown>): LedgerItem[] {
+export function buildLedger(
+  profile: Record<string, unknown>,
+  lang: Lang = 'en',
+): LedgerItem[] {
+  const es = lang === 'es';
+  const labels = LEDGER_LABELS[lang];
   const items: LedgerItem[] = [];
-  const push = (key: string, label: string, value: string | null) =>
-    items.push({ key, label, value });
+  const push = (key: string, value: string | null) =>
+    items.push({ key, label: labels[key], value });
 
-  push('grounds', 'Grounds', str(profile.groundsForDivorce) || null);
+  push('grounds', str(profile.groundsForDivorce) || null);
 
   const custody = str(profile.custodyArrangement) || str(profile.custodyType);
   const custodian = str(profile.primaryCustodian);
   push(
     'custody',
-    'Custody',
     custody || custodian
-      ? [custody && titleCase(custody), custodian && `with ${custodian.split(' ')[0]}`]
+      ? [
+          custody && titleCase(custody),
+          custodian && `${es ? 'con' : 'with'} ${custodian.split(' ')[0]}`,
+        ]
           .filter(Boolean)
           .join(', ')
       : null,
   );
 
+  const perMo = es ? '/mes' : '/mo';
   const csAmount = Number(profile.childSupportAmount);
   const csPayor = str(profile.childSupportObligor || profile.childSupportPayor);
   push(
     'child_support',
-    'Child support',
     Number.isFinite(csAmount) && csAmount > 0
-      ? `$${Math.round(csAmount).toLocaleString('en-US')}/mo${csPayor ? ` from ${csPayor.split(' ')[0]}` : ''}`
+      ? `$${Math.round(csAmount).toLocaleString('en-US')}${perMo}${
+          csPayor ? ` ${es ? 'de' : 'from'} ${csPayor.split(' ')[0]}` : ''
+        }`
       : null,
   );
 
@@ -548,34 +678,36 @@ export function buildLedger(profile: Record<string, unknown>): LedgerItem[] {
     const amount = Number(profile.supportAmount ?? profile.spousalSupportAmount);
     spousal =
       Number.isFinite(amount) && amount > 0
-        ? `Requested, $${Math.round(amount).toLocaleString('en-US')}/mo`
-        : 'Requested';
+        ? `${es ? 'Solicitada' : 'Requested'}, $${Math.round(amount).toLocaleString('en-US')}${perMo}`
+        : es
+          ? 'Solicitada'
+          : 'Requested';
   } else if (profile.spousalSupportRequested === false) {
-    spousal = 'Not requested';
+    spousal = es ? 'No solicitada' : 'Not requested';
   }
-  push('spousal_support', 'Spousal support', spousal);
+  push('spousal_support', spousal);
 
   let property: string | null = null;
-  if (profile.hasProperty === false) property = 'None shared';
+  if (profile.hasProperty === false) property = es ? 'Ninguno compartido' : 'None shared';
   else if (str(profile.propertyAgreement)) property = titleCase(str(profile.propertyAgreement));
-  else if (profile.hasProperty === true) property = 'Shared property';
-  push('property', 'Property', property);
+  else if (profile.hasProperty === true) property = es ? 'Bienes compartidos' : 'Shared property';
+  push('property', property);
 
   const service = str(profile.serviceMethod).toLowerCase();
-  push('service', 'Serving papers', service ? SERVICE_LABELS[service] || titleCase(service) : null);
+  push('service', service ? SERVICE_LABELS[lang][service] || titleCase(service) : null);
 
   const military = str(profile.respondentMilitaryStatus).toLowerCase();
-  push('military', 'Military check', military ? MILITARY_LABELS[military] || titleCase(military) : null);
+  push('military', military ? MILITARY_LABELS[lang][military] || titleCase(military) : null);
 
   let protective: string | null = null;
-  if (profile.hasProtectiveOrder === true) protective = 'In place';
-  else if (profile.hasProtectiveOrder === false) protective = 'None';
-  push('protective_order', 'Protective order', protective);
+  if (profile.hasProtectiveOrder === true) protective = es ? 'Vigente' : 'In place';
+  else if (profile.hasProtectiveOrder === false) protective = es ? 'Ninguna' : 'None';
+  push('protective_order', protective);
 
   let feeWaiver: string | null = null;
-  if (profile.indigencyRequested === true) feeWaiver = 'Requested';
-  else if (profile.indigencyRequested === false) feeWaiver = 'Not needed';
-  push('fee_waiver', 'Court-fee waiver', feeWaiver);
+  if (profile.indigencyRequested === true) feeWaiver = es ? 'Solicitada' : 'Requested';
+  else if (profile.indigencyRequested === false) feeWaiver = es ? 'No se necesita' : 'Not needed';
+  push('fee_waiver', feeWaiver);
 
   return items;
 }
@@ -605,6 +737,33 @@ export const GLOSSARY: Record<string, string> = {
     'If paying court fees would be a hardship, you can ask the court to waive them.',
 };
 
+/** Spanish glossary, keyed by the Spanish ledger labels. */
+const GLOSSARY_ES: Record<string, string> = {
+  Causales:
+    'La razón legal del divorcio. La mayoría de los estados permiten causales “sin culpa”, es decir, nadie tiene que probar que el otro hizo algo malo.',
+  Custodia:
+    'Quién toma las decisiones por los hijos (custodia legal) y con quién viven (custodia física). “Conjunta” significa compartida.',
+  'Manutención de los hijos':
+    'Dinero que un padre le paga al otro para ayudar a cubrir los gastos de los hijos, normalmente cada mes.',
+  'Manutención del cónyuge':
+    'Dinero que un cónyuge le paga al otro después de la separación — a veces se llama pensión alimenticia.',
+  Bienes:
+    '“Acordado” significa que ambos aceptan cómo se dividirán las cosas; “disputado” significa que el tribunal quizá tenga que decidir.',
+  'Entrega de papeles':
+    'La otra parte debe recibir oficialmente los papeles del tribunal. Puede firmar una renuncia aceptándolos, o alguien (no tú) se los entrega formalmente.',
+  'Verificación militar':
+    'Los tribunales exigen confirmar si la otra parte está en el ejército, porque los miembros del servicio tienen protecciones legales adicionales.',
+  'Orden de protección':
+    'Una orden del tribunal que limita el contacto para proteger a alguien de un daño.',
+  'Exención de cuotas':
+    'Si pagar las cuotas del tribunal sería una dificultad económica, puedes pedirle al tribunal que las exima.',
+};
+
+/** The glossary in the page's language, keyed by that language's ledger labels. */
+export function getGlossary(lang: Lang = 'en'): Record<string, string> {
+  return lang === 'es' ? GLOSSARY_ES : GLOSSARY;
+}
+
 /** Chat prefills for tapping a gap on the profile page — the user's own
  * words to send (editable before sending), never advice from the app. */
 export const ASK_TOPICS: Record<string, string> = {
@@ -622,23 +781,50 @@ export const ASK_TOPICS: Record<string, string> = {
   fee_waiver: 'I want to see if I can ask the court to waive the filing fees.',
 };
 
+const ASK_TOPICS_ES: Record<string, string> = {
+  identity: 'Quiero agregar mi nombre a mis documentos.',
+  marriage: 'Quiero agregar detalles sobre mi matrimonio.',
+  home: 'Quiero agregar dónde vivo.',
+  grounds: 'Quiero agregar las causales de mi divorcio.',
+  custody: 'Quiero agregar nuestro arreglo de custodia.',
+  child_support: 'Quiero agregar los detalles de la manutención de los hijos.',
+  spousal_support: 'Quiero agregar si estoy solicitando manutención del cónyuge.',
+  property: 'Quiero agregar información sobre nuestros bienes y deudas.',
+  service: 'Quiero agregar cómo se entregarán los papeles.',
+  military: 'Quiero agregar el estatus militar de mi cónyuge.',
+  protective_order: 'Quiero agregar si existe una orden de protección.',
+  fee_waiver: 'Quiero ver si puedo pedirle al tribunal que exima las cuotas de presentación.',
+};
+
+/** Chat prefills in the user's language — their own words, ready to edit. */
+export function getAskTopics(lang: Lang = 'en'): Record<string, string> {
+  return lang === 'es' ? ASK_TOPICS_ES : ASK_TOPICS;
+}
+
 export type AdvisorFlag = { key: string; label: string };
 
 /**
  * Issues where a lawyer's advice is recommended. Deterministic and shown
  * persistently (not dismissable) — the user can always keep going.
  */
-export function advisorFlags(profile: Record<string, unknown>): AdvisorFlag[] {
+export function advisorFlags(
+  profile: Record<string, unknown>,
+  lang: Lang = 'en',
+): AdvisorFlag[] {
+  const es = lang === 'es';
   const flags: AdvisorFlag[] = [];
   const contested = (v: unknown) => str(v).toLowerCase() === 'contested';
   if (contested(profile.custodyArrangement) || contested(profile.custodyType)) {
-    flags.push({ key: 'custody', label: 'contested custody' });
+    flags.push({ key: 'custody', label: es ? 'custodia disputada' : 'contested custody' });
   }
   if (contested(profile.propertyAgreement)) {
-    flags.push({ key: 'property', label: 'contested property' });
+    flags.push({ key: 'property', label: es ? 'bienes en disputa' : 'contested property' });
   }
   if (profile.hasProtectiveOrder === true) {
-    flags.push({ key: 'safety', label: 'safety and protective orders' });
+    flags.push({
+      key: 'safety',
+      label: es ? 'seguridad y órdenes de protección' : 'safety and protective orders',
+    });
   }
   return flags;
 }
@@ -705,13 +891,17 @@ export type FactChapter = { label: string; facts: ChapterFact[] };
  * the court paper it was read from — so the story is verifiable before it
  * goes into a sworn document.
  */
-export function groupFacts(facts: Array<Record<string, unknown>>): FactChapter[] {
+export function groupFacts(
+  facts: Array<Record<string, unknown>>,
+  lang: Lang = 'en',
+): FactChapter[] {
+  const es = lang === 'es';
   const chapters: FactChapter[] = [];
   const byLabel = new Map<string, FactChapter>();
   for (const fact of facts || []) {
     const content = str(fact?.content);
     if (!content) continue;
-    const label = categoryLabel(fact?.category);
+    const label = categoryLabel(fact?.category, lang);
     let chapter = byLabel.get(label);
     if (!chapter) {
       chapter = { label, facts: [] };
@@ -721,9 +911,14 @@ export function groupFacts(facts: Array<Record<string, unknown>>): FactChapter[]
     const quote = str(fact?.sourceQuote);
     const source = str(fact?.source);
     let provenance = '';
-    if (quote.startsWith('From:')) provenance = quote;
-    else if (quote) provenance = `You said: “${quote}”`;
-    else if (source) provenance = `From: ${source}`;
+    // Ingested facts store their document label as a literal "From: …" quote.
+    if (quote.startsWith('From:')) {
+      provenance = es ? `De:${quote.slice('From:'.length)}` : quote;
+    } else if (quote) {
+      provenance = es ? `Dijiste: “${quote}”` : `You said: “${quote}”`;
+    } else if (source) {
+      provenance = es ? `De: ${source}` : `From: ${source}`;
+    }
     chapter.facts.push({ content, provenance });
   }
   return chapters;

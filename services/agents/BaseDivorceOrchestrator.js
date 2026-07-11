@@ -520,6 +520,12 @@ class BaseDivorceOrchestrator {
     // Derive full names for template compatibility
     if (updated.petitionerFirstName || updated.petitionerLastName) {
       updated.petitionerName = [updated.petitionerFirstName, updated.petitionerLastName].filter(Boolean).join(' ');
+      // The petitioner IS the affiant on a divorce filing — the requirements
+      // checker, document titles, and PDF filenames all read affiantName
+      // (live E2E showed "Name provided" unchecked mid-interview without it).
+      if (!updated.affiantName) {
+        updated.affiantName = updated.petitionerName;
+      }
     }
     if (updated.respondentFirstName || updated.respondentLastName) {
       updated.respondentName = [updated.respondentFirstName, updated.respondentLastName].filter(Boolean).join(' ');

@@ -79,3 +79,20 @@ describe('BaseDivorceOrchestrator._summarizeCollected', () => {
     expect(summary).toContain('Ava Smith');
   });
 });
+
+describe('affiant derivation', () => {
+  test('petitioner name doubles as affiantName for divorce filings', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_first_name: 'Brandon',
+      petitioner_last_name: 'Pritchard',
+    });
+    expect(data.affiantName).toBe('Brandon Pritchard');
+    // An explicitly set affiantName is never overwritten.
+    const kept = orch._applyFieldUpdates(
+      { affiantName: 'Someone Else' },
+      { petitioner_first_name: 'Brandon' },
+    );
+    expect(kept.affiantName).toBe('Someone Else');
+  });
+});

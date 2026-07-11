@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
 import { z } from 'zod';
+import { fromBuffer as fileTypeFromBuffer } from 'file-type';
 import { withAuth } from '@/lib/api/auth';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
+import { checkRateLimit } from '@/lib/api/rateLimit';
 import { AppError, toErrorResponse } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
 import { appendKeyEvents, mergeUserProfile, type KeyEvent } from '@/lib/api/profile';
@@ -9,6 +11,8 @@ import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// OCR on a phone photo routinely takes longer than the default timeout.
+export const maxDuration = 120;
 
 /**
  * POST /api/profile/ingest — parse a court paper the user received (served
@@ -16,15 +20,30 @@ export const dynamic = 'force-dynamic';
  * events land on the timeline, factual statements join the record marked
  * as coming from that document.
  *
- * v1 accepts pasted text (most court PDFs copy-paste; scanned-image OCR is
- * a follow-up — the evidence pipeline stores images but nothing extracts
- * text from them yet).
+ * Accepts EITHER pasted text ({ text, label? }) OR a photographed page
+ * ({ imageBase64, label? } — data URL or raw base64, PNG/JPEG, ≤ 8MB
+ * decoded). Images are OCRed server-side with tesseract.js and the
+ * recognized text flows through the same extraction path as pasted text.
  */
 
-const bodySchema = z.object({
-  text: z.string().min(40, 'Paste at least a few sentences from the document').max(20000),
-  label: z.string().max(120).optional(),
-});
+const MAX_TEXT_CHARS = 20000;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // decoded
+// 8MB of raw bytes is ~10.7M base64 chars; allow headroom for the data-URL
+// prefix and whitespace. The precise limit is enforced after decoding.
+const MAX_IMAGE_B64_CHARS = 11_500_000;
+
+const labelSchema = z.string().max(120).optional();
+
+const bodySchema = z.union([
+  z.object({
+    text: z.string().min(40, 'Paste at least a few sentences from the document').max(MAX_TEXT_CHARS),
+    label: labelSchema,
+  }),
+  z.object({
+    imageBase64: z.string().min(1).max(MAX_IMAGE_B64_CHARS, 'Image is too large — 8MB max'),
+    label: labelSchema,
+  }),
+]);
 
 const INGEST_TOOL = {
   type: 'function',
@@ -81,6 +100,164 @@ type LLMService = {
   }>;
 };
 
+/**
+ * Decode a client-supplied image (data URL or raw base64) into a Buffer,
+ * enforcing the size cap and verifying via magic bytes that the content
+ * really is PNG or JPEG (same MIME-spoofing defense as
+ * services/evidenceStorage.js, using the same file-type package).
+ */
+async function decodeAndSniffImage(imageBase64: string): Promise<Buffer> {
+  let b64 = imageBase64.trim();
+  const dataUrlMatch = /^data:([^;,]+);base64,(.*)$/s.exec(b64);
+  if (dataUrlMatch) {
+    if (!['image/png', 'image/jpeg'].includes(dataUrlMatch[1].toLowerCase())) {
+      throw new AppError('Only PNG and JPEG photos are supported', 415, 'UnsupportedImage');
+    }
+    b64 = dataUrlMatch[2];
+  } else if (b64.startsWith('data:')) {
+    throw new AppError('Only PNG and JPEG photos are supported', 415, 'UnsupportedImage');
+  }
+
+  if (b64 === '' || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) {
+    throw new AppError('Image data is not valid base64', 400, 'InvalidImage');
+  }
+  const image = Buffer.from(b64, 'base64');
+  if (image.length === 0) {
+    throw new AppError('Image data is not valid base64', 400, 'InvalidImage');
+  }
+  if (image.length > MAX_IMAGE_BYTES) {
+    throw new AppError('Image is too large — 8MB max', 413, 'ImageTooLarge');
+  }
+
+  // Magic-byte sniff — never trust the declared MIME type.
+  const detected = await fileTypeFromBuffer(image);
+  if (!detected || !['image/png', 'image/jpeg'].includes(detected.mime)) {
+    throw new AppError('Only PNG and JPEG photos are supported', 415, 'UnsupportedImage');
+  }
+  return image;
+}
+
+/**
+ * OCR a photographed court paper with tesseract.js (English).
+ *
+ * Fully offline configuration — the production container has restricted
+ * egress, so nothing may be fetched at runtime:
+ *  - workerPath / wasm core resolve from node_modules (tesseract.js +
+ *    tesseract.js-core packages),
+ *  - langPath points at the @tesseract.js-data/eng npm package (LSTM
+ *    traineddata, gzipped) instead of the default jsDelivr CDN,
+ *  - cacheMethod 'none' so nothing is written to the (read-only) cwd.
+ *
+ * The worker is created lazily per request and always terminated — no
+ * leaked worker threads.
+ */
+async function ocrImage(image: Buffer): Promise<string> {
+  const startedAt = Date.now();
+  const mod = await import('tesseract.js');
+  const Tesseract = mod.default ?? mod;
+
+  const nodeModules = path.join(process.cwd(), 'node_modules');
+  const worker = await Tesseract.createWorker('eng', Tesseract.OEM.LSTM_ONLY, {
+    workerPath: path.join(nodeModules, 'tesseract.js', 'src', 'worker-script', 'node', 'index.js'),
+    langPath: path.join(nodeModules, '@tesseract.js-data', 'eng', '4.0.0_best_int'),
+    gzip: true,
+    cacheMethod: 'none',
+  });
+  try {
+    const { data } = await worker.recognize(image);
+    const text = (data.text || '').trim();
+    logger.info('profile_ingest_ocr', {
+      durationMs: Date.now() - startedAt,
+      imageBytes: image.length,
+      chars: text.length,
+    });
+    return text;
+  } finally {
+    await worker.terminate();
+  }
+}
+
+/**
+ * Shared extraction path: run the document text through the LLM tool call
+ * and merge the results into the user's life story. Both the pasted-text
+ * and the OCR flow end here, so provenance (document-kind `source` on
+ * events and facts) is identical for both.
+ */
+async function extractIntoProfile(
+  userId: number,
+  text: string,
+  label: string | undefined,
+): Promise<{ documentKind: string; eventsAdded: number; factsAdded: number }> {
+  await getServices(); // wires global.openAIService
+  const llm = (global as unknown as { openAIService?: LLMService }).openAIService;
+  if (!llm) throw new AppError('Document analysis is temporarily unavailable', 503, 'ServiceUnavailable');
+
+  const completion = await llm.chat(
+    [
+      {
+        role: 'system',
+        content:
+          'You extract structured information from legal documents for a self-represented litigant. Extract ONLY what is explicitly written in the document — never guess or infer dates, names, or claims. This is information handling, not legal advice.',
+      },
+      {
+        role: 'user',
+        content: `Document${label ? ` (user describes it as: ${label})` : ''}:\n\n${text}`,
+      },
+    ],
+    {
+      tools: [INGEST_TOOL],
+      tool_choice: { type: 'function', function: { name: 'ingest_court_document' } },
+      temperature: 0.1,
+      max_tokens: 1500,
+    },
+  );
+
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new AppError('Could not read this document', 422, 'IngestFailed');
+  let extracted: {
+    document_kind?: string;
+    events?: Array<{ label?: string; date?: string }>;
+    facts?: Array<{ content?: string; category?: string }>;
+  };
+  try {
+    extracted = JSON.parse(toolCall.function.arguments);
+  } catch {
+    throw new AppError('Could not read this document', 422, 'IngestFailed');
+  }
+
+  const kind = String(extracted.document_kind || label || 'Court document').slice(0, 120);
+
+  const events: KeyEvent[] = (extracted.events || [])
+    .filter((e) => e && e.label && e.date)
+    .map((e) => ({ label: String(e.label), date: String(e.date), source: kind }));
+  await appendKeyEvents(userId, events);
+
+  const facts = (extracted.facts || [])
+    .filter((f) => f && typeof f.content === 'string' && f.content.trim() !== '')
+    .slice(0, 25)
+    .map((f) => ({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      content: f.content as string,
+      category: f.category || 'response',
+      type: 'fact',
+      source: kind,
+      sourceQuote: `From: ${kind}`,
+      timestamp: new Date().toISOString(),
+    }));
+  if (facts.length > 0) {
+    await mergeUserProfile(userId, {}, facts);
+  }
+
+  logger.info('profile_document_ingested', {
+    userId,
+    kind,
+    events: events.length,
+    facts: facts.length,
+  });
+
+  return { documentKind: kind, eventsAdded: events.length, factsAdded: facts.length };
+}
+
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
     const limit = checkRateLimit('profile-ingest', user.id, { max: 10, windowMs: 15 * 60 * 1000 });
@@ -93,76 +270,27 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const body = bodySchema.parse(await req.json().catch(() => ({})));
 
-    await getServices(); // wires global.openAIService
-    const llm = (global as unknown as { openAIService?: LLMService }).openAIService;
-    if (!llm) throw new AppError('Document analysis is temporarily unavailable', 503, 'ServiceUnavailable');
-
-    const completion = await llm.chat(
-      [
-        {
-          role: 'system',
-          content:
-            'You extract structured information from legal documents for a self-represented litigant. Extract ONLY what is explicitly written in the document — never guess or infer dates, names, or claims. This is information handling, not legal advice.',
-        },
-        {
-          role: 'user',
-          content: `Document${body.label ? ` (user describes it as: ${body.label})` : ''}:\n\n${body.text}`,
-        },
-      ],
-      {
-        tools: [INGEST_TOOL],
-        tool_choice: { type: 'function', function: { name: 'ingest_court_document' } },
-        temperature: 0.1,
-        max_tokens: 1500,
-      },
-    );
-
-    const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new AppError('Could not read this document', 422, 'IngestFailed');
-    let extracted: {
-      document_kind?: string;
-      events?: Array<{ label?: string; date?: string }>;
-      facts?: Array<{ content?: string; category?: string }>;
-    };
-    try {
-      extracted = JSON.parse(toolCall.function.arguments);
-    } catch {
-      throw new AppError('Could not read this document', 422, 'IngestFailed');
+    let text: string;
+    if ('text' in body) {
+      text = body.text;
+    } else {
+      const image = await decodeAndSniffImage(body.imageBase64);
+      text = await ocrImage(image);
+      if (text.length < 40) {
+        throw new AppError(
+          "Couldn't read this image — try a clearer photo or paste the text",
+          422,
+          'OcrTooLittleText',
+        );
+      }
+      text = text.slice(0, MAX_TEXT_CHARS);
     }
 
-    const kind = String(extracted.document_kind || body.label || 'Court document').slice(0, 120);
-
-    const events: KeyEvent[] = (extracted.events || [])
-      .filter((e) => e && e.label && e.date)
-      .map((e) => ({ label: String(e.label), date: String(e.date), source: kind }));
-    await appendKeyEvents(user.id, events);
-
-    const facts = (extracted.facts || [])
-      .filter((f) => f && typeof f.content === 'string' && f.content.trim() !== '')
-      .slice(0, 25)
-      .map((f) => ({
-        id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        content: f.content as string,
-        category: f.category || 'response',
-        type: 'fact',
-        source: kind,
-        sourceQuote: `From: ${kind}`,
-        timestamp: new Date().toISOString(),
-      }));
-    if (facts.length > 0) {
-      await mergeUserProfile(user.id, {}, facts);
-    }
-
-    logger.info('profile_document_ingested', {
-      userId: user.id,
-      kind,
-      events: events.length,
-      facts: facts.length,
-    });
+    const summary = await extractIntoProfile(user.id, text, body.label);
 
     return NextResponse.json({
       success: true,
-      data: { documentKind: kind, eventsAdded: events.length, factsAdded: facts.length },
+      data: summary,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

@@ -668,8 +668,9 @@ function EditStoryPanel({
   );
 }
 
-/** Paste a court paper you received; events land on the timeline, its
- * statements join the record labeled with the document they came from. */
+/** Paste a court paper you received — or add a photo of it; events land on
+ * the timeline, its statements join the record labeled with the document
+ * they came from. */
 function IngestPanel({
   onDone,
   onClose,
@@ -679,8 +680,26 @@ function IngestPanel({
 }) {
   const [text, setText] = useState('');
   const [label, setLabel] = useState('');
+  const [photo, setPhoto] = useState<{ name: string; dataUrl: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const handlePhoto = (file: File | undefined) => {
+    setError('');
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      setError('Only PNG and JPEG photos are supported.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError('That photo is too large — 8MB max. Try a smaller one or paste the text.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setPhoto({ name: file.name, dataUrl: String(reader.result) });
+    reader.onerror = () => setError('Could not read that file — try again or paste the text.');
+    reader.readAsDataURL(file);
+  };
 
   const submit = async () => {
     setBusy(true);
@@ -689,7 +708,11 @@ function IngestPanel({
       const res = await fetch('/api/profile/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, label: label || undefined }),
+        body: JSON.stringify(
+          photo
+            ? { imageBase64: photo.dataUrl, label: label || undefined }
+            : { text, label: label || undefined },
+        ),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Could not read this document');
@@ -709,8 +732,8 @@ function IngestPanel({
       <h3 className="font-semibold text-gray-900">Add a court paper</h3>
       <p className="mt-1 text-sm text-gray-500">
         Got served or received something from the court? Paste its text here —
-        dates go on your timeline and what it says joins your story, marked as
-        coming from that document.
+        or add a photo of it — dates go on your timeline and what it says
+        joins your story, marked as coming from that document.
       </p>
       <input
         className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -721,20 +744,54 @@ function IngestPanel({
       />
       <textarea
         className="mt-2 h-40 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        placeholder="Paste the document's text here…"
+        placeholder={photo ? 'Photo attached — text is optional' : "Paste the document's text here…"}
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={20000}
       />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <input
+          id="ingest-photo-input"
+          type="file"
+          accept="image/png,image/jpeg"
+          className="sr-only"
+          disabled={busy}
+          onChange={(e) => {
+            handlePhoto(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+        <label
+          htmlFor="ingest-photo-input"
+          className={`cursor-pointer rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 ${busy ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          {photo ? 'Choose a different photo' : 'or add a photo'}
+        </label>
+        {photo && (
+          <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+            <span className="max-w-[16rem] truncate" title={photo.name}>
+              {photo.name}
+            </span>
+            <button
+              onClick={() => setPhoto(null)}
+              disabled={busy}
+              className="font-semibold text-gray-500 hover:text-gray-900"
+              aria-label="Remove photo"
+            >
+              Remove
+            </button>
+          </span>
+        )}
+      </div>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       <div className="mt-3 flex items-center gap-2">
         <button
           onClick={submit}
-          disabled={busy || text.trim().length < 40}
+          disabled={busy || (!photo && text.trim().length < 40)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong disabled:opacity-60"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          Read this document
+          {busy && photo ? 'Reading your photo…' : 'Read this document'}
         </button>
         <button
           onClick={onClose}

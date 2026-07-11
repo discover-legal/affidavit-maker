@@ -105,6 +105,12 @@ const nextConfig = {
   // templates/states/<jurisdiction>/<DocumentType>.js (110 jurisdictions ×
   // ~7 files each) and the runtime container 500s with "Cannot find module".
   experimental: {
+    // pdfkit and pdf-lib must load from node_modules at runtime, NOT be
+    // webpack-bundled into the route handler: bundling breaks pdfkit's
+    // CJS constructor via ESM interop ("PDFDocument is not a constructor")
+    // and severs its fs-relative font (AFM) assets — document generation
+    // 500s. Caught by live E2E against the running app.
+    serverComponentsExternalPackages: ['pdfkit', 'pdf-lib'],
     outputFileTracingIncludes: {
       '/api/**/*': [
         './services/**/*',

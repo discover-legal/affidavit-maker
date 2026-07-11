@@ -231,11 +231,15 @@ export default function ServeGuideClient() {
   }, []);
 
   // Profile → which state's procedure to show + who "the other party" is.
+  // An explicit ?state=XX in the URL wins over the profile (deep links,
+  // e.g. from a state-specific resource page).
   useEffect(() => {
     let cancelled = false;
     (async () => {
       let st = 'UT';
       let respondent = '';
+      const urlState = new URLSearchParams(window.location.search).get('state');
+      const urlOverride = /^[A-Za-z]{2}$/.test(urlState ?? '') ? urlState!.toUpperCase() : null;
       try {
         const res = await fetch('/api/profile');
         const json = await res.json();
@@ -255,7 +259,7 @@ export default function ServeGuideClient() {
       }
       if (cancelled) return;
       setRespondentFirst(respondent);
-      setStateCode(st);
+      setStateCode(urlOverride ?? st);
     })();
     return () => {
       cancelled = true;

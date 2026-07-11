@@ -174,6 +174,45 @@ try {
     return res.status;
   });
   ok('no-documentId behavior matches kill-switch spec (200 when payments off)', noId === 200, `status=${noId}`);
+
+  // ── 8. Serve-the-papers walkthrough page ─────────────────────────────────
+  await page.goto(`${BASE}/serve?state=UT`);
+  await page.waitForLoadState('networkidle');
+  const serveText = await page.textContent('main');
+  ok(
+    'serve page renders the walkthrough',
+    serveText.includes('Serving the papers') && serveText.includes('Ways to serve'),
+  );
+  await page.screenshot({ path: `${SHOTS}/5-serve.png`, fullPage: true });
+
+  // ── 9. Utah supporting documents: list + PDF render ─────────────────────
+  const support = await page.evaluate(async () => {
+    const listRes = await fetch('/api/documents/support?state=UT');
+    const list = await listRes.json();
+    const pdfRes = await fetch('/api/documents/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'financial_declaration', state: 'UT' }),
+    });
+    const buf = new Uint8Array(await pdfRes.arrayBuffer());
+    return {
+      kinds: (list?.data?.kinds ?? []).map((k) => k.key),
+      status: pdfRes.status,
+      type: pdfRes.headers.get('content-type'),
+      bytes: buf.length,
+      magic: String.fromCharCode(...buf.slice(0, 5)),
+    };
+  });
+  ok(
+    'support-doc catalog lists all 5 Utah kinds',
+    support.kinds.length === 5 && support.kinds.includes('financial_declaration'),
+    support.kinds.join(','),
+  );
+  ok(
+    'financial declaration renders as a real PDF from the profile',
+    support.status === 200 && String(support.type).includes('pdf') && support.magic === '%PDF-',
+    `status=${support.status} bytes=${support.bytes}`,
+  );
 } catch (err) {
   ok('driver completed without exception', false, err.message);
 } finally {

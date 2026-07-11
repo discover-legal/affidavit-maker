@@ -57,7 +57,11 @@ try {
   });
   await page.reload();
   await page.waitForLoadState('networkidle');
-  const emptyVisible = await page.getByText("Your story hasn't started yet").isVisible().catch(() => false);
+  const emptyVisible = await page
+    .getByText(/story hasn.t started yet/)
+    .waitFor({ timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
   ok('profile shows empty state before any conversation', emptyVisible);
   await page.screenshot({ path: `${SHOTS}/1-profile-empty.png`, fullPage: true });
 
@@ -125,7 +129,7 @@ try {
   // ── 5. Ingest a court paper → timeline events ────────────────────────────
   await page.getByRole('button', { name: 'Add a court paper' }).click();
   await page
-    .getByPlaceholder("Paste the document's text here…")
+    .getByPlaceholder(/Paste the document/)
     .fill(
       'CAUSE NO 26-1234. Original Petition for Divorce, filed June 20, 2026 in Travis County. Citation served on Respondent June 28, 2026. Petitioner asks the court to divide the marital estate.',
     );

@@ -4,6 +4,7 @@
 // services/pdfService.js renders on its generic affidavit path.
 
 const utah = require('./utah');
+const { childSupportWorksheet } = require('./utahChildSupportWorksheet');
 const { answerToPetition } = require('./utahAnswer');
 const { feeWaiverMotion } = require('./utahFeeWaiver');
 const { lawyerHandoff } = require('./lawyerHandoff');
@@ -69,6 +70,18 @@ const REGISTRY = {
         'dentro de los 21 días posteriores a la notificación, con una declaración de apoyo ' +
         'que relata los hechos de la notificación.',
     },
+    child_support_worksheet: {
+      build: childSupportWorksheet,
+      title: 'Child support worksheet (estimate)',
+      titleEs: 'Hoja de cálculo de manutención (estimación)',
+      description:
+        'An estimate from Utah\'s statutory tables using both parents\' incomes. ' +
+        'The court\'s official calculator and the judge decide the real number.',
+      descriptionEs:
+        'Una estimación según las tablas legales de Utah usando los ingresos de ' +
+        'ambos padres. La calculadora oficial del tribunal y el juez deciden la ' +
+        'cifra real.',
+    },
     answer: {
       build: answerToPetition,
       title: 'Answer to the petition',
@@ -112,6 +125,7 @@ const SUPPORT_DOC_KINDS = [
   'financial_declaration',
   'default_package',
   'finalization_prep',
+  'child_support_worksheet',
   'answer',
   'fee_waiver_motion',
   'lawyer_handoff',

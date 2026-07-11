@@ -204,10 +204,10 @@ try {
     };
   });
   ok(
-    'support-doc catalog lists all 8 Utah kinds',
-    support.kinds.length >= 8 &&
-      ['financial_declaration', 'answer', 'fee_waiver_motion', 'lawyer_handoff'].every((k) =>
-        support.kinds.includes(k),
+    'support-doc catalog lists all 9 Utah kinds',
+    support.kinds.length >= 9 &&
+      ['financial_declaration', 'answer', 'fee_waiver_motion', 'lawyer_handoff', 'child_support_worksheet'].every(
+        (k) => support.kinds.includes(k),
       ),
     support.kinds.join(','),
   );
@@ -262,6 +262,7 @@ try {
     for (const [name, body] of [
       ['handoff', { kind: 'lawyer_handoff', state: 'TX' }],
       ['feeWaiver', { kind: 'fee_waiver_motion', state: 'UT' }],
+      ['worksheet', { kind: 'child_support_worksheet', state: 'UT' }],
     ]) {
       const res = await fetch('/api/documents/support', {
         method: 'POST',
@@ -274,10 +275,11 @@ try {
     return out;
   });
   ok(
-    'lawyer handoff renders for ANY state; fee waiver renders for UT',
-    extraDocs.handoff.status === 200 && extraDocs.handoff.magic === '%PDF-' &&
-      extraDocs.feeWaiver.status === 200 && extraDocs.feeWaiver.magic === '%PDF-',
-    `handoff=${extraDocs.handoff.status} feeWaiver=${extraDocs.feeWaiver.status}`,
+    'lawyer handoff (any state), fee waiver + support worksheet (UT) all render',
+    ['handoff', 'feeWaiver', 'worksheet'].every(
+      (k) => extraDocs[k].status === 200 && extraDocs[k].magic === '%PDF-',
+    ),
+    `handoff=${extraDocs.handoff.status} feeWaiver=${extraDocs.feeWaiver.status} worksheet=${extraDocs.worksheet.status}`,
   );
 
   // ── 12. Hearing prep page ────────────────────────────────────────────────

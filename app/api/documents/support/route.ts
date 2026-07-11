@@ -22,6 +22,7 @@ const SUPPORT_DOC_KINDS = [
   'financial_declaration',
   'default_package',
   'finalization_prep',
+  'child_support_worksheet',
   'answer',
   'fee_waiver_motion',
   'lawyer_handoff',

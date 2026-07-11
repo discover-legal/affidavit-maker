@@ -310,3 +310,23 @@ describe('pro se helpers', () => {
     expect(chapters[1].facts[0].provenance).toBe('From: Petition served on you');
   });
 });
+
+describe('Spanish polish', () => {
+  const { formatFriendlyDate: fmt, categoryLabel: cat, buildRecitals: recit } =
+    require('@/components/app/lifeStory');
+  test('dates localize to Spanish month names', () => {
+    expect(fmt('2010-05-01')).toBe('May 1, 2010');
+    expect(fmt('2010-05-01', 'es')).toBe('1 de mayo de 2010');
+    expect(fmt('early spring', 'es')).toBe('early spring'); // verbatim passthrough
+  });
+  test('marriage chapter label exists in both languages', () => {
+    expect(cat('marriage')).toBe('Your marriage');
+    expect(cat('marriage', 'es')).toBe('Tu matrimonio');
+  });
+  test('Spanish recitals carry Spanish dates', () => {
+    const r = recit({ marriageDate: '2010-05-01' }, 'es');
+    const marriage = r.find((x: { id: string }) => x.id === 'marriage');
+    const values = marriage.segments.filter((s: { kind: string }) => s.kind === 'value');
+    expect(values.some((v: { text: string }) => v.text === '1 de mayo de 2010')).toBe(true);
+  });
+});

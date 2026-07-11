@@ -75,7 +75,23 @@ Driver gotchas already handled in `drive.mjs`: launch Chromium with
 `localStorage['tos_accepted_auth0|e2etester']` to skip the TOS modal, and
 retry the Texas click until the chat input appears (hydration race).
 
-## 5. Cleanup
+## 5. Real-model release-gate pass (needs OPENAI_API_KEY)
+
+The scripted fake covers the pipeline; this covers the model. With a key
+available:
+
+```bash
+REAL_LLM=1 OPENAI_API_KEY=sk-... bash e2e/setup-worktree.sh /tmp/e2e-app
+# migrate + start the dev server as above, then:
+cd /tmp/e2e-app/e2e && node drive-real.mjs
+```
+
+`drive-real.mjs` runs the same divorce interview against the real LLM with
+variance-tolerant assertions (all three children survive the reminder
+turn, marriage extracted, provenance present, real ingest, PDF generates)
+and generous 120s per-turn timeouts. Screenshots land in `e2e/shots/real-*`.
+
+## 6. Cleanup
 
 ```bash
 pkill -f next-server; git worktree remove --force /tmp/e2e-app

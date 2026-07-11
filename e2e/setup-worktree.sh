@@ -13,6 +13,7 @@ ln -sfn "$REPO_ROOT/node_modules" "$W/node_modules"
 mkdir -p "$W/e2e" /tmp/e2e-docs
 cp "$REPO_ROOT/e2e/fakeLLM.js" "$W/e2e/fakeLLM.js"
 cp "$REPO_ROOT/e2e/drive.mjs" "$W/e2e/drive.mjs"
+cp "$REPO_ROOT/e2e/drive-real.mjs" "$W/e2e/drive-real.mjs" 2>/dev/null || true
 
 python3 - "$W" <<'EOF'
 import sys
@@ -116,7 +117,20 @@ patch('next.config.mjs',
     ...(process.env.E2E_BYPASS_AUTH === '1' ? ["'unsafe-eval'"] : []),""")
 EOF
 
-cat > "$W/.env.local" <<'ENV'
+# REAL_LLM=1 (with OPENAI_API_KEY set) switches the worktree to the real
+# model instead of the scripted fake — used for the release-gate pass
+# driven by e2e/drive-real.mjs.
+if [ "${REAL_LLM:-0}" = "1" ] && [ -n "${OPENAI_API_KEY:-}" ]; then
+  FAKE=0
+  KEY_LINES="OPENAI_API_KEY=${OPENAI_API_KEY}
+LLM_PROVIDER=${LLM_PROVIDER:-openai}
+LLM_MODEL=${LLM_MODEL:-gpt-5.5}"
+else
+  FAKE=1
+  KEY_LINES=""
+fi
+
+cat > "$W/.env.local" <<ENV
 DATABASE_URL=postgresql://affidavit:affidavit@127.0.0.1:5433/affidavit_e2e
 AUTH0_SECRET=e2e0000000000000000000000000000000000000000000000000000000000000
 AUTH0_BASE_URL=http://localhost:3100
@@ -125,11 +139,12 @@ AUTH0_CLIENT_ID=e2e
 AUTH0_CLIENT_SECRET=e2e
 E2E_TEST_USER=1
 E2E_BYPASS_AUTH=1
-E2E_FAKE_LLM=1
+E2E_FAKE_LLM=$FAKE
 NEXT_PUBLIC_E2E=1
 PAYMENTS_ENABLED=false
 ENABLE_INTERNATIONAL=false
 DOCUMENTS_PATH=/tmp/e2e-docs
+$KEY_LINES
 ENV
 
 echo "Worktree ready at $W"

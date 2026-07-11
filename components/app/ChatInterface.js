@@ -64,8 +64,9 @@ const ChatInterface = () => {
       const params = new URLSearchParams(window.location.search);
       const ask = params.get('ask');
       if (!ask) return;
-      const { ASK_TOPICS } = require('./lifeStory');
-      const prefill = ASK_TOPICS[ask];
+      const { getAskTopics } = require('./lifeStory');
+      const { getInitialLang } = require('@/lib/i18n');
+      const prefill = getAskTopics(getInitialLang())[ask];
       if (prefill) {
         setMessage((current) => current || prefill);
       }

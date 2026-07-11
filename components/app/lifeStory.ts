@@ -9,7 +9,7 @@
  * Every language-bearing builder takes an optional trailing
  * `lang: 'en' | 'es' = 'en'` so the page can render fully in Spanish;
  * the default keeps every existing caller (and test) unchanged.
- * Dates still format via en-US month names — a known v1 limit.
+ * formatFriendlyDate localizes month names (en-US / es-US).
  */
 
 import type { Lang } from '@/lib/i18n';
@@ -74,13 +74,20 @@ export function parseKnownDate(raw: unknown): Date | null {
   return null;
 }
 
-/** "2010-05-01" → "May 1, 2010"; anything unparseable comes back as-is. */
-export function formatFriendlyDate(raw: unknown): string {
+/**
+ * "2010-05-01" → "May 1, 2010" (en) / "1 de mayo de 2010" (es);
+ * anything unparseable comes back as-is.
+ */
+export function formatFriendlyDate(raw: unknown, lang: Lang = 'en'): string {
   const s = str(raw);
   if (!s) return '';
   const date = parseKnownDate(s);
   if (!date) return s;
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  return date.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 export function childBirthDate(child: ProfileChild): string {
@@ -161,7 +168,7 @@ export function buildRecitals(
 
   // 2 — your marriage
   const spouse = spouseName(profile);
-  const married = formatFriendlyDate(profile.marriageDate);
+  const married = formatFriendlyDate(profile.marriageDate, lang);
   const place = marriagePlace(profile);
   const marriageSegments: Segment[] = [text(es ? 'Te casaste con ' : 'You married ')];
   marriageSegments.push(spouse ? value(spouse) : blank(es ? 'tu cónyuge' : 'your spouse'));
@@ -171,7 +178,7 @@ export function buildRecitals(
     marriageSegments.push(text(es ? ' en ' : ' in '), value(place));
   }
   marriageSegments.push(text('.'));
-  const separated = formatFriendlyDate(profile.separationDate);
+  const separated = formatFriendlyDate(profile.separationDate, lang);
   if (separated) {
     marriageSegments.push(
       text(es ? ' Se separaron el ' : ' You separated on '),
@@ -265,6 +272,7 @@ export function buildRecitals(
 /** Human chapter titles for fact categories collected by the orchestrators. */
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'Your story',
+  marriage: 'Your marriage',
   identity: 'About you',
   residency: 'Where you live',
   grounds: 'Why you are filing',
@@ -288,6 +296,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_LABELS_ES: Record<string, string> = {
   general: 'Tu historia',
+  marriage: 'Tu matrimonio',
   identity: 'Sobre ti',
   residency: 'Dónde vives',
   grounds: 'Por qué presentas tu caso',
@@ -344,7 +353,7 @@ export function buildFamily(
   members.push({ kind: 'adult', label: es ? 'Tú' : 'You', sublabel: '', heightScale: 1 });
   for (const child of children) {
     const age = computeAge(child);
-    const dob = formatFriendlyDate(childBirthDate(child));
+    const dob = formatFriendlyDate(childBirthDate(child), lang);
     members.push({
       kind: 'child',
       label: (str(child.name) || (es ? 'Menor' : 'A child')).split(' ')[0],
@@ -510,7 +519,7 @@ export function waitingPeriodNote(
     if (!filed) continue;
     const earliest = new Date(filed.getTime() + waitingDays * 24 * 3600 * 1000);
     if (earliest > now) {
-      const earliestDate = formatFriendlyDate(earliest.toISOString().slice(0, 10));
+      const earliestDate = formatFriendlyDate(earliest.toISOString().slice(0, 10), lang);
       return es
         ? `${stateName} tiene un período de espera de ${waitingDays} días — según la fecha de presentación registrada, lo más pronto que un tribunal podría finalizar es el ${earliestDate}.`
         : `${stateName} has a ${waitingDays}-day waiting period — based on the filing date on record, the earliest a court could finalize is ${earliestDate}.`;

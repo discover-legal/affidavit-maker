@@ -10,6 +10,7 @@ import ChatInterface from './ChatInterface';
 import DocumentPreview from './DocumentPreview';
 import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
+import ReviewGate from './ReviewGate';
 import QuickExit from './QuickExit';
 import { advisorFlags } from './lifeStory';
 import { trackEvent } from '@/lib/utils/analytics';
@@ -68,7 +69,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
 // Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ isNew = false, onBack }) => {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const params = useParams();
   const documentId = Array.isArray(params?.documentId) ? params.documentId[0] : params?.documentId;
   const searchParams = useSearchParams();
@@ -96,6 +97,10 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  // "Verify before you swear" review gate — shown after payment is
+  // resolved but before the PDF is generated/downloaded.
+  const [isReviewGateOpen, setIsReviewGateOpen] = useState(false);
 
   // Use split contexts to prevent unnecessary re-renders
   const { currentDocument, preview } = useDocumentData();
@@ -154,7 +159,7 @@ const EditorView = ({ isNew = false, onBack }) => {
     } finally {
       setIsCheckingPayment(false);
     }
-  }, [getAccessTokenSilently, setIsPaidDocument]);
+  }, [setIsPaidDocument]);
 
   // Check payment status when document loads
   useEffect(() => {
@@ -367,8 +372,8 @@ const EditorView = ({ isNew = false, onBack }) => {
       const isPaid = await checkPaymentStatus(currentDocument.documentId);
 
       if (isPaid) {
-        // Document already paid - proceed with download
-        await performDownload();
+        // Document already paid - review before download
+        setIsReviewGateOpen(true);
       } else {
         // Kill-switch: when payments are disabled server-side
         // (PAYMENTS_ENABLED=false), the generate endpoint is free — go
@@ -383,7 +388,8 @@ const EditorView = ({ isNew = false, onBack }) => {
         }
 
         if (!paymentsOn) {
-          await performDownload();
+          // Free path still goes through the review gate before download
+          setIsReviewGateOpen(true);
         } else {
           // Payment required - show payment modal
           setIsPaymentModalOpen(true);
@@ -397,17 +403,24 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
-    console.log('✅ Payment successful, starting download...');
+    console.log('✅ Payment successful, opening review before download...');
     setIsPaymentModalOpen(false);
     setIsPaidDocument(true);
 
+    // Wait a moment for the Stripe webhook to process before the user
+    // can confirm the review and trigger generation.
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsReviewGateOpen(true);
+  };
+
+  // Review gate confirmed — the user verified their own statements.
+  const handleReviewConfirm = async () => {
+    setIsReviewGateOpen(false);
     try {
-      // Wait a moment for webhook to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await performDownload();
     } catch (error) {
-      console.error('❌ Post-payment download failed:', error);
-      alert('Payment successful, but download failed. Please try downloading again.');
+      // performDownload already surfaced the error to the user
+      console.error('❌ Post-review download failed:', error);
     }
   };
   // Mobile panel navigation
@@ -677,6 +690,14 @@ const EditorView = ({ isNew = false, onBack }) => {
             ? 'divorce_package'
             : 'single_affidavit'
         }
+      />
+
+      {/* Review gate: verify statements before the sworn document downloads */}
+      <ReviewGate
+        isOpen={isReviewGateOpen}
+        affidavitData={currentDocument}
+        onConfirm={handleReviewConfirm}
+        onCancel={() => setIsReviewGateOpen(false)}
       />
     </div>
   );

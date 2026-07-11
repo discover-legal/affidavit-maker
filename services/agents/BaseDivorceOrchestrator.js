@@ -23,6 +23,7 @@ const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, removeChildrenByName, summarizeChildren, hasMinors } = require('../../utils/childrenMerge');
+const { mergeLabeledAmounts, totalOf } = require('../../utils/labeledAmounts');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -115,6 +116,31 @@ function buildPhaseTool(stateCode) {
           indigency_requested: { type: 'boolean' },
           monthly_income:      { type: 'number' },
           monthly_expenses:    { type: 'number' },
+          income_breakdown: {
+            type: 'array',
+            description: 'Itemized monthly income mentioned in THIS message. Entries MERGE into the already-collected list by label — never re-send prior items. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
+            items: {
+              type: 'object',
+              properties: {
+                label:  { type: 'string' },
+                amount: { type: 'number', description: 'Dollars per month' },
+                person: { type: 'string', description: 'petitioner | respondent | joint | other' }
+              },
+              required: ['label', 'amount']
+            }
+          },
+          expense_breakdown: {
+            type: 'array',
+            description: 'Itemized monthly expenses mentioned in THIS message. Entries MERGE by label — never re-send prior items. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
+            items: {
+              type: 'object',
+              properties: {
+                label:  { type: 'string' },
+                amount: { type: 'number', description: 'Dollars per month' }
+              },
+              required: ['label', 'amount']
+            }
+          },
           assets_description:  { type: 'string' },
           dependents_count:    { type: 'number' },
 
@@ -190,6 +216,8 @@ const FIELD_MAP = {
   indigency_requested:         'indigencyRequested',
   monthly_income:              'monthlyIncome',
   monthly_expenses:            'monthlyExpenses',
+  income_breakdown:            'incomeBreakdown',
+  expense_breakdown:           'expenseBreakdown',
   assets_description:          'assetsDescription',
   dependents_count:            'dependentsCount',
   military_status_confirmed:   'militaryStatusConfirmed',
@@ -460,10 +488,20 @@ class BaseDivorceOrchestrator {
         // only the entry under discussion, so assignment would drop the rest.
         if (snakeKey === 'children') {
           updated.children = mergeChildren(divorceData.children, fields.children);
+        } else if (snakeKey === 'income_breakdown' || snakeKey === 'expense_breakdown') {
+          updated[camelKey] = mergeLabeledAmounts(divorceData[camelKey], fields[snakeKey]);
         } else {
           updated[camelKey] = fields[snakeKey];
         }
       }
+    }
+
+    // Itemized money is the source of truth for the totals once present.
+    if (Array.isArray(updated.incomeBreakdown) && updated.incomeBreakdown.length > 0) {
+      updated.monthlyIncome = totalOf(updated.incomeBreakdown);
+    }
+    if (Array.isArray(updated.expenseBreakdown) && updated.expenseBreakdown.length > 0) {
+      updated.monthlyExpenses = totalOf(updated.expenseBreakdown);
     }
 
     if (Array.isArray(fields.remove_children) && fields.remove_children.length > 0) {

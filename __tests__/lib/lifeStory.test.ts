@@ -195,3 +195,40 @@ describe('parseKnownDate strictness', () => {
     expect(parseKnownDate('12/31/2015')).not.toBeNull();
   });
 });
+
+describe('moneySegments', () => {
+  const { moneySegments } = require('@/components/app/lifeStory');
+  test('sorts largest-first and folds beyond 5 into Other', () => {
+    const segs = moneySegments([
+      { label: 'Housing', amount: 1400 },
+      { label: 'Food', amount: 600 },
+      { label: 'Utilities', amount: 250 },
+      { label: 'Childcare', amount: 900 },
+      { label: 'Transportation', amount: 400 },
+      { label: 'Medical', amount: 150 },
+      { label: 'Debt payments', amount: 300 },
+    ]);
+    expect(segs).toHaveLength(5);
+    expect(segs[0].label).toBe('Housing');
+    // Other = Debt payments 300 + Utilities 250 + Medical 150
+    expect(segs[4]).toEqual({ label: 'Other', amount: 700 });
+  });
+
+  test('annotates income items with the person', () => {
+    const profile = { respondentFirstName: 'Alex' };
+    const segs = moneySegments(
+      [
+        { label: 'Wages', amount: 4200, person: 'petitioner' },
+        { label: 'Wages', amount: 1000, person: 'respondent' },
+      ],
+      profile,
+    );
+    expect(segs[0].label).toBe('Wages (you)');
+    expect(segs[1].label).toBe('Wages (Alex)');
+  });
+
+  test('drops invalid entries and handles non-arrays', () => {
+    expect(moneySegments(undefined)).toEqual([]);
+    expect(moneySegments([{ label: '', amount: 5 }, { label: 'X', amount: -1 }, null])).toEqual([]);
+  });
+});

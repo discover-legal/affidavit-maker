@@ -24,7 +24,9 @@ import {
   buildTimeline,
   groupFacts,
   moneyLeftover,
+  moneySegments,
   storyProgress,
+  type MoneySegment,
   type ProfileChild,
   type Recital,
   type Segment,
@@ -45,6 +47,12 @@ type LoadState = 'loading' | 'ready' | 'error';
 // (dataviz six-checks): brand blue for "in"/figures, warm amber for "out".
 const INK_IN = '#2563eb';
 const INK_OUT = '#b45309';
+// Categorical palette for itemized money segments — validated (chroma,
+// CVD separation, 3:1 surface contrast); assigned in fixed order by
+// descending amount, with the "Other" fold in neutral gray (identified by
+// its legend label + segment gaps, not color).
+const MONEY_PALETTE = ['#2563eb', '#0d9488', '#7c3aed', '#b45309', '#be185d'];
+const MONEY_OTHER = '#9ca3af';
 
 const CHAPTER_ICONS: Record<string, LucideIcon> = {
   'Where you live': MapPin,
@@ -184,39 +192,130 @@ function LifeTimeline({ profile }: { profile: Record<string, unknown> }) {
   );
 }
 
-/** Two thin labeled bars plus the bottom line: what's left each month. */
+function segmentColor(index: number, label: string): string {
+  return label === 'Other' ? MONEY_OTHER : MONEY_PALETTE[index % MONEY_PALETTE.length];
+}
+
+/**
+ * One money row: either a stacked bar of itemized segments (color-coded,
+ * 2px surface gaps, legend chips beneath) or a plain bar when only the
+ * total is known.
+ */
+function MoneyRow({
+  label,
+  total,
+  max,
+  segments,
+  fallbackColor,
+}: {
+  label: string;
+  total: number;
+  max: number;
+  segments: MoneySegment[];
+  fallbackColor: string;
+}) {
+  const widthPct = Math.max(4, (total / max) * 100);
+  return (
+    <div>
+      {/* Phones: label + total on one line, full-width bar below.
+          sm+: label | bar | total in one row. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm sm:flex-nowrap">
+        <span className="order-1 w-20 shrink-0 text-gray-500">{label}</span>
+        <span className="order-2 ml-auto shrink-0 text-right font-semibold tabular-nums text-gray-800 sm:order-3 sm:ml-0 sm:w-24">
+          ${Math.round(total).toLocaleString('en-US')}
+          <span className="font-normal text-gray-400">/mo</span>
+        </span>
+        <div className="order-3 h-3 w-full rounded-full bg-gray-100 sm:order-2 sm:w-auto sm:flex-1">
+          {segments.length > 1 ? (
+            <div className="flex h-full gap-0.5" style={{ width: `${widthPct}%` }}>
+              {segments.map((seg, i) => (
+                <div
+                  key={seg.label}
+                  title={`${seg.label}: $${seg.amount.toLocaleString('en-US')}/mo`}
+                  className="h-full first:rounded-l-full last:rounded-r-full"
+                  style={{
+                    width: `${(seg.amount / total) * 100}%`,
+                    backgroundColor: segmentColor(i, seg.label),
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${widthPct}%`, backgroundColor: fallbackColor }}
+            />
+          )}
+        </div>
+      </div>
+      {segments.length > 1 && (
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:ml-[5.75rem]">
+          {segments.map((seg, i) => (
+            <span key={seg.label} className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-sm"
+                style={{ backgroundColor: segmentColor(i, seg.label) }}
+              />
+              {seg.label}{' '}
+              <span className="font-medium tabular-nums text-gray-800">
+                ${seg.amount.toLocaleString('en-US')}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Money in vs out — itemized by source/person and category when known. */
 function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
   const income = Number(profile.monthlyIncome);
   const expenses = Number(profile.monthlyExpenses);
   const rows = [
-    { label: 'Comes in', amount: income, color: INK_IN },
-    { label: 'Goes out', amount: expenses, color: INK_OUT },
-  ].filter((r) => Number.isFinite(r.amount) && r.amount > 0);
+    {
+      label: 'Comes in',
+      amount: income,
+      color: INK_IN,
+      segments: moneySegments(profile.incomeBreakdown, profile),
+    },
+    {
+      label: 'Goes out',
+      amount: expenses,
+      color: INK_OUT,
+      segments: moneySegments(profile.expenseBreakdown, profile),
+    },
+  ]
+    .map((r) => ({
+      ...r,
+      // The itemization is the source of truth for the bar total once present.
+      amount:
+        r.segments.length > 0
+          ? r.segments.reduce((sum, s) => sum + s.amount, 0)
+          : r.amount,
+    }))
+    .filter((r) => Number.isFinite(r.amount) && r.amount > 0);
   if (rows.length === 0) return null;
   const max = Math.max(...rows.map((r) => r.amount));
   const leftover = moneyLeftover(profile);
 
   return (
-    <div className="mt-4 font-sans" aria-hidden="true">
-      <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center gap-3 text-sm">
-            <span className="w-20 shrink-0 text-gray-500">{row.label}</span>
-            <div className="h-2.5 flex-1 rounded-full bg-gray-100">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${Math.max(4, (row.amount / max) * 100)}%`, backgroundColor: row.color }}
-              />
-            </div>
-            <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-gray-800">
-              ${Math.round(row.amount).toLocaleString('en-US')}
-              <span className="font-normal text-gray-400">/mo</span>
-            </span>
-          </div>
-        ))}
-      </div>
+    // Not aria-hidden: unlike the timeline, the itemized legend carries
+    // information the recital sentence doesn't (per-source/per-category).
+    <div className="mt-4 space-y-3 font-sans">
+      {rows.map((row) => (
+        <MoneyRow
+          key={row.label}
+          label={row.label}
+          total={row.amount}
+          max={max}
+          segments={row.segments}
+          fallbackColor={row.color}
+        />
+      ))}
       {leftover !== null && leftover !== 0 && (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="text-sm text-gray-500">
           ≈{' '}
           <span className="font-semibold text-gray-800">
             ${Math.abs(leftover).toLocaleString('en-US')}

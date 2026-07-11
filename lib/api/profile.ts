@@ -53,7 +53,8 @@ export type UserProfile = {
  */
 const GENERAL_FIELDS: readonly string[] = [
   'firstName', 'lastName', 'affiantName',
-  'monthlyIncome', 'monthlyExpenses', 'assetsDescription', 'dependentsCount',
+  'monthlyIncome', 'monthlyExpenses', 'incomeBreakdown', 'expenseBreakdown',
+  'assetsDescription', 'dependentsCount',
   'indigencyRequested',
 ];
 

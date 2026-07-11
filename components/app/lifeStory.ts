@@ -366,6 +366,49 @@ export function moneyLeftover(profile: Record<string, unknown>): number | null {
   return Math.round(income - expenses);
 }
 
+export type MoneySegment = { label: string; amount: number };
+
+const MAX_MONEY_SEGMENTS = 5;
+
+/**
+ * Normalize an itemized money list for the stacked bar: valid entries only,
+ * sorted largest-first, anything beyond the palette's 5 slots folded into
+ * "Other" (categorical hues are assigned in fixed order, never cycled).
+ * Income labels get the person's name folded in when it isn't already there.
+ */
+export function moneySegments(
+  raw: unknown,
+  profile?: Record<string, unknown>,
+): MoneySegment[] {
+  if (!Array.isArray(raw)) return [];
+  const spouse = profile
+    ? str(profile.respondentFirstName as string) ||
+      String(profile.respondentName || '').split(' ')[0]
+    : '';
+  const items: MoneySegment[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as { label?: unknown; amount?: unknown; person?: unknown };
+    let label = str(e.label);
+    const amount = Number(e.amount);
+    if (!label || !Number.isFinite(amount) || amount <= 0) continue;
+    const person = str(e.person).toLowerCase();
+    if (person === 'respondent' && spouse && !label.toLowerCase().includes(spouse.toLowerCase())) {
+      label = `${label} (${spouse})`;
+    } else if (person === 'petitioner' && !/\byour?\b/i.test(label)) {
+      label = `${label} (you)`;
+    }
+    items.push({ label, amount: Math.round(amount) });
+  }
+  items.sort((a, b) => b.amount - a.amount);
+  if (items.length <= MAX_MONEY_SEGMENTS) return items;
+  const head = items.slice(0, MAX_MONEY_SEGMENTS - 1);
+  const otherTotal = items
+    .slice(MAX_MONEY_SEGMENTS - 1)
+    .reduce((sum, i) => sum + i.amount, 0);
+  return [...head, { label: 'Other', amount: otherTotal }];
+}
+
 export type LedgerItem = { key: string; label: string; value: string | null };
 
 const SERVICE_LABELS: Record<string, string> = {

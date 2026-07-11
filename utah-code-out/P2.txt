@@ -1,0 +1,820 @@
+Utah Code
+
+
+    Effective 9/1/2024
+                                               Part 2
+                            Calculation and Adjustment of Child Support
+
+    81-6-201 Definitions for part.
+       Reserved.
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-202 Determination of amount of child support -- Application of child support guidelines
+    -- Requirements for child support order.
+    (1)
+      (a) If a prior child support order does not exist, a substantial change in circumstances has
+           occurred, or a petition to modify a child support order as described in Section 81-6-212 is
+           filed, the court determining the amount of prospective child support shall require each party
+           to file a proposed award of child support using the child support guidelines before the court
+           enters or modifies a child support order.
+      (b) When no prior child support order exists, the court or administrative agency shall determine
+           and assess all arrearages based upon the child support guidelines.
+    (2)
+      (a) The court or administrative agency shall apply the child support guidelines as a rebuttable
+           presumption in establishing or modifying the amount of temporary or permanent child support.
+      (b) The rebuttable presumption means the provisions and considerations required by the child
+           support guidelines, the award amounts resulting from the application of the child support
+           guidelines, and the use of worksheets consistent with the child support guidelines are
+           presumed to be correct, unless the child support guidelines are rebutted in accordance with
+           this section.
+    (3)
+      (a) A written finding or specific finding on the record supporting the conclusion that complying
+           with a provision of the child support guidelines or ordering an award amount resulting from
+           use of the child support guidelines would be unjust, inappropriate, or not in the best interest of
+           a child in a particular case is sufficient to rebut the presumption in that case.
+      (b) If an order rebuts the presumption through findings, the order is considered a deviated order.
+    (4) The following are considered deviations from the child support guidelines, if:
+      (a) the order includes a written finding that the order is a deviation from the child support
+           guidelines;
+      (b) the worksheet has:
+        (i) the box checked for a deviation; and
+        (ii) an explanation as to the reason; or
+      (c) the deviation is made because there were more children than provided for in the child support
+           tables.
+    (5) If the amount in the order and the amount on the worksheet differ by $10 or more:
+      (a) the order is considered deviated; and
+      (b) the incomes listed on the worksheet may not be used in adjusting support for emancipation as
+           described in Section 81-6-213.
+    (6) If the court finds sufficient evidence to rebut the guidelines as described in Subsection (3), the
+        court shall establish child support after considering all relevant factors, including:
+
+
+
+                                                    Page 1
+Utah Code
+
+
+      (a) the standard of living and situation of the parties;
+      (b) the relative wealth and income of the parties;
+      (c) the ability of the obligor to earn;
+      (d) the ability of the obligee to earn;
+      (e) the ability of an incapacitated adult child to earn, or other benefits received by the adult child
+           or on the adult child's behalf including Supplemental Security Income;
+      (f) the needs of the obligee, the obligor, and the child;
+      (g) the ages of the parties; and
+      (h) the responsibilities of the obligor and the obligee for the support of others.
+    (7)
+      (a) If there are children of either parent who live in the home of that parent and are not children
+           in common to both parties, the court or administrative agency, at the option of either party,
+           may take into account the children under the child support guidelines in setting a base child
+           support award as described in Subsection (8).
+      (b) Additional worksheets shall be prepared that calculate the base child support award of the
+           respective parents for the additional children.
+      (c) The court or administrative agency shall subtract the base child support award calculated
+           under Subsection (7)(b) from the appropriate parent's income before determining the award in
+           the case described in Subsection (7)(a).
+    (8) In a proceeding to adjust or modify a child support order, the court or administrative agency
+        may consider children, who are born after the entry of the child support order and are not in
+        common to both parties, to mitigate an increase in the award, but the court or administrative
+        agency may not consider the children:
+      (a) for the benefit of the obligee if the credit would increase the support obligation of the obligor
+           from the most recent child support order; or
+      (b) for the benefit of the obligor if the amount of support received by the obligee would be
+           decreased from the most recent child support order.
+    (9) A stipulated amount for child support or combined child support and alimony is adequate under
+        the child support guidelines if the stipulated child support amount or combined amount equals
+        or exceeds the base child support award required by the child support guidelines.
+    (10) The court shall include the following provisions in a child support order:
+      (a) a provision establishing the monthly amount of child support obligation for each parent in
+           accordance with the child support guidelines;
+      (b) a provision assigning responsibility for the payment of reasonable and necessary medical
+           expenses for the child as described in Section 81-6-208;
+      (c) a provision requiring the purchase and maintenance of appropriate health care insurance for
+           the medical expenses of the child as described in Section 81-6-208 if health care insurance is
+           or becomes available at a reasonable cost;
+      (d) a provision regarding the child care expenses as described in Section 81-6-209;
+      (e) a provision regarding each parent's right to claim a child as a tax exemption for federal and
+           state income tax purposes in accordance with Section 81-6-210;
+      (f) provisions for income withholding as a means of collecting child support, in accordance with
+           Title 26B, Chapter 9, Part 3, Income Withholding in IV-D Cases, and Title 26B, Chapter 9,
+           Part 4, Income Withholding in Non IV-D Cases; and
+      (g) a provision regarding a parent's opportunity to adjust a child support order as described in
+           Section 81-6-212.
+    (11) The office shall include the provisions described in Section 26B-9-224 in a child support order.
+
+
+
+                                                   Page 2
+Utah Code
+
+
+    Amended by Chapter 155, 2026 General Session
+
+    81-6-203 Determination of gross income for child support -- Imputing income to a parent.
+    (1)
+      (a) Each parent shall provide verification of current income to the court or administrative agency.
+      (b) Each parent shall provide year-to-date pay stubs or employer statements and complete
+           copies of tax returns from at least the most recent year, unless the court finds the verification
+           is not reasonably available.
+      (c) Verification of income from records maintained by the Department of Workforce Services may
+           be substituted for pay stubs, employer statements, and income tax returns.
+    (2)
+      (a) To calculate gross income of a parent, the court or administrative agency may include:
+        (i) prospective income of the parent, including income from earned and nonearned sources,
+              such as salaries, wages, commissions, royalties, bonuses, rents, gifts from anyone,
+              prizes, dividends, severance pay, pensions, interest, trust income, alimony from previous
+              marriages, annuities, capital gains, Social Security benefits, worker compensation benefits,
+              unemployment compensation, income replacement disability insurance benefits, Social
+              Security Disability Insurance, and payments from nonmeans-tested government programs;
+              and
+        (ii) income imputed to the parent as described in Subsection (6).
+      (b) Income from earned income sources is limited to the equivalent of one full-time 40-hour job.
+      (c) If and only if during the time before the original support order, the parent normally and
+           consistently worked more than 40 hours at the parent's job, the court may consider this extra
+           time as a pattern in calculating the parent's ability to provide child support.
+    (3)
+      (a) The court or administrative agency shall use historical and current earnings to determine
+           whether an underemployment or overemployment situation exists.
+      (b) When establishing or modifying a child support order for an obligor who is a parent and
+           incarcerated, the office shall follow the requirements of Section 81-6-211.5.
+    (4)
+      (a) To calculate income from self-employment or operation of a business, the court or
+           administrative agency:
+        (i) shall calculate gross income from self-employment or operation of a business by subtracting
+              necessary expenses required for self-employment or business operation from gross
+              receipts;
+        (ii) shall review income and expenses from self-employment or operation of a business to
+              determine an appropriate level of gross income available to the parent to satisfy a child
+              support award; and
+        (iii) may only deduct those expenses necessary to allow the business to operate at a
+              reasonable level from gross receipts.
+      (b) Gross income determined under this Subsection (4) may differ from the amount of business
+           income determined for tax purposes.
+    (5) When possible, the court or administrative agency shall determine the average monthly gross
+        income for each parent by:
+      (a) calculating the gross income of each parent on an annual basis; and
+      (b) dividing the annual gross income for each parent by 12.
+    (6)
+
+
+
+                                                   Page 3
+Utah Code
+
+
+      (a) The court or administrative agency may not impute income to a parent unless the parent
+           stipulates to the amount imputed, the parent defaults, or, in contested cases, a hearing is held
+           and the court or administrative agency enters findings of fact as to the evidentiary basis for
+           the imputation.
+      (b) If income is imputed to a parent, the court or administrative agency shall base income upon
+           employment potential and probable earnings considering, to the extent known:
+        (i) employment opportunities;
+        (ii) work history;
+        (iii) occupation qualifications;
+        (iv) educational attainment;
+        (v) literacy;
+        (vi) age;
+        (vii) health;
+        (viii) criminal record;
+        (ix) other employment barriers and background factors; and
+        (x) prevailing earnings and job availability for persons of similar backgrounds in the community.
+      (c) If a parent has no recent work history or a parent's occupation is unknown, the court or
+           administrative agency may impute an income to that parent at the federal minimum wage for
+           a 40-hour work week.
+      (d) To impute a greater or lesser income, the court or administrative agency shall enter specific
+           findings of fact as to the evidentiary basis for the imputation.
+      (e) The court or administrative agency may not impute income to a parent if any of the following
+           conditions exist and the condition is not of a temporary nature:
+        (i) the reasonable costs of child care for the parents' minor child approach or equal the amount
+              of income the custodial parent can earn;
+        (ii) a parent is physically or mentally unable to earn minimum wage;
+        (iii) a parent is engaged in career or occupational training to establish basic job skills; or
+        (iv) unusual emotional or physical needs of a child require the custodial parent's presence in
+              the home.
+    (7) Notwithstanding Subsection (2), the court or administrative agency may not include the
+        following sources of income when calculating the gross income of a parent:
+      (a) cash assistance provided under Title 35A, Chapter 3, Part 3, Family Employment Program;
+      (b) benefits received under a housing subsidy program, the Job Training Partnership Act,
+           Supplemental Security Income, Medicaid, SNAP benefits, or General Assistance;
+      (c) other similar means-tested welfare benefits received by a parent;
+      (d) the earned income of a child who is the subject of a child support award; or
+      (e) except as otherwise provided in Subsection (8), the benefits to a child in the child's own right,
+           such as Supplemental Security Income.
+    (8)
+      (a) The court or administrative agency shall credit, as child support, the amount of social security
+           benefits received by a child due to the earnings of the parent on whose earning record the
+           social security benefits are based by crediting the amount against the potential obligation of
+           that parent.
+      (b) The court or administrative agency may consider other unearned income of a child as income
+           of a parent depending upon the circumstances of each case.
+
+    Amended by Chapter 155, 2026 General Session
+
+
+
+                                                   Page 4
+Utah Code
+
+
+    81-6-204 General provisions for calculating child support -- Determination of base combined
+    child support obligation.
+    (1) To calculate child support, the court or administrative agency shall determine the base
+        combined child support obligation for the parents by:
+      (a) except as provided in Subsection (3), adjusting the average monthly gross income for
+           each parent by subtracting any alimony previously ordered and paid and any child support
+           previously ordered for that parent;
+      (b) adjusting the average monthly gross income for each parent by subtracting any credits
+           deemed appropriate under Subsections 81-6-202(7) and (8);
+      (c) combining the adjusted average monthly gross incomes for both parents; and
+      (d) locating the base combined child support obligation in the base combined child support
+           obligation table by finding:
+        (i) the combined adjusted average monthly gross incomes of the parents in the table; and
+        (ii) the total number of children in common to the parents.
+    (2) The court or administrative agency may only use the income of the parents of the child to
+        determine the base child support award.
+    (3) The court or administrative agency may not subtract any alimony ordered in the pending
+        proceeding from the gross incomes of the parents as described in Subsection (1)(a).
+    (4) If there is no amount listed for the base combined child support obligation in the base combined
+        child support obligation table, the base combined support obligation for the parents is $0.
+    (5) Upon determining the base combined child support obligation, the court or administrative
+        agency shall make additional calculations as described in Section 81-6-205, 81-6-206, or
+        81-6-207 to determine the base child support award.
+    (6)
+      (a) Except as provided in Subsection (6)(b), the court may consider any amount that an
+           incapacitated adult child can contribute to the child's support and use the amount to justify a
+           reduction in the amount of support ordered.
+      (b) If the case described in Subsection (6)(a) involves more than one child, the reduction may not
+           be greater than the effect of reducing the total number of children by one.
+    (7)
+      (a) The base combined child support obligation table provides combined child support obligations
+           for up to six children.
+      (b) If a case involves more than six children, the court may add additional amounts to the base
+           child support obligation shown in the base combined child support obligation table.
+      (c) Unless rebutted by Subsection 81-6-202(3), the court or administrative agency may not order
+           an amount less than the amount that would be ordered for up to six children.
+    (8)
+      (a) If the combined adjusted gross income exceeds the highest level specified in the base
+           combined child support obligation table, the court shall order an appropriate and just amount
+           of child support on a case-by-case basis, except that the court may not order an amount
+           that is less than the highest level specified in the table for the number of children due child
+           support.
+      (b) There is no maximum limit on the base child support award that a court may order using the
+           child support tables.
+    (9) The amount shown in a child support table is the child support amount for the total number of
+        children not an amount per child.
+    (10) For all worksheets, income and child support award figures are rounded to the nearest dollar.
+
+
+
+                                                  Page 5
+Utah Code
+
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-205 Sole physical custody -- Obligation calculations -- Change in physical custody.
+    (1) This section applies to a case in which a parent, or another person, is awarded sole physical
+        custody of the children.
+    (2) Except as provided in Subsections (3) and (4), the court or administrative agency shall
+        determine the base child support award for each parent by:
+      (a) dividing each parent's monthly adjusted gross income by the combined monthly adjusted
+           gross income to determine each parent's percentage; and
+      (b) multiplying each parent's percentage by the base combined child support obligation that is
+           calculated as described in Subsection 81-6-204(1).
+    (3)
+      (a) If the base combined child support obligation is $0, the court or administrative agency shall
+           establish the base child support award for each parent by:
+        (i) determining the individual monthly adjusted gross income for the parent;
+        (ii) locating the amount of the base child support award in the low income table by finding:
+           (A) the monthly adjusted gross income for the parent in the low income table; and
+           (B) the number of children in common with the parents.
+      (b) The corresponding amount in the low income table is the base child support award for that
+           parent.
+    (4)
+      (a) If a parent's individual monthly adjusted gross income is less than the highest amount of
+           monthly adjusted gross income shown in the low income table, the court or administrative
+           agency shall determine that the base child support award is the lesser of:
+        (i) the amount calculated using the base combined child support obligation table as described in
+              Subsection (2); and
+        (ii) the amount calculated using the low income table as described in Subsection (3).
+      (b) If the monthly adjusted gross income of a parent is found in an area of the low income table in
+           which no amount is shown, the court or administrative agency shall determine the base child
+           support award by using the amount listed in the base combined child support obligation table
+           and calculated as described in Subsection (2).
+    (5) A base child support award in a sole physical custody case may not be less than $30.
+    (6) The amounts calculated under this section are rebuttable as described in Section 81-6-202.
+    (7) A parent without sole physical custody of the children is an obligor and is required to pay the
+        amount of child support calculated under this section.
+    (8)
+      (a) When physical custody of a child changes after the original child support order, the parent
+           without physical custody of the child is required to pay the amount of child support calculated
+           under this section, without the need to modify the order, to:
+        (i) the parent who has physical custody of the child;
+        (ii) a relative to whom physical custody of the child has been voluntarily given; or
+        (iii) the state when the child is residing outside of the home in the protective custody, temporary
+              custody, or care of the state or a state-licensed facility for at least 30 days.
+      (b) When physical custody of a child changes from the physical custody that is assumed in
+           the original child support order calculated under this section, the modification of the child
+           support order is not necessary even if only one parent is specifically ordered to pay in the
+           child support order.
+
+
+
+                                                   Page 6
+Utah Code
+
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-206 Joint physical custody -- Obligation calculations.
+    (1) This section applies to a case in which the parents are awarded joint physical custody of the
+        children.
+    (2) If the base combined child support obligation that is calculated as described in Subsection
+        81-6-204(1) is $0, the base child support award for each parent is $0.
+    (3) If the base combined child support obligation that is calculated as described in Subsection
+        81-6-204(1) is greater than $0, the court or administrative agency shall determine each parent's
+        share of the base combined child support obligation by:
+      (a) dividing each parent's monthly adjusted gross income by the combined monthly adjusted
+           gross income to determine each parent's percentage; and
+      (b) multiplying each parent's percentage by the base combined child support obligation.
+    (4) The court or administrative agency shall determine the base child support award for the parent
+        with the lesser number of overnights by:
+      (a) multiplying the number of overnights over 110 and under 131 for that parent by .0027;
+      (b) multiplying the number calculated under Subsection (4)(a) by the base combined child
+           support obligation;
+      (c) multiplying the number of overnights over 130 for that parent by .0084;
+      (d) multiplying the number calculated under Subsection (4)(c) by the base combined child
+           support obligation; and
+      (e) subtracting the numbers calculated in Subsections (4)(b) and (4)(d) from that parent's share
+           of the base combined child support obligation calculated under Subsection (3).
+    (5) If the base child support award calculated under Subsection (4) is greater than $0, the parent
+        with the lesser number of overnights is the obligor and is required to pay child support.
+    (6) If the base child support award calculated under Subsection (4) is less than $0:
+      (a) the parent with the lesser number of overnights is the obligee; and
+      (b) the parent with the greater number of overnights is the obligor and is required to pay child
+           support.
+    (7) If the parents have an equal parent-time schedule under Section 81-9-305, the amount of time
+        to be spent with the parent who has the lower monthly adjusted gross income is considered 183
+        overnights, regardless of whether the parent receives 182 overnights or 183 overnights under
+        the equal parent-time schedule.
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-207 Split physical custody -- Obligation calculations.
+    (1) This section applies to a case in which the parents are awarded split physical custody of the
+        children.
+    (2) If the base combined child support obligation that is calculated as described in Subsection
+        81-6-204(1) is $0, the base child support award for each parent is $0.
+    (3) If the base combined child support obligation that is calculated as described in Subsection
+        81-6-204(1) is greater than $0, the court shall determine the base child support award by:
+      (a) dividing the number of children with each parent by the combined number of children to
+           calculate each parent's percentage of children;
+      (b) dividing each parent's monthly adjusted gross income by the combined monthly adjusted
+           gross income to calculate each parent's percentage of the combined monthly adjusted gross
+           income;
+
+
+                                                 Page 7
+Utah Code
+
+
+      (c) multiplying each parent's percentage of the combined monthly adjusted gross income by the
+          base combined child support obligation to calculate each parent's share of the base combined
+          child support obligation;
+      (d) multiplying each parent's share of the base combined child support obligation by the other
+          parent's percentage of children to determine the individual child support obligations for each
+          parent; and
+      (e) subtracting the lesser individual child support obligation from the higher individual child
+          support obligation to reach the base child support award.
+    (4) The parent with the higher individual child support obligation is the parent required to pay the
+        base child support award calculated under Subsection (3).
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-208 Requirements for a child support order regarding medical expenses --
+    Determination of parental liability for medical expenses.
+    (1) As used in this section, "health insurance" means the same as that term is defined in Section
+        31A-1-301.
+    (2) Except as provided in Subsection (4), a child support order issued or modified in this state on or
+        after May 3, 2023, shall require compliance with the requirements described in Subsection (3)
+        as of the effective date of the child support order.
+    (3) A child support order shall:
+      (a) require the parents provide health care coverage for the medical expenses of a child;
+      (b) require the parents provide health insurance for the medical expenses of a child if health
+          insurance is available to the parents at a reasonable cost;
+      (c) designate which health insurance plan is primary and which health insurance plan is
+          secondary if, at any time, a child is covered by both parents' health insurance plans as
+          described in Subsection (7);
+      (d) require each parent to share equally the out-of-pocket costs of the premium actually paid by a
+          parent for the child's portion of health insurance; and
+      (e) include a provision that requires each parent to equally share all reasonable and necessary
+          uninsured and unreimbursed medical and dental expenses incurred for a child, including co-
+          payments, co-insurance, and deductibles.
+    (4) The court may deviate from the requirements described in Subsection (3) if:
+      (a) the court makes specific findings establishing good cause for the deviation; or
+      (b) subject to the court's approval, the parents agree which parent shall provide health insurance
+          for the child.
+    (5) In determining whether to take the action described in Subsection (4), the court may consider:
+      (a) the reasonableness of the cost;
+      (b) the availability of a group insurance policy;
+      (c) the coverage of the policy; or
+      (d) the preference of the custodial parent.
+    (6) Subject to Subsection (4), if a child support order does not contain the requirements described
+        in Subsection (3):
+      (a) the parents are nonetheless subject to the requirements described in Subsection (3), as
+          applicable; and
+      (b) for purposes of Subsection (3)(c), the health insurance plan of the parent whose birthday
+          falls first in the calendar year is primary, and the health insurance plan of the parent whose
+          birthday falls second in the calendar year is secondary.
+
+
+                                                  Page 8
+Utah Code
+
+
+    (7)
+      (a) The provisions of an order under Subsection (3)(c) shall:
+        (i) take effect if at any time a child is covered by both parents' health insurance plans; and
+        (ii) include the following language: "If, at any point in time, a child is covered by the health
+              insurance plans of both parents, the health insurance plan of (Parent's Name) shall be
+              primary coverage for the child and the health insurance plan of (Other Parent's Name)
+              shall be secondary coverage for the child. If a parent remarries and the child is not covered
+              by that parent's health insurance plan but is covered by a step-parent's plan, the health
+              insurance plan of the step-parent shall be treated as if it is the plan of the remarried parent
+              and shall retain the same designation as the primary or secondary plan of the child."
+      (b) A court or administrative agency may not modify the language required by Subsection (7)(a)
+           (ii).
+      (c) Notwithstanding Subsection (7)(b), the court may allocate the payment of medical expenses
+           including co-payments, deductibles, and co-insurance not covered by health insurance
+           between the parents.
+      (d) In designating primary coverage pursuant to Subsection (3)(c), the court may take into
+           account:
+        (i) the birth dates of the parents;
+        (ii) a requirement in a court order, if any, for one of the parents to maintain health insurance
+              coverage for a child;
+        (iii) the parent with physical custody of the child; or
+        (iv) any other factor the court considers relevant.
+    (8)
+      (a) The parent who provides health insurance may receive credit against the base child support
+           award or recover the other parent's share of the child's portion of the premium.
+      (b) If the parent does not have health insurance but another member of the parent's household
+           provides health insurance for the child, the parent may receive credit against the base child
+           support award or recover the other parent's share of the child's portion of the premium.
+    (9)
+      (a) The child's portion of the premium is a per capita share of the premium actually paid.
+      (b) The premium expense for a child shall be calculated by dividing the premium amount by
+           the number of persons covered under the policy and multiplying the result by the number of
+           children in the instant case.
+    (10)
+      (a) The parent maintaining health care coverage or insurance shall provide verification of
+           coverage to the other parent, or to the office under Title IV of the Social Security Act, 42
+           U.S.C. Sec. 601 et seq., upon initial enrollment of the child, and after initial enrollment on or
+           before January 2 of each calendar year.
+      (b) The parent shall notify the other parent, or the office under Title IV of the Social Security Act,
+           42 U.S.C. Sec. 601 et seq., of any change of insurance carrier, premium, or benefits within 30
+           calendar days of the date the parent first knew or should have known of the change.
+      (c) A parent who incurs medical expenses shall provide written verification of the cost and
+           payment of medical expenses to the other parent within 30 days of payment.
+      (d) The court may deny a parent incurring medical expenses the right to receive credit for the
+           expenses or to recover the other parent's share of the expenses if that parent fails to comply
+           with this Subsection (10).
+    (11)
+
+
+
+                                                    Page 9
+Utah Code
+
+
+      (a) The court or administrative agency may issue an order determining the amount of a parent's
+           liability for medical expenses of a child when the parent:
+        (i) is required by a prior court or administrative order to:
+           (A) share those expenses with the other parent of the child; or
+           (B) obtain insurance for medical expenses but fails to do so; or
+        (ii) receives direct payment from an insurer under insurance coverage obtained after the prior
+              court or administrative order was issued.
+      (b) If the prior court or administrative order does not specify what proportions of the expenses are
+           to be shared:
+        (i) the court may determine the amount of liability as may be reasonable and necessary; and
+        (ii) the administrative agency may determine the amount of liability in accordance with
+              established rules.
+      (c) This Subsection (11) applies to an order without regard to when the order was issued.
+
+    Renumbered and Amended by Chapter 366, 2024 General Session
+
+    81-6-209 Requirements for a child support order regarding child care expenses -- Actual
+    expenses.
+    (1)
+      (a) Except as otherwise provided in this section, the court or administrative agency shall require
+           in a child support order that:
+        (i) each parent share equally the reasonable work-related child care expenses of the parents;
+              and
+        (ii) the obligor pay a minimal child care award to the obligee if the court or administrative
+              agency is entering or modifying the child support order on or after January 1, 2027.
+      (b) The court or administrative agency may not order a minimal child care award under
+           Subsection (1)(a)(ii) if the obligor's child support obligation is calculated using the low income
+           table.
+    (2)
+      (a) The court or administrative agency shall presume under Subsection (1) that work-related child
+           care expenses should be included in a child support order if a parent, during extended parent-
+           time, is working and actually incurring expenses for child care.
+      (b) The presumption under Subsection (2)(a) is rebutted if:
+        (i) the obligor's base child support award, in combination with the award of medical expenses,
+              exceeds 50% of the obligor's adjusted gross income; or
+        (ii) by adding the child care expenses, the obligor's child support obligation would exceed 50%
+              of the obligor's adjusted gross income.
+    (3)
+      (a) The court or administrative agency may award child care expenses on a case-by-case basis
+           if the child care expenses are related to the employment and occupational training of the
+           custodial parent or the child care expenses would be in the interest of justice.
+      (b) The court or administrative agency may assign financial responsibility in a child support order
+           for all or a portion of child care expenses incurred on behalf of a child due to the employment
+           or occupational training of the custodial parent.
+    (4)
+      (a) The court or administrative agency may impute a monthly obligation for child care expenses
+           when the court imputes income to a parent who is providing child care for the child so that the
+           parties are not incurring child care expenses for the child.
+
+
+                                                   Page 10
+Utah Code
+
+
+      (b) The court shall apply any monthly obligation imputed under Subsection (4)(a) towards any
+           actual child care expenses incurred within the same month for the child.
+    (5)
+      (a) The court shall require each party to file a proposed minimal child care award before the court
+           makes a determination under Subsection (1)(a)(ii).
+      (b) To calculate a minimal child care award under Subsection (1)(a)(ii), the court or administrative
+           agency shall:
+        (i) use the combined adjusted average monthly gross income of the parents as calculated for
+              the base child support award under Section 81-6-204; and
+        (ii) locate the minimal child care award for each child in the minimal child care award table in
+              Section 81-6-306 by finding:
+           (A) the combined adjusted average monthly gross income in the table;
+           (B) the age of the child in the table; and
+           (C) combining the amounts in the table for each child to determine the minimal child care
+                award.
+      (c) The court or administrative agency shall presume that the amount calculated under
+           Subsection (5)(b) for the minimal child care award is the amount that the obligor should pay
+           under Subsection (1)(a)(ii).
+      (d) The presumption described in Subsection (5)(c) is rebuttable upon:
+        (i) an agreement of the parties that is acceptable to the court or administrative agency;
+        (ii) the court or administrative agency determining that the evidence presented favors a different
+              minimal child care award; or
+        (iii) a showing, by a preponderance of the evidence, that a different minimal child care award is
+              in the best interest of the child.
+      (e) Notwithstanding Subsection (5)(b) or (c), the court or administrative agency may set the
+           minimal child care award under Subsection (1)(a)(ii) at zero dollars upon a showing, by a
+           preponderance of the evidence, that child care expenses will not be incurred.
+      (f) If a child is in the custody of the state and placed in a facility that is managed by the state, the
+           obligor does not owe the child's portion of the minimal child care award for any month that the
+           child is in the facility.
+      (g) If a minimal child care award is calculated using the minimal child care award table in
+           Section 81-6-306, the minimal child care award in a child support order shall be automatically
+           adjusted to the appropriate amount in the minimal child care award table as the child ages
+           without the need of the court or administrative agency to modify the order.
+      (h) The minimal child care award for a child shall terminate at the earlier of:
+        (i) the child turning 13 years old; or
+        (ii) the child becoming emancipated as that term is defined in Section 81-6-213.
+    (6) In the absence of a court order to the contrary, a parent who incurs a child care expense shall
+        provide written verification of the expense and identity of a child care provider to the other
+        parent upon initial engagement of a provider and thereafter on the request of the other parent.
+    (7)
+      (a) In the absence of a court order to the contrary, the parent shall notify the other parent of
+           any change of a child care provider, any change in the monthly expense of child care, or the
+           termination of child care within 30 calendar days after the day on which the change occurred.
+      (b) The notification requirement described in Subsection (7)(a) does not apply if there is a
+           protective order or stalking injunction in effect that prohibits a parent from contacting the other
+           parent.
+
+
+
+                                                    Page 11
+Utah Code
+
+
+    (8) The court may deny a parent incurring work-related child care expenses the right to receive
+        credit for the expenses or to recover the other parent's share of the expenses if the parent
+        incurring the expenses fails to comply with this section.
+
+    Repealed and Re-enacted by Chapter 155, 2026 General Session
+
+    81-6-210 Award of tax exemption for a child.
+    (1) There is no presumption as to which parent should be awarded the right to claim a child as an
+        exemption for federal and state income tax purposes.
+    (2) Unless the parties otherwise stipulate in writing, the court shall award in any final order the
+        exemption on a case-by-case basis.
+    (3) In awarding the exemption, the court shall consider:
+      (a) as the primary factor, the relative contribution of each parent to the cost of raising the child;
+          and
+      (b) among other factors, the relative tax benefit to each parent.
+    (4)
+      (a) Notwithstanding Subsection (3), the court may not award any exemption to a parent if the
+          parent is not current in the parent's child support obligation.
+      (b) If a parent is not current in the parent's child support obligation under Subsection (4)(a), the
+          court may award an exemption to the other parent.
+    (5) An exemption may not be awarded to a parent unless the award will result in a tax benefit to
+        that parent.
+
+    Renumbered and Amended by Chapter 366, 2024 General Session
+
+    81-6-211 Reduction for extended parent-time.
+    (1) The base child support award is:
+      (a) reduced by 50% for each child for time periods during which the child is with the noncustodial
+           parent by order of the court or by written agreement of the parties for at least 25 of any 30
+           consecutive days of extended parent-time; or
+      (b) reduced by 25% for each child for time periods during which the child is with the noncustodial
+           parent by order of the court or by written agreement of the parties for at least 12 of any 30
+           consecutive days of extended parent-time.
+    (2) If the child is a client of cash assistance provided under Title 35A, Chapter 3, Part 3, Family
+        Employment Program, the administrative agency shall approve any agreement by the parties
+        for reduction of child support during extended parent-time.
+    (3) For purposes of this section, normal parent-time and holiday visits to the custodial parent are
+        not considered extended parent-time.
+    (4) For cases receiving child support services in accordance with Title 26B, Chapter 9, Recovery
+        Services and Administration of Child Support, the noncustodial parent shall provide written
+        documentation to the office of the extended parent-time schedule to receive the adjustment
+        under Subsection (1), including the beginning and ending dates, in the form of a court order or
+        a voluntary written agreement between the parties.
+    (5) If the noncustodial parent complies with Subsection (4), owes no past-due support, and pays
+        the full, unadjusted amount of current child support due for the month of scheduled extended
+        parent-time and the following month, the office shall refund the difference from the child support
+        due to the custodial parent or the state, between the full amount of current child support
+
+
+
+                                                   Page 12
+Utah Code
+
+
+        received during the month of extended parent-time and the adjusted amount of current child
+        support due:
+      (a) from current child support received in the month following the month of scheduled extended
+           parent-time; or
+      (b) from current child support received in the month following the month written documentation of
+           the scheduled extended parent-time is provided to the office, whichever occurs later.
+    (6) If the noncustodial parent complies with Subsection (4), owes past-due support, and pays
+        the full, unadjusted amount of current child support due for the month of scheduled extended
+        parent-time, the office shall apply the difference, from the child support due to the custodial
+        parent or the state, between the full amount of current child support received during the month
+        of extended parent-time and the adjusted amount of current child support due, to the past-due
+        support obligation in the case.
+    (7) For cases not receiving child support services in accordance with Title 26B, Chapter 9,
+        Recovery Services and Administration of Child Support, the court or the parents shall resolve,
+        without involvement by the office, any potential adjustment of the child support payment during
+        the month of extended visitation or any refund that is due to the noncustodial parent from the
+        custodial parent.
+    (8) For purposes of this section, the per child amount to which the abatement applies is calculated
+        by dividing the base child support award by the number of children included in the award.
+    (9) The reduction in this section does not apply to parents with joint physical custody obligations
+        calculated in accordance with Section 81-6-206.
+
+    Renumbered and Amended by Chapter 366, 2024 General Session
+
+    81-6-211.5 Child support orders for an incarcerated obligor -- Suspension -- Exceptions.
+    (1) The office may not treat incarceration of 90 or more consecutive days as voluntary
+        unemployment in establishing or modifying a child support order.
+    (2)
+      (a) Except as provided in Subsection (2)(c), for any period of 90 or more consecutive days of the
+           obligor's incarceration, suspension of a money judgment or support order issued in this state
+           for an obligor ordered to pay child support shall occur by operation of law.
+      (b) For a suspension under Subsection (2)(a), the office shall:
+        (i) retroactively date the period of suspension to the date on which the office notified the
+              required parties of the suspension, with the eligible period beginning on the first day of the
+              first full month of the date that the office provided the parties with the notification;
+        (ii) issue a balance credit for any funds collected during the period of suspension, unless
+              the funds have already been distributed, in which case, the funds may not be credited or
+              otherwise recovered; and
+        (iii) resume the obligation described in Subsection (2)(a) on the first day of the first full month
+              that occurs once 90 days have passed after the day on which the obligor is released from
+              incarceration.
+      (c) The office may not suspend an obligation under Subsection (2)(a) if the obligor is incarcerated
+           for:
+        (i) criminal non-payment of a child support order; or
+        (ii) an offense against the inmate's child or custodial parent of the inmate's child.
+    (3) The suspension described in Subsection (2)(a) is only applicable for an obligor whose term of
+        incarceration begins on or after January 1, 2027.
+
+
+
+                                                   Page 13
+Utah Code
+
+
+    Enacted by Chapter 86, 2025 General Session
+
+    81-6-212 Modification of child support order -- Adjustment of child support.
+    (1) The amount of prospective child support is equal to the amount granted by a prior child support
+        order unless:
+      (a) there is a substantial change of circumstances on the part of the obligor or obligee as
+           described in this section; or
+      (b) an adjustment is made as described in this section or Section 81-6-213.
+    (2) If the prior child support order contains a stipulated provision for the automatic adjustment for
+        prospective child support, the prospective child support is the amount as stated in the order,
+        without a showing of a substantial change of circumstances, if the stipulated provision:
+      (a) is clear and unambiguous;
+      (b) is self-executing;
+      (c) provides for child support that equals or exceeds the base child support award required by the
+           child support guidelines; and
+      (d) does not allow a decrease in child support as a result of the obligor's voluntary reduction of
+           income.
+    (3)
+      (a) A parent, legal guardian, or the office may, at any time, petition the court to adjust the amount
+           of a child support order if there has been a substantial change in circumstances.
+      (b) A change in the child support tables is not a substantial change in circumstances for the
+           purposes of Subsection (3)(a).
+      (c) For purposes of this Subsection (3)(a), a substantial change in circumstances may include:
+        (i) material changes in custody;
+        (ii) material changes in the relative wealth or assets of the parties;
+        (iii) material changes of 30% or more in the income of a parent;
+        (iv) material changes in the employment potential and ability of a parent to earn;
+        (v) material changes in the medical needs of the child; or
+        (vi) material changes in the legal responsibilities of either parent for the support of others.
+    (4) Upon receiving a petition under Subsection (3)(a), the court shall, taking into account the best
+        interests of the child:
+      (a) determine whether a substantial change has occurred;
+      (b) if a substantial change has occurred, determine whether the change results in a difference of
+           15% or more between the obligor's ordered support amount and the obligor's support amount
+           that would be required under the child support guidelines; and
+      (c) adjust the obligor's ordered support amount to that which is provided for in the child support
+           guidelines if:
+        (i) there is a difference of 15% or more; and
+        (ii) the difference is not of a temporary nature.
+    (5)
+      (a) If a child support order has not been issued or modified within the previous three years,
+           a parent, legal guardian, or the office may move the court to adjust the amount of a child
+           support order.
+      (b) Upon receiving a motion under Subsection (5)(a), the court shall, taking into account the best
+           interests of the child:
+        (i) determine whether there is a difference between the obligor's ordered support amount and
+              the obligor's support amount that would be required under the child support guidelines; and
+
+
+
+                                                  Page 14
+Utah Code
+
+
+        (ii) if there is a difference as described in Subsection (5)(b)(i), adjust the obligor's ordered
+              support amount to the obligor's support amount provided in the child support guidelines if:
+           (A) the difference is 10% or more;
+           (B) the difference is not of a temporary nature; and
+           (C) the order adjusting the obligor's ordered support amount does not deviate from the child
+                support guidelines.
+      (c) A showing of a substantial change in circumstances is not necessary for an adjustment under
+           this Subsection (5).
+
+    Enacted by Chapter 366, 2024 General Session
+
+    81-6-213 Automatic adjustment of base child support award.
+    (1) As used in this section, "emancipated" means:
+      (a) the child becomes 18 years old or graduates from high school during the child's normal and
+           expected year of graduation, whichever occurs later;
+      (b) the child dies, marries, or becomes a member of the armed forces of the United States;
+      (c) the child is emancipated in accordance with Title 80, Chapter 7, Emancipation; or
+      (d) the obligor's parental rights are terminated by a court in accordance with Title 80, Chapter 4,
+           Termination and Restoration of Parental Rights.
+    (2) Except as otherwise provided in the child support order, the base child support award is
+        automatically adjusted to the base child support award for the remaining number of children
+        due child support, without the need to modify the most recent child support order by a court,
+        when a child is emancipated.
+    (3) The base child support award is adjusted as described in Subsection (2) by using:
+      (a) the child support table that was used to establish the most recent child support order; and
+      (b) the income of the parties as specified in the most recent child support order or the
+           worksheets.
+    (4) The base child support award may not be reduced by a per child amount derived from the base
+        child support award originally ordered.
+    (5) If the incomes of the parties are not specified in the most recent child support order or the
+        worksheets, the information regarding the incomes is not consistent, or the order deviates from
+        the child support guidelines, the base child support award is not automatically adjusted under
+        Subsection (2) and the child support order will continue until modified by the issuing tribunal.
+    (6) If the child support order is deviated and the parties subsequently obtain a court order that
+        adjusts the amount of child support back to the date of the emancipation of the child, the office
+        may not be required to repay any difference in the child support collected during the interim.
+
+    Amended by Chapter 155, 2026 General Session
+
+    81-6-214 Accountability of support provided to benefit child -- Accounting.
+    (1) The court or administrative agency that issues the initial or modified order for child support
+        may, upon the petition of the obligor, order prospectively the obligee to furnish an accounting of
+        amounts provided for the child's benefit to the obligor, including an accounting or receipts.
+    (2) The court or administrative agency may prescribe the frequency and the form of the accounting,
+        including receipts.
+    (3) The obligor may petition for the accounting only if current on all child support that has been
+        ordered.
+
+
+
+                                                  Page 15
+Utah Code
+
+
+    Renumbered and Amended by Chapter 366, 2024 General Session
+
+
+
+
+                                           Page 16
+

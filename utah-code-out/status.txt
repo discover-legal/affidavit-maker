@@ -1,0 +1,5 @@
+index.html <- https://le.utah.gov/xcode/Title81/Chapter6/81-6.html : 200
+P2-index.html <- https://le.utah.gov/xcode/Title81/Chapter6/81-6-P2.html : 200
+P3-index.html <- https://le.utah.gov/xcode/Title81/Chapter6/81-6-P3.html : 200
+P3.pdf <- https://le.utah.gov/xcode/Title81/Chapter6/C81-6-P3_2024090120240501.pdf : 200
+P2.pdf <- https://le.utah.gov/xcode/Title81/Chapter6/C81-6-P2_2024090120240501.pdf : 200

@@ -38,10 +38,10 @@ const TX_DIVORCE_PHASE_NAMES = {
   REVIEW:    'Final Review'
 };
 
-// Supported states for document creation
+// Supported states for document creation — Utah first (primary launch state)
 const SUPPORTED_STATES = [
-  { code: 'TX', name: 'Texas' },
   { code: 'UT', name: 'Utah' },
+  { code: 'TX', name: 'Texas' },
   { code: 'AZ', name: 'Arizona' },
   { code: 'CA', name: 'California' },
   { code: 'FL', name: 'Florida' },

@@ -89,6 +89,7 @@ CONVERSATION RULES (you MUST follow these strictly):
 4. Never repeat information the user already provided.
 5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
 6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
+7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.

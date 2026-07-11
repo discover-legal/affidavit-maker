@@ -80,6 +80,68 @@ describe('BaseDivorceOrchestrator._summarizeCollected', () => {
   });
 });
 
+describe('property division capture', () => {
+  test('maps property/debt assignments to the fields the decree reads, as line-item arrays', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_property: 'the family home, 2019 Honda Accord',
+      respondent_property: '401(k) account',
+      petitioner_debts: 'Chase credit card, medical bills',
+      respondent_debts: 'car loan',
+    });
+    expect(data.petitionerProperty).toEqual(['the family home', '2019 Honda Accord']);
+    expect(data.respondentProperty).toEqual(['401(k) account']);
+    expect(data.petitionerDebts).toEqual(['Chase credit card', 'medical bills']);
+    expect(data.respondentDebts).toEqual(['car loan']);
+  });
+});
+
+describe('spousal support payor/payee derivation', () => {
+  test('petitioner (the requester) is payee, respondent is payor when support is requested', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { spousal_support_requested: true },
+    );
+    expect(data.spousalSupportAwarded).toBe(true);
+    expect(data.spousalSupportPayee).toBe('Brandon Pritchard');
+    expect(data.spousalSupportPayor).toBe('Casey Pritchard');
+  });
+
+  test('not derived when support is not requested, and existing values are kept', () => {
+    const orch = makeOrchestrator();
+    const waived = orch._applyFieldUpdates(
+      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { spousal_support_requested: false },
+    );
+    expect(waived.spousalSupportPayee).toBeUndefined();
+    expect(waived.spousalSupportPayor).toBeUndefined();
+
+    const kept = orch._applyFieldUpdates(
+      {
+        petitionerName: 'Brandon Pritchard',
+        respondentName: 'Casey Pritchard',
+        spousalSupportPayor: 'Brandon Pritchard',
+        spousalSupportPayee: 'Casey Pritchard',
+      },
+      { spousal_support_requested: true },
+    );
+    expect(kept.spousalSupportPayor).toBe('Brandon Pritchard');
+    expect(kept.spousalSupportPayee).toBe('Casey Pritchard');
+  });
+
+  test('derives on a later turn once names arrive, when support was requested earlier', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      { spousalSupportRequested: true },
+      { petitioner_first_name: 'Brandon', petitioner_last_name: 'Pritchard',
+        respondent_first_name: 'Casey', respondent_last_name: 'Pritchard' },
+    );
+    expect(data.spousalSupportPayee).toBe('Brandon Pritchard');
+    expect(data.spousalSupportPayor).toBe('Casey Pritchard');
+  });
+});
+
 describe('affiant derivation', () => {
   test('petitioner name doubles as affiantName for divorce filings', () => {
     const orch = makeOrchestrator();

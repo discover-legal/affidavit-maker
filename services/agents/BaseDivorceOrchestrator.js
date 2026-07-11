@@ -99,6 +99,10 @@ function buildPhaseTool(stateCode) {
           property_agreement: { type: 'string', description: 'agreed | contested' },
           has_property: { type: 'boolean', description: 'true if the parties accumulated community/marital property during the marriage, false if none' },
           has_debts:    { type: 'boolean', description: 'true if the parties accumulated community/marital debts during the marriage, false if none' },
+          petitioner_property: { type: 'string', description: "Assets the petitioner keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the petitioner." },
+          respondent_property: { type: 'string', description: "Assets the respondent keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the respondent." },
+          petitioner_debts: { type: 'string', description: "Debts the petitioner takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the petitioner." },
+          respondent_debts: { type: 'string', description: "Debts the respondent takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the respondent." },
 
           // ── SPOUSAL SUPPORT ──
           spousal_support_confirmed: { type: 'boolean' },
@@ -205,6 +209,10 @@ const FIELD_MAP = {
   property_agreement:          'propertyAgreement',
   has_property:                'hasProperty',
   has_debts:                   'hasDebts',
+  petitioner_property:         'petitionerProperty',
+  respondent_property:         'respondentProperty',
+  petitioner_debts:            'petitionerDebts',
+  respondent_debts:            'respondentDebts',
   spousal_support_confirmed:   'spousalSupportConfirmed',
   spousal_support_requested:   'spousalSupportRequested',
   support_amount:              'supportAmount',
@@ -257,6 +265,7 @@ CONVERSATION RULES (you MUST follow these strictly):
 4. Never repeat information the user already provided.
 5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
 6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
+7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -492,6 +501,17 @@ class BaseDivorceOrchestrator {
           updated.children = mergeChildren(divorceData.children, fields.children);
         } else if (snakeKey === 'income_breakdown' || snakeKey === 'expense_breakdown') {
           updated[camelKey] = mergeLabeledAmounts(divorceData[camelKey], fields[snakeKey]);
+        } else if (
+          snakeKey === 'petitioner_property' || snakeKey === 'respondent_property' ||
+          snakeKey === 'petitioner_debts' || snakeKey === 'respondent_debts'
+        ) {
+          // The tool collects these as a comma-separated description, but
+          // BaseDivorceDecreeTemplate iterates each of them (.forEach) to
+          // print one line item per asset/debt — store them as arrays.
+          updated[camelKey] = String(fields[snakeKey])
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         } else {
           updated[camelKey] = fields[snakeKey];
         }
@@ -563,6 +583,19 @@ class BaseDivorceOrchestrator {
     // spousal maintenance never gets it in the petition's prayer.
     if (updated.spousalSupportRequested !== undefined && updated.requestSpousalSupport === undefined) {
       updated.requestSpousalSupport = updated.spousalSupportRequested;
+    }
+    // BaseDivorceDecreeTemplate prints spousalSupportPayor / spousalSupportPayee
+    // verbatim in the maintenance order. The interview never asks who pays whom:
+    // the petitioner is the one who requests support (spousal_support_requested),
+    // so the petitioner is the payee and the respondent the payor. Derive both
+    // only when support is awarded and they are not already set.
+    if (updated.spousalSupportRequested === true) {
+      if (!updated.spousalSupportPayee && updated.petitionerName) {
+        updated.spousalSupportPayee = updated.petitionerName;
+      }
+      if (!updated.spousalSupportPayor && updated.respondentName) {
+        updated.spousalSupportPayor = updated.respondentName;
+      }
     }
 
     // Derive custodyType from custodyArrangement for decree template compatibility.

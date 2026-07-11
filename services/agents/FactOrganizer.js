@@ -95,33 +95,6 @@ function getSectionForFact(fact) {
   return DEFAULT_SECTION;
 }
 
-/**
- * Reorder facts array to match TX divorce form section order.
- * Preserves relative order within each section (stable sort).
- * Evidence items are kept adjacent to the fact they were introduced with.
- *
- * @param {Array} facts - Array of fact objects
- * @returns {Array} Reordered facts array
- */
-function organizeFacts(facts) {
-  if (!Array.isArray(facts) || facts.length === 0) return facts;
-
-  // Annotate each fact with its section number
-  const annotated = facts.map((fact, originalIndex) => ({
-    fact,
-    section: getSectionForFact(fact),
-    originalIndex
-  }));
-
-  // Stable sort by section number, preserving original order within sections
-  annotated.sort((a, b) => {
-    if (a.section !== b.section) return a.section - b.section;
-    return a.originalIndex - b.originalIndex;
-  });
-
-  return annotated.map(a => a.fact);
-}
-
 function normalizeContent(fact) {
   const content = typeof fact === 'string' ? fact : fact && fact.content;
   return String(content || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -178,6 +151,37 @@ function mergeFacts(existingFacts, newFacts) {
   }
 
   return merged;
+}
+
+/**
+ * LEGACY — retained for tests / potential manual re-sort; not called in
+ * production. All orchestrators upsert via mergeFacts() instead, because a
+ * wholesale re-sort would undo the user's manual fact ordering.
+ *
+ * Reorder facts array to match TX divorce form section order.
+ * Preserves relative order within each section (stable sort).
+ * Evidence items are kept adjacent to the fact they were introduced with.
+ *
+ * @param {Array} facts - Array of fact objects
+ * @returns {Array} Reordered facts array
+ */
+function organizeFacts(facts) {
+  if (!Array.isArray(facts) || facts.length === 0) return facts;
+
+  // Annotate each fact with its section number
+  const annotated = facts.map((fact, originalIndex) => ({
+    fact,
+    section: getSectionForFact(fact),
+    originalIndex
+  }));
+
+  // Stable sort by section number, preserving original order within sections
+  annotated.sort((a, b) => {
+    if (a.section !== b.section) return a.section - b.section;
+    return a.originalIndex - b.originalIndex;
+  });
+
+  return annotated.map(a => a.fact);
 }
 
 /**

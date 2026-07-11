@@ -232,3 +232,81 @@ describe('moneySegments', () => {
     expect(moneySegments([{ label: '', amount: 5 }, { label: 'X', amount: -1 }, null])).toEqual([]);
   });
 });
+
+describe('pro se helpers', () => {
+  const {
+    advisorFlags,
+    feeWaiverHint,
+    waitingPeriodNote,
+    buildTimeline: buildTl,
+    groupFacts: group,
+  } = require('@/components/app/lifeStory');
+
+  test('advisorFlags fires on contested issues and safety, never dismissably empty', () => {
+    expect(advisorFlags({})).toEqual([]);
+    const flags = advisorFlags({
+      custodyArrangement: 'contested',
+      propertyAgreement: 'Contested',
+      hasProtectiveOrder: true,
+    });
+    expect(flags.map((f: { key: string }) => f.key).sort()).toEqual([
+      'custody',
+      'property',
+      'safety',
+    ]);
+  });
+
+  test('feeWaiverHint uses income vs poverty guidelines by household size', () => {
+    // 1 person, 150% of $15,650 = $23,475/yr ≈ $1,956/mo
+    expect(feeWaiverHint({ monthlyIncome: 1800 })).toBe(true);
+    expect(feeWaiverHint({ monthlyIncome: 2500 })).toBe(false);
+    // household of 4 raises the threshold
+    expect(feeWaiverHint({ monthlyIncome: 2500, dependentsCount: 3 })).toBe(true);
+    // already pursuing a waiver — no hint needed
+    expect(feeWaiverHint({ monthlyIncome: 1800, indigencyRequested: true })).toBe(false);
+    expect(feeWaiverHint({})).toBe(false);
+  });
+
+  test('waitingPeriodNote computes earliest-decree from a filed event', () => {
+    const now = new Date(2026, 6, 10);
+    expect(waitingPeriodNote({}, 60, 'Texas', now)).toContain('60-day waiting period');
+    const withFiling = {
+      keyEvents: [{ label: 'Petition filed', date: '2026-06-20' }],
+    };
+    const note = waitingPeriodNote(withFiling, 60, 'Texas', now);
+    expect(note).toContain('earliest a court could finalize');
+    // waiting period already passed → nothing to flag
+    const old = { keyEvents: [{ label: 'Filed', date: '2025-01-01' }] };
+    expect(waitingPeriodNote(old, 60, 'Texas', now)).toBeNull();
+    expect(waitingPeriodNote({}, null, 'Texas', now)).toBeNull();
+  });
+
+  test('buildTimeline includes court events and anchors without a marriage', () => {
+    const now = new Date(2026, 6, 10);
+    const t = buildTl(
+      {
+        marriageDate: '2010-05-01',
+        keyEvents: [
+          { label: 'Served', date: '2026-01-15', source: 'Petition served' },
+          { label: 'Hearing', date: '2026-06-01' },
+        ],
+      },
+      now,
+    );
+    const keys = t.majors.map((m: { label: string }) => m.label);
+    expect(keys).toEqual(expect.arrayContaining(['Married', 'Served', 'Hearing']));
+    // no marriage: anchors on earliest event instead of returning null
+    const t2 = buildTl({ keyEvents: [{ label: 'Served', date: '2026-01-15' }] }, now);
+    expect(t2).not.toBeNull();
+    expect(t2.majors[0].label).toBe('Served');
+  });
+
+  test('groupFacts carries provenance from quotes and document sources', () => {
+    const chapters = group([
+      { content: 'I live in Texas.', category: 'residency', sourceQuote: 'I moved to Texas six years ago' },
+      { content: 'The petition asks for joint custody.', category: 'response', source: 'Petition served on you' },
+    ]);
+    expect(chapters[0].facts[0].provenance).toContain('You said:');
+    expect(chapters[1].facts[0].provenance).toBe('From: Petition served on you');
+  });
+});

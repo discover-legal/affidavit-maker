@@ -255,6 +255,8 @@ CONVERSATION RULES (you MUST follow these strictly):
 2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
 3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
 4. Never repeat information the user already provided.
+5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
+6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -337,7 +339,7 @@ class BaseDivorceOrchestrator {
 
     const updatedData = this._applyFieldUpdates(divorceData, fieldUpdates);
 
-    const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase);
+    const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase, message);
     if (newFacts.length > 0) {
       // Upsert only — never re-sort. A wholesale organizeFacts() here would
       // silently undo the user's manual fact ordering on every chat turn.
@@ -596,8 +598,13 @@ class BaseDivorceOrchestrator {
     return updated;
   }
 
-  _buildFacts(extractedFacts, _fieldUpdates, currentPhase) {
+  _buildFacts(extractedFacts, _fieldUpdates, currentPhase, sourceMessage) {
     const defaultCategory = PHASE_CATEGORY[currentPhase] || 'general';
+    // Provenance: keep the user's own words so the review UI can show
+    // exactly where each sworn statement came from.
+    const sourceQuote = typeof sourceMessage === 'string'
+      ? sourceMessage.trim().slice(0, 280)
+      : '';
     return extractedFacts.map(f => ({
       id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       content:     f.content,
@@ -606,6 +613,7 @@ class BaseDivorceOrchestrator {
       type:        'fact',
       confidence:  0.9,
       severity:    'success',
+      sourceQuote,
       timestamp:   new Date().toISOString()
     }));
   }

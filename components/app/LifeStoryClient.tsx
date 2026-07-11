@@ -17,15 +17,22 @@ import {
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import Tooltip from '@/components/marketing/Tooltip';
+import QuickExit from './QuickExit';
 import {
+  ASK_TOPICS,
+  GLOSSARY,
+  advisorFlags,
   buildFamily,
   buildLedger,
   buildRecitals,
   buildTimeline,
+  feeWaiverHint,
   groupFacts,
   moneyLeftover,
   moneySegments,
   storyProgress,
+  waitingPeriodNote,
   type MoneySegment,
   type ProfileChild,
   type Recital,
@@ -63,7 +70,7 @@ const CHAPTER_ICONS: Record<string, LucideIcon> = {
   'What you own': Banknote,
 };
 
-function SegmentSpan({ segment }: { segment: Segment }) {
+function SegmentSpan({ segment, onAsk }: { segment: Segment; onAsk?: () => void }) {
   if (segment.kind === 'value') {
     return (
       <mark className="rounded bg-brand-tint px-1 font-medium text-brand-strong">
@@ -72,6 +79,19 @@ function SegmentSpan({ segment }: { segment: Segment }) {
     );
   }
   if (segment.kind === 'blank') {
+    // A gap is an invitation: tapping it opens the chat with the user's own
+    // "I want to add…" message prefilled (their words to edit and send).
+    if (onAsk) {
+      return (
+        <button
+          onClick={onAsk}
+          className="border-b-2 border-dotted border-gray-400 px-0.5 italic text-gray-400 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          title="Add this to your story"
+        >
+          {segment.text} +
+        </button>
+      );
+    }
     return (
       <span className="border-b-2 border-dotted border-gray-300 px-0.5 italic text-gray-400">
         {segment.text}
@@ -327,8 +347,18 @@ function MoneyBars({ profile }: { profile: Record<string, unknown> }) {
   );
 }
 
-/** "Also on the record" — every legal detail, known or still blank. */
-function RecordLedger({ profile }: { profile: Record<string, unknown> }) {
+/**
+ * "Also on the record" — every legal detail, known or still blank.
+ * Labels carry plain-language explanations; blanks open the chat with an
+ * "I want to add…" message prefilled.
+ */
+function RecordLedger({
+  profile,
+  onAsk,
+}: {
+  profile: Record<string, unknown>;
+  onAsk: (topic: string) => void;
+}) {
   const items = buildLedger(profile);
   return (
     <section aria-label="Legal details on record" className="mt-10">
@@ -345,12 +375,22 @@ function RecordLedger({ profile }: { profile: Record<string, unknown> }) {
               }`}
             />
             <div className="min-w-0">
-              <dt className="text-xs text-gray-500">{item.label}</dt>
+              <dt className="text-xs text-gray-500">
+                {GLOSSARY[item.label] ? (
+                  <Tooltip term={item.label} definition={GLOSSARY[item.label]} />
+                ) : (
+                  item.label
+                )}
+              </dt>
               <dd className="text-sm font-medium text-gray-800">
                 {item.value ?? (
-                  <span className="border-b border-dotted border-gray-300 font-normal italic text-gray-400">
-                    not yet
-                  </span>
+                  <button
+                    onClick={() => onAsk(item.key)}
+                    className="border-b border-dotted border-gray-400 font-normal italic text-gray-400 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    title="Add this to your story"
+                  >
+                    add this +
+                  </button>
                 )}
               </dd>
             </div>
@@ -358,6 +398,36 @@ function RecordLedger({ profile }: { profile: Record<string, unknown> }) {
         ))}
       </dl>
     </section>
+  );
+}
+
+/**
+ * Fee-waiver eligibility hint. Deliberately hedged: general information
+ * about a court process the user may qualify for, with a pointer to real
+ * advice — never a determination.
+ */
+function FeeWaiverNote({ onAsk }: { onAsk: (topic: string) => void }) {
+  return (
+    <div className="mt-3 rounded-lg border border-brand-soft bg-brand-tint/50 p-3 font-sans text-sm text-gray-700">
+      Based on the income you&apos;ve shared, you <span className="font-semibold">may qualify</span>{' '}
+      to ask the court to waive its filing fees (a &quot;fee waiver&quot;).{' '}
+      <button
+        onClick={() => onAsk('fee_waiver')}
+        className="font-semibold text-brand-strong underline hover:text-brand"
+      >
+        Add this to your documents
+      </button>
+      . This is general information, not legal advice — a{' '}
+      <a
+        href="https://www.lawhelp.org/find-help"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-semibold text-brand-strong underline hover:text-brand"
+      >
+        legal-aid office
+      </a>{' '}
+      can confirm what applies to you.
+    </div>
   );
 }
 
@@ -386,10 +456,12 @@ function RecitalLine({
   recital,
   index,
   visual,
+  onAsk,
 }: {
   recital: Recital;
   index: number;
   visual?: React.ReactNode;
+  onAsk?: (topic: string) => void;
 }) {
   return (
     <li className="life-story-line flex gap-4" style={{ animationDelay: `${150 + index * 120}ms` }}>
@@ -402,12 +474,277 @@ function RecitalLine({
       <div className="min-w-0 flex-1">
         <p className="text-lg leading-relaxed text-gray-800 sm:text-xl">
           {recital.segments.map((segment, i) => (
-            <SegmentSpan key={i} segment={segment} />
+            <SegmentSpan
+              key={i}
+              segment={segment}
+              onAsk={onAsk ? () => onAsk(recital.id) : undefined}
+            />
           ))}
         </p>
         {visual}
       </div>
     </li>
+  );
+}
+
+/** Persistent (not dismissable) note when an issue calls for a lawyer. */
+function AdvisorBanner({ flags }: { flags: Array<{ key: string; label: string }> }) {
+  if (flags.length === 0) return null;
+  return (
+    <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 font-sans">
+      <Scale className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+      <p className="text-sm text-amber-900">
+        <span className="font-semibold">
+          A lawyer&apos;s advice is recommended for: {flags.map((f) => f.label).join(', ')}.
+        </span>{' '}
+        You can keep working here — and free or low-cost legal help is available through{' '}
+        <a
+          href="https://www.lawhelp.org/find-help"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold underline hover:text-amber-700"
+        >
+          LawHelp.org
+        </a>
+        .
+      </p>
+    </div>
+  );
+}
+
+type ChildDraft = { name: string; dob: string };
+
+/** "Fix my story" — direct edits to the core facts, saved via PATCH. */
+function EditStoryPanel({
+  profile,
+  onSaved,
+  onClose,
+}: {
+  profile: Record<string, unknown>;
+  onSaved: () => void;
+  onClose: () => void;
+}) {
+  const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const initialChildren = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
+  const [name, setName] = useState(
+    s(profile.affiantName) || s(profile.petitionerName),
+  );
+  const [spouse, setSpouse] = useState(s(profile.respondentName));
+  const [marriageDate, setMarriageDate] = useState(s(profile.marriageDate));
+  const [separationDate, setSeparationDate] = useState(s(profile.separationDate));
+  const [children, setChildren] = useState<ChildDraft[]>(
+    initialChildren.map((c) => ({ name: s(c.name), dob: s(c.dob) || s(c.dateOfBirth) || s(c.birthDate) })),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const splitName = (full: string): [string, string] => {
+    const parts = full.trim().split(/\s+/);
+    return [parts[0] || '', parts.slice(1).join(' ')];
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const [firstName, lastName] = splitName(name);
+      const [spouseFirst, spouseLast] = splitName(spouse);
+      const patch: Record<string, unknown> = {
+        affiantName: name.trim(),
+        firstName,
+        lastName,
+        petitionerName: name.trim(),
+        petitionerFirstName: firstName,
+        petitionerLastName: lastName,
+        respondentName: spouse.trim(),
+        respondentFirstName: spouseFirst,
+        respondentLastName: spouseLast,
+        marriageDate: marriageDate.trim(),
+        separationDate: separationDate.trim(),
+        children: children
+          .filter((c) => c.name.trim() !== '')
+          .map((c) => ({ name: c.name.trim(), dob: c.dob.trim() })),
+      };
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
+      onSaved();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field =
+    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand';
+
+  return (
+    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 font-sans">
+      <h3 className="font-semibold text-gray-900">Fix your story</h3>
+      <p className="mt-1 text-sm text-gray-500">
+        Changes here update what the assistant remembers. Existing documents keep
+        their own copy until you continue them in chat.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Your name</span>
+          <input className={field} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Spouse&apos;s name</span>
+          <input className={field} value={spouse} onChange={(e) => setSpouse(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Marriage date</span>
+          <input className={field} placeholder="YYYY-MM-DD" value={marriageDate} onChange={(e) => setMarriageDate(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Separation date</span>
+          <input className={field} placeholder="YYYY-MM-DD" value={separationDate} onChange={(e) => setSeparationDate(e.target.value)} />
+        </label>
+      </div>
+      <div className="mt-4">
+        <span className="mb-1 block text-sm text-gray-600">Children</span>
+        <div className="space-y-2">
+          {children.map((child, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                className={field}
+                placeholder="Name"
+                value={child.name}
+                onChange={(e) =>
+                  setChildren(children.map((c, j) => (j === i ? { ...c, name: e.target.value } : c)))
+                }
+              />
+              <input
+                className={field}
+                placeholder="Born YYYY-MM-DD"
+                value={child.dob}
+                onChange={(e) =>
+                  setChildren(children.map((c, j) => (j === i ? { ...c, dob: e.target.value } : c)))
+                }
+              />
+              <button
+                onClick={() => setChildren(children.filter((_, j) => j !== i))}
+                className="shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                aria-label={`Remove ${child.name || 'child'}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => setChildren([...children, { name: '', dob: '' }])}
+            className="text-sm font-semibold text-brand-strong hover:text-brand"
+          >
+            + Add a child
+          </button>
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong disabled:opacity-60"
+        >
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Save changes
+        </button>
+        <button
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Paste a court paper you received; events land on the timeline, its
+ * statements join the record labeled with the document they came from. */
+function IngestPanel({
+  onDone,
+  onClose,
+}: {
+  onDone: (summary: string) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState('');
+  const [label, setLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await fetch('/api/profile/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, label: label || undefined }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Could not read this document');
+      const d = json.data || {};
+      onDone(
+        `Read "${d.documentKind || 'document'}" — added ${d.eventsAdded || 0} event${d.eventsAdded === 1 ? '' : 's'} to your timeline and ${d.factsAdded || 0} statement${d.factsAdded === 1 ? '' : 's'} to your record.`,
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 font-sans">
+      <h3 className="font-semibold text-gray-900">Add a court paper</h3>
+      <p className="mt-1 text-sm text-gray-500">
+        Got served or received something from the court? Paste its text here —
+        dates go on your timeline and what it says joins your story, marked as
+        coming from that document.
+      </p>
+      <input
+        className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        placeholder="What is it? (e.g. 'Papers I was served', 'Hearing notice') — optional"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        maxLength={120}
+      />
+      <textarea
+        className="mt-2 h-40 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        placeholder="Paste the document's text here…"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={20000}
+      />
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          onClick={submit}
+          disabled={busy || text.trim().length < 40}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong disabled:opacity-60"
+        >
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          Read this document
+        </button>
+        <button
+          onClick={onClose}
+          disabled={busy}
+          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -418,6 +755,10 @@ export default function LifeStoryClient() {
   const [facts, setFacts] = useState<Array<Record<string, unknown>>>([]);
   const [confirmingErase, setConfirmingErase] = useState(false);
   const [erasing, setErasing] = useState(false);
+  const [latestDraftId, setLatestDraftId] = useState<string | null>(null);
+  const [waitingNote, setWaitingNote] = useState<string | null>(null);
+  const [panel, setPanel] = useState<'none' | 'edit' | 'ingest'>('none');
+  const [ingestSummary, setIngestSummary] = useState('');
 
   const loadProfile = useCallback(async () => {
     setLoadState('loading');
@@ -437,6 +778,59 @@ export default function LifeStoryClient() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Most recent draft = where "add this" gap-taps resume the conversation.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/documents')
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        const docs = (json.data?.documents ?? []) as Array<{ id: unknown; status?: unknown }>;
+        const draft = docs.find((d) => d.status === 'draft') ?? docs[0];
+        if (draft?.id !== undefined) setLatestDraftId(String(draft.id));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // State waiting period (authoritative per-state template metadata) for
+  // the timeline's procedural note. Divorce stories only.
+  useEffect(() => {
+    const state = typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+    if (!state || (!profile.marriageDate && !profile.groundsForDivorce)) {
+      setWaitingNote(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/templates/divorce/requirements/${state}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        const days = Number(json.data?.waitingPeriod?.days);
+        const stateName = String(json.data?.stateName || state);
+        setWaitingNote(
+          Number.isFinite(days) ? waitingPeriodNote(profile, days, stateName) : null,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [profile]);
+
+  // Tapping a gap opens the chat with the user's own "I want to add…"
+  // message prefilled (they can edit it before sending) — data completion
+  // in their words, not advice from us.
+  const handleAsk = useCallback(
+    (topic: string) => {
+      const target = latestDraftId ? `/editor/${latestDraftId}` : '/editor/new';
+      router.push(`${target}?ask=${encodeURIComponent(topic)}`);
+    },
+    [latestDraftId, router],
+  );
 
   const handleErase = async () => {
     setErasing(true);
@@ -461,10 +855,29 @@ export default function LifeStoryClient() {
   const isEmpty =
     recitals.every((r) => !r.known) && children.length === 0 && chapters.length === 0;
 
+  const flags = advisorFlags(profile);
+  const showQuickExit = profile.hasProtectiveOrder === true;
+
   // Each recital can carry an illustration beneath its sentence.
   const visualFor = (recital: Recital): React.ReactNode => {
-    if (recital.id === 'marriage') return <LifeTimeline profile={profile} />;
-    if (recital.id === 'finances') return <MoneyBars profile={profile} />;
+    if (recital.id === 'marriage') {
+      return (
+        <>
+          <LifeTimeline profile={profile} />
+          {waitingNote && (
+            <p className="mt-1 font-sans text-xs text-gray-500">{waitingNote}</p>
+          )}
+        </>
+      );
+    }
+    if (recital.id === 'finances') {
+      return (
+        <>
+          <MoneyBars profile={profile} />
+          {feeWaiverHint(profile) && <FeeWaiverNote onAsk={handleAsk} />}
+        </>
+      );
+    }
     return null;
   };
 
@@ -481,6 +894,8 @@ export default function LifeStoryClient() {
           .life-story-line { animation: none; opacity: 1; }
         }
       `}</style>
+
+      {showQuickExit && <QuickExit />}
 
       <button
         onClick={() => router.push('/dashboard')}
@@ -559,6 +974,14 @@ export default function LifeStoryClient() {
 
       {loadState === 'ready' && !isEmpty && (
         <>
+          <AdvisorBanner flags={flags} />
+
+          {ingestSummary && (
+            <div className="mb-6 rounded-xl border border-brand-soft bg-brand-tint/50 p-4 font-sans text-sm text-gray-700">
+              {ingestSummary}
+            </div>
+          )}
+
           {/* The story — numbered recitals, each with its illustration. */}
           <section
             aria-label="What your assistant knows"
@@ -571,6 +994,7 @@ export default function LifeStoryClient() {
                   recital={recital}
                   index={index}
                   visual={visualFor(recital)}
+                  onAsk={handleAsk}
                 />
               ))}
 
@@ -600,8 +1024,45 @@ export default function LifeStoryClient() {
             </ol>
           </section>
 
+          {/* Story actions: fix details directly, or read in a court paper. */}
+          <div className="mt-4 flex flex-wrap gap-2 font-sans">
+            <button
+              onClick={() => setPanel(panel === 'edit' ? 'none' : 'edit')}
+              className="rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong"
+            >
+              Fix my story
+            </button>
+            <button
+              onClick={() => setPanel(panel === 'ingest' ? 'none' : 'ingest')}
+              className="rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong"
+            >
+              Add a court paper
+            </button>
+          </div>
+
+          {panel === 'edit' && (
+            <EditStoryPanel
+              profile={profile}
+              onSaved={() => {
+                setPanel('none');
+                loadProfile();
+              }}
+              onClose={() => setPanel('none')}
+            />
+          )}
+          {panel === 'ingest' && (
+            <IngestPanel
+              onDone={(summary) => {
+                setPanel('none');
+                setIngestSummary(summary);
+                loadProfile();
+              }}
+              onClose={() => setPanel('none')}
+            />
+          )}
+
           {/* Legal details ledger — known values and dotted gaps alike. */}
-          <RecordLedger profile={profile} />
+          <RecordLedger profile={profile} onAsk={handleAsk} />
 
           {/* Chapters — the facts, in the user's own words. */}
           {chapters.length > 0 && (
@@ -630,7 +1091,14 @@ export default function LifeStoryClient() {
                               className="mt-1.5 h-3 w-3 shrink-0 -scale-x-100 text-gray-300"
                               aria-hidden="true"
                             />
-                            <span>{fact}</span>
+                            <span>
+                              {fact.content}
+                              {fact.provenance && (
+                                <span className="mt-0.5 block font-sans text-xs text-gray-400">
+                                  {fact.provenance}
+                                </span>
+                              )}
+                            </span>
                           </li>
                         ))}
                       </ul>

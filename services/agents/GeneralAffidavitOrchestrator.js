@@ -166,7 +166,7 @@ class GeneralAffidavitOrchestrator {
     const updatedData = this._applyFieldUpdates(affidavitData, fieldUpdates);
 
     // Accumulate facts
-    const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase);
+    const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase, message);
     if (newFacts.length > 0) {
       // Upsert only — never re-sort. A wholesale organizeFacts() here would
       // silently undo the user's manual fact ordering on every chat turn.
@@ -308,9 +308,13 @@ class GeneralAffidavitOrchestrator {
     return updated;
   }
 
-  _buildFacts(extractedFacts, currentPhase) {
+  _buildFacts(extractedFacts, currentPhase, sourceMessage) {
     const defaultCategory = currentPhase === 'FACTS' ? 'fact' : currentPhase.toLowerCase();
+    const sourceQuote = typeof sourceMessage === 'string'
+      ? sourceMessage.trim().slice(0, 280)
+      : '';
     return extractedFacts.map(f => ({
+      sourceQuote,
       id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       content:     f.content,
       category:    f.category || defaultCategory,

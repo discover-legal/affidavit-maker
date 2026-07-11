@@ -55,6 +55,33 @@ const API_BASE_URL = '';
 const ChatInterface = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+
+  // Gap-tap prefill from the profile page (?ask=<topic>): put the user's
+  // "I want to add…" message in the input for them to edit and send.
+  // Their words, their send — never an automatic action.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ask = params.get('ask');
+      if (!ask) return;
+      const { ASK_TOPICS } = require('./lifeStory');
+      const prefill = ASK_TOPICS[ask];
+      if (prefill) {
+        setMessage((current) => current || prefill);
+      }
+      // Clear the param so refreshes don't re-prefill.
+      params.delete('ask');
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${query ? `?${query}` : ''}`
+      );
+    } catch (e) {
+      console.warn('ask prefill failed:', e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showMetadata, setShowMetadata] = useState(false);

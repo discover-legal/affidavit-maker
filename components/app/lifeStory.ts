@@ -246,6 +246,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   evidence: 'Your evidence',
   heirship: 'Family and inheritance',
   exemption: 'Your defenses',
+  response: 'From court papers',
 };
 
 export function categoryLabel(category: unknown): string {
@@ -294,67 +295,150 @@ export function buildFamily(profile: Record<string, unknown>): FamilyMember[] {
   return members;
 }
 
-export type TimelineEvent = { key: string; label: string; year: string; pos: number };
+export type TimelineEvent = {
+  key: string;
+  label: string;
+  year: string;
+  pos: number;
+  title?: string;
+};
 export type TimelineBirth = { key: string; initial: string; title: string; pos: number };
 export type Timeline = { majors: TimelineEvent[]; births: TimelineBirth[] };
 
+export type KeyEventLike = { label?: unknown; date?: unknown; source?: unknown };
+
+/** Show at most this many procedural events on the line — latest win. */
+const MAX_TIMELINE_EVENTS = 3;
+
 /**
- * The life timeline: married → children born → separated → today, positions
- * proportional to real time, clamped and spread so labels never collide.
- * Returns null when there is no marriage date to anchor on.
+ * The life timeline: married → children born → separated → court events
+ * (from ingested papers) → today. Positions proportional to real time,
+ * clamped and spread so labels never collide. Anchors on the marriage
+ * date, or the earliest court event when there is no marriage recorded.
  */
 export function buildTimeline(
   profile: Record<string, unknown>,
   now: Date = new Date(),
 ): Timeline | null {
   const married = parseKnownDate(profile.marriageDate);
-  if (!married) return null;
-  const span = now.getTime() - married.getTime();
+  const separated = parseKnownDate(profile.separationDate);
+
+  const keyEvents = (Array.isArray(profile.keyEvents) ? profile.keyEvents : [])
+    .map((e: KeyEventLike) => ({
+      label: str(e?.label),
+      source: str(e?.source),
+      date: parseKnownDate(e?.date),
+    }))
+    .filter((e) => e.label && e.date && e.date <= now) as Array<{
+    label: string;
+    source: string;
+    date: Date;
+  }>;
+  keyEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const shownEvents = keyEvents.slice(-MAX_TIMELINE_EVENTS);
+
+  const anchorCandidates = [married, ...shownEvents.map((e) => e.date)].filter(
+    (d): d is Date => Boolean(d) && (d as Date) <= now,
+  );
+  if (anchorCandidates.length === 0) return null;
+  const anchor = new Date(Math.min(...anchorCandidates.map((d) => d.getTime())));
+  const span = now.getTime() - anchor.getTime();
   if (span <= 0) return null;
 
-  // Clamps keep event labels clear of the fixed "Today" label on phones.
-  const posOf = (d: Date) => ((d.getTime() - married.getTime()) / span) * 100;
-  const clampMajor = (p: number) => Math.min(68, Math.max(8, p));
+  const posOf = (d: Date) => ((d.getTime() - anchor.getTime()) / span) * 100;
 
-  const majors: TimelineEvent[] = [
-    { key: 'married', label: 'Married', year: String(married.getFullYear()), pos: 8 },
-  ];
-  const separated = parseKnownDate(profile.separationDate);
-  if (separated && separated > married && separated <= now) {
+  const majors: TimelineEvent[] = [];
+  if (married) {
+    majors.push({ key: 'married', label: 'Married', year: String(married.getFullYear()), pos: posOf(married) });
+  }
+  if (separated && (!married || separated > married) && separated <= now) {
     majors.push({
       key: 'separated',
       label: 'Separated',
       year: String(separated.getFullYear()),
-      pos: clampMajor(posOf(separated)),
+      pos: posOf(separated),
     });
+  }
+  shownEvents.forEach((e, i) => {
+    majors.push({
+      key: `event-${i}-${e.date.getTime()}`,
+      label: e.label,
+      year: String(e.date.getFullYear()),
+      pos: posOf(e.date),
+      title: e.source ? `${e.label} — ${e.source}` : undefined,
+    });
+  });
+
+  // Clamp into [8, 80] (room for the fixed "Today" label), then spread so
+  // adjacent labels never collide — forward push, then backward pull.
+  majors.sort((a, b) => a.pos - b.pos);
+  const MIN_GAP = 14;
+  for (const m of majors) m.pos = Math.min(80, Math.max(8, m.pos));
+  for (let i = 1; i < majors.length; i++) {
+    if (majors[i].pos - majors[i - 1].pos < MIN_GAP) majors[i].pos = majors[i - 1].pos + MIN_GAP;
+  }
+  for (let i = majors.length - 1; i >= 0; i--) {
+    if (majors[i].pos > 80) majors[i].pos = 80;
+    if (i > 0 && majors[i].pos - majors[i - 1].pos < MIN_GAP) {
+      majors[i - 1].pos = majors[i].pos - MIN_GAP;
+    }
   }
 
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
   const births: TimelineBirth[] = [];
-  for (const child of children) {
-    const dob = parseKnownDate(childBirthDate(child));
-    if (!dob || dob < married || dob > now) continue;
-    const name = str(child.name) || 'Child';
-    births.push({
-      key: `${name}-${dob.getTime()}`,
-      initial: name.charAt(0).toUpperCase(),
-      title: `${name.split(' ')[0]} born ${dob.getFullYear()}`,
-      pos: Math.min(88, Math.max(10, posOf(dob))),
-    });
-  }
-  // Spread birth marks so initials stay readable when births are close.
-  births.sort((a, b) => a.pos - b.pos);
-  for (let i = 1; i < births.length; i++) {
-    if (births[i].pos - births[i - 1].pos < 6) births[i].pos = births[i - 1].pos + 6;
-  }
-  for (let i = births.length - 1; i >= 0; i--) {
-    if (births[i].pos > 88) births[i].pos = 88;
-    if (i < births.length - 1 && births[i + 1].pos - births[i].pos < 6) {
-      births[i].pos = births[i + 1].pos - 6;
+  if (married) {
+    for (const child of children) {
+      const dob = parseKnownDate(childBirthDate(child));
+      if (!dob || dob < married || dob > now) continue;
+      const name = str(child.name) || 'Child';
+      births.push({
+        key: `${name}-${dob.getTime()}`,
+        initial: name.charAt(0).toUpperCase(),
+        title: `${name.split(' ')[0]} born ${dob.getFullYear()}`,
+        pos: Math.min(88, Math.max(10, posOf(dob))),
+      });
+    }
+    // Spread birth marks so initials stay readable when births are close.
+    births.sort((a, b) => a.pos - b.pos);
+    for (let i = 1; i < births.length; i++) {
+      if (births[i].pos - births[i - 1].pos < 6) births[i].pos = births[i - 1].pos + 6;
+    }
+    for (let i = births.length - 1; i >= 0; i--) {
+      if (births[i].pos > 88) births[i].pos = 88;
+      if (i < births.length - 1 && births[i + 1].pos - births[i].pos < 6) {
+        births[i].pos = births[i + 1].pos - 6;
+      }
     }
   }
 
   return { majors, births };
+}
+
+/**
+ * Waiting-period note for the timeline. When an ingested "filed" event and
+ * the state's waiting period are both known, computes the earliest date a
+ * court could finalize; otherwise returns the general rule. Information
+ * about the law, phrased as such — never a prediction for this user's case.
+ */
+export function waitingPeriodNote(
+  profile: Record<string, unknown>,
+  waitingDays: number | null | undefined,
+  stateName: string,
+  now: Date = new Date(),
+): string | null {
+  if (!waitingDays || waitingDays <= 0) return null;
+  const keyEvents = Array.isArray(profile.keyEvents) ? profile.keyEvents : [];
+  for (const e of keyEvents as KeyEventLike[]) {
+    if (!/\bfil/i.test(str(e?.label))) continue;
+    const filed = parseKnownDate(e?.date);
+    if (!filed) continue;
+    const earliest = new Date(filed.getTime() + waitingDays * 24 * 3600 * 1000);
+    if (earliest > now) {
+      return `${stateName} has a ${waitingDays}-day waiting period — based on the filing date on record, the earliest a court could finalize is ${formatFriendlyDate(earliest.toISOString().slice(0, 10))}.`;
+    }
+    return null; // waiting period already passed — nothing to flag
+  }
+  return `${stateName} has a ${waitingDays}-day waiting period: a court can't finalize a divorce until ${waitingDays} days after filing.`;
 }
 
 /** Monthly margin: positive = left over, negative = short. Null until both known. */
@@ -496,6 +580,92 @@ export function buildLedger(profile: Record<string, unknown>): LedgerItem[] {
   return items;
 }
 
+/**
+ * Plain-language explanations for legal terms shown on the page.
+ * Written at a general-reading level; information, not advice.
+ */
+export const GLOSSARY: Record<string, string> = {
+  Grounds:
+    'The legal reason for the divorce. Most states allow "no-fault" grounds, meaning no one has to prove the other did something wrong.',
+  Custody:
+    'Who makes decisions for the children (legal custody) and who they live with (physical custody). "Joint" means shared.',
+  'Child support':
+    "Money one parent pays the other to help cover the children's costs, usually monthly.",
+  'Spousal support':
+    'Money one spouse pays the other after separation — sometimes called alimony or maintenance.',
+  Property:
+    '"Agreed" means you both accept how things will be divided; "contested" means the court may need to decide.',
+  'Serving papers':
+    'The other party must officially receive the court papers. They can sign a waiver accepting them, or someone (not you) delivers them formally.',
+  'Military check':
+    'Courts require confirming whether the other party is in the military, because service members get extra legal protections.',
+  'Protective order':
+    'A court order that limits contact to protect someone from harm.',
+  'Court-fee waiver':
+    'If paying court fees would be a hardship, you can ask the court to waive them.',
+};
+
+/** Chat prefills for tapping a gap on the profile page — the user's own
+ * words to send (editable before sending), never advice from the app. */
+export const ASK_TOPICS: Record<string, string> = {
+  identity: 'I want to add my name to my documents.',
+  marriage: 'I want to add details about my marriage.',
+  home: 'I want to add where I live.',
+  grounds: 'I want to add the grounds for my divorce.',
+  custody: 'I want to add our custody arrangement.',
+  child_support: 'I want to add child support details.',
+  spousal_support: 'I want to add whether I am requesting spousal support.',
+  property: 'I want to add information about our property and debts.',
+  service: 'I want to add how the papers will be served.',
+  military: "I want to add my spouse's military status.",
+  protective_order: 'I want to add whether there is a protective order.',
+  fee_waiver: 'I want to see if I can ask the court to waive the filing fees.',
+};
+
+export type AdvisorFlag = { key: string; label: string };
+
+/**
+ * Issues where a lawyer's advice is recommended. Deterministic and shown
+ * persistently (not dismissable) — the user can always keep going.
+ */
+export function advisorFlags(profile: Record<string, unknown>): AdvisorFlag[] {
+  const flags: AdvisorFlag[] = [];
+  const contested = (v: unknown) => str(v).toLowerCase() === 'contested';
+  if (contested(profile.custodyArrangement) || contested(profile.custodyType)) {
+    flags.push({ key: 'custody', label: 'contested custody' });
+  }
+  if (contested(profile.propertyAgreement)) {
+    flags.push({ key: 'property', label: 'contested property' });
+  }
+  if (profile.hasProtectiveOrder === true) {
+    flags.push({ key: 'safety', label: 'safety and protective orders' });
+  }
+  return flags;
+}
+
+/**
+ * 2025 HHS federal poverty guidelines (48 contiguous states + DC):
+ * $15,650 for one person + $5,500 per additional household member.
+ * Most state fee waivers key on 125–200% of these; we hint at 150% and
+ * always say "may" — eligibility is the court's call, not ours.
+ */
+const FPG_2025_BASE = 15650;
+const FPG_2025_PER_PERSON = 5500;
+const FEE_WAIVER_PCT = 1.5;
+
+export function feeWaiverHint(profile: Record<string, unknown>): boolean {
+  const income = Number(profile.monthlyIncome);
+  if (!Number.isFinite(income) || income <= 0) return false;
+  if (profile.indigencyRequested === true) return false; // already pursuing it
+  const dependents = Number(profile.dependentsCount);
+  const children = Array.isArray(profile.children) ? profile.children.length : 0;
+  const household =
+    1 + (Number.isFinite(dependents) && dependents >= 0 ? dependents : children);
+  const annualThreshold =
+    (FPG_2025_BASE + FPG_2025_PER_PERSON * (household - 1)) * FEE_WAIVER_PCT;
+  return income * 12 <= annualThreshold;
+}
+
 export type StoryProgress = { known: number; total: number };
 
 /**
@@ -526,9 +696,15 @@ export function storyProgress(profile: Record<string, unknown>): StoryProgress {
   return { known: slots.filter(Boolean).length, total: slots.length };
 }
 
-export type FactChapter = { label: string; facts: string[] };
+export type ChapterFact = { content: string; provenance: string };
+export type FactChapter = { label: string; facts: ChapterFact[] };
 
-/** Group first-person fact statements into labeled chapters, preserving order. */
+/**
+ * Group fact statements into labeled chapters, preserving order. Each fact
+ * carries its provenance — the user's own words it was extracted from, or
+ * the court paper it was read from — so the story is verifiable before it
+ * goes into a sworn document.
+ */
 export function groupFacts(facts: Array<Record<string, unknown>>): FactChapter[] {
   const chapters: FactChapter[] = [];
   const byLabel = new Map<string, FactChapter>();
@@ -542,7 +718,13 @@ export function groupFacts(facts: Array<Record<string, unknown>>): FactChapter[]
       byLabel.set(label, chapter);
       chapters.push(chapter);
     }
-    chapter.facts.push(content);
+    const quote = str(fact?.sourceQuote);
+    const source = str(fact?.source);
+    let provenance = '';
+    if (quote.startsWith('From:')) provenance = quote;
+    else if (quote) provenance = `You said: “${quote}”`;
+    else if (source) provenance = `From: ${source}`;
+    chapter.facts.push({ content, provenance });
   }
   return chapters;
 }

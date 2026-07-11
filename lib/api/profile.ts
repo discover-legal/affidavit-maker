@@ -247,3 +247,90 @@ export async function mergeUserProfileSafe(
 export async function deleteUserProfile(userId: number): Promise<void> {
   await query('DELETE FROM user_profiles WHERE user_id = $1', [userId]);
 }
+
+/**
+ * Court/filing events extracted from uploaded response documents or set by
+ * the user — rendered on the life timeline. Not hydrated into interviews.
+ */
+export type KeyEvent = { label: string; date: string; source?: string };
+
+const MAX_KEY_EVENTS = 40;
+
+function sanitizeKeyEvents(raw: unknown): KeyEvent[] {
+  if (!Array.isArray(raw)) return [];
+  const events: KeyEvent[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const label = String(e.label ?? '').trim().slice(0, 120);
+    const date = String(e.date ?? '').trim().slice(0, 40);
+    if (!label || !date) continue;
+    const event: KeyEvent = { label, date };
+    const source = String(e.source ?? '').trim().slice(0, 200);
+    if (source) event.source = source;
+    events.push(event);
+    if (events.length >= MAX_KEY_EVENTS) break;
+  }
+  return events;
+}
+
+/**
+ * Explicit user edit of the life story ("fix story" on /profile).
+ * Unlike mergeUserProfile, provided keys are SET verbatim: an empty
+ * string/null clears the field, and `children` replaces the list
+ * (identity aliases re-stamped). Only whitelisted fields apply.
+ */
+export async function updateUserProfile(
+  userId: number,
+  patch: Record<string, unknown>,
+): Promise<UserProfile> {
+  const stored = await getUserProfile(userId);
+  const profile: Record<string, unknown> = { ...stored.profile };
+
+  for (const field of PROFILE_FIELDS) {
+    if (!(field in patch)) continue;
+    if (field === 'children') continue;
+    const value = patch[field];
+    if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+      delete profile[field];
+    } else {
+      profile[field] = typeof value === 'string' ? value.trim().slice(0, 500) : value;
+    }
+  }
+
+  if ('children' in patch) {
+    const replaced = mergeChildren([], patch.children as unknown[] | undefined);
+    if (replaced.length > 0) profile.children = replaced;
+    else delete profile.children;
+  }
+
+  if ('keyEvents' in patch) {
+    const events = sanitizeKeyEvents(patch.keyEvents);
+    if (events.length > 0) profile.keyEvents = events;
+    else delete profile.keyEvents;
+  }
+
+  await query(
+    `INSERT INTO user_profiles (user_id, profile, facts)
+     VALUES ($1, $2::jsonb, $3::jsonb)
+     ON CONFLICT (user_id)
+     DO UPDATE SET profile = EXCLUDED.profile`,
+    [userId, JSON.stringify(profile), JSON.stringify(stored.facts)],
+  );
+  return { profile, facts: stored.facts };
+}
+
+/** Append key events (from an ingested document), deduped by label+date. */
+export async function appendKeyEvents(userId: number, events: KeyEvent[]): Promise<void> {
+  const stored = await getUserProfile(userId);
+  const existing = sanitizeKeyEvents(stored.profile.keyEvents);
+  const seen = new Set(existing.map((e) => `${e.label.toLowerCase()}|${e.date}`));
+  const merged = [...existing];
+  for (const event of sanitizeKeyEvents(events)) {
+    const key = `${event.label.toLowerCase()}|${event.date}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(event);
+  }
+  await updateUserProfile(userId, { keyEvents: merged });
+}

@@ -183,3 +183,66 @@ describe('mergeUserProfile replaceChildren', () => {
     expect(savedProfile.children.map((c: { name: string }) => c.name)).toEqual(['Emma']);
   });
 });
+
+describe('updateUserProfile (fix my story)', () => {
+  test('sets fields verbatim, clears empties, replaces children', async () => {
+    const { updateUserProfile } = require('@/lib/api/profile');
+    queryMock.mockResolvedValueOnce({
+      rows: [
+        {
+          profile: {
+            affiantName: 'Brandon Pritchard',
+            separationDate: '2024-11-15',
+            children: [{ name: 'Emma', dob: '2015-04-02' }, { name: 'Liam', dob: '2017-06-15' }],
+          },
+          facts: [],
+        },
+      ],
+      rowCount: 1,
+    });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await updateUserProfile(7, {
+      affiantName: 'Brandon S. Pritchard',
+      separationDate: '', // explicit clear
+      children: [{ name: 'Emma', dob: '2015-04-03' }], // replacement
+      documentType: 'divorce_package', // not whitelisted — ignored
+    });
+
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const saved = JSON.parse(params[1] as string);
+    expect(saved.affiantName).toBe('Brandon S. Pritchard');
+    expect(saved.separationDate).toBeUndefined();
+    expect(saved.children).toHaveLength(1);
+    expect(saved.children[0].dob).toBe('2015-04-03');
+    expect(saved.documentType).toBeUndefined();
+  });
+});
+
+describe('appendKeyEvents', () => {
+  test('dedupes by label+date and preserves existing events', async () => {
+    const { appendKeyEvents } = require('@/lib/api/profile');
+    const existingRow = {
+      rows: [
+        {
+          profile: { keyEvents: [{ label: 'Served', date: '2026-01-15' }] },
+          facts: [],
+        },
+      ],
+      rowCount: 1,
+    };
+    queryMock.mockResolvedValueOnce(existingRow); // appendKeyEvents read
+    queryMock.mockResolvedValueOnce(existingRow); // updateUserProfile read
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // upsert
+
+    await appendKeyEvents(7, [
+      { label: 'Served', date: '2026-01-15' }, // dupe
+      { label: 'Hearing', date: '2026-06-01', source: 'Notice' },
+    ]);
+
+    const params = queryMock.mock.calls[2][1] as unknown[];
+    const saved = JSON.parse(params[1] as string);
+    expect(saved.keyEvents).toHaveLength(2);
+    expect(saved.keyEvents[1]).toEqual({ label: 'Hearing', date: '2026-06-01', source: 'Notice' });
+  });
+});

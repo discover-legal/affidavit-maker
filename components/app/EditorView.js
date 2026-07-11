@@ -10,6 +10,8 @@ import ChatInterface from './ChatInterface';
 import DocumentPreview from './DocumentPreview';
 import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
+import QuickExit from './QuickExit';
+import { advisorFlags } from './lifeStory';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -524,8 +526,41 @@ const EditorView = ({ isNew = false, onBack }) => {
     return '';
   };
 
+  // Safety UX for protective-order / harassment matters: instant exit +
+  // a shared-device caution. Lawyer-recommended flags stay on screen
+  // (never dismissable) but the user can always keep working.
+  const isSafetyMatter =
+    currentDocument.matterTypeCode === 'dvro' ||
+    currentDocument.matterTypeCode === 'civil_harassment' ||
+    currentDocument.hasProtectiveOrder === true;
+  const lawyerFlags = advisorFlags(currentDocument);
+
   return (
     <div className="h-screen flex flex-col">
+      {isSafetyMatter && <QuickExit />}
+      {isSafetyMatter && (
+        <div className="bg-gray-900 text-white text-xs sm:text-sm px-3 sm:px-6 py-2 flex-shrink-0">
+          If someone might see this device, use the <span className="font-semibold">Quick exit</span> button
+          (or press Esc twice) — it instantly replaces this page with a weather search.
+          Your work saves automatically.
+        </div>
+      )}
+      {lawyerFlags.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs sm:text-sm px-3 sm:px-6 py-2 flex-shrink-0">
+          <span className="font-semibold">
+            A lawyer&apos;s advice is recommended for: {lawyerFlags.map((f) => f.label).join(', ')}.
+          </span>{' '}
+          You can keep going here — free or low-cost help:{' '}
+          <a
+            href="https://www.lawhelp.org/find-help"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold underline hover:text-amber-700"
+          >
+            LawHelp.org
+          </a>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">

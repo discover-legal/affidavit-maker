@@ -44,6 +44,11 @@ export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
     // Combined ownership + fetch in one statement. RLS will already filter,
     // but the explicit `AND user_id = $2` predicate keeps the check obvious
     // and survives any future "system bypass" handler that forgets it.
+    //
+    // NOTE: SELECT * intentionally includes `conversation_history` (JSONB) —
+    // the client restores the chat transcript from it when a saved document
+    // is reopened (DocumentContext.loadDocument). If this ever becomes an
+    // explicit column list, keep conversation_history in it.
     const row = await query<Record<string, unknown>>(
       `SELECT * FROM documents WHERE id = $1 AND user_id = $2`,
       [id, user.id],

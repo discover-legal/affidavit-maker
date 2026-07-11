@@ -13,6 +13,14 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// A single persisted chat message. The client sends `type` ('user' | 'bot');
+// `role` is accepted as an alias so LLM-shaped transcripts round-trip too.
+const conversationMessageSchema = z.object({
+  type: z.string().max(16).optional(),
+  role: z.string().max(16).optional(),
+  content: z.string().max(6000),
+});
+
 const bodySchema = z.object({
   affidavitData: z
     .object({
@@ -31,10 +39,16 @@ const bodySchema = z.object({
     .passthrough(),
   validation: z.unknown().optional(),
   categories: z.unknown().optional(),
+  // Chat transcript for this document. Optional: when absent the stored
+  // transcript is preserved (COALESCE), never blanked.
+  conversationHistory: z.array(conversationMessageSchema).max(60).optional(),
 });
 
 /** Cap the serialized document blob saved to documents.content. */
 const MAX_SAVED_DOCUMENT_BYTES = 1024 * 1024;
+
+/** Cap the serialized transcript saved to documents.conversation_history. */
+const MAX_CONVERSATION_HISTORY_BYTES = 256 * 1024;
 
 // POST /api/documents/save — create or update a document. Mirrors the legacy
 // upsert: if affidavitData.documentId is set, UPDATE; else INSERT.
@@ -60,7 +74,15 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const documentTitle =
       data.documentTitle ?? (affiantName ? `Affidavit of ${affiantName}` : 'Untitled Affidavit');
 
-    const { factSummary: _fs, factSignature: _fsig, ...persistable } = data as Record<string, unknown>;
+    // conversationHistory is persisted to its own column below — strip it
+    // from the content blob (like the derived factSummary/factSignature
+    // caches) so the transcript is never stored twice.
+    const {
+      factSummary: _fs,
+      factSignature: _fsig,
+      conversationHistory: _ch,
+      ...persistable
+    } = data as Record<string, unknown>;
     const contentToSave = JSON.stringify(persistable);
     if (contentToSave.length > MAX_SAVED_DOCUMENT_BYTES) {
       throw new ValidationError('Document content too large');
@@ -68,6 +90,15 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const validationJson = JSON.stringify(parsed.validation ?? null);
     if (validationJson.length > MAX_SAVED_DOCUMENT_BYTES) {
       throw new ValidationError('Validation payload too large');
+    }
+
+    // null (not '[]') when absent so the SQL COALESCE keeps the stored
+    // transcript instead of overwriting it.
+    const conversationHistoryJson = parsed.conversationHistory
+      ? JSON.stringify(parsed.conversationHistory)
+      : null;
+    if (conversationHistoryJson && conversationHistoryJson.length > MAX_CONVERSATION_HISTORY_BYTES) {
+      throw new ValidationError('Conversation history too large');
     }
 
     if (data.documentId) {
@@ -81,10 +112,11 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       const updated = await query<Record<string, unknown>>(
         `UPDATE documents
             SET content = $1, title = $2, template_state = $3, validation_results = $4,
+                conversation_history = COALESCE($5::jsonb, conversation_history),
                 updated_at = CURRENT_TIMESTAMP
-          WHERE id = $5 AND user_id = $6
+          WHERE id = $6 AND user_id = $7
           RETURNING *`,
-        [contentToSave, documentTitle, data.state ?? null, validationJson, id, user.id],
+        [contentToSave, documentTitle, data.state ?? null, validationJson, conversationHistoryJson, id, user.id],
       );
       return NextResponse.json({ success: true, document: updated.rows[0] });
     }
@@ -92,8 +124,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const inserted = await query<Record<string, unknown>>(
       `INSERT INTO documents (
          user_id, title, document_type, template_state, content,
-         validation_results, status, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         validation_results, conversation_history, status, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, 'draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         user.id,
@@ -102,6 +134,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         data.state ?? null,
         contentToSave,
         validationJson,
+        conversationHistoryJson,
       ],
     );
     return NextResponse.json({ success: true, document: inserted.rows[0] }, { status: 201 });

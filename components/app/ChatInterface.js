@@ -194,9 +194,25 @@ const ChatInterface = () => {
       if (newDocId) {
         welcomeMessageShownRef.current = true;
 
+        // Restore the persisted transcript when one exists — reopening a
+        // saved document shows the real conversation instead of a synthetic
+        // "welcome back" greeting. Runs inside the documentId-change guard,
+        // so later transcript updates (each chat turn) never re-trigger it.
+        const storedTranscript = Array.isArray(currentDocument.conversationHistory)
+          ? currentDocument.conversationHistory.filter(
+              (m) => m && typeof m.content === 'string' && m.content.trim()
+            )
+          : [];
+
         const isReturningUser = currentDocument.facts?.length > 0 || currentDocument.affiantName;
 
-        if (isReturningUser) {
+        if (storedTranscript.length > 0) {
+          console.log('💬 Restoring saved transcript:', storedTranscript.length, 'messages');
+          setMessages(storedTranscript.map((m) => ({
+            type: m.type === 'user' || m.role === 'user' ? 'user' : 'bot',
+            content: m.content
+          })));
+        } else if (isReturningUser) {
           // Returning user - show welcome back message
           const hasFacts = currentDocument.facts?.length > 0;
 
@@ -255,7 +271,7 @@ First, please select your state above. Each state has different legal requiremen
         }
       }
     }
-  }, [currentDocument.documentId, currentDocument.facts, currentDocument.affiantName, currentDocument.documentType, currentDocument.firstName, generateFactSummary]);
+  }, [currentDocument.documentId, currentDocument.conversationHistory, currentDocument.facts, currentDocument.affiantName, currentDocument.documentType, currentDocument.firstName, generateFactSummary]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -341,7 +357,26 @@ First, please select your state above. Each state has different legal requiremen
           evidenceItems: evidenceItems.length > 0 ? evidenceItems : undefined
         }]);
 
-        // Update document if data changed
+        // Build the post-turn transcript for persistence. `messages` is the
+        // pre-turn snapshot (this turn's setMessages calls haven't committed
+        // yet), so append this turn's user/bot pair explicitly. Error bubbles
+        // are UI-only and evidence buttons are transient — persist plain
+        // {type, content} pairs, capped to the last 40 messages.
+        const transcript = [
+          ...messages,
+          { type: 'user', content: userMessage },
+          { type: 'bot', content: data.response }
+        ]
+          .filter((m) => m && !m.isError && typeof m.content === 'string' && m.content)
+          .map((m) => ({
+            type: m.type === 'user' ? 'user' : 'bot',
+            content: m.content.slice(0, 6000)
+          }))
+          .slice(-40);
+
+        // Update document if data changed. Fold the transcript into the same
+        // update so a facts change (which triggers an immediate save) also
+        // persists the conversation; otherwise autosave picks it up.
         if (data.affidavitData) {
           console.log('📝 Chat updated document:', {
             hasName: !!data.affidavitData.affiantName,
@@ -349,7 +384,9 @@ First, please select your state above. Each state has different legal requiremen
             factCount: data.affidavitData.facts?.length || 0
           });
 
-          updateDocumentData(data.affidavitData);
+          updateDocumentData({ ...data.affidavitData, conversationHistory: transcript });
+        } else {
+          updateDocumentData({ conversationHistory: transcript });
         }
 
         // Handle any additional actions

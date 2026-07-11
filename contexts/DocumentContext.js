@@ -32,6 +32,7 @@ const initialState = {
     activeSubDocument: null, // For divorce packages: 'divorce_petition' or 'divorce_decree'
     facts: [],
     documentId: null,
+    conversationHistory: null, // Persisted chat transcript ({type, content}[])
     factSummary: null,      // Cached AI summary of facts
     factSignature: null     // Hash of facts used to generate summary
   },
@@ -483,10 +484,19 @@ export const DocumentProvider = ({ children }) => {
           }
         }
 
+        // Chat transcript lives in its own column (documents.conversation_history),
+        // not inside the content blob. Map it onto the in-memory document so
+        // ChatInterface can restore the real conversation instead of a
+        // synthetic greeting.
+        const storedTranscript = Array.isArray(data.document.conversation_history)
+          ? data.document.conversation_history
+          : null;
+
         // Clear UI cache fields that shouldn't be restored from database
         const documentWithId = {
           ...documentContent,
           documentId: data.document.id,
+          conversationHistory: storedTranscript,
           factSummary: null,
           factSignature: null
         };
@@ -707,14 +717,27 @@ export const DocumentProvider = ({ children }) => {
       // requiredDocuments, ...) that a whitelist silently drops — reloading
       // the document would then restart the interview from scratch.
       // factSummary/factSignature are derived caches the server strips anyway.
+      // conversationHistory is stripped too: it persists in its own DB column
+      // (documents.conversation_history) via the top-level payload field
+      // below, and must never be duplicated inside the content blob.
       const {
         factSummary: _factSummary,
         factSignature: _factSignature,
         profileHydrated: _profileHydrated,
+        conversationHistory: _conversationHistory,
         ...persistableDocument
       } = fullDocumentData;
 
+      // Only send the transcript when we actually have one — an absent field
+      // tells the server to keep the stored transcript (COALESCE), so a save
+      // fired before the chat restores/updates never wipes it.
+      const conversationHistory = Array.isArray(fullDocumentData.conversationHistory) &&
+        fullDocumentData.conversationHistory.length > 0
+        ? fullDocumentData.conversationHistory
+        : undefined;
+
       const payload = {
+        ...(conversationHistory ? { conversationHistory } : {}),
         affidavitData: {
           ...persistableDocument,
           state: fullDocumentData.state || '',
@@ -923,10 +946,17 @@ export const DocumentProvider = ({ children }) => {
       parsed = raw;
     }
 
+    // Transcript lives in its own column when the caller has the full row
+    // (e.g. from GET /api/documents/[id]); list rows may not include it.
+    const storedTranscript = Array.isArray(document.conversation_history)
+      ? document.conversation_history
+      : null;
+
     dispatch({
       type: ActionTypes.SELECT_DOCUMENT,
       payload: {
         ...parsed,
+        conversationHistory: storedTranscript,
         documentId: document.id
       }
     });
@@ -968,7 +998,9 @@ export const DocumentProvider = ({ children }) => {
     }
 
     // Check if only metadata fields were updated (don't affect preview rendering)
-    const metadataOnlyFields = ['documentTitle'];
+    // conversationHistory is chat-transcript state — persisted via autosave
+    // but never rendered into the document preview.
+    const metadataOnlyFields = ['documentTitle', 'conversationHistory'];
     const changedFields = Object.keys(data);
     const hasPreviewAffectingChanges = changedFields.some(
       field => !metadataOnlyFields.includes(field)

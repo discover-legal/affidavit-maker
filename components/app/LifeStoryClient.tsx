@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Banknote,
+  CalendarPlus,
+  Check,
   Feather,
   Heart,
   Loader2,
@@ -19,6 +21,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import Tooltip from '@/components/marketing/Tooltip';
 import QuickExit from './QuickExit';
+// Pure step computation shared with the server (no server-only imports),
+// so the fetched procedure can be turned into steps right in the browser.
+import { computeNextSteps } from '@/lib/api/procedure';
 import { getInitialLang, setLang, t, type Lang } from '@/lib/i18n';
 import {
   MONEY_OTHER_LABELS,
@@ -366,6 +371,137 @@ function MoneyBars({ profile, lang }: { profile: Record<string, unknown>; lang: 
         </p>
       )}
     </div>
+  );
+}
+
+type Procedure = NonNullable<Parameters<typeof computeNextSteps>[1]>;
+
+/** '2026-07-19' → 'Jul 19' (en) / '19 jul' (es); parsed as a local date. */
+function formatDueChip(due: string, lang: Lang): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(due);
+  if (!m) return due;
+  const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return date.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * "What's next" — the usual procedural path for the user's state, as
+ * numbered steps: done ones checked off and muted, the next actionable one
+ * highlighted, dated ones wearing a due chip. General information about the
+ * process (UPL-safe framing in the intro), never case-specific advice.
+ * Renders only when the profile has a state AND the procedure fetch
+ * succeeded; steps are computed client-side from the fetched procedure.
+ */
+function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: Lang }) {
+  const [procedure, setProcedure] = useState<Procedure | null>(null);
+  const [stateName, setStateName] = useState('');
+
+  const state = typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+
+  useEffect(() => {
+    setProcedure(null);
+    if (!state) return;
+    let cancelled = false;
+    fetch(`/api/procedure/${encodeURIComponent(state)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success || !json.data || typeof json.data !== 'object') return;
+        const raw = json.data as Record<string, unknown>;
+        // The route may return the procedure directly or wrapped as { procedure }.
+        const proc = (
+          raw.procedure && typeof raw.procedure === 'object' ? raw.procedure : raw
+        ) as Procedure;
+        const name = (proc as unknown as Record<string, unknown>).stateName ?? raw.stateName;
+        setStateName(typeof name === 'string' && name ? name : state);
+        setProcedure(proc);
+      })
+      .catch(() => {}); // best-effort: no procedure, no section
+    return () => {
+      cancelled = true;
+    };
+  }, [state]);
+
+  const steps = useMemo(() => {
+    if (!procedure) return [];
+    try {
+      return computeNextSteps(profile, procedure);
+    } catch {
+      return [];
+    }
+  }, [profile, procedure]);
+
+  if (!state || !procedure || steps.length === 0) return null;
+
+  const nextIndex = steps.findIndex((s) => !s.done);
+  const hasDatedDeadline = steps.some((s) => s.due && !s.done);
+
+  return (
+    <section aria-label={t(lang, 'next.aria')} className="mt-10 font-sans">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+        {t(lang, 'next.heading')}
+      </h2>
+      <p className="mt-2 text-sm text-gray-500">{t(lang, 'next.intro', { stateName })}</p>
+      <ol className="mt-4 space-y-2">
+        {steps.map((step, i) => {
+          const isNext = i === nextIndex;
+          return (
+            <li
+              key={step.key}
+              className={`flex items-start gap-3 rounded-xl border bg-white p-4 ${
+                isNext ? 'border-brand ring-2 ring-brand' : 'border-gray-200'
+              }`}
+            >
+              {step.done ? (
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-on">
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="sr-only">{t(lang, 'next.done')}</span>
+                </span>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums ${
+                    isNext ? 'border-brand text-brand-strong' : 'border-gray-300 text-gray-400'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${
+                    step.done ? 'text-gray-400' : 'text-gray-900'
+                  }`}
+                >
+                  {step.title}
+                  {step.due && !step.done && (
+                    <span className="rounded-full bg-brand-tint px-2 py-0.5 text-xs font-semibold text-brand-strong">
+                      {t(lang, 'next.due', { date: formatDueChip(step.due, lang) })}
+                    </span>
+                  )}
+                </p>
+                {step.detail && (
+                  <p className={`mt-0.5 text-sm ${step.done ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {step.detail}
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      {hasDatedDeadline && (
+        <a
+          href="/api/profile/deadlines"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-brand hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+          {t(lang, 'next.calendar')}
+        </a>
+      )}
+    </section>
   );
 }
 
@@ -1198,6 +1334,9 @@ export default function LifeStoryClient() {
               onClose={() => setPanel('none')}
             />
           )}
+
+          {/* The procedural roadmap — where the user is on the usual path. */}
+          <WhatsNext profile={profile} lang={lang} />
 
           {/* Legal details ledger — known values and dotted gaps alike. */}
           <RecordLedger profile={profile} lang={lang} onAsk={handleAsk} />

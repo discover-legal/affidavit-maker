@@ -47,6 +47,14 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'actions.fix': 'Fix my story',
     'actions.addPaper': 'Add a court paper',
 
+    'next.aria': 'Your next steps',
+    'next.heading': 'What’s next',
+    'next.intro':
+      'The usual path for a {stateName} divorce. General information — your court decides your case.',
+    'next.due': 'Due {date}',
+    'next.done': 'Done',
+    'next.calendar': 'Add my deadlines to my calendar',
+
     'ledger.aria': 'Legal details on record',
     'ledger.heading': 'Also on the record',
     'ledger.add': 'add this +',
@@ -160,6 +168,14 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
 
     'actions.fix': 'Corregir mi historia',
     'actions.addPaper': 'Agregar un documento del tribunal',
+
+    'next.aria': 'Tus próximos pasos',
+    'next.heading': '¿Qué sigue?',
+    'next.intro':
+      'El camino usual de un divorcio en {stateName}. Información general — tu tribunal decide tu caso.',
+    'next.due': 'Vence {date}',
+    'next.done': 'Hecho',
+    'next.calendar': 'Agregar mis fechas límite a mi calendario',
 
     'ledger.aria': 'Detalles legales registrados',
     'ledger.heading': 'También en el registro',

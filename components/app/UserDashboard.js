@@ -3,10 +3,13 @@
 // client/src/components/UserDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight } from 'lucide-react';
+import { FileText, FileDown, Gavel, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen, Reply, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
+import CaseStepper from './CaseStepper';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
+import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
+import { getInitialLang } from '@/lib/i18n';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -27,7 +30,8 @@ const getDocTypeLabel = (docType) => {
 // Shared document row used in both the cases view and the standalone list
 const DocumentRow = ({
   doc, renamingDocId, newName, setNewName, isSubmittingRename,
-  startRename, cancelRename, submitRename, handleDeleteDocument, handleContinueDocument
+  startRename, cancelRename, submitRename, handleDeleteDocument, handleContinueDocument,
+  handleFilingPacket, packetDownloadingId, packetErrorId, packetUnavailable
 }) => {
   const docTypeLabel = (doc.document_type || doc.documentType);
   const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docTypeLabel);
@@ -89,6 +93,19 @@ const DocumentRow = ({
           <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete" aria-label="Delete">
             <Trash2 className="h-4 w-4" />
           </button>
+          {!packetUnavailable && (
+            <button
+              onClick={() => handleFilingPacket(doc)}
+              disabled={packetDownloadingId === doc.id}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 font-semibold transition-colors disabled:opacity-60"
+              title="Download a ready-to-file PDF packet of this document"
+            >
+              {packetDownloadingId === doc.id
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <FileDown className="h-4 w-4" />}
+              <span className="hidden sm:inline">Filing packet</span>
+            </button>
+          )}
           <button
             onClick={() => handleContinueDocument(doc)}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
@@ -97,6 +114,11 @@ const DocumentRow = ({
           </button>
         </div>
       </div>
+      {packetErrorId === doc.id && (
+        <p className="mt-2 text-right text-xs text-red-600">
+          The filing packet couldn’t be prepared. Please try again.
+        </p>
+      )}
     </li>
   );
 };
@@ -126,6 +148,18 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [cases, setCases] = useState([]);
   const [isCasesLoading, setIsCasesLoading] = useState(false);
 
+  // Case stepper data — both fetches are enhancements: any failure just
+  // means no stepper (and no respond button), never an error state.
+  const [profile, setProfile] = useState(null);
+  const [procedure, setProcedure] = useState(null);
+  const [stepperLang, setStepperLang] = useState('en');
+
+  // Filing packet downloads (POST /api/documents/packet). A 404/501 means
+  // the endpoint isn't live yet — hide the buttons instead of erroring.
+  const [packetDownloadingId, setPacketDownloadingId] = useState(null);
+  const [packetErrorId, setPacketErrorId] = useState(null);
+  const [packetUnavailable, setPacketUnavailable] = useState(false);
+
   // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -133,6 +167,36 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     loadCases();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDocuments]);
+
+  // Life-story profile + state procedure → the visual case stepper.
+  useEffect(() => {
+    setStepperLang(getInitialLang());
+    let cancelled = false;
+    (async () => {
+      try {
+        const profileRes = await fetch(`${API_BASE}/api/profile`);
+        if (!profileRes.ok) return;
+        const profileJson = await profileRes.json();
+        if (cancelled || !profileJson?.success) return;
+        const p = profileJson.data?.profile || {};
+        setProfile(p);
+
+        const state = (typeof p.state === 'string' && p.state.trim())
+          ? p.state.trim().toUpperCase()
+          : 'UT';
+        const procRes = await fetch(`${API_BASE}/api/procedure/${encodeURIComponent(state)}`);
+        if (!procRes.ok) return;
+        const procJson = await procRes.json();
+        if (cancelled || !procJson?.success || !procJson.data || typeof procJson.data !== 'object') return;
+        // The route may return the procedure directly or wrapped as { procedure }.
+        const raw = procJson.data;
+        setProcedure(raw.procedure && typeof raw.procedure === 'object' ? raw.procedure : raw);
+      } catch {
+        // Stepper is an enhancement — no profile or procedure, no stepper.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const loadCases = async () => {
     setIsCasesLoading(true);
@@ -176,6 +240,41 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     } catch (error) {
       console.error('❌ Delete failed:', error);
       alert(`Error deleting document: ${error.message}`);
+    }
+  };
+
+  // Download a ready-to-file PDF packet for a saved document.
+  const handleFilingPacket = async (doc) => {
+    setPacketDownloadingId(doc.id);
+    setPacketErrorId(null);
+    try {
+      const response = await fetch(`${API_BASE}/api/documents/packet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id }),
+      });
+      if (response.status === 404 || response.status === 501) {
+        // Endpoint not deployed yet — quietly retire the buttons.
+        setPacketUnavailable(true);
+        return;
+      }
+      if (!response.ok) throw new Error(`Packet request failed (${response.status})`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `filing-packet-${doc.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      trackEvent('filing_packet_downloaded', { document_id: doc.id });
+    } catch (error) {
+      console.error('Filing packet download failed:', error);
+      setPacketErrorId(doc.id);
+      setTimeout(() => setPacketErrorId((id) => (id === doc.id ? null : id)), 4000);
+    } finally {
+      setPacketDownloadingId((id) => (id === doc.id ? null : id));
     }
   };
 
@@ -255,6 +354,23 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     navigate('/');
   };
 
+  // Stepper + respond button, derived from the fetched profile/procedure.
+  // The stepper only appears once the case has some substance (key events
+  // from ingested papers, or at least one saved document).
+  const isRespondent = profile ? detectPerspective(profile) === 'respondent' : false;
+  const hasCaseActivity = Boolean(
+    profile &&
+    ((Array.isArray(profile.keyEvents) && profile.keyEvents.length > 0) || documents.length > 0)
+  );
+  let caseSteps = [];
+  if (profile && procedure && hasCaseActivity) {
+    try {
+      caseSteps = computeNextSteps(profile, procedure);
+    } catch {
+      caseSteps = [];
+    }
+  }
+
   if (isDocumentsLoading || isLoading) {
     return (
       <>
@@ -300,22 +416,73 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           <p className="text-sm sm:text-base text-gray-600">Create new documents or continue working on your drafts.</p>
         </div>
         {newDocStep === null && (
-          <button
-            onClick={() => {
-              // Skip case type step if user already has a preference
-              if (selectedCaseType) {
-                setNewDocStep('documentType');
-              } else {
-                setNewDocStep('caseType');
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-          >
-            <PlusCircle className="h-4 w-4" />
-            New Document
-          </button>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {isRespondent && (
+              <button
+                onClick={() => navigate('/respond')}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold text-sm"
+                title="Answer the papers you were served"
+              >
+                <Reply className="h-4 w-4" />
+                <span className="hidden sm:inline">Respond to the papers</span>
+                <span className="sm:hidden">Respond</span>
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 transition-colors font-semibold text-sm"
+              title="What your assistant remembers about you"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Your life story</span>
+              <span className="sm:hidden">Story</span>
+            </button>
+            <button
+              onClick={() => navigate('/serve')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 transition-colors font-semibold text-sm"
+              title="How to serve your papers on the other party"
+            >
+              <Send className="h-4 w-4" />
+              <span className="hidden sm:inline">Serve the papers</span>
+              <span className="sm:hidden">Serve</span>
+            </button>
+            <button
+              onClick={() => navigate('/hearing')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 transition-colors font-semibold text-sm"
+              title="How to prepare for your day in court"
+            >
+              <Gavel className="h-4 w-4" />
+              <span className="hidden sm:inline">Your day in court</span>
+              <span className="sm:hidden">Hearing</span>
+            </button>
+            <button
+              onClick={() => {
+                // Skip case type step if user already has a preference
+                if (selectedCaseType) {
+                  setNewDocStep('documentType');
+                } else {
+                  setNewDocStep('caseType');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Document
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Where the case is — visual stepper from the life-story profile. */}
+      {caseSteps.length > 0 && (
+        <div className="mb-8 bg-white rounded-lg shadow-sm border p-5 sm:p-6">
+          <CaseStepper
+            steps={caseSteps}
+            perspective={isRespondent ? 'respondent' : 'petitioner'}
+            lang={stepperLang}
+          />
+        </div>
+      )}
 
       {/* Step 1: Case Type Selection */}
       {newDocStep === 'caseType' && (
@@ -476,6 +643,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                         submitRename={submitRename}
                         handleDeleteDocument={handleDeleteDocument}
                         handleContinueDocument={handleContinueDocument}
+                        handleFilingPacket={handleFilingPacket}
+                        packetDownloadingId={packetDownloadingId}
+                        packetErrorId={packetErrorId}
+                        packetUnavailable={packetUnavailable}
                       />
                     ))}
                   </ul>
@@ -525,6 +696,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                 submitRename={submitRename}
                 handleDeleteDocument={handleDeleteDocument}
                 handleContinueDocument={handleContinueDocument}
+                handleFilingPacket={handleFilingPacket}
+                packetDownloadingId={packetDownloadingId}
+                packetErrorId={packetErrorId}
+                packetUnavailable={packetUnavailable}
               />
             ))}
           </ul>

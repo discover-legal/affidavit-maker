@@ -105,12 +105,31 @@ const nextConfig = {
   // templates/states/<jurisdiction>/<DocumentType>.js (110 jurisdictions ×
   // ~7 files each) and the runtime container 500s with "Cannot find module".
   experimental: {
+    // pdfkit and pdf-lib must load from node_modules at runtime, NOT be
+    // webpack-bundled into the route handler: bundling breaks pdfkit's
+    // CJS constructor via ESM interop ("PDFDocument is not a constructor")
+    // and severs its fs-relative font (AFM) assets — document generation
+    // 500s. Caught by live E2E against the running app.
+    serverComponentsExternalPackages: ['pdfkit', 'pdf-lib', 'tesseract.js'],
     outputFileTracingIncludes: {
       '/api/**/*': [
         './services/**/*',
         './templates/**/*',
         './utils/**/*',
         './config/**/*',
+        // tesseract.js loads its worker script and traineddata by path
+        // string (invisible to the tracer) — without these the standalone
+        // container 500s on photo ingestion only.
+        './node_modules/tesseract.js/**/*',
+        './node_modules/tesseract.js-core/**/*',
+        './node_modules/@tesseract.js-data/**/*',
+        './node_modules/wasm-feature-detect/**/*',
+        './node_modules/is-url/**/*',
+        './node_modules/regenerator-runtime/**/*',
+        './node_modules/idb-keyval/**/*',
+        './node_modules/zlibjs/**/*',
+        './node_modules/bmp-js/**/*',
+        './node_modules/is-electron/**/*',
       ],
       '/**/*': [
         './services/**/*',

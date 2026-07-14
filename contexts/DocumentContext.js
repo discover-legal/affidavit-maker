@@ -32,6 +32,7 @@ const initialState = {
     activeSubDocument: null, // For divorce packages: 'divorce_petition' or 'divorce_decree'
     facts: [],
     documentId: null,
+    conversationHistory: null, // Persisted chat transcript ({type, content}[])
     factSummary: null,      // Cached AI summary of facts
     factSignature: null     // Hash of facts used to generate summary
   },
@@ -236,14 +237,44 @@ const documentReducer = (state, action) => {
       };
 
     case ActionTypes.MERGE_PROFESSIONAL_REWRITES:
-      // Merge professional rewrites from validation results into facts
+      // Merge professional rewrites from validation results into facts.
+      // Results are index-parallel to the facts SENT with the validate
+      // request — not to the current facts array, which may have been
+      // reordered or extended by an in-flight chat turn since. When the
+      // dispatcher includes `factRefs` (a snapshot of the sent facts'
+      // id/content), match each result back to its fact by id, falling
+      // back to normalized content; only legacy callers without refs get
+      // the old index alignment.
       const validationResults = action.payload;
       if (!validationResults?.results || !Array.isArray(state.currentDocument.facts)) {
         return state;
       }
 
+      const normalizeFactContent = (value) =>
+        String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      const factRefs = Array.isArray(validationResults.factRefs)
+        ? validationResults.factRefs
+        : null;
+      const resultById = new Map();
+      const resultByContent = new Map();
+      if (factRefs) {
+        validationResults.results.forEach((result, index) => {
+          const ref = factRefs[index];
+          if (!result || !ref) return;
+          if (ref.id) resultById.set(ref.id, result);
+          const contentKey = normalizeFactContent(ref.content);
+          if (contentKey && !resultByContent.has(contentKey)) {
+            resultByContent.set(contentKey, result);
+          }
+        });
+      }
+
       const updatedFacts = state.currentDocument.facts.map((fact, index) => {
-        const validationResult = validationResults.results[index];
+        const validationResult = factRefs
+          ? (fact?.id && resultById.get(fact.id)) ||
+            resultByContent.get(normalizeFactContent(fact?.content))
+          : validationResults.results[index];
         if (validationResult && validationResult.professionalRewrite) {
           return {
             ...fact,
@@ -453,10 +484,19 @@ export const DocumentProvider = ({ children }) => {
           }
         }
 
+        // Chat transcript lives in its own column (documents.conversation_history),
+        // not inside the content blob. Map it onto the in-memory document so
+        // ChatInterface can restore the real conversation instead of a
+        // synthetic greeting.
+        const storedTranscript = Array.isArray(data.document.conversation_history)
+          ? data.document.conversation_history
+          : null;
+
         // Clear UI cache fields that shouldn't be restored from database
         const documentWithId = {
           ...documentContent,
           documentId: data.document.id,
+          conversationHistory: storedTranscript,
           factSummary: null,
           factSignature: null
         };
@@ -527,6 +567,36 @@ export const DocumentProvider = ({ children }) => {
       console.log('📄 Creating new document...', { documentType, isDivorcePackage });
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
+      // Life-story seed: returning users start new documents with the facts
+      // and identity they already told the AI (persisted in /api/profile),
+      // so neither they nor the interview has to re-collect them.
+      // Best-effort — a missing/failed profile must not block creation.
+      let profileSeed = {};
+      try {
+        const prof = await authFetch('/api/profile');
+        if (prof?.success && prof.data) {
+          const storedProfile = prof.data.profile || {};
+          const storedFacts = Array.isArray(prof.data.facts) ? prof.data.facts : [];
+          // Identity always seeds; family data (children, accumulated facts —
+          // which are mostly family-law statements) only seeds family
+          // documents, so a small-claims or name-change affidavit isn't
+          // contaminated with the user's divorce record.
+          profileSeed = {
+            ...(storedProfile.affiantName ? { affiantName: storedProfile.affiantName } : {}),
+            ...(storedProfile.firstName ? { firstName: storedProfile.firstName } : {}),
+            ...(storedProfile.lastName ? { lastName: storedProfile.lastName } : {}),
+            ...(isDivorcePackage && storedFacts.length > 0 ? { facts: storedFacts } : {}),
+            ...(isDivorcePackage &&
+            Array.isArray(storedProfile.children) &&
+            storedProfile.children.length > 0
+              ? { children: storedProfile.children }
+              : {})
+          };
+        }
+      } catch (profileError) {
+        console.warn('📄 Profile seed unavailable:', profileError.message);
+      }
+
       // Never pre-fill the state — the user picks it explicitly in the
       // chat UI. A pre-filled value hides the state selector on mobile
       // and silently biases the document toward a jurisdiction the user
@@ -544,7 +614,8 @@ export const DocumentProvider = ({ children }) => {
           documentType: internalDocType,
           practiceArea: practiceArea,
           activeSubDocument: isDivorcePackage ? 'divorce_petition' : null,
-          facts: []
+          facts: [],
+          ...profileSeed
         },
         title: defaultTitle,
         content: JSON.stringify({
@@ -640,8 +711,35 @@ export const DocumentProvider = ({ children }) => {
         fullDocumentData.documentType === 'divorce_petition' ||
         fullDocumentData.documentType === 'divorce_decree';
 
+      // Persist the FULL document state, not a field whitelist. The
+      // orchestrators accumulate structured interview data (children,
+      // orchestratorState/phase, matterTypeCode, marriage + grounds fields,
+      // requiredDocuments, ...) that a whitelist silently drops — reloading
+      // the document would then restart the interview from scratch.
+      // factSummary/factSignature are derived caches the server strips anyway.
+      // conversationHistory is stripped too: it persists in its own DB column
+      // (documents.conversation_history) via the top-level payload field
+      // below, and must never be duplicated inside the content blob.
+      const {
+        factSummary: _factSummary,
+        factSignature: _factSignature,
+        profileHydrated: _profileHydrated,
+        conversationHistory: _conversationHistory,
+        ...persistableDocument
+      } = fullDocumentData;
+
+      // Only send the transcript when we actually have one — an absent field
+      // tells the server to keep the stored transcript (COALESCE), so a save
+      // fired before the chat restores/updates never wipes it.
+      const conversationHistory = Array.isArray(fullDocumentData.conversationHistory) &&
+        fullDocumentData.conversationHistory.length > 0
+        ? fullDocumentData.conversationHistory
+        : undefined;
+
       const payload = {
+        ...(conversationHistory ? { conversationHistory } : {}),
         affidavitData: {
+          ...persistableDocument,
           state: fullDocumentData.state || '',
           affiantName: fullDocumentData.affiantName || '',
           firstName: fullDocumentData.firstName || '',
@@ -666,7 +764,7 @@ export const DocumentProvider = ({ children }) => {
             : (fullDocumentData.affiantName
               ? `Affidavit of ${fullDocumentData.affiantName}`
               : 'Untitled Affidavit')),
-        content: JSON.stringify(fullDocumentData)
+        content: JSON.stringify(persistableDocument)
       };
 
       const data = await authFetch('/api/documents/save', {
@@ -795,11 +893,20 @@ export const DocumentProvider = ({ children }) => {
           payload: data.validation
         });
 
-        // Optionally merge professional rewrites into facts
+        // Optionally merge professional rewrites into facts. Snapshot which
+        // facts were SENT (id + content) so the reducer can match results
+        // back even if the facts array changed while the request was
+        // in flight (new chat turn, manual reorder).
         if (mergeProfessionalRewrites && data.validation.factValidation) {
+          const factsSent = Array.isArray(payload.affidavitData.facts)
+            ? payload.affidavitData.facts
+            : [];
           dispatch({
             type: ActionTypes.MERGE_PROFESSIONAL_REWRITES,
-            payload: data.validation.factValidation
+            payload: {
+              ...data.validation.factValidation,
+              factRefs: factsSent.map((f) => ({ id: f?.id, content: f?.content }))
+            }
           });
         }
 
@@ -839,10 +946,17 @@ export const DocumentProvider = ({ children }) => {
       parsed = raw;
     }
 
+    // Transcript lives in its own column when the caller has the full row
+    // (e.g. from GET /api/documents/[id]); list rows may not include it.
+    const storedTranscript = Array.isArray(document.conversation_history)
+      ? document.conversation_history
+      : null;
+
     dispatch({
       type: ActionTypes.SELECT_DOCUMENT,
       payload: {
         ...parsed,
+        conversationHistory: storedTranscript,
         documentId: document.id
       }
     });
@@ -884,7 +998,9 @@ export const DocumentProvider = ({ children }) => {
     }
 
     // Check if only metadata fields were updated (don't affect preview rendering)
-    const metadataOnlyFields = ['documentTitle'];
+    // conversationHistory is chat-transcript state — persisted via autosave
+    // but never rendered into the document preview.
+    const metadataOnlyFields = ['documentTitle', 'conversationHistory'];
     const changedFields = Object.keys(data);
     const hasPreviewAffectingChanges = changedFields.some(
       field => !metadataOnlyFields.includes(field)

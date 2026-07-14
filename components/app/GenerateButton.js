@@ -5,35 +5,52 @@ import React, { useState } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { Download, FileText, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { trackEvent } from '@/lib/utils/analytics';
+import ReviewGate from './ReviewGate';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
 
 const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" }) => {
   const [generateStatus, setGenerateStatus] = useState('idle');
+  // "Verify before you swear" review gate state
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [pendingFormat, setPendingFormat] = useState('pdf');
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect } = useAuth0();
-  
+
   // Check if document is ready for generation
-  const canGenerate = validation?.isValid && 
-                     affidavitData?.affiantName && 
+  const canGenerate = validation?.isValid &&
+                     affidavitData?.affiantName &&
                      affidavitData?.state &&
                      affidavitData?.facts?.length > 0;
-  
+
+  // Open the review gate for the requested format; generation only
+  // happens after the user confirms their own statements.
+  const openReview = (format = 'pdf') => {
+    setPendingFormat(format);
+    setIsReviewOpen(true);
+  };
+
   const handleGenerateClick = async () => {
     if (!isAuthenticated) {
       // Redirect to login
       loginWithRedirect();
       return;
     }
-    
+
     if (!canGenerate) {
       // Show validation errors
       setGenerateStatus('validation-error');
       setTimeout(() => setGenerateStatus('idle'), 3000);
       return;
     }
-    
-    await handleGenerate();
+
+    openReview('pdf');
+  };
+
+  // Review gate confirmed — the user verified their own statements.
+  const handleReviewConfirm = async () => {
+    setIsReviewOpen(false);
+    await handleGenerate(pendingFormat);
   };
   
   /**
@@ -61,8 +78,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           affidavitData,
-          documentId: affidavitData.documentId,
-          skipPayment: process.env.NODE_ENV === 'development'
+          documentId: affidavitData.documentId
         })
       });
 
@@ -198,7 +214,7 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
 
         {canGenerate && generateStatus !== 'generating' && (
           <button
-            onClick={() => handleGenerate('docx')}
+            onClick={() => openReview('docx')}
             disabled={generateStatus === 'generating'}
             className="px-4 py-3 rounded-lg font-semibold transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center"
             title={`Download ${docLabel} as Word document`}
@@ -258,6 +274,14 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
           <p>Development Mode: PDF/Word generation is free for testing</p>
         </div>
       )}
+
+      {/* Review gate: verify statements before the sworn document downloads */}
+      <ReviewGate
+        isOpen={isReviewOpen}
+        affidavitData={affidavitData}
+        onConfirm={handleReviewConfirm}
+        onCancel={() => setIsReviewOpen(false)}
+      />
     </div>
   );
 };

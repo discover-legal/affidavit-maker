@@ -25,8 +25,9 @@
 
 const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
-const { organizeFacts } = require('./FactOrganizer');
+const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
+const { mergeChildren, summarizeChildren } = require('../../utils/childrenMerge');
 
 // ─── Phase → default fact category ───────────────────────────────────────────
 const DEFAULT_PHASE_CATEGORY = {
@@ -86,6 +87,9 @@ CONVERSATION RULES (you MUST follow these strictly):
 2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
 3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
 4. Never repeat information the user already provided.
+5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
+6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
+7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -181,12 +185,11 @@ class BaseMatterOrchestrator {
 
     const updatedData = this._applyFieldUpdates(matterData, fieldUpdates);
 
-    const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase);
+    const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase, message);
     if (newFacts.length > 0) {
-      updatedData.facts = [...(updatedData.facts || []), ...newFacts];
-    }
-    if (updatedData.facts?.length > 0) {
-      updatedData.facts = organizeFacts(updatedData.facts);
+      // Upsert only — never re-sort. A wholesale organizeFacts() here would
+      // silently undo the user's manual fact ordering on every chat turn.
+      updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
     if (phase_complete) {
@@ -283,7 +286,7 @@ class BaseMatterOrchestrator {
     if (d.defendantName)    items.push(`Defendant: ${d.defendantName}`);
     if (d.state)            items.push(`State: ${d.state}`);
     if (d.county)           items.push(`County: ${d.county}`);
-    if (d.children?.length) items.push(`Children: ${d.children.map(c => c.name || c).join(', ')}`);
+    if (d.children?.length) items.push(`Children recorded (${d.children.length}):\n${summarizeChildren(d.children)}`);
     if (d.facts?.length)    items.push(`Facts documented: ${d.facts.length}`);
     return items.join('\n');
   }
@@ -293,7 +296,27 @@ class BaseMatterOrchestrator {
 
     for (const [snakeKey, camelKey] of Object.entries(this.fieldMap)) {
       if (fields[snakeKey] !== undefined && fields[snakeKey] !== null && fields[snakeKey] !== '') {
-        updated[camelKey] = fields[snakeKey];
+        // Children accumulate across turns (custody, DVRO, ...) — the LLM
+        // usually emits only the child under discussion, so a wholesale
+        // assignment would drop the previously collected entries.
+        if (camelKey === 'children') {
+          updated.children = mergeChildren(matterData.children, fields[snakeKey]);
+        } else if (Array.isArray(fields[snakeKey]) && Array.isArray(matterData[camelKey])) {
+          // Other list fields (e.g. DVRO relief_items): append new entries,
+          // never lose old ones. Dedupe by serialized value.
+          const seen = new Set(matterData[camelKey].map((v) => JSON.stringify(v)));
+          const merged = [...matterData[camelKey]];
+          for (const item of fields[snakeKey]) {
+            const key = JSON.stringify(item);
+            if (!seen.has(key)) {
+              seen.add(key);
+              merged.push(item);
+            }
+          }
+          updated[camelKey] = merged;
+        } else {
+          updated[camelKey] = fields[snakeKey];
+        }
       }
     }
 
@@ -314,8 +337,13 @@ class BaseMatterOrchestrator {
     return updated;
   }
 
-  _buildFacts(extractedFacts, currentPhase) {
+  _buildFacts(extractedFacts, currentPhase, sourceMessage) {
     const defaultCategory = DEFAULT_PHASE_CATEGORY[currentPhase] || 'general';
+    // Provenance: keep the user's own words so the review UI can show
+    // exactly where each sworn statement came from.
+    const sourceQuote = typeof sourceMessage === 'string'
+      ? sourceMessage.trim().slice(0, 280)
+      : '';
     return extractedFacts.map(f => ({
       id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       content:     f.content,
@@ -324,6 +352,7 @@ class BaseMatterOrchestrator {
       type:        'fact',
       confidence:  0.9,
       severity:    'success',
+      sourceQuote,
       timestamp:   new Date().toISOString()
     }));
   }

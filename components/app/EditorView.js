@@ -10,6 +10,9 @@ import ChatInterface from './ChatInterface';
 import DocumentPreview from './DocumentPreview';
 import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
+import ReviewGate from './ReviewGate';
+import QuickExit from './QuickExit';
+import { advisorFlags } from './lifeStory';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -66,7 +69,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
 // Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ isNew = false, onBack }) => {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const params = useParams();
   const documentId = Array.isArray(params?.documentId) ? params.documentId[0] : params?.documentId;
   const searchParams = useSearchParams();
@@ -94,6 +97,10 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  // "Verify before you swear" review gate — shown after payment is
+  // resolved but before the PDF is generated/downloaded.
+  const [isReviewGateOpen, setIsReviewGateOpen] = useState(false);
 
   // Use split contexts to prevent unnecessary re-renders
   const { currentDocument, preview } = useDocumentData();
@@ -152,7 +159,7 @@ const EditorView = ({ isNew = false, onBack }) => {
     } finally {
       setIsCheckingPayment(false);
     }
-  }, [getAccessTokenSilently, setIsPaidDocument]);
+  }, [setIsPaidDocument]);
 
   // Check payment status when document loads
   useEffect(() => {
@@ -365,11 +372,28 @@ const EditorView = ({ isNew = false, onBack }) => {
       const isPaid = await checkPaymentStatus(currentDocument.documentId);
 
       if (isPaid) {
-        // Document already paid - proceed with download
-        await performDownload();
+        // Document already paid - review before download
+        setIsReviewGateOpen(true);
       } else {
-        // Payment required - show payment modal
-        setIsPaymentModalOpen(true);
+        // Kill-switch: when payments are disabled server-side
+        // (PAYMENTS_ENABLED=false), the generate endpoint is free — go
+        // straight to download instead of a payment modal that can't charge.
+        let paymentsOn = true;
+        try {
+          const pricingRes = await fetch(`${API_BASE_URL}/api/payment/pricing`);
+          const pricing = await pricingRes.json();
+          if (pricing && pricing.paymentsEnabled === false) paymentsOn = false;
+        } catch (pricingError) {
+          console.warn('Pricing check failed, assuming payments enabled:', pricingError);
+        }
+
+        if (!paymentsOn) {
+          // Free path still goes through the review gate before download
+          setIsReviewGateOpen(true);
+        } else {
+          // Payment required - show payment modal
+          setIsPaymentModalOpen(true);
+        }
       }
     } catch (error) {
       console.error('❌ Download initiation failed:', error);
@@ -379,17 +403,24 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // Handle successful payment
   const handlePaymentSuccess = async () => {
-    console.log('✅ Payment successful, starting download...');
+    console.log('✅ Payment successful, opening review before download...');
     setIsPaymentModalOpen(false);
     setIsPaidDocument(true);
 
+    // Wait a moment for the Stripe webhook to process before the user
+    // can confirm the review and trigger generation.
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsReviewGateOpen(true);
+  };
+
+  // Review gate confirmed — the user verified their own statements.
+  const handleReviewConfirm = async () => {
+    setIsReviewGateOpen(false);
     try {
-      // Wait a moment for webhook to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await performDownload();
     } catch (error) {
-      console.error('❌ Post-payment download failed:', error);
-      alert('Payment successful, but download failed. Please try downloading again.');
+      // performDownload already surfaced the error to the user
+      console.error('❌ Post-review download failed:', error);
     }
   };
   // Mobile panel navigation
@@ -508,8 +539,41 @@ const EditorView = ({ isNew = false, onBack }) => {
     return '';
   };
 
+  // Safety UX for protective-order / harassment matters: instant exit +
+  // a shared-device caution. Lawyer-recommended flags stay on screen
+  // (never dismissable) but the user can always keep working.
+  const isSafetyMatter =
+    currentDocument.matterTypeCode === 'dvro' ||
+    currentDocument.matterTypeCode === 'civil_harassment' ||
+    currentDocument.hasProtectiveOrder === true;
+  const lawyerFlags = advisorFlags(currentDocument);
+
   return (
     <div className="h-screen flex flex-col">
+      {isSafetyMatter && <QuickExit />}
+      {isSafetyMatter && (
+        <div className="bg-gray-900 text-white text-xs sm:text-sm px-3 sm:px-6 py-2 flex-shrink-0">
+          If someone might see this device, use the <span className="font-semibold">Quick exit</span> button
+          (or press Esc twice) — it instantly replaces this page with a weather search.
+          Your work saves automatically.
+        </div>
+      )}
+      {lawyerFlags.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs sm:text-sm px-3 sm:px-6 py-2 flex-shrink-0">
+          <span className="font-semibold">
+            A lawyer&apos;s advice is recommended for: {lawyerFlags.map((f) => f.label).join(', ')}.
+          </span>{' '}
+          You can keep going here — free or low-cost help:{' '}
+          <a
+            href="https://www.lawhelp.org/find-help"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold underline hover:text-amber-700"
+          >
+            LawHelp.org
+          </a>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -626,6 +690,14 @@ const EditorView = ({ isNew = false, onBack }) => {
             ? 'divorce_package'
             : 'single_affidavit'
         }
+      />
+
+      {/* Review gate: verify statements before the sworn document downloads */}
+      <ReviewGate
+        isOpen={isReviewGateOpen}
+        affidavitData={currentDocument}
+        onConfirm={handleReviewConfirm}
+        onCancel={() => setIsReviewGateOpen(false)}
       />
     </div>
   );

@@ -20,8 +20,10 @@
 
 const logger = require('../../utils/logger');
 const { DEFAULT_LLM_MODEL } = require('../llmConfig');
-const { organizeFacts } = require('./FactOrganizer');
+const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
+const { mergeChildren, removeChildrenByName, summarizeChildren, hasMinors } = require('../../utils/childrenMerge');
+const { mergeLabeledAmounts, totalOf } = require('../../utils/labeledAmounts');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -72,6 +74,7 @@ function buildPhaseTool(stateCode) {
           children_confirmed: { type: 'boolean', description: 'true = section complete (no minor children or data collected)' },
           children: {
             type: 'array',
+            description: 'Children mentioned in THIS message only. Entries are MERGED into the already-collected list by name — previously recorded children are never removed by this field, so do not re-send them. To correct a child, re-send that child with the same name and the corrected details.',
             items: {
               type: 'object',
               properties: {
@@ -81,11 +84,27 @@ function buildPhaseTool(stateCode) {
               }
             }
           },
+          remove_children: {
+            type: 'array',
+            description: 'Names of previously recorded children to remove, ONLY when the user says a recorded child should not be on the record.',
+            items: { type: 'string' }
+          },
           custody_arrangement: { type: 'string' },
+          primary_custodian: { type: 'string', description: "Who has primary physical custody: 'petitioner', 'respondent', or the parent's name" },
+          parent_time_plan: { type: 'string', description: "How the non-custodial parent's time is set: 'statutory_minimum' (the state's standard schedule), 'expanded' (the optional expanded statutory schedule), 'equal' (50/50), or 'custom'. Extract ONLY the user's explicit choice." },
+          parent_time_details: { type: 'string', description: "The custom schedule in the user's words, ONLY when parent_time_plan is 'custom'." },
+          child_support_amount: { type: 'number', description: 'Monthly child support amount in dollars, if agreed or known' },
+          child_support_payor: { type: 'string', description: "Who pays child support: 'petitioner' or 'respondent'" },
 
           // ── PROPERTY ──
           property_confirmed: { type: 'boolean' },
           property_agreement: { type: 'string', description: 'agreed | contested' },
+          has_property: { type: 'boolean', description: 'true if the parties accumulated community/marital property during the marriage, false if none' },
+          has_debts:    { type: 'boolean', description: 'true if the parties accumulated community/marital debts during the marriage, false if none' },
+          petitioner_property: { type: 'string', description: "Assets the petitioner keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the petitioner." },
+          respondent_property: { type: 'string', description: "Assets the respondent keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the respondent." },
+          petitioner_debts: { type: 'string', description: "Debts the petitioner takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the petitioner." },
+          respondent_debts: { type: 'string', description: "Debts the respondent takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the respondent." },
 
           // ── SPOUSAL SUPPORT ──
           spousal_support_confirmed: { type: 'boolean' },
@@ -103,6 +122,31 @@ function buildPhaseTool(stateCode) {
           indigency_requested: { type: 'boolean' },
           monthly_income:      { type: 'number' },
           monthly_expenses:    { type: 'number' },
+          income_breakdown: {
+            type: 'array',
+            description: 'Itemized monthly income mentioned in THIS message. Entries MERGE into the already-collected list by label — never re-send prior items. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
+            items: {
+              type: 'object',
+              properties: {
+                label:  { type: 'string' },
+                amount: { type: 'number', description: 'Dollars per month' },
+                person: { type: 'string', description: 'petitioner | respondent | joint | other' }
+              },
+              required: ['label', 'amount']
+            }
+          },
+          expense_breakdown: {
+            type: 'array',
+            description: 'Itemized monthly expenses mentioned in THIS message. Entries MERGE by label — never re-send prior items. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
+            items: {
+              type: 'object',
+              properties: {
+                label:  { type: 'string' },
+                amount: { type: 'number', description: 'Dollars per month' }
+              },
+              required: ['label', 'amount']
+            }
+          },
           assets_description:  { type: 'string' },
           dependents_count:    { type: 'number' },
 
@@ -117,6 +161,11 @@ function buildPhaseTool(stateCode) {
 
           // ── MARRIAGE TYPE (Ghana — ordinance/customary/Mohammedan) ──
           marriage_type: { type: 'string', description: 'Type of marriage: ordinance, customary, or mohammedan' },
+
+          // ── FORMER-NAME RESTORATION (any phase) ──
+          restore_previous_name: { type: 'boolean', description: 'true ONLY when the user affirmatively says they (or their spouse) want a former name restored as part of the divorce; false ONLY when they explicitly decline. NEVER suggest, recommend, or imply that anyone should change their name — record this only when the user raises it themselves.' },
+          previous_name: { type: 'string', description: 'The exact former name to be restored, in the user\'s words, ONLY when the user affirmatively provided it. Never guess, propose, or construct a name (e.g., never assume a maiden name).' },
+          name_change_party: { type: 'string', description: "Whose former name is restored: 'petitioner' or 'respondent'. Record ONLY when the user stated whose name it is; if unstated, ask instead of assuming." },
 
           // ── REVIEW ──
           user_confirmed_review: { type: 'boolean' },
@@ -160,8 +209,19 @@ const FIELD_MAP = {
   children_confirmed:          'childrenConfirmed',
   children:                    'children',
   custody_arrangement:         'custodyArrangement',
+  primary_custodian:           'primaryCustodian',
+  parent_time_plan:            'parentTimePlan',
+  parent_time_details:         'parentTimeDetails',
+  child_support_amount:        'childSupportAmount',
+  child_support_payor:         'childSupportPayor',
   property_confirmed:          'propertyConfirmed',
   property_agreement:          'propertyAgreement',
+  has_property:                'hasProperty',
+  has_debts:                   'hasDebts',
+  petitioner_property:         'petitionerProperty',
+  respondent_property:         'respondentProperty',
+  petitioner_debts:            'petitionerDebts',
+  respondent_debts:            'respondentDebts',
   spousal_support_confirmed:   'spousalSupportConfirmed',
   spousal_support_requested:   'spousalSupportRequested',
   support_amount:              'supportAmount',
@@ -173,6 +233,8 @@ const FIELD_MAP = {
   indigency_requested:         'indigencyRequested',
   monthly_income:              'monthlyIncome',
   monthly_expenses:            'monthlyExpenses',
+  income_breakdown:            'incomeBreakdown',
+  expense_breakdown:           'expenseBreakdown',
   assets_description:          'assetsDescription',
   dependents_count:            'dependentsCount',
   military_status_confirmed:   'militaryStatusConfirmed',
@@ -182,6 +244,9 @@ const FIELD_MAP = {
   user_confirmed_review:       'userConfirmedReview',
   reconciliation_acknowledged: 'reconciliationAcknowledged',
   marriage_type:               'marriageType',
+  restore_previous_name:       'restorePreviousName',
+  previous_name:               'previousName',
+  name_change_party:           'nameChangeParty',
   // TX legacy compat
   residency_tx_months:         'residencyStateMonths',
 };
@@ -210,6 +275,9 @@ CONVERSATION RULES (you MUST follow these strictly):
 2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
 3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
 4. Never repeat information the user already provided.
+5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
+6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
+7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -292,12 +360,11 @@ class BaseDivorceOrchestrator {
 
     const updatedData = this._applyFieldUpdates(divorceData, fieldUpdates);
 
-    const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase);
+    const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase, message);
     if (newFacts.length > 0) {
-      updatedData.facts = [...(updatedData.facts || []), ...newFacts];
-    }
-    if (updatedData.facts?.length > 0) {
-      updatedData.facts = organizeFacts(updatedData.facts);
+      // Upsert only — never re-sort. A wholesale organizeFacts() here would
+      // silently undo the user's manual fact ordering on every chat turn.
+      updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
     if (phase_complete) {
@@ -424,9 +491,12 @@ class BaseDivorceOrchestrator {
     if (d.county)               items.push(`${locationLabel}: ${d.county}`);
     if (d.marriageDate)         items.push(`Marriage date: ${d.marriageDate}`);
     if (d.groundsForDivorce)    items.push(`Grounds: ${d.groundsForDivorce}`);
-    if (typeof d.hasMinorChildren === 'boolean') {
+    if (Array.isArray(d.children) && d.children.length > 0) {
+      items.push(`Children recorded (${d.children.length}):\n${summarizeChildren(d.children)}`);
+    } else if (typeof d.hasMinorChildren === 'boolean') {
       items.push(`Minor children: ${d.hasMinorChildren ? 'yes' : 'no'}`);
     }
+    if (d.custodyArrangement)   items.push(`Custody arrangement: ${d.custodyArrangement}`);
     if (d.serviceMethod)        items.push(`Service method: ${d.serviceMethod}`);
     if (d.facts?.length)        items.push(`Facts documented: ${d.facts.length}`);
     return items.join('\n');
@@ -437,13 +507,57 @@ class BaseDivorceOrchestrator {
 
     for (const [snakeKey, camelKey] of Object.entries(FIELD_MAP)) {
       if (fields[snakeKey] !== undefined && fields[snakeKey] !== null && fields[snakeKey] !== '') {
-        updated[camelKey] = fields[snakeKey];
+        // Structured lists accumulate across turns — the LLM usually emits
+        // only the entry under discussion, so assignment would drop the rest.
+        if (snakeKey === 'children') {
+          updated.children = mergeChildren(divorceData.children, fields.children);
+        } else if (snakeKey === 'income_breakdown' || snakeKey === 'expense_breakdown') {
+          updated[camelKey] = mergeLabeledAmounts(divorceData[camelKey], fields[snakeKey]);
+        } else if (
+          snakeKey === 'petitioner_property' || snakeKey === 'respondent_property' ||
+          snakeKey === 'petitioner_debts' || snakeKey === 'respondent_debts'
+        ) {
+          // The tool collects these as a comma-separated description, but
+          // BaseDivorceDecreeTemplate iterates each of them (.forEach) to
+          // print one line item per asset/debt — store them as arrays.
+          updated[camelKey] = String(fields[snakeKey])
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        } else {
+          updated[camelKey] = fields[snakeKey];
+        }
       }
+    }
+
+    // Itemized money is the source of truth for the totals once present.
+    if (Array.isArray(updated.incomeBreakdown) && updated.incomeBreakdown.length > 0) {
+      updated.monthlyIncome = totalOf(updated.incomeBreakdown);
+    }
+    if (Array.isArray(updated.expenseBreakdown) && updated.expenseBreakdown.length > 0) {
+      updated.monthlyExpenses = totalOf(updated.expenseBreakdown);
+    }
+
+    if (Array.isArray(fields.remove_children) && fields.remove_children.length > 0) {
+      updated.children = removeChildrenByName(updated.children, fields.remove_children);
+    }
+    // Re-derive only on turns that touched the children list, from actual
+    // ages — adult children must not flip the minor-children flag (it gates
+    // custody/support document selection), and an explicit "no minors"
+    // answer must not be overwritten on unrelated turns.
+    if (fields.children !== undefined || fields.remove_children !== undefined) {
+      updated.hasMinorChildren = hasMinors(updated.children);
     }
 
     // Derive full names for template compatibility
     if (updated.petitionerFirstName || updated.petitionerLastName) {
       updated.petitionerName = [updated.petitionerFirstName, updated.petitionerLastName].filter(Boolean).join(' ');
+      // The petitioner IS the affiant on a divorce filing — the requirements
+      // checker, document titles, and PDF filenames all read affiantName
+      // (live E2E showed "Name provided" unchecked mid-interview without it).
+      if (!updated.affiantName) {
+        updated.affiantName = updated.petitionerName;
+      }
     }
     if (updated.respondentFirstName || updated.respondentLastName) {
       updated.respondentName = [updated.respondentFirstName, updated.respondentLastName].filter(Boolean).join(' ');
@@ -476,6 +590,25 @@ class BaseDivorceOrchestrator {
     } else if (updated.spousalSupportRequested === false) {
       updated.spousalSupportWaived = true;
     }
+    // BaseDivorcePetitionTemplate gates the alimony relief item on
+    // requestSpousalSupport — without this alias a user who asked for
+    // spousal maintenance never gets it in the petition's prayer.
+    if (updated.spousalSupportRequested !== undefined && updated.requestSpousalSupport === undefined) {
+      updated.requestSpousalSupport = updated.spousalSupportRequested;
+    }
+    // BaseDivorceDecreeTemplate prints spousalSupportPayor / spousalSupportPayee
+    // verbatim in the maintenance order. The interview never asks who pays whom:
+    // the petitioner is the one who requests support (spousal_support_requested),
+    // so the petitioner is the payee and the respondent the payor. Derive both
+    // only when support is awarded and they are not already set.
+    if (updated.spousalSupportRequested === true) {
+      if (!updated.spousalSupportPayee && updated.petitionerName) {
+        updated.spousalSupportPayee = updated.petitionerName;
+      }
+      if (!updated.spousalSupportPayor && updated.respondentName) {
+        updated.spousalSupportPayor = updated.respondentName;
+      }
+    }
 
     // Derive custodyType from custodyArrangement for decree template compatibility.
     // BaseDivorceDecreeTemplate (and all state subclasses) gate joint-vs-sole custody
@@ -485,11 +618,60 @@ class BaseDivorceOrchestrator {
       updated.custodyType = updated.custodyArrangement;
     }
 
+    // The decree templates print these fields verbatim, so resolve
+    // party-role answers ('petitioner' / 'respondent') to the actual names.
+    const roleToName = (value) => {
+      const s = String(value || '').trim();
+      const role = s.toLowerCase();
+      // Fall back to the capitalized role word — decrees print this field
+      // verbatim, and a lowercase 'petitioner' mid-sentence reads broken.
+      if (role === 'petitioner' || role === 'plaintiff') {
+        return updated.petitionerName || (s.charAt(0).toUpperCase() + role.slice(1));
+      }
+      if (role === 'respondent' || role === 'defendant') {
+        return updated.respondentName || (s.charAt(0).toUpperCase() + role.slice(1));
+      }
+      return s;
+    };
+    if (updated.primaryCustodian) {
+      updated.primaryCustodian = roleToName(updated.primaryCustodian);
+    }
+    if (updated.childSupportPayor) {
+      const role = String(updated.childSupportPayor).trim().toLowerCase();
+      updated.childSupportObligor = roleToName(updated.childSupportPayor);
+      if (role === 'petitioner' && updated.respondentName) {
+        updated.childSupportObligee = updated.respondentName;
+      } else if (role === 'respondent' && updated.petitionerName) {
+        updated.childSupportObligee = updated.petitionerName;
+      }
+    }
+
+    // Derive the former-name-restoration gate the templates read.
+    // The petition relief items and the decree's RESTORATION OF NAME section
+    // both gate on divorceData.requestNameChange && divorceData.previousName;
+    // the interview stores restorePreviousName. Mirror it every turn so a
+    // user who changes their mind ("actually, keep my married name") flips
+    // the gate off again instead of freezing the first answer.
+    if (updated.restorePreviousName !== undefined) {
+      updated.requestNameChange = updated.restorePreviousName;
+    }
+    // The decree prints nameChangeParty verbatim as WHOSE name is restored
+    // (falling back to petitionerName) — resolve a party-role answer to the
+    // actual name, same as primaryCustodian above.
+    if (updated.nameChangeParty) {
+      updated.nameChangeParty = roleToName(updated.nameChangeParty);
+    }
+
     return updated;
   }
 
-  _buildFacts(extractedFacts, _fieldUpdates, currentPhase) {
+  _buildFacts(extractedFacts, _fieldUpdates, currentPhase, sourceMessage) {
     const defaultCategory = PHASE_CATEGORY[currentPhase] || 'general';
+    // Provenance: keep the user's own words so the review UI can show
+    // exactly where each sworn statement came from.
+    const sourceQuote = typeof sourceMessage === 'string'
+      ? sourceMessage.trim().slice(0, 280)
+      : '';
     return extractedFacts.map(f => ({
       id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       content:     f.content,
@@ -498,6 +680,7 @@ class BaseDivorceOrchestrator {
       type:        'fact',
       confidence:  0.9,
       severity:    'success',
+      sourceQuote,
       timestamp:   new Date().toISOString()
     }));
   }

@@ -9,6 +9,7 @@ import {
   LAUNCH_DISCOUNT_PCT,
   LAUNCH_LABEL,
 } from '@/lib/pricing';
+import { paymentsEnabled } from '@/lib/api/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // reads request-bound headers/cookies
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     success: true,
     locale,
+    paymentsEnabled: paymentsEnabled(),
     launch: {
       active: LAUNCH_PRICING_ACTIVE,
       discountPct: LAUNCH_PRICING_ACTIVE ? LAUNCH_DISCOUNT_PCT : 0,

@@ -15,7 +15,16 @@ const config = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@auth0/nextjs-auth0/server$': '<rootDir>/test-mocks/auth0-server.ts',
+    '^@auth0/nextjs-auth0/client$': '<rootDir>/test-mocks/auth0-client.tsx',
   },
+  // file-type 22 and its tokenizer stack are ESM-only. Let next/jest's SWC
+  // transformer compile those packages so upload tests exercise the real
+  // magic-byte parser rather than a permissive test double.
+  // Prevent Jest's haste map from crawling Next's standalone output. The
+  // copied package.json there has the same package name as the repository
+  // root and otherwise produces a module naming collision after a build.
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
@@ -37,4 +46,18 @@ const config = {
   coveragePathIgnorePatterns: ['/node_modules/', '/.next/', '/client/', '/documents/'],
 };
 
-module.exports = createJestConfig(config);
+const resolvedConfig = createJestConfig(config);
+
+// next/jest prepends its own node_modules ignore rule after custom settings,
+// which would still win for ESM-only packages. Replace the resolved list so
+// SWC receives file-type's complete tokenizer graph on both Windows and Unix.
+module.exports = async () => {
+  const nextConfig = await resolvedConfig();
+  return {
+    ...nextConfig,
+    transformIgnorePatterns: [
+      '[\\\\/]node_modules[\\\\/](?!(file-type|strtok3|token-types|uint8array-extras|@tokenizer|@borewit)[\\\\/])',
+      '^.+\\.module\\.(css|sass|scss)$',
+    ],
+  };
+};

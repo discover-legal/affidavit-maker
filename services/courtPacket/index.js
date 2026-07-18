@@ -439,6 +439,11 @@ async function assemblePacket(opts) {
       try {
         srcDoc = await PDFDocument.load(item.buffer);
         contentPages = srcDoc.getPageCount();
+        if (contentPages < 1 || contentPages > 500) {
+          kind = 'placeholder';
+          srcDoc = null;
+          contentPages = 1;
+        }
       } catch (err) {
         // Corrupt/encrypted PDF — degrade to the placeholder page.
         kind = 'placeholder';
@@ -499,7 +504,12 @@ async function assemblePacket(opts) {
   for (const exhibit of exhibits) {
     drawSeparatorPage(out, fonts, exhibit);
     if (exhibit.kind === 'pdf' && exhibit.srcDoc) {
-      const copied = await out.copyPages(exhibit.srcDoc, exhibit.srcDoc.getPageIndices());
+      const pageIndices = exhibit.srcDoc.getPageIndices();
+      if (pageIndices.length < 1 || pageIndices.length > 500) {
+        drawPlaceholderPage(out, fonts, exhibit);
+        continue;
+      }
+      const copied = await out.copyPages(exhibit.srcDoc, pageIndices);
       for (const page of copied) out.addPage(page);
     } else if (exhibit.kind === 'png' || exhibit.kind === 'jpg') {
       try {

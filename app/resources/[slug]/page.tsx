@@ -115,10 +115,12 @@ export default function ArticlePage({ params }: ArticlePageProps) {
   }).slice(0, 3);
 
   // Replace #cta links with internal navigation to home
-  const processedContent = article.content.replace(
-    /\[([^\]]+)\]\(#cta\)/g,
-    '**[Get Started Now →](/)**',
-  );
+  const processedContent = article.content
+    .replace(/^\s*#\s+.*\r?\n+/, '')
+    .replace(
+      /\[([^\]]+)\]\(#cta\)/g,
+      '**[Get Started Now →](/api/auth/login?screen_hint=signup)**',
+    );
 
   const structuredData = buildStructuredData(article);
 
@@ -144,7 +146,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
               <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
                 <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                 <div className="text-left">
-                  <h1 className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</h1>
+                  <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
                   <p className="text-xs text-gray-500 hidden sm:block">
                     AI-Powered Legal Documents
                   </p>
@@ -190,7 +192,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
               Save time and money with our AI-powered platform. Professional documents in minutes.
             </p>
             <Link
-              href="/"
+              href="/api/auth/login?screen_hint=signup"
               className="inline-flex items-center px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
             >
               Get Started Now

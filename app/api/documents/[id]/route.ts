@@ -3,7 +3,6 @@ import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
-  AuthorizationError,
   NotFoundError,
   ValidationError,
   toErrorResponse,
@@ -76,16 +75,25 @@ export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
     }
 
     const id = parseDocumentId(params);
-    // Single DELETE with `RETURNING id` — if the row didn't belong to us, the
-    // affected count is zero and we 404. No probe oracle.
+    const owned = await query<{ id: number }>(
+      'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
+      [id, user.id],
+    );
+    if (owned.rows.length === 0) throw new NotFoundError('Document not found');
+    // Remove sensitive files while the owned row still exists, so a failed
+    // cleanup remains retryable and can never be orphaned by a committed DB
+    // deletion. A later DB failure may require re-uploading evidence, but it
+    // does not leave undeletable private files behind.
+    const evidenceStorage = require('@/services/evidenceStorage') as {
+      deleteDocumentEvidence: (userId: number, documentId: number) => Promise<unknown>;
+    };
+    await evidenceStorage.deleteDocumentEvidence(user.id, id);
+
     const deleted = await query<{ id: number }>(
       'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
       [id, user.id],
     );
     if (deleted.rowCount === 0) throw new NotFoundError('Document not found');
-    // Suppress unused import warning for AuthorizationError; left in scope
-    // for symmetry with the other handlers in this folder.
-    void AuthorizationError;
     return NextResponse.json({ success: true, deleted: id });
   } catch (err) {
     return toErrorResponse(err);

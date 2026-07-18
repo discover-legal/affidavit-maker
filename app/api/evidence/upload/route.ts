@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { NextRequest, NextResponse } from 'next/server';
+import { fileTypeFromBuffer } from 'file-type';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
@@ -20,8 +21,6 @@ const ALLOWED_MIMES = new Set([
   'application/pdf',
   'image/jpeg',
   'image/png',
-  'image/gif',
-  'image/webp',
 ]);
 
 const FILENAME_ALLOWED = /^[A-Za-z0-9._\- ()]+$/;
@@ -133,13 +132,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Sniff actual content via magic bytes. file-type@16 ships fromBuffer.
-    const FileType = require('file-type') as {
-      fromBuffer: (
-        buf: Buffer,
-      ) => Promise<{ mime: string; ext: string } | undefined>;
-    };
-    const detected = await FileType.fromBuffer(buffer);
+    // Sniff actual content via magic bytes; never trust the browser MIME.
+    const detected = await fileTypeFromBuffer(buffer);
     if (!detected || !ALLOWED_MIMES.has(detected.mime)) {
       logger.warn('evidence_upload_rejected_type', {
         userId: user.id,
@@ -148,7 +142,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         detectedMime: detected?.mime ?? null,
       });
       throw new ValidationError(
-        'Unsupported file type. Allowed: PDF, JPEG, PNG, GIF, WEBP.',
+        'Unsupported file type. Allowed: PDF, JPEG, PNG.',
       );
     }
 
@@ -220,10 +214,6 @@ function mimeToExt(mime: string): string {
       return '.jpg';
     case 'image/png':
       return '.png';
-    case 'image/gif':
-      return '.gif';
-    case 'image/webp':
-      return '.webp';
     default:
       return '';
   }

@@ -1,11 +1,11 @@
-import { withPageAuthRequired } from '@auth0/nextjs-auth0';
 import UserDashboardClient from '@/components/app/UserDashboardClient';
+import { requirePageAuth } from '@/lib/page-auth';
 
 export const metadata = { title: 'Dashboard' };
 
-export default withPageAuthRequired(
-  async function DashboardPage() {
-    return <UserDashboardClient />;
-  },
-  { returnTo: '/dashboard' },
-);
+async function DashboardPage() {
+  await requirePageAuth('/dashboard');
+  return <UserDashboardClient />;
+}
+
+export default DashboardPage;

@@ -1,14 +1,18 @@
 'use client';
 
-import { UserProvider } from '@auth0/nextjs-auth0/client';
-import type { UserProfile } from '@auth0/nextjs-auth0/client';
+import { Auth0Provider } from '@auth0/nextjs-auth0/client';
+import type { User } from '@auth0/nextjs-auth0/types';
 
 export default function Providers({
   children,
   user,
 }: {
   children: React.ReactNode;
-  user?: UserProfile;
+  user?: User;
 }) {
-  return <UserProvider user={user}>{children}</UserProvider>;
+  return (
+    <Auth0Provider user={user} profileRoute="/api/auth/me">
+      {children}
+    </Auth0Provider>
+  );
 }

@@ -72,38 +72,36 @@ export async function verifySignature(req: NextRequest): Promise<VerifyResult> {
   return { ok: true, body };
 }
 
-export async function handleUserUpsert(user: Auth0User): Promise<NextResponse> {
-  const existing = await query<{ id: string }>(
-    'SELECT id FROM users WHERE auth0_id = $1',
-    [user.user_id],
-  );
-
+export async function handleUserUpsert(
+  user: Auth0User,
+  eventTime: Date,
+): Promise<NextResponse> {
   const now = new Date();
   const displayName = user.name ?? user.nickname ?? user.email;
   const verified = Boolean(user.email_verified);
+  const result = await query<{ id: string }>(
+    `INSERT INTO users
+       (auth0_id, email, name, email_verified, created_at, updated_at, last_login, auth0_updated_at)
+     VALUES ($1, $2, $3, $4, $5, $5, $5, $6)
+     ON CONFLICT (auth0_id) DO UPDATE
+       SET email = EXCLUDED.email,
+           name = EXCLUDED.name,
+           email_verified = EXCLUDED.email_verified,
+           updated_at = EXCLUDED.updated_at,
+           auth0_updated_at = EXCLUDED.auth0_updated_at
+       WHERE users.auth0_updated_at IS NULL
+          OR users.auth0_updated_at < EXCLUDED.auth0_updated_at
+     RETURNING id`,
+    [user.user_id, user.email, displayName, verified, now, eventTime],
+  );
 
-  if (existing.rows.length === 0) {
-    await query(
-      `INSERT INTO users (auth0_id, email, name, email_verified, created_at, updated_at, last_login)
-       VALUES ($1, $2, $3, $4, $5, $5, $5)`,
-      [user.user_id, user.email, displayName, verified, now],
-    );
-  } else {
-    await query(
-      `UPDATE users
-         SET email = $1,
-             name = $2,
-             email_verified = $3,
-             updated_at = $4
-       WHERE auth0_id = $5`,
-      [user.email, displayName, verified, now, user.user_id],
-    );
-  }
-
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, ignored: result.rowCount === 0 });
 }
 
-export async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> {
+export async function handleEmailUpdate(
+  user: Auth0User,
+  eventTime: Date,
+): Promise<NextResponse> {
   if (!user.email) {
     return NextResponse.json(
       { success: false, error: 'Invalid webhook payload' },
@@ -115,13 +113,15 @@ export async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> 
     `UPDATE users
         SET email = $1,
             email_verified = $2,
-            updated_at = $3
-      WHERE auth0_id = $4`,
-    [user.email, Boolean(user.email_verified), new Date(), user.user_id],
+            updated_at = $3,
+            auth0_updated_at = $4
+      WHERE auth0_id = $5
+        AND (auth0_updated_at IS NULL OR auth0_updated_at < $4)`,
+    [user.email, Boolean(user.email_verified), new Date(), eventTime, user.user_id],
   );
 
   if (result.rowCount === 0) {
-    logger.warn('auth0_webhook_email_update_unknown_user', { auth0Id: user.user_id });
+    logger.info('auth0_webhook_email_update_ignored', { auth0Id: user.user_id });
   }
   return NextResponse.json({ success: true });
 }
@@ -133,7 +133,7 @@ export async function handleEmailUpdate(user: Auth0User): Promise<NextResponse> 
  */
 export async function processAuth0Webhook(
   req: NextRequest,
-  handler: (user: Auth0User) => Promise<NextResponse>,
+  handler: (user: Auth0User, eventTime: Date) => Promise<NextResponse>,
 ): Promise<NextResponse> {
   // Per-IP rate limit on the webhook surface. HMAC verification is the
   // primary control — but if AUTH0_WEBHOOK_SECRET ever leaks we want a
@@ -172,8 +172,28 @@ export async function processAuth0Webhook(
     );
   }
 
+  const eventMs = typeof payload.updateTime === 'string' ? Date.parse(payload.updateTime) : NaN;
+  if (!Number.isFinite(eventMs)) {
+    return NextResponse.json(
+      { success: false, error: 'Webhook updateTime is required' },
+      { status: 400 },
+    );
+  }
+  const now = Date.now();
+  if (eventMs > now + 5 * 60 * 1000) {
+    return NextResponse.json(
+      { success: false, error: 'Webhook updateTime is in the future' },
+      { status: 400 },
+    );
+  }
+  // Reject captured pre-deployment payloads while allowing ordinary Auth0
+  // retries. Return 200 so an old signed delivery is not retried forever.
+  if (eventMs < now - 24 * 60 * 60 * 1000) {
+    return NextResponse.json({ success: true, ignored: true, reason: 'stale_event' });
+  }
+
   try {
-    return await withRLSBypass(() => handler(user));
+    return await withRLSBypass(() => handler(user, new Date(eventMs)));
   } catch (err) {
     logger.error('auth0_webhook_processing_failed', { error: err });
     return NextResponse.json(

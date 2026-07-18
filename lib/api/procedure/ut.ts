@@ -12,17 +12,17 @@ export const UT_PROCEDURE: StateProcedure = {
   stateCode: 'UT',
   stateName: 'Utah',
 
-  // Utah Code § 30-3-1: the petitioner or respondent must be an actual and
-  // bona fide resident of the state AND of the county where the action is
-  // brought for the 3 months immediately before filing.
+  // Utah Code § 81-4-402(1)(a): the petitioner or respondent must be an
+  // actual and bona fide resident of the county where the action is brought
+  // for at least 90 days before filing.
   residency: {
     months: 3,
     text:
       'Generally, you or your spouse must have been a genuine resident of Utah — and of the county where you file — for at least 3 months right before filing.',
   },
 
-  // Utah Code § 30-3-18: a decree may not be entered until 30 days after
-  // filing; the court may waive the period for extraordinary circumstances.
+  // Utah Code § 81-4-402(3): a decree may not be entered until 30 days after
+  // filing; the court may shorten the period for extraordinary circumstances.
   waitingPeriodDays: 30,
   waitingPeriodText:
     'Utah generally has a 30-day waiting period: a court may not sign the final decree until 30 days after the petition is filed. The court may waive this for extraordinary circumstances.',
@@ -32,20 +32,15 @@ export const UT_PROCEDURE: StateProcedure = {
   // when served inside Utah, and 30 days when served outside Utah.
   answerDeadlineDays: { inState: 21, outOfState: 30 },
 
-  // Utah Code § 30-3-11.3 (divorce orientation) and § 30-3-11.4 (divorce
-  // education course): required for parties with minor children before the
+  // Utah Code § 81-4-105 (divorce orientation) and § 81-9-103 (mandatory
+  // parenting course): required for parties with minor children before the
   // decree may be entered, unless the court excuses attendance.
   educationRequirement:
     'Parents of minor children generally must complete two short courses — the divorce orientation and the divorce education course — before the court will sign the decree. The court may excuse attendance in some situations.',
 
-  // Utah Code § 30-3-39 (mediation in divorce actions): when an answer is
+  // Utah Code § 81-4-403: when contested issues remain after a response is
   // filed, the parties must participate in good faith in at least one
-  // mediation session before trial. Either party may ask the court to excuse
-  // mediation for good cause, and courts routinely do where there are
-  // domestic-violence or other safety concerns.
-  // LEGAL REVIEW: Utah's 2024–25 Title 81 recodification may have moved this
-  // provision (possibly to the § 81-4-403 area). Both cites kept here until
-  // counsel confirms the current section number.
+  // mediation session. A party may be excused for good cause.
   mediation: {
     required: true,
     text:

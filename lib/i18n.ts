@@ -121,6 +121,10 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'edit.title': 'Fix your story',
     'edit.body':
       'Changes here update what the assistant remembers. Existing documents keep their own copy until you continue them in chat.',
+    'edit.role': 'In this case, I am',
+    'edit.roleUnknown': 'Not sure / not set',
+    'edit.rolePetitioner': 'The person who started the case',
+    'edit.roleRespondent': 'The person who received the papers',
     'edit.yourName': 'Your name',
     'edit.spouseName': 'Spouse’s name',
     'edit.marriageDate': 'Marriage date',
@@ -274,6 +278,10 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'edit.title': 'Corrige tu historia',
     'edit.body':
       'Los cambios aquí actualizan lo que el asistente recuerda. Los documentos existentes conservan su propia copia hasta que los continúes en el chat.',
+    'edit.role': 'En este caso, soy',
+    'edit.roleUnknown': 'No estoy seguro / sin indicar',
+    'edit.rolePetitioner': 'La persona que inició el caso',
+    'edit.roleRespondent': 'La persona que recibió los papeles',
     'edit.yourName': 'Tu nombre',
     'edit.spouseName': 'Nombre de tu cónyuge',
     'edit.marriageDate': 'Fecha de matrimonio',

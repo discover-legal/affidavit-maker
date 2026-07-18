@@ -124,7 +124,7 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) 
     }
     if (!evidence.exists) throw new NotFoundError('Evidence file not found');
 
-    const buffer = await fs.readFile(evidence.filepath);
+    const buffer = await fs.readFile(/* turbopackIgnore: true */ evidence.filepath);
     const ext = path.extname(evidence.filepath).toLowerCase();
     const contentType = CONTENT_TYPE_BY_EXT[ext] ?? 'application/octet-stream';
     const sanitized = path.basename(evidence.filepath);

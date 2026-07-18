@@ -49,7 +49,7 @@ class TexasAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {string} Venue text
    */
   generateVenue(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
+    const countyUpper = (county || '[COUNTY]').replace(/\s+COUNTY$/i, '').toUpperCase();
     return `COUNTY OF ${countyUpper}`;
   }
 

@@ -1093,7 +1093,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
-      const { v4: uuidv4 } = require('uuid');
+      const { randomUUID: uuidv4 } = require('node:crypto');
 
       // Convert evidence facts to proper format
       processedFacts = extractedFacts.map(fact => {
@@ -1339,7 +1339,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
-      const { v4: uuidv4 } = require('uuid');
+      const { randomUUID: uuidv4 } = require('node:crypto');
 
       processedFacts = extractedFacts.map(fact => {
         if (fact.is_evidence) {

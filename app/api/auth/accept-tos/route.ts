@@ -6,6 +6,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { ValidationError, toErrorResponse } from '@/lib/api/errors';
 import { logger } from '@/lib/logger';
 import { getClientIp } from '@/lib/util/clientIp';
+import { TOS_VERSION } from '@/lib/content/termsOfService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     const body = bodySchema.parse(await req.json().catch(() => ({})));
-    if (!body.tosVersion) {
-      throw new ValidationError('TOS version is required');
+    if (body.tosVersion !== TOS_VERSION) {
+      throw new ValidationError('The current Terms of Service version must be accepted');
     }
 
     // Use the trusted-edge IP. The leftmost X-Forwarded-For is client-set
@@ -53,7 +54,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
               research_consent_at = CASE WHEN $3 = true THEN NOW() ELSE NULL END,
               updated_at = NOW()
         WHERE id = $4`,
-      [body.tosVersion, ip, body.researchConsent, user.id],
+      [TOS_VERSION, ip, body.researchConsent, user.id],
     );
 
     await query(
@@ -65,12 +66,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
              ip_address = EXCLUDED.ip_address,
              user_agent = EXCLUDED.user_agent,
              accepted_at = NOW()`,
-      [user.id, body.tosVersion, ip, userAgent, body.researchConsent],
+      [user.id, TOS_VERSION, ip, userAgent, body.researchConsent],
     );
 
     logger.info('tos_accepted', {
       userId: user.id,
-      tosVersion: body.tosVersion,
+      tosVersion: TOS_VERSION,
       researchConsent: body.researchConsent,
     });
 
@@ -78,10 +79,10 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       success: true,
       message: 'Terms of Service accepted',
       tosAccepted: true,
-      tosVersion: body.tosVersion,
+      tosVersion: TOS_VERSION,
       researchConsent: body.researchConsent,
     });
   } catch (err) {
     return toErrorResponse(err);
   }
-});
+}, { requireCurrentTos: false });

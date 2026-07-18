@@ -59,6 +59,11 @@ describe('TexasAffidavitTemplate', () => {
       const venue = template.generateVenue('El Paso');
       expect(venue).toBe('COUNTY OF EL PASO');
     });
+
+    it('should not duplicate a County suffix', () => {
+      const venue = template.generateVenue('Travis County');
+      expect(venue).toBe('COUNTY OF TRAVIS');
+    });
   });
 
   describe('generateCaseCaption', () => {
@@ -217,6 +222,19 @@ describe('TexasAffidavitTemplate', () => {
 
       const doc = template.generateDocument(data);
       expect(doc.sections.header).toBe('THE STATE OF TEXAS');
+    });
+
+    it('should use first-person competency language', () => {
+      const data = {
+        affiantName: 'John Doe',
+        state: 'TX',
+        county: 'Travis',
+        facts: ['Fact 1']
+      };
+
+      const doc = template.generateDocument(data);
+      expect(doc.sections.facts.items[0].content).toMatch(/^I am over/);
+      expect(doc.sections.facts.items[0].content).not.toMatch(/^John Doe am/);
     });
 
     it('should include proper venue', () => {

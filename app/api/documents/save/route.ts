@@ -111,7 +111,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       if (existing.rows[0].user_id !== user.id) throw new AuthorizationError('Access denied');
       const updated = await query<Record<string, unknown>>(
         `UPDATE documents
-            SET content = $1, title = $2, template_state = $3, validation_results = $4,
+            SET payment_status = CASE
+                  WHEN payment_status = 'free' THEN 'free'
+                  WHEN content IS DISTINCT FROM $1::jsonb THEN 'unpaid'
+                  ELSE payment_status
+                END,
+                content = $1, title = $2, template_state = $3, validation_results = $4,
                 conversation_history = COALESCE($5::jsonb, conversation_history),
                 updated_at = CURRENT_TIMESTAMP
           WHERE id = $6 AND user_id = $7

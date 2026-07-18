@@ -2,7 +2,7 @@
 # Chromium / Puppeteer (react-snap is gone) — Next handles SSG natively.
 
 # ─── Stage 1: deps + build ────────────────────────────────────────────────────
-FROM node:20-bullseye-slim AS builder
+FROM node:22-bullseye-slim AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ COPY . .
 RUN npm run build
 
 # ─── Stage 2: minimal runtime ─────────────────────────────────────────────────
-FROM node:20-bullseye-slim AS runner
+FROM node:22-bullseye-slim AS runner
 
 WORKDIR /app
 

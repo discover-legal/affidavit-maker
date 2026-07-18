@@ -7,9 +7,6 @@
  * weirdness there is a downstream tripwire.
  */
 
-// We reach into the module's internal validator. The module is small and
-// the predicate has no other public surface; if we ever rearrange the
-// file, this test moves with it.
 import * as auth from '@/lib/auth';
 
 // Re-implement the regex here for the cases the validator must accept /
@@ -57,5 +54,19 @@ describe('isPlausibleAuth0Id (indirectly via getCurrentUser format guard)', () =
   // fix breaks silently — this assertion forces the rename to land here.
   it('exports getCurrentUser', () => {
     expect(typeof auth.getCurrentUser).toBe('function');
+  });
+});
+
+describe('E2E authentication bypass guard', () => {
+  it('is disabled unless explicitly requested', () => {
+    expect(auth.isE2EAuthBypassEnabled({ NODE_ENV: 'test' })).toBe(false);
+  });
+
+  it('can be enabled for non-production E2E runs', () => {
+    expect(auth.isE2EAuthBypassEnabled({ NODE_ENV: 'test', E2E_AUTH_BYPASS: '1' })).toBe(true);
+  });
+
+  it('cannot be enabled in production', () => {
+    expect(auth.isE2EAuthBypassEnabled({ NODE_ENV: 'production', E2E_AUTH_BYPASS: '1' })).toBe(false);
   });
 });

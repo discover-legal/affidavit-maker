@@ -62,6 +62,8 @@ const structuredData = {
 };
 
 export default function PrivacyPage() {
+  const policyContent = PRIVACY_POLICY.replace(/^\s*#\s+.*\r?\n+/, '');
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <script
@@ -81,7 +83,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="prose prose-sm sm:prose max-w-none">
-            <MarkdownContent>{PRIVACY_POLICY}</MarkdownContent>
+            <MarkdownContent>{policyContent}</MarkdownContent>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200">

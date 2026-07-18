@@ -11,11 +11,7 @@ import {
 } from '@/lib/pricing';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
-import {
-  AuthorizationError,
-  ValidationError,
-  toErrorResponse,
-} from '@/lib/api/errors';
+import { ValidationError, toErrorResponse } from '@/lib/api/errors';
 
 export const runtime = 'nodejs';
 
@@ -23,6 +19,16 @@ const bodySchema = z.object({
   documentId: z.union([z.string(), z.number()]).optional(),
   documentType: z.enum(['single_affidavit', 'divorce_package', 'all_state_access']),
 });
+
+type PriceKey = 'single_affidavit' | 'divorce_package' | 'all_state_access';
+
+function priceKeyForDocument(documentType: string | null): Exclude<PriceKey, 'all_state_access'> {
+  return ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(
+    (documentType ?? '').toLowerCase(),
+  )
+    ? 'divorce_package'
+    : 'single_affidavit';
+}
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
@@ -56,23 +62,30 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const body = bodySchema.parse(await req.json().catch(() => ({})));
     const documentId = body.documentId ? String(body.documentId) : null;
 
+    let canonicalProduct: PriceKey = body.documentType;
+    if (documentId) {
+      if (!/^[1-9]\d{0,9}$/.test(documentId) || Number(documentId) > 2_147_483_647) {
+        throw new ValidationError('Invalid document ID');
+      }
+      const docRow = await query<{ id: number; document_type: string | null }>(
+        'SELECT id, document_type FROM documents WHERE id = $1 AND user_id = $2',
+        [documentId, user.id],
+      );
+      if (!docRow.rows.length) throw new ValidationError('Document not found');
+      canonicalProduct = priceKeyForDocument(docRow.rows[0].document_type);
+      if (body.documentType !== canonicalProduct) {
+        throw new ValidationError('Payment product does not match the saved document type');
+      }
+    } else if (body.documentType !== 'all_state_access') {
+      throw new ValidationError('documentId is required for document purchases');
+    }
+
     // Server-side pricing — never trust client. Locale is resolved from the
     // host header / `locale` cookie so a request from ca.discover.legal (or
     // a user who flipped the toggle) is billed in CAD.
     const locale = getLocale();
-    const { amount, currency } = getPrice(locale, body.documentType);
-    const original = getOriginalPrice(locale, body.documentType);
-
-    if (documentId) {
-      const docRow = await query<{ id: number; user_id: number }>(
-        'SELECT id, user_id FROM documents WHERE id = $1',
-        [documentId],
-      );
-      if (!docRow.rows.length) throw new ValidationError('Document not found');
-      if (docRow.rows[0].user_id !== user.id) {
-        throw new AuthorizationError('You do not have permission to pay for this document');
-      }
-    }
+    const { amount, currency } = getPrice(locale, canonicalProduct);
+    const original = getOriginalPrice(locale, canonicalProduct);
 
     // Resolve / create Stripe customer.
     const userRow = await query<{ stripe_customer_id: string | null; email: string }>(
@@ -118,7 +131,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       metadata: {
         userId: user.id,
         documentId: documentId ?? 'new',
-        documentType: body.documentType,
+        documentType: canonicalProduct,
         userEmail: email ?? 'unknown',
         locale,
       },
@@ -135,7 +148,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         paymentIntent.id,
         amount,
         currency,
-        JSON.stringify({ documentId, documentType: body.documentType, locale }),
+        JSON.stringify({ documentId, documentType: canonicalProduct, locale }),
       ],
     );
 

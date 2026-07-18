@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { getSession } from '@auth0/nextjs-auth0';
 import Providers from './providers';
+import { getCurrentSession } from '@/lib/auth';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -44,7 +44,7 @@ export default async function RootLayout({
   // with isLoading:true. Without this, the editor's initialization effect fires
   // before auth resolves, marking the document as initialized while
   // isAuthenticated is still false — the document is then never created.
-  const session = await getSession();
+  const session = await getCurrentSession();
 
   return (
     <html lang="en">

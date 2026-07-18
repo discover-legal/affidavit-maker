@@ -68,9 +68,10 @@ try {
   // ── 2. Divorce interview — the children-merge repro, live ────────────────
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  // Hydration race: keep clicking Texas until the chat input materializes.
+  // Hydration race: keep clicking Utah (our primary launch jurisdiction)
+  // until the chat input materializes.
   for (let i = 0; i < 10; i++) {
-    await page.getByRole('button', { name: /Texas/ }).first().click().catch(() => {});
+    await page.getByRole('button', { name: /Utah/ }).first().click().catch(() => {});
     const appeared = await page
       .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
       .then(() => true)
@@ -81,8 +82,8 @@ try {
 
   await sendChat(page, 'Hi, my name is Brandon Pritchard.');
   await sendChat(page, 'My spouse is Alex Pritchard.');
-  await sendChat(page, 'We live in Travis County and have for six years.');
-  await sendChat(page, 'We were married on May 1, 2010 in Austin, and separated November 15, 2024.');
+  await sendChat(page, 'We live in Salt Lake County and have for six years.');
+  await sendChat(page, 'We were married on May 1, 2010 in Salt Lake City, and separated November 15, 2024.');
   await sendChat(page, 'Our oldest is Emma, born April 2, 2015.');
   await sendChat(page, 'Then Liam, born June 15, 2017.');
   await sendChat(page, 'Wait — you forgot our youngest, Ava, born September 9, 2019.');
@@ -131,14 +132,14 @@ try {
   await page
     .getByPlaceholder(/Paste the document/)
     .fill(
-      'CAUSE NO 26-1234. Original Petition for Divorce, filed June 20, 2026 in Travis County. Citation served on Respondent June 28, 2026. Petitioner asks the court to divide the marital estate.',
+      'Case No. 260900001. Petition for Divorce filed June 20, 2026 in Salt Lake County, Utah. The Petition and Summons were served on Respondent June 28, 2026. Petitioner asks the court to divide the marital estate.',
     );
   await page.getByRole('button', { name: 'Read this document' }).click();
   await page.waitForSelector('text=/added .* to your timeline/', { timeout: 30000 });
   await page.waitForTimeout(800);
   const afterIngest = await page.textContent('main');
   ok('ingested events land on the timeline', afterIngest.includes('Filed') && afterIngest.includes('Served'));
-  ok('waiting-period note appears (TX 60 days)', /60-day waiting period/.test(afterIngest));
+  ok('waiting-period note appears (UT 30 days)', /30-day waiting period/.test(afterIngest));
   await page.screenshot({ path: `${SHOTS}/4-profile-ingested.png`, fullPage: true });
 
   // ── 6. Payments kill-switch: generation is free ──────────────────────────
@@ -260,7 +261,7 @@ try {
   const extraDocs = await page.evaluate(async () => {
     const out = {};
     for (const [name, body] of [
-      ['handoff', { kind: 'lawyer_handoff', state: 'TX' }],
+      ['handoff', { kind: 'lawyer_handoff', state: 'UT' }],
       ['feeWaiver', { kind: 'fee_waiver_motion', state: 'UT' }],
       ['worksheet', { kind: 'child_support_worksheet', state: 'UT' }],
     ]) {

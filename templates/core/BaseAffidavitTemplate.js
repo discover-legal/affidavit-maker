@@ -319,10 +319,9 @@ class BaseAffidavitTemplate {
    * @returns {Object} Competency statement fact object
    */
   generateCompetencyStatement(affiantName) {
-    const name = affiantName || 'I';
     return {
       number: 1,
-      content: `${name} am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct.`,
+      content: 'I am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct.',
       type: 'competency'
     };
   }

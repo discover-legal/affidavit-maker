@@ -35,7 +35,12 @@ const { isAllowedJurisdiction } = require('../../config/jurisdictions');
  */
 const nodeRequire = Module.createRequire(__filename);
 
-const TEMPLATES_ROOT = path.resolve(path.join(process.cwd(), 'templates'));
+// Templates are copied explicitly by outputFileTracingIncludes. These runtime
+// discovery paths must not make Turbopack infer that every cwd file is a
+// dependency of every template-using route.
+const TEMPLATES_ROOT = path.resolve(
+  path.join(/* turbopackIgnore: true */ process.cwd(), 'templates'),
+);
 
 /**
  * Resolve a template path and require it ONLY if it lives under the
@@ -43,15 +48,19 @@ const TEMPLATES_ROOT = path.resolve(path.join(process.cwd(), 'templates'));
  * top of the fact that all callers compose paths from `fs.readdir` results.
  */
 function safeTemplateRequire(candidate) {
-  const resolved = path.resolve(candidate);
+  const resolved = path.resolve(/* turbopackIgnore: true */ candidate);
   const rel = path.relative(TEMPLATES_ROOT, resolved);
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel) || rel.includes('\0')) {
     throw new Error(`Template path escapes the templates root: ${candidate}`);
   }
-  return nodeRequire(resolved);
+  return nodeRequire(/* turbopackIgnore: true */ resolved);
 }
 
-const TEMPLATES_CORE_DIR = path.join(process.cwd(), 'templates', 'core');
+const TEMPLATES_CORE_DIR = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  'templates',
+  'core',
+);
 const BaseAffidavitTemplate = safeTemplateRequire(path.join(TEMPLATES_CORE_DIR, 'BaseAffidavitTemplate.js'));
 
 // Lazy load divorce templates to avoid circular dependencies
@@ -147,7 +156,11 @@ class TemplateLoader {
     // .next/server/chunks/<hash>.js, __dirname points into the build
     // output, and silently loading templates from the wrong location
     // is a worse failure mode than a loud "directory not found" error.
-    this.statesDir = path.join(process.cwd(), 'templates', 'states');
+    this.statesDir = path.join(
+      /* turbopackIgnore: true */ process.cwd(),
+      'templates',
+      'states',
+    );
   }
 
   /**
@@ -213,7 +226,10 @@ class TemplateLoader {
       }
 
       // Read all subdirectories in templates/states/
-      const entries = await fs.readdir(this.statesDir, { withFileTypes: true });
+      const entries = await fs.readdir(
+        /* turbopackIgnore: true */ this.statesDir,
+        { withFileTypes: true },
+      );
       const stateDirs = entries.filter(entry => entry.isDirectory());
 
       logger.info(`Found ${stateDirs.length} potential state directories`);
@@ -236,7 +252,7 @@ class TemplateLoader {
         for (const metaPath of [preCheckMeta, preCheckDivorce]) {
           if (await this.fileExists(metaPath)) {
             try {
-              const raw = await fs.readFile(metaPath, 'utf8');
+              const raw = await fs.readFile(/* turbopackIgnore: true */ metaPath, 'utf8');
               const parsed = JSON.parse(raw);
               if (parsed.stateCode) { stateCodeFromMeta = parsed.stateCode; break; }
             } catch { /* ignore parse errors here — caught later */ }
@@ -341,7 +357,10 @@ class TemplateLoader {
     }
 
     // Load and validate metadata
-    const metadataContent = await fs.readFile(metadataPath, 'utf8');
+    const metadataContent = await fs.readFile(
+      /* turbopackIgnore: true */ metadataPath,
+      'utf8',
+    );
     let metadata;
     try {
       metadata = JSON.parse(metadataContent);
@@ -422,7 +441,7 @@ class TemplateLoader {
    */
   async fileExists(filePath) {
     try {
-      await fs.access(filePath);
+      await fs.access(/* turbopackIgnore: true */ filePath);
       return true;
     } catch {
       return false;
@@ -438,7 +457,7 @@ class TemplateLoader {
    */
   async directoryExists(dirPath) {
     try {
-      const stat = await fs.stat(dirPath);
+      const stat = await fs.stat(/* turbopackIgnore: true */ dirPath);
       return stat.isDirectory();
     } catch {
       return false;

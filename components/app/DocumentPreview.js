@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
 import { makeSectionPrefixer } from '@/utils/sectionNumbering';
+import { isEvidence } from '@/lib/utils/factNormalizer';
 
 // Metadata for all divorce sub-document tabs across all supported states.
 // Orchestrators return `requiredDocuments` — only those keys present here are shown.
@@ -22,8 +23,8 @@ const DIVORCE_DOC_TABS = {
   // ── TX / UT core ──
   divorce_petition:          { label: 'Petition',         icon: ScrollText },
   divorce_decree:            { label: 'Decree',           icon: FileSignature },
-  waiver_of_service:         { label: 'Waiver',           icon: FileText },
-  prove_up_affidavit:        { label: 'Prove-Up',         icon: FileText },
+  waiver_of_service:         { label: 'Service Waiver',   icon: FileText },
+  prove_up_affidavit:        { label: 'Prove-Up Affidavit', icon: FileText },
   cert_last_known_address:   { label: 'Last Address',     icon: FileText },
   military_status_affidavit: { label: 'Military',         icon: FileText },
   indigency_affidavit:       { label: 'Fee Waiver',       icon: FileText },
@@ -605,6 +606,8 @@ const DocumentPreview = () => {
   }, [preview, currentDocument.activeSubDocument, currentDocument.documentType]);
 
   const totalPages = pages.length;
+  const previewFactCount = currentDocument.facts?.filter((fact) => !isEvidence(fact)).length || 0;
+  const previewEvidenceCount = currentDocument.facts?.filter((fact) => isEvidence(fact)).length || 0;
 
   // IntersectionObserver to track which page is visible
   useEffect(() => {
@@ -1241,10 +1244,16 @@ const DocumentPreview = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-sm text-gray-600">
               <span>{totalPages} page{totalPages !== 1 ? 's' : ''}</span>
-              {currentDocument.facts?.length > 0 && (
+              {(previewFactCount > 0 || previewEvidenceCount > 0) && (
                 <>
                   <span>•</span>
-                  <span>{currentDocument.facts.length} fact{currentDocument.facts.length !== 1 ? 's' : ''}</span>
+                  <span>{previewFactCount} fact{previewFactCount !== 1 ? 's' : ''}</span>
+                  {previewEvidenceCount > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>{previewEvidenceCount} exhibit{previewEvidenceCount !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
                 </>
               )}
             </div>

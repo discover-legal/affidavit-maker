@@ -18,7 +18,12 @@ function makeReq(headers: Record<string, string>): Request {
 
 const originalEnv = process.env;
 beforeAll(() => {
-  process.env = { ...originalEnv, NODE_ENV: 'production', TRUSTED_PROXY_HOPS: '1' };
+  process.env = {
+    ...originalEnv,
+    NODE_ENV: 'production',
+    TRUSTED_PROXY_HOPS: '1',
+    TRUSTED_PROXY_PROVIDER: 'render',
+  };
 });
 afterAll(() => {
   process.env = originalEnv;
@@ -53,12 +58,26 @@ describe('getClientIp', () => {
     process.env.TRUSTED_PROXY_HOPS = '1';
   });
 
-  it('honours cf-connecting-ip when present (Cloudflare)', () => {
+  it('ignores spoofable provider headers on the default Render deployment', () => {
+    const req = makeReq({
+      'cf-connecting-ip': '203.0.113.5',
+      'fly-client-ip': '203.0.113.6',
+      'x-forwarded-for': 'attacker, 9.9.9.9',
+    });
+    expect(getClientIp(req)).toBe('9.9.9.9');
+  });
+
+  it('honours the provider header only when that ingress is explicit', () => {
     const req = makeReq({
       'cf-connecting-ip': '203.0.113.5',
       'x-forwarded-for': 'attacker, 9.9.9.9',
     });
-    expect(getClientIp(req)).toBe('203.0.113.5');
+    expect(getClientIp(req, { provider: 'cloudflare' })).toBe('203.0.113.5');
+  });
+
+  it('does not fall back to XFF when a configured provider header is absent', () => {
+    const req = makeReq({ 'x-forwarded-for': 'attacker, 9.9.9.9' });
+    expect(getClientIp(req, { provider: 'cloudflare' })).toBeNull();
   });
 
   it('rejects garbage that does not parse as an IP', () => {

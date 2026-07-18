@@ -18,13 +18,11 @@ DATABASE_URL=postgresql://username:password@localhost:5432/affidavit_db
 DATABASE_POOL_MAX=20
 # Statement-level cap (ms). Defense-in-depth DoS bound.
 DATABASE_STATEMENT_TIMEOUT_MS=30000
-# Paste the Render-supplied CA PEM here (BEGIN CERTIFICATE…END CERTIFICATE)
-# to enable certificate verification on the Postgres TLS connection.
-# Without it: in production we still require TLS but fall back to the
-# container's system trust store. NEVER set DATABASE_SSL_INSECURE=true
-# in production unless you understand the MITM risk.
+# Production fails closed unless one of these out-of-band trust anchors is
+# configured. Prefer the CA PEM; use a SHA-256 leaf fingerprint only for a
+# private/self-signed database whose CA is unavailable.
 # DATABASE_CA_CERT=-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----
-# DATABASE_SSL_INSECURE=false
+# DATABASE_CERT_SHA256=64_HEX_CHARACTERS_WITH_OR_WITHOUT_COLONS
 
 # ===========================
 # EDGE / PROXY CONFIGURATION

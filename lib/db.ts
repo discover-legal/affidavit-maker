@@ -23,18 +23,23 @@ declare global {
 }
 
 /**
- * Capture the server certificate(s) presented by Postgres during the TLS
- * upgrade and return them as a PEM bundle.
+ * Verify the server certificate presented by Postgres against an
+ * operator-supplied SHA-256 fingerprint, then return the certificate chain as
+ * a PEM bundle for the real pg pool.
  *
  * Postgres uses STARTTLS-style negotiation: open a plain TCP socket, send the
  * 8-byte SSLRequest (length=8, code=80877103), wait for a single byte ('S' =
  * accept, 'N' = refuse), then upgrade the socket to TLS. We perform that dance
- * once with `rejectUnauthorized: false` strictly to harvest the certificate,
- * after which the long-lived pool runs with `rejectUnauthorized: true` and
- * `ca` set to the harvested PEM. The exposure window is a single handshake at
- * process start — no user data ever flows over the unverified socket.
+ * once with `rejectUnauthorized: false` only because a private/self-signed
+ * Render certificate cannot be validated against the public CA bundle. No
+ * credentials or application data are sent during this probe. The presented
+ * leaf certificate must match the independently provisioned fingerprint
+ * before it is trusted by the long-lived pool.
  */
-async function captureServerCertPEM(connectionString: string): Promise<string> {
+async function capturePinnedServerCertPEM(
+  connectionString: string,
+  expectedFingerprint: string,
+): Promise<string> {
   const u = new URL(connectionString);
   const host = u.hostname;
   const port = Number(u.port || '5432');
@@ -75,6 +80,13 @@ async function captureServerCertPEM(connectionString: string): Promise<string> {
               cleanup(new Error('Postgres TLS handshake completed but server presented no certificate'));
               return;
             }
+            const actualFingerprint = leaf.fingerprint256.replaceAll(':', '').toUpperCase();
+            if (actualFingerprint !== expectedFingerprint) {
+              cleanup(new Error(
+                `[db] Postgres certificate fingerprint mismatch for ${host}:${port}`,
+              ));
+              return;
+            }
             // Walk the chain (issuerCertificate self-references at the root)
             // and emit each unique cert as PEM. For self-signed certs this is
             // just the one cert, which is exactly what we want to pin.
@@ -89,7 +101,7 @@ async function captureServerCertPEM(connectionString: string): Promise<string> {
               node = node.issuerCertificate;
             }
             try { tlsSock.end(); } catch { /* ignore */ }
-            console.info(`[db] Pinned Postgres server cert (SHA-256 ${leaf.fingerprint256}) for ${host}:${port}`);
+            console.info(`[db] Verified pinned Postgres certificate for ${host}:${port}`);
             resolve(pemChunks.join('\n') + '\n');
           } catch (e) {
             cleanup(e as Error);
@@ -100,18 +112,21 @@ async function captureServerCertPEM(connectionString: string): Promise<string> {
   });
 }
 
-async function resolveSsl(): Promise<PoolConfig['ssl']> {
+export async function resolveDatabaseSsl(): Promise<PoolConfig['ssl']> {
   if (process.env.NODE_ENV !== 'production') return undefined;
 
   // 1. Operator-supplied CA wins — verified chain, no startup handshake needed.
-  const ca = process.env.DATABASE_CA_CERT;
-  if (ca && ca.includes('BEGIN CERTIFICATE')) {
+  const ca = process.env.DATABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (ca) {
+    if (!ca.includes('-----BEGIN CERTIFICATE-----') || !ca.includes('-----END CERTIFICATE-----')) {
+      throw new Error('[db] DATABASE_CA_CERT must contain one or more PEM certificates');
+    }
     return { rejectUnauthorized: true, ca };
   }
 
-  // 2. Otherwise, capture the server's cert at startup and pin it. The
-  //    long-lived pool then runs with rejectUnauthorized:true against the
-  //    pinned PEM, so every real query is on a verified TLS connection.
+  // 2. A fingerprint supplied through deployment configuration is an
+  //    out-of-band trust anchor. The probe certificate is accepted only when
+  //    its SHA-256 digest matches this pin; it is never learned automatically.
   //
   //    `checkServerIdentity` is intentionally a no-op here: Render's managed
   //    Postgres serves a self-signed cert whose SAN typically lists an
@@ -123,10 +138,22 @@ async function resolveSsl(): Promise<PoolConfig['ssl']> {
   //    real server has the private key for. So we trade the (impossible)
   //    hostname check for cert identity, which is strictly stronger for a
   //    single-host pinned connection.
+  const fingerprint = process.env.DATABASE_CERT_SHA256
+    ?.replaceAll(':', '')
+    .trim()
+    .toUpperCase();
+  if (!fingerprint) {
+    throw new Error(
+      '[db] Production requires DATABASE_CA_CERT or DATABASE_CERT_SHA256; refusing unverified database TLS',
+    );
+  }
+  if (!/^[A-F0-9]{64}$/.test(fingerprint)) {
+    throw new Error('[db] DATABASE_CERT_SHA256 must be a 64-character SHA-256 fingerprint');
+  }
   if (!process.env.DATABASE_URL) {
     throw new Error('[db] DATABASE_URL is required in production');
   }
-  const pinned = await captureServerCertPEM(process.env.DATABASE_URL);
+  const pinned = await capturePinnedServerCertPEM(process.env.DATABASE_URL, fingerprint);
   return {
     rejectUnauthorized: true,
     ca: pinned,
@@ -135,7 +162,7 @@ async function resolveSsl(): Promise<PoolConfig['ssl']> {
 }
 
 async function buildPool(): Promise<Pool> {
-  const ssl = await resolveSsl();
+  const ssl = await resolveDatabaseSsl();
   const config: PoolConfig = {
     connectionString: process.env.DATABASE_URL,
     max: Number(process.env.DATABASE_POOL_MAX ?? 20),
@@ -167,8 +194,8 @@ function poolPromise(): Promise<Pool> {
 }
 
 /**
- * Resolves to the initialized singleton Pool. Lazily performs the one-time
- * TLS cert capture on first call.
+ * Resolves to the initialized singleton Pool. In fingerprint mode, lazily
+ * performs the one-time pinned-certificate verification on first call.
  */
 export function getPool(): Promise<Pool> {
   return poolPromise();

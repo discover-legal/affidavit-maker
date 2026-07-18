@@ -42,7 +42,9 @@ import {
   groupFacts,
   moneyLeftover,
   moneySegments,
+  localizeNextStep,
   storyProgress,
+  supportKindVisible,
   waitingPeriodNote,
   type MoneySegment,
   type ProfileChild,
@@ -219,7 +221,21 @@ function LifeTimeline({ profile, lang }: { profile: Record<string, unknown>; lan
         ))}
         <span className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300">▸</span>
       </div>
-      <div className="relative mt-1.5 h-9 text-xs">
+      {/* Absolute labels work on wider paper, but long court-event names can
+          collide on phones. Mobile gets a compact chronological legend. */}
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-xs sm:hidden">
+        {timeline.majors.map((e) => (
+          <span key={e.key} className="min-w-0 border-l-2 border-brand pl-2 leading-tight">
+            <span className="block break-words font-semibold text-gray-700">{e.label}</span>
+            <span className="block text-gray-400">{e.year}</span>
+          </span>
+        ))}
+        <span className="min-w-0 border-l-2 border-gray-200 pl-2 leading-tight">
+          <span className="block font-semibold text-gray-700">{t(lang, 'timeline.today')}</span>
+          <span className="block text-gray-400">{new Date().getFullYear()}</span>
+        </span>
+      </div>
+      <div className="relative mt-1.5 hidden h-9 text-xs sm:block">
         {timeline.majors.map((e) => (
           <span
             key={e.key}
@@ -496,6 +512,7 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
 
       <ol className="mt-4 space-y-2">
         {steps.map((step, i) => {
+          const displayStep = localizeNextStep(step, procedure, profile, perspective, lang);
           const isNext = i === nextIndex;
           return (
             <li
@@ -525,7 +542,7 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
                     step.done ? 'text-gray-400' : 'text-gray-900'
                   }`}
                 >
-                  {step.title}
+                  {displayStep.title}
                   {step.due && !step.done && (
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -538,9 +555,9 @@ function WhatsNext({ profile, lang }: { profile: Record<string, unknown>; lang: 
                     </span>
                   )}
                 </p>
-                {step.detail && (
+                {displayStep.detail && (
                   <p className={`mt-0.5 text-sm ${step.done ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {step.detail}
+                    {displayStep.detail}
                   </p>
                 )}
               </div>
@@ -584,6 +601,7 @@ function PapersPanel({ profile, lang }: { profile: Record<string, unknown>; lang
   const [status, setStatus] = useState<Record<string, DownloadStatus>>({});
 
   const state = typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+  const perspective = detectPerspective(profile);
 
   useEffect(() => {
     setKinds([]);
@@ -644,8 +662,9 @@ function PapersPanel({ profile, lang }: { profile: Record<string, unknown>; lang
   const description = (k: SupportKindMeta) =>
     (lang === 'es' && k.descriptionEs) || k.description || '';
 
-  const handoff = kinds.find((k) => k.key === 'lawyer_handoff');
-  const rows = kinds.filter((k) => k.key !== 'lawyer_handoff');
+  const relevantKinds = kinds.filter((kind) => supportKindVisible(kind.key, perspective, profile));
+  const handoff = relevantKinds.find((k) => k.key === 'lawyer_handoff');
+  const rows = relevantKinds.filter((k) => k.key !== 'lawyer_handoff');
 
   return (
     <section aria-label={t(lang, 'docs.aria')} className="mt-10 font-sans">
@@ -956,10 +975,15 @@ function EditStoryPanel({
 }) {
   const s = (v: unknown) => (typeof v === 'string' ? v : '');
   const initialChildren = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
+  const initialRole = s(profile.role) === 'respondent' ? 'respondent' : s(profile.role) === 'petitioner' ? 'petitioner' : '';
+  const [role, setRole] = useState(initialRole);
   const [name, setName] = useState(
-    s(profile.affiantName) || s(profile.petitionerName),
+    s(profile.affiantName) ||
+      (initialRole === 'respondent' ? s(profile.respondentName) : s(profile.petitionerName)),
   );
-  const [spouse, setSpouse] = useState(s(profile.respondentName));
+  const [spouse, setSpouse] = useState(
+    initialRole === 'respondent' ? s(profile.petitionerName) : s(profile.respondentName),
+  );
   const [marriageDate, setMarriageDate] = useState(s(profile.marriageDate));
   const [separationDate, setSeparationDate] = useState(s(profile.separationDate));
   const [children, setChildren] = useState<ChildDraft[]>(
@@ -979,16 +1003,18 @@ function EditStoryPanel({
     try {
       const [firstName, lastName] = splitName(name);
       const [spouseFirst, spouseLast] = splitName(spouse);
+      const respondent = role === 'respondent';
       const patch: Record<string, unknown> = {
+        role: role || null,
         affiantName: name.trim(),
         firstName,
         lastName,
-        petitionerName: name.trim(),
-        petitionerFirstName: firstName,
-        petitionerLastName: lastName,
-        respondentName: spouse.trim(),
-        respondentFirstName: spouseFirst,
-        respondentLastName: spouseLast,
+        petitionerName: respondent ? spouse.trim() : name.trim(),
+        petitionerFirstName: respondent ? spouseFirst : firstName,
+        petitionerLastName: respondent ? spouseLast : lastName,
+        respondentName: respondent ? name.trim() : spouse.trim(),
+        respondentFirstName: respondent ? firstName : spouseFirst,
+        respondentLastName: respondent ? lastName : spouseLast,
         marriageDate: marriageDate.trim(),
         separationDate: separationDate.trim(),
         children: children
@@ -1018,6 +1044,14 @@ function EditStoryPanel({
       <h3 className="font-semibold text-gray-900">{t(lang, 'edit.title')}</h3>
       <p className="mt-1 text-sm text-gray-500">{t(lang, 'edit.body')}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm sm:col-span-2">
+          <span className="mb-1 block text-gray-600">{t(lang, 'edit.role')}</span>
+          <select className={field} value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="">{t(lang, 'edit.roleUnknown')}</option>
+            <option value="petitioner">{t(lang, 'edit.rolePetitioner')}</option>
+            <option value="respondent">{t(lang, 'edit.roleRespondent')}</option>
+          </select>
+        </label>
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">{t(lang, 'edit.yourName')}</span>
           <input className={field} value={name} onChange={(e) => setName(e.target.value)} />

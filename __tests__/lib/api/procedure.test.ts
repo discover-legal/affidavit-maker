@@ -222,6 +222,12 @@ describe('detectPerspective', () => {
     expect(detectPerspective({
       keyEvents: [{ label: 'You were served with a summons' }],
     })).toBe('respondent');
+    expect(detectPerspective({
+      keyEvents: [{ label: 'Served', source: 'Original petition served on you' }],
+    })).toBe('respondent');
+    expect(detectPerspective({
+      keyEvents: [{ label: 'Served', source: 'Proof of service on respondent' }],
+    })).toBe('petitioner');
   });
 });
 

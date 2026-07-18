@@ -16,10 +16,10 @@ import type { NextRequest } from 'next/server';
  * shape, which made every IP-keyed rate limit trivially bypassable by
  * rotating spoofed prefixes. See SECURITY audit C-3 / H-1 (May 2026).
  *
- * The RIGHTMOST value of XFF, plus a small set of platform-specific headers
- * (`cf-connecting-ip`, `x-real-ip`, `fly-client-ip`, …), are set by the
- * trusted edge and cannot be influenced by the client (because the client's
- * own header is appended *after* whatever value was sent).
+ * The RIGHTMOST value of XFF is used for the default direct-Render
+ * deployment. Platform-specific headers are ignored unless that provider is
+ * explicitly configured; otherwise clients reaching Render directly could
+ * forge them.
  *
  * `TRUSTED_PROXY_HOPS` — how many proxies are between us and the public
  * internet. On Render: 1. If you ever go behind Cloudflare AS WELL, set
@@ -34,6 +34,8 @@ import type { NextRequest } from 'next/server';
 export type ClientIpOptions = {
   /** Override the trusted-hop count (defaults to env var or 1). */
   trustedHops?: number;
+  /** Override the deployment provider (defaults to TRUSTED_PROXY_PROVIDER or render). */
+  provider?: 'render' | 'cloudflare' | 'akamai' | 'fly' | 'generic';
 };
 
 const PRIVATE_RANGES = [
@@ -73,18 +75,32 @@ function resolveTrustedHops(opts?: ClientIpOptions): number {
   return 1;
 }
 
+function resolveProvider(opts?: ClientIpOptions): ClientIpOptions['provider'] {
+  if (opts?.provider) return opts.provider;
+  const configured = process.env.TRUSTED_PROXY_PROVIDER?.toLowerCase();
+  if (
+    configured === 'cloudflare' ||
+    configured === 'akamai' ||
+    configured === 'fly' ||
+    configured === 'generic'
+  ) {
+    return configured;
+  }
+  // Production is deployed directly behind Render. In particular, do not
+  // trust CDN/provider headers by default: a client can send those itself to
+  // a Render origin unless that provider is the configured ingress.
+  return 'render';
+}
+
 /**
  * Get the trusted client IP (or null).
  *
- * Order of trust:
- *   1. `cf-connecting-ip` — set only by Cloudflare's edge, client cannot
- *      forge once they're behind CF.
- *   2. `true-client-ip` — Akamai / Cloudflare Enterprise.
- *   3. `fly-client-ip` — Fly.io.
- *   4. `x-real-ip` — most reverse proxies set this to the immediate peer.
- *   5. The N-th-from-right value of `x-forwarded-for`, where N = trusted
+ * Trust is deployment-specific. Render (the default) uses the N-th-from-right
+ * value of `x-forwarded-for`, where N = trusted
  *      hops. With one hop the rightmost value is the edge's peer (= the
  *      client). With two hops we step in one more, etc.
+ * Platform-specific single-value headers are considered only when
+ * TRUSTED_PROXY_PROVIDER explicitly names that platform.
  *
  * The function refuses values that don't parse as an IP, and refuses
  * RFC1918 / loopback values unless `NODE_ENV !== 'production'` (in
@@ -92,45 +108,55 @@ function resolveTrustedHops(opts?: ClientIpOptions): number {
  */
 export function getClientIp(req: NextRequest | Request, opts?: ClientIpOptions): string | null {
   const headers = 'headers' in req ? req.headers : new Headers();
+  const provider = resolveProvider(opts);
 
-  // 1-3. Single-value platform headers.
-  for (const header of ['cf-connecting-ip', 'true-client-ip', 'fly-client-ip']) {
-    const value = headers.get(header);
+  const providerHeader =
+    provider === 'cloudflare'
+      ? 'cf-connecting-ip'
+      : provider === 'akamai'
+        ? 'true-client-ip'
+        : provider === 'fly'
+          ? 'fly-client-ip'
+          : null;
+  if (providerHeader) {
+    const value = headers.get(providerHeader);
     if (value) {
       const norm = normalize(value);
       if (isLikelyIp(norm)) return norm;
     }
   }
 
-  // 5. XFF with trusted-hop arithmetic. Done BEFORE x-real-ip because some
-  // proxies set x-real-ip to the *original* leftmost XFF value (which is
-  // attacker-controlled). XFF with rightward counting is more defensible.
-  const xff = headers.get('x-forwarded-for');
-  if (xff) {
-    const parts = xff
-      .split(',')
-      .map((p) => normalize(p))
-      .filter((p) => p.length > 0);
-    if (parts.length > 0) {
-      const hops = resolveTrustedHops(opts);
-      // hops=1 → take the last entry (the edge proxy's peer = the client)
-      // hops=2 → take the second-to-last, and so on.
-      const idx = Math.max(0, parts.length - hops);
-      const candidate = parts[idx];
-      if (isLikelyIp(candidate)) {
-        if (process.env.NODE_ENV !== 'production') return candidate;
-        if (!PRIVATE_RANGES.some((r) => r.test(candidate))) return candidate;
+  // Render and generic reverse proxies use XFF with trusted-hop arithmetic.
+  // Do not fall back to XFF for explicitly configured CDN providers: doing so
+  // would silently weaken a missing/stripped provider-header deployment.
+  if (provider === 'render' || provider === 'generic') {
+    const xff = headers.get('x-forwarded-for');
+    if (xff) {
+      const parts = xff
+        .split(',')
+        .map((p) => normalize(p))
+        .filter((p) => p.length > 0);
+      if (parts.length > 0) {
+        const hops = resolveTrustedHops(opts);
+        const idx = Math.max(0, parts.length - hops);
+        const candidate = parts[idx];
+        if (isLikelyIp(candidate)) {
+          if (process.env.NODE_ENV !== 'production') return candidate;
+          if (!PRIVATE_RANGES.some((r) => r.test(candidate))) return candidate;
+        }
       }
     }
   }
 
-  // 4. x-real-ip fallback.
-  const real = headers.get('x-real-ip');
-  if (real) {
-    const norm = normalize(real);
-    if (isLikelyIp(norm)) {
-      if (process.env.NODE_ENV !== 'production') return norm;
-      if (!PRIVATE_RANGES.some((r) => r.test(norm))) return norm;
+  // x-real-ip is accepted only for an explicitly configured generic proxy.
+  if (provider === 'generic') {
+    const value = headers.get('x-real-ip');
+    if (value) {
+      const norm = normalize(value);
+      if (isLikelyIp(norm)) {
+        if (process.env.NODE_ENV !== 'production') return norm;
+        if (!PRIVATE_RANGES.some((r) => r.test(norm))) return norm;
+      }
     }
   }
 

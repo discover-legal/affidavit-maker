@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
-import { getServices } from '@/lib/api/services';
 import { getUserProfile } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
+import supportDocs from '@/services/supportDocs';
+import PDFService from '@/services/pdfService';
 import {
   AppError,
   NotFoundError,
@@ -92,7 +94,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
     }
 
     const state = (req.nextUrl.searchParams.get('state') ?? 'UT').toUpperCase();
-    const { list } = require('@/services/supportDocs') as SupportDocsModule;
+    const { list } = supportDocs as SupportDocsModule;
     return NextResponse.json({
       success: true,
       data: { kinds: list(state) },
@@ -135,7 +137,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const stateCode = body.state.toUpperCase();
     const signatureStyle = body.signatureStyle ?? 'unsworn';
 
-    const { getSupportDoc } = require('@/services/supportDocs') as SupportDocsModule;
+    const { getSupportDoc } = supportDocs as SupportDocsModule;
     const builder = getSupportDoc(stateCode, body.kind);
     if (!builder) {
       throw new ValidationError('Supporting documents are not yet available for this state');
@@ -214,9 +216,11 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     // ── Render via the same pdfService path documents/generate uses ─────
-    const services = await getServices();
-    const PDFService = require('@/services/pdfService');
-    const pdfService = new PDFService({ templateManager: services.templateManager });
+    // Supporting-document builders already return their complete render
+    // structure, so no jurisdiction template manager is needed here. Keeping
+    // this route out of the dynamic service registry also gives Turbopack a
+    // bounded, statically traceable production dependency graph.
+    const pdfService = new PDFService();
 
     let result: PdfServiceResult;
     try {
@@ -241,11 +245,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     pdfFilepath = result.filepath;
 
-    const fs = require('fs') as typeof import('fs');
-    const fileBuffer = await fs.promises.readFile(pdfFilepath);
+    // Runtime-generated file under pdfService's documents directory; it can
+    // never be a build input. Prevent NFT from treating the dynamic filename
+    // as a reason to copy the entire repository into the standalone image.
+    const fileBuffer = await fs.readFile(/* turbopackIgnore: true */ pdfFilepath);
 
     // Cleanup — fire-and-forget, matching documents/generate.
-    fs.promises.unlink(pdfFilepath).catch((cleanupErr: unknown) => {
+    fs.unlink(pdfFilepath).catch((cleanupErr: unknown) => {
       logger.warn('document_support_cleanup_failed', {
         filepath: pdfFilepath,
         error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
@@ -283,8 +289,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   } catch (err) {
     if (pdfFilepath) {
       try {
-        const fs = require('fs') as typeof import('fs');
-        await fs.promises.unlink(pdfFilepath).catch(() => undefined);
+        await fs.unlink(pdfFilepath).catch(() => undefined);
       } catch {
         /* swallow — already in error path */
       }

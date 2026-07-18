@@ -39,9 +39,11 @@ jest.mock('@/lib/api/services', () => ({
 
 const appendKeyEventsMock = jest.fn(async () => {});
 const mergeUserProfileMock = jest.fn(async () => {});
+const updateUserProfileMock = jest.fn(async () => ({}));
 jest.mock('@/lib/api/profile', () => ({
   appendKeyEvents: (...args: unknown[]) => appendKeyEventsMock(...(args as [])),
   mergeUserProfile: (...args: unknown[]) => mergeUserProfileMock(...(args as [])),
+  updateUserProfile: (...args: unknown[]) => updateUserProfileMock(...(args as [])),
 }));
 
 // tesseract.js: never load the real wasm in tests; capture worker lifecycle.
@@ -113,6 +115,36 @@ describe('POST /api/profile/ingest — pasted text (unchanged path)', () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.success).toBe(false);
+  });
+
+  it('records respondent perspective when the user says these are papers they were served', async () => {
+    const res = await post({
+      text: 'ORIGINAL PETITION AND SUMMONS. These papers were delivered on July 10, 2026.',
+      label: 'Papers I was served',
+    });
+
+    expect(res.status).toBe(200);
+    expect(updateUserProfileMock).toHaveBeenCalledWith(7, { role: 'respondent' });
+  });
+
+  it('records respondent perspective from the Spanish served-paper description', async () => {
+    const res = await post({
+      text: 'PETICIÓN DE DIVORCIO Y CITACIÓN. Los documentos fueron entregados el 10 de julio de 2026.',
+      label: 'Papeles que me entregaron',
+    });
+
+    expect(res.status).toBe(200);
+    expect(updateUserProfileMock).toHaveBeenCalledWith(7, { role: 'respondent' });
+  });
+
+  it('does not infer a role from generic service paperwork', async () => {
+    const res = await post({
+      text: 'PROOF OF SERVICE. The summons was delivered to the respondent on July 10, 2026.',
+      label: 'Proof of service',
+    });
+
+    expect(res.status).toBe(200);
+    expect(updateUserProfileMock).not.toHaveBeenCalled();
   });
 });
 

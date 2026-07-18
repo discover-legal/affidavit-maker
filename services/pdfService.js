@@ -159,8 +159,10 @@ class PDFService {
           hasEvidence: Array.isArray(facts) ? facts.some(f => f.type === 'evidence') : false
         });
 
-        if (userId && Array.isArray(facts) && facts.length > 0) {
-          await this.appendExhibits(filepath, facts, state, userId);
+        if (userId && documentId && Array.isArray(facts) && facts.length > 0) {
+          await this.appendExhibits(filepath, facts, state, userId, documentId);
+        } else if (Array.isArray(facts) && facts.some(f => f?.type === 'evidence')) {
+          logger.warn('Skipping exhibits - authenticated user and owned document are required');
         }
       }
 
@@ -1007,13 +1009,42 @@ class PDFService {
   }
 
   /**
+   * Resolve an evidence key only when it belongs to the authenticated user
+   * and the document whose ownership was checked by the route handler.
+   */
+  resolveEvidencePath(fileKey, userId, documentId) {
+    if (typeof fileKey !== 'string' || !/^\d+$/.test(String(userId)) || !/^\d+$/.test(String(documentId))) {
+      throw new Error('Invalid evidence authorization context');
+    }
+
+    const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH
+      || path.join(__dirname, '..', 'documents', 'evidence');
+    const candidate = validatePath(evidenceBasePath, fileKey);
+    const expectedDir = path.resolve(evidenceBasePath, String(userId), String(documentId));
+    const relative = path.relative(expectedDir, candidate);
+
+    if (
+      relative === ''
+      || relative === '.'
+      || relative.startsWith('..')
+      || path.isAbsolute(relative)
+      || relative.includes('\0')
+    ) {
+      throw new Error('Evidence does not belong to the authorized document');
+    }
+
+    return candidate;
+  }
+
+  /**
    * Append exhibits to PDF using pdf-lib
    */
-  async appendExhibits(pdfPath, facts, state, userId) {
+  async appendExhibits(pdfPath, facts, state, userId, documentId) {
     logger.debug('Appending exhibits to PDF', {
       factsCount: facts?.length || 0,
       state,
-      userId
+      userId,
+      documentId
     });
 
     const allEvidenceItems = getEvidenceItems(facts || []);
@@ -1053,6 +1084,7 @@ class PDFService {
       const mainPdf = await PDFLib.load(mainPdfBytes);
 
       // Process each evidence item
+      let totalEvidenceBytes = 0;
       for (const evidence of evidenceItems) {
         const evidenceData = evidence.evidenceData || {};
         const exhibitLabel = evidenceData.exhibitLabel || '?';
@@ -1065,12 +1097,11 @@ class PDFService {
         }
 
         // Construct file path with path traversal protection
-        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'documents', 'evidence');
         let filePath;
         try {
-          filePath = validatePath(evidenceBasePath, fileKey);
+          filePath = this.resolveEvidencePath(fileKey, userId, documentId);
         } catch (pathError) {
-          logger.warn('Skipping exhibit - invalid path', { exhibitLabel });
+          logger.warn('Skipping exhibit - unauthorized or invalid path', { exhibitLabel });
           continue;
         }
 
@@ -1090,6 +1121,24 @@ class PDFService {
           }
           continue;
         }
+
+        const maxFileSize = Math.min(
+          Number(exhibitRules.maxFileSize) || 25 * 1024 * 1024,
+          25 * 1024 * 1024
+        );
+        const maxTotalSize = Math.min(
+          Number(exhibitRules.maxTotalSize) || 100 * 1024 * 1024,
+          100 * 1024 * 1024
+        );
+        if (fileBuffer.length > maxFileSize) {
+          logger.warn('Skipping evidence - file exceeds exhibit size limit', { exhibitLabel });
+          continue;
+        }
+        if (totalEvidenceBytes + fileBuffer.length > maxTotalSize) {
+          logger.warn('Stopping exhibits - total size limit reached', { exhibitLabel });
+          break;
+        }
+        totalEvidenceBytes += fileBuffer.length;
 
         try {
           // Add cover page if required
@@ -1133,7 +1182,15 @@ class PDFService {
           if (isPDF) {
             // Merge PDF
             const exhibitPdf = await PDFLib.load(fileBuffer);
-            const pages = await mainPdf.copyPages(exhibitPdf, exhibitPdf.getPageIndices());
+            const pageIndices = exhibitPdf.getPageIndices();
+            if (pageIndices.length < 1 || pageIndices.length > 500) {
+              logger.warn('Skipping evidence - PDF page count exceeds safe limit', {
+                exhibitLabel,
+                pages: pageIndices.length,
+              });
+              continue;
+            }
+            const pages = await mainPdf.copyPages(exhibitPdf, pageIndices);
             pages.forEach(page => mainPdf.addPage(page));
           } else if (isJPG || isPNG) {
             // Embed image

@@ -148,7 +148,7 @@ export default function ResourcesContent({
             Skip the hassle and create professional legal documents in minutes.
           </p>
           <Link
-            href="/"
+            href="/api/auth/login?screen_hint=signup"
             className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-600 text-base sm:text-lg font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
           >
             Get Started Now

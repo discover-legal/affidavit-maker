@@ -214,6 +214,23 @@ describe('assemblePacket', () => {
     expect(containsText(packet, 'PRINT SEPARATELY')).toBe(true);
   });
 
+  it('substitutes a placeholder for a legacy PDF over the 500-page cap', async () => {
+    const main = await makePdf(1);
+    const oversized = await makePdf(501);
+    const packet = await assemblePacket({
+      mainPdfBuffer: main,
+      mainTitle: 'Doc',
+      evidence: [{
+        label: 'legacy oversized PDF',
+        originalName: 'legacy.pdf',
+        mime: 'application/pdf',
+        buffer: oversized,
+      }],
+    });
+    expect(await pageCount(packet)).toBe(6);
+    expect(containsText(packet, 'PRINT SEPARATELY')).toBe(true);
+  });
+
   it('letters exhibits past Z (27 exhibits reaches AA)', async () => {
     const main = await makePdf(1);
     const evidence = [];

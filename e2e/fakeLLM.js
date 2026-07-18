@@ -35,21 +35,21 @@ function scriptTurn(userText) {
   }
   if (t.includes('spouse') && t.includes('alex')) {
     return {
-      response: 'Thanks. Which Texas county do you live in?',
+      response: 'Thanks. Which Utah county do you live in?',
       phase_complete: true,
       respondent_first_name: 'Alex',
       respondent_last_name: 'Pritchard',
     };
   }
-  if (t.includes('travis county')) {
+  if (t.includes('salt lake county')) {
     return {
       response: 'Got it. When were you married?',
       phase_complete: true,
-      state: 'TX',
-      county: 'Travis',
+      state: 'UT',
+      county: 'Salt Lake',
       residency_state_months: 72,
       extracted_facts: [
-        { content: 'I have lived in Travis County, Texas for six years.', category: 'residency' },
+        { content: 'I have lived in Salt Lake County, Utah for six years.', category: 'residency' },
       ],
     };
   }
@@ -58,12 +58,12 @@ function scriptTurn(userText) {
       response: 'Thank you. Do you and Alex have minor children together?',
       phase_complete: true,
       marriage_date: '2010-05-01',
-      marriage_city: 'Austin',
-      marriage_state: 'Texas',
+      marriage_city: 'Salt Lake City',
+      marriage_state: 'Utah',
       separation_date: '2024-11-15',
-      grounds: 'insupportability',
+      grounds: 'irreconcilable_differences',
       extracted_facts: [
-        { content: 'We married on May 1, 2010 in Austin, Texas.', category: 'marriage' },
+        { content: 'We married on May 1, 2010 in Salt Lake City, Utah.', category: 'marriage' },
       ],
     };
   }

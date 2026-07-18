@@ -20,21 +20,16 @@ const TOSGuard = ({ children }) => {
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
-  const [authStartTime] = useState(Date.now());
   const isRedirectingRef = useRef(false);
 
   useEffect(() => {
     const checkTosStatus = async () => {
-      const elapsedTime = Date.now() - authStartTime;
-
       // NEVER redirect to login while Auth0 SDK is still loading.
       // The SDK needs time to process callback params or check the session.
       // Redirecting during this window causes an infinite login loop.
       if (isLoading) {
         console.log('[TOSGuard] Waiting for auth to finish loading...');
-        setLoadingMessage(elapsedTime > 10000
-          ? 'Authentication check taking longer than expected...'
-          : 'Checking authentication...');
+        setLoadingMessage('Checking authentication...');
         return;
       }
 
@@ -55,41 +50,15 @@ const TOSGuard = ({ children }) => {
         return;
       }
 
-      // Wait for user object to be available (with timeout)
+      // Wait for the authenticated user object. This gate must never fail
+      // open: protected APIs enforce the same current-version acceptance.
       if (!user?.sub) {
-        console.log('[TOSGuard] User object not available yet, waiting...');
-        setLoadingMessage('Loading user profile...');
-
-        // Timeout after 5 seconds of waiting for user object
-        if (elapsedTime > 5000 && !isLoading) {
-          console.error('[TOSGuard] User object timeout after 5s - may be an Auth0 issue');
-          setLoadingMessage('Having trouble loading user data. Please refresh if this persists.');
-
-          // After 8 seconds total, give up and allow access (fail-open for UX)
-          if (elapsedTime > 8000) {
-            console.error('[TOSGuard] Giving up after 8s - allowing access');
-            setIsCheckingTos(false);
-            return;
-          }
-        }
-
-        // Keep checking - don't set isCheckingTos to false yet
-        // The useEffect will re-run when user becomes available
+        setLoadingMessage('Loading user profile… Please refresh if this persists.');
         return;
       }
 
       console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
       setLoadingMessage('Verifying account...');
-
-      // Check if we've already verified TOS acceptance (try localStorage first, then sessionStorage)
-      const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
-      const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
-      if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
-        console.log('[TOSGuard] TOS already accepted (cached)');
-        markTosVerified();
-        setIsCheckingTos(false);
-        return;
-      }
 
       try {
         console.log('[TOSGuard] Calling API: /api/auth/tos-status');
@@ -100,12 +69,7 @@ const TOSGuard = ({ children }) => {
         if (data.success) {
           setTosStatus(data);
 
-          // Only cache if user has actually accepted TOS
           if (data.tosAccepted) {
-            console.log('[TOSGuard] User has accepted TOS, caching acceptance');
-            // Cache in both localStorage (persistent) and sessionStorage (backward compat)
-            localStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
-            sessionStorage.setItem(`tos_accepted_${user?.sub}`, 'true');
             markTosVerified();
           } else {
             // Show TOS modal if user hasn't accepted
@@ -151,18 +115,12 @@ const TOSGuard = ({ children }) => {
       console.log('[TOSGuard] TOS acceptance response:', data);
 
       if (data.success) {
-        console.log('[TOSGuard] TOS acceptance successful, updating state and cache');
+        console.log('[TOSGuard] TOS acceptance successful, updating state');
         setTosStatus({
           tosAccepted: true,
           tosVersionAccepted: tosVersion,
           tosAcceptedAt: new Date().toISOString(),
         });
-        // Cache the acceptance in both localStorage (persistent) and sessionStorage
-        if (user?.sub) {
-          localStorage.setItem(`tos_accepted_${user.sub}`, 'true');
-          sessionStorage.setItem(`tos_accepted_${user.sub}`, 'true');
-          console.log('[TOSGuard] TOS acceptance cached in localStorage and sessionStorage');
-        }
         markTosVerified();
         setShowTosModal(false);
         console.log('[TOSGuard] TOS modal closed, user can now access application');

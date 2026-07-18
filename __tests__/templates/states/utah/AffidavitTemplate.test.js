@@ -69,6 +69,11 @@ describe('UtahAffidavitTemplate', () => {
       const venue = template.generateVenue('SALT LAKE');
       expect(venue).toBe('County of Salt Lake');
     });
+
+    it('should not duplicate a County suffix', () => {
+      const venue = template.generateVenue('Salt Lake County');
+      expect(venue).toBe('County of Salt Lake');
+    });
   });
 
   describe('generateCaseCaption', () => {

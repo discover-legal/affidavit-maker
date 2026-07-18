@@ -4,6 +4,9 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 
+const normalizeCounty = (county, fallback = '[COUNTY]') =>
+  (county || fallback).replace(/\s+county$/i, '').trim();
+
 /**
  * Utah Decree of Divorce Template
  *
@@ -81,7 +84,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
+    const countyUpper = normalizeCounty(county).toUpperCase();
     return `DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR ${countyUpper} COUNTY`;
   }
 
@@ -99,7 +102,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Venue text
    */
   generateVenue(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
+    const countyUpper = normalizeCounty(county).toUpperCase();
     return `${countyUpper} COUNTY`;
   }
 
@@ -111,7 +114,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateCaseCaption(divorceData) {
     let caption = '';
 
-    const countyUpper = (divorceData.county || '[COUNTY]').toUpperCase();
+    const countyUpper = normalizeCounty(divorceData.county).toUpperCase();
     caption += `IN THE DISTRICT COURT OF THE STATE OF UTAH\n`;
     caption += `IN AND FOR ${countyUpper} COUNTY\n\n`;
 
@@ -145,20 +148,31 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    */
   generateAppearancesSection(divorceData) {
     let text = '';
+    const respondent = divorceData.respondentName || 'Respondent';
 
     text += `The above-entitled matter came on for hearing on ${this.formatDate(divorceData.hearingDate) || '___________________'}.\n\n`;
 
     if (divorceData.isUncontested || divorceData.appearanceType === 'agreed') {
       text += `${divorceData.petitionerName || 'Petitioner'} appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
 
-      if (divorceData.respondentAppeared) {
-        text += `${divorceData.respondentName || 'Respondent'} appeared and stipulated to the entry of this Decree.\n\n`;
+      if (divorceData.respondentAppeared === true) {
+        text += `${respondent} appeared and stipulated to the entry of this Decree.\n\n`;
+      } else if (divorceData.signedStipulation === true || divorceData.appearanceType === 'agreed') {
+        text += `${respondent} did not appear but has signed a Stipulation and has waived any further notice.\n\n`;
       } else {
-        text += `${divorceData.respondentName || 'Respondent'} did not appear but has signed a Stipulation and has waived any further notice.\n\n`;
+        text += `${respondent}: [APPEARANCE OR SIGNED STIPULATION — TO BE COMPLETED BY THE COURT].\n\n`;
       }
     } else {
       text += `${divorceData.petitionerName || 'Petitioner'} appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
-      text += `${divorceData.respondentName || 'Respondent'} ${divorceData.respondentAppeared ? 'appeared' : 'did not appear, having been properly served, and default was entered'}.`;
+      if (divorceData.respondentAppeared === true) {
+        text += `${respondent} appeared.`;
+      } else if (divorceData.defaultEntered === true || divorceData.appearanceType === 'default') {
+        text += `${respondent} did not appear, having been properly served, and default was entered.`;
+      } else if (divorceData.respondentAppeared === false) {
+        text += `${respondent} did not appear. [SERVICE AND DEFAULT FINDINGS — TO BE COMPLETED BY THE COURT].`;
+      } else {
+        text += `${respondent}: [APPEARANCE, SERVICE, AND DEFAULT STATUS — TO BE COMPLETED BY THE COURT].`;
+      }
     }
 
     text += `\n\nThe Court, having reviewed the pleadings and evidence, and being fully advised in the premises, hereby enters the following:`;
@@ -176,9 +190,10 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object} Jurisdiction section
    */
   generateJurisdictionSection(divorceData) {
+    const county = normalizeCounty(divorceData.county);
     return {
       title: 'FINDINGS OF FACT AND CONCLUSIONS OF LAW',
-      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, Utah, for at least ninety (90) days immediately prior to the filing of this action, satisfying the requirements of Utah Code § 81-4-402.\n\n3. At least thirty (30) days have elapsed since the date the petition was filed, satisfying the waiting period requirements of Utah Code § 81-4-402.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
+      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${county} County, Utah, for at least ninety (90) days immediately prior to the filing of this action, satisfying the requirements of Utah Code § 81-4-402.\n\n3. At least thirty (30) days have elapsed since the date the petition was filed, satisfying the waiting period requirements of Utah Code § 81-4-402.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
       type: 'jurisdiction'
     };
   }

@@ -12,6 +12,7 @@ import {
   toErrorResponse,
 } from '@/lib/api/errors';
 import { ALL_STATES, ALL_PROVINCES } from '@/lib/api/catalog-data';
+import { paymentsEnabled } from '@/lib/api/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,8 @@ const packetSchema = z.object({
   documentId: z.union([z.string(), z.number()]),
   state: z.string().min(2).max(8).optional(),
 });
+
+const VALID_PAYMENT_STATUSES = new Set(['paid', 'completed', 'free', 'succeeded']);
 
 type PdfServiceResult = {
   success: boolean;
@@ -124,11 +127,8 @@ function extractEvidenceMeta(content: Record<string, unknown>): Map<string, Evid
  * table of contents, exhibit separator pages, and an exhibit index
  * (services/courtPacket).
  *
- * NO payment gate here — the packet is a supporting convenience around a
- * document the user already saved, and the main document render follows
- * whatever payment gating applied when that document was saved/generated
- * (documents/generate enforces payment_status before the paid download;
- * this route does not create a new paid artifact, it re-renders + wraps).
+ * The packet contains the complete rendered legal document, so it enforces
+ * the same server-side paid/free status as documents/generate.
  */
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   let pdfFilepath: string | undefined;
@@ -159,14 +159,33 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       title: string | null;
       document_type: string | null;
       template_state: string | null;
+      payment_status: string | null;
     }>(
-      'SELECT content, title, document_type, template_state FROM documents WHERE id = $1 AND user_id = $2',
+      `SELECT content, title, document_type, template_state, payment_status
+         FROM documents WHERE id = $1 AND user_id = $2`,
       [documentId, user.id],
     );
     if (row.rows.length === 0) {
       throw new NotFoundError('Document not found');
     }
     const doc = row.rows[0];
+
+    if (paymentsEnabled() && !VALID_PAYMENT_STATUSES.has(doc.payment_status ?? '')) {
+      logger.warn('document_packet_payment_required', {
+        userId: user.id,
+        documentId,
+        paymentStatus: doc.payment_status ?? '',
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payment required',
+          errorType: 'payment_required',
+          documentId,
+        },
+        { status: 402 },
+      );
+    }
 
     let content: Record<string, unknown> = {};
     try {
@@ -277,7 +296,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     pdfFilepath = result.filepath;
 
     const fs = require('fs') as typeof import('fs');
-    const mainPdfBuffer = await fs.promises.readFile(pdfFilepath);
+    const mainPdfBuffer = await fs.promises.readFile(/* turbopackIgnore: true */ pdfFilepath);
 
     // Main-document temp file is consumed — clean up now, fire-and-forget
     // (matching documents/generate).
@@ -316,7 +335,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       let buffer: Buffer | null = null;
       try {
         const { filepath } = await evidenceStorage.getEvidence(user.id, documentId, fileKey);
-        buffer = await fs.promises.readFile(filepath);
+        buffer = await fs.promises.readFile(/* turbopackIgnore: true */ filepath);
       } catch (readErr) {
         // Tolerate individual read failures: the assembler substitutes a
         // "print separately" placeholder page for a null buffer.

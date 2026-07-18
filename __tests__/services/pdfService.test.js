@@ -86,4 +86,24 @@ describe('PDFService', () => {
     expect(result).toHaveProperty('filename');
     expect(result.success).toBe(true);
   });
+
+  test('resolves exhibits only within the authenticated user and owned document', () => {
+    const pdfService = new PDFService();
+    const previousRoot = process.env.EVIDENCE_STORAGE_PATH;
+    process.env.EVIDENCE_STORAGE_PATH = path.join(process.cwd(), 'test-evidence-root');
+
+    try {
+      const own = pdfService.resolveEvidencePath('17/42/exhibit.pdf', 17, 42);
+      expect(own).toBe(path.resolve(process.env.EVIDENCE_STORAGE_PATH, '17/42/exhibit.pdf'));
+      expect(() => pdfService.resolveEvidencePath('18/42/victim.pdf', 17, 42))
+        .toThrow('Evidence does not belong');
+      expect(() => pdfService.resolveEvidencePath('17/43/victim.pdf', 17, 42))
+        .toThrow('Evidence does not belong');
+      expect(() => pdfService.resolveEvidencePath('../17/42/exhibit.pdf', 17, 42))
+        .toThrow();
+    } finally {
+      if (previousRoot === undefined) delete process.env.EVIDENCE_STORAGE_PATH;
+      else process.env.EVIDENCE_STORAGE_PATH = previousRoot;
+    }
+  });
 });

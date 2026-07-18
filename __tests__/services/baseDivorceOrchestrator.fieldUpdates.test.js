@@ -15,6 +15,16 @@ function makeOrchestrator() {
   });
 }
 
+function makePhaseOrchestrator() {
+  const order = ['INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY', 'SUPPORT', 'SERVICE', 'INDIGENCY', 'MILITARY', 'REVIEW'];
+  return new BaseDivorceOrchestrator({
+    stateCode: 'UT',
+    stateName: 'Utah',
+    phases: Object.fromEntries(order.map((name) => [name, { prompt: name, displayName: name }])),
+    phaseOrder: order,
+  });
+}
+
 describe('BaseDivorceOrchestrator._applyFieldUpdates', () => {
   test('merges children across turns instead of replacing (reported bug)', () => {
     const orch = makeOrchestrator();
@@ -77,6 +87,92 @@ describe('BaseDivorceOrchestrator._summarizeCollected', () => {
     expect(summary).toContain('Emma Smith');
     expect(summary).toContain('Liam Smith');
     expect(summary).toContain('Ava Smith');
+  });
+
+  test('shows known My Story phase details so the interview does not ask for them again', () => {
+    const orch = makeOrchestrator();
+    const summary = orch._summarizeCollected({
+      residencyStateMonths: 72,
+      marriageDate: '2018-09-15',
+      marriageCity: 'Salt Lake City',
+      marriageStateName: 'Utah',
+      separationDate: '2026-05-20',
+      groundsForDivorce: 'Irreconcilable differences',
+      hasMinorChildren: false,
+      propertyAgreement: 'agreed',
+      spousalSupportRequested: false,
+      serviceMethod: 'waiver',
+      indigencyRequested: false,
+      respondentMilitaryStatus: 'not_active_duty',
+      facts: [{ content: 'We have no minor children together.' }],
+    });
+
+    expect(summary).toContain('Time living in state/province: 72 months');
+    expect(summary).toContain('Marriage place: Salt Lake City, Utah');
+    expect(summary).toContain('Separation date: 2026-05-20');
+    expect(summary).toContain('Grounds: Irreconcilable differences');
+    expect(summary).toContain('Minor children: no');
+    expect(summary).toContain('Property agreement: agreed');
+    expect(summary).toContain('Spousal support requested: no');
+    expect(summary).toContain('Service method: waiver');
+    expect(summary).toContain('Fee waiver requested: no');
+    expect(summary).toContain('Respondent military status: not_active_duty');
+    expect(summary).toContain('Previously documented facts (do not ask for these again)');
+    expect(summary).toContain('We have no minor children together.');
+  });
+});
+
+describe('BaseDivorceOrchestrator returning-user phase routing', () => {
+  test('skips sections already answered in My Story', () => {
+    const orch = makePhaseOrchestrator();
+    const next = orch._getNextPhase('RESIDENCY', {
+      grounds: 'Irreconcilable differences',
+      marriageDate: '2018-09-15',
+      marriageCity: 'Salt Lake City',
+      hasMinorChildren: false,
+      propertyAgreement: 'agreed',
+      spousalSupportRequested: false,
+      serviceMethod: 'waiver',
+      indigencyRequested: false,
+      respondentMilitaryStatus: 'not_active_duty',
+      militarySearchDate: '2026-07-13',
+    });
+    expect(next).toBe('REVIEW');
+  });
+
+  test('does not skip a section that still needs a real answer', () => {
+    const orch = makePhaseOrchestrator();
+    expect(orch._getNextPhase('RESIDENCY', {
+      marriageDate: '2018-09-15',
+      marriageCity: 'Salt Lake City',
+    })).toBe('GROUNDS');
+    expect(orch._getNextPhase('GROUNDS', { hasMinorChildren: true })).toBe('CHILDREN');
+  });
+
+  test('recognizes an older profile with an explicit no-minor-children fact', () => {
+    const orch = makePhaseOrchestrator();
+    expect(orch._getNextPhase('GROUNDS', {
+      facts: [{ content: 'Morgan Avery and I have no children together who are under 18.' }],
+    })).toBe('PROPERTY');
+    expect(orch._getNextPhase('GROUNDS', {
+      facts: [{ content: 'Morgan Avery and I have two minor children.' }],
+    })).toBe('CHILDREN');
+    expect(orch._getNextPhase('GROUNDS', {
+      facts: [{ content: 'I have no children from a previous relationship, but we have a child together.' }],
+    })).toBe('CHILDREN');
+  });
+
+  test('recognizes a completed military check stored as older narrative facts', () => {
+    const orch = makePhaseOrchestrator();
+    expect(orch._getNextPhase('INDIGENCY', {
+      facts: [
+        { content: 'Morgan Avery is not in the military.' },
+        { content: 'I checked the DMDC on July 13, 2026, and it showed no active-duty status.' },
+      ],
+    })).toBe('REVIEW');
+    expect(orch._getNextPhase('INDIGENCY', {
+      facts: [{ content: 'Morgan Avery is not in the military.' }],
+    })).toBe('MILITARY');
   });
 });
 

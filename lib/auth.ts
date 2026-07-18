@@ -1,5 +1,33 @@
-import { getSession, type Session } from '@auth0/nextjs-auth0';
+import type { SessionData } from '@auth0/nextjs-auth0/types';
+import { auth0 } from './auth0';
 import { query, withRLSBypass } from './db';
+
+export function isE2EAuthBypassEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  // Read through the environment object so test runners and deployment
+  // wrappers can verify the production invariant without build-time inlining.
+  return env.NODE_ENV !== 'production' && env.E2E_AUTH_BYPASS === '1';
+}
+
+function getE2ETestSession(): SessionData | null {
+  if (!isE2EAuthBypassEnabled()) return null;
+
+  return {
+    user: {
+      sub: 'e2e|discover-legal-test-user',
+      email: 'e2e@discover.legal',
+      name: 'E2E Test User',
+      email_verified: true,
+    },
+    tokenSet: {
+      accessToken: 'e2e-access-token',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    },
+    internal: {
+      sid: 'e2e-session',
+      createdAt: Math.floor(Date.now() / 1000),
+    },
+  };
+}
 
 export type AppUser = {
   /** Internal numeric primary key (SERIAL). */
@@ -7,6 +35,8 @@ export type AppUser = {
   auth0Id: string;
   email: string;
   name: string | null;
+  tosAccepted: boolean;
+  tosVersionAccepted: string | null;
 };
 
 type UserRow = {
@@ -14,11 +44,24 @@ type UserRow = {
   auth0_id: string;
   email: string;
   name: string | null;
+  tos_accepted: boolean;
+  tos_version_accepted: string | null;
 };
 
+function toAppUser(row: UserRow): AppUser {
+  return {
+    id: row.id,
+    auth0Id: row.auth0_id,
+    email: row.email,
+    name: row.name,
+    tosAccepted: row.tos_accepted,
+    tosVersionAccepted: row.tos_version_accepted,
+  };
+}
+
 /** Read the Auth0 session for the current request (server components and route handlers). */
-export async function getCurrentSession(): Promise<Session | null | undefined> {
-  return getSession();
+export async function getCurrentSession(): Promise<SessionData | null> {
+  return getE2ETestSession() ?? auth0.getSession();
 }
 
 /**
@@ -31,7 +74,7 @@ export async function getCurrentSession(): Promise<Session | null | undefined> {
  * Returns null when the request is unauthenticated.
  */
 export async function getCurrentUser(): Promise<AppUser | null> {
-  const session = await getSession();
+  const session = await getCurrentSession();
   if (!session?.user?.sub) return null;
 
   const auth0Id = session.user.sub as string;
@@ -50,13 +93,14 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   // user-scoped transaction.
   return withRLSBypass(async () => {
     const existing = await query<UserRow>(
-      'SELECT id, auth0_id, email, name FROM users WHERE auth0_id = $1',
+      `SELECT id, auth0_id, email, name, tos_accepted, tos_version_accepted
+         FROM users WHERE auth0_id = $1`,
       [auth0Id],
     );
 
     if (existing.rows[0]) {
       const row = existing.rows[0];
-      return { id: row.id, auth0Id: row.auth0_id, email: row.email, name: row.name };
+      return toAppUser(row);
     }
 
     // First-time provision (race with the Auth0 webhook is possible). ON CONFLICT
@@ -66,12 +110,12 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       `INSERT INTO users (auth0_id, email, name, email_verified, created_at, updated_at, last_login)
        VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
        ON CONFLICT (auth0_id) DO UPDATE SET last_login = NOW()
-       RETURNING id, auth0_id, email, name`,
+       RETURNING id, auth0_id, email, name, tos_accepted, tos_version_accepted`,
       [auth0Id, email, name, Boolean(session.user.email_verified)],
     );
 
     const row = inserted.rows[0];
-    return { id: row.id, auth0Id: row.auth0_id, email: row.email, name: row.name };
+    return toAppUser(row);
   });
 }
 

@@ -13,6 +13,7 @@
  */
 
 import type { Lang } from '@/lib/i18n';
+import type { NextStep, StateProcedure } from '@/lib/api/procedure';
 
 export type Segment =
   | { kind: 'text'; text: string }
@@ -40,6 +41,70 @@ const blank = (t: string): Segment => ({ kind: 'blank', text: t });
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+/** Localize the dynamic procedure engine's output for the bilingual story page. */
+export function localizeNextStep(
+  step: NextStep,
+  procedure: StateProcedure,
+  profile: Record<string, unknown>,
+  perspective: 'petitioner' | 'respondent',
+  lang: Lang = 'en',
+): NextStep {
+  if (lang !== 'es') return step;
+
+  const method = str(profile.serviceMethod).toLowerCase();
+  const state = procedure.stateName;
+  const deadlines = procedure.answerDeadlineDays;
+  const spanish: Record<string, { title: string; detail: string }> = {
+    serve: {
+      title: 'Notifica a tu cónyuge',
+      detail: /waiv|accept/.test(method)
+        ? 'Aceptación de la notificación: Entrega o envía los documentos a tu cónyuge junto con el formulario. Tu cónyuge firma para confirmar que recibió los documentos; después, presenta el formulario firmado ante el tribunal.'
+        : method
+          ? 'Notificación personal: Un sheriff, alguacil, notificador privado u otro adulto que no sea parte del caso entrega los documentos. La persona que los entregó completa la constancia de notificación para presentarla ante el tribunal.'
+          : 'Tu cónyuge generalmente debe recibir los documentos antes de que el caso pueda avanzar. Las opciones comunes incluyen la aceptación voluntaria o la notificación personal.',
+    },
+    answer: {
+      title: perspective === 'respondent' ? 'Presenta tu respuesta' : 'Plazo para responder',
+      detail:
+        `Generalmente hay ${deadlines.inState} días después de la notificación dentro de ${state} ` +
+        `(${deadlines.outOfState} días si la notificación fue fuera de ${state}) para presentar una respuesta. ` +
+        'Este plazo importa porque, si no se responde a tiempo, el tribunal puede considerar una solicitud de rebeldía.',
+    },
+    default: {
+      title: 'Puede estar disponible la rebeldía',
+      detail:
+        'Si tu cónyuge no presenta una respuesta dentro del plazo, puedes pedir al tribunal que considere su rebeldía. El tribunal decide si la concede y si firma el decreto.',
+    },
+    mediation: {
+      title: 'Mediación',
+      detail:
+        'Cuando se presenta una respuesta en un divorcio de Utah, ambas partes generalmente deben intentar al menos una sesión de mediación de buena fe antes del juicio. Se puede pedir al tribunal una excepción por una buena causa, incluidas preocupaciones de seguridad.',
+    },
+    waiting: {
+      title: 'Período de espera',
+      detail:
+        'Utah generalmente tiene un período de espera de 30 días: el tribunal no puede firmar el decreto final hasta 30 días después de presentar la petición. Puede eximir este período por circunstancias extraordinarias.',
+    },
+    education: {
+      title: 'Cursos para padres',
+      detail:
+        'Los padres de hijos menores generalmente deben completar los cursos de orientación y educación sobre el divorcio antes de que el tribunal firme el decreto. El tribunal puede eximir la asistencia en algunas situaciones.',
+    },
+    financial: {
+      title: 'Declaración financiera',
+      detail:
+        'En un divorcio de Utah, cada parte generalmente debe completar e intercambiar una Declaración Financiera con sus ingresos, gastos, bienes y deudas, junto con los documentos de respaldo.',
+    },
+    finalize: {
+      title: 'Finaliza el caso',
+      detail:
+        'Cuando termine el período de espera y se completen los pasos requeridos, los documentos finales generalmente se envían al juez para revisión. Los casos acordados a menudo terminan por escrito; el tribunal decide si se necesita una audiencia y si firma el decreto.',
+    },
+  };
+
+  return spanish[step.key] ? { ...step, ...spanish[step.key] } : step;
 }
 
 /**
@@ -110,22 +175,34 @@ export function computeAge(child: ProfileChild, now: Date = new Date()): number 
   return null;
 }
 
+function isRespondent(profile: Record<string, unknown>): boolean {
+  return str(profile.role).toLowerCase() === 'respondent';
+}
+
+function petitionerName(profile: Record<string, unknown>): string {
+  return (
+    str(profile.petitionerName) ||
+    [str(profile.petitionerFirstName), str(profile.petitionerLastName)].filter(Boolean).join(' ')
+  );
+}
+
+function respondentName(profile: Record<string, unknown>): string {
+  return (
+    str(profile.respondentName) ||
+    [str(profile.respondentFirstName), str(profile.respondentLastName)].filter(Boolean).join(' ')
+  );
+}
+
 function fullName(profile: Record<string, unknown>): string {
   return (
     str(profile.affiantName) ||
-    [str(profile.petitionerFirstName), str(profile.petitionerLastName)].filter(Boolean).join(' ') ||
-    str(profile.petitionerName) ||
+    (isRespondent(profile) ? respondentName(profile) : petitionerName(profile)) ||
     [str(profile.firstName), str(profile.lastName)].filter(Boolean).join(' ')
   );
 }
 
 function spouseName(profile: Record<string, unknown>): string {
-  return (
-    str(profile.respondentName) ||
-    [str(profile.respondentFirstName), str(profile.respondentLastName)]
-      .filter(Boolean)
-      .join(' ')
-  );
+  return isRespondent(profile) ? petitionerName(profile) : respondentName(profile);
 }
 
 function marriagePlace(profile: Record<string, unknown>): string {
@@ -170,14 +247,21 @@ export function buildRecitals(
   const spouse = spouseName(profile);
   const married = formatFriendlyDate(profile.marriageDate, lang);
   const place = marriagePlace(profile);
-  const marriageSegments: Segment[] = [text(es ? 'Te casaste con ' : 'You married ')];
-  marriageSegments.push(spouse ? value(spouse) : blank(es ? 'tu cónyuge' : 'your spouse'));
-  marriageSegments.push(text(es ? ' el ' : ' on '));
-  marriageSegments.push(married ? value(married) : blank(es ? 'una fecha' : 'a date'));
+  const hasMarriageDetail = Boolean(spouse || married || place || profile.separationDate);
+  const marriageSegments: Segment[] = hasMarriageDetail
+    ? [text(es ? 'Te casaste con ' : 'You married ')]
+    : [text(es ? 'Los detalles de tu matrimonio: ' : 'Your marriage details: ')];
+  if (hasMarriageDetail) {
+    marriageSegments.push(spouse ? value(spouse) : blank(es ? 'tu cónyuge' : 'your spouse'));
+    marriageSegments.push(text(es ? ' el ' : ' on '));
+    marriageSegments.push(married ? value(married) : blank(es ? 'una fecha' : 'a date'));
+  } else {
+    marriageSegments.push(blank(es ? 'agrégalos' : 'add them'));
+  }
   if (place) {
     marriageSegments.push(text(es ? ' en ' : ' in '), value(place));
   }
-  marriageSegments.push(text('.'));
+  if (hasMarriageDetail) marriageSegments.push(text('.'));
   const separated = formatFriendlyDate(profile.separationDate, lang);
   if (separated) {
     marriageSegments.push(
@@ -194,12 +278,13 @@ export function buildRecitals(
 
   // 3 — where you live
   const county = str(profile.county);
+  const countyName = county.replace(/\s+county$/i, '').trim();
   const state = str(profile.state).toUpperCase();
   const homeSegments: Segment[] = [text(es ? 'Tu hogar está en ' : 'Home is ')];
   if (county || state) {
     homeSegments.push(
       value(
-        [county && (es ? `el condado de ${county}` : `${county} County`), state]
+        [countyName && (es ? `el condado de ${countyName}` : `${countyName} County`), state]
           .filter(Boolean)
           .join(', '),
       ),
@@ -292,6 +377,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   heirship: 'Family and inheritance',
   exemption: 'Your defenses',
   response: 'From court papers',
+  temporal: 'Timeline',
+  communication: 'Communications',
+  separation: 'Separation',
+  property_debts: 'Property and debts',
+  property_and_debts: 'Property and debts',
+  court: 'Court',
+  case_number: 'Case number',
+  parties: 'Parties',
+  court_event: 'Court events',
+  hearing: 'Court hearings',
+  filing: 'Court filings',
+  deadline: 'Deadlines',
 };
 
 const CATEGORY_LABELS_ES: Record<string, string> = {
@@ -316,11 +413,27 @@ const CATEGORY_LABELS_ES: Record<string, string> = {
   heirship: 'Familia y herencia',
   exemption: 'Tus defensas',
   response: 'De documentos del tribunal',
+  temporal: 'Cronología',
+  communication: 'Comunicaciones',
+  separation: 'Separación',
+  property_debts: 'Bienes y deudas',
+  property_and_debts: 'Bienes y deudas',
+  court: 'Tribunal',
+  case_number: 'Número de caso',
+  parties: 'Partes del caso',
+  court_event: 'Eventos judiciales',
+  hearing: 'Audiencias judiciales',
+  filing: 'Presentaciones judiciales',
+  deadline: 'Fechas límite',
 };
 
 export function categoryLabel(category: unknown, lang: Lang = 'en'): string {
   const labels = lang === 'es' ? CATEGORY_LABELS_ES : CATEGORY_LABELS;
-  const key = str(category).toLowerCase();
+  // Extraction sources are not perfectly canonical: court-paper facts can
+  // arrive as `case_number`, `case number`, or with surrounding whitespace.
+  // Normalize them before lookup so changing the UI language never exposes a
+  // title-cased English fallback for a category we already understand.
+  const key = str(category).trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (!key) return labels.general;
   if (labels[key]) return labels[key];
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/[_-]+/g, ' ');
@@ -345,10 +458,7 @@ export function buildFamily(
   const es = lang === 'es';
   const members: FamilyMember[] = [];
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
-  const spouse = str(
-    (profile.respondentFirstName as string) ||
-      String(profile.respondentName || '').split(' ')[0],
-  );
+  const spouse = spouseName(profile).split(' ')[0];
 
   members.push({ kind: 'adult', label: es ? 'Tú' : 'You', sublabel: '', heightScale: 1 });
   for (const child of children) {
@@ -441,12 +551,13 @@ export function buildTimeline(
     });
   }
   shownEvents.forEach((e, i) => {
+    const label = timelineLabel(e.label, lang);
     majors.push({
       key: `event-${i}-${e.date.getTime()}`,
-      label: e.label,
+      label,
       year: String(e.date.getFullYear()),
       pos: posOf(e.date),
-      title: e.source ? `${e.label} — ${e.source}` : undefined,
+      title: e.source ? `${label} — ${e.source}` : undefined,
     });
   });
 
@@ -554,6 +665,38 @@ const MAX_MONEY_SEGMENTS = 5;
  * The chart colors the fold neutral gray by matching either label. */
 export const MONEY_OTHER_LABELS: Record<Lang, string> = { en: 'Other', es: 'Otros' };
 
+/** Keep My Story's document actions relevant to the person's side and facts. */
+export function supportKindVisible(
+  key: string,
+  perspective: 'petitioner' | 'respondent',
+  profile: Record<string, unknown>,
+): boolean {
+  const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
+  const hasChildren = profile.hasMinorChildren === true || children.some((child) => {
+    const age = computeAge(child);
+    return age === null || age < 18;
+  });
+  if (key === 'child_support_worksheet' && !hasChildren) return false;
+  if (perspective === 'respondent') {
+    return !['default_package', 'finalization_prep'].includes(key);
+  }
+  return key !== 'answer';
+}
+
+const TIMELINE_LABELS_ES: Record<string, string> = {
+  served: 'Notificación',
+  filed: 'Presentado',
+  hearing: 'Audiencia',
+  'petition filed': 'Petición presentada',
+  'petition for divorce filed': 'Petición de divorcio presentada',
+  'divorce petition filed': 'Petición de divorcio presentada',
+};
+
+function timelineLabel(label: string, lang: Lang): string {
+  if (lang !== 'es') return label;
+  return TIMELINE_LABELS_ES[label.trim().toLowerCase()] || label;
+}
+
 export function moneySegments(
   raw: unknown,
   profile?: Record<string, unknown>,
@@ -561,10 +704,8 @@ export function moneySegments(
 ): MoneySegment[] {
   if (!Array.isArray(raw)) return [];
   const es = lang === 'es';
-  const spouse = profile
-    ? str(profile.respondentFirstName as string) ||
-      String(profile.respondentName || '').split(' ')[0]
-    : '';
+  const spouse = profile ? spouseName(profile).split(' ')[0] : '';
+  const userRole = profile && isRespondent(profile) ? 'respondent' : 'petitioner';
   const youRe = es ? /\btus?\b|tú/i : /\byour?\b/i;
   const items: MoneySegment[] = [];
   for (const entry of raw) {
@@ -574,9 +715,9 @@ export function moneySegments(
     const amount = Number(e.amount);
     if (!label || !Number.isFinite(amount) || amount <= 0) continue;
     const person = str(e.person).toLowerCase();
-    if (person === 'respondent' && spouse && !label.toLowerCase().includes(spouse.toLowerCase())) {
+    if (person && person !== userRole && spouse && !label.toLowerCase().includes(spouse.toLowerCase())) {
       label = `${label} (${spouse})`;
-    } else if (person === 'petitioner' && !youRe.test(label)) {
+    } else if (person === userRole && !youRe.test(label)) {
       label = es ? `${label} (tú)` : `${label} (you)`;
     }
     items.push({ label, amount: Math.round(amount) });

@@ -8,8 +8,7 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const FileType = require('file-type');
+const { randomUUID: uuidv4 } = require('node:crypto');
 const logger = require('../utils/logger');
 
 // Allowed file types with their MIME types
@@ -22,12 +21,15 @@ const ALLOWED_FILE_TYPES = new Map([
 // PDF limits for bomb protection
 const PDF_MAX_PAGES = 500;
 const PDF_MIN_BYTES_PER_PAGE = 100;
+const IMAGE_MAX_DIMENSION = 10000;
+const IMAGE_MAX_PIXELS = 25_000_000;
 
 class EvidenceStorage {
   constructor() {
-    this.basePath = path.join(__dirname, '..', 'documents', 'evidence');
-    this.thumbnailPath = path.join(__dirname, '..', 'documents', 'thumbnails');
+    this.basePath = process.env.EVIDENCE_STORAGE_PATH
+      || path.join(__dirname, '..', 'documents', 'evidence');
     this.ensureDirectories();
+    this.quotaLocks = new Map();
   }
 
   /**
@@ -37,9 +39,6 @@ class EvidenceStorage {
     try {
       if (!fsSync.existsSync(this.basePath)) {
         await fs.mkdir(this.basePath, { recursive: true });
-      }
-      if (!fsSync.existsSync(this.thumbnailPath)) {
-        await fs.mkdir(this.thumbnailPath, { recursive: true });
       }
     } catch (error) {
       logger.error('Error creating evidence directories:', error);
@@ -56,6 +55,74 @@ class EvidenceStorage {
     return path.join(this.basePath, String(userId), String(documentId));
   }
 
+  positiveLimit(name, fallback) {
+    const value = Number(process.env[name]);
+    return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+  }
+
+  async withQuotaLock(userId, fn) {
+    const key = String(userId);
+    for (;;) {
+      const active = this.quotaLocks.get(key);
+      if (!active) break;
+      await active;
+    }
+    let release;
+    const lock = new Promise(resolve => { release = resolve; });
+    this.quotaLocks.set(key, lock);
+    try {
+      return await fn();
+    } finally {
+      if (this.quotaLocks.get(key) === lock) this.quotaLocks.delete(key);
+      release();
+    }
+  }
+
+  async storageUsage(root) {
+    let bytes = 0;
+    let files = 0;
+    let entries;
+    try {
+      entries = await fs.readdir(root, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'ENOENT') return { bytes, files };
+      throw error;
+    }
+    for (const entry of entries) {
+      const candidate = path.join(root, entry.name);
+      if (entry.isDirectory()) {
+        const nested = await this.storageUsage(candidate);
+        bytes += nested.bytes;
+        files += nested.files;
+      } else if (entry.isFile()) {
+        bytes += (await fs.stat(candidate)).size;
+        if (!/_thumb\.[A-Za-z0-9]+$/i.test(entry.name)) files += 1;
+      }
+    }
+    return { bytes, files };
+  }
+
+  async assertStorageQuota(userId, documentId, incomingBytes) {
+    const userRoot = path.join(this.basePath, String(userId));
+    const documentRoot = this.getUserEvidenceDir(userId, documentId);
+    const [userUsage, documentUsage] = await Promise.all([
+      this.storageUsage(userRoot),
+      this.storageUsage(documentRoot),
+    ]);
+    const documentByteLimit = this.positiveLimit('EVIDENCE_DOCUMENT_MAX_BYTES', 100 * 1024 * 1024);
+    const userByteLimit = this.positiveLimit('EVIDENCE_USER_MAX_BYTES', 250 * 1024 * 1024);
+    const documentFileLimit = this.positiveLimit('EVIDENCE_DOCUMENT_MAX_FILES', 100);
+    const userFileLimit = this.positiveLimit('EVIDENCE_USER_MAX_FILES', 1000);
+    if (
+      documentUsage.bytes + incomingBytes > documentByteLimit
+      || userUsage.bytes + incomingBytes > userByteLimit
+      || documentUsage.files + 1 > documentFileLimit
+      || userUsage.files + 1 > userFileLimit
+    ) {
+      throw new Error('Evidence storage quota exceeded');
+    }
+  }
+
   /**
    * Upload evidence file
    * @param {object} file - Multer file object
@@ -65,19 +132,27 @@ class EvidenceStorage {
    * @returns {object} Evidence metadata
    */
   async uploadEvidence(file, userId, documentId, evidenceId) {
+    let filepath;
     try {
       const userDir = this.getUserEvidenceDir(userId, documentId);
       await fs.mkdir(userDir, { recursive: true });
 
-      const ext = path.extname(file.originalname);
+      // Browser names and MIME values are untrusted metadata. Detect the
+      // staged bytes first, then use only that result for the stored extension
+      // and all type-specific resource checks.
+      const detected = await this.validateFileContent(file.path, false);
+      const ext = `.${detected.ext}`;
       const filename = `${evidenceId}${ext}`;
-      const filepath = path.join(userDir, filename);
+      // Runtime tenant path; never ask the standalone tracer to enumerate it.
+      filepath = path.join(/* turbopackIgnore: true */ userDir, filename);
 
-      // Move uploaded file to final location
-      await fs.rename(file.path, filepath);
-
-      // SECURITY: Validate file content via magic bytes (prevents MIME spoofing)
-      await this.validateFileContent(filepath);
+      // Admission and move are serialized per user so concurrent uploads
+      // cannot all observe the same remaining quota.
+      const incomingBytes = (await fs.stat(file.path)).size;
+      await this.withQuotaLock(userId, async () => {
+        await this.assertStorageQuota(userId, documentId, incomingBytes);
+        await fs.rename(file.path, filepath);
+      });
 
       // Get file metadata (includes PDF bomb protection)
       const metadata = await this.getFileMetadata(filepath, ext);
@@ -95,6 +170,8 @@ class EvidenceStorage {
         uploadedAt: new Date().toISOString()
       };
     } catch (error) {
+      if (filepath) await fs.unlink(filepath).catch(() => {});
+      if (file?.path) await fs.unlink(file.path).catch(() => {});
       logger.error('Error uploading evidence:', error);
       throw new Error(`Failed to upload evidence: ${error.message}`);
     }
@@ -113,17 +190,16 @@ class EvidenceStorage {
       filePages: 1
     };
 
-    // For PDFs, count pages and apply bomb protection
+    // For PDFs, use the real parser page tree. Regex counting misses pages
+    // stored in compressed object streams and is not a security boundary.
     if (ext.toLowerCase() === '.pdf') {
       try {
-        // Count pages using simple heuristic
         const pdfBuffer = await fs.readFile(filepath);
-        const pdfText = pdfBuffer.toString('latin1');
-        const pageMatches = pdfText.match(/\/Type\s*\/Page[^s]/g);
-        metadata.filePages = pageMatches ? pageMatches.length : 1;
+        const { PDFDocument } = require('pdf-lib');
+        const parsedPdf = await PDFDocument.load(pdfBuffer, { updateMetadata: false });
+        metadata.filePages = parsedPdf.getPageCount();
 
-        // PDF bomb protection: check page count
-        if (metadata.filePages > PDF_MAX_PAGES) {
+        if (metadata.filePages < 1 || metadata.filePages > PDF_MAX_PAGES) {
           await fs.unlink(filepath).catch(() => {});
           throw new Error(`PDF exceeds maximum allowed pages (${PDF_MAX_PAGES})`);
         }
@@ -137,13 +213,16 @@ class EvidenceStorage {
           }
         }
       } catch (error) {
-        // Re-throw our own security errors
-        if (error.message.includes('exceeds') || error.message.includes('malformed')) {
-          throw error;
-        }
-        // Log and continue for parsing errors
-        metadata.filePages = 1;
+        await fs.unlink(filepath).catch(() => {});
+        if (error.message.includes('exceeds') || error.message.includes('malformed')) throw error;
+        throw new Error('PDF could not be parsed safely');
       }
+    } else if (ext.toLowerCase() === '.png' || ext.toLowerCase() === '.jpg') {
+      const imageBuffer = await fs.readFile(filepath);
+      const dimensions = ext.toLowerCase() === '.png'
+        ? this.getPngDimensions(imageBuffer)
+        : this.getJpegDimensions(imageBuffer);
+      this.assertSafeImageDimensions(dimensions.width, dimensions.height);
     }
 
     return metadata;
@@ -159,7 +238,8 @@ class EvidenceStorage {
   async generateThumbnail(filepath, ext, evidenceId) {
     try {
       const thumbnailFilename = `${evidenceId}_thumb.jpg`;
-      const thumbnailFullPath = path.join(this.thumbnailPath, thumbnailFilename);
+      // Derivatives stay in the same tenant/document sandbox as the source.
+      const thumbnailFullPath = path.join(path.dirname(filepath), thumbnailFilename);
 
       const fileType = this.getFileType(ext);
 
@@ -168,8 +248,9 @@ class EvidenceStorage {
         // In production, use pdf-thumbnail or similar
         await this.createPlaceholderThumbnail(thumbnailFullPath, 'PDF');
       } else if (['jpg', 'jpeg', 'png'].includes(fileType)) {
-        // For images, copy the original (we'll add sharp resizing later)
-        await fs.copyFile(filepath, thumbnailFullPath);
+        // Do not duplicate the full-resolution upload as a "thumbnail".
+        // The UI can display the source through the authenticated endpoint.
+        return null;
       }
 
       return path.relative(this.basePath, thumbnailFullPath);
@@ -263,10 +344,14 @@ class EvidenceStorage {
         }
       }
 
-      // Delete thumbnail (thumbnails live under the main file's user/doc dir
-      // by storage convention; if anything escapes the bound we refuse).
-      if (thumbnailKey) {
-        const thumbnailPath = path.join(this.basePath, thumbnailKey);
+      // Derive the new namespaced thumbnail key when old clients omit it.
+      const evidenceBasename = fileKey ? path.basename(fileKey, path.extname(fileKey)) : null;
+      const derivedThumbnailKey = evidenceBasename
+        ? path.join(String(userId), String(documentId), `${evidenceBasename}_thumb.jpg`)
+        : null;
+      const keyToDelete = thumbnailKey || derivedThumbnailKey;
+      if (keyToDelete) {
+        const thumbnailPath = path.join(this.basePath, keyToDelete);
         try {
           this.assertWithin(thumbnailPath, expectedDir);
           await fs.unlink(thumbnailPath).catch(() => {});
@@ -303,6 +388,8 @@ class EvidenceStorage {
       const evidenceFiles = [];
 
       for (const file of files) {
+        // Derivatives are implementation details, not separate evidence.
+        if (/_thumb\.[A-Za-z0-9]+$/i.test(file)) continue;
         const filepath = path.join(userDir, file);
         const stats = await fs.stat(filepath);
 
@@ -360,18 +447,21 @@ class EvidenceStorage {
    * @returns {object} Detected file type info
    * @throws {Error} If file type cannot be verified or is not allowed
    */
-  async validateFileContent(filepath) {
-    const detected = await FileType.fromFile(filepath);
+  async validateFileContent(filepath, removeInvalid = true) {
+    // file-type 22 is ESM-only; dynamic import keeps this legacy CommonJS
+    // service compatible while using the supported API.
+    const { fileTypeFromFile } = await import('file-type');
+    const detected = await fileTypeFromFile(filepath);
 
     if (!detected) {
       // Clean up the invalid file
-      await fs.unlink(filepath).catch(() => {});
+      if (removeInvalid) await fs.unlink(filepath).catch(() => {});
       throw new Error('Could not determine file type from content');
     }
 
     if (!ALLOWED_FILE_TYPES.has(detected.mime)) {
       // Clean up the invalid file
-      await fs.unlink(filepath).catch(() => {});
+      if (removeInvalid) await fs.unlink(filepath).catch(() => {});
       throw new Error(`File type ${detected.mime} is not allowed`);
     }
 
@@ -379,6 +469,63 @@ class EvidenceStorage {
       mime: detected.mime,
       ext: ALLOWED_FILE_TYPES.get(detected.mime)
     };
+  }
+
+  async deleteDocumentEvidence(userId, documentId) {
+    const documentDir = this.getUserEvidenceDir(userId, documentId);
+    const userDir = path.join(this.basePath, String(userId));
+    this.assertWithin(documentDir, userDir);
+    await fs.rm(documentDir, { recursive: true, force: true });
+    return { success: true };
+  }
+
+  getPngDimensions(buffer) {
+    if (buffer.length < 24) throw new Error('PNG is truncated');
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+
+  getJpegDimensions(buffer) {
+    if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+      throw new Error('JPEG is malformed');
+    }
+    const sofMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+    let offset = 2;
+    while (offset + 8 < buffer.length) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      while (offset < buffer.length && buffer[offset] === 0xff) offset += 1;
+      if (offset >= buffer.length) break;
+      const marker = buffer[offset];
+      offset += 1;
+      if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (offset + 2 > buffer.length) break;
+      const segmentLength = buffer.readUInt16BE(offset);
+      if (segmentLength < 2 || offset + segmentLength > buffer.length) break;
+      if (sofMarkers.has(marker)) {
+        if (segmentLength < 7) break;
+        return {
+          height: buffer.readUInt16BE(offset + 3),
+          width: buffer.readUInt16BE(offset + 5)
+        };
+      }
+      offset += segmentLength;
+    }
+    throw new Error('JPEG dimensions could not be determined');
+  }
+
+  assertSafeImageDimensions(width, height) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+      throw new Error('Image dimensions are invalid');
+    }
+    if (
+      width > IMAGE_MAX_DIMENSION
+      || height > IMAGE_MAX_DIMENSION
+      || width * height > IMAGE_MAX_PIXELS
+    ) {
+      throw new Error(`Image exceeds safe dimensions (${IMAGE_MAX_DIMENSION}px / ${IMAGE_MAX_PIXELS} pixels)`);
+    }
   }
 
   /**

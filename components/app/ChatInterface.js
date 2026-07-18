@@ -20,22 +20,39 @@ import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext'
 import DocumentMetadata from './DocumentMetadata';
 import EvidenceUploadModal from './EvidenceUploadModal';
 
-// TX Divorce phase metadata (mirrors services/agents/prompts/txDivorce/index.js)
-const TX_DIVORCE_PHASE_ORDER = [
+// Divorce phase metadata shared by the state orchestrators. State-specific
+// labels keep the progress trail accurate without hiding it outside Texas.
+const DIVORCE_PHASE_ORDER = [
   'INTAKE', 'RESIDENCY', 'GROUNDS', 'CHILDREN', 'PROPERTY',
   'SUPPORT', 'SERVICE', 'INDIGENCY', 'MILITARY', 'REVIEW'
 ];
-const TX_DIVORCE_PHASE_NAMES = {
+const DEFAULT_DIVORCE_PHASE_NAMES = {
   INTAKE:    'Getting Started',
-  RESIDENCY: 'Texas Residency',
+  RESIDENCY: 'Residency',
   GROUNDS:   'Grounds & Marriage',
   CHILDREN:  'Children',
-  PROPERTY:  'Property & Assets',
-  SUPPORT:   'Support & Finances',
-  SERVICE:   'Service of Process',
-  INDIGENCY: 'Filing Fees',
+  PROPERTY:  'Property & Debts',
+  SUPPORT:   'Spousal Support',
+  SERVICE:   'Serving Your Spouse',
+  INDIGENCY: 'Court Costs',
   MILITARY:  'Military Status',
-  REVIEW:    'Final Review'
+  REVIEW:    'Review & Confirm'
+};
+const DIVORCE_PHASE_NAMES_BY_STATE = {
+  TX: {
+    ...DEFAULT_DIVORCE_PHASE_NAMES,
+    RESIDENCY: 'Texas Residency',
+    PROPERTY: 'Property & Assets',
+    SUPPORT: 'Support & Finances',
+    SERVICE: 'Service of Process',
+    INDIGENCY: 'Filing Fees',
+    REVIEW: 'Final Review'
+  },
+  UT: {
+    ...DEFAULT_DIVORCE_PHASE_NAMES,
+    RESIDENCY: 'Utah Residency',
+    SUPPORT: 'Alimony'
+  }
 };
 
 // Supported states for document creation — Utah first (primary launch state)
@@ -110,8 +127,10 @@ const ChatInterface = () => {
     return JSON.stringify(factContents);
   };
 
-  // Helper function to generate AI narrative summary of facts with caching
-  const generateFactSummary = useCallback(async (facts, affiantName) => {
+  // Build a stable returning-user summary. The chat orchestrator is designed
+  // to ask its next interview question, so using it for a summary could append
+  // a question for the wrong default jurisdiction before the user chose one.
+  const generateFactSummary = useCallback(async (facts) => {
     if (!facts || facts.length === 0) return '';
 
     // Generate signature for current facts
@@ -123,54 +142,20 @@ const ChatInterface = () => {
       return currentDocument.factSummary;
     }
 
-    console.log('🔄 Generating new fact summary');
+    const factList = facts
+      .map((fact) => typeof fact === 'string' ? fact : fact.content)
+      .filter(Boolean);
+    const visibleFacts = factList.slice(0, 4);
+    const remaining = factList.length - visibleFacts.length;
+    const summary = [
+      "Here's what I already have in your story:",
+      ...visibleFacts.map((fact) => `• ${fact}`),
+      ...(remaining > 0 ? [`• ${remaining} more detail${remaining === 1 ? '' : 's'}`] : [])
+    ].join('\n');
 
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-
-      if (isAuthenticated) {
-        const token = await getAccessTokenSilently();
-      }
-
-      const factList = facts.map(fact =>
-        typeof fact === 'string' ? fact : fact.content
-      ).join('\n- ');
-
-      const nameInstruction = affiantName
-        ? ` IMPORTANT: Address the person directly using "you" and "your" instead of using the name "${affiantName}". For example, say "you went to the store" instead of "${affiantName} went to the store".`
-        : '';
-
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          message: `Please provide a brief 1-paragraph narrative summary (2-3 sentences) that brings together these facts, starting with "So far, you've shared that...": ${factList}${nameInstruction}`,
-          conversationHistory: [],
-          affidavitData: currentDocument,
-          skipExtraction: true // Don't extract new facts from this
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summary');
-      }
-
-      const data = await response.json();
-      const summary = data.success ? data.response : `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
-
-      // Cache the summary in document state
-      updateDocumentData({
-        factSummary: summary,
-        factSignature: currentSignature
-      });
-
-      return summary;
-    } catch (err) {
-      console.error('Error generating fact summary:', err);
-      // Fallback to simple list
-      return `You've added ${facts.length} fact${facts.length !== 1 ? 's' : ''} to your affidavit.`;
-    }
-  }, [currentDocument, updateDocumentData, isAuthenticated, getAccessTokenSilently]);
+    updateDocumentData({ factSummary: summary, factSignature: currentSignature });
+    return summary;
+  }, [currentDocument.factSummary, currentDocument.factSignature, updateDocumentData]);
 
   // Reset messages when document changes and show welcome message
   useEffect(() => {
@@ -410,13 +395,13 @@ First, please select your state above. Each state has different legal requiremen
     }
   };
 
-  // TX Divorce phase progress
+  // State-aware divorce interview progress
   const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(currentDocument.documentType);
-  const isTXDivorce = isDivorceDoc && (!currentDocument.state || currentDocument.state === 'TX');
   const orchestratorPhase = currentDocument.orchestratorState?.currentPhase;
-  const currentPhaseIndex = orchestratorPhase ? TX_DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
+  const currentPhaseIndex = orchestratorPhase ? DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
+  const divorcePhaseNames = DIVORCE_PHASE_NAMES_BY_STATE[currentDocument.state] || DEFAULT_DIVORCE_PHASE_NAMES;
   const phaseProgress = currentPhaseIndex >= 0
-    ? Math.round(((currentPhaseIndex + 1) / TX_DIVORCE_PHASE_ORDER.length) * 100)
+    ? Math.round(((currentPhaseIndex + 1) / DIVORCE_PHASE_ORDER.length) * 100)
     : 0;
 
   return (
@@ -435,14 +420,24 @@ First, please select your state above. Each state has different legal requiremen
                 key={state.code}
                 onClick={() => {
                   updateDocumentData({ state: state.code });
-                  // Add a message confirming state selection
                   const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
+                  const knowsUserName = Boolean(currentDocument.affiantName || currentDocument.petitionerFirstName);
+                  const knowsSpouseName = Boolean(currentDocument.respondentName || currentDocument.respondentFirstName);
+                  const nextPrompt = isDivorcePackage
+                    ? knowsUserName && knowsSpouseName
+                      ? `I already have both names from My Story. To continue, how long have you lived in ${state.name}, and which county do you live in?`
+                      : knowsUserName
+                        ? `I already have your name from My Story. To continue, tell me your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
+                        : `To begin, tell me your full legal name, your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
+                    : knowsUserName
+                      ? 'I already have your name from My Story. Tell me what happened, including dates, people, and what you personally saw or did.'
+                      : 'Start with your full legal name, then tell me what happened in your own words.';
                   setMessages(prev => [...prev, {
                     type: 'bot',
                     content: `Great! You've selected ${state.name}. ${isDivorcePackage
                       ? `I'll make sure your divorce documents comply with ${state.name} requirements.`
                       : `I'll make sure your affidavit complies with ${state.name} requirements.`
-                    }\n\nNow, let's start with your legal first and last name.`
+                    }\n\n${nextPrompt}`
                   }]);
                 }}
                 className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium text-gray-700 hover:text-blue-700"
@@ -454,13 +449,13 @@ First, please select your state above. Each state has different legal requiremen
         </div>
       )}
 
-      {/* TX Divorce Phase Progress Strip */}
-      {isTXDivorce && orchestratorPhase && (
+      {/* State-aware divorce interview progress trail */}
+      {isDivorceDoc && currentPhaseIndex >= 0 && (
         <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-indigo-700">
-              Step {currentPhaseIndex + 1} of {TX_DIVORCE_PHASE_ORDER.length}:{' '}
-              {TX_DIVORCE_PHASE_NAMES[orchestratorPhase] || orchestratorPhase}
+              Step {currentPhaseIndex + 1} of {DIVORCE_PHASE_ORDER.length}:{' '}
+              {divorcePhaseNames[orchestratorPhase] || orchestratorPhase}
             </span>
             <span className="text-xs text-indigo-400">{phaseProgress}% complete</span>
           </div>
@@ -572,6 +567,7 @@ First, please select your state above. Each state has different legal requiremen
       {!isAtBottom && (
         <button 
           onClick={scrollToBottom}
+          aria-label="Scroll to latest message"
           className="absolute bottom-20 right-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
         >
           <ArrowDown className="h-5 w-5 text-gray-600" />
@@ -623,6 +619,7 @@ First, please select your state above. Each state has different legal requiremen
           />
           <button
             type="submit"
+            aria-label="Send message"
             disabled={isLoading || !message.trim() || !currentDocument.state}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               isLoading || !message.trim() || !currentDocument.state

@@ -50,15 +50,15 @@ export class ExternalServiceError extends AppError {
 }
 
 /**
- * Resolve the request id stamped by `middleware.ts`. Falling back to a fresh
+ * Resolve the request id stamped by `proxy.ts`. Falling back to a fresh
  * UUID keeps the contract intact when this helper is used outside a Route
  * Handler context (e.g. server actions), but the common path emits the same
  * id that's on the request/response headers, so client error reports can
  * be correlated to server logs.
  */
-function resolveRequestId(): string {
+async function resolveRequestId(): Promise<string> {
   try {
-    const incoming = headers().get('x-request-id');
+    const incoming = (await headers()).get('x-request-id');
     if (incoming && /^[A-Za-z0-9_.-]{1,128}$/.test(incoming)) return incoming;
   } catch {
     // headers() throws outside a request scope — fall through to a random id.
@@ -66,8 +66,8 @@ function resolveRequestId(): string {
   return randomUUID();
 }
 
-export function toErrorResponse(err: unknown): NextResponse {
-  const requestId = resolveRequestId();
+export async function toErrorResponse(err: unknown): Promise<NextResponse> {
+  const requestId = await resolveRequestId();
   const timestamp = new Date().toISOString();
 
   if (err instanceof ZodError) {

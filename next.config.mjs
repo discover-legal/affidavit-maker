@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url));
+
 // Content-Security-Policy.
 //
 // Tuned for this app's actual dependencies:
@@ -8,7 +13,10 @@
 //   - Google Tag Manager + GA4 (loaded by app/layout.tsx)
 //   - Vercel/Next prefetch, dynamic imports (require 'self')
 //
-// `script-src` omits 'unsafe-eval' but currently INCLUDES 'unsafe-inline':
+// Production `script-src` omits 'unsafe-eval' but currently INCLUDES
+// 'unsafe-inline'. Development adds 'unsafe-eval' because Next's React
+// Refresh runtime evaluates generated modules; without it the HTML renders
+// but hydration fails and every client interaction is inert.
 // Next emits a small inline bootstrap runtime, and our marketing pages ship
 // inline JSON-LD <script> tags. Moving to nonces or hashes (with
 // strict-dynamic) would let the inline allowance drop — until then, do not
@@ -88,14 +96,51 @@ const CSP_DIRECTIVES = {
 
 function buildCsp() {
   return Object.entries(CSP_DIRECTIVES)
-    .map(([key, values]) => (values.length === 0 ? key : `${key} ${values.join(' ')}`))
+    .map(([key, values]) => {
+      const resolvedValues =
+        key === 'script-src' && process.env.NODE_ENV !== 'production'
+          ? [...values, "'unsafe-eval'"]
+          : values;
+
+      return resolvedValues.length === 0 ? key : `${key} ${resolvedValues.join(' ')}`;
+    })
     .join('; ');
 }
+
+const LEGACY_SERVER_FILES = [
+  './services/**/*',
+  './templates/**/*',
+  './utils/**/*',
+];
+
+const OCR_RUNTIME_FILES = [
+  './node_modules/tesseract.js/**/*',
+  './node_modules/tesseract.js-core/**/*',
+  './node_modules/@tesseract.js-data/**/*',
+  './node_modules/wasm-feature-detect/**/*',
+  './node_modules/is-url/**/*',
+  './node_modules/regenerator-runtime/**/*',
+  './node_modules/idb-keyval/**/*',
+  './node_modules/zlibjs/**/*',
+  './node_modules/bmp-js/**/*',
+  './node_modules/is-electron/**/*',
+];
 
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  turbopack: {
+    // A separate lockfile exists above this checkout on the developer
+    // machine. Pin tracing/build resolution to this application root so a
+    // production build cannot accidentally include sibling workspace files.
+    root: PROJECT_ROOT,
+  },
+
+  // pdfkit and pdf-lib must load from node_modules at runtime, NOT be
+  // bundled into route handlers. Bundling breaks pdfkit's CJS constructor
+  // and severs its fs-relative font assets.
+  serverExternalPackages: ['pdfkit', 'pdf-lib', 'tesseract.js'],
 
   // The standalone build's tracer only ships modules reachable via static
   // import analysis. Our Route Handlers reach into the legacy CommonJS
@@ -104,40 +149,19 @@ const nextConfig = {
   // explicit includes the tracer commonly misses the deeply-nested
   // templates/states/<jurisdiction>/<DocumentType>.js (110 jurisdictions ×
   // ~7 files each) and the runtime container 500s with "Cannot find module".
-  experimental: {
-    // pdfkit and pdf-lib must load from node_modules at runtime, NOT be
-    // webpack-bundled into the route handler: bundling breaks pdfkit's
-    // CJS constructor via ESM interop ("PDFDocument is not a constructor")
-    // and severs its fs-relative font (AFM) assets — document generation
-    // 500s. Caught by live E2E against the running app.
-    serverComponentsExternalPackages: ['pdfkit', 'pdf-lib', 'tesseract.js'],
-    outputFileTracingIncludes: {
-      '/api/**/*': [
-        './services/**/*',
-        './templates/**/*',
-        './utils/**/*',
-        './config/**/*',
-        // tesseract.js loads its worker script and traineddata by path
-        // string (invisible to the tracer) — without these the standalone
-        // container 500s on photo ingestion only.
-        './node_modules/tesseract.js/**/*',
-        './node_modules/tesseract.js-core/**/*',
-        './node_modules/@tesseract.js-data/**/*',
-        './node_modules/wasm-feature-detect/**/*',
-        './node_modules/is-url/**/*',
-        './node_modules/regenerator-runtime/**/*',
-        './node_modules/idb-keyval/**/*',
-        './node_modules/zlibjs/**/*',
-        './node_modules/bmp-js/**/*',
-        './node_modules/is-electron/**/*',
-      ],
-      '/**/*': [
-        './services/**/*',
-        './templates/**/*',
-        './utils/**/*',
-        './config/**/*',
-      ],
-    },
+  outputFileTracingIncludes: {
+    '/api/chat': LEGACY_SERVER_FILES,
+    '/api/documents/generate': LEGACY_SERVER_FILES,
+    '/api/documents/preview': LEGACY_SERVER_FILES,
+    '/api/documents/packet': LEGACY_SERVER_FILES,
+    '/api/documents/[id]/render': LEGACY_SERVER_FILES,
+    '/api/evidence/**/*': LEGACY_SERVER_FILES,
+    '/api/facts/rewrite': LEGACY_SERVER_FILES,
+    '/api/templates/**/*': LEGACY_SERVER_FILES,
+    '/api/validate': LEGACY_SERVER_FILES,
+    // tesseract.js loads its worker and trained data by string path, which is
+    // invisible to static tracing. Keep that extra weight scoped to OCR only.
+    '/api/profile/ingest': [...LEGACY_SERVER_FILES, ...OCR_RUNTIME_FILES],
   },
 
   async headers() {

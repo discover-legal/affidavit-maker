@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { toErrorResponse } from '@/lib/api/errors';
+import { TOS_VERSION } from '@/lib/content/termsOfService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,13 +27,16 @@ export const GET = withAuth(async (_req, { user }) => {
     );
 
     const record = row.rows[0];
+    const currentAccepted =
+      record?.tos_accepted === true && record.tos_version_accepted === TOS_VERSION;
     return NextResponse.json({
       success: true,
-      tosAccepted: record?.tos_accepted ?? false,
+      tosAccepted: currentAccepted,
       tosAcceptedAt: record?.tos_accepted_at ?? null,
       tosVersionAccepted: record?.tos_version_accepted ?? null,
+      currentTosVersion: TOS_VERSION,
     });
   } catch (err) {
     return toErrorResponse(err);
   }
-});
+}, { requireCurrentTos: false });

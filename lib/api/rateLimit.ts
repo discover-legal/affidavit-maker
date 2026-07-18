@@ -8,6 +8,31 @@
 type Entry = { count: number; resetAt: number };
 
 const buckets = new Map<string, Map<string, Entry>>();
+let lastSweepAt = 0;
+
+const DEFAULT_MAX_BUCKETS = 128;
+const DEFAULT_MAX_KEYS_PER_BUCKET = 10_000;
+const SWEEP_INTERVAL_MS = 60_000;
+
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function sweepExpired(now: number): void {
+  for (const [bucket, store] of buckets) {
+    for (const [key, entry] of store) {
+      if (entry.resetAt <= now) store.delete(key);
+    }
+    if (store.size === 0) buckets.delete(bucket);
+  }
+  lastSweepAt = now;
+}
+
+function evictOldest<K, V>(store: Map<K, V>): void {
+  const oldest = store.keys().next();
+  if (!oldest.done) store.delete(oldest.value);
+}
 
 export type RateLimitResult = {
   ok: boolean;
@@ -22,24 +47,48 @@ export function checkRateLimit(
 ): RateLimitResult {
   const stringKey = typeof key === 'number' ? String(key) : key;
   const now = Date.now();
+  if (now - lastSweepAt >= SWEEP_INTERVAL_MS) sweepExpired(now);
+
   let store = buckets.get(bucket);
   if (!store) {
+    const maxBuckets = positiveIntegerEnv('RATE_LIMIT_MAX_BUCKETS', DEFAULT_MAX_BUCKETS);
+    if (buckets.size >= maxBuckets) {
+      sweepExpired(now);
+      if (buckets.size >= maxBuckets) evictOldest(buckets);
+    }
     store = new Map();
     buckets.set(bucket, store);
   }
 
   const existing = store.get(stringKey);
   if (!existing || existing.resetAt <= now) {
+    if (existing) store.delete(stringKey);
+    const maxKeys = positiveIntegerEnv(
+      'RATE_LIMIT_MAX_KEYS_PER_BUCKET',
+      DEFAULT_MAX_KEYS_PER_BUCKET,
+    );
+    if (store.size >= maxKeys) {
+      for (const [storedKey, entry] of store) {
+        if (entry.resetAt <= now) store.delete(storedKey);
+      }
+      if (store.size >= maxKeys) evictOldest(store);
+    }
     const resetAt = now + options.windowMs;
     store.set(stringKey, { count: 1, resetAt });
     return { ok: true, remaining: options.max - 1, resetAt };
   }
 
   if (existing.count >= options.max) {
+    // Refresh insertion order so eviction is least-recently-used rather than
+    // simply least-recently-created.
+    store.delete(stringKey);
+    store.set(stringKey, existing);
     return { ok: false, remaining: 0, resetAt: existing.resetAt };
   }
 
   existing.count += 1;
+  store.delete(stringKey);
+  store.set(stringKey, existing);
   return { ok: true, remaining: options.max - existing.count, resetAt: existing.resetAt };
 }
 

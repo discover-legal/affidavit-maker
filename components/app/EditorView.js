@@ -609,6 +609,7 @@ const EditorView = ({ isNew = false, onBack }) => {
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={handleSaveProgress}
+                aria-label={isSaving ? 'Saving document' : justSaved ? 'Document saved' : 'Save document'}
                 disabled={isSaving || justSaved || !isAuthenticated}
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
@@ -618,6 +619,7 @@ const EditorView = ({ isNew = false, onBack }) => {
 
               <button
                 onClick={handleDownload}
+                aria-label={isCheckingPayment ? 'Checking payment status' : 'Download document'}
                 disabled={!currentDocument.documentId || isCheckingPayment}
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >

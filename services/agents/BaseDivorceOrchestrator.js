@@ -489,16 +489,47 @@ class BaseDivorceOrchestrator {
     if (d.respondentFirstName)  items.push(`${respondingPartyLabel}: ${d.respondentFirstName} ${d.respondentLastName || ''}`);
     if (d.state)                items.push(`Province/State: ${d.state}`);
     if (d.county)               items.push(`${locationLabel}: ${d.county}`);
+    if (d.residencyStateMonths !== undefined && d.residencyStateMonths !== null) {
+      items.push(`Time living in state/province: ${d.residencyStateMonths} months`);
+    }
     if (d.marriageDate)         items.push(`Marriage date: ${d.marriageDate}`);
-    if (d.groundsForDivorce)    items.push(`Grounds: ${d.groundsForDivorce}`);
+    if (d.marriageCity || d.marriageStateName || d.marriageLocation) {
+      const marriagePlace = d.marriageLocation ||
+        [d.marriageCity, d.marriageStateName].filter(Boolean).join(', ');
+      items.push(`Marriage place: ${marriagePlace}`);
+    }
+    if (d.separationDate)       items.push(`Separation date: ${d.separationDate}`);
+    if (d.groundsForDivorce || d.grounds) {
+      items.push(`Grounds: ${d.groundsForDivorce || d.grounds}`);
+    }
     if (Array.isArray(d.children) && d.children.length > 0) {
       items.push(`Children recorded (${d.children.length}):\n${summarizeChildren(d.children)}`);
     } else if (typeof d.hasMinorChildren === 'boolean') {
       items.push(`Minor children: ${d.hasMinorChildren ? 'yes' : 'no'}`);
     }
     if (d.custodyArrangement)   items.push(`Custody arrangement: ${d.custodyArrangement}`);
+    if (d.propertyAgreement)    items.push(`Property agreement: ${d.propertyAgreement}`);
+    if (typeof d.spousalSupportRequested === 'boolean') {
+      items.push(`Spousal support requested: ${d.spousalSupportRequested ? 'yes' : 'no'}`);
+    }
     if (d.serviceMethod)        items.push(`Service method: ${d.serviceMethod}`);
-    if (d.facts?.length)        items.push(`Facts documented: ${d.facts.length}`);
+    if (typeof d.indigencyRequested === 'boolean') {
+      items.push(`Fee waiver requested: ${d.indigencyRequested ? 'yes' : 'no'}`);
+    }
+    if (d.respondentMilitaryStatus) {
+      items.push(`Respondent military status: ${d.respondentMilitaryStatus}`);
+    }
+    if (d.facts?.length) {
+      const priorFacts = d.facts
+        .map((fact) => typeof fact === 'string' ? fact : fact?.content)
+        .filter(Boolean)
+        .slice(0, 30)
+        .map((fact) => String(fact).slice(0, 500));
+      items.push(`Facts documented: ${d.facts.length}`);
+      if (priorFacts.length > 0) {
+        items.push(`Previously documented facts (do not ask for these again):\n- ${priorFacts.join('\n- ')}`);
+      }
+    }
     return items.join('\n');
   }
 
@@ -693,6 +724,11 @@ class BaseDivorceOrchestrator {
       const candidate = this.phaseOrder[i];
       const phaseConf = this.phases[candidate];
 
+      // Returning users may arrive with whole sections already present in
+      // My Story. Skip those sections deterministically instead of relying on
+      // the model to notice them and still advancing only one phase at a time.
+      if (this._phaseAlreadySatisfied(candidate, divorceData)) continue;
+
       if (phaseConf?.optional) {
         if (candidate === 'SUPPORT'   && divorceData.spousalSupportConfirmed === true) continue;
         // Skip INDIGENCY only when confirmed AND the user did not request a fee waiver.
@@ -703,6 +739,64 @@ class BaseDivorceOrchestrator {
       return candidate;
     }
     return 'REVIEW';
+  }
+
+  _phaseAlreadySatisfied(phase, data) {
+    const has = (value) => value !== undefined && value !== null && value !== '';
+    switch (phase) {
+      case 'INTAKE':
+        return Boolean(
+          (data.petitionerFirstName || data.petitionerName) &&
+          (data.respondentFirstName || data.respondentName)
+        );
+      case 'RESIDENCY':
+        return Boolean(data.state && data.county && has(data.residencyStateMonths));
+      case 'GROUNDS':
+        return Boolean(
+          (data.groundsForDivorce || data.grounds) &&
+          data.marriageDate &&
+          (data.marriageLocation || data.marriageCity)
+        );
+      case 'CHILDREN':
+        return data.hasMinorChildren === false ||
+          data.childrenConfirmed === true ||
+          this._factsExplicitlySayNoMinorChildren(data.facts);
+      case 'PROPERTY':
+        return has(data.propertyAgreement) || data.propertyConfirmed === true;
+      case 'SUPPORT':
+        return data.spousalSupportRequested === false || data.spousalSupportConfirmed === true;
+      case 'SERVICE':
+        return has(data.serviceMethod);
+      case 'INDIGENCY':
+        return data.indigencyRequested === false || data.indigencyConfirmed === true;
+      case 'MILITARY':
+        return Boolean(
+          (data.respondentMilitaryStatus &&
+            (data.militarySearchDate || data.militaryStatusConfirmed === true)) ||
+          this._factsSatisfyMilitaryCheck(data.facts)
+        );
+      default:
+        return false;
+    }
+  }
+
+  _factsExplicitlySayNoMinorChildren(facts) {
+    if (!Array.isArray(facts)) return false;
+    return facts.some((fact) => {
+      const text = String(typeof fact === 'string' ? fact : fact?.content || '');
+      return /\bno minor children\b|\bno children (?:together|of (?:the|this) marriage)\b|\bdo not have (?:any )?minor children\b/i.test(text);
+    });
+  }
+
+  _factsSatisfyMilitaryCheck(facts) {
+    if (!Array.isArray(facts)) return false;
+    const text = facts
+      .map((fact) => String(typeof fact === 'string' ? fact : fact?.content || ''))
+      .join(' ');
+    const hasStatus = /\bnot (?:in|serving in) (?:the )?(?:u\.?s\.? )?military\b|\bno active[- ]duty status\b|\bis (?:currently )?(?:on active duty|serving in the military)\b/i.test(text);
+    const hasDmdcCheck = /\b(?:checked|searched|check of) (?:the )?DMDC\b/i.test(text) &&
+      /\b(?:19|20)\d{2}\b/.test(text);
+    return hasStatus && hasDmdcCheck;
   }
 }
 

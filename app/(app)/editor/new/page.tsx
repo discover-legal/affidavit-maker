@@ -1,11 +1,11 @@
-import { withPageAuthRequired } from '@auth0/nextjs-auth0';
 import EditorClient from '@/components/app/EditorClient';
+import { requirePageAuth } from '@/lib/page-auth';
 
 export const metadata = { title: 'New Document' };
 
-export default withPageAuthRequired(
-  async function NewEditorPage() {
-    return <EditorClient isNew />;
-  },
-  { returnTo: '/editor/new' },
-);
+async function NewEditorPage() {
+  await requirePageAuth('/editor/new');
+  return <EditorClient isNew />;
+}
+
+export default NewEditorPage;

@@ -43,7 +43,7 @@ try {
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
   for (let i = 0; i < 10; i++) {
-    await page.getByRole('button', { name: /Texas/ }).first().click().catch(() => {});
+    await page.getByRole('button', { name: /Utah/ }).first().click().catch(() => {});
     const appeared = await page
       .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
       .then(() => true)
@@ -63,8 +63,8 @@ try {
   };
 
   await sendChat('Hi, my name is Brandon Pritchard. My spouse is Alex Pritchard.');
-  await sendChat('We live in Travis County, Texas and have for six years.');
-  await sendChat('We were married on May 1, 2010 in Austin, and separated November 15, 2024.');
+  await sendChat('We live in Salt Lake County, Utah and have for six years.');
+  await sendChat('We were married on May 1, 2010 in Salt Lake City, and separated November 15, 2024.');
   await sendChat('We have three kids. Our oldest is Emma, born April 2, 2015.');
   await sendChat('Then Liam, born June 15, 2017.');
   await sendChat('Wait — you forgot our youngest, Ava, born September 9, 2019.');
@@ -121,7 +121,7 @@ try {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: 'CAUSE NO 26-1234. Original Petition for Divorce, filed June 20, 2026 in Travis County District Court. Citation was served on Respondent on June 28, 2026. Petitioner asks the court to divide the marital estate.',
+        text: 'Case No. 260900001. Petition for Divorce filed June 20, 2026 in Salt Lake County, Utah. The Petition and Summons were served on Respondent on June 28, 2026. Petitioner asks the court to divide the marital estate.',
         label: 'Papers I was served',
       }),
     });

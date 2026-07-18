@@ -82,6 +82,31 @@ const ActionTypes = {
   SWITCH_SUB_DOCUMENT: 'SWITCH_SUB_DOCUMENT'
 };
 
+// Every packet document that can be selected by DocumentSelectionAgent and
+// rendered by TemplateManager. Keep this aligned with DocumentPreview tabs.
+const DIVORCE_SUB_DOCUMENT_TYPES = new Set([
+  'divorce_petition',
+  'divorce_decree',
+  'waiver_of_service',
+  'prove_up_affidavit',
+  'cert_last_known_address',
+  'military_status_affidavit',
+  'indigency_affidavit',
+  'parenting_plan',
+  'petition_dissolution',
+  'judgment_dissolution',
+  'child_custody_order',
+  'spousal_support_order',
+  'acknowledgment_of_receipt',
+  'final_judgment',
+  'child_support_worksheet',
+  'child_support_order',
+  'summons_with_notice',
+  'verified_complaint',
+  'proposed_judgment',
+  'acknowledgment_of_service'
+]);
+
 // Reducer
 const documentReducer = (state, action) => {
   switch (action.type) {
@@ -198,6 +223,7 @@ const documentReducer = (state, action) => {
       return {
         ...state,
         isSaving: false,
+        hasUnsavedChanges: false,
         lastSaved: action.payload.lastSaved,
         justSaved: true
       };
@@ -313,10 +339,9 @@ const documentReducer = (state, action) => {
       };
 
     case ActionTypes.SWITCH_SUB_DOCUMENT:
-      // Switch between divorce petition and decree views
-      // payload: 'divorce_petition' or 'divorce_decree'
+      // Switch among the documents selected for this divorce packet.
       const newSubDoc = action.payload;
-      if (newSubDoc !== 'divorce_petition' && newSubDoc !== 'divorce_decree') {
+      if (!DIVORCE_SUB_DOCUMENT_TYPES.has(newSubDoc)) {
         return state;
       }
       // Keep the original documentType (e.g., 'divorce_package') intact
@@ -352,6 +377,7 @@ export const DocumentProvider = ({ children }) => {
   // ✅ Ref to access current state without causing dependency changes
   const stateRef = useRef(state);
   stateRef.current = state;
+  const documentCreationInProgressRef = useRef(false);
 
   // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
@@ -536,10 +562,15 @@ export const DocumentProvider = ({ children }) => {
 
     // ✅ FIX: Prevent multiple simultaneous document creations
     // Access state via ref to avoid dependency on state values
-    if (stateRef.current.isSaving) {
+    if (documentCreationInProgressRef.current || stateRef.current.isSaving) {
       console.log('📄 Document creation already in progress');
       return null;
     }
+
+    // React Strict Mode intentionally re-runs mount effects in development.
+    // A ref is updated synchronously, unlike reducer state, so it closes the
+    // window where both effect runs could POST a new document.
+    documentCreationInProgressRef.current = true;
 
     // ✅ If forceNew, reset state first to ensure clean slate
     if (forceNew) {
@@ -577,6 +608,36 @@ export const DocumentProvider = ({ children }) => {
         if (prof?.success && prof.data) {
           const storedProfile = prof.data.profile || {};
           const storedFacts = Array.isArray(prof.data.facts) ? prof.data.facts : [];
+          const knownPetitionerName = storedProfile.petitionerName || storedProfile.affiantName ||
+            [storedProfile.petitionerFirstName, storedProfile.petitionerLastName]
+              .filter(Boolean)
+              .join(' ');
+          const familySeedFields = [
+            'respondentName',
+            'respondentFirstName',
+            'respondentLastName',
+            'marriageDate',
+            'marriageLocation',
+            'marriageCity',
+            'marriageStateName',
+            'separationDate',
+            'groundsForDivorce',
+            'grounds',
+            'hasMinorChildren',
+            'propertyAgreement',
+            'spousalSupportRequested',
+            'serviceMethod',
+            'indigencyRequested',
+            'respondentMilitaryStatus',
+            'militarySearchDate'
+          ];
+          const familySeed = isDivorcePackage
+            ? Object.fromEntries(
+                familySeedFields
+                  .filter((field) => storedProfile[field] !== undefined && storedProfile[field] !== null && storedProfile[field] !== '')
+                  .map((field) => [field, storedProfile[field]])
+              )
+            : {};
           // Identity always seeds; family data (children, accumulated facts —
           // which are mostly family-law statements) only seeds family
           // documents, so a small-claims or name-change affidavit isn't
@@ -585,6 +646,11 @@ export const DocumentProvider = ({ children }) => {
             ...(storedProfile.affiantName ? { affiantName: storedProfile.affiantName } : {}),
             ...(storedProfile.firstName ? { firstName: storedProfile.firstName } : {}),
             ...(storedProfile.lastName ? { lastName: storedProfile.lastName } : {}),
+            ...(isDivorcePackage && knownPetitionerName ? {
+              affiantName: knownPetitionerName,
+              petitionerName: knownPetitionerName
+            } : {}),
+            ...familySeed,
             ...(isDivorcePackage && storedFacts.length > 0 ? { facts: storedFacts } : {}),
             ...(isDivorcePackage &&
             Array.isArray(storedProfile.children) &&
@@ -670,6 +736,7 @@ export const DocumentProvider = ({ children }) => {
       });
       throw error;
     } finally {
+      documentCreationInProgressRef.current = false;
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
     }
   }, [authFetch, isAuthenticated, loadDocuments]);
@@ -1074,9 +1141,9 @@ export const DocumentProvider = ({ children }) => {
     setPreviewDebounceTimer(timer);
   }, [generatePreview, scheduleAutoSave]);
 
-  // Switch between divorce petition and decree views (for divorce packages)
+  // Switch among the selected documents in a divorce package.
   const switchSubDocument = useCallback((subDocType) => {
-    if (subDocType !== 'divorce_petition' && subDocType !== 'divorce_decree') {
+    if (!DIVORCE_SUB_DOCUMENT_TYPES.has(subDocType)) {
       console.warn('Invalid sub-document type:', subDocType);
       return;
     }

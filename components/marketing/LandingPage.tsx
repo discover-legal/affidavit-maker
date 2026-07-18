@@ -142,9 +142,9 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="text-left">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
                   discover<span className="text-brand">.</span>legal
-                </h1>
+                </span>
               </div>
             </Link>
 
@@ -529,7 +529,7 @@ export default function LandingPage() {
                 Built for your jurisdiction
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-6">
-                {coverageHeadline}.<br />
+                {coverageHeadline}<br />
                 <span className="text-slate-500">One template per court.</span>
               </h2>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">

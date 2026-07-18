@@ -6,8 +6,8 @@ import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext'
 import '@/styles/DocumentMetadata.css';
 
 const SUPPORTED_STATES = [
-  { code: 'TX', name: 'Texas' },
   { code: 'UT', name: 'Utah' },
+  { code: 'TX', name: 'Texas' },
   { code: 'AZ', name: 'Arizona' },
   { code: 'CA', name: 'California' },
   { code: 'FL', name: 'Florida' },

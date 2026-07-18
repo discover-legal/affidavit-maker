@@ -27,7 +27,7 @@ export default function MarketingHeader({ showBack = true }: MarketingHeaderProp
             <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
               <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               <div className="text-left">
-                <h1 className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</h1>
+                <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
                 <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
               </div>
             </Link>

@@ -27,24 +27,35 @@ services:
       # Statement-level cap so a runaway query can't hold a worker.
       - key: DATABASE_STATEMENT_TIMEOUT_MS
         value: '30000'
-      # Set DATABASE_CA_CERT to the Render-supplied PEM bundle (paste the
-      # whole certificate, BEGIN CERTIFICATE…END CERTIFICATE) to enable
-      # certificate verification on the Postgres TLS handshake. Without it
-      # the connection is still TLS-encrypted but the server certificate
-      # is not authenticated (Render's managed PG uses a self-signed cert
-      # outside the system trust store).
+      # Production fails closed unless a database trust anchor is set.
+      # Prefer the Render-supplied CA PEM bundle. For a private/self-signed
+      # server whose CA is unavailable, configure the out-of-band SHA-256
+      # leaf fingerprint instead.
       - key: DATABASE_CA_CERT
+        sync: false
+      - key: DATABASE_CERT_SHA256
         sync: false
 
       # Edge-trust configuration. Render's edge appends one entry to XFF, so
       # the rightmost value is the trusted client IP. If you add Cloudflare
-      # in front, set TRUSTED_PROXY_HOPS=2.
+      # in front, change the provider and restrict direct origin access.
+      - key: TRUSTED_PROXY_PROVIDER
+        value: render
       - key: TRUSTED_PROXY_HOPS
         value: '1'
       # Hard ceiling on any /api/* request body. Larger than the 10 MB
       # evidence upload limit to give multipart framing headroom.
       - key: API_MAX_BODY_BYTES
         value: '26214400'
+      # Bound per-process in-memory limiter state under high-cardinality IPs.
+      - key: RATE_LIMIT_MAX_BUCKETS
+        value: '128'
+      - key: RATE_LIMIT_MAX_KEYS_PER_BUCKET
+        value: '10000'
+      # OPERATIONS REQUIREMENT: configure Render/WAF ingress to reject request
+      # bodies above 25 MB and Transfer-Encoding: chunked on buffered /api/*
+      # routes. The application fails closed on missing/invalid lengths, but a
+      # platform ingress cap is what prevents undeclared bytes reaching Node.
 
       # Auth0 — server side
       - key: AUTH0_SECRET
@@ -77,7 +88,7 @@ services:
         value: 'true'
       - key: AUTH0_SESSION_ABSOLUTE_DURATION
         value: '86400' # 24h hard ceiling on session length
-      - key: AUTH0_SESSION_ROLLING_DURATION
+      - key: AUTH0_SESSION_INACTIVITY_DURATION
         value: '3600'  # 1h rolling idle timeout
 
       # Auth0 — exposed to the client bundle
@@ -114,6 +125,14 @@ services:
         value: /app/documents
       - key: MAX_FILE_SIZE
         value: '10485760'
+      - key: EVIDENCE_DOCUMENT_MAX_BYTES
+        value: '104857600'
+      - key: EVIDENCE_USER_MAX_BYTES
+        value: '262144000'
+      - key: EVIDENCE_DOCUMENT_MAX_FILES
+        value: '100'
+      - key: EVIDENCE_USER_MAX_FILES
+        value: '1000'
 
       # Logging
       - key: LOG_LEVEL

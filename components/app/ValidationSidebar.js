@@ -1204,12 +1204,12 @@ const ValidationSidebar = () => {
             </span>
           </div>
           <div className="flex items-center text-sm">
-            {currentDocument.facts?.length >= 3 ? (
+            {factCount >= 3 ? (
               <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
             ) : (
               <XCircle className="h-4 w-4 text-gray-300 mr-2" />
             )}
-            <span className={currentDocument.facts?.length >= 3 ? 'text-gray-700' : 'text-gray-400'}>
+            <span className={factCount >= 3 ? 'text-gray-700' : 'text-gray-400'}>
               At least 3 facts ({factCount}/3)
             </span>
           </div>

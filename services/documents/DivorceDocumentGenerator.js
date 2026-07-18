@@ -18,6 +18,9 @@
 
 // ─── State configuration ──────────────────────────────────────────────────────
 
+const normalizeCountyName = (county) =>
+  typeof county === 'string' ? county.replace(/\s+county$/i, '').trim() : county;
+
 const STATE_CONFIG = {
   TX: {
     name: 'Texas',
@@ -336,6 +339,9 @@ class DivorceDocumentGenerator {
    */
   generate(state, docType, data) {
     const cfg = STATE_CONFIG[state] || STATE_CONFIG['TX'];
+    // Conversations and county catalogs may return either "Salt Lake" or
+    // "Salt Lake County". State captions add the legal label themselves.
+    data = { ...data, county: normalizeCountyName(data?.county) };
 
     switch (docType) {
       case 'divorce_petition':
@@ -482,9 +488,12 @@ class DivorceDocumentGenerator {
   }
 
   _signatureBlock(data, title) {
+    const signerName = /^Respondent\b/i.test(title || '')
+      ? this._respondentName(data)
+      : this._petitionerName(data);
     return {
       line: '_'.repeat(40),
-      name: this._petitionerName(data),
+      name: signerName,
       title: title || 'Petitioner, Pro Se',
       date: `Date: __________`,
     };

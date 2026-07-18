@@ -4,6 +4,9 @@
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
+const normalizeCounty = (county, fallback = '[COUNTY]') =>
+  (county || fallback).replace(/\s+county$/i, '').trim();
+
 /**
  * Utah Verified Petition for Divorce Template
  *
@@ -93,7 +96,7 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Court name
    */
   getDefaultCourt(county) {
-    const countyName = county || '[COUNTY]';
+    const countyName = normalizeCounty(county);
     return `District Court of the State of Utah, In and For ${countyName} County`;
   }
 
@@ -111,7 +114,7 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Venue text
    */
   generateVenue(county) {
-    const countyFormatted = (county || '[County]')
+    const countyFormatted = normalizeCounty(county, '[County]')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
@@ -164,7 +167,7 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Petitioner has been an actual and bona fide resident of ${divorceData.county || '[COUNTY]'} County, State of Utah, for at least three months immediately prior to the commencement of this action.`;
+    return `Petitioner has been an actual and bona fide resident of ${normalizeCounty(divorceData.county)} County, State of Utah, for at least three months immediately prior to the commencement of this action.`;
   }
 
   /**
@@ -354,7 +357,7 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PETITIONER NAME]';
-    const county = divorceData.county || '[COUNTY]';
+    const county = normalizeCounty(divorceData.county);
 
     return `VERIFICATION
 

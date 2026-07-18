@@ -103,11 +103,52 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const json = (await req.json().catch(() => ({}))) as unknown;
     const body = generateSchema.parse(json);
-    const { affidavitData } = body;
+    let affidavitData = { ...body.affidavitData };
     const documentId = body.documentId !== undefined ? String(body.documentId) : undefined;
     const requestedFormat =
       (req.nextUrl.searchParams.get('format') ?? body.format ?? 'pdf').toLowerCase();
     const isDocx = requestedFormat === 'docx' || requestedFormat === 'word';
+
+    // Render the owned, saved record—not caller-supplied replacement content.
+    // Material edits reset payment_status in documents/save, so a paid ID
+    // cannot be replayed for unrelated documents or a more expensive SKU.
+    if (!documentId && paymentsEnabled()) {
+      throw new ValidationError('documentId is required to generate a document');
+    }
+    if (documentId) {
+      if (!/^[1-9]\d{0,9}$/.test(documentId) || Number(documentId) > 2_147_483_647) {
+        throw new ValidationError('Invalid document ID');
+      }
+      const saved = await query<{
+        content: unknown;
+        document_type: string | null;
+        payment_status: string | null;
+      }>(
+        `SELECT content, document_type, payment_status
+           FROM documents WHERE id = $1 AND user_id = $2`,
+        [documentId, user.id],
+      );
+      if (saved.rows.length === 0) throw new NotFoundError('Document not found');
+      const record = saved.rows[0];
+      if (paymentsEnabled() && !VALID_PAYMENT_STATUSES.has(record.payment_status ?? '')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Payment required',
+            errorType: 'payment_required',
+            documentId,
+          },
+          { status: 402 },
+        );
+      }
+      const parsedContent = typeof record.content === 'string'
+        ? JSON.parse(record.content)
+        : record.content;
+      affidavitData = generateSchema.shape.affidavitData.parse({
+        ...(parsedContent as Record<string, unknown>),
+        documentType: record.document_type ?? undefined,
+      });
+    }
 
     if (!affidavitData.state || affidavitData.state.trim() === '') {
       throw new ValidationError('State selection is required before generating a document');
@@ -140,52 +181,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // should have already flipped payment_status. If a race surfaces we'll
     // reintroduce the fallback in a follow-up.
     //
-    // SECURITY: a request without documentId must not slip past the gate —
-    // the SPA always saves before generating, so a missing id is either a
-    // bug or a bypass attempt. Only the kill-switch waives the requirement.
-    if (!documentId && paymentsEnabled()) {
-      throw new ValidationError('documentId is required to generate a document');
-    }
     if (documentId && !paymentsEnabled()) {
-      // Payments kill-switch is on — generation is free. Ownership is still
-      // enforced (the document must belong to the requesting user).
-      const ownerCheck = await query<{ id: string }>(
-        'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
-        [documentId, user.id],
-      );
-      if (ownerCheck.rows.length === 0) {
-        throw new NotFoundError('Document not found');
-      }
       logger.info('document_generate_payment_gate_bypassed', {
         userId: user.id,
         documentId,
         reason: 'PAYMENTS_ENABLED=false',
       });
-    } else if (documentId) {
-      const paymentCheck = await query<{ payment_status: string | null }>(
-        'SELECT payment_status FROM documents WHERE id = $1 AND user_id = $2',
-        [documentId, user.id],
-      );
-      if (paymentCheck.rows.length === 0) {
-        throw new NotFoundError('Document not found');
-      }
-      const paymentStatus = paymentCheck.rows[0].payment_status ?? '';
-      if (!VALID_PAYMENT_STATUSES.has(paymentStatus)) {
-        logger.warn('document_generate_payment_required', {
-          userId: user.id,
-          documentId,
-          paymentStatus,
-        });
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Payment required',
-            errorType: 'payment_required',
-            documentId,
-          },
-          { status: 402 },
-        );
-      }
     }
 
     // ── STEP 2: Build document structure via the template manager ─────────
@@ -247,7 +248,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // ── STEP 4: Read file → buffer → unlink → respond ────────────────────
     const fs = require('fs') as typeof import('fs');
     const fsPromises = fs.promises;
-    const fileBuffer = await fsPromises.readFile(pdfFilepath);
+    const fileBuffer = await fsPromises.readFile(/* turbopackIgnore: true */ pdfFilepath);
 
     // Update document status (best-effort; don't fail the response on db error)
     if (documentId) {

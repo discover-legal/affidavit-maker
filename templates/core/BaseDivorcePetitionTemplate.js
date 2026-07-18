@@ -29,6 +29,14 @@ const escapeHtml = (str) => {
 };
 
 /**
+ * Keep county labels stable whether callers provide "Salt Lake" or
+ * "Salt Lake County". Catalogs and conversational extraction use both
+ * shapes, while the legal templates add the jurisdictional "County" label.
+ */
+const normalizeCountyName = (county, fallback = '[COUNTY]') =>
+  String(county || fallback).replace(/\s+county$/i, '').trim();
+
+/**
  * Base template class for divorce petition generation
  * Provides common functionality across all states
  *
@@ -375,10 +383,11 @@ class BaseDivorcePetitionTemplate {
   generatePartiesSection(divorceData) {
     const items = [];
     let paragraphNum = 1;
+    const county = normalizeCountyName(divorceData.county);
 
     items.push({
       number: paragraphNum++,
-      content: `Petitioner, ${divorceData.petitionerName || '[PETITIONER NAME]'}, is a resident of ${divorceData.county || '[COUNTY]'} County, ${this.stateName}.`,
+      content: `Petitioner, ${divorceData.petitionerName || '[PETITIONER NAME]'}, is a resident of ${county} County, ${this.stateName}.`,
       type: 'party_identification'
     });
 
@@ -404,6 +413,7 @@ class BaseDivorcePetitionTemplate {
   generateJurisdictionSection(divorceData) {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 3;
+    const county = normalizeCountyName(divorceData.county);
 
     items.push({
       number: paragraphNum++,
@@ -413,7 +423,7 @@ class BaseDivorcePetitionTemplate {
 
     items.push({
       number: paragraphNum++,
-      content: `Venue is proper in ${divorceData.county || '[COUNTY]'} County because ${this.getVenueReason(divorceData)}.`,
+      content: `Venue is proper in ${county} County because ${this.getVenueReason(divorceData)}.`,
       type: 'venue'
     });
 

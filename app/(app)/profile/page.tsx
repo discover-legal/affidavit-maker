@@ -1,11 +1,11 @@
-import { withPageAuthRequired } from '@auth0/nextjs-auth0';
 import LifeStoryClient from '@/components/app/LifeStoryClient';
+import { requirePageAuth } from '@/lib/page-auth';
 
 export const metadata = { title: 'Your life story' };
 
-export default withPageAuthRequired(
-  async function ProfilePage() {
-    return <LifeStoryClient />;
-  },
-  { returnTo: '/profile' },
-);
+async function ProfilePage() {
+  await requirePageAuth('/profile');
+  return <LifeStoryClient />;
+}
+
+export default ProfilePage;

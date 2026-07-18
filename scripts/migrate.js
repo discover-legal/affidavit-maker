@@ -2,11 +2,14 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { resolveMigrationSsl } = require('./databaseSsl');
 try { require('dotenv').config(); } catch (_) { /* dotenv is dev-only; Render injects env directly */ }
 
 async function runMigrations() {
+  const ssl = await resolveMigrationSsl();
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: process.env.DATABASE_URL,
+    ssl,
   });
 
   try {

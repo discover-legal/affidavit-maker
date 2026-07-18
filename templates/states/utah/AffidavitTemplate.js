@@ -85,8 +85,9 @@ class UtahAffidavitTemplate extends BaseAffidavitTemplate {
    */
   generateVenue(county) {
     // Properly capitalize county name (title case for each word)
-    const countyName = county
-      ? county.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+    const normalizedCounty = county ? county.replace(/\s+county$/i, '').trim() : '';
+    const countyName = normalizedCounty
+      ? normalizedCounty.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
       : '____________';
     return `County of ${countyName}`; // Matches statutory form
   }
@@ -122,10 +123,9 @@ class UtahAffidavitTemplate extends BaseAffidavitTemplate {
    * @returns {Object} Competency statement fact object
    */
   generateCompetencyStatement(affiantName) {
-    const name = affiantName || 'I';
     return {
       number: 1,
-      content: `${name} am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct. If called as a witness, I could testify competently to the matters stated herein.`,
+      content: 'I am over the age of eighteen (18) years, of sound mind, and otherwise competent to make this affidavit. The facts stated herein are within my personal knowledge and are true and correct. If called as a witness, I could testify competently to the matters stated herein.',
       type: 'competency'
     };
   }

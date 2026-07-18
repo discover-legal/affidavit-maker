@@ -103,6 +103,49 @@ async function processPaymentFailed(client: PoolClient, intent: Stripe.PaymentIn
   );
 }
 
+async function processPaymentRevoked(
+  client: PoolClient,
+  paymentIntentId: string | null,
+  reason: 'refunded' | 'disputed' | 'canceled',
+) {
+  if (!paymentIntentId) return;
+  const payment = await client.query<{
+    user_id: number;
+    metadata: unknown;
+  }>(
+    'SELECT user_id, metadata FROM payments WHERE stripe_payment_intent_id = $1',
+    [paymentIntentId],
+  );
+  if (payment.rows.length === 0) return;
+  const row = payment.rows[0];
+  await client.query(
+    `UPDATE payments SET status = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE stripe_payment_intent_id = $2 AND user_id = $3`,
+    [reason, paymentIntentId, row.user_id],
+  );
+  const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+  const documentId = parseIntegerMetadata(
+    metadata && typeof metadata === 'object'
+      ? (metadata as { documentId?: unknown }).documentId
+      : null,
+  );
+  if (documentId !== null) {
+    await client.query(
+      `UPDATE documents SET payment_status = 'refunded', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND user_id = $2`,
+      [documentId, row.user_id],
+    );
+  }
+}
+
+function stripeId(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string') {
+    return (value as { id: string }).id;
+  }
+  return null;
+}
+
 /** Stripe metadata values are strings; validate they parse to a positive int. */
 function parseIntegerMetadata(raw: unknown): number | null {
   if (raw === undefined || raw === null) return null;
@@ -175,6 +218,27 @@ export async function POST(req: NextRequest) {
         break;
       case 'payment_intent.payment_failed':
         await processPaymentFailed(client, event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.canceled':
+        await processPaymentRevoked(
+          client,
+          (event.data.object as Stripe.PaymentIntent).id,
+          'canceled',
+        );
+        break;
+      case 'charge.refunded':
+        await processPaymentRevoked(
+          client,
+          stripeId((event.data.object as Stripe.Charge).payment_intent),
+          'refunded',
+        );
+        break;
+      case 'charge.dispute.created':
+        await processPaymentRevoked(
+          client,
+          stripeId((event.data.object as Stripe.Dispute).payment_intent),
+          'disputed',
+        );
         break;
       // Other event types are accepted and recorded as processed but do nothing.
     }

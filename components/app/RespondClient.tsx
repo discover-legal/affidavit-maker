@@ -254,8 +254,12 @@ function parseEventDate(raw: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+function formatDate(d: Date, lang: Lang): string {
+  return d.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 let nextRowId = 1;
@@ -562,9 +566,9 @@ export default function RespondClient() {
             {tt(lang, 'deadline.title')}
           </h2>
           <div className={`mt-2 text-sm ${deadlineUrgent ? 'text-red-900' : 'text-gray-700'}`}>
-            <p>{tt(lang, 'deadline.served', { date: formatDate(deadline.servedDate) })}</p>
+            <p>{tt(lang, 'deadline.served', { date: formatDate(deadline.servedDate, lang) })}</p>
             <p className="mt-1 font-semibold">
-              {tt(lang, 'deadline.due', { date: formatDate(deadline.dueDate) })}
+              {tt(lang, 'deadline.due', { date: formatDate(deadline.dueDate, lang) })}
               {' — '}
               {deadline.daysLeft < 0
                 ? tt(lang, 'deadline.past')
@@ -590,7 +594,7 @@ export default function RespondClient() {
             {tt(lang, 'deadline.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-700">
-            {tt(lang, 'deadline.served', { date: formatDate(deadline.servedDate) })}
+            {tt(lang, 'deadline.served', { date: formatDate(deadline.servedDate, lang) })}
           </p>
           <p className="mt-1 text-sm text-gray-700">{tt(lang, 'deadline.noProc')}</p>
         </div>

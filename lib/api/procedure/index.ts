@@ -117,7 +117,8 @@ export function detectPerspective(
   const rawEvents = Array.isArray(profile.keyEvents) ? profile.keyEvents : [];
   for (const entry of rawEvents) {
     const rec = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {};
-    if (/served on you|you were served/i.test(str(rec.label))) return 'respondent';
+    const context = `${str(rec.label)} ${str(rec.source)}`;
+    if (/served on you|you were served/i.test(context)) return 'respondent';
   }
   return 'petitioner';
 }

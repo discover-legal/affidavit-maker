@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { z } from 'zod';
-import { fromBuffer as fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit } from '@/lib/api/rateLimit';
 import { AppError, toErrorResponse } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
-import { appendKeyEvents, mergeUserProfile, type KeyEvent } from '@/lib/api/profile';
+import {
+  appendKeyEvents,
+  mergeUserProfile,
+  updateUserProfile,
+  type KeyEvent,
+} from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -28,9 +33,59 @@ export const maxDuration = 120;
 
 const MAX_TEXT_CHARS = 20000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // decoded
+const MAX_IMAGE_DIMENSION = 10000;
+const MAX_IMAGE_PIXELS = 25_000_000;
 // 8MB of raw bytes is ~10.7M base64 chars; allow headroom for the data-URL
 // prefix and whitespace. The precise limit is enforced after decoding.
 const MAX_IMAGE_B64_CHARS = 11_500_000;
+
+function readImageDimensions(image: Buffer, mime: string): { width: number; height: number } {
+  if (mime === 'image/png') {
+    if (image.length < 24) throw new AppError('PNG image is truncated', 400, 'InvalidImage');
+    return { width: image.readUInt32BE(16), height: image.readUInt32BE(20) };
+  }
+
+  const sofMarkers = new Set([
+    0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
+    0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
+  ]);
+  let offset = 2;
+  while (offset + 8 < image.length) {
+    if (image[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    while (offset < image.length && image[offset] === 0xff) offset += 1;
+    if (offset >= image.length) break;
+    const marker = image[offset++];
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > image.length) break;
+    const segmentLength = image.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > image.length) break;
+    if (sofMarkers.has(marker) && segmentLength >= 7) {
+      return {
+        height: image.readUInt16BE(offset + 3),
+        width: image.readUInt16BE(offset + 5),
+      };
+    }
+    offset += segmentLength;
+  }
+  throw new AppError('JPEG dimensions could not be determined', 400, 'InvalidImage');
+}
+
+function assertSafeImageDimensions(image: Buffer, mime: string): void {
+  const { width, height } = readImageDimensions(image, mime);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new AppError('Image dimensions are invalid', 400, 'InvalidImage');
+  }
+  if (
+    width > MAX_IMAGE_DIMENSION
+    || height > MAX_IMAGE_DIMENSION
+    || width * height > MAX_IMAGE_PIXELS
+  ) {
+    throw new AppError('Image dimensions are too large to process safely', 413, 'ImageTooLarge');
+  }
+}
 
 const labelSchema = z.string().max(120).optional();
 
@@ -134,6 +189,9 @@ async function decodeAndSniffImage(imageBase64: string): Promise<Buffer> {
   if (!detected || !['image/png', 'image/jpeg'].includes(detected.mime)) {
     throw new AppError('Only PNG and JPEG photos are supported', 415, 'UnsupportedImage');
   }
+  // Bound decoded pixels before Tesseract allocates image buffers. A tiny,
+  // highly compressed file can otherwise expand to hundreds of MB in OCR.
+  assertSafeImageDimensions(image, detected.mime);
   return image;
 }
 
@@ -226,6 +284,22 @@ async function extractIntoProfile(
   }
 
   const kind = String(extracted.document_kind || label || 'Court document').slice(0, 120);
+
+  // Preserve the user's side of the case when they explicitly describe the
+  // upload as papers served on them. The extractor often shortens the event
+  // label to just "Served", which is not enough to distinguish a respondent
+  // from a petitioner uploading proof that their spouse was served.
+  //
+  // Deliberately do not infer "petitioner" here: receiving or uploading a
+  // petition says nothing by itself about which person owns this profile.
+  const userDescription = String(label || '').trim();
+  const userSaysTheyWereServed =
+    /\b(?:i was|i've been|i have been) served\b|\bpapers (?:that )?i was served\b/i.test(userDescription) ||
+    /\b(?:me|te) (?:entregaron|notificaron) (?:los )?papeles\b|\bpapeles que (?:me|te) (?:entregaron|notificaron)\b/i.test(userDescription) ||
+    /\bserved (?:on|to) you\b|\byou were served\b/i.test(kind);
+  if (userSaysTheyWereServed) {
+    await updateUserProfile(userId, { role: 'respondent' });
+  }
 
   const events: KeyEvent[] = (extracted.events || [])
     .filter((e) => e && e.label && e.date)

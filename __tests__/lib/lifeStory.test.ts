@@ -39,6 +39,13 @@ describe('buildRecitals', () => {
     expect(recitals.every((r) => !r.known)).toBe(true);
     const identity = recitals[0].segments;
     expect(identity.some((s) => s.kind === 'blank' && s.text === 'your name')).toBe(true);
+    expect(recitals[1].segments.map((s) => s.text).join('')).toContain('Your marriage details:');
+  });
+
+  test('normalizes a county value that already includes the County suffix', () => {
+    const home = buildRecitals({ county: 'Salt Lake County', state: 'UT' })
+      .find((r) => r.id === 'home');
+    expect(home?.segments.map((s) => s.text).join('')).toBe('Home is Salt Lake County, UT.');
   });
 
   test('narrates known values as tokens', () => {
@@ -70,6 +77,20 @@ describe('buildRecitals', () => {
       ]),
     );
     expect(recitals.find((r) => r.id === 'identity')?.known).toBe(true);
+  });
+
+  test('uses the other party as the spouse for a respondent profile', () => {
+    const recitals = buildRecitals({
+      role: 'respondent',
+      affiantName: 'Jordan Avery',
+      petitionerName: 'Morgan Avery',
+      respondentName: 'Jordan Avery',
+      marriageDate: '2018-09-15',
+    });
+    const marriage = recitals.find((r) => r.id === 'marriage');
+    const text = marriage?.segments.map((segment) => segment.text).join('');
+    expect(text).toContain('You married Morgan Avery');
+    expect(text).not.toContain('You married Jordan Avery');
   });
 
   test('omits finances and safety until shared', () => {
@@ -227,9 +248,47 @@ describe('moneySegments', () => {
     expect(segs[1].label).toBe('Wages (Alex)');
   });
 
+  test('inverts you/other-party income labels for a respondent', () => {
+    const profile = {
+      role: 'respondent',
+      petitionerFirstName: 'Morgan',
+      respondentFirstName: 'Jordan',
+    };
+    const segs = moneySegments(
+      [
+        { label: 'Wages', amount: 4200, person: 'petitioner' },
+        { label: 'Wages', amount: 1000, person: 'respondent' },
+      ],
+      profile,
+    );
+    expect(segs[0].label).toBe('Wages (Morgan)');
+    expect(segs[1].label).toBe('Wages (you)');
+  });
+
   test('drops invalid entries and handles non-arrays', () => {
     expect(moneySegments(undefined)).toEqual([]);
     expect(moneySegments([{ label: '', amount: 5 }, { label: 'X', amount: -1 }, null])).toEqual([]);
+  });
+});
+
+describe('supportKindVisible', () => {
+  const { supportKindVisible } = require('@/components/app/lifeStory');
+
+  test('shows answer only to respondents and default/finalization only to petitioners', () => {
+    expect(supportKindVisible('answer', 'respondent', {})).toBe(true);
+    expect(supportKindVisible('answer', 'petitioner', {})).toBe(false);
+    expect(supportKindVisible('default_package', 'respondent', {})).toBe(false);
+    expect(supportKindVisible('finalization_prep', 'respondent', {})).toBe(false);
+    expect(supportKindVisible('default_package', 'petitioner', {})).toBe(true);
+  });
+
+  test('shows the child-support worksheet only when children are on record', () => {
+    expect(supportKindVisible('child_support_worksheet', 'petitioner', {})).toBe(false);
+    expect(supportKindVisible('child_support_worksheet', 'respondent', { hasMinorChildren: true })).toBe(true);
+    expect(supportKindVisible('child_support_worksheet', 'petitioner', { children: [{ name: 'Sam' }] })).toBe(true);
+    expect(supportKindVisible('child_support_worksheet', 'petitioner', {
+      children: [{ name: 'Adult child', dob: '1990-01-01' }],
+    })).toBe(false);
   });
 });
 
@@ -299,6 +358,20 @@ describe('pro se helpers', () => {
     const t2 = buildTl({ keyEvents: [{ label: 'Served', date: '2026-01-15' }] }, now);
     expect(t2).not.toBeNull();
     expect(t2.majors[0].label).toBe('Served');
+
+    const spanish = buildTl(
+      {
+        keyEvents: [
+          { label: 'Served', date: '2026-01-15' },
+          { label: 'Petition for Divorce filed', date: '2026-02-15' },
+        ],
+      },
+      now,
+      'es',
+    );
+    expect(spanish.majors.map((m: { label: string }) => m.label)).toEqual(
+      expect.arrayContaining(['Notificación', 'Petición de divorcio presentada']),
+    );
   });
 
   test('groupFacts carries provenance from quotes and document sources', () => {
@@ -328,5 +401,36 @@ describe('Spanish polish', () => {
     const marriage = r.find((x: { id: string }) => x.id === 'marriage');
     const values = marriage.segments.filter((s: { kind: string }) => s.kind === 'value');
     expect(values.some((v: { text: string }) => v.text === '1 de mayo de 2010')).toBe(true);
+  });
+  test('extracted fact categories are localized, not title-cased English fallbacks', () => {
+    expect(cat('temporal', 'es')).toBe('Cronología');
+    expect(cat('communication', 'es')).toBe('Comunicaciones');
+    expect(cat('separation', 'es')).toBe('Separación');
+    expect(cat('property_debts', 'es')).toBe('Bienes y deudas');
+    expect(cat('court', 'es')).toBe('Tribunal');
+    expect(cat('case_number', 'es')).toBe('Número de caso');
+    expect(cat(' Case number ', 'es')).toBe('Número de caso');
+    expect(cat('property and debts', 'es')).toBe('Bienes y deudas');
+    expect(cat('parties', 'es')).toBe('Partes del caso');
+  });
+
+  test('dynamic Utah next steps do not fall back to English', () => {
+    const { getProcedure, computeNextSteps } = require('@/lib/api/procedure');
+    const { localizeNextStep } = require('@/components/app/lifeStory');
+    const procedure = getProcedure('UT');
+    const profile = { serviceMethod: 'waiver' };
+    const steps = computeNextSteps(profile, procedure, new Date(2026, 6, 13));
+    const localized = steps.map((step: { key: string }) =>
+      localizeNextStep(step, procedure, profile, 'petitioner', 'es'),
+    );
+
+    expect(localized.find((step: { key: string }) => step.key === 'serve').title).toBe(
+      'Notifica a tu cónyuge',
+    );
+    expect(localized.find((step: { key: string }) => step.key === 'waiting').detail).toContain(
+      'período de espera de 30 días',
+    );
+    expect(JSON.stringify(localized)).not.toContain('Serve your spouse');
+    expect(JSON.stringify(localized)).not.toContain('Financial declaration');
   });
 });

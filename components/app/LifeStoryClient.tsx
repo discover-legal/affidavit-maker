@@ -26,6 +26,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import Tooltip from '@/components/marketing/Tooltip';
 import QuickExit from './QuickExit';
+import CoffeeLink from './CoffeeLink';
 // Pure step computation shared with the server (no server-only imports),
 // so the fetched procedure can be turned into steps right in the browser.
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
@@ -1689,6 +1690,7 @@ export default function LifeStoryClient() {
               </button>
             )}
           </section>
+          <CoffeeLink lang={lang} className="mt-8" />
         </>
       )}
     </main>

@@ -3,13 +3,13 @@ import Stripe from 'stripe';
 let stripeInstance: Stripe | null = null;
 
 /**
- * Kill-switch: set PAYMENTS_ENABLED=false (Render env var) to turn off
- * charging entirely — create-intent refuses and the document-generate
- * payment gate waves documents through as free. Defaults to enabled so
- * production behavior is unchanged until the flag is set explicitly.
+ * The product is FREE (donation-supported) by default: create-intent
+ * refuses and the document-generate payment gate waves documents through.
+ * Set PAYMENTS_ENABLED=true (Render env var) to re-arm Stripe charging —
+ * the full payment/webhook infrastructure stays intact and dormant.
  */
 export function paymentsEnabled(): boolean {
-  return process.env.PAYMENTS_ENABLED !== 'false';
+  return process.env.PAYMENTS_ENABLED === 'true';
 }
 
 export function getStripe(): Stripe | null {

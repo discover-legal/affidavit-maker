@@ -6,6 +6,7 @@ import { useAuth0 } from '@/lib/auth0-client';
 import { Download, FileText, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { trackEvent } from '@/lib/utils/analytics';
 import ReviewGate from './ReviewGate';
+import CoffeeLink from './CoffeeLink';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
@@ -242,11 +243,14 @@ const GenerateButton = ({ affidavitData, validation, onGenerate, className = "" 
       
       {/* Status Messages */}
       {generateStatus === 'success' && (
-        <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-          <div className="flex items-center">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            <span>Your {docLabel.toLowerCase()} has been downloaded successfully!</span>
+        <div className="space-y-2">
+          <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              <span>Your {docLabel.toLowerCase()} has been downloaded successfully!</span>
+            </div>
           </div>
+          <CoffeeLink />
         </div>
       )}
       

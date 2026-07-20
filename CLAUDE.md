@@ -266,8 +266,12 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 # Feature flags
 ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
-PAYMENTS_ENABLED=true       # Kill-switch: false stops charging — create-intent
-                            # refuses and document generation becomes free
+PAYMENTS_ENABLED=false      # The app is FREE (donation-supported) by default.
+                            # Set true to re-arm Stripe charging; the payment
+                            # + webhook infra stays intact and dormant.
+NEXT_PUBLIC_DONATION_URL=   # "Buy us a coffee" link (e.g. buymeacoffee.com page).
+                            # Coffee links render only when set; baked into the
+                            # client bundle at build time (Dockerfile build-arg).
 ```
 
 ---

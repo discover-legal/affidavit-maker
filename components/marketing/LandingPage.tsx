@@ -14,13 +14,9 @@ import {
   MapPin,
   Lock,
 } from 'lucide-react';
-import {
-  formatPrice,
-  formatOriginalPrice,
-  getDiscountPercentLabel,
-  LAUNCH_PRICING_ACTIVE,
-  LAUNCH_LABEL,
-} from '@/lib/pricing';
+// Free, donation-supported. The optional coffee link only renders when a
+// donation URL is configured at build time (never an unclaimed handle).
+const DONATION_URL = process.env.NEXT_PUBLIC_DONATION_URL || '';
 
 export default function LandingPage() {
   const { user } = useUser();
@@ -31,19 +27,11 @@ export default function LandingPage() {
   const coverageHeadline = 'All 50 states + D.C.';
   const coverageCount = '51';
 
-  const divorcePrice = formatPrice('us', 'divorce_package');
-  const affidavitPrice = formatPrice('us', 'single_affidavit');
-  const divorcePriceOriginal = formatOriginalPrice('us', 'divorce_package');
-  const affidavitPriceOriginal = formatOriginalPrice('us', 'single_affidavit');
-  const discountLabel = getDiscountPercentLabel();
-
   const products = [
     {
       key: 'divorce',
       name: 'Divorce Package',
       tagline: 'Petition, decree, and every supporting form.',
-      price: divorcePrice,
-      originalPrice: divorcePriceOriginal,
       icon: Scale,
       iconBg: 'bg-purple-50',
       iconColor: 'text-purple-600',
@@ -61,8 +49,6 @@ export default function LandingPage() {
       key: 'affidavit',
       name: 'General Affidavit',
       tagline: 'A sworn statement, court-ready.',
-      price: affidavitPrice,
-      originalPrice: affidavitPriceOriginal,
       icon: FileText,
       iconBg: 'bg-brand-tint',
       iconColor: 'text-brand',
@@ -223,14 +209,12 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-28 pb-16 sm:pb-20">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             <div className="lg:col-span-7">
-              {LAUNCH_PRICING_ACTIVE && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 shadow-sm mb-3">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-                    {LAUNCH_LABEL}
-                  </span>
-                </div>
-              )}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 shadow-sm mb-3">
+                <Heart className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                  Free for everyone
+                </span>
+              </div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6 ml-0 sm:ml-2">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                 <span className="text-xs font-medium text-slate-700">
@@ -266,16 +250,16 @@ export default function LandingPage() {
                   href="#products"
                   className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
                 >
-                  See pricing
+                  See what you get
                 </a>
               </div>
 
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-emerald-600" /> No subscription
+                  <Check className="h-4 w-4 text-emerald-600" /> Free — no subscription
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-emerald-600" /> Pay per document
+                  <Check className="h-4 w-4 text-emerald-600" /> No card required
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="h-4 w-4 text-emerald-600" /> Save &amp; resume any time
@@ -358,8 +342,8 @@ export default function LandingPage() {
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{coverageHeadline}</p>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-900">{affidavitPrice}+</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Per document, no subscription</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900">Free</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Every document, no subscription</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-slate-900">10&ndash;90 min</p>
@@ -416,29 +400,14 @@ export default function LandingPage() {
                       <Icon className={`h-6 w-6 ${featured ? 'text-white' : product.iconColor}`} />
                     </div>
                     <div className="text-right">
-                      {LAUNCH_PRICING_ACTIVE && (
-                        <p
-                          className={`text-sm font-medium line-through ${
-                            featured ? 'text-slate-400' : 'text-slate-400'
-                          }`}
-                        >
-                          {product.originalPrice}
-                        </p>
-                      )}
                       <p
                         className={`text-3xl font-bold ${featured ? 'text-white' : 'text-slate-900'}`}
                       >
-                        {product.price}
+                        Free
                       </p>
-                      {LAUNCH_PRICING_ACTIVE ? (
-                        <p className="text-xs font-bold text-amber-500 mt-0.5">
-                          {discountLabel}
-                        </p>
-                      ) : (
-                        <p className={`text-xs ${featured ? 'text-slate-400' : 'text-slate-500'}`}>
-                          Flat fee
-                        </p>
-                      )}
+                      <p className={`text-xs ${featured ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Donation-supported
+                      </p>
                     </div>
                   </div>
 
@@ -486,6 +455,23 @@ export default function LandingPage() {
 
           <p className="mt-8 text-sm text-slate-500 text-center">
             More matter types &mdash; custody, support, name change, small claims &mdash; coming soon.
+          </p>
+          <p className="mt-3 text-sm text-slate-500 text-center">
+            Everything here is free to use.
+            {DONATION_URL && (
+              <>
+                {' '}If it saves your day, you can{' '}
+                <a
+                  href={DONATION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-800"
+                >
+                  buy us a coffee
+                </a>
+                .
+              </>
+            )}
           </p>
         </div>
       </section>
@@ -649,7 +635,7 @@ export default function LandingPage() {
             Ready to start?
           </h2>
           <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Pick your document, answer the questions, download a court-ready PDF. From {affidavitPrice}.
+            Pick your document, answer the questions, download a court-ready PDF. Free.
           </p>
           <a
             href={startDocumentHref}

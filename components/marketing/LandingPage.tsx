@@ -235,7 +235,7 @@ export default function LandingPage() {
               <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
                 Complete divorce packages and court-ready affidavits, prepared by an AI interviewer
                 trained on your {jurisdictionWord}&rsquo;s rules. Plain-English questions,
-                properly-formatted output, a fraction of the cost of a paralegal.
+                properly-formatted output, completely free to use.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
@@ -560,7 +560,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 text-sm">No surprises</p>
-                    <p className="text-xs text-slate-500">Flat fees, no subscription.</p>
+                    <p className="text-xs text-slate-500">Free, no subscription.</p>
                   </div>
                 </div>
               </div>

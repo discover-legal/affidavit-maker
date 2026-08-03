@@ -3,9 +3,10 @@
 // client/src/views/EditorView.js - FIXED VERSION WITH PAYMENT
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical, Scale } from 'lucide-react';
+import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical, Scale, Send } from 'lucide-react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { useDocumentData, useSaveMetadata, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
+import { useFirm } from '@/contexts/FirmContext';
 import ChatInterface from './ChatInterface';
 import DocumentPreview from './DocumentPreview';
 import ValidationSidebar from './ValidationSidebar';
@@ -94,6 +95,11 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  // Firm mode: send-to-lawyer state ('idle' | 'sending' | 'sent' | 'error')
+  const { firmMode, firmName } = useFirm();
+  const [firmSubmitStatus, setFirmSubmitStatus] = useState('idle');
+  const [firmSubmitMessage, setFirmSubmitMessage] = useState('');
 
   // Use split contexts to prevent unnecessary re-renders
   const { currentDocument, preview } = useDocumentData();
@@ -361,6 +367,13 @@ const EditorView = ({ isNew = false, onBack }) => {
     }
 
     try {
+      // Firm mode: the firm covers generation (the server marks the document
+      // 'free' when it's sent to the lawyer), so never show the payment modal.
+      if (firmMode) {
+        await performDownload();
+        return;
+      }
+
       // Check if document has been paid for
       const isPaid = await checkPaymentStatus(currentDocument.documentId);
 
@@ -374,6 +387,51 @@ const EditorView = ({ isNew = false, onBack }) => {
     } catch (error) {
       console.error('❌ Download initiation failed:', error);
       alert(`Failed to initiate download: ${error.message}`);
+    }
+  };
+
+  // Firm mode: save the draft, then submit it to the firm's BigLaw platform
+  const handleSendToLawyer = async () => {
+    if (!currentDocument.documentId) {
+      alert('Please save the document first');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      alert('Please log in to send your document');
+      return;
+    }
+
+    setFirmSubmitStatus('sending');
+    setFirmSubmitMessage('');
+
+    try {
+      // Persist the latest edits so the lawyer receives the current draft
+      await saveDocument();
+
+      const response = await fetch(`${API_BASE_URL}/api/firm/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: Number(currentDocument.documentId) })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send document to your lawyer');
+      }
+
+      const status = data.data?.submission?.status || 'received';
+      setFirmSubmitStatus('sent');
+      setFirmSubmitMessage(`Sent to ${firmName || 'your law firm'} — status: ${status.replace(/_/g, ' ')}`);
+
+      trackEvent('firm_submission_sent', {
+        document_id: currentDocument.documentId,
+        status
+      });
+    } catch (error) {
+      console.error('❌ Send to lawyer failed:', error);
+      setFirmSubmitStatus('error');
+      setFirmSubmitMessage(`Failed to send: ${error.message}`);
     }
   };
 
@@ -552,6 +610,20 @@ const EditorView = ({ isNew = false, onBack }) => {
                 <span className="hidden sm:inline">{isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save'}</span>
               </button>
 
+              {firmMode && (
+                <button
+                  onClick={handleSendToLawyer}
+                  disabled={!currentDocument.documentId || firmSubmitStatus === 'sending' || !isAuthenticated}
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  title={`Send this draft to ${firmName || 'your law firm'} for review`}
+                >
+                  <Send className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {firmSubmitStatus === 'sending' ? 'Sending...' : firmSubmitStatus === 'sent' ? 'Sent' : 'Send to My Lawyer'}
+                  </span>
+                </button>
+              )}
+
               <button
                 onClick={handleDownload}
                 disabled={!currentDocument.documentId || isCheckingPayment}
@@ -579,6 +651,17 @@ const EditorView = ({ isNew = false, onBack }) => {
           </div>
         </div>
         
+        {/* Firm submission status */}
+        {firmMode && firmSubmitMessage && (
+          <div
+            className={`mt-2 text-xs sm:text-sm font-medium ${
+              firmSubmitStatus === 'error' ? 'text-red-600' : 'text-green-700'
+            }`}
+          >
+            {firmSubmitMessage}
+          </div>
+        )}
+
         {/* Document info bar */}
         <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
           <div className="flex items-center gap-2 min-w-0">

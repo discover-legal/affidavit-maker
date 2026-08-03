@@ -387,6 +387,49 @@ Common patterns:
 
 ---
 
+## Firm mode (BigLaw integration)
+
+When `BIGLAW_API_URL` + `BIGLAW_INTAKE_SECRET` are **both** set, the deployment
+becomes a law-firm client-intake portal: drafts are sent to the firm's BigLaw
+platform for a lawyer ("Send to My Lawyer") instead of paywalled downloads, and
+clients get a "My Legal Profile" CRM surface (`/profile`) with
+bidirectional-consent fact updates. When unset, nothing changes — pure self-rep
+product, zero firm UI, zero BigLaw calls.
+
+**Env vars** (`.env.example.sh`): `BIGLAW_API_URL`, `BIGLAW_INTAKE_SECRET`
+(HMAC-SHA256 request signing; never `NEXT_PUBLIC`, never logged),
+`BIGLAW_FIRM_NAME` (display name, defaults to "Your law firm").
+
+**Contract**: `docs/BIGLAW_INTEGRATION.md` (mirrored from the BigLaw repo's
+`docs/integration/affidavit-intake.md`) — the authoritative intake/CRM API
+spec, including the `v1=` signing scheme and the fact category vocabulary.
+
+**File map**:
+- `lib/biglaw/config.ts` — `isFirmMode()`, `firmName()`
+- `lib/biglaw/client.ts` — `BigLawClient` (signed fetch, 15s timeout) +
+  `getBigLawClient()` lazy singleton (null when firm mode off);
+  `signIntakeRequest()` implements the HMAC scheme
+- `lib/biglaw/types.ts` — contract types, `FACT_CATEGORIES`,
+  `normalizeSubmissionStatus()` (unknown → `in_review`)
+- `migrations/015_firm_mode.sql` — `firm_submissions` local status mirror
+  (UNIQUE per document, FORCE RLS per migration 014's pattern)
+- `app/api/firm/` — `config` (mode probe), `submit` (renders the draft via
+  `services/previewRenderer`, seeds ≤20 CRM facts, sets
+  `payment_status='free'`), `submissions` (local rows + 5s live refresh,
+  `live` flag), `profile`, `profile/propose`,
+  `profile/proposals/[proposalId]/decision` — all `withAuth` + rate-limited
+- `contexts/FirmContext.js` — client-side `{ firmMode, firmName, loading }`
+  from `/api/firm/config`; provider mounted in `app/(app)/AppShell.tsx`
+- UI: `components/app/EditorView.js` ("Send to My Lawyer", payment-modal
+  bypass in firm mode), `components/app/UserDashboard.js` (status pills +
+  profile nav), `app/(app)/profile/page.tsx` + `components/app/LegalProfileClient.tsx`
+
+Degradation rule: BigLaw being unreachable disables firm features for that
+request (dashboard falls back to stored statuses, `live:false`) but never
+breaks self-rep functionality. Tests: `__tests__/lib/biglaw-client.test.ts`.
+
+---
+
 ## SEO
 
 Built into Next.js — no react-snap, no Chromium, no postbuild hacks:

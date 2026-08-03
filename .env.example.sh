@@ -90,3 +90,14 @@ ENABLE_WEBHOOKS=true
 ENABLE_ANALYTICS=true
 ENABLE_EMAIL_NOTIFICATIONS=false
 MAINTENANCE_MODE=false
+
+# ===========================
+# FIRM MODE (BigLaw integration)
+# ===========================
+# Set BOTH to turn this deployment into a law-firm client-intake portal
+# (drafts route to the firm's BigLaw platform; clients get a "My Legal
+# Profile" CRM surface). Leave unset for the pure self-rep product.
+# Contract: docs/BIGLAW_INTEGRATION.md
+BIGLAW_API_URL=
+BIGLAW_INTAKE_SECRET=
+BIGLAW_FIRM_NAME=

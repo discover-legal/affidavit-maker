@@ -3,10 +3,11 @@
 // client/src/components/UserDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
-import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight } from 'lucide-react';
+import { FileText, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, UserCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
+import { useFirm } from '@/contexts/FirmContext';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -24,10 +25,28 @@ const getDocTypeLabel = (docType) => {
   }
 };
 
+// Firm-mode submission status pill styling/labels (unknown statuses render
+// as "In review" — the contract treats unknown values as in_review)
+const FIRM_STATUS_STYLES = {
+  received: 'bg-blue-100 text-blue-700',
+  conflict_hold: 'bg-amber-100 text-amber-700',
+  in_review: 'bg-indigo-100 text-indigo-700',
+  ready: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+};
+const FIRM_STATUS_LABELS = {
+  received: 'Sent to firm',
+  conflict_hold: 'Conflict hold',
+  in_review: 'In review',
+  ready: 'Ready',
+  rejected: 'Declined',
+};
+
 // Shared document row used in both the cases view and the standalone list
 const DocumentRow = ({
   doc, renamingDocId, newName, setNewName, isSubmittingRename,
-  startRename, cancelRename, submitRename, handleDeleteDocument, handleContinueDocument
+  startRename, cancelRename, submitRename, handleDeleteDocument, handleContinueDocument,
+  firmSubmission
 }) => {
   const docTypeLabel = (doc.document_type || doc.documentType);
   const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docTypeLabel);
@@ -74,6 +93,14 @@ const DocumentRow = ({
               <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${isDivorce ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                 {typeName}
               </span>
+              {firmSubmission && (
+                <span
+                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${FIRM_STATUS_STYLES[firmSubmission.status] || FIRM_STATUS_STYLES.in_review}`}
+                  title={firmSubmission.note || 'Firm review status'}
+                >
+                  {FIRM_STATUS_LABELS[firmSubmission.status] || FIRM_STATUS_LABELS.in_review}
+                </span>
+              )}
             </div>
           )}
           <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
@@ -126,6 +153,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [cases, setCases] = useState([]);
   const [isCasesLoading, setIsCasesLoading] = useState(false);
 
+  // Firm mode: submission status by document id (from /api/firm/submissions)
+  const { firmMode, firmName } = useFirm();
+  const [firmSubmissions, setFirmSubmissions] = useState({});
+
   // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -133,6 +164,31 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     loadCases();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDocuments]);
+
+  // Load firm submission statuses once when firm mode is active
+  useEffect(() => {
+    if (!firmMode) return;
+
+    let cancelled = false;
+    const loadFirmSubmissions = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/firm/submissions`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const byDocumentId = {};
+        (data.data?.submissions || []).forEach((submission) => {
+          byDocumentId[String(submission.documentId)] = submission;
+        });
+        setFirmSubmissions(byDocumentId);
+      } catch (err) {
+        // Firm statuses are an enhancement — fail silently, rows render without pills
+      }
+    };
+
+    loadFirmSubmissions();
+    return () => { cancelled = true; };
+  }, [firmMode]);
 
   const loadCases = async () => {
     setIsCasesLoading(true);
@@ -299,22 +355,34 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
           <p className="text-sm sm:text-base text-gray-600">Create new documents or continue working on your drafts.</p>
         </div>
-        {newDocStep === null && (
-          <button
-            onClick={() => {
-              // Skip case type step if user already has a preference
-              if (selectedCaseType) {
-                setNewDocStep('documentType');
-              } else {
-                setNewDocStep('caseType');
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-          >
-            <PlusCircle className="h-4 w-4" />
-            New Document
-          </button>
-        )}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {firmMode && (
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm"
+              title={`Your legal profile with ${firmName || 'your law firm'}`}
+            >
+              <UserCircle className="h-4 w-4" />
+              My Legal Profile
+            </button>
+          )}
+          {newDocStep === null && (
+            <button
+              onClick={() => {
+                // Skip case type step if user already has a preference
+                if (selectedCaseType) {
+                  setNewDocStep('documentType');
+                } else {
+                  setNewDocStep('caseType');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Document
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Step 1: Case Type Selection */}
@@ -476,6 +544,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                         submitRename={submitRename}
                         handleDeleteDocument={handleDeleteDocument}
                         handleContinueDocument={handleContinueDocument}
+                        firmSubmission={firmSubmissions[String(doc.id)]}
                       />
                     ))}
                   </ul>
@@ -525,6 +594,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                 submitRename={submitRename}
                 handleDeleteDocument={handleDeleteDocument}
                 handleContinueDocument={handleContinueDocument}
+                firmSubmission={firmSubmissions[String(doc.id)]}
               />
             ))}
           </ul>

@@ -8,7 +8,7 @@ import { sanitizeArticlePromotions } from '@/lib/content/sanitizeArticle';
 import { jsonLd } from '@/lib/json-ld';
 
 type ArticlePageProps = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 export function generateStaticParams() {
@@ -27,8 +27,9 @@ function toIsoDate(humanDate: string): string {
   return `${y}-${m}-${d}`;
 }
 
-export function generateMetadata({ params }: ArticlePageProps): Metadata {
-  const article = getArticleBySlug(params.slug);
+export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const article = getArticleBySlug(slug);
   if (!article) {
     return {};
   }
@@ -98,8 +99,9 @@ function buildStructuredData(article: Article) {
   };
 }
 
-export default function ArticlePage({ params }: ArticlePageProps) {
-  const article = getArticleBySlug(params.slug);
+export default async function ArticlePage({ params }: ArticlePageProps) {
+  const { slug } = await params;
+  const article = getArticleBySlug(slug);
   if (!article) {
     notFound();
   }

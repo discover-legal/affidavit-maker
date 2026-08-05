@@ -29,8 +29,9 @@ function loadRegistry(): AffidavitTypeRegistry | null {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { typeId: string } },
+  { params: paramsPromise }: { params: Promise<{ typeId: string }> },
 ) {
+  const params = await paramsPromise;
   const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(

@@ -8,6 +8,14 @@ export type RouteContext<P = Record<string, string | string[]>> = {
   params: P;
 };
 
+/**
+ * Next.js 15+ delivers route params as a Promise. withAuth resolves it before
+ * invoking the handler so every wrapped route keeps its synchronous `params`.
+ */
+type IncomingRouteContext<P> = {
+  params: P | Promise<P>;
+};
+
 export type AuthedHandler<P = Record<string, string | string[]>> = (
   req: NextRequest,
   ctx: RouteContext<P> & { user: AppUser },
@@ -64,7 +72,8 @@ export function withAuth<P = Record<string, string | string[]>>(
   handler: AuthedHandler<P>,
   options: WithAuthOptions = {},
 ) {
-  return async (req: NextRequest, ctx: RouteContext<P>) => {
+  return async (req: NextRequest, ctx: IncomingRouteContext<P>) => {
+    const params = await ctx.params;
     const session = await getCurrentSession();
     if (!session?.user?.sub) {
       return NextResponse.json(
@@ -107,7 +116,7 @@ export function withAuth<P = Record<string, string | string[]>>(
             );
           }
         }
-        return Promise.resolve(handler(req, { ...ctx, user }));
+        return Promise.resolve(handler(req, { params, user }));
       });
     } finally {
       releaseSlot();

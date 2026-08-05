@@ -27,8 +27,9 @@ function humanizeDocumentType(type: string): string {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { state: string } },
+  { params: paramsPromise }: { params: Promise<{ state: string }> },
 ) {
+  const params = await paramsPromise;
   const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(

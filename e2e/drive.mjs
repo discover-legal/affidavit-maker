@@ -19,13 +19,24 @@ async function newPage(context) {
   return page;
 }
 function seededContext() {
-  return browser.newContext({ viewport: { width: 1280, height: 900 } }).then(async (ctx) => {
-    await ctx.addInitScript(() => {
-      // TOSGuard trusts these keys (user.sub is undefined in the E2E shim).
-      localStorage.setItem('tos_accepted_auth0|e2etester', 'true');
-      sessionStorage.setItem('tos_accepted_auth0|e2etester', 'true');
-    });
-    return ctx;
+  // TOS state is server-verified now — acceptTos() below establishes it via
+  // the real endpoints; no client-storage seeding is possible or needed.
+  return browser.newContext({ viewport: { width: 1280, height: 900 } });
+}
+
+// Accept the current Terms of Service for the E2E user. withAuth 403s every
+// authed endpoint (except the two TOS routes) until this has happened.
+async function acceptTos(page) {
+  await page.evaluate(async () => {
+    const status = await fetch('/api/auth/tos-status').then((r) => r.json()).catch(() => null);
+    const version = status?.currentTosVersion;
+    if (version && !status?.tosAccepted) {
+      await fetch('/api/auth/accept-tos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tosVersion: version }),
+      });
+    }
   });
 }
 
@@ -47,6 +58,7 @@ try {
   let page = await newPage(ctx1);
   await page.goto(`${BASE}/profile`);
   await page.waitForLoadState('networkidle');
+  await acceptTos(page);
   // Reset: erase the test user's story + documents so the run is repeatable.
   await page.evaluate(async () => {
     await fetch('/api/profile', { method: 'DELETE' });

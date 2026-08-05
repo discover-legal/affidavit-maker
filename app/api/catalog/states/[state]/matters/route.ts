@@ -6,7 +6,8 @@ import { rateLimitKey } from '@/lib/util/clientIp';
 
 export const runtime = 'nodejs';
 
-export async function GET(req: Request, { params }: { params: { state: string } }) {
+export async function GET(req: Request, { params: paramsPromise }: { params: Promise<{ state: string }> }) {
+  const params = await paramsPromise;
   const limit = await checkRateLimit('catalog', rateLimitKey(req, 'catalog'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(

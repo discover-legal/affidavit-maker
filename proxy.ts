@@ -28,6 +28,9 @@ const ALLOWED_API_ORIGINS = new Set([
         'http://localhost',
         'http://127.0.0.1:3000',
         'http://127.0.0.1',
+        // E2E harness (e2e/setup-worktree.sh) serves on :3100.
+        'http://localhost:3100',
+        'http://127.0.0.1:3100',
       ]),
 ]);
 

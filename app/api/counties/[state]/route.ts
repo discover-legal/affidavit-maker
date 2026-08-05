@@ -31,7 +31,8 @@ const COUNTIES: Record<string, string[]> = {
   ],
 };
 
-export async function GET(req: Request, { params }: { params: { state: string } }) {
+export async function GET(req: Request, { params: paramsPromise }: { params: Promise<{ state: string }> }) {
+  const params = await paramsPromise;
   try {
     const limit = await checkRateLimit('counties', rateLimitKey(req, 'counties'), RATE_LIMITS.standard);
     if (!limit.ok) {

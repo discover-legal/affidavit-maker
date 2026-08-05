@@ -137,8 +137,7 @@ describe('POST /api/documents/save — INSERT', () => {
 
 describe('POST /api/documents/save — UPDATE', () => {
   const mockOwnedDocument = () => {
-    // 1st query: ownership check; 2nd: the UPDATE.
-    queryMock.mockResolvedValueOnce({ rows: [{ user_id: 7 }], rowCount: 1 });
+    // Single compare-and-set UPDATE (ownership + revision in the WHERE).
     queryMock.mockResolvedValueOnce({ rows: [{ id: 55 }], rowCount: 1 });
   };
 
@@ -151,15 +150,15 @@ describe('POST /api/documents/save — UPDATE', () => {
     });
     expect(res.status).toBe(200);
 
-    expect(queryMock).toHaveBeenCalledTimes(2);
-    const [sql, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
     expect(sql).toContain('UPDATE documents');
     // COALESCE keeps the stored transcript whenever the param is NULL.
-    expect(sql).toMatch(/conversation_history = COALESCE\(\$5::jsonb, conversation_history\)/);
-    expect(params[4]).toBe(JSON.stringify(transcript));
+    expect(sql).toMatch(/conversation_history = COALESCE\(\$8::jsonb, conversation_history\)/);
+    expect(params[7]).toBe(JSON.stringify(transcript));
     // Ownership stays parameterized on both id and user_id.
-    expect(params[5]).toBe('55');
-    expect(params[6]).toBe(7);
+    expect(params[4]).toBe('55');
+    expect(params[5]).toBe(7);
   });
 
   test('does NOT overwrite the stored transcript when the field is absent', async () => {
@@ -170,10 +169,10 @@ describe('POST /api/documents/save — UPDATE', () => {
     });
     expect(res.status).toBe(200);
 
-    const [sql, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
     // NULL param + COALESCE = stored conversation_history preserved.
-    expect(params[4]).toBeNull();
-    expect(sql).toContain('COALESCE($5::jsonb, conversation_history)');
+    expect(params[7]).toBeNull();
+    expect(sql).toContain('COALESCE($8::jsonb, conversation_history)');
   });
 
   test('strips a client-smuggled conversationHistory from the content blob', async () => {
@@ -188,7 +187,7 @@ describe('POST /api/documents/save — UPDATE', () => {
       conversationHistory: transcript,
     });
 
-    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const [, params] = queryMock.mock.calls[0] as [string, unknown[]];
     const content = JSON.parse(params[0] as string);
     expect(content.conversationHistory).toBeUndefined();
   });

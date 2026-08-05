@@ -106,9 +106,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     if (data.documentId) {
       const id = String(data.documentId);
-      if (!parsed.expectedRevision) {
-        throw new ValidationError('Document revision is required');
-      }
+      // Optimistic concurrency is compare-and-set when the client knows the
+      // current revision, and a plain save when it does not (older clients,
+      // transcript-only saves). Every successful save bumps edit_revision.
       const updated = await query<Record<string, unknown>>(
         `UPDATE documents
             SET payment_status = CASE
@@ -119,7 +119,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
                 content = $1, title = $2, template_state = $3, validation_results = $4,
                 conversation_history = COALESCE($8::jsonb, conversation_history),
                 updated_at = CURRENT_TIMESTAMP, edit_revision = edit_revision + 1
-          WHERE id = $5 AND user_id = $6 AND edit_revision = $7
+          WHERE id = $5 AND user_id = $6 AND ($7::bigint IS NULL OR edit_revision = $7)
           RETURNING *`,
         [
           contentToSave,
@@ -128,7 +128,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
           validationJson,
           id,
           user.id,
-          parsed.expectedRevision,
+          parsed.expectedRevision ?? null,
           conversationHistoryJson,
         ],
       );

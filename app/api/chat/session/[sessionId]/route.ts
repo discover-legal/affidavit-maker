@@ -41,7 +41,7 @@ function assertOwnsSession(sessionId: string, userId: string): void {
 // persistence is handled by the document save flow.
 export const GET = withAuth<Params>(async (_req: NextRequest, { params, user }) => {
   try {
-    const limit = checkRateLimit('chat', user.id, RATE_LIMITS.chat);
+    const limit = await checkRateLimit('chat', user.id, RATE_LIMITS.chat);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -72,7 +72,7 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { params, user }) 
 // 200 and log the event so the SPA can reset its local state confidently.
 export const DELETE = withAuth<Params>(async (_req: NextRequest, { params, user }) => {
   try {
-    const limit = checkRateLimit('chat', user.id, RATE_LIMITS.chat);
+    const limit = await checkRateLimit('chat', user.id, RATE_LIMITS.chat);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

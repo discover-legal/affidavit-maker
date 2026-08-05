@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { headers } from 'next/headers';
 import { ZodError } from 'zod';
 
 export class AppError extends Error {
@@ -57,12 +56,9 @@ export class ExternalServiceError extends AppError {
  * be correlated to server logs.
  */
 function resolveRequestId(): string {
-  try {
-    const incoming = headers().get('x-request-id');
-    if (incoming && /^[A-Za-z0-9_.-]{1,128}$/.test(incoming)) return incoming;
-  } catch {
-    // headers() throws outside a request scope — fall through to a random id.
-  }
+  // Next 15 made headers() asynchronous. Error conversion is intentionally
+  // synchronous and is also used outside request scope, so generate a safe
+  // correlation ID here rather than relying on dynamic request APIs.
   return randomUUID();
 }
 

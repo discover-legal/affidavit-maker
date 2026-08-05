@@ -45,7 +45,7 @@ function parseCaseId(raw: string | string[] | undefined): number {
 // GET /api/cases/[id]
 export const GET = withAuth<{ id: string | string[] }>(async (_req, { user, params }) => {
   try {
-    const limit = checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -81,7 +81,7 @@ export const GET = withAuth<{ id: string | string[] }>(async (_req, { user, para
 // PUT /api/cases/[id]
 export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
-    const limit = checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('cases-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

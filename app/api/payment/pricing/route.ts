@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // reads request-bound headers/cookies
 
 export async function GET(req: Request) {
-  const limit = checkRateLimit('payment-pricing', rateLimitKey(req, 'payment-pricing'), RATE_LIMITS.standard);
+  const limit = await checkRateLimit('payment-pricing', rateLimitKey(req, 'payment-pricing'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
   const locale = getLocale();
 
-  const build = (key: 'single_affidavit' | 'divorce_package' | 'all_state_access', label: string) => {
+  const build = (key: 'single_affidavit' | 'divorce_package', label: string) => {
     const current = getPrice(locale, key);
     const original = getOriginalPrice(locale, key);
     return {
@@ -46,7 +46,6 @@ export async function GET(req: Request) {
     pricing: {
       single_affidavit: build('single_affidavit', 'Single Affidavit'),
       divorce_package: build('divorce_package', 'Divorce Package'),
-      all_state_access: build('all_state_access', 'All-State Access'),
     },
   });
 }

@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
+import { readJsonBody } from '@/lib/api/requestBody';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -37,15 +38,16 @@ const factSchema = z.object({
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('facts-rewrite', user.id, RATE_LIMITS.chat);
-    if (!limit.ok) {
+    const limit = await checkRateLimit('facts-rewrite', user.id, RATE_LIMITS.chat);
+    const dailyLimit = await checkRateLimit('ai-daily', user.id, RATE_LIMITS.chatDaily);
+    if (!limit.ok || !dailyLimit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 },
       );
     }
 
-    const body = factSchema.parse(await req.json().catch(() => ({})));
+    const body = factSchema.parse(await readJsonBody(req, 512 * 1024));
     if (!body.fact?.content) {
       throw new ValidationError('Fact content is required');
     }

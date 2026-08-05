@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s | discover.legal',
   },
   description:
-    'Court-ready affidavits and complete divorce packages prepared in minutes. Jurisdiction-specific templates for all 50 U.S. states + D.C. and every Canadian province & territory.',
+    'AI-assisted affidavit, divorce petition, and proposed decree drafts using jurisdiction-specific templates.',
   applicationName: 'discover.legal',
   authors: [{ name: 'discover.legal' }],
   icons: {

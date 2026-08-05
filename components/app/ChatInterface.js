@@ -408,10 +408,13 @@ First, please select your state above. Each state has different legal requiremen
         </div>
       )}
 
-      {/* Document Metadata Button - Only visible on tablet+ screens */}
-      <div className="hidden md:block border-b bg-white">
+      {/* Document details must remain reachable on phones as well as desktop. */}
+      <div className="border-b bg-white">
         <button
           onClick={() => setShowMetadata(!showMetadata)}
+          type="button"
+          aria-expanded={showMetadata}
+          aria-controls="document-metadata-panel"
           className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
             showMetadata
               ? 'bg-gray-200 hover:bg-gray-300'
@@ -435,7 +438,7 @@ First, please select your state above. Each state has different legal requiremen
       >
         {/* Document Metadata Overlay - Takes full chat area when open */}
         {showMetadata && (
-          <div className="absolute inset-0 bg-white z-10 overflow-y-auto p-3 shadow-lg">
+          <div id="document-metadata-panel" className="absolute inset-0 bg-white z-10 overflow-y-auto p-3 shadow-lg">
             <DocumentMetadata />
           </div>
         )}

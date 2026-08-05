@@ -8,8 +8,8 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const FileType = require('file-type');
+const { randomUUID } = require('node:crypto');
+const FileType = require('../utils/allowedFileType');
 const logger = require('../utils/logger');
 
 // Allowed file types with their MIME types
@@ -25,8 +25,10 @@ const PDF_MIN_BYTES_PER_PAGE = 100;
 
 class EvidenceStorage {
   constructor() {
-    this.basePath = path.join(__dirname, '..', 'documents', 'evidence');
-    this.thumbnailPath = path.join(__dirname, '..', 'documents', 'thumbnails');
+    const documentsPath = path.resolve(
+      process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')
+    );
+    this.basePath = path.join(documentsPath, 'evidence');
     this.ensureDirectories();
   }
 
@@ -37,9 +39,6 @@ class EvidenceStorage {
     try {
       if (!fsSync.existsSync(this.basePath)) {
         await fs.mkdir(this.basePath, { recursive: true });
-      }
-      if (!fsSync.existsSync(this.thumbnailPath)) {
-        await fs.mkdir(this.thumbnailPath, { recursive: true });
       }
     } catch (error) {
       logger.error('Error creating evidence directories:', error);
@@ -61,11 +60,11 @@ class EvidenceStorage {
    * @param {object} file - Multer file object
    * @param {number} userId - User ID
    * @param {number} documentId - Document ID
-   * @param {string} evidenceId - Evidence ID (UUID)
    * @returns {object} Evidence metadata
    */
-  async uploadEvidence(file, userId, documentId, evidenceId) {
+  async uploadEvidence(file, userId, documentId) {
     try {
+      const evidenceId = this.generateEvidenceId();
       const userDir = this.getUserEvidenceDir(userId, documentId);
       await fs.mkdir(userDir, { recursive: true });
 
@@ -73,8 +72,10 @@ class EvidenceStorage {
       const filename = `${evidenceId}${ext}`;
       const filepath = path.join(userDir, filename);
 
-      // Move uploaded file to final location
-      await fs.rename(file.path, filepath);
+      // COPYFILE_EXCL makes the no-clobber guarantee explicit even in the
+      // astronomically unlikely event of an identifier collision.
+      await fs.copyFile(file.path, filepath, fsSync.constants.COPYFILE_EXCL);
+      await fs.unlink(file.path).catch(() => {});
 
       // SECURITY: Validate file content via magic bytes (prevents MIME spoofing)
       await this.validateFileContent(filepath);
@@ -83,9 +84,16 @@ class EvidenceStorage {
       const metadata = await this.getFileMetadata(filepath, ext);
 
       // Generate thumbnail
-      const thumbnailKey = await this.generateThumbnail(filepath, ext, evidenceId);
+      const thumbnailKey = await this.generateThumbnail(
+        filepath,
+        ext,
+        evidenceId,
+        userId,
+        documentId
+      );
 
       return {
+        evidenceId,
         fileKey: path.relative(this.basePath, filepath),
         fileName: file.originalname,
         fileType: this.getFileType(ext),
@@ -154,12 +162,19 @@ class EvidenceStorage {
    * @param {string} filepath - Source file path
    * @param {string} ext - File extension
    * @param {string} evidenceId - Evidence ID
+   * @param {number} userId - User ID
+   * @param {number} documentId - Document ID
    * @returns {string} Thumbnail key
    */
-  async generateThumbnail(filepath, ext, evidenceId) {
+  async generateThumbnail(filepath, ext, evidenceId, userId, documentId) {
     try {
+      const thumbnailDir = path.join(
+        this.getUserEvidenceDir(userId, documentId),
+        '.thumbnails'
+      );
+      await fs.mkdir(thumbnailDir, { recursive: true });
       const thumbnailFilename = `${evidenceId}_thumb.jpg`;
-      const thumbnailFullPath = path.join(this.thumbnailPath, thumbnailFilename);
+      const thumbnailFullPath = path.join(thumbnailDir, thumbnailFilename);
 
       const fileType = this.getFileType(ext);
 
@@ -248,7 +263,7 @@ class EvidenceStorage {
    * @param {string} fileKey - File key
    * @param {string} thumbnailKey - Thumbnail key
    */
-  async deleteEvidence(userId, documentId, fileKey, thumbnailKey) {
+  async deleteEvidence(userId, documentId, fileKey, _thumbnailKey) {
     try {
       const expectedDir = this.getUserEvidenceDir(userId, documentId);
 
@@ -263,10 +278,15 @@ class EvidenceStorage {
         }
       }
 
-      // Delete thumbnail (thumbnails live under the main file's user/doc dir
-      // by storage convention; if anything escapes the bound we refuse).
-      if (thumbnailKey) {
-        const thumbnailPath = path.join(this.basePath, thumbnailKey);
+      // Thumbnail identity is derived from the already-bounded evidence key;
+      // never trust a caller-supplied path to choose another user's file.
+      if (fileKey) {
+        const evidenceId = path.basename(fileKey, path.extname(fileKey));
+        const thumbnailPath = path.join(
+          expectedDir,
+          '.thumbnails',
+          `${evidenceId}_thumb.jpg`
+        );
         try {
           this.assertWithin(thumbnailPath, expectedDir);
           await fs.unlink(thumbnailPath).catch(() => {});
@@ -321,6 +341,16 @@ class EvidenceStorage {
       logger.error('Error listing evidence:', error);
       return [];
     }
+  }
+
+  /**
+   * Remove the exact evidence sandbox belonging to a user/document pair.
+   */
+  async deleteEvidenceForDocument(userId, documentId) {
+    const documentDir = this.getUserEvidenceDir(userId, documentId);
+    this.assertWithin(documentDir, path.join(this.basePath, String(userId)));
+    await fs.rm(documentDir, { recursive: true, force: true });
+    return { success: true };
   }
 
   /**
@@ -386,7 +416,7 @@ class EvidenceStorage {
    * @returns {string} UUID
    */
   generateEvidenceId() {
-    return uuidv4();
+    return randomUUID();
   }
 }
 

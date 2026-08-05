@@ -131,10 +131,9 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Edge-side body size cap for API routes. content-length is advisory but
-  // it's what HTTP clients normally set; the Node runtime layer will also
-  // refuse oversized streams, this is just an early rejection so we don't
-  // route to a handler at all.
+  // Edge-side early body-size rejection. Content-Length is advisory and can
+  // be absent on chunked requests; deployment infrastructure must also
+  // enforce an on-the-wire request limit.
   if (isApi && !SAFE_METHODS.has(request.method)) {
     const len = request.headers.get('content-length');
     if (len) {

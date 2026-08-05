@@ -104,21 +104,19 @@ const nextConfig = {
   // explicit includes the tracer commonly misses the deeply-nested
   // templates/states/<jurisdiction>/<DocumentType>.js (110 jurisdictions ×
   // ~7 files each) and the runtime container 500s with "Cannot find module".
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/**/*': [
-        './services/**/*',
-        './templates/**/*',
-        './utils/**/*',
-        './config/**/*',
-      ],
-      '/**/*': [
-        './services/**/*',
-        './templates/**/*',
-        './utils/**/*',
-        './config/**/*',
-      ],
-    },
+  outputFileTracingIncludes: {
+    '/api/**/*': [
+      './services/**/*',
+      './templates/**/*',
+      './utils/**/*',
+      './config/**/*',
+    ],
+    '/**/*': [
+      './services/**/*',
+      './templates/**/*',
+      './utils/**/*',
+      './config/**/*',
+    ],
   },
 
   async headers() {

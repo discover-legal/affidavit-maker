@@ -10,13 +10,27 @@ import ChatInterface from './ChatInterface';
 import DocumentPreview from './DocumentPreview';
 import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
+import ConfirmDialog from './ConfirmDialog';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
 
+export const getDownloadReadiness = (document) => {
+  const missing = [];
+  if (!document?.state) missing.push('jurisdiction');
+  const partyName = document?.affiantName || document?.petitionerName ||
+    [document?.firstName, document?.lastName].filter(Boolean).join(' ');
+  if (!partyName.trim()) missing.push('your name');
+  if (!Array.isArray(document?.facts) || document.facts.length === 0) {
+    missing.push('at least one fact');
+  }
+  return { ready: missing.length === 0, missing };
+};
+
 // Resizer component for adjusting pane widths
-const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview' }) => {
+const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview', valueNow }) => {
+  const resizeType = position === 'between-chat-preview' ? 'chat-preview' : 'preview-validation';
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     setIsResizing(true);
@@ -30,11 +44,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
       const deltaX = e.clientX - startX;
       const deltaPercentage = (deltaX / containerWidth) * 100;
       
-      if (position === 'between-chat-preview') {
-        onResize(deltaPercentage, 'chat-preview');
-      } else if (position === 'between-preview-validation') {
-        onResize(deltaPercentage, 'preview-validation');
-      }
+      onResize(deltaPercentage, resizeType);
     };
 
     const handleMouseUp = () => {
@@ -45,7 +55,17 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [onResize, setIsResizing, position]);
+  }, [onResize, resizeType, setIsResizing]);
+
+  const handleKeyDown = (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const delta = event.key === 'ArrowLeft' ? -2
+      : event.key === 'ArrowRight' ? 2
+      : event.key === 'Home' ? -100
+      : 100;
+    onResize(delta, resizeType);
+  };
 
   return (
     <div
@@ -53,6 +73,16 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
         isResizing ? 'bg-blue-200' : ''
       }`}
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
+      role="separator"
+      tabIndex={0}
+      aria-orientation="vertical"
+      aria-label={position === 'between-chat-preview'
+        ? 'Resize chat and document preview panels'
+        : 'Resize document preview and validation panels'}
+      aria-valuemin={20}
+      aria-valuemax={50}
+      aria-valuenow={Math.round(valueNow)}
       style={{ minWidth: '8px' }}
     >
       <div className={`flex flex-col justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity ${
@@ -66,7 +96,7 @@ const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat
 
 // Main Editor View Component with 35/35/30 proportions
 const EditorView = ({ isNew = false, onBack }) => {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const params = useParams();
   const documentId = Array.isArray(params?.documentId) ? params.documentId[0] : params?.documentId;
   const searchParams = useSearchParams();
@@ -94,11 +124,14 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const [editorNotice, setEditorNotice] = useState(null);
+  const [conflictReloadOpen, setConflictReloadOpen] = useState(false);
+  const [conflictReloadBusy, setConflictReloadBusy] = useState(false);
 
   // Use split contexts to prevent unnecessary re-renders
   const { currentDocument, preview } = useDocumentData();
-  const { isSaving, lastSaved, hasUnsavedChanges, justSaved } = useSaveMetadata();
-  const { sessionInitialized } = useUIState();
+  const { isSaving, lastSaved, hasUnsavedChanges, justSaved, saveConflict } = useSaveMetadata();
+  const { sessionInitialized, isLoading, error } = useUIState();
   const { saveDocument, loadDocument, initializeNewDocument } = useDocumentActions();
 
   // Check for mobile view
@@ -152,7 +185,7 @@ const EditorView = ({ isNew = false, onBack }) => {
     } finally {
       setIsCheckingPayment(false);
     }
-  }, [getAccessTokenSilently, setIsPaidDocument]);
+  }, [setIsPaidDocument]);
 
   // Check payment status when document loads
   useEffect(() => {
@@ -295,6 +328,7 @@ const EditorView = ({ isNew = false, onBack }) => {
   // Perform the actual PDF download
   const performDownload = async () => {
     try {
+      setEditorNotice(null);
       console.log('📥 Starting PDF download...', {
         documentId: currentDocument.documentId,
         affiantName: currentDocument.affiantName
@@ -343,7 +377,10 @@ const EditorView = ({ isNew = false, onBack }) => {
 
     } catch (error) {
       console.error('❌ PDF download failed:', error);
-      alert(`Failed to download PDF: ${error.message}`);
+      setEditorNotice({
+        type: 'error',
+        message: `Failed to download PDF: ${error.message}`,
+      });
       throw error;
     }
   };
@@ -351,16 +388,26 @@ const EditorView = ({ isNew = false, onBack }) => {
   // Handle PDF download - check payment first
   const handleDownload = async () => {
     if (!currentDocument.documentId) {
-      alert('Please save the document first');
+      setEditorNotice({ type: 'error', message: 'Please save the document before downloading.' });
       return;
     }
 
     if (!isAuthenticated) {
-      alert('Please log in to download your document');
+      setEditorNotice({ type: 'error', message: 'Please log in to download your document.' });
       return;
     }
 
     try {
+      setEditorNotice(null);
+      const readiness = getDownloadReadiness(currentDocument);
+      if (!readiness.ready) {
+        setEditorNotice({
+          type: 'error',
+          message: `Complete ${readiness.missing.join(', ')} before payment and download.`,
+        });
+        return;
+      }
+      if (hasUnsavedChanges) await saveDocument();
       // Check if document has been paid for
       const isPaid = await checkPaymentStatus(currentDocument.documentId);
 
@@ -373,29 +420,66 @@ const EditorView = ({ isNew = false, onBack }) => {
       }
     } catch (error) {
       console.error('❌ Download initiation failed:', error);
-      alert(`Failed to initiate download: ${error.message}`);
+      setEditorNotice({
+        type: 'error',
+        message: `Failed to initiate download: ${error.message}`,
+      });
+    }
+  };
+
+  const handleBack = async () => {
+    if (!hasUnsavedChanges) {
+      onBack?.();
+      return;
+    }
+    setEditorNotice({ type: 'info', message: 'Saving your changes before leaving…' });
+    try {
+      await saveDocument();
+      onBack?.();
+    } catch {
+      setEditorNotice({
+        type: 'error',
+        message: 'Your changes could not be saved. You are still in the editor; retry Save before leaving.',
+      });
     }
   };
 
   // Handle successful payment
-  const handlePaymentSuccess = async () => {
-    console.log('✅ Payment successful, starting download...');
+  const handlePaymentSuccess = async (paymentIntentId) => {
+    console.log('✅ Payment verified, starting download...', { paymentIntentId });
     setIsPaymentModalOpen(false);
     setIsPaidDocument(true);
 
     try {
-      // Wait a moment for webhook to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await performDownload();
     } catch (error) {
       console.error('❌ Post-payment download failed:', error);
-      alert('Payment successful, but download failed. Please try downloading again.');
     }
   };
   // Mobile panel navigation
   const renderMobileNavigation = () => (
-    <div className="flex border-b bg-white sticky top-0 z-10 shadow-sm">
+    <div
+      className="flex border-b bg-white sticky top-0 z-10 shadow-sm"
+      role="tablist"
+      aria-label="Editor panels"
+      onKeyDown={(event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const panels = ['chat', 'preview', 'validation'];
+        const currentIndex = panels.indexOf(activePanel);
+        const nextIndex = event.key === 'Home' ? 0
+          : event.key === 'End' ? panels.length - 1
+          : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + panels.length) % panels.length;
+        setActivePanel(panels[nextIndex]);
+        event.currentTarget.querySelectorAll('[role="tab"]')[nextIndex]?.focus();
+      }}
+    >
       <button
+        id="editor-tab-chat"
+        role="tab"
+        aria-selected={activePanel === 'chat'}
+        aria-controls="editor-panel-chat"
+        tabIndex={activePanel === 'chat' ? 0 : -1}
         onClick={() => setActivePanel('chat')}
         className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'chat'
@@ -407,6 +491,11 @@ const EditorView = ({ isNew = false, onBack }) => {
         <span className="block">Chat</span>
       </button>
       <button
+        id="editor-tab-preview"
+        role="tab"
+        aria-selected={activePanel === 'preview'}
+        aria-controls="editor-panel-preview"
+        tabIndex={activePanel === 'preview' ? 0 : -1}
         onClick={() => setActivePanel('preview')}
         className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'preview'
@@ -418,6 +507,11 @@ const EditorView = ({ isNew = false, onBack }) => {
         <span className="block">Preview</span>
       </button>
       <button
+        id="editor-tab-validation"
+        role="tab"
+        aria-selected={activePanel === 'validation'}
+        aria-controls="editor-panel-validation"
+        tabIndex={activePanel === 'validation' ? 0 : -1}
         onClick={() => setActivePanel('validation')}
         className={`flex-1 py-3 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors ${
           activePanel === 'validation'
@@ -448,6 +542,7 @@ const EditorView = ({ isNew = false, onBack }) => {
         isResizing={isResizing}
         setIsResizing={setIsResizing}
         position="between-chat-preview"
+        valueNow={chatWidth}
       />
 
       {/* Preview Panel - 35% default */}
@@ -464,6 +559,7 @@ const EditorView = ({ isNew = false, onBack }) => {
         isResizing={isResizing}
         setIsResizing={setIsResizing}
         position="between-preview-validation"
+        valueNow={previewWidth}
       />
 
       {/* Validation Panel - 30% default */}
@@ -482,13 +578,13 @@ const EditorView = ({ isNew = false, onBack }) => {
       {renderMobileNavigation()}
 
       <div className="flex-1 min-h-0 overflow-hidden">
-        <div className={`h-full ${activePanel === 'chat' ? 'block' : 'hidden'}`}>
+        <div id="editor-panel-chat" role="tabpanel" aria-labelledby="editor-tab-chat" hidden={activePanel !== 'chat'} className="h-full">
           <ChatInterface />
         </div>
-        <div className={`h-full ${activePanel === 'preview' ? 'block' : 'hidden'}`}>
+        <div id="editor-panel-preview" role="tabpanel" aria-labelledby="editor-tab-preview" hidden={activePanel !== 'preview'} className="h-full">
           <DocumentPreview />
         </div>
-        <div className={`h-full ${activePanel === 'validation' ? 'block' : 'hidden'}`}>
+        <div id="editor-panel-validation" role="tabpanel" aria-labelledby="editor-tab-validation" hidden={activePanel !== 'validation'} className="h-full">
           <ValidationSidebar />
         </div>
       </div>
@@ -497,6 +593,7 @@ const EditorView = ({ isNew = false, onBack }) => {
 
   // Calculate save status text
   const getSaveStatusText = () => {
+    if (saveConflict) return 'Save conflict — action required';
     if (isSaving) return 'Saving...';
     if (hasUnsavedChanges) return 'Unsaved changes';
     if (lastSaved) {
@@ -515,7 +612,7 @@ const EditorView = ({ isNew = false, onBack }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center min-w-0">
             <button
-              onClick={onBack}
+              onClick={handleBack}
               className="mr-2 sm:mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex-shrink-0"
               aria-label="Back to dashboard"
             >
@@ -545,7 +642,7 @@ const EditorView = ({ isNew = false, onBack }) => {
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={handleSaveProgress}
-                disabled={isSaving || justSaved || !isAuthenticated}
+                disabled={isSaving || justSaved || !isAuthenticated || Boolean(saveConflict)}
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Save className="h-4 w-4" />
@@ -603,7 +700,7 @@ const EditorView = ({ isNew = false, onBack }) => {
           )}
 
           {/* Current document ID (for debugging) */}
-          {!isMobileView && documentId && (
+          {process.env.NODE_ENV === 'development' && !isMobileView && documentId && (
             <div className="text-xs text-gray-400 ml-auto hidden lg:block">
               Doc ID: {documentId} | Layout: {Math.round(chatWidth)}% | {Math.round(previewWidth)}% | {Math.round(validationWidth)}%
             </div>
@@ -611,8 +708,80 @@ const EditorView = ({ isNew = false, onBack }) => {
         </div>
       </header>
 
+      {editorNotice && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className={`mx-3 sm:mx-6 mt-3 rounded-lg border px-4 py-3 text-sm ${
+            editorNotice.type === 'error'
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : 'border-green-200 bg-green-50 text-green-800'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <span>{editorNotice.message}</span>
+            <button
+              type="button"
+              onClick={() => setEditorNotice(null)}
+              className="font-semibold underline underline-offset-2"
+              aria-label="Dismiss message"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saveConflict && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mx-3 sm:mx-6 mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        >
+          <p className="font-semibold">A newer version exists in another tab or device.</p>
+          <p className="mt-1">
+            Autosave is paused and your unsaved draft remains in this editor. Reloading will replace
+            it with the current server version.
+          </p>
+          <button
+            type="button"
+            className="mt-3 rounded-md bg-amber-900 px-3 py-2 font-semibold text-white hover:bg-amber-950"
+            onClick={() => setConflictReloadOpen(true)}
+          >
+            Reload server version
+          </button>
+        </div>
+      )}
+
+      {(isLoading || error) && !sessionInitialized && (
+        <div className="flex flex-1 items-center justify-center bg-gray-50 p-6">
+          <div className="max-w-md rounded-xl border bg-white p-6 text-center shadow-sm">
+            {isLoading ? (
+              <p role="status">Loading your document…</p>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold">We couldn’t open this document</h2>
+                <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    initializationDone.current = false;
+                    if (documentId) loadDocument(documentId);
+                    else initializeNewDocument(true, documentTypeFromUrl, caseTypeFromUrl);
+                  }}
+                  className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                >
+                  Try again
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main content area */}
-      {isMobileView ? renderMobileLayout() : renderDesktopLayout()}
+      {(sessionInitialized || (!isLoading && !error)) &&
+        (isMobileView ? renderMobileLayout() : renderDesktopLayout())}
 
       {/* Payment Modal */}
       <PaymentModal
@@ -622,10 +791,39 @@ const EditorView = ({ isNew = false, onBack }) => {
         onPaymentSuccess={handlePaymentSuccess}
         documentId={currentDocument.documentId}
         documentType={
-          currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree'
+          currentDocument.documentType === 'divorce_package' ||
+          currentDocument.documentType === 'divorce_petition' ||
+          currentDocument.documentType === 'divorce_decree'
             ? 'divorce_package'
             : 'single_affidavit'
         }
+      />
+      <ConfirmDialog
+        open={conflictReloadOpen}
+        title="Reload the server version?"
+        message="Your unsaved changes in this tab will be discarded. Cancel to keep this local draft open."
+        confirmLabel="Reload server version"
+        destructive
+        busy={conflictReloadBusy}
+        onCancel={() => setConflictReloadOpen(false)}
+        onConfirm={async () => {
+          setConflictReloadBusy(true);
+          try {
+            await loadDocument(currentDocument.documentId);
+            setConflictReloadOpen(false);
+            setEditorNotice({
+              type: 'info',
+              message: 'Loaded the latest server version. You can continue editing.',
+            });
+          } catch {
+            setEditorNotice({
+              type: 'error',
+              message: 'Could not load the server version. Your local draft is still open.',
+            });
+          } finally {
+            setConflictReloadBusy(false);
+          }
+        }}
       />
     </div>
   );

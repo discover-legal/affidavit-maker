@@ -92,16 +92,21 @@ class PDFService {
   }
 
   async generatePDF(document, options = {}) {
-    const { documentId, userId } = options;
+    const { userId } = options;
+    let workDir;
 
     try {
-      const documentsDir = path.join(__dirname, '..', 'documents');
+      const documentsDir = path.resolve(
+        process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')
+      );
       await fs.mkdir(documentsDir, { recursive: true });
 
+      workDir = await fs.mkdtemp(path.join(documentsDir, '.generation-'));
+      await fs.chmod(workDir, 0o700);
       const docType = this.detectDocumentType(document);
       const prefix = docType === 'petition' ? 'petition' : docType === 'decree' ? 'decree' : 'affidavit';
-      const filename = `${prefix}-${documentId || Date.now()}.pdf`;
-      const filepath = path.join(documentsDir, filename);
+      const filename = `${prefix}.pdf`;
+      const filepath = path.join(workDir, filename);
       const pageOptions = this.getPageOptions(document);
 
       // Update effective page height for A4 if needed
@@ -166,6 +171,9 @@ class PDFService {
 
       return result;
     } catch (error) {
+      if (workDir) {
+        await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
+      }
       logger.error('PDF generation error', { error: error.message });
       throw error;
     }
@@ -176,14 +184,17 @@ class PDFService {
    * Returns { filepath, filename, documentType, success }.
    */
   async generateWordDoc(document, options = {}) {
-    const { documentId } = options;
-    const documentsDir = path.join(__dirname, '..', 'documents');
+    const documentsDir = path.resolve(
+      process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')
+    );
     await fs.mkdir(documentsDir, { recursive: true });
 
+    const workDir = await fs.mkdtemp(path.join(documentsDir, '.generation-'));
+    await fs.chmod(workDir, 0o700);
     const docType = this.detectDocumentType(document);
     const prefix = docType === 'petition' ? 'petition' : docType === 'decree' ? 'decree' : 'affidavit';
-    const filename = `${prefix}-${documentId || Date.now()}.docx`;
-    const filepath = path.join(documentsDir, filename);
+    const filename = `${prefix}.docx`;
+    const filepath = path.join(workDir, filename);
 
     try {
       const children = this._buildWordSections(document, docType);
@@ -216,6 +227,7 @@ class PDFService {
       logger.info('Word document generated', { filepath, docType });
       return { filepath, filename, documentType: docType, success: true };
     } catch (error) {
+      await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
       logger.error('Word generation error', { error: error.message });
       throw error;
     }
@@ -1065,7 +1077,10 @@ class PDFService {
         }
 
         // Construct file path with path traversal protection
-        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(__dirname, '..', 'documents', 'evidence');
+        const evidenceBasePath = process.env.EVIDENCE_STORAGE_PATH || path.join(
+          path.resolve(process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')),
+          'evidence'
+        );
         let filePath;
         try {
           filePath = validatePath(evidenceBasePath, fileKey);

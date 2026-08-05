@@ -7,10 +7,8 @@ import type { Locale } from '@/lib/locale';
  * amounts are set as round retail prices rather than a live FX conversion
  * so the customer sees stable numbers; revisit when FX volatility matters.
  *
- * NOTE: The values below are the LIST / regular prices. The launch
- * promotion (see LAUNCH_DISCOUNT_PCT) is applied centrally in `getPrice`
- * so every consumer — marketing surfaces, the pricing API, and the
- * Stripe payment intent — bills the discounted amount automatically.
+ * These are the actual launch prices. Do not present reference/list prices
+ * unless they have been genuinely offered and the campaign has a fixed end.
  */
 export type PriceKey = 'single_affidavit' | 'divorce_package' | 'all_state_access';
 
@@ -18,13 +16,13 @@ type PriceTable = Record<Locale, Record<PriceKey, { amount: number; currency: 'u
 
 const PRICES: PriceTable = {
   us: {
-    single_affidavit: { amount: 7900, currency: 'usd' }, // $79.00
-    divorce_package: { amount: 24900, currency: 'usd' }, // $249.00
+    single_affidavit: { amount: 1580, currency: 'usd' }, // $15.80
+    divorce_package: { amount: 4980, currency: 'usd' }, // $49.80
     all_state_access: { amount: 19999, currency: 'usd' }, // $199.99
   },
   ca: {
-    single_affidavit: { amount: 9900, currency: 'cad' }, // $99.00 CAD
-    divorce_package: { amount: 32900, currency: 'cad' }, // $329.00 CAD
+    single_affidavit: { amount: 1980, currency: 'cad' }, // $19.80 CAD
+    divorce_package: { amount: 6580, currency: 'cad' }, // $65.80 CAD
     all_state_access: { amount: 26900, currency: 'cad' }, // $269.00 CAD
   },
 };
@@ -33,9 +31,9 @@ const PRICES: PriceTable = {
  * Special launch promotion. Set LAUNCH_PRICING_ACTIVE to false to revert
  * to list prices everywhere (marketing, API, Stripe intent) in one edit.
  */
-export const LAUNCH_PRICING_ACTIVE = true;
-export const LAUNCH_DISCOUNT_PCT = 0.8; // 80% off
-export const LAUNCH_LABEL = 'Launch special — 80% off';
+export const LAUNCH_PRICING_ACTIVE = false;
+export const LAUNCH_DISCOUNT_PCT = 0;
+export const LAUNCH_LABEL = 'Launch pricing';
 
 type Price = { amount: number; currency: 'usd' | 'cad' };
 

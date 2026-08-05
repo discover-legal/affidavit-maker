@@ -85,5 +85,7 @@ describe('PDFService', () => {
     expect(result).toHaveProperty('filepath');
     expect(result).toHaveProperty('filename');
     expect(result.success).toBe(true);
+    expect(path.basename(path.dirname(result.filepath))).toMatch(/^\.generation-/);
+    expect(path.basename(result.filepath)).toBe('affidavit.pdf');
   });
 });

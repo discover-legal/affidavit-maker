@@ -5,6 +5,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
 import { logger } from '@/lib/logger';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -214,7 +215,7 @@ type TemplateManager = {
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   let affidavitData: AffidavitData = {};
   try {
-    const limit = checkRateLimit('documents-preview', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-preview', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -222,7 +223,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       );
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req);
     affidavitData = previewSchema.parse(json).affidavitData as AffidavitData;
 
     const docType = (affidavitData.documentType || 'affidavit').toLowerCase();

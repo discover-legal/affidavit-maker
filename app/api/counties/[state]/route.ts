@@ -33,7 +33,7 @@ const COUNTIES: Record<string, string[]> = {
 
 export async function GET(req: Request, { params }: { params: { state: string } }) {
   try {
-    const limit = checkRateLimit('counties', rateLimitKey(req, 'counties'), RATE_LIMITS.standard);
+    const limit = await checkRateLimit('counties', rateLimitKey(req, 'counties'), RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

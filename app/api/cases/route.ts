@@ -29,7 +29,7 @@ const createCaseSchema = z.object({
 // GET /api/cases — list cases for the current user
 export const GET = withAuth(async (_req, { user }) => {
   try {
-    const limit = checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -70,7 +70,7 @@ export const GET = withAuth(async (_req, { user }) => {
 // POST /api/cases — create a new case
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('cases-list', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

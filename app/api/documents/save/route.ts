@@ -4,11 +4,11 @@ import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
-  AuthorizationError,
   NotFoundError,
   ValidationError,
   toErrorResponse,
 } from '@/lib/api/errors';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +31,7 @@ const bodySchema = z.object({
     .passthrough(),
   validation: z.unknown().optional(),
   categories: z.unknown().optional(),
+  expectedRevision: z.number().int().positive().optional(),
 });
 
 /** Cap the serialized document blob saved to documents.content. */
@@ -40,7 +41,7 @@ const MAX_SAVED_DOCUMENT_BYTES = 1024 * 1024;
 // upsert: if affidavitData.documentId is set, UPDATE; else INSERT.
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('documents-save', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-save', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -48,7 +49,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       );
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req);
     const parsed = bodySchema.parse(json);
     const data = parsed.affidavitData;
     if (!data) throw new ValidationError('affidavitData is required');
@@ -72,20 +73,42 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     if (data.documentId) {
       const id = String(data.documentId);
-      const existing = await query<{ user_id: number }>(
-        'SELECT user_id FROM documents WHERE id = $1',
-        [id],
-      );
-      if (!existing.rows.length) throw new NotFoundError('Document not found');
-      if (existing.rows[0].user_id !== user.id) throw new AuthorizationError('Access denied');
+      if (!parsed.expectedRevision) {
+        throw new ValidationError('Document revision is required');
+      }
       const updated = await query<Record<string, unknown>>(
         `UPDATE documents
             SET content = $1, title = $2, template_state = $3, validation_results = $4,
-                updated_at = CURRENT_TIMESTAMP
-          WHERE id = $5 AND user_id = $6
+                updated_at = CURRENT_TIMESTAMP, edit_revision = edit_revision + 1
+          WHERE id = $5 AND user_id = $6 AND edit_revision = $7
           RETURNING *`,
-        [contentToSave, documentTitle, data.state ?? null, validationJson, id, user.id],
+        [
+          contentToSave,
+          documentTitle,
+          data.state ?? null,
+          validationJson,
+          id,
+          user.id,
+          parsed.expectedRevision,
+        ],
       );
+      if (!updated.rows.length) {
+        // Preserve the same not-found response for missing and other-user IDs.
+        const current = await query<{ edit_revision: number }>(
+          'SELECT edit_revision FROM documents WHERE id = $1 AND user_id = $2',
+          [id, user.id],
+        );
+        if (!current.rows.length) throw new NotFoundError('Document not found');
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This document was changed in another tab or device.',
+            errorType: 'DocumentConflict',
+            currentRevision: Number(current.rows[0].edit_revision),
+          },
+          { status: 409 },
+        );
+      }
       return NextResponse.json({ success: true, document: updated.rows[0] });
     }
 

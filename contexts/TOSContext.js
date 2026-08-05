@@ -31,18 +31,10 @@ export const TOSProvider = ({ children }) => {
       return;
     }
 
-    // Check if TOS is already cached
-    const tosAcceptedPersistent = localStorage.getItem(`tos_accepted_${user?.sub}`);
-    const tosAcceptedThisSession = sessionStorage.getItem(`tos_accepted_${user?.sub}`);
-
-    if (tosAcceptedPersistent === 'true' || tosAcceptedThisSession === 'true') {
-      console.log('[TOSContext] TOS already verified (cached)');
-      setTosVerified(true);
-      setIsCheckingTos(false);
-    } else {
-      // TOS not cached - still checking
-      setIsCheckingTos(true);
-    }
+    // Acceptance is legal/security state and must be verified by the server
+    // for the current terms version. Client storage is not authoritative.
+    setTosVerified(false);
+    setIsCheckingTos(true);
   }, [isAuthenticated, user]);
 
   // Method to mark TOS as verified (called by TOSGuard after successful check)

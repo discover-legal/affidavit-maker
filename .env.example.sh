@@ -20,11 +20,9 @@ DATABASE_POOL_MAX=20
 DATABASE_STATEMENT_TIMEOUT_MS=30000
 # Paste the Render-supplied CA PEM here (BEGIN CERTIFICATE…END CERTIFICATE)
 # to enable certificate verification on the Postgres TLS connection.
-# Without it: in production we still require TLS but fall back to the
-# container's system trust store. NEVER set DATABASE_SSL_INSECURE=true
-# in production unless you understand the MITM risk.
+# Production startup fails closed without it; an unverified first connection
+# is not a safe way to discover or pin a database certificate.
 # DATABASE_CA_CERT=-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----
-# DATABASE_SSL_INSECURE=false
 
 # ===========================
 # EDGE / PROXY CONFIGURATION
@@ -50,9 +48,9 @@ AUTH0_AUDIENCE=
 AUTH0_WEBHOOK_SECRET=
 
 # Cookie hardening (v3 SDK reads these env vars directly)
-AUTH0_SESSION_COOKIE_SAME_SITE=lax
-AUTH0_SESSION_COOKIE_SECURE=true
-AUTH0_SESSION_COOKIE_HTTP_ONLY=true
+AUTH0_COOKIE_SAME_SITE=lax
+AUTH0_COOKIE_SECURE=true
+AUTH0_COOKIE_HTTP_ONLY=true
 AUTH0_SESSION_ABSOLUTE_DURATION=86400
 AUTH0_SESSION_ROLLING_DURATION=3600
 
@@ -75,12 +73,21 @@ OPENAI_TEMPERATURE=0.3
 STRIPE_SECRET_KEY=sk_test_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
+# Must be "test" with sk_test_/pk_test_ and "live" with sk_live_/pk_live_.
+PAYMENTS_MODE=test
 
 # ===========================
 # FILE STORAGE
 # ===========================
 DOCUMENTS_PATH=./documents
 MAX_FILE_SIZE=10485760
+# Production sets this to true. Startup and readiness then require
+# DOCUMENTS_PATH to be an actual mount point, not an ephemeral directory.
+REQUIRE_PERSISTENT_STORAGE=false
+
+# Optional operational integration. Do not claim it is active until its
+# dead-man-switch receives a real test run.
+CLEANUP_HEARTBEAT_URL=
 
 # ===========================
 # FEATURE FLAGS

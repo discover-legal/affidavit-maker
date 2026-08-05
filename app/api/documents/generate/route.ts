@@ -11,7 +11,7 @@ import {
   ValidationError,
   toErrorResponse,
 } from '@/lib/api/errors';
-import { ALL_STATES, ALL_PROVINCES, isInternationalEnabled } from '@/lib/api/catalog-data';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic';
  * `.passthrough()` everything else so unknown editor fields propagate
  * to the template + pdfService unchanged.
  */
-const generateSchema = z.object({
+export const generateSchema = z.object({
   affidavitData: z
     .object({
       state: z.string().optional(),
@@ -30,15 +30,22 @@ const generateSchema = z.object({
       firstName: z.string().optional(),
       lastName: z.string().optional(),
       documentType: z.string().optional(),
-      activeSubDocument: z.string().optional(),
+      activeSubDocument: z.string().nullable().optional(),
       facts: z.array(z.unknown()).optional(),
     })
     .passthrough(),
-  documentId: z.union([z.string(), z.number()]).optional(),
+  documentId: z.union([
+    z.number().int().positive().max(2_147_483_647),
+    z
+      .string()
+      .regex(/^[1-9]\d{0,9}$/)
+      .refine((value) => Number(value) <= 2_147_483_647, 'Document ID is too large'),
+  ]),
   format: z.enum(['pdf', 'docx', 'word']).optional(),
 });
 
 const VALID_PAYMENT_STATUSES = new Set(['paid', 'completed', 'free', 'succeeded']);
+const LAUNCH_JURISDICTIONS = new Set(['AZ', 'CA', 'FL', 'IL', 'NY', 'TX', 'UT']);
 
 /**
  * Sanitize a candidate filename — alphanumerics + dashes only, collapsed,
@@ -60,11 +67,130 @@ type PdfServiceResult = {
 };
 
 type TemplateManager = {
+  hasDocumentType: (state: string, type: string) => boolean;
   generateAffidavit: (state: string, data: unknown) => unknown;
-  generateDocument?: (state: string, data: unknown, type: string) => unknown;
-  generateDivorcePetition?: (state: string, data: unknown) => unknown;
-  generateDivorceDecree?: (state: string, data: unknown) => unknown;
+  generateDivorcePetition: (state: string, data: unknown) => unknown;
+  generateDivorceDecree: (state: string, data: unknown) => unknown;
 };
+
+type AffidavitData = Record<string, unknown> & {
+  state?: string;
+  affiantName?: string;
+  firstName?: string;
+  lastName?: string;
+  documentType?: string;
+  activeSubDocument?: string | null;
+  petitionerName?: string;
+  petitionerFirstName?: string;
+  petitionerLastName?: string;
+  respondentName?: string;
+  respondentFirstName?: string;
+  respondentLastName?: string;
+};
+
+const DIVORCE_TYPE_ALIASES: Readonly<Record<string, 'divorce_petition' | 'divorce_decree'>> = {
+  divorce_petition: 'divorce_petition',
+  petition: 'divorce_petition',
+  petition_dissolution: 'divorce_petition',
+  divorce_decree: 'divorce_decree',
+  decree: 'divorce_decree',
+  judgment_dissolution: 'divorce_decree',
+  final_judgment: 'divorce_decree',
+  proposed_judgment: 'divorce_decree',
+};
+
+/**
+ * Resolve the editor's umbrella divorce-package type to the concrete document
+ * selected in the editor. Packages default to the petition, which is the first
+ * document in the workflow. Direct petition/decree aliases are also accepted
+ * for compatibility with older saved documents and matter orchestrators.
+ */
+export function resolveGenerationDocumentType(
+  documentType: string | undefined,
+  activeSubDocument: string | null | undefined,
+): 'affidavit' | 'divorce_petition' | 'divorce_decree' {
+  const requestedType = (documentType ?? 'affidavit').trim().toLowerCase();
+  const effectiveType =
+    requestedType === 'divorce_package'
+      ? (activeSubDocument ?? 'divorce_petition').trim().toLowerCase()
+      : requestedType;
+
+  if (requestedType === 'divorce_package' && !effectiveType) {
+    return 'divorce_petition';
+  }
+
+  const resolved = DIVORCE_TYPE_ALIASES[effectiveType];
+  if (requestedType === 'divorce_package' && !resolved) {
+    throw new ValidationError('Unsupported divorce package document selection');
+  }
+  return resolved ?? 'affidavit';
+}
+
+/**
+ * Bind generation to the immutable type on the paid document row. Editor
+ * content is user-controlled and must not be able to upgrade an affidavit
+ * entitlement into a divorce package.
+ */
+export function assertGenerationTypeAllowed(
+  persistedType: string | null | undefined,
+  requestedType: string | undefined,
+  activeSubDocument: string | null | undefined,
+): void {
+  const stored = (persistedType ?? 'affidavit').trim().toLowerCase();
+  const storedIsDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(stored);
+  const requested = resolveGenerationDocumentType(requestedType, activeSubDocument);
+  const requestedIsDivorce = requested !== 'affidavit';
+
+  if (storedIsDivorce !== requestedIsDivorce) {
+    throw new ValidationError('Requested output does not match the saved document type');
+  }
+  if (
+    (stored === 'divorce_petition' || stored === 'divorce_decree') &&
+    requested !== stored
+  ) {
+    throw new ValidationError('Requested output does not match the saved document type');
+  }
+}
+
+function mapDivorceDataFields(data: AffidavitData): AffidavitData {
+  const mapped = { ...data };
+  if (!mapped.petitionerName && (mapped.petitionerFirstName || mapped.petitionerLastName)) {
+    mapped.petitionerName = [mapped.petitionerFirstName, mapped.petitionerLastName]
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (!mapped.respondentName && (mapped.respondentFirstName || mapped.respondentLastName)) {
+    mapped.respondentName = [mapped.respondentFirstName, mapped.respondentLastName]
+      .filter(Boolean)
+      .join(' ');
+  }
+  return mapped;
+}
+
+export function buildDocumentStructure(
+  templateManager: TemplateManager,
+  state: string,
+  data: AffidavitData,
+): unknown {
+  const resolvedType = resolveGenerationDocumentType(
+    data.documentType,
+    data.activeSubDocument,
+  );
+  if (resolvedType === 'affidavit') {
+    return templateManager.generateAffidavit(state, data);
+  }
+
+  if (!templateManager.hasDocumentType(state, resolvedType)) {
+    throw new ValidationError(
+      `No ${resolvedType === 'divorce_petition' ? 'divorce petition' : 'divorce decree'} template is available for this jurisdiction`,
+    );
+  }
+
+  const divorceData = mapDivorceDataFields(data);
+  return resolvedType === 'divorce_petition'
+    ? templateManager.generateDivorcePetition(state, divorceData)
+    : templateManager.generateDivorceDecree(state, divorceData);
+}
 
 /**
  * POST /api/documents/generate
@@ -74,10 +200,8 @@ type TemplateManager = {
  *
  *   1. Verify the document is paid (or free / completed / succeeded). 402 if
  *      not — matches the legacy guard at routes/documents.js ~line 700.
- *   2. Build the document structure via StateTemplateManager
- *      (`generateAffidavit` for the standard path; we don't reproduce the
- *      DivorceDocumentGenerator branch here — that's a Phase-4 follow-up,
- *      tracked in the TODO below).
+ *   2. Build the document structure via StateTemplateManager, routing divorce
+ *      packages to their selected jurisdiction-specific petition or decree.
  *   3. Run services/pdfService two-pass generation, which writes to a
  *      temp file under `documents/`.
  *   4. Read the file, unlink it, and stream the bytes back as
@@ -92,18 +216,19 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   let pdfFilepath: string | undefined;
 
   try {
-    const limit = checkRateLimit('documents-generate', user.id, RATE_LIMITS.pdf);
-    if (!limit.ok) {
+    const limit = await checkRateLimit('documents-generate', user.id, RATE_LIMITS.pdf);
+    const dailyLimit = await checkRateLimit('documents-generate-daily', user.id, RATE_LIMITS.pdfDaily);
+    if (!limit.ok || !dailyLimit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests', errorType: 'RateLimitError' },
         { status: 429 },
       );
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req);
     const body = generateSchema.parse(json);
     const { affidavitData } = body;
-    const documentId = body.documentId !== undefined ? String(body.documentId) : undefined;
+    const documentId = String(body.documentId);
     const requestedFormat =
       (req.nextUrl.searchParams.get('format') ?? body.format ?? 'pdf').toLowerCase();
     const isDocx = requestedFormat === 'docx' || requestedFormat === 'word';
@@ -111,24 +236,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     if (!affidavitData.state || affidavitData.state.trim() === '') {
       throw new ValidationError('State selection is required before generating a document');
     }
-    // Allow-list check. The user-supplied state code is used to drive
-    // template loading; restrict to known jurisdictions so a request can't
-    // ask the template manager to load an unexpected path. International
-    // jurisdictions are gated by the same feature flag the rest of the app
-    // uses for them.
+    // Enforce the same launch scope advertised and selectable in the editor.
+    // Registered templates outside this list are not a promise of end-to-end
+    // product readiness.
     const stateCode = affidavitData.state.toUpperCase();
-    const allowed = new Set<string>([...ALL_STATES, ...ALL_PROVINCES]);
-    if (isInternationalEnabled()) {
-      // International codes are short (2-5 chars). Re-import here to avoid
-      // a circular import in the catalog module; the catalog already vets
-      // its own list, so we trust whatever getAllJurisdictions returns.
-      const { getAllJurisdictions } = require('@/lib/api/catalog-data') as {
-        getAllJurisdictions: () => string[];
-      };
-      for (const j of getAllJurisdictions()) allowed.add(j);
-    }
-    if (!allowed.has(stateCode)) {
-      throw new ValidationError('Unsupported state / province');
+    if (!LAUNCH_JURISDICTIONS.has(stateCode)) {
+      throw new ValidationError('This jurisdiction is not available at launch');
     }
     affidavitData.state = stateCode;
 
@@ -138,31 +251,43 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // branch — by the time the SPA hits /generate, the payment webhook
     // should have already flipped payment_status. If a race surfaces we'll
     // reintroduce the fallback in a follow-up.
-    if (documentId) {
-      const paymentCheck = await query<{ payment_status: string | null }>(
-        'SELECT payment_status FROM documents WHERE id = $1 AND user_id = $2',
-        [documentId, user.id],
-      );
-      if (paymentCheck.rows.length === 0) {
-        throw new NotFoundError('Document not found');
-      }
-      const paymentStatus = paymentCheck.rows[0].payment_status ?? '';
-      if (!VALID_PAYMENT_STATUSES.has(paymentStatus)) {
-        logger.warn('document_generate_payment_required', {
-          userId: user.id,
+    const paymentCheck = await query<{
+      payment_status: string | null;
+      document_type: string | null;
+      template_state: string | null;
+    }>(
+      `SELECT payment_status, document_type, template_state
+         FROM documents WHERE id = $1 AND user_id = $2`,
+      [documentId, user.id],
+    );
+    if (paymentCheck.rows.length === 0) {
+      throw new NotFoundError('Document not found');
+    }
+    const paymentStatus = paymentCheck.rows[0].payment_status ?? '';
+    if (!VALID_PAYMENT_STATUSES.has(paymentStatus)) {
+      logger.warn('document_generate_payment_required', {
+        userId: user.id,
+        documentId,
+        paymentStatus,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payment required',
+          errorType: 'payment_required',
           documentId,
-          paymentStatus,
-        });
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Payment required',
-            errorType: 'payment_required',
-            documentId,
-          },
-          { status: 402 },
-        );
-      }
+        },
+        { status: 402 },
+      );
+    }
+    assertGenerationTypeAllowed(
+      paymentCheck.rows[0].document_type,
+      affidavitData.documentType,
+      affidavitData.activeSubDocument,
+    );
+    const persistedState = paymentCheck.rows[0].template_state?.toUpperCase();
+    if (persistedState && persistedState !== stateCode) {
+      throw new ValidationError('Requested jurisdiction does not match the saved document');
     }
 
     // ── STEP 2: Build document structure via the template manager ─────────
@@ -174,10 +299,11 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     let documentStructure: unknown;
     try {
-      // Standard affidavit path. The legacy route also has a divorce-document
-      // branch (DivorceDocumentGenerator + generateDivorcePetition / Decree);
-      // porting that is Phase-4 follow-up — tracked in CLAUDE.md.
-      documentStructure = templateManager.generateAffidavit(affidavitData.state, affidavitData);
+      documentStructure = buildDocumentStructure(
+        templateManager,
+        affidavitData.state,
+        affidavitData as AffidavitData,
+      );
     } catch (templateErr) {
       logger.error('document_generate_template_failed', {
         userId: user.id,
@@ -197,12 +323,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     try {
       if (isDocx) {
         result = (await pdfService.generateWordDoc(documentStructure, {
-          documentId: documentId ?? Date.now(),
+          documentId,
           userId: user.id,
         })) as PdfServiceResult;
       } else {
         result = (await pdfService.generatePDF(documentStructure, {
-          documentId: documentId ?? Date.now(),
+          documentId,
           userId: user.id,
         })) as PdfServiceResult;
       }
@@ -227,9 +353,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const fileBuffer = await fsPromises.readFile(pdfFilepath);
 
     // Update document status (best-effort; don't fail the response on db error)
-    if (documentId) {
-      try {
-        await query(
+    try {
+      await query(
           `UPDATE documents
               SET status = 'completed',
                   updated_at = CURRENT_TIMESTAMP,
@@ -241,27 +366,37 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
             WHERE id = $2 AND user_id = $3`,
           [String(result.pages ?? 0), documentId, user.id],
         );
-      } catch (dbErr) {
-        logger.warn('document_generate_status_update_failed', {
-          userId: user.id,
-          documentId,
-          error: dbErr instanceof Error ? dbErr.message : String(dbErr),
-        });
-      }
+    } catch (dbErr) {
+      logger.warn('document_generate_status_update_failed', {
+        userId: user.id,
+        documentId,
+        error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+      });
     }
 
-    // Cleanup — fire-and-forget. Don't block the response on the unlink.
-    fsPromises.unlink(pdfFilepath).catch((cleanupErr: unknown) => {
+    // Generation uses a private per-request directory. Remove the whole
+    // directory before returning so partially-created work files cannot
+    // accumulate on a long-running production instance.
+    const generationDir = require('path').dirname(pdfFilepath);
+    await fsPromises.rm(generationDir, { recursive: true, force: true }).catch((cleanupErr: unknown) => {
       logger.warn('document_generate_cleanup_failed', {
-        filepath: pdfFilepath,
+        generationDir,
         error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
       });
     });
     pdfFilepath = undefined;
 
+    const petitionerName =
+      typeof affidavitData.petitionerName === 'string'
+        ? affidavitData.petitionerName
+        : [affidavitData.petitionerFirstName, affidavitData.petitionerLastName]
+            .filter((value): value is string => typeof value === 'string' && value.length > 0)
+            .join('-');
+    const standardName = [affidavitData.firstName, affidavitData.lastName]
+      .filter(Boolean)
+      .join('-');
     const baseName = sanitizeFilename(
-      affidavitData.affiantName ??
-        [affidavitData.firstName, affidavitData.lastName].filter(Boolean).join('-'),
+      affidavitData.affiantName || petitionerName || standardName,
       'document',
     );
     const prefix =
@@ -300,7 +435,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     if (pdfFilepath) {
       try {
         const fs = require('fs') as typeof import('fs');
-        await fs.promises.unlink(pdfFilepath).catch(() => undefined);
+        const generationDir = require('path').dirname(pdfFilepath);
+        await fs.promises.rm(generationDir, { recursive: true, force: true }).catch(() => undefined);
       } catch {
         /* swallow — already in error path */
       }

@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
-  AuthorizationError,
+  AppError,
   NotFoundError,
   ValidationError,
   toErrorResponse,
@@ -32,7 +32,7 @@ function parseDocumentId(params: IdParams): number {
 // GET /api/documents/[id]
 export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
-    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -62,7 +62,7 @@ export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
 // DELETE /api/documents/[id]
 export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
-    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -74,13 +74,73 @@ export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
     // Single DELETE with `RETURNING id` — if the row didn't belong to us, the
     // affected count is zero and we 404. No probe oracle.
     const deleted = await query<{ id: number }>(
-      'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
+      `DELETE FROM documents d
+        WHERE d.id = $1 AND d.user_id = $2
+          AND NOT EXISTS (
+            SELECT 1
+              FROM payments p
+             WHERE p.user_id = $2
+               AND (p.document_id = d.id OR
+                    (p.document_id IS NULL AND p.metadata->>'documentId' = d.id::text))
+               AND p.status NOT IN (
+                 'failed', 'canceled', 'succeeded',
+                 'partially_refunded', 'refunded', 'disputed'
+               )
+          )
+        RETURNING d.id`,
       [id, user.id],
     );
-    if (deleted.rowCount === 0) throw new NotFoundError('Document not found');
-    // Suppress unused import warning for AuthorizationError; left in scope
-    // for symmetry with the other handlers in this folder.
-    void AuthorizationError;
+    if (deleted.rowCount === 0) {
+      const existing = await query<{ has_active_payment: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1
+             FROM payments p
+            WHERE p.user_id = $2
+              AND (p.document_id = d.id OR
+                   (p.document_id IS NULL AND p.metadata->>'documentId' = d.id::text))
+              AND p.status NOT IN (
+                'failed', 'canceled', 'succeeded',
+                'partially_refunded', 'refunded', 'disputed'
+              )
+         ) AS has_active_payment
+           FROM documents d
+          WHERE d.id = $1 AND d.user_id = $2`,
+        [id, user.id],
+      );
+      if (!existing.rows.length) throw new NotFoundError('Document not found');
+      if (existing.rows[0].has_active_payment) {
+        throw new AppError(
+          'This document cannot be deleted while its payment is processing.',
+          409,
+          'PaymentInProgress',
+        );
+      }
+      throw new AppError('Document could not be deleted', 409, 'DocumentDeleteConflict');
+    }
+
+    // The database row is authoritative. Disk cleanup is bounded to the
+    // authenticated user's exact document directory and retried briefly.
+    const evidenceStorage = require('@/services/evidenceStorage') as {
+      deleteEvidenceForDocument: (userId: number, documentId: number) => Promise<unknown>;
+    };
+    let cleanupError: unknown;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await evidenceStorage.deleteEvidenceForDocument(user.id, id);
+        cleanupError = undefined;
+        break;
+      } catch (err) {
+        cleanupError = err;
+      }
+    }
+    if (cleanupError) {
+      const { logger } = await import('@/lib/logger');
+      logger.error('document_evidence_cleanup_failed', {
+        userId: user.id,
+        documentId: id,
+        error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+      });
+    }
     return NextResponse.json({ success: true, deleted: id });
   } catch (err) {
     return toErrorResponse(err);

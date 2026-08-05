@@ -4,9 +4,9 @@ import { jsonLd } from '@/lib/json-ld';
 import { getPrice } from '@/lib/pricing';
 
 const pageTitle =
-  'AI Divorce Packages & Affidavits — Court-Ready Filings for All 50 States';
+  'AI-Assisted Divorce Drafts & Affidavits';
 const pageDescription =
-  'Complete divorce packages and court-ready affidavits prepared in minutes. State-specific templates for all 50 states and D.C. Launch special — 80% off.';
+  'Prepare editable petition, proposed decree, and affidavit drafts with a guided interview in seven supported U.S. states.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {
@@ -49,19 +49,11 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-// One year out — bumps automatically with each deploy so Google never
-// flags the offer as expired. Format is YYYY-MM-DD per schema.org.
-function offerValidUntil(): string {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 /**
  * Build the Offer block for a digital-delivery product. Google's
  * Merchant Listings rich result requires `availability`,
  * `hasMerchantReturnPolicy`, and `shippingDetails` even for digital
- * goods — we model instant, free, US+CA delivery and a no-returns
+ * goods — we model instant, free, US delivery and a no-returns
  * policy (these are completed legal documents, not subscriptions).
  */
 function digitalOffer(opts: {
@@ -74,12 +66,11 @@ function digitalOffer(opts: {
     url: opts.url,
     price: opts.price,
     priceCurrency: opts.priceCurrency,
-    priceValidUntil: offerValidUntil(),
     availability: 'https://schema.org/InStock',
     itemCondition: 'https://schema.org/NewCondition',
     hasMerchantReturnPolicy: {
       '@type': 'MerchantReturnPolicy',
-      applicableCountry: ['US', 'CA'],
+      applicableCountry: 'US',
       returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
     },
     shippingDetails: {
@@ -89,10 +80,7 @@ function digitalOffer(opts: {
         value: '0',
         currency: opts.priceCurrency,
       },
-      shippingDestination: [
-        { '@type': 'DefinedRegion', addressCountry: 'US' },
-        { '@type': 'DefinedRegion', addressCountry: 'CA' },
-      ],
+      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'US' },
       deliveryTime: {
         '@type': 'ShippingDeliveryTime',
         handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
@@ -119,7 +107,7 @@ export default function HomePage() {
         url: 'https://discover.legal',
         logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
         description:
-          'AI-powered legal document preparation — affidavits and divorce filings tailored to every U.S. state and Canadian province.',
+          'AI-assisted affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah.',
       },
       {
         '@type': 'WebSite',
@@ -134,7 +122,7 @@ export default function HomePage() {
         '@id': 'https://discover.legal/#product-divorce-package',
         name: 'Divorce Package',
         description:
-          'Complete divorce filing package — petition, decree, and supporting documents tailored to your jurisdiction.',
+          'Guided divorce document preparation with a petition and proposed decree tailored to your jurisdiction.',
         image: [PRODUCT_IMAGE],
         brand: BRAND,
         category: 'Legal document preparation',

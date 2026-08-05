@@ -30,7 +30,7 @@ export const POST = withAuth<{ id: string | string[] }>(async (
   { user, params },
 ) => {
   try {
-    const limit = checkRateLimit('documents-render', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-render', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

@@ -28,8 +28,8 @@ export default function LandingPage() {
 
   const jurisdictionWord = 'state';
   const jurisdictionWordPlural = 'states';
-  const coverageHeadline = 'All 50 states + D.C.';
-  const coverageCount = '51';
+  const coverageHeadline = 'Seven launch jurisdictions';
+  const coverageCount = '7';
 
   const divorcePrice = formatPrice('us', 'divorce_package');
   const affidavitPrice = formatPrice('us', 'single_affidavit');
@@ -41,7 +41,7 @@ export default function LandingPage() {
     {
       key: 'divorce',
       name: 'Divorce Package',
-      tagline: 'Petition, decree, and every supporting form.',
+      tagline: 'Petition and proposed decree drafts.',
       price: divorcePrice,
       originalPrice: divorcePriceOriginal,
       icon: Scale,
@@ -52,7 +52,7 @@ export default function LandingPage() {
         'Full guided divorce interview',
         'Petition + Decree generated together',
         'Children, property, support modules',
-        'Service of process & filing checklist',
+        'Service and filing questions included',
         `Tailored to your ${jurisdictionWord}'s waiting periods & grounds`,
       ],
       cta: 'Start a divorce package',
@@ -60,7 +60,7 @@ export default function LandingPage() {
     {
       key: 'affidavit',
       name: 'General Affidavit',
-      tagline: 'A sworn statement, court-ready.',
+      tagline: 'A professionally formatted sworn-statement draft.',
       price: affidavitPrice,
       originalPrice: affidavitPriceOriginal,
       icon: FileText,
@@ -90,8 +90,8 @@ export default function LandingPage() {
     },
     {
       n: '03',
-      title: 'Download a court-ready PDF',
-      body: 'Properly formatted, jurisdiction-compliant, and signed off with the right captions, citations, and notary blocks.',
+      title: 'Download your document draft',
+      body: 'Review a professionally formatted PDF with jurisdiction-aware captions and notary blocks before filing.',
     },
   ];
 
@@ -102,11 +102,11 @@ export default function LandingPage() {
     },
     {
       q: 'Which states are supported?',
-      a: 'All 50 U.S. states plus the District of Columbia. Each comes with its own template, statute references, and required forms.',
+      a: 'The launch editor currently supports Arizona, California, Florida, Illinois, New York, Texas, and Utah. Confirm local filing requirements with your court.',
     },
     {
       q: 'How long does it take?',
-      a: 'Most affidavits take 10–20 minutes. A full divorce package usually takes 45–90 minutes depending on complexity (children, property, support).',
+      a: 'Most affidavits take 10–20 minutes. A divorce interview usually takes 45–90 minutes depending on complexity (children, property, support).',
     },
     {
       q: 'Can I save and come back later?',
@@ -114,7 +114,7 @@ export default function LandingPage() {
     },
     {
       q: 'Do I still need to file with the court myself?',
-      a: 'Yes. We prepare the documents and a filing checklist. You file with the court (in person, by mail, or e-filing depending on your county).',
+      a: 'Yes. We prepare document drafts; you review and file them with the court using your court’s current instructions.',
     },
   ];
 
@@ -122,11 +122,7 @@ export default function LandingPage() {
   const signInHref = isAuthenticated ? '/dashboard' : '/api/auth/login';
 
   const jurisdictionCodes = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
-    'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
-    'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
-    'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
-    'WI', 'WY', 'DC',
+    'AZ', 'CA', 'FL', 'IL', 'NY', 'TX', 'UT',
   ];
 
   return (
@@ -239,7 +235,7 @@ export default function LandingPage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-slate-900 leading-[1.05] mb-6">
-                Court-ready legal{' '}
+                Legal document{' '}
                 <span className="relative inline-block">
                   <span className="relative z-10">documents</span>
                   <span className="absolute bottom-1 left-0 right-0 h-3 bg-amber-200/70 -z-0" />
@@ -249,9 +245,9 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                Complete divorce packages and court-ready affidavits, prepared by an AI interviewer
-                trained on your {jurisdictionWord}&rsquo;s rules. Plain-English questions,
-                properly-formatted output, a fraction of the cost of a paralegal.
+                Divorce petition, proposed decree, and affidavit drafts prepared through an
+                AI-guided interview. Plain-English questions, professionally formatted output,
+                and clear reminders to review local filing requirements.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
@@ -363,7 +359,7 @@ export default function LandingPage() {
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-slate-900">10&ndash;90 min</p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Affidavit to full divorce</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Affidavit and divorce drafts</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-slate-900">24/7</p>
@@ -530,12 +526,11 @@ export default function LandingPage() {
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 mb-6">
                 {coverageHeadline}.<br />
-                <span className="text-slate-500">One template per court.</span>
+                <span className="text-slate-500">Jurisdiction-aware interviews.</span>
               </h2>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                Filing fees, residency rules, statute citations, even the wording of the jurat
-                &mdash; we maintain a separate template for every {jurisdictionWord}, audited against
-                the real court rules.
+                Interview questions and document formatting adapt to each supported jurisdiction.
+                Court rules change, so review the current filing instructions from your local court.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
@@ -547,7 +542,7 @@ export default function LandingPage() {
                     <p className="font-semibold text-slate-900 text-sm">
                       {jurisdictionWord.charAt(0).toUpperCase() + jurisdictionWord.slice(1)}-aware
                     </p>
-                    <p className="text-xs text-slate-500">Right captions, fees, deadlines.</p>
+                    <p className="text-xs text-slate-500">Tailored interview and captions.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -649,7 +644,7 @@ export default function LandingPage() {
             Ready to start?
           </h2>
           <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Pick your document, answer the questions, download a court-ready PDF. From {affidavitPrice}.
+            Pick your document, answer the questions, and download a reviewable PDF draft. From {affidavitPrice}.
           </p>
           <a
             href={startDocumentHref}

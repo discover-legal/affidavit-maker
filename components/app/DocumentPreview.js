@@ -52,6 +52,17 @@ const DIVORCE_DOC_TABS = {
   acknowledgment_of_service: { label: 'Ack. Service',     icon: FileText },
 };
 
+// These are the only sub-documents the generation endpoint can currently
+// produce. Do not expose inert tabs for orchestrator recommendations until a
+// matching renderer and reducer state exist.
+const DOWNLOADABLE_DIVORCE_DOCS = new Set(['divorce_petition', 'divorce_decree']);
+const getDownloadableDivorceDocs = (requiredDocuments) => {
+  const supported = (requiredDocuments || []).filter((docType) =>
+    DOWNLOADABLE_DIVORCE_DOCS.has(docType)
+  );
+  return supported.length > 0 ? supported : ['divorce_petition', 'divorce_decree'];
+};
+
 // Page configuration for US Letter (8.5" x 11" with 1" margins)
 const PAGE_CONFIG = {
   width: 8.5,      // inches
@@ -1109,8 +1120,24 @@ const DocumentPreview = () => {
           {/* Document Type Switcher for Divorce Packages — shows only docs this user needs */}
           {isDivorcePackage && (
             <div className="mb-3 overflow-x-auto">
-              <div className="inline-flex bg-gray-100 rounded-lg p-1 min-w-full sm:min-w-0">
-                {(currentDocument.requiredDocuments || ['divorce_petition', 'divorce_decree']).map((docType) => {
+              <div
+                className="inline-flex bg-gray-100 rounded-lg p-1 min-w-full sm:min-w-0"
+                role="tablist"
+                aria-label="Divorce package documents"
+                onKeyDown={(event) => {
+                  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                  const tabs = Array.from(event.currentTarget.querySelectorAll('[role="tab"]'));
+                  const currentIndex = tabs.indexOf(document.activeElement);
+                  if (currentIndex < 0) return;
+                  event.preventDefault();
+                  const nextIndex = event.key === 'Home' ? 0
+                    : event.key === 'End' ? tabs.length - 1
+                    : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                  tabs[nextIndex]?.focus();
+                  tabs[nextIndex]?.click();
+                }}
+              >
+                {getDownloadableDivorceDocs(currentDocument.requiredDocuments).map((docType) => {
                   const tab = DIVORCE_DOC_TABS[docType];
                   if (!tab) return null;
                   const Icon = tab.icon;
@@ -1118,6 +1145,11 @@ const DocumentPreview = () => {
                   return (
                     <button
                       key={docType}
+                      id={`divorce-tab-${docType}`}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls="divorce-preview-panel"
+                      tabIndex={isActive ? 0 : -1}
                       onClick={() => switchSubDocument(docType)}
                       title={currentDocument.selectionReasons?.[docType]}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
@@ -1135,7 +1167,12 @@ const DocumentPreview = () => {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          <div
+            id={isDivorcePackage ? 'divorce-preview-panel' : undefined}
+            role={isDivorcePackage ? 'tabpanel' : undefined}
+            aria-labelledby={isDivorcePackage ? `divorce-tab-${activeSubDocument}` : undefined}
+            className="flex items-center justify-between"
+          >
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <FileText className="h-5 w-5" />
               {isDivorcePackage

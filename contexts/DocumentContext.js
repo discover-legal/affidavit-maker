@@ -54,8 +54,18 @@ const initialState = {
   error: null,
   validation: null,
   hasUnsavedChanges: false,
-  justSaved: false
+  justSaved: false,
+  saveConflict: null
 };
+
+// Keep every interview answer and evidence reference while excluding transient
+// UI/derived fields that should never become part of the durable legal draft.
+const TRANSIENT_DOCUMENT_FIELDS = new Set(['factSummary', 'factSignature', 'serverRevision']);
+export const createPersistedDocumentSnapshot = (document) => Object.fromEntries(
+  Object.entries(document || {}).filter(([key, value]) =>
+    !TRANSIENT_DOCUMENT_FIELDS.has(key) && value !== undefined
+  )
+);
 
 // Action types
 const ActionTypes = {
@@ -78,6 +88,8 @@ const ActionTypes = {
   SET_JUST_SAVED: 'SET_JUST_SAVED',
   REORDER_FACTS: 'REORDER_FACTS',
   SAVE_COMPLETE: 'SAVE_COMPLETE',
+  SAVE_CONFLICT: 'SAVE_CONFLICT',
+  CLEAR_SAVE_CONFLICT: 'CLEAR_SAVE_CONFLICT',
   SWITCH_SUB_DOCUMENT: 'SWITCH_SUB_DOCUMENT'
 };
 
@@ -196,9 +208,32 @@ const documentReducer = (state, action) => {
     case ActionTypes.SAVE_COMPLETE:
       return {
         ...state,
+        currentDocument: {
+          ...state.currentDocument,
+          serverRevision: action.payload.serverRevision
+        },
         isSaving: false,
         lastSaved: action.payload.lastSaved,
-        justSaved: true
+        justSaved: action.payload.clearUnsaved,
+        // A save only covers edits that existed when it was queued. Never let
+        // an older response mark newer edits as saved.
+        hasUnsavedChanges: action.payload.clearUnsaved
+          ? false
+          : state.hasUnsavedChanges
+      };
+
+    case ActionTypes.SAVE_CONFLICT:
+      return {
+        ...state,
+        isSaving: false,
+        saveConflict: action.payload,
+        hasUnsavedChanges: true
+      };
+
+    case ActionTypes.CLEAR_SAVE_CONFLICT:
+      return {
+        ...state,
+        saveConflict: null
       };
 
     case ActionTypes.SET_SESSION_INITIALIZED:
@@ -215,6 +250,7 @@ const documentReducer = (state, action) => {
         preview: null,
         validation: null,
         error: null,
+        saveConflict: null,
         hasUnsavedChanges: false,
         sessionInitialized: false
       };
@@ -231,6 +267,7 @@ const documentReducer = (state, action) => {
         preview: null,
         validation: null,
         error: null,
+        saveConflict: null,
         hasUnsavedChanges: false,
         sessionInitialized: true // Existing document = initialized
       };
@@ -300,7 +337,8 @@ const documentReducer = (state, action) => {
           documentType: preserveDocType ? originalDocType : newSubDoc
         },
         // Clear preview so it regenerates for the new sub-document
-        preview: null
+        preview: null,
+        hasUnsavedChanges: true
       };
 
     default:
@@ -321,6 +359,11 @@ export const DocumentProvider = ({ children }) => {
   // ✅ Ref to access current state without causing dependency changes
   const stateRef = useRef(state);
   stateRef.current = state;
+  const editRevisionRef = useRef(0);
+  const serverRevisionRef = useRef(null);
+  // Saves are deliberately serialized. Otherwise a slower, older request can
+  // reach the database after a newer request and overwrite the latest draft.
+  const saveQueueRef = useRef(Promise.resolve());
 
   // ✅ Enhanced authFetch helper
   const authFetch = useCallback(async (url, options = {}) => {
@@ -341,7 +384,11 @@ export const DocumentProvider = ({ children }) => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const requestError = new Error(errorData.error || `HTTP ${response.status}`);
+        requestError.status = response.status;
+        requestError.errorType = errorData.errorType;
+        requestError.currentRevision = errorData.currentRevision;
+        throw requestError;
       }
 
       return await response.json();
@@ -457,9 +504,11 @@ export const DocumentProvider = ({ children }) => {
         const documentWithId = {
           ...documentContent,
           documentId: data.document.id,
+          serverRevision: Number(data.document.edit_revision),
           factSummary: null,
           factSignature: null
         };
+        serverRevisionRef.current = documentWithId.serverRevision;
 
         dispatch({
           type: ActionTypes.SELECT_DOCUMENT,
@@ -480,6 +529,7 @@ export const DocumentProvider = ({ children }) => {
         type: ActionTypes.SET_ERROR, 
         payload: 'Failed to load document' 
       });
+      throw error;
     } finally {
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
@@ -564,6 +614,7 @@ export const DocumentProvider = ({ children }) => {
 
       if (data.success && data.document?.id) {
         const documentId = data.document.id;
+        serverRevisionRef.current = Number(data.document.edit_revision);
 
         console.log('📄 New document created:', documentId);
 
@@ -577,7 +628,8 @@ export const DocumentProvider = ({ children }) => {
           type: ActionTypes.SET_DOCUMENT_DATA,
           payload: {
             ...createdContent,
-            documentId
+            documentId,
+            serverRevision: Number(data.document.edit_revision)
           }
         });
 
@@ -604,27 +656,38 @@ export const DocumentProvider = ({ children }) => {
   }, [authFetch, isAuthenticated, loadDocuments]);
 
   // ✅ SIMPLIFIED: Save document (always updates existing)
-  const saveDocument = useCallback(async (documentData = null) => {
+  const saveDocument = useCallback((documentData = null) => {
     if (!isAuthenticated) {
-      throw new Error('Authentication required to save documents');
+      return Promise.reject(new Error('Authentication required to save documents'));
     }
 
-    // Access state via ref to avoid dependency on state.currentDocument
-    const documentId = stateRef.current.currentDocument.documentId;
+    const snapshot = {
+      ...stateRef.current.currentDocument,
+      ...(documentData || {})
+    };
+    const documentId = snapshot.documentId;
+    const queuedRevision = editRevisionRef.current;
 
     if (!documentId) {
-      throw new Error('No document ID - session not initialized');
+      return Promise.reject(new Error('No document ID - session not initialized'));
+    }
+    if (stateRef.current.saveConflict) {
+      return Promise.reject(new Error(
+        'Resolve the editing conflict before saving. Your local draft is still preserved.'
+      ));
+    }
+    if (!Number.isInteger(Number(serverRevisionRef.current)) || Number(serverRevisionRef.current) < 1) {
+      return Promise.reject(new Error('Reload this document before saving so its revision can be verified.'));
     }
 
-    try {
+    const performSave = async () => {
+      try {
       dispatch({ type: ActionTypes.SET_SAVING, payload: true });
 
-      // Merge current document with any provided data
-      const fullDocumentData = {
-        ...stateRef.current.currentDocument,
-        ...(documentData || {}),
+      const fullDocumentData = createPersistedDocumentSnapshot({
+        ...snapshot,
         documentId // Always include the ID
-      };
+      });
 
       console.log('💾 Saving document:', documentId);
       console.log('💾 Document title being saved:', fullDocumentData.documentTitle);
@@ -641,23 +704,8 @@ export const DocumentProvider = ({ children }) => {
         fullDocumentData.documentType === 'divorce_decree';
 
       const payload = {
-        affidavitData: {
-          state: fullDocumentData.state || '',
-          affiantName: fullDocumentData.affiantName || '',
-          firstName: fullDocumentData.firstName || '',
-          lastName: fullDocumentData.lastName || '',
-          documentTitle: fullDocumentData.documentTitle || '',
-          caseNumber: fullDocumentData.caseNumber || '',
-          courtName: fullDocumentData.courtName || '',
-          plaintiff: fullDocumentData.plaintiff || '',
-          defendant: fullDocumentData.defendant || '',
-          county: fullDocumentData.county || '',
-          caseType: fullDocumentData.caseType || '',
-          documentType: fullDocumentData.documentType || 'general',
-          activeSubDocument: fullDocumentData.activeSubDocument || null,
-          facts: fullDocumentData.facts || [],
-          documentId // Include for backend to know it's an update
-        },
+        affidavitData: fullDocumentData,
+        expectedRevision: Number(serverRevisionRef.current),
         title: fullDocumentData.documentTitle ||
           (isDivorceDoc
             ? (fullDocumentData.affiantName
@@ -676,11 +724,16 @@ export const DocumentProvider = ({ children }) => {
 
       if (data.success) {
         console.log('💾 Document saved successfully');
+        serverRevisionRef.current = Number(data.document?.edit_revision);
 
         // Batch save completion updates to reduce re-renders
         dispatch({
           type: ActionTypes.SAVE_COMPLETE,
-          payload: { lastSaved: new Date() }
+          payload: {
+            lastSaved: new Date(),
+            clearUnsaved: queuedRevision === editRevisionRef.current,
+            serverRevision: serverRevisionRef.current
+          }
         });
 
         // Clear justSaved flag after 2.5 seconds
@@ -712,15 +765,32 @@ export const DocumentProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to save document:', error);
 
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: 'Failed to save document: ' + error.message
-      });
+      if (error.status === 409 && error.errorType === 'DocumentConflict') {
+        dispatch({
+          type: ActionTypes.SAVE_CONFLICT,
+          payload: {
+            currentRevision: error.currentRevision,
+            message: error.message
+          }
+        });
+      } else {
+        dispatch({
+          type: ActionTypes.SET_ERROR,
+          payload: 'Failed to save document: ' + error.message
+        });
+      }
 
       dispatch({ type: ActionTypes.SET_SAVING, payload: false });
 
       throw error;
-    }
+      }
+    };
+
+    const queuedSave = saveQueueRef.current
+      .catch(() => undefined)
+      .then(performSave);
+    saveQueueRef.current = queuedSave;
+    return queuedSave;
   }, [authFetch, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ✅ Auto-save functionality
@@ -732,18 +802,18 @@ export const DocumentProvider = ({ children }) => {
     const timer = setTimeout(() => {
       // Access state via ref to avoid dependency on state values
       if (isAuthenticated &&
+          !stateRef.current.saveConflict &&
           stateRef.current.hasUnsavedChanges &&
           stateRef.current.currentDocument.documentId &&
-          (stateRef.current.currentDocument.affiantName ||
-           stateRef.current.currentDocument.state ||
-           (stateRef.current.currentDocument.facts && stateRef.current.currentDocument.facts.length > 0))) {
+          Object.keys(createPersistedDocumentSnapshot(stateRef.current.currentDocument))
+            .some((key) => key !== 'documentId')) {
 
         console.log('⏰ Auto-saving document...');
         saveDocument().catch(error => {
           console.log('⏰ Auto-save failed:', error.message);
         });
       }
-    }, 30000); // Auto-save after 30 seconds of inactivity
+    }, 2000); // Save shortly after the user pauses.
 
     setAutoSaveTimer(timer);
   }, [isAuthenticated, saveDocument, autoSaveTimer]);
@@ -855,6 +925,7 @@ export const DocumentProvider = ({ children }) => {
 
   // ✅ FIXED: Update document data with proper state synchronization and debouncing
   const updateDocumentData = useCallback((data) => {
+    editRevisionRef.current += 1;
     console.log('📝 Updating document data', {
       hasName: !!data.affiantName,
       hasState: !!data.state,
@@ -929,6 +1000,7 @@ export const DocumentProvider = ({ children }) => {
   // Update document data WITHOUT triggering preview generation
   // Used when storing professional rewrites before they are applied
   const updateDocumentDataWithoutPreview = useCallback((data) => {
+    editRevisionRef.current += 1;
     console.log('📝 Updating document data (no preview)');
 
     dispatch({
@@ -942,6 +1014,7 @@ export const DocumentProvider = ({ children }) => {
 
   // Reorder facts
   const reorderFacts = useCallback((fromIndex, toIndex) => {
+    editRevisionRef.current += 1;
     console.log('🔄 Reordering facts:', { fromIndex, toIndex });
 
     dispatch({
@@ -966,11 +1039,13 @@ export const DocumentProvider = ({ children }) => {
     }
 
     console.log('📄 Switching to sub-document:', subDocType);
+    editRevisionRef.current += 1;
 
     dispatch({
       type: ActionTypes.SWITCH_SUB_DOCUMENT,
       payload: subDocType
     });
+    scheduleAutoSave();
 
     // Generate preview for the new sub-document type
     // Keep the original documentType but pass activeSubDocument for the backend to use
@@ -986,7 +1061,7 @@ export const DocumentProvider = ({ children }) => {
       };
       generatePreview(updatedDoc);
     }, 100);
-  }, [generatePreview]);
+  }, [generatePreview, scheduleAutoSave]);
 
   // Load documents on mount - only after TOS is verified
   useEffect(() => {
@@ -1021,6 +1096,59 @@ export const DocumentProvider = ({ children }) => {
     };
   }, [autoSaveTimer, previewDebounceTimer]);
 
+  // Browsers cannot reliably finish an authenticated request during unload.
+  // Warn before abandoning a dirty draft, and proactively flush when the tab
+  // is backgrounded (a common precursor to mobile tab eviction).
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!stateRef.current.hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === 'hidden' &&
+        stateRef.current.hasUnsavedChanges &&
+        stateRef.current.currentDocument.documentId
+      ) {
+        saveDocument().catch(() => undefined);
+      }
+    };
+    const handleNavigation = (event) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        !stateRef.current.hasUnsavedChanges
+      ) return;
+      const anchor = event.target instanceof Element
+        ? event.target.closest('a[href]')
+        : null;
+      if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin !== window.location.origin || destination.href === window.location.href) return;
+
+      event.preventDefault();
+      saveDocument()
+        .then(() => window.location.assign(destination.href))
+        .catch(() => {
+          // Remain on the editor. DocumentContext exposes the save error so
+          // the user can retry without losing their draft.
+        });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('click', handleNavigation, true);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('click', handleNavigation, true);
+    };
+  }, [saveDocument]);
+
   // Memoize context values to prevent unnecessary re-renders
   const documentDataValue = useMemo(() => ({
     currentDocument: state.currentDocument,
@@ -1038,7 +1166,8 @@ export const DocumentProvider = ({ children }) => {
     lastSaved: state.lastSaved,
     justSaved: state.justSaved,
     hasUnsavedChanges: state.hasUnsavedChanges
-  }), [state.isSaving, state.lastSaved, state.justSaved, state.hasUnsavedChanges]);
+    , saveConflict: state.saveConflict
+  }), [state.isSaving, state.lastSaved, state.justSaved, state.hasUnsavedChanges, state.saveConflict]);
 
   const uiValue = useMemo(() => ({
     isLoading: state.isLoading,

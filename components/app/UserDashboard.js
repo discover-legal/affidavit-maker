@@ -3,13 +3,14 @@
 // client/src/components/UserDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
-import { FileText, FileDown, Gavel, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen, Reply, Send } from 'lucide-react';
+import { FileText, FileDown, Gavel, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen, Reply, Send, UserCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import CaseStepper from './CaseStepper';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
 import { getInitialLang } from '@/lib/i18n';
+import { useFirm } from '@/contexts/FirmContext';
 import { trackEvent } from '@/lib/utils/analytics';
 import ConfirmDialog from './ConfirmDialog';
 import { formatPrice } from '@/lib/pricing';
@@ -29,11 +30,29 @@ const getDocTypeLabel = (docType) => {
   }
 };
 
+// Firm-mode submission status pill styling/labels (unknown statuses render
+// as "In review" — the contract treats unknown values as in_review)
+const FIRM_STATUS_STYLES = {
+  received: 'bg-blue-100 text-blue-700',
+  conflict_hold: 'bg-amber-100 text-amber-700',
+  in_review: 'bg-indigo-100 text-indigo-700',
+  ready: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+};
+const FIRM_STATUS_LABELS = {
+  received: 'Sent to firm',
+  conflict_hold: 'Conflict hold',
+  in_review: 'In review',
+  ready: 'Ready',
+  rejected: 'Declined',
+};
+
 // Shared document row used in both the cases view and the standalone list
 const DocumentRow = ({
   doc, renamingDocId, newName, setNewName, isSubmittingRename,
   startRename, cancelRename, submitRename, handleDeleteDocument, handleContinueDocument,
-  handleFilingPacket, packetDownloadingId, packetErrorId, packetUnavailable
+  handleFilingPacket, packetDownloadingId, packetErrorId, packetUnavailable,
+  firmSubmission
 }) => {
   const docTypeLabel = (doc.document_type || doc.documentType);
   const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docTypeLabel);
@@ -81,6 +100,14 @@ const DocumentRow = ({
               <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${isDivorce ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                 {typeName}
               </span>
+              {firmSubmission && (
+                <span
+                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${FIRM_STATUS_STYLES[firmSubmission.status] || FIRM_STATUS_STYLES.in_review}`}
+                  title={firmSubmission.note || 'Firm review status'}
+                >
+                  {FIRM_STATUS_LABELS[firmSubmission.status] || FIRM_STATUS_LABELS.in_review}
+                </span>
+              )}
             </div>
           )}
           <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
@@ -166,6 +193,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [packetErrorId, setPacketErrorId] = useState(null);
   const [packetUnavailable, setPacketUnavailable] = useState(false);
 
+  // Firm mode: submission status by document id (from /api/firm/submissions)
+  const { firmMode, firmName } = useFirm();
+  const [firmSubmissions, setFirmSubmissions] = useState({});
+
   // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -203,6 +234,31 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Load firm submission statuses once when firm mode is active
+  useEffect(() => {
+    if (!firmMode) return;
+
+    let cancelled = false;
+    const loadFirmSubmissions = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/firm/submissions`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const byDocumentId = {};
+        (data.data?.submissions || []).forEach((submission) => {
+          byDocumentId[String(submission.documentId)] = submission;
+        });
+        setFirmSubmissions(byDocumentId);
+      } catch (err) {
+        // Firm statuses are an enhancement — fail silently, rows render without pills
+      }
+    };
+
+    loadFirmSubmissions();
+    return () => { cancelled = true; };
+  }, [firmMode]);
 
   const loadCases = async () => {
     setIsCasesLoading(true);
@@ -462,6 +518,16 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         </div>
         {newDocStep === null && (
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {firmMode && (
+              <button
+                onClick={() => navigate('/legal-profile')}
+                className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm"
+                title={`Your legal profile with ${firmName || 'your law firm'}`}
+              >
+                <UserCircle className="h-4 w-4" />
+                My Legal Profile
+              </button>
+            )}
             {isRespondent && (
               <button
                 onClick={() => navigate('/respond')}
@@ -696,6 +762,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                         packetDownloadingId={packetDownloadingId}
                         packetErrorId={packetErrorId}
                         packetUnavailable={packetUnavailable}
+                        firmSubmission={firmSubmissions[String(doc.id)]}
                       />
                     ))}
                   </ul>
@@ -757,6 +824,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                 packetDownloadingId={packetDownloadingId}
                 packetErrorId={packetErrorId}
                 packetUnavailable={packetUnavailable}
+                firmSubmission={firmSubmissions[String(doc.id)]}
               />
             ))}
           </ul>

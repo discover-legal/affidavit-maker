@@ -85,7 +85,7 @@ function sanitizeFilename(input: string | undefined, fallback: string): string {
  */
 export const GET = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('documents-support-list', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-support-list', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests', errorType: 'RateLimitError' },
@@ -124,7 +124,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   let pdfFilepath: string | undefined;
 
   try {
-    const limit = checkRateLimit('documents-support', user.id, RATE_LIMITS.pdf);
+    const limit = await checkRateLimit('documents-support', user.id, RATE_LIMITS.pdf);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests', errorType: 'RateLimitError' },

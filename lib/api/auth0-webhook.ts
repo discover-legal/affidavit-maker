@@ -138,7 +138,7 @@ export async function processAuth0Webhook(
   // Per-IP rate limit on the webhook surface. HMAC verification is the
   // primary control — but if AUTH0_WEBHOOK_SECRET ever leaks we want a
   // throttle that contains the blast radius. `auth` bucket: 10 / 15min.
-  const limit = checkRateLimit('auth0-webhook', rateLimitKey(req, 'auth0-webhook'), RATE_LIMITS.auth);
+  const limit = await checkRateLimit('auth0-webhook', rateLimitKey(req, 'auth0-webhook'), RATE_LIMITS.auth);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

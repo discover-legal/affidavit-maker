@@ -8,7 +8,8 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
-const { randomUUID: uuidv4 } = require('node:crypto');
+const { randomUUID } = require('node:crypto');
+const FileType = require('../utils/allowedFileType');
 const logger = require('../utils/logger');
 
 // Allowed file types with their MIME types
@@ -26,8 +27,13 @@ const IMAGE_MAX_PIXELS = 25_000_000;
 
 class EvidenceStorage {
   constructor() {
-    this.basePath = process.env.EVIDENCE_STORAGE_PATH
-      || path.join(__dirname, '..', 'documents', 'evidence');
+    // EVIDENCE_STORAGE_PATH takes precedence; otherwise derive from the
+    // resolved DOCUMENTS_PATH so the tenant sandbox always sits on the
+    // configured storage mount.
+    this.basePath = process.env.EVIDENCE_STORAGE_PATH || path.join(
+      path.resolve(process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')),
+      'evidence'
+    );
     this.ensureDirectories();
     this.quotaLocks = new Map();
   }
@@ -128,10 +134,9 @@ class EvidenceStorage {
    * @param {object} file - Multer file object
    * @param {number} userId - User ID
    * @param {number} documentId - Document ID
-   * @param {string} evidenceId - Evidence ID (UUID)
    * @returns {object} Evidence metadata
    */
-  async uploadEvidence(file, userId, documentId, evidenceId) {
+  async uploadEvidence(file, userId, documentId, evidenceId = this.generateEvidenceId()) {
     let filepath;
     try {
       const userDir = this.getUserEvidenceDir(userId, documentId);
@@ -147,11 +152,14 @@ class EvidenceStorage {
       filepath = path.join(/* turbopackIgnore: true */ userDir, filename);
 
       // Admission and move are serialized per user so concurrent uploads
-      // cannot all observe the same remaining quota.
+      // cannot all observe the same remaining quota. copyFile + unlink
+      // instead of rename so staging and tenant storage may live on
+      // different mounts (DOCUMENTS_PATH / EVIDENCE_STORAGE_PATH).
       const incomingBytes = (await fs.stat(file.path)).size;
       await this.withQuotaLock(userId, async () => {
         await this.assertStorageQuota(userId, documentId, incomingBytes);
-        await fs.rename(file.path, filepath);
+        await fs.copyFile(file.path, filepath);
+        await fs.unlink(file.path).catch(() => {});
       });
 
       // Get file metadata (includes PDF bomb protection)
@@ -161,6 +169,7 @@ class EvidenceStorage {
       const thumbnailKey = await this.generateThumbnail(filepath, ext, evidenceId);
 
       return {
+        evidenceId,
         fileKey: path.relative(this.basePath, filepath),
         fileName: file.originalname,
         fileType: this.getFileType(ext),
@@ -329,7 +338,7 @@ class EvidenceStorage {
    * @param {string} fileKey - File key
    * @param {string} thumbnailKey - Thumbnail key
    */
-  async deleteEvidence(userId, documentId, fileKey, thumbnailKey) {
+  async deleteEvidence(userId, documentId, fileKey, _thumbnailKey) {
     try {
       const expectedDir = this.getUserEvidenceDir(userId, documentId);
 
@@ -344,14 +353,15 @@ class EvidenceStorage {
         }
       }
 
-      // Derive the new namespaced thumbnail key when old clients omit it.
+      // Thumbnail identity is always derived from the already-bounded
+      // evidence key; never trust a caller-supplied path to choose a file.
+      // Derivatives live next to their source in the user/doc sandbox.
       const evidenceBasename = fileKey ? path.basename(fileKey, path.extname(fileKey)) : null;
       const derivedThumbnailKey = evidenceBasename
         ? path.join(String(userId), String(documentId), `${evidenceBasename}_thumb.jpg`)
         : null;
-      const keyToDelete = thumbnailKey || derivedThumbnailKey;
-      if (keyToDelete) {
-        const thumbnailPath = path.join(this.basePath, keyToDelete);
+      if (derivedThumbnailKey) {
+        const thumbnailPath = path.join(this.basePath, derivedThumbnailKey);
         try {
           this.assertWithin(thumbnailPath, expectedDir);
           await fs.unlink(thumbnailPath).catch(() => {});
@@ -411,6 +421,15 @@ class EvidenceStorage {
   }
 
   /**
+   * Remove the exact evidence sandbox belonging to a user/document pair.
+   * Alias of deleteDocumentEvidence kept for callers written against the
+   * hardening branch API.
+   */
+  async deleteEvidenceForDocument(userId, documentId) {
+    return this.deleteDocumentEvidence(userId, documentId);
+  }
+
+  /**
    * Get file type from extension
    * @param {string} ext - File extension with dot
    * @returns {string} Normalized file type
@@ -448,10 +467,10 @@ class EvidenceStorage {
    * @throws {Error} If file type cannot be verified or is not allowed
    */
   async validateFileContent(filepath, removeInvalid = true) {
-    // file-type 22 is ESM-only; dynamic import keeps this legacy CommonJS
-    // service compatible while using the supported API.
-    const { fileTypeFromFile } = await import('file-type');
-    const detected = await fileTypeFromFile(filepath);
+    // Narrow local magic-byte parser (utils/allowedFileType) detects only the
+    // formats this feature accepts, keeping attacker-controlled uploads out of
+    // broad multimedia container parsers.
+    const detected = await FileType.fromFile(filepath);
 
     if (!detected) {
       // Clean up the invalid file
@@ -533,7 +552,7 @@ class EvidenceStorage {
    * @returns {string} UUID
    */
   generateEvidenceId() {
-    return uuidv4();
+    return randomUUID();
   }
 }
 

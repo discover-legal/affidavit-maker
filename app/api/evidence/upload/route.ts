@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { NextRequest, NextResponse } from 'next/server';
-import { fileTypeFromBuffer } from 'file-type';
 import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
@@ -12,6 +11,7 @@ import {
   toErrorResponse,
 } from '@/lib/api/errors';
 import { logger } from '@/lib/logger';
+import { readBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,7 +63,7 @@ function asString(value: FormDataEntryValue | null): string | null {
 // staging is involved before we sniff content type.
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('evidence-upload', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('evidence-upload', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -71,7 +71,16 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       );
     }
 
-    const form = await req.formData().catch(() => null);
+    const maxBytes = resolveMaxFileSize();
+    // Count the actual stream so chunked transfer encoding cannot bypass the
+    // upload ceiling. Allow 1 MiB for multipart headers and boundaries.
+    const rawBody = await readBody(req, maxBytes + 1024 * 1024);
+    const boundedRequest = new Request(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body: Buffer.from(rawBody),
+    });
+    const form = await boundedRequest.formData().catch(() => null);
     if (!form) throw new ValidationError('Invalid multipart form data');
 
     // The legacy Express route used multer's `upload.single('evidence')`, so
@@ -95,6 +104,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       throw new ValidationError('Invalid document ID');
     }
 
+    // EvidenceUploadModal keys uploads by the fact/evidence id so the stored
+    // fileKey stays linked to the fact it substantiates (provenance). The id
+    // is strictly validated, so it is path-safe inside the user's sandbox.
     const evidenceIdRaw = asString(form.get('evidenceId'));
     if (evidenceIdRaw && !/^[a-zA-Z0-9_-]{1,64}$/.test(evidenceIdRaw)) {
       throw new ValidationError(
@@ -104,7 +116,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const originalName = sanitizeFilename(file.name || 'upload');
 
-    const maxBytes = resolveMaxFileSize();
     if (file.size > maxBytes) {
       logger.warn('evidence_upload_rejected_size', {
         userId: user.id,
@@ -132,8 +143,14 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Sniff actual content via magic bytes; never trust the browser MIME.
-    const detected = await fileTypeFromBuffer(buffer);
+    // Sniff actual content via the application's narrow allow-list parser;
+    // never trust the browser MIME.
+    const FileType = require('@/utils/allowedFileType') as {
+      fromBuffer: (
+        buf: Buffer,
+      ) => { mime: string; ext: string } | undefined;
+    };
+    const detected = FileType.fromBuffer(buffer);
     if (!detected || !ALLOWED_MIMES.has(detected.mime)) {
       logger.warn('evidence_upload_rejected_type', {
         userId: user.id,
@@ -147,12 +164,15 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     // Hand the buffer to the legacy storage service. uploadEvidence expects a
-    // multer-style file on disk, so we stage to a temp path it can rename.
+    // multer-style file on disk, so we stage to a temp path it can move.
+    // The staging filename is always server-generated; the client-provided
+    // evidenceId only names the final, sandboxed evidence file.
     const evidenceId = evidenceIdRaw ?? cryptoRandomId();
+    const stagingId = cryptoRandomId();
     const tmpDir = path.join(process.cwd(), 'temp', 'uploads');
     await fs.mkdir(tmpDir, { recursive: true });
     const ext = mimeToExt(detected.mime);
-    const tmpPath = path.join(tmpDir, `${evidenceId}-${Date.now()}${ext}`);
+    const tmpPath = path.join(tmpDir, `${stagingId}${ext}`);
     await fs.writeFile(tmpPath, buffer);
 
     let result: Record<string, unknown>;
@@ -162,13 +182,15 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
           file: { path: string; originalname: string; mimetype: string; size: number },
           userId: number,
           documentId: number,
-          evidenceId: string,
+          evidenceId?: string,
         ) => Promise<Record<string, unknown>>;
       };
       result = await evidenceStorage.uploadEvidence(
         {
           path: tmpPath,
-          originalname: originalName,
+          // Storage derives its final extension from the sniffed content, not
+          // from this name; keep the metadata name bound to the sniffed type.
+          originalname: `${path.parse(originalName).name}${ext}`,
           mimetype: detected.mime,
           size: buffer.length,
         },

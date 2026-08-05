@@ -6,6 +6,7 @@ import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { isInternationalEnabled } from '@/lib/api/catalog-data';
 import { getUserProfile, hydrateAffidavitData, mergeUserProfileSafe } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -446,7 +447,9 @@ function chunkConversation(messages: RawMessage[]): NormalizedMessage[] {
 // volume and OpenAI token spend per request.
 const messageSchema = z
   .object({
-    role: z.enum(['system', 'assistant', 'user']).optional(),
+    // System instructions are server-owned. Accepting them from the browser
+    // lets a caller override the legal-document safety prompt.
+    role: z.enum(['assistant', 'user']).optional(),
     type: z.string().max(32).optional(),
     content: z.string().max(6000).optional(),
   })
@@ -479,15 +482,16 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   let sessionId = `chat_${Date.now()}_${user.id}`;
 
   try {
-    const limit = checkRateLimit('chat', user.id, RATE_LIMITS.chat);
-    if (!limit.ok) {
+    const limit = await checkRateLimit('chat', user.id, RATE_LIMITS.chat);
+    const dailyLimit = await checkRateLimit('chat-daily', user.id, RATE_LIMITS.chatDaily);
+    if (!limit.ok || !dailyLimit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 },
       );
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req, 512 * 1024);
     const body = chatBodySchema.parse(json);
 
     // Enforce a byte cap on the unbounded `affidavitData` blob — a tightly

@@ -6,7 +6,7 @@ import { rateLimitKey } from '@/lib/util/clientIp';
 export const runtime = 'nodejs';
 
 export async function GET(req: Request) {
-  const limit = checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
+  const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

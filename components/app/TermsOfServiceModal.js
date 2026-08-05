@@ -66,6 +66,8 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
   const [tosChecked, setTosChecked] = useState(false);
   const [researchConsent, setResearchConsent] = useState(false);
   const scrollContainerRef = useRef(null);
+  const dialogRef = useRef(null);
+  const titleRef = useRef(null);
 
   useEffect(() => {
     // Reset scroll state when modal opens
@@ -73,8 +75,43 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
       setHasScrolledToBottom(false);
       setTosChecked(false);
       setResearchConsent(false);
+      const frame = requestAnimationFrame(() => {
+        titleRef.current?.focus();
+        const container = scrollContainerRef.current;
+        if (container && container.scrollHeight <= container.clientHeight + 10) {
+          setHasScrolledToBottom(true);
+        }
+      });
+      return () => cancelAnimationFrame(frame);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onDecline?.();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      ));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onDecline]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -103,12 +140,26 @@ const TermsOfServiceModal = ({ isOpen, onAccept, onDecline, userName }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tos-dialog-title"
+        aria-describedby="tos-dialog-description"
+        className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Terms of Service</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2
+              ref={titleRef}
+              id="tos-dialog-title"
+              tabIndex={-1}
+              className="text-2xl font-bold text-gray-900 outline-none"
+            >
+              Terms of Service
+            </h2>
+            <p id="tos-dialog-description" className="text-sm text-gray-600 mt-1">
               Welcome{userName ? `, ${userName}` : ''}! Please review and accept our terms to continue.
             </p>
           </div>

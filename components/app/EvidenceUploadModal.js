@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, File, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { trackEvent } from '@/lib/utils/analytics';
+import { useModalFocus } from '@/hooks/useModalFocus';
 
 /**
  * Modal for uploading evidence files
@@ -24,6 +25,7 @@ const EvidenceUploadModal = ({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const dialogRef = useModalFocus(isOpen, { onEscape: onClose, canClose: !uploading });
 
   // Reset modal state when it opens/closes
   useEffect(() => {
@@ -201,14 +203,15 @@ const EvidenceUploadModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="evidence-dialog-title" className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 id="evidence-dialog-title" className="text-xl font-semibold text-gray-900">
             Upload Evidence
           </h2>
           <button
             onClick={onClose}
+            disabled={uploading}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             aria-label="Close"
           >
@@ -235,6 +238,9 @@ const EvidenceUploadModal = ({
             </label>
 
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Choose an evidence file. PDF, JPG, or PNG, maximum 25 megabytes."
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
                 dragActive
                   ? 'border-blue-500 bg-blue-50'
@@ -245,6 +251,12 @@ const EvidenceUploadModal = ({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -291,7 +303,7 @@ const EvidenceUploadModal = ({
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
+            <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
@@ -299,7 +311,7 @@ const EvidenceUploadModal = ({
 
           {/* Success Indicator */}
           {!uploading && !error && selectedFile && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start">
+            <div role="status" className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start">
               <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-green-800">
                 File ready to upload. Click "Upload" to proceed.

@@ -27,7 +27,7 @@ function toIsoDate(raw: unknown): string | null {
 // 3-days-before reminder). 404 when there is nothing dated to export yet.
 export const GET = withAuth(async (_req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('profile-deadlines', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('profile-deadlines', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

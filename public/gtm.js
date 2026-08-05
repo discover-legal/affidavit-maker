@@ -1,7 +1,7 @@
 // Google Analytics initialization. Loaded by app/layout.tsx via next/script
 // with strategy="afterInteractive" — runs only on the client after hydration.
 window.dataLayer = window.dataLayer || [];
-function gtag() { dataLayer.push(arguments); }
+function gtag() { window.dataLayer.push(arguments); }
 
 (function initializeGoogleAnalytics() {
   const maxAttempts = 50;

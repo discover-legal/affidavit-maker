@@ -16,10 +16,10 @@ type TemplateManagerLike = {
 
 /**
  * GET /api/templates/divorce/states
- * Returns the list of states/provinces with full divorce document support.
+ * Returns jurisdictions with at least one registered divorce template.
  */
 export async function GET(req: NextRequest) {
-  const limit = checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
+  const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

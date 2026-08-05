@@ -134,7 +134,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   let pdfFilepath: string | undefined;
 
   try {
-    const limit = checkRateLimit('documents-packet', user.id, RATE_LIMITS.pdf);
+    const limit = await checkRateLimit('documents-packet', user.id, RATE_LIMITS.pdf);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests', errorType: 'RateLimitError' },

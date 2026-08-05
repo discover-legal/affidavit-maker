@@ -1,0 +1,46 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!!node_modules",
+      "!!.next",
+      "!!coverage",
+      "!!client",
+      "!!documents"
+    ]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none",
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "error",
+        "useHookAtTopLevel": "error"
+      },
+      "suspicious": {
+        "noDuplicateObjectKeys": "error",
+        "noDoubleEquals": "error"
+      },
+      "a11y": {
+        "noAriaHiddenOnFocusable": "error",
+        "useAltText": "error",
+        "useFocusableInteractive": "error",
+        "useKeyWithClickEvents": "error",
+        "useValidAriaProps": "error",
+        "useValidAriaRole": "error",
+        "useValidAriaValues": "error"
+      }
+    }
+  },
+  "javascript": {
+    "globals": ["React", "jest", "describe", "it", "test", "expect", "beforeEach", "afterEach", "beforeAll", "afterAll"]
+  }
+}

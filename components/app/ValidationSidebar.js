@@ -23,6 +23,7 @@ import {
 import { useAuth0 } from '@/lib/auth0-client';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
 import EvidenceUploadModal from './EvidenceUploadModal';
+import ConfirmDialog from './ConfirmDialog';
 
 // Import evidence helper functions
 import {
@@ -486,6 +487,8 @@ const ValidationSidebar = () => {
   // Rewrite-all state
   const [isRewritingAll, setIsRewritingAll] = useState(false);
   const [rewriteAllProgress, setRewriteAllProgress] = useState({ current: 0, total: 0 });
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
+  const [notice, setNotice] = useState('');
 
   // Lock to prevent concurrent rewrite operations from racing
   const rewriteLockRef = React.useRef(Promise.resolve());
@@ -662,7 +665,7 @@ const ValidationSidebar = () => {
         }
       } catch (error) {
         console.error('Professional rewrite failed:', error);
-        alert('Failed to generate professional rewrite. Please try again.');
+        setNotice('Failed to generate the professional rewrite. Please try again.');
       } finally {
         setGeneratingRewrite(prev => {
           const next = new Set(prev);
@@ -696,10 +699,8 @@ const ValidationSidebar = () => {
 
       if (allFactIndices.length === 0) return;
 
-      if (!window.confirm('All facts already have professional rewrites. Regenerate them all?')) {
-        return;
-      }
-      factIndices.push(...allFactIndices);
+      setPendingConfirmation({ type: 'rewrite-all', indices: allFactIndices });
+      return;
     }
 
     setIsRewritingAll(true);
@@ -802,8 +803,10 @@ const ValidationSidebar = () => {
 
   // Delete fact
   const deleteFact = async (index) => {
-    if (!window.confirm('Are you sure you want to delete this fact?')) return;
+    setPendingConfirmation({ type: 'delete-fact', index });
+  };
 
+  const performDeleteFact = async (index) => {
     const updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
 
     // ✅ FIX: Update state first
@@ -906,8 +909,10 @@ const ValidationSidebar = () => {
 
   // Delete evidence
   const deleteEvidence = async (index) => {
-    if (!window.confirm('Are you sure you want to delete this evidence?')) return;
+    setPendingConfirmation({ type: 'delete-evidence', index });
+  };
 
+  const performDeleteEvidence = async (index) => {
     let updatedFacts = currentDocument.facts.filter((_, i) => i !== index);
 
     // Recalculate exhibit labels
@@ -919,6 +924,30 @@ const ValidationSidebar = () => {
       await saveDocument({ facts: updatedFacts });
     } catch (error) {
       console.error('Failed to delete evidence:', error);
+    }
+  };
+
+  const confirmPendingAction = async () => {
+    const action = pendingConfirmation;
+    setPendingConfirmation(null);
+    if (!action) return;
+    if (action.type === 'delete-fact') {
+      await performDeleteFact(action.index);
+      return;
+    }
+    if (action.type === 'delete-evidence') {
+      await performDeleteEvidence(action.index);
+      return;
+    }
+    if (action.type === 'rewrite-all') {
+      setIsRewritingAll(true);
+      setRewriteAllProgress({ current: 0, total: action.indices.length });
+      for (let i = 0; i < action.indices.length; i++) {
+        setRewriteAllProgress({ current: i + 1, total: action.indices.length });
+        await requestProfessionalRewrite(action.indices[i]);
+      }
+      setIsRewritingAll(false);
+      setRewriteAllProgress({ current: 0, total: 0 });
     }
   };
 
@@ -978,6 +1007,25 @@ const ValidationSidebar = () => {
 
   return (
     <div className="h-full flex flex-col bg-white">
+      <ConfirmDialog
+        open={pendingConfirmation !== null}
+        title={pendingConfirmation?.type === 'rewrite-all' ? 'Regenerate all rewrites?' : 'Delete this item?'}
+        message={pendingConfirmation?.type === 'rewrite-all'
+          ? 'Every existing professional rewrite will be replaced.'
+          : 'This item will be removed from your document. This action cannot be undone.'}
+        confirmLabel={pendingConfirmation?.type === 'rewrite-all' ? 'Regenerate all' : 'Delete'}
+        destructive={pendingConfirmation?.type !== 'rewrite-all'}
+        onCancel={() => setPendingConfirmation(null)}
+        onConfirm={confirmPendingAction}
+      />
+      {notice && (
+        <div role="alert" aria-live="assertive" className="m-4 mb-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <div className="flex justify-between gap-3">
+            <span>{notice}</span>
+            <button type="button" className="font-medium underline" onClick={() => setNotice('')}>Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">

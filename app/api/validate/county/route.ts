@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const session = await getCurrentSession();
     const sub = session?.user?.sub as string | undefined;
     const key = sub ? `auth:${sub}` : rateLimitKey(req, 'validate-county');
-    const limit = checkRateLimit('validate-county', key, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('validate-county', key, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

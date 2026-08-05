@@ -31,7 +31,7 @@ const bodySchema = z.object({
  */
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('templates-validate', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('templates-validate', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

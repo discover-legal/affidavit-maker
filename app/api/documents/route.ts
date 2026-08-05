@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/documents — list documents for the current user.
 export const GET = withAuth(async (_req, { user }) => {
   try {
-    const limit = checkRateLimit('documents-list', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-list', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

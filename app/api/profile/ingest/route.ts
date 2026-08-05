@@ -334,7 +334,7 @@ async function extractIntoProfile(
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('profile-ingest', user.id, { max: 10, windowMs: 15 * 60 * 1000 });
+    const limit = await checkRateLimit('profile-ingest', user.id, { max: 10, windowMs: 15 * 60 * 1000 });
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

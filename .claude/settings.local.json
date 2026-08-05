@@ -18,7 +18,20 @@
       "Bash(git branch *)",
       "Bash(git fetch *)",
       "Bash(git pull *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(gh pr *)",
+      "Bash(git mv *)",
+      "Read(//home/hd/.nvm/versions/**)",
+      "Read(//usr/bin/**)",
+      "Bash(command -v nodejs npm nvm fnm volta)",
+      "Bash(git -C /home/hd/Documents/GitHub/affidavit-maker status --porcelain -- scripts/migrate.js)",
+      "Bash(git grep *)",
+      "Read(//home/hd/**)",
+      "Read(//usr/local/bin/**)",
+      "Read(//home/hd/.local/share/**)",
+      "Bash(compgen -c)",
+      "Bash(git rm *)",
+      "Bash(command -v docker podman flatpak)"
     ]
   },
   "enableAllProjectMcpServers": true,

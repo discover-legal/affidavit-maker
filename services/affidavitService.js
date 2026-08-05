@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const courtNameService = require('./courtNameService');
 const { DEFAULT_LLM_MODEL } = require('./llmConfig');
 const { mergeChildren } = require('../utils/childrenMerge');
+const { randomUUID } = require('node:crypto');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -1093,7 +1094,6 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
-      const { randomUUID: uuidv4 } = require('node:crypto');
 
       // Convert evidence facts to proper format
       processedFacts = extractedFacts.map(fact => {
@@ -1101,7 +1101,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
           // Convert to evidence type with evidenceData
           const evidenceItem = {
             ...fact,
-            id: uuidv4(), // Add unique ID for evidence tracking
+            id: randomUUID(), // Add unique ID for evidence tracking
             type: 'evidence',
             category: 'evidence',
             evidenceData: {
@@ -1129,7 +1129,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
         // Regular fact - ensure it has type: 'fact'
         return {
           ...fact,
-          id: fact.id || uuidv4(),
+          id: fact.id || randomUUID(),
           type: fact.type || 'fact'
         };
       });
@@ -1339,13 +1339,12 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
-      const { randomUUID: uuidv4 } = require('node:crypto');
 
       processedFacts = extractedFacts.map(fact => {
         if (fact.is_evidence) {
           const evidenceItem = {
             ...fact,
-            id: uuidv4(),
+            id: randomUUID(),
             type: 'evidence',
             category: 'evidence',
             evidenceData: {
@@ -1371,7 +1370,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
         }
         return {
           ...fact,
-          id: fact.id || uuidv4(),
+          id: fact.id || randomUUID(),
           type: fact.type || 'fact'
         };
       });

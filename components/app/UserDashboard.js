@@ -11,6 +11,8 @@ import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/Docu
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
 import { getInitialLang } from '@/lib/i18n';
 import { trackEvent } from '@/lib/utils/analytics';
+import ConfirmDialog from './ConfirmDialog';
+import { formatPrice } from '@/lib/pricing';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE = '';
@@ -68,13 +70,14 @@ const DocumentRow = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h4
-                className="text-base font-semibold text-blue-700 truncate cursor-pointer hover:underline"
+              <button
+                type="button"
+                className="text-left text-base font-semibold text-blue-700 truncate cursor-pointer hover:underline"
                 title="Click to rename"
                 onClick={() => startRename(doc)}
               >
                 {displayTitle}
-              </h4>
+              </button>
               <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${isDivorce ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                 {typeName}
               </span>
@@ -136,6 +139,9 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [renamingDocId, setRenamingDocId] = useState(null);
   const [newName, setNewName] = useState('');
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   // New document creation flow: null → 'caseType' → 'documentType'
   // Persist case type so the user doesn't re-pick every time
@@ -213,12 +219,17 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     }
   };
 
-  // ✅ FIXED: Delete handler now properly uses the hook
+  // Deleting is a two-step flow: the row button only records intent, the
+  // accessible ConfirmDialog performs the destructive action.
   const handleDeleteDocument = async (docId) => {
-    if (!window.confirm('Are you sure you want to permanently delete this document?')) return;
+    setPendingDeleteId(docId);
+  };
 
-    console.log('🗑️ Attempting to delete document:', docId);
-
+  const confirmDeleteDocument = async () => {
+    const docId = pendingDeleteId;
+    if (!docId) return;
+    setIsDeleting(true);
+    setNotice(null);
     try {
       const response = await fetch(`${API_BASE}/api/documents/${docId}`, {
         method: 'DELETE',
@@ -232,14 +243,18 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         });
         // Reload documents from context
         loadDocuments();
+        setPendingDeleteId(null);
+        setNotice({ type: 'success', message: 'Document deleted.' });
       } else {
         const errData = await response.json();
         console.error('❌ Delete failed:', errData);
-        alert(`Failed to delete document: ${errData.error}`);
+        setNotice({ type: 'error', message: `Could not delete the document: ${errData.error || 'Please try again.'}` });
       }
     } catch (error) {
       console.error('❌ Delete failed:', error);
-      alert(`Error deleting document: ${error.message}`);
+      setNotice({ type: 'error', message: `Could not delete the document: ${error.message}` });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -305,11 +320,11 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
         cancelRename();
       } else {
         const errData = await response.json();
-        alert(`Failed to rename document: ${errData.details ? errData.details[0].message : errData.error}`);
+        setNotice({ type: 'error', message: `Could not rename the document: ${errData.details ? errData.details[0].message : errData.error}` });
       }
     } catch (error) {
       console.error('Rename error:', error);
-      alert('An error occurred. Please try again.');
+      setNotice({ type: 'error', message: 'Could not rename the document. Please try again.' });
     } finally {
       setIsSubmittingRename(false);
     }
@@ -371,6 +386,10 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     }
   }
 
+  // Case-backed documents are already rendered inside their case cards. Keep the
+  // legacy list from rendering those records a second time.
+  const standaloneDocuments = documents.filter((doc) => !doc.case_id);
+
   if (isDocumentsLoading || isLoading) {
     return (
       <>
@@ -405,11 +424,37 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
 
   return (
     <>
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete document?"
+        message="This permanently deletes the document and cannot be undone."
+        confirmLabel="Delete document"
+        destructive
+        busy={isDeleting}
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={confirmDeleteDocument}
+      />
       <Header
         currentView="dashboard"
         onBackToDashboard={handleBackToDashboard}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {notice && (
+        <div
+          role={notice.type === 'error' ? 'alert' : 'status'}
+          aria-live="polite"
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            notice.type === 'error'
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : 'border-green-200 bg-green-50 text-green-800'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span>{notice.message}</span>
+            <button type="button" onClick={() => setNotice(null)} className="font-medium underline">Dismiss</button>
+          </div>
+        </div>
+      )}
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
@@ -508,7 +553,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                   <h4 className="font-semibold text-gray-900 group-hover:text-purple-800">Family Law</h4>
                   <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600" />
                 </div>
-                <p className="text-sm text-gray-500 mt-1">Divorce, custody, support, and family court filings.</p>
+                <p className="text-sm text-gray-500 mt-1">Affidavit drafts and guided divorce petition/decree drafts.</p>
               </div>
             </button>
 
@@ -554,7 +599,9 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <FileText className="h-7 w-7 text-blue-600" />
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">$79</span>
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    {formatPrice('us', 'single_affidavit')}
+                  </span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">General Affidavit</h4>
                 <p className="text-sm text-gray-600">A sworn statement of facts for court filings, custody matters, and more. AI-guided interview.</p>
@@ -576,12 +623,14 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                     <Scale className="h-7 w-7 text-purple-600" />
                     <Heart className="h-4 w-4 text-purple-400 -ml-2 mt-3" />
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">$249</span>
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                    {formatPrice('us', 'divorce_package')}
+                  </span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">Divorce Package</h4>
-                <p className="text-sm text-gray-600">Complete divorce filing package tailored to your state or province. AI walks you through the full interview — petition, decree, and all required supporting documents.</p>
+                <p className="text-sm text-gray-600">A guided divorce interview that prepares petition and proposed decree drafts tailored to your jurisdiction.</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {['Petition', 'Decree', 'Supporting Docs'].map(tag => (
+                  {['Petition', 'Proposed Decree'].map(tag => (
                     <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
                       {tag}
                     </span>
@@ -666,24 +715,32 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
             {cases.length > 0 ? 'Other Documents' : 'Your Documents'}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {documents.length === 0 ? 'No documents yet' : `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
+            {standaloneDocuments.length === 0
+              ? 'No standalone documents'
+              : `${standaloneDocuments.length} document${standaloneDocuments.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
-        {documents.length === 0 ? (
+        {standaloneDocuments.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 mb-4">You haven't created any documents yet</p>
+            <p className="text-gray-500 mb-4">
+              {cases.length > 0
+                ? 'All your documents are organized in cases above.'
+                : "You haven't created any documents yet."}
+            </p>
+            {cases.length === 0 && (
             <button
               onClick={() => setNewDocStep(selectedCaseType ? 'documentType' : 'caseType')}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Your First Document
             </button>
+            )}
           </div>
         ) : (
           <ul className="divide-y">
-            {documents.map((doc) => (
+            {standaloneDocuments.map((doc) => (
               <DocumentRow
                 key={doc.id}
                 doc={doc}

@@ -49,6 +49,28 @@ describe('EvidenceStorage security boundaries', () => {
     expect(listed.map(item => item.filename)).toEqual(['proof.png']);
   });
 
+  test('generates opaque v4 evidence ids and consumes the staged file on upload', async () => {
+    // The stored name comes from the server-generated evidence id, never from
+    // the client's originalname; the staged temp file must not linger.
+    const evidenceId = storage.generateEvidenceId();
+    expect(evidenceId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+
+    const staged = path.join(root, 'client-selected-name.png');
+    await fs.writeFile(staged, pngHeader(100, 100));
+
+    const uploaded = await storage.uploadEvidence(
+      { path: staged, originalname: 'statement.png', mimetype: 'image/png' },
+      7,
+      42,
+      evidenceId
+    );
+
+    expect(uploaded.fileKey.replace(/\\/g, '/')).toBe(`7/42/${evidenceId}.png`);
+    await expect(fs.access(staged)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   test('rejects a compressed image header with unsafe dimensions and cleans it up', async () => {
     const staged = path.join(root, 'oversized.png');
     await fs.writeFile(staged, pngHeader(12000, 12000));
@@ -121,6 +143,20 @@ describe('EvidenceStorage security boundaries', () => {
     await fs.writeFile(path.join(documentDir, 'proof.png'), 'sensitive');
     await storage.deleteDocumentEvidence(17, 42);
     await expect(fs.access(documentDir)).rejects.toThrow();
+  });
+
+  test('document cleanup removes only the exact user/document sandbox', async () => {
+    const target = storage.getUserEvidenceDir(7, 42);
+    const sibling = storage.getUserEvidenceDir(7, 420);
+    await fs.mkdir(target, { recursive: true });
+    await fs.mkdir(sibling, { recursive: true });
+    await fs.writeFile(path.join(target, 'remove.pdf'), 'x');
+    await fs.writeFile(path.join(sibling, 'keep.pdf'), 'x');
+
+    await storage.deleteDocumentEvidence(7, 42);
+
+    await expect(fs.access(target)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(fs.readFile(path.join(sibling, 'keep.pdf'), 'utf8')).resolves.toBe('x');
   });
 
   test('document deletion keeps cleanup retryable by removing evidence before the DB row', async () => {

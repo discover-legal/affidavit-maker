@@ -27,7 +27,7 @@ const bodySchema = z
 
 export const PUT = withAuth<{ id: string | string[] }>(async (req: NextRequest, { user, params }) => {
   try {
-    const limit = checkRateLimit('documents-rename', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-rename', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

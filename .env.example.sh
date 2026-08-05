@@ -36,7 +36,7 @@ TRUSTED_PROXY_HOPS=1
 API_MAX_BODY_BYTES=26214400
 
 # ===========================
-# AUTH0 CONFIGURATION (@auth0/nextjs-auth0 v3)
+# AUTH0 CONFIGURATION (@auth0/nextjs-auth0 v4)
 # ===========================
 # 32 random bytes hex: openssl rand -hex 32
 AUTH0_SECRET=
@@ -47,10 +47,15 @@ AUTH0_CLIENT_SECRET=
 AUTH0_AUDIENCE=
 AUTH0_WEBHOOK_SECRET=
 
-# Cookie hardening (v3 SDK reads these env vars directly)
-AUTH0_SESSION_COOKIE_SAME_SITE=lax
-AUTH0_SESSION_COOKIE_SECURE=true
-AUTH0_SESSION_COOKIE_HTTP_ONLY=true
+# v4-native names (optional — lib/auth0.ts falls back to the v3 names above)
+# AUTH0_DOMAIN=your-tenant.auth0.com
+# APP_BASE_URL=http://localhost:3000
+
+# Cookie hardening. NOTE: the SDK reads AUTH0_COOKIE_* (not
+# AUTH0_SESSION_COOKIE_*); session durations are wired via lib/auth0.ts.
+AUTH0_COOKIE_SAME_SITE=lax
+AUTH0_COOKIE_SECURE=true
+AUTH0_COOKIE_HTTP_ONLY=true
 AUTH0_SESSION_ABSOLUTE_DURATION=86400
 AUTH0_SESSION_ROLLING_DURATION=3600
 
@@ -73,12 +78,21 @@ OPENAI_TEMPERATURE=0.3
 STRIPE_SECRET_KEY=sk_test_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
+# Must be "test" with sk_test_/pk_test_ and "live" with sk_live_/pk_live_.
+PAYMENTS_MODE=test
 
 # ===========================
 # FILE STORAGE
 # ===========================
 DOCUMENTS_PATH=./documents
 MAX_FILE_SIZE=10485760
+# Production sets this to true. Startup and readiness then require
+# DOCUMENTS_PATH to be an actual mount point, not an ephemeral directory.
+REQUIRE_PERSISTENT_STORAGE=false
+
+# Optional operational integration. Do not claim it is active until its
+# dead-man-switch receives a real test run.
+CLEANUP_HEARTBEAT_URL=
 
 # ===========================
 # FEATURE FLAGS

@@ -8,18 +8,22 @@ import { URL } from 'node:url';
  * Singleton pg Pool. Cached on globalThis to survive Next.js HMR in dev so
  * we don't leak connections.
  *
- * Per-request RLS context is provided via AsyncLocalStorage: when a request
- * runs inside `withRequestClient(client, fn)` (called by `withAuth`), every
- * `query()` in that async chain runs against `client` — which has
- * `SET LOCAL app.user_id = '<userId>'` etc. set on its open transaction.
- * Outside a request scope, `query()` falls back to the pool directly.
+ * AsyncLocalStorage carries request identity, not a checked-out PoolClient.
+ * Each user query gets a short transaction that applies SET LOCAL and releases
+ * immediately, so slow non-database work (LLM calls, PDF rendering, uploads)
+ * cannot exhaust the connection pool. Explicit trusted transactions
+ * (`withRLSBypass`) still pin a client for their duration.
  */
+
+type QueryContext =
+  | { kind: 'user'; userId: number; isAdmin: boolean }
+  | { kind: 'transaction'; client: PoolClient };
 
 declare global {
   // eslint-disable-next-line no-var
   var __pgPoolPromise: Promise<Pool> | undefined;
   // eslint-disable-next-line no-var
-  var __pgRequestALS: AsyncLocalStorage<{ client: PoolClient }> | undefined;
+  var __pgRequestALS: AsyncLocalStorage<QueryContext> | undefined;
 }
 
 /**
@@ -201,8 +205,8 @@ export function getPool(): Promise<Pool> {
   return poolPromise();
 }
 
-const requestALS: AsyncLocalStorage<{ client: PoolClient }> =
-  global.__pgRequestALS ?? new AsyncLocalStorage<{ client: PoolClient }>();
+const requestALS: AsyncLocalStorage<QueryContext> =
+  global.__pgRequestALS ?? new AsyncLocalStorage<QueryContext>();
 if (process.env.NODE_ENV !== 'production') {
   global.__pgRequestALS = requestALS;
 }
@@ -210,26 +214,43 @@ if (process.env.NODE_ENV !== 'production') {
 export type QueryResult<T> = { rows: T[]; rowCount: number | null };
 
 /**
- * Execute a query against the per-request RLS-scoped client if we're inside
- * a `withRequestClient` chain, otherwise against the pool directly. Existing
- * handler code keeps calling `query()` and gets RLS automatically when wrapped
- * by `withAuth`.
+ * Execute a query with the current RLS identity. Explicit trusted transactions
+ * reuse their client; user requests acquire and release a client per query.
  */
 export async function query<T = unknown>(
   text: string,
   params?: unknown[],
 ): Promise<QueryResult<T>> {
   const ctx = requestALS.getStore();
-  const runner = ctx?.client ?? (await poolPromise());
-  const result = await runner.query(text, params as never[]);
-  return { rows: result.rows as T[], rowCount: result.rowCount };
+  if (!ctx || ctx.kind === 'transaction') {
+    const runner = ctx?.client ?? (await poolPromise());
+    const result = await runner.query(text, params as never[]);
+    return { rows: result.rows as T[], rowCount: result.rowCount };
+  }
+
+  const pool = await poolPromise();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await setUserRLSVariables(client, ctx.userId, ctx.isAdmin);
+    const result = await client.query(text, params as never[]);
+    await client.query('COMMIT');
+    return { rows: result.rows as T[], rowCount: result.rowCount };
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Preserve the original error.
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**
- * Run `fn` inside a transactional client with RLS session variables set so
- * RLS policies (migrations 010, 012, 013) treat queries as if they came from
- * `userId`. The transaction is COMMITted on success and ROLLed BACK on
- * thrown errors. The client is always released.
+ * Run `fn` with an RLS identity. This does not acquire a database connection;
+ * each query made by `fn` applies the identity in a short transaction.
  *
  * Variables set:
  *   - app.user_id           (migration 010)
@@ -241,34 +262,23 @@ export async function withRLSContext<T>(
   isAdmin: boolean,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const pool = await poolPromise();
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    // set_config(name, value, is_local) — is_local=true → scoped to this txn.
-    await client.query('SELECT set_config($1, $2, true)', ['app.user_id', String(userId)]);
-    await client.query('SELECT set_config($1, $2, true)', [
-      'app.current_user_id',
-      String(userId),
-    ]);
-    await client.query('SELECT set_config($1, $2, true)', [
-      'app.is_admin',
-      isAdmin ? 'true' : 'false',
-    ]);
+  return requestALS.run({ kind: 'user', userId, isAdmin }, fn);
+}
 
-    const result = await requestALS.run({ client }, fn);
-    await client.query('COMMIT');
-    return result;
-  } catch (err) {
-    try {
-      await client.query('ROLLBACK');
-    } catch {
-      // ignore rollback errors; the original throws below
-    }
-    throw err;
-  } finally {
-    client.release();
-  }
+async function setUserRLSVariables(
+  client: PoolClient,
+  userId: number,
+  isAdmin: boolean,
+): Promise<void> {
+  await client.query('SELECT set_config($1, $2, true)', ['app.user_id', String(userId)]);
+  await client.query('SELECT set_config($1, $2, true)', [
+    'app.current_user_id',
+    String(userId),
+  ]);
+  await client.query('SELECT set_config($1, $2, true)', [
+    'app.is_admin',
+    isAdmin ? 'true' : 'false',
+  ]);
 }
 
 /**
@@ -282,7 +292,7 @@ export async function withRLSBypass<T>(fn: () => Promise<T>): Promise<T> {
   try {
     await client.query('BEGIN');
     await client.query('SELECT set_config($1, $2, true)', ['app.bypass_rls', 'true']);
-    const result = await requestALS.run({ client }, fn);
+    const result = await requestALS.run({ kind: 'transaction', client }, fn);
     await client.query('COMMIT');
     return result;
   } catch (err) {

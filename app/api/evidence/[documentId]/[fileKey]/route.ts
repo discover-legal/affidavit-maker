@@ -85,7 +85,7 @@ async function ensureOwnership(documentId: number, userId: number): Promise<void
 // routes/evidence.js#getFile.
 export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) => {
   try {
-    const limit = checkRateLimit('evidence-read', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('evidence-read', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -159,7 +159,7 @@ export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) 
 // when the client supplies one, but it's optional.
 export const DELETE = withAuth<Params>(async (req: NextRequest, { user, params }) => {
   try {
-    const limit = checkRateLimit('evidence-delete', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('evidence-delete', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 
@@ -18,14 +19,15 @@ const bodySchema = z.object({
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('validation', user.id, RATE_LIMITS.chat);
-    if (!limit.ok) {
+    const limit = await checkRateLimit('validation', user.id, RATE_LIMITS.chat);
+    const dailyLimit = await checkRateLimit('ai-daily', user.id, RATE_LIMITS.chatDaily);
+    if (!limit.ok || !dailyLimit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 },
       );
     }
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req);
     const { affidavitData } = bodySchema.parse(json);
     if (!affidavitData) throw new ValidationError('affidavitData is required');
 

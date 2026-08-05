@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // accumulated facts), used to seed new documents and conversations.
 export const GET = withAuth(async (_req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('profile', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('profile', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -36,7 +36,7 @@ export const GET = withAuth(async (_req: NextRequest, { user }) => {
 // updateUserProfile so per-document state can never be written here.
 export const PATCH = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('profile', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('profile', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -67,7 +67,7 @@ export const PATCH = withAuth(async (req: NextRequest, { user }) => {
 // DELETE /api/profile — erase the stored life story (privacy control).
 export const DELETE = withAuth(async (_req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('profile', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('profile', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

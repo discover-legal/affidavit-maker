@@ -82,9 +82,9 @@ export function withAuth<P = Record<string, string | string[]>>(
       );
     }
 
-    // Handlers currently keep their RLS transaction open through LLM/OCR/PDF
-    // work. Reserve pool headroom and stop one account from exhausting every
-    // client while longer-term query-scoped RLS refactoring remains possible.
+    // RLS identity now applies per query (short transactions in lib/db.ts),
+    // so LLM/OCR/PDF work no longer pins a connection. The slot limiter stays
+    // as defense-in-depth against one account monopolizing the instance.
     const releaseSlot = acquireRequestSlot(user.id);
     if (!releaseSlot) {
       return NextResponse.json(
@@ -113,4 +113,11 @@ export function withAuth<P = Record<string, string | string[]>>(
       releaseSlot();
     }
   };
+}
+
+/** Authentication-only wrapper for the endpoints used to establish TOS state. */
+export function withBasicAuth<P = Record<string, string | string[]>>(
+  handler: AuthedHandler<P>,
+) {
+  return withAuth(handler, { requireCurrentTos: false });
 }

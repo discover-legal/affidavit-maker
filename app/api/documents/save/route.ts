@@ -4,11 +4,11 @@ import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
-  AuthorizationError,
   NotFoundError,
   ValidationError,
   toErrorResponse,
 } from '@/lib/api/errors';
+import { readJsonBody } from '@/lib/api/requestBody';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +42,9 @@ const bodySchema = z.object({
   // Chat transcript for this document. Optional: when absent the stored
   // transcript is preserved (COALESCE), never blanked.
   conversationHistory: z.array(conversationMessageSchema).max(60).optional(),
+  // Optimistic concurrency token — required when updating an existing
+  // document; must match documents.edit_revision or the save 409s.
+  expectedRevision: z.number().int().positive().optional(),
 });
 
 /** Cap the serialized document blob saved to documents.content. */
@@ -54,7 +57,7 @@ const MAX_CONVERSATION_HISTORY_BYTES = 256 * 1024;
 // upsert: if affidavitData.documentId is set, UPDATE; else INSERT.
 export const POST = withAuth(async (req: NextRequest, { user }) => {
   try {
-    const limit = checkRateLimit('documents-save', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-save', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -62,7 +65,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       );
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
+    const json = await readJsonBody(req);
     const parsed = bodySchema.parse(json);
     const data = parsed.affidavitData;
     if (!data) throw new ValidationError('affidavitData is required');
@@ -103,12 +106,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     if (data.documentId) {
       const id = String(data.documentId);
-      const existing = await query<{ user_id: number }>(
-        'SELECT user_id FROM documents WHERE id = $1',
-        [id],
-      );
-      if (!existing.rows.length) throw new NotFoundError('Document not found');
-      if (existing.rows[0].user_id !== user.id) throw new AuthorizationError('Access denied');
+      if (!parsed.expectedRevision) {
+        throw new ValidationError('Document revision is required');
+      }
       const updated = await query<Record<string, unknown>>(
         `UPDATE documents
             SET payment_status = CASE
@@ -117,12 +117,38 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
                   ELSE payment_status
                 END,
                 content = $1, title = $2, template_state = $3, validation_results = $4,
-                conversation_history = COALESCE($5::jsonb, conversation_history),
-                updated_at = CURRENT_TIMESTAMP
-          WHERE id = $6 AND user_id = $7
+                conversation_history = COALESCE($8::jsonb, conversation_history),
+                updated_at = CURRENT_TIMESTAMP, edit_revision = edit_revision + 1
+          WHERE id = $5 AND user_id = $6 AND edit_revision = $7
           RETURNING *`,
-        [contentToSave, documentTitle, data.state ?? null, validationJson, conversationHistoryJson, id, user.id],
+        [
+          contentToSave,
+          documentTitle,
+          data.state ?? null,
+          validationJson,
+          id,
+          user.id,
+          parsed.expectedRevision,
+          conversationHistoryJson,
+        ],
       );
+      if (!updated.rows.length) {
+        // Preserve the same not-found response for missing and other-user IDs.
+        const current = await query<{ edit_revision: number }>(
+          'SELECT edit_revision FROM documents WHERE id = $1 AND user_id = $2',
+          [id, user.id],
+        );
+        if (!current.rows.length) throw new NotFoundError('Document not found');
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This document was changed in another tab or device.',
+            errorType: 'DocumentConflict',
+            currentRevision: Number(current.rows[0].edit_revision),
+          },
+          { status: 409 },
+        );
+      }
       return NextResponse.json({ success: true, document: updated.rows[0] });
     }
 

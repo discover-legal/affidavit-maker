@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { ArrowLeft, Clock, ChevronRight, Scale } from 'lucide-react';
 import ArticleMarkdown from '@/components/marketing/ArticleMarkdown';
 import { ARTICLES, getArticleBySlug, type Article } from '@/lib/content/articles';
+import { sanitizeArticlePromotions } from '@/lib/content/sanitizeArticle';
 import { jsonLd } from '@/lib/json-ld';
 
 type ArticlePageProps = {
@@ -114,13 +115,17 @@ export default function ArticlePage({ params }: ArticlePageProps) {
     return tag === 'both' || tag === articleLocale;
   }).slice(0, 3);
 
-  // Replace #cta links with internal navigation to home
-  const processedContent = article.content
-    .replace(/^\s*#\s+.*\r?\n+/, '')
-    .replace(
-      /\[([^\]]+)\]\(#cta\)/g,
-      '**[Get Started Now →](/api/auth/login?screen_hint=signup)**',
-    );
+  // Strip the duplicate leading H1, replace #cta links with the signup flow,
+  // then rewrite outdated product-promotion sections to the current
+  // availability statement (lib/content/sanitizeArticle).
+  const processedContent = sanitizeArticlePromotions(
+    article.content
+      .replace(/^\s*#\s+.*\r?\n+/, '')
+      .replace(
+        /\[([^\]]+)\]\(#cta\)/g,
+        '**[Get Started Now →](/api/auth/login?screen_hint=signup)**',
+      ),
+  );
 
   const structuredData = buildStructuredData(article);
 
@@ -186,16 +191,16 @@ export default function ArticlePage({ params }: ArticlePageProps) {
 
           <div className="mt-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-center">
             <h3 className="text-2xl font-bold text-white mb-3">
-              Ready to Create Your Legal Document?
+              Ready to Prepare a Document Draft?
             </h3>
             <p className="text-blue-100 mb-6">
-              Save time and money with our AI-powered platform. Professional documents in minutes.
+              See the affidavit, petition, and proposed decree drafts currently available.
             </p>
             <Link
               href="/api/auth/login?screen_hint=signup"
               className="inline-flex items-center px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
             >
-              Get Started Now
+              View Available Drafts
               <ChevronRight className="ml-2 h-5 w-5" />
             </Link>
           </div>

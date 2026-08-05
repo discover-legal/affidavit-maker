@@ -19,7 +19,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { state: string } },
 ) {
-  const limit = checkRateLimit('procedure', rateLimitKey(req, 'procedure'), RATE_LIMITS.standard);
+  const limit = await checkRateLimit('procedure', rateLimitKey(req, 'procedure'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

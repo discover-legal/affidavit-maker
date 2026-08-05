@@ -8,14 +8,23 @@ services:
     branch: main
 
     preDeployCommand: node scripts/migrate.js
-    healthCheckPath: /api/health
+    healthCheckPath: /api/ready
     autoDeploy: true
+    numInstances: 1
+    maxShutdownDelaySeconds: 60
+
+    disk:
+      name: affidavit-documents
+      mountPath: /app/documents
+      sizeGB: 10
 
     envVars:
       - key: NODE_ENV
         value: production
       - key: NEXT_TELEMETRY_DISABLED
         value: '1'
+      - key: REQUIRE_PERSISTENT_STORAGE
+        value: 'true'
 
       # Database (auto-populated from Render PostgreSQL)
       - key: DATABASE_URL
@@ -116,6 +125,8 @@ services:
         sync: false
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         sync: false
+      - key: PAYMENTS_MODE
+        value: live
 
       # File storage (PDFs, evidence)
       # NOTE — local-disk storage is data-loss risk on multi-instance
@@ -137,7 +148,6 @@ services:
       # Logging
       - key: LOG_LEVEL
         value: info
-
       # Feature flags
       - key: ENABLE_INTERNATIONAL
         value: 'false'
@@ -147,6 +157,29 @@ services:
         value: 'true'
       - key: MAINTENANCE_MODE
         value: 'false'
+
+  - type: cron
+    name: affidavit-database-cleanup
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    schedule: "17 3 * * *"
+    buildCommand: npm ci --omit=dev
+    startCommand: node scripts/cleanDatabase.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: affidavit-db
+          property: connectionString
+      - key: DATABASE_CA_CERT
+        sync: false
+      # Optional dead-man-switch URL (for example Healthchecks.io). The job
+      # calls it on success and appends /fail on failure.
+      - key: CLEANUP_HEARTBEAT_URL
+        sync: false
 
 databases:
   # Paid flexible plan (Basic-256mb). Includes automated backups and no
@@ -159,8 +192,8 @@ databases:
     databaseName: affidavit_maker
     user: affidavit_user
     region: oregon
+    storageAutoscalingEnabled: true
+    ipAllowList: []
 
-# NOTE: Persistent disks must be configured in the Render dashboard.
-# Mount path /app/documents matches DOCUMENTS_PATH above. Until evidence
-# storage moves to object storage, the disk MUST be mounted or files
-# will silently vanish on every deploy.
+# Disk-backed services cannot scale horizontally. Migrate evidence to object
+# storage before adding replicas.

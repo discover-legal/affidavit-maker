@@ -52,7 +52,7 @@ const bodySchema = z
  * `{ state, documentType, data }` shape.
  */
 export async function POST(req: NextRequest) {
-  const limit = checkRateLimit('templates', rateLimitKey(req, 'templates-divorce-validate'), RATE_LIMITS.standard);
+  const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates-divorce-validate'), RATE_LIMITS.standard);
   if (!limit.ok) {
     return NextResponse.json(
       { success: false, error: 'Too many requests' },

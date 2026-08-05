@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/auth';
+import { withBasicAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { toErrorResponse } from '@/lib/api/errors';
 import { TOS_VERSION } from '@/lib/content/termsOfService';
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * Returns the current TOS acceptance state for the authenticated user.
  * Mirrors the legacy routes/auth.js GET /tos-status endpoint.
  */
-export const GET = withAuth(async (_req, { user }) => {
+export const GET = withBasicAuth(async (_req, { user }) => {
   try {
     const row = await query<{
       tos_accepted: boolean | null;
@@ -27,11 +27,11 @@ export const GET = withAuth(async (_req, { user }) => {
     );
 
     const record = row.rows[0];
-    const currentAccepted =
-      record?.tos_accepted === true && record.tos_version_accepted === TOS_VERSION;
     return NextResponse.json({
       success: true,
-      tosAccepted: currentAccepted,
+      tosAccepted:
+        record?.tos_accepted === true &&
+        record?.tos_version_accepted === TOS_VERSION,
       tosAcceptedAt: record?.tos_accepted_at ?? null,
       tosVersionAccepted: record?.tos_version_accepted ?? null,
       currentTosVersion: TOS_VERSION,
@@ -39,4 +39,4 @@ export const GET = withAuth(async (_req, { user }) => {
   } catch (err) {
     return toErrorResponse(err);
   }
-}, { requireCurrentTos: false });
+});

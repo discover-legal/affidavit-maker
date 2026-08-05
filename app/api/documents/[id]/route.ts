@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api/auth';
 import { query } from '@/lib/db';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import {
+  AppError,
   NotFoundError,
   ValidationError,
   toErrorResponse,
@@ -31,7 +32,7 @@ function parseDocumentId(params: IdParams): number {
 // GET /api/documents/[id]
 export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
-    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -66,7 +67,7 @@ export const GET = withAuth<IdParams>(async (_req, { user, params }) => {
 // DELETE /api/documents/[id]
 export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
   try {
-    const limit = checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('documents-by-id', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
@@ -75,20 +76,46 @@ export const DELETE = withAuth<IdParams>(async (_req, { user, params }) => {
     }
 
     const id = parseDocumentId(params);
-    const owned = await query<{ id: number }>(
-      'SELECT id FROM documents WHERE id = $1 AND user_id = $2',
+    // Ownership + payment-state check in one statement, BEFORE any
+    // destructive work: a document whose payment is still processing must
+    // not be deleted (and its evidence must not be wiped either).
+    const existing = await query<{ has_active_payment: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+           FROM payments p
+          WHERE p.user_id = $2
+            AND (p.document_id = d.id OR
+                 (p.document_id IS NULL AND p.metadata->>'documentId' = d.id::text))
+            AND p.status NOT IN (
+              'failed', 'canceled', 'succeeded',
+              'partially_refunded', 'refunded', 'disputed'
+            )
+       ) AS has_active_payment
+         FROM documents d
+        WHERE d.id = $1 AND d.user_id = $2`,
       [id, user.id],
     );
-    if (owned.rows.length === 0) throw new NotFoundError('Document not found');
+    if (!existing.rows.length) throw new NotFoundError('Document not found');
+    if (existing.rows[0].has_active_payment) {
+      throw new AppError(
+        'This document cannot be deleted while its payment is processing.',
+        409,
+        'PaymentInProgress',
+      );
+    }
+
     // Remove sensitive files while the owned row still exists, so a failed
     // cleanup remains retryable and can never be orphaned by a committed DB
     // deletion. A later DB failure may require re-uploading evidence, but it
-    // does not leave undeletable private files behind.
+    // does not leave undeletable private files behind. Cleanup is bounded to
+    // the authenticated user's exact document directory.
     const evidenceStorage = require('@/services/evidenceStorage') as {
       deleteDocumentEvidence: (userId: number, documentId: number) => Promise<unknown>;
     };
     await evidenceStorage.deleteDocumentEvidence(user.id, id);
 
+    // Single DELETE with `RETURNING id` — if the row didn't belong to us, the
+    // affected count is zero and we 404. No probe oracle.
     const deleted = await query<{ id: number }>(
       'DELETE FROM documents WHERE id = $1 AND user_id = $2 RETURNING id',
       [id, user.id],

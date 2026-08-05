@@ -20,6 +20,7 @@ const TOSGuard = ({ children }) => {
   const [showTosModal, setShowTosModal] = useState(false);
   const [isCheckingTos, setIsCheckingTos] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
+  const [tosError, setTosError] = useState('');
   const isRedirectingRef = useRef(false);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ const TOSGuard = ({ children }) => {
       }
 
       console.log('[TOSGuard] Starting TOS status check for user:', user.sub);
+      setTosError('');
       setLoadingMessage('Verifying account...');
 
       try {
@@ -71,6 +73,7 @@ const TOSGuard = ({ children }) => {
 
           if (data.tosAccepted) {
             markTosVerified();
+            setTosError('');
           } else {
             // Show TOS modal if user hasn't accepted
             console.log('[TOSGuard] User has NOT accepted TOS, showing modal');
@@ -82,18 +85,19 @@ const TOSGuard = ({ children }) => {
           setShowTosModal(true);
         }
       } catch (error) {
-        // CRITICAL FIX: On error, show TOS modal (fail-secure approach)
-        // This prevents users from bypassing TOS if there's an API error
+        // On error, fail secure: never expose the protected application when
+        // the server-side acceptance state could not be established.
         console.error('[TOSGuard] Error checking TOS status:', error);
-        console.warn('[TOSGuard] Showing TOS modal due to error (fail-secure)');
 
-        // Don't show modal for transient auth errors during initialization
+        // Don't block for transient auth errors during initialization
         if (error.message?.includes('not authenticated') ||
             error.message?.includes('login_required')) {
           console.log('[TOSGuard] Auth initialization error, will retry on next render');
         } else {
-          // For all other errors, show the modal to be safe
-          setShowTosModal(true);
+          // A verification outage should not offer an acceptance form whose
+          // server state is unknown; show a blocking retry screen instead.
+          setTosError('We could not verify your Terms acceptance. Please retry.');
+          setShowTosModal(false);
         }
       } finally {
         setIsCheckingTos(false);
@@ -106,6 +110,7 @@ const TOSGuard = ({ children }) => {
   }, [isAuthenticated, isLoading, user?.sub]);
 
   const handleAcceptTos = async (tosVersion, researchConsent = false) => {
+    setTosError('');
     try {
       console.log('[TOSGuard] User accepting TOS:', { tosVersion, researchConsent, userId: user?.sub });
       const data = await makeAuthenticatedRequest('/api/auth/accept-tos', {
@@ -116,6 +121,7 @@ const TOSGuard = ({ children }) => {
 
       if (data.success) {
         console.log('[TOSGuard] TOS acceptance successful, updating state');
+        setTosError('');
         setTosStatus({
           tosAccepted: true,
           tosVersionAccepted: tosVersion,
@@ -129,7 +135,7 @@ const TOSGuard = ({ children }) => {
       }
     } catch (error) {
       console.error('[TOSGuard] Error accepting TOS:', error);
-      alert('There was an error accepting the Terms of Service. Please try again.');
+      setTosError('There was an error accepting the Terms of Service. Please try again.');
       throw error;
     }
   };
@@ -139,7 +145,7 @@ const TOSGuard = ({ children }) => {
     // 1. Log them out
     // 2. Show a message explaining they must accept to continue
     // For now, we'll keep the modal open (they must accept to use the service)
-    alert('You must accept the Terms of Service to use Discover.Legal.');
+    setTosError('You must accept the Terms of Service to continue.');
   };
 
   // Show loading state while checking TOS
@@ -155,15 +161,39 @@ const TOSGuard = ({ children }) => {
     );
   }
 
-  // If TOS not accepted, show modal (blocking)
+  // A verification outage must not expose the protected application or offer
+  // an acceptance form whose server state could not be established.
+  if (tosError && !showTosModal) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <section
+          role="alert"
+          className="w-full max-w-md rounded-xl border border-red-200 bg-white p-6 text-center shadow-sm"
+        >
+          <h1 className="text-xl font-semibold text-gray-900">Account verification unavailable</h1>
+          <p className="mt-2 text-sm text-gray-700">{tosError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-lg bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Retry verification
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  // If TOS not accepted, show modal (blocking). Do NOT render protected
+  // children behind the modal — acceptance state is unresolved.
   if (showTosModal) {
     return (
       <>
-        {/* Render children in background but blurred */}
-        <div className="filter blur-sm pointer-events-none">
-          {children}
-        </div>
-
+        {tosError && (
+          <div role="alert" aria-live="assertive" className="fixed left-1/2 top-4 z-[110] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-lg">
+            {tosError}
+          </div>
+        )}
         {/* Show TOS modal on top */}
         <TermsOfServiceModal
           isOpen={true}

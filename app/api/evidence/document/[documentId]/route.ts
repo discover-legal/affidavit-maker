@@ -32,7 +32,7 @@ function validateDocumentId(raw: string): number {
 // document the authenticated user owns. Ports routes/evidence.js#listForDocument.
 export const GET = withAuth<Params>(async (_req: NextRequest, { user, params }) => {
   try {
-    const limit = checkRateLimit('evidence-list', user.id, RATE_LIMITS.standard);
+    const limit = await checkRateLimit('evidence-list', user.id, RATE_LIMITS.standard);
     if (!limit.ok) {
       return NextResponse.json(
         { success: false, error: 'Too many requests' },

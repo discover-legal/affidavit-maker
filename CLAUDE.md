@@ -266,8 +266,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 # Feature flags
 ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
-PAYMENTS_ENABLED=true       # Kill-switch: false stops charging — create-intent
-                            # refuses and document generation becomes free
+PAYMENTS_ENABLED=false      # FREE by default (donation-supported). true re-arms
+                            # Stripe charging; the payment infra stays dormant
+NEXT_PUBLIC_DONATION_URL=   # "Buy us a coffee" link; coffee links render only when set
 ```
 
 ---

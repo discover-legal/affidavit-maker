@@ -1,5 +1,32 @@
 /** @jest-environment node */
 
+describe('paymentsEnabled', () => {
+  const originalFlag = process.env.PAYMENTS_ENABLED;
+
+  afterEach(() => {
+    jest.resetModules();
+    if (originalFlag === undefined) delete process.env.PAYMENTS_ENABLED;
+    else process.env.PAYMENTS_ENABLED = originalFlag;
+  });
+
+  it('defaults OFF — the product is free unless charging is re-armed', async () => {
+    delete process.env.PAYMENTS_ENABLED;
+    const { paymentsEnabled } = await import('@/lib/api/stripe');
+    expect(paymentsEnabled()).toBe(false);
+  });
+
+  it('arms only on the explicit string true', async () => {
+    process.env.PAYMENTS_ENABLED = 'true';
+    let mod = await import('@/lib/api/stripe');
+    expect(mod.paymentsEnabled()).toBe(true);
+
+    jest.resetModules();
+    process.env.PAYMENTS_ENABLED = '1';
+    mod = await import('@/lib/api/stripe');
+    expect(mod.paymentsEnabled()).toBe(false);
+  });
+});
+
 describe('getStripe', () => {
   const originalSecret = process.env.STRIPE_SECRET_KEY;
   const originalOptIn = process.env.ALLOW_LIVE_STRIPE_IN_NONPRODUCTION;

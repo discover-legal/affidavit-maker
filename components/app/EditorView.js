@@ -13,6 +13,7 @@ import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
 import ConfirmDialog from './ConfirmDialog';
 import ReviewGate from './ReviewGate';
+import CoffeeLink from './CoffeeLink';
 import QuickExit from './QuickExit';
 import { advisorFlags } from './lifeStory';
 import { trackEvent } from '@/lib/utils/analytics';
@@ -129,6 +130,7 @@ const EditorView = ({ isNew = false, onBack }) => {
   const [, setIsPaidDocument] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [editorNotice, setEditorNotice] = useState(null);
+  const [downloadComplete, setDownloadComplete] = useState(false);
   const [conflictReloadOpen, setConflictReloadOpen] = useState(false);
   const [conflictReloadBusy, setConflictReloadBusy] = useState(false);
 
@@ -387,6 +389,7 @@ const EditorView = ({ isNew = false, onBack }) => {
       window.URL.revokeObjectURL(url);
 
       console.log('✅ PDF download started');
+      setDownloadComplete(true);
 
     } catch (error) {
       console.error('❌ PDF download failed:', error);
@@ -858,6 +861,8 @@ const EditorView = ({ isNew = false, onBack }) => {
           )}
         </div>
       </header>
+
+      {downloadComplete && <CoffeeLink className="mx-3 sm:mx-6 mt-3" />}
 
       {editorNotice && (
         <div

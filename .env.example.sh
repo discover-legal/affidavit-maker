@@ -98,9 +98,11 @@ CLEANUP_HEARTBEAT_URL=
 # FEATURE FLAGS
 # ===========================
 ENABLE_INTERNATIONAL=false
-# Payments kill-switch: set to false to stop charging entirely —
-# create-intent refuses and document generation becomes free.
-PAYMENTS_ENABLED=true
+# The app is FREE (donation-supported) by default. Set to true to re-arm
+# Stripe charging — the payment + webhook infra stays intact and dormant.
+PAYMENTS_ENABLED=false
+# "Buy us a coffee" link — coffee links render only when this is set.
+NEXT_PUBLIC_DONATION_URL=
 ENABLE_WEBHOOKS=true
 ENABLE_ANALYTICS=true
 ENABLE_EMAIL_NOTIFICATIONS=false

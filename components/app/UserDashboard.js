@@ -7,6 +7,7 @@ import { FileText, FileDown, Gavel, Loader2, PlusCircle, Trash2, Edit, Check, X,
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import CaseStepper from './CaseStepper';
+import CoffeeLink from './CoffeeLink';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
 import { getInitialLang } from '@/lib/i18n';
@@ -830,6 +831,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
           </ul>
         )}
       </div>
+      <CoffeeLink className="mt-8 max-w-2xl mx-auto" />
     </main>
     </>
   );

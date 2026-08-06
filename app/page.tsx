@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/components/marketing/LandingPage';
 import { jsonLd } from '@/lib/json-ld';
-import { getPrice } from '@/lib/pricing';
 
 const pageTitle =
-  'AI-Assisted Divorce Drafts & Affidavits';
+  'Free AI-Assisted Divorce Drafts & Affidavits';
 const pageDescription =
-  'Prepare editable petition, proposed decree, and affidavit drafts with a guided interview in seven supported U.S. states.';
+  'Free guided interviews prepare divorce petition, decree, affidavit, and supporting court document drafts — with bilingual step-by-step help for serving, responding, and hearings in seven U.S. states.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {
@@ -35,6 +34,7 @@ export const metadata: Metadata = {
     images: ['https://discover.legal/app-icon-1024.png'],
   },
   keywords: [
+    'free divorce papers',
     'divorce package',
     'divorce papers online',
     'online divorce filing',
@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     'family law',
     'court forms',
     'legal document preparation',
+    'respond to divorce papers',
+    'fee waiver',
+    'divorcio gratis',
   ],
   robots: { index: true, follow: true },
 };
@@ -94,9 +97,6 @@ const BRAND = { '@type': 'Brand', name: 'discover.legal' } as const;
 const PRODUCT_IMAGE = 'https://discover.legal/app-icon-1024.png';
 
 export default function HomePage() {
-  const divorce = getPrice('us', 'divorce_package');
-  const affidavit = getPrice('us', 'single_affidavit');
-
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -107,7 +107,7 @@ export default function HomePage() {
         url: 'https://discover.legal',
         logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
         description:
-          'AI-assisted affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah.',
+          'Free AI-assisted affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah — bilingual English/Spanish.',
       },
       {
         '@type': 'WebSite',
@@ -128,8 +128,8 @@ export default function HomePage() {
         category: 'Legal document preparation',
         offers: digitalOffer({
           url: 'https://discover.legal/',
-          price: (divorce.amount / 100).toFixed(2),
-          priceCurrency: divorce.currency.toUpperCase(),
+          price: '0.00',
+          priceCurrency: 'USD',
         }),
       },
       {
@@ -143,8 +143,8 @@ export default function HomePage() {
         category: 'Legal document preparation',
         offers: digitalOffer({
           url: 'https://discover.legal/',
-          price: (affidavit.amount / 100).toFixed(2),
-          priceCurrency: affidavit.currency.toUpperCase(),
+          price: '0.00',
+          priceCurrency: 'USD',
         }),
       },
     ],

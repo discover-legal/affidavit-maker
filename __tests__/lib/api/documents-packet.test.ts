@@ -56,6 +56,12 @@ function post(): Promise<Response> {
   );
 }
 
+beforeEach(() => {
+  // These tests exercise the payment gate, which is dormant by default
+  // (the product is free) — arm it explicitly.
+  process.env.PAYMENTS_ENABLED = 'true';
+});
+
 afterEach(() => {
   delete process.env.PAYMENTS_ENABLED;
   if (fs.existsSync(tempPdf)) fs.unlinkSync(tempPdf);

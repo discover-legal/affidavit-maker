@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { Scale } from 'lucide-react';
+import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
 
 export default function LandingNav() {
-  const { user } = useUser();
+  const { user } = useUser({ route: AUTH0_PROFILE_ROUTE });
   const isAuthenticated = Boolean(user);
   const signInHref = isAuthenticated ? '/dashboard' : '/api/auth/login';
   const startHref = isAuthenticated ? '/dashboard' : '/api/auth/login?screen_hint=signup';

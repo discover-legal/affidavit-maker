@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth0 } from '@/lib/auth0';
+import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
 
 /**
  * Node proxy. Per-request work that runs before the Route Handler:
@@ -257,7 +258,18 @@ export async function proxy(request: NextRequest) {
   const requestId = crypto.randomUUID();
   const forwardedHeaders = new Headers(request.headers);
   forwardedHeaders.set('x-request-id', requestId);
-  const forwardedRequest = new NextRequest(request, { headers: forwardedHeaders });
+  // The v4 SDK client falls back to its default profile path when a
+  // useUser() call doesn't pass { route }. Serve that path at the configured
+  // route too, so stale cached bundles never 404 into the treat-as-logged-out
+  // login loop.
+  let forwardedRequest: NextRequest;
+  if (pathname === '/auth/profile') {
+    const profileUrl = request.nextUrl.clone();
+    profileUrl.pathname = AUTH0_PROFILE_ROUTE;
+    forwardedRequest = new NextRequest(profileUrl, { headers: forwardedHeaders });
+  } else {
+    forwardedRequest = new NextRequest(request, { headers: forwardedHeaders });
+  }
   let response: NextResponse;
   if (e2eBypass) {
     response = NextResponse.next({ request: { headers: forwardedHeaders } });

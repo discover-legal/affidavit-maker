@@ -14,9 +14,10 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { ArrowRight } from 'lucide-react';
+import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
 
 export function useStartHref(): string {
-  const { user } = useUser();
+  const { user } = useUser({ route: AUTH0_PROFILE_ROUTE });
   return user ? '/dashboard' : '/api/auth/login?screen_hint=signup';
 }
 

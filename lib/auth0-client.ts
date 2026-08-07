@@ -19,6 +19,7 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useCallback } from 'react';
+import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
 
 type LoginOptions = {
   authorizationParams?: {
@@ -34,7 +35,7 @@ type LogoutOptions = {
 };
 
 export function useAuth0() {
-  const { user, error, isLoading } = useUser();
+  const { user, error, isLoading } = useUser({ route: AUTH0_PROFILE_ROUTE });
   const isAuthenticated = Boolean(user) && !isLoading;
 
   const loginWithRedirect = useCallback((opts?: LoginOptions) => {

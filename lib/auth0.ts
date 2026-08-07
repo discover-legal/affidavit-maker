@@ -1,4 +1,5 @@
 import { Auth0Client } from '@auth0/nextjs-auth0/server';
+import { AUTH0_PROFILE_ROUTE } from './auth0-routes';
 
 function auth0Domain(): string | undefined {
   const value = process.env.AUTH0_DOMAIN ?? process.env.AUTH0_ISSUER_BASE_URL;
@@ -47,7 +48,7 @@ export const auth0 = new Auth0Client({
     login: '/api/auth/login',
     logout: '/api/auth/logout',
     callback: '/api/auth/callback',
-    profile: '/api/auth/me',
+    profile: AUTH0_PROFILE_ROUTE,
   },
   // The app is a token-mediating backend. Browser code only needs the profile
   // endpoint; API access tokens remain server-side.

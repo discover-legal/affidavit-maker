@@ -23,6 +23,7 @@
 // orchestrating session wires the registry (kind key 'child_support_worksheet').
 
 const crypto = require('node:crypto');
+const { normalizeCountyName } = require('./utah');
 
 const { calculateUtah, OFFICIAL_CALCULATOR_URL } = require('../childSupport');
 
@@ -53,7 +54,7 @@ function resolveRespondent(data) {
 }
 
 function utahCaption(data) {
-  const county = (str(data.county) || BLANK_SHORT).toUpperCase();
+  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
   const formatted = [

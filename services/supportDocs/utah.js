@@ -29,6 +29,12 @@ function str(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
 
+// Profile data often stores "Salt Lake County"; every caption appends the
+// word itself. Same normalization as DivorceDocumentGenerator.
+function normalizeCountyName(county) {
+  return typeof county === 'string' ? county.replace(/\s+county$/i, '').trim() : county;
+}
+
 function resolvePetitioner(data) {
   return (
     str(data.petitionerName) ||
@@ -52,7 +58,7 @@ function resolveRespondent(data) {
  *   Case No. ____ when unknown.
  */
 function utahCaption(data) {
-  const county = (str(data.county) || BLANK_SHORT).toUpperCase();
+  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
   const formatted = [
@@ -587,6 +593,7 @@ function finalizationPrep(data = {}, opts = {}) {
 
 module.exports = {
   UTAH_UNSWORN_DECLARATION,
+  normalizeCountyName,
   acceptanceOfService,
   certificateOfService,
   financialDeclaration,

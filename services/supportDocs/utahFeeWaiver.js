@@ -44,7 +44,7 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
-const { UTAH_UNSWORN_DECLARATION } = require('./utah');
+const { UTAH_UNSWORN_DECLARATION, normalizeCountyName } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -80,7 +80,7 @@ function resolveRespondent(data) {
 }
 
 function utahCaption(data) {
-  const county = (str(data.county) || BLANK_SHORT).toUpperCase();
+  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
   const formatted = [

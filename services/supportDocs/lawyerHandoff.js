@@ -17,6 +17,7 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
+const { normalizeCountyName } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -119,7 +120,7 @@ function snapshotLines(data) {
     );
   }
   const state = str(data.state);
-  const county = str(data.county);
+  const county = normalizeCountyName(str(data.county));
   if (state || county) {
     lines.push(`Location: ${[county && `${county} County`, state].filter(Boolean).join(', ')}.`);
   }

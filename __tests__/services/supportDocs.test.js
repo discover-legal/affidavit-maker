@@ -297,3 +297,26 @@ describe('registry (services/supportDocs)', () => {
     expect(kinds).toEqual(['lawyer_handoff']);
   });
 });
+
+describe('county normalization', () => {
+  // Profile extraction stores "Salt Lake County"; captions append the word
+  // themselves. Doubling shipped to production PDFs on 2026-08-10.
+  it('strips a trailing "County" before every caption interpolation', () => {
+    const data = { ...sampleData, county: 'Salt Lake County' };
+    const kinds = ['financial_declaration', 'answer', 'fee_waiver_motion', 'child_support_worksheet'];
+    for (const kind of kinds) {
+      const doc = getSupportDoc('UT', kind)(data, {});
+      const text = JSON.stringify(doc);
+      expect(text).not.toMatch(/County County|COUNTY COUNTY/i);
+      expect(text).toMatch(/SALT LAKE COUNTY, STATE OF UTAH/);
+    }
+    const handoff = getSupportDoc('UT', 'lawyer_handoff')(data, {});
+    expect(JSON.stringify(handoff)).not.toMatch(/County County/i);
+  });
+
+  it('normalizeCountyName leaves clean values alone', () => {
+    expect(utah.normalizeCountyName('Salt Lake County')).toBe('Salt Lake');
+    expect(utah.normalizeCountyName('Salt Lake')).toBe('Salt Lake');
+    expect(utah.normalizeCountyName(undefined)).toBe(undefined);
+  });
+});

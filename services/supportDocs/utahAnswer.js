@@ -20,7 +20,7 @@
 // as every other Utah support-doc builder.
 
 const crypto = require('node:crypto');
-const { UTAH_UNSWORN_DECLARATION } = require('./utah');
+const { UTAH_UNSWORN_DECLARATION, normalizeCountyName } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -84,7 +84,7 @@ function resolveParties(data) {
 
 /** Utah district-court caption block (same layout as utah.js). */
 function utahCaption(data, parties) {
-  const county = (str(data.county) || BLANK_SHORT).toUpperCase();
+  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
   const formatted = [
@@ -295,7 +295,7 @@ function answerToPetition(data = {}, opts = {}) {
       type: 'counterclaim_intro',
     });
 
-    const county = str(data.county) || BLANK_SHORT;
+    const county = normalizeCountyName(str(data.county)) || BLANK_SHORT;
     items.push({
       number: number++,
       content:

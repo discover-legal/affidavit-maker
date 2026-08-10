@@ -11,7 +11,10 @@ import { useModalFocus } from '@/hooks/useModalFocus';
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+// In the free/donation deployment the publishable key is unset; loadStripe('')
+// rejects at import time on every editor page load. <Elements> accepts null.
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
 const PAYMENT_STATUS_DELAYS_MS = [500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000];
 const TERMINAL_PAYMENT_FAILURES = new Set(['canceled', 'failed', 'requires_payment_method']);

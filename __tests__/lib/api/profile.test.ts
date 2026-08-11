@@ -23,9 +23,9 @@ beforeEach(() => {
 describe('hydrateAffidavitData', () => {
   const stored: UserProfile = {
     profile: {
-      firstName: 'Brandon',
-      petitionerFirstName: 'Brandon',
-      petitionerLastName: 'Pritchard',
+      firstName: 'Jordan',
+      petitionerFirstName: 'Jordan',
+      petitionerLastName: 'Example',
       marriageDate: '2010-05-01',
       state: 'TX',
       county: 'Travis',
@@ -41,7 +41,7 @@ describe('hydrateAffidavitData', () => {
 
   test('family scope fills family gaps from the stored profile', () => {
     const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'family');
-    expect(hydrated.petitionerFirstName).toBe('Brandon');
+    expect(hydrated.petitionerFirstName).toBe('Jordan');
     expect(hydrated.marriageDate).toBe('2010-05-01');
     expect((hydrated.children as unknown[]).length).toBe(3);
     expect((hydrated.facts as unknown[]).length).toBe(1);
@@ -49,7 +49,7 @@ describe('hydrateAffidavitData', () => {
 
   test('general scope hydrates identity/finances but NOT family data', () => {
     const hydrated = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'general');
-    expect(hydrated.firstName).toBe('Brandon');
+    expect(hydrated.firstName).toBe('Jordan');
     expect(hydrated.monthlyIncome).toBe(5200);
     expect(hydrated.marriageDate).toBeUndefined();
     expect(hydrated.children).toBeUndefined();
@@ -108,7 +108,7 @@ describe('mergeUserProfile', () => {
       rows: [
         {
           profile: {
-            petitionerFirstName: 'Brandon',
+            petitionerFirstName: 'Jordan',
             children: [{ name: 'Emma', dob: '2015-04-02' }],
           },
           facts: [{ id: '1', content: 'I was married in Texas.' }],
@@ -141,7 +141,7 @@ describe('mergeUserProfile', () => {
     expect(params[0]).toBe(7);
 
     const savedProfile = JSON.parse(params[1] as string);
-    expect(savedProfile.petitionerFirstName).toBe('Brandon');
+    expect(savedProfile.petitionerFirstName).toBe('Jordan');
     expect(savedProfile.marriageDate).toBe('2010-05-01');
     expect(savedProfile.children.map((c: { name: string }) => c.name).sort()).toEqual([
       'Emma',
@@ -191,7 +191,7 @@ describe('updateUserProfile (fix my story)', () => {
       rows: [
         {
           profile: {
-            affiantName: 'Brandon Pritchard',
+            affiantName: 'Jordan Example',
             separationDate: '2024-11-15',
             children: [{ name: 'Emma', dob: '2015-04-02' }, { name: 'Liam', dob: '2017-06-15' }],
           },
@@ -203,7 +203,7 @@ describe('updateUserProfile (fix my story)', () => {
     queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
 
     await updateUserProfile(7, {
-      affiantName: 'Brandon S. Pritchard',
+      affiantName: 'Jordan S. Example',
       separationDate: '', // explicit clear
       children: [{ name: 'Emma', dob: '2015-04-03' }], // replacement
       documentType: 'divorce_package', // not whitelisted — ignored
@@ -211,7 +211,7 @@ describe('updateUserProfile (fix my story)', () => {
 
     const params = queryMock.mock.calls[1][1] as unknown[];
     const saved = JSON.parse(params[1] as string);
-    expect(saved.affiantName).toBe('Brandon S. Pritchard');
+    expect(saved.affiantName).toBe('Jordan S. Example');
     expect(saved.separationDate).toBeUndefined();
     expect(saved.children).toHaveLength(1);
     expect(saved.children[0].dob).toBe('2015-04-03');

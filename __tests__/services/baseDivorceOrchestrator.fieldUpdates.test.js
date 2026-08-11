@@ -50,11 +50,11 @@ describe('BaseDivorceOrchestrator._applyFieldUpdates', () => {
   test('scalar fields still update normally', () => {
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates({}, {
-      petitioner_first_name: 'Brandon',
-      petitioner_last_name: 'Pritchard',
+      petitioner_first_name: 'Jordan',
+      petitioner_last_name: 'Example',
       grounds: 'insupportability',
     });
-    expect(data.petitionerName).toBe('Brandon Pritchard');
+    expect(data.petitionerName).toBe('Jordan Example');
     expect(data.groundsForDivorce).toBe('insupportability');
   });
 
@@ -196,18 +196,18 @@ describe('spousal support payor/payee derivation', () => {
   test('petitioner (the requester) is payee, respondent is payor when support is requested', () => {
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates(
-      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { petitionerName: 'Jordan Example', respondentName: 'Casey Example' },
       { spousal_support_requested: true },
     );
     expect(data.spousalSupportAwarded).toBe(true);
-    expect(data.spousalSupportPayee).toBe('Brandon Pritchard');
-    expect(data.spousalSupportPayor).toBe('Casey Pritchard');
+    expect(data.spousalSupportPayee).toBe('Jordan Example');
+    expect(data.spousalSupportPayor).toBe('Casey Example');
   });
 
   test('not derived when support is not requested, and existing values are kept', () => {
     const orch = makeOrchestrator();
     const waived = orch._applyFieldUpdates(
-      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { petitionerName: 'Jordan Example', respondentName: 'Casey Example' },
       { spousal_support_requested: false },
     );
     expect(waived.spousalSupportPayee).toBeUndefined();
@@ -215,26 +215,26 @@ describe('spousal support payor/payee derivation', () => {
 
     const kept = orch._applyFieldUpdates(
       {
-        petitionerName: 'Brandon Pritchard',
-        respondentName: 'Casey Pritchard',
-        spousalSupportPayor: 'Brandon Pritchard',
-        spousalSupportPayee: 'Casey Pritchard',
+        petitionerName: 'Jordan Example',
+        respondentName: 'Casey Example',
+        spousalSupportPayor: 'Jordan Example',
+        spousalSupportPayee: 'Casey Example',
       },
       { spousal_support_requested: true },
     );
-    expect(kept.spousalSupportPayor).toBe('Brandon Pritchard');
-    expect(kept.spousalSupportPayee).toBe('Casey Pritchard');
+    expect(kept.spousalSupportPayor).toBe('Jordan Example');
+    expect(kept.spousalSupportPayee).toBe('Casey Example');
   });
 
   test('derives on a later turn once names arrive, when support was requested earlier', () => {
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates(
       { spousalSupportRequested: true },
-      { petitioner_first_name: 'Brandon', petitioner_last_name: 'Pritchard',
-        respondent_first_name: 'Casey', respondent_last_name: 'Pritchard' },
+      { petitioner_first_name: 'Jordan', petitioner_last_name: 'Example',
+        respondent_first_name: 'Casey', respondent_last_name: 'Example' },
     );
-    expect(data.spousalSupportPayee).toBe('Brandon Pritchard');
-    expect(data.spousalSupportPayor).toBe('Casey Pritchard');
+    expect(data.spousalSupportPayee).toBe('Jordan Example');
+    expect(data.spousalSupportPayor).toBe('Casey Example');
   });
 });
 
@@ -287,10 +287,10 @@ describe('former-name restoration capture', () => {
   test('name_change_party resolves party roles to actual names for the decree', () => {
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates(
-      { petitionerName: 'Brandon Pritchard', respondentName: 'Casey Pritchard' },
+      { petitionerName: 'Jordan Example', respondentName: 'Casey Example' },
       { restore_previous_name: true, previous_name: 'Casey Jordan Miller', name_change_party: 'respondent' },
     );
-    expect(data.nameChangeParty).toBe('Casey Pritchard');
+    expect(data.nameChangeParty).toBe('Casey Example');
   });
 
   test('untouched turns leave the name fields alone (non-destructive merge)', () => {
@@ -308,14 +308,14 @@ describe('affiant derivation', () => {
   test('petitioner name doubles as affiantName for divorce filings', () => {
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates({}, {
-      petitioner_first_name: 'Brandon',
-      petitioner_last_name: 'Pritchard',
+      petitioner_first_name: 'Jordan',
+      petitioner_last_name: 'Example',
     });
-    expect(data.affiantName).toBe('Brandon Pritchard');
+    expect(data.affiantName).toBe('Jordan Example');
     // An explicitly set affiantName is never overwritten.
     const kept = orch._applyFieldUpdates(
       { affiantName: 'Someone Else' },
-      { petitioner_first_name: 'Brandon' },
+      { petitioner_first_name: 'Jordan' },
     );
     expect(kept.affiantName).toBe('Someone Else');
   });

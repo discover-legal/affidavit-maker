@@ -50,9 +50,9 @@ describe('buildRecitals', () => {
 
   test('narrates known values as tokens', () => {
     const recitals = buildRecitals({
-      affiantName: 'Brandon Pritchard',
+      affiantName: 'Jordan Example',
       respondentFirstName: 'Alex',
-      respondentLastName: 'Pritchard',
+      respondentLastName: 'Example',
       marriageDate: '2010-05-01',
       marriageCity: 'Austin',
       marriageStateName: 'Texas',
@@ -66,8 +66,8 @@ describe('buildRecitals', () => {
     const values = flat.filter((s) => s.kind === 'value').map((s) => s.text);
     expect(values).toEqual(
       expect.arrayContaining([
-        'Brandon Pritchard',
-        'Alex Pritchard',
+        'Jordan Example',
+        'Alex Example',
         'May 1, 2010',
         'Austin, Texas',
         'Travis County, TX',
@@ -188,16 +188,16 @@ describe('rich visuals helpers', () => {
     const items = buildLedger({
       groundsForDivorce: 'insupportability',
       custodyArrangement: 'joint',
-      primaryCustodian: 'Brandon Pritchard',
+      primaryCustodian: 'Jordan Example',
       childSupportAmount: 800,
-      childSupportObligor: 'Alex Pritchard',
+      childSupportObligor: 'Alex Example',
       spousalSupportRequested: false,
       serviceMethod: 'waiver',
       hasProtectiveOrder: false,
     });
     const by = Object.fromEntries(items.map((i: { key: string; value: string | null }) => [i.key, i.value]));
     expect(by.grounds).toBe('insupportability');
-    expect(by.custody).toBe('Joint, with Brandon');
+    expect(by.custody).toBe('Joint, with Jordan');
     expect(by.child_support).toBe('$800/mo from Alex');
     expect(by.spousal_support).toBe('Not requested');
     expect(by.service).toBe('Waiver of service');

@@ -22,14 +22,14 @@ function toolResponse(name, args) {
 function scriptTurn(userText) {
   const t = userText.toLowerCase();
 
-  if (t.includes('my name is brandon')) {
+  if (t.includes('my name is jordan')) {
     return {
-      response: "Nice to meet you, Brandon. What is your spouse's full name?",
+      response: "Nice to meet you, Jordan. What is your spouse's full name?",
       phase_complete: false,
-      petitioner_first_name: 'Brandon',
-      petitioner_last_name: 'Pritchard',
+      petitioner_first_name: 'Jordan',
+      petitioner_last_name: 'Example',
       extracted_facts: [
-        { content: 'My name is Brandon Pritchard.', category: 'general' },
+        { content: 'My name is Jordan Example.', category: 'general' },
       ],
     };
   }
@@ -38,7 +38,7 @@ function scriptTurn(userText) {
       response: 'Thanks. Which Utah county do you live in?',
       phase_complete: true,
       respondent_first_name: 'Alex',
-      respondent_last_name: 'Pritchard',
+      respondent_last_name: 'Example',
     };
   }
   if (t.includes('salt lake county')) {
@@ -72,14 +72,14 @@ function scriptTurn(userText) {
     return {
       response: "Emma is recorded. Who's next?",
       phase_complete: false,
-      children: [{ name: 'Emma Pritchard', dob: '2015-04-02' }],
+      children: [{ name: 'Emma Example', dob: '2015-04-02' }],
     };
   }
   if (t.includes('liam')) {
     return {
       response: 'Liam is recorded. Any other children?',
       phase_complete: false,
-      children: [{ name: 'Liam Pritchard', dob: '2017-06-15' }],
+      children: [{ name: 'Liam Example', dob: '2017-06-15' }],
     };
   }
   if (t.includes('forgot') && t.includes('ava')) {
@@ -87,7 +87,7 @@ function scriptTurn(userText) {
     return {
       response: 'Of course — Ava is recorded too. That completes the children section.',
       phase_complete: true,
-      children: [{ name: 'Ava Pritchard', dob: '2019-09-09' }],
+      children: [{ name: 'Ava Example', dob: '2019-09-09' }],
       children_confirmed: true,
       custody_arrangement: 'joint',
       extracted_facts: [

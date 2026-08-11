@@ -92,8 +92,8 @@ try {
   }
   await page.waitForSelector('input[placeholder="Type your message..."]');
 
-  await sendChat(page, 'Hi, my name is Brandon Pritchard.');
-  await sendChat(page, 'My spouse is Alex Pritchard.');
+  await sendChat(page, 'Hi, my name is Jordan Example.');
+  await sendChat(page, 'My spouse is Alex Example.');
   await sendChat(page, 'We live in Salt Lake County and have for six years.');
   await sendChat(page, 'We were married on May 1, 2010 in Salt Lake City, and separated November 15, 2024.');
   await sendChat(page, 'Our oldest is Emma, born April 2, 2015.');
@@ -132,12 +132,12 @@ try {
   // ── 4. Fix my story ──────────────────────────────────────────────────────
   await page.getByRole('button', { name: 'Fix my story' }).click();
   const nameInput = page.locator('label:has-text("Your name") input');
-  await nameInput.fill('Brandon S. Pritchard');
+  await nameInput.fill('Jordan S. Example');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(800);
   const afterEdit = await page.textContent('main');
-  ok('fix-my-story edit persists via PATCH', afterEdit.includes('Brandon S. Pritchard'));
+  ok('fix-my-story edit persists via PATCH', afterEdit.includes('Jordan S. Example'));
 
   // ── 5. Ingest a court paper → timeline events ────────────────────────────
   await page.getByRole('button', { name: 'Add a court paper' }).click();

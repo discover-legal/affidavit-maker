@@ -62,7 +62,7 @@ try {
     );
   };
 
-  await sendChat('Hi, my name is Brandon Pritchard. My spouse is Alex Pritchard.');
+  await sendChat('Hi, my name is Jordan Example. My spouse is Alex Example.');
   await sendChat('We live in Salt Lake County, Utah and have for six years.');
   await sendChat('We were married on May 1, 2010 in Salt Lake City, and separated November 15, 2024.');
   await sendChat('We have three kids. Our oldest is Emma, born April 2, 2015.');
@@ -90,7 +90,7 @@ try {
   ok('REAL MODEL: marriage date extracted', Boolean(docState.marriageDate), String(docState.marriageDate));
   ok(
     'REAL MODEL: petitioner identified',
-    /brandon/i.test(String(docState.petitioner)),
+    /jordan/i.test(String(docState.petitioner)),
     String(docState.petitioner),
   );
   ok(

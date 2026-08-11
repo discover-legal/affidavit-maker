@@ -420,7 +420,47 @@ class DivorceDocumentGenerator {
     const petitioner = this._petitionerName(data);
     const respondent = this._respondentName(data);
     const caseNo = data.caseNumber || `${cfg.caseLabel} __________`;
-    return `IN RE THE MARRIAGE OF:\n\n${petitioner},\n    Petitioner,\n\n    vs.\n\n${respondent},\n    Respondent.\n\n${caseNo}`;
+    return {
+      formatted: `IN RE THE MARRIAGE OF:\n\n${petitioner},\n    Petitioner,\n\n    vs.\n\n${respondent},\n    Respondent.\n\n${caseNo}`,
+      // pdfService lays this out as the conventional two-column caption.
+      structured: {
+        left: [
+          'IN RE THE MARRIAGE OF:',
+          '',
+          `${petitioner},`,
+          '          Petitioner,',
+          '',
+          'vs.',
+          '',
+          `${respondent},`,
+          '          Respondent.',
+        ],
+        right: [
+          data.caseNumber ? `${cfg.caseLabel} ${data.caseNumber}` : `${cfg.caseLabel} _______________`,
+          '',
+          'Judge _______________',
+        ],
+      },
+    };
+  }
+
+  /** Pro se filer contact block for the top-left of page one. */
+  _filerBlock(data, roleLine) {
+    const name = /^Respondent/.test(roleLine || '')
+      ? this._respondentName(data)
+      : this._petitionerName(data);
+    const address = data.petitionerAddress || data.address || data.mailingAddress || '';
+    const phone = data.petitionerPhone || data.phone || data.phoneNumber || '';
+    const email = data.petitionerEmail || data.email || '';
+    return {
+      lines: [
+        name,
+        `Address: ${address || '_________________________________'}`,
+        `Phone: ${phone || '____________________'}`,
+        `Email: ${email || '____________________'}`,
+        roleLine || 'Petitioner, Pro Se',
+      ],
+    };
   }
 
   _hasChildren(data) {
@@ -559,6 +599,7 @@ class DivorceDocumentGenerator {
 
     return {
       sections: {
+        filerBlock: this._filerBlock(data, 'Petitioner, Pro Se'),
         header: cfg.court(county),
         caseCaption: this._caseCaption(cfg, data),
         title: cfg.petitionTitle,

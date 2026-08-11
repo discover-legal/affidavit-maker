@@ -23,7 +23,7 @@
 // orchestrating session wires the registry (kind key 'child_support_worksheet').
 
 const crypto = require('node:crypto');
-const { normalizeCountyName } = require('./utah');
+const { utahCaption, filerBlock } = require('./utah');
 
 const { calculateUtah, OFFICIAL_CALCULATOR_URL } = require('../childSupport');
 
@@ -41,7 +41,7 @@ function resolvePetitioner(data) {
   return (
     str(data.petitionerName) ||
     [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '[PETITIONER NAME]'
+    '_________________________________'
   );
 }
 
@@ -49,28 +49,10 @@ function resolveRespondent(data) {
   return (
     str(data.respondentName) ||
     [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '[RESPONDENT NAME]'
+    '_________________________________'
   );
 }
 
-function utahCaption(data) {
-  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
-  const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
-  const caseNumber = str(data.caseNumber) || BLANK_SHORT;
-  const formatted = [
-    `${resolvePetitioner(data).toUpperCase()},`,
-    'Petitioner,',
-    '',
-    'v.',
-    '',
-    `${resolveRespondent(data).toUpperCase()},`,
-    'Respondent.',
-    '',
-    `Case No. ${caseNumber}`,
-    `Judge ${BLANK_SHORT}`,
-  ].join('\n');
-  return { header, caseCaption: { formatted } };
-}
 
 function formatMoney(amount) {
   if (typeof amount !== 'number' || !Number.isFinite(amount)) return BLANK_MONEY;
@@ -251,6 +233,7 @@ function childSupportWorksheet(data = {}, opts = {}) {
   }
 
   return baseStructure('child_support_worksheet', {
+    filerBlock: filerBlock(data, petitioner, 'Petitioner, Pro Se'),
     header,
     caseCaption,
     title: 'CHILD SUPPORT WORKSHEET (ESTIMATE)',

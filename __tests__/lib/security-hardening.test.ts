@@ -1,11 +1,11 @@
 /** @jest-environment node */
 
+import { generateSchema } from '../../app/api/documents/generate/route';
 import {
   assertGenerationTypeAllowed,
   buildDocumentStructure,
-  generateSchema,
   resolveGenerationDocumentType,
-} from '../../app/api/documents/generate/route';
+} from '../../lib/api/documentStructure';
 
 const AllowedFileType = require('../../utils/allowedFileType') as {
   fromBuffer: (buffer: Buffer) => { mime: string; ext: string } | undefined;

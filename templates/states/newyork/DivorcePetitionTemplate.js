@@ -382,9 +382,7 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
     const county = divorceData.county || '[COUNTY]';
 
-    return `VERIFICATION
-
-STATE OF NEW YORK      )
+    return `STATE OF NEW YORK      )
                        ) ss.:
 COUNTY OF ${county.toUpperCase()}   )
 

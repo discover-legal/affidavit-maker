@@ -326,49 +326,9 @@ class PDFService {
   // ─── AFFIDAVIT PDF BUILDER (original) ──────────────────────────────────────
 
   buildAffidavitPDF(doc, sections) {
-    // Header
-    if (sections.header) {
-      doc.fontSize(16).font('Times-Bold');
-      doc.text(sections.header, { align: 'center' });
-      doc.moveDown(1.5);
-    }
-
-    // Venue
-    if (sections.venue) {
-      this.checkPageBreak(doc);
-      doc.fontSize(14).font('Times-Bold');
-      doc.text(sections.venue, { align: 'center' });
-      doc.moveDown(1.5);
-    }
-
-    // Case Caption
-    if (sections.caseCaption) {
-      this.checkPageBreak(doc, 120);
-      doc.fontSize(12).font('Times-Roman');
-      doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
-      doc.moveDown(1.5);
-
-      const borderY = doc.y;
-      doc.moveTo(doc.page.margins.left, borderY)
-         .lineTo(doc.page.width - doc.page.margins.right, borderY)
-         .stroke();
-
-      doc.moveDown(1.0);
-    }
-
-    // Title
-    if (sections.title) {
-      this.checkPageBreak(doc);
-      doc.fontSize(14).font('Times-Bold');
-      doc.text(sections.title, { align: 'center' });
-
-      const borderY = doc.y + 2;
-      doc.moveTo(doc.page.margins.left, borderY)
-         .lineTo(doc.page.width - doc.page.margins.right, borderY)
-         .stroke();
-
-      doc.moveDown(1.5);
-    }
+    // Filer block + Header + Venue + Caption + Title — same layout the
+    // petition/decree builders use (this was a line-for-line duplicate).
+    this.renderDocumentHeader(doc, sections);
 
     // Introduction
     if (sections.introduction) {
@@ -558,21 +518,29 @@ class PDFService {
       doc.moveDown(1.0);
     }
 
+    // Pleading signature: the filer signs the petition itself, dated, BEFORE
+    // the verification jurat (which carries its own sworn signature + notary
+    // lines). Rendering it last orphaned a duplicate-looking block on a
+    // near-empty final page.
+    if (sections.signatureBlock) {
+      this.renderAffiantSignature(doc, sections.signatureBlock);
+      doc.moveDown(1.0);
+    }
+
     // VERIFICATION section
     if (sections.verification) {
-      this.checkPageBreak(doc, 80);
+      // Keep the heading with at least the venue + opening lines of the
+      // jurat text so the title never dangles at a page bottom.
+      const verificationText = sections.verification.text || '';
+      const textHeight = this.estimateTextHeight(doc, verificationText, 12);
+      this.checkPageBreak(doc, Math.min(80 + textHeight, 320));
       doc.fontSize(13).font('Times-Bold');
       doc.text(sections.verification.title || 'VERIFICATION', { align: 'center' });
       doc.moveDown(0.8);
 
       doc.fontSize(12).font('Times-Roman');
-      doc.text(sections.verification.text || '', { align: 'justify', indent: 36, lineGap: 6 });
+      doc.text(verificationText, { align: 'justify', indent: 36, lineGap: 6 });
       doc.moveDown(1.5);
-    }
-
-    // Signature Block (petitioner)
-    if (sections.signatureBlock) {
-      this.renderAffiantSignature(doc, sections.signatureBlock);
     }
   }
 
@@ -702,7 +670,63 @@ class PDFService {
   /**
    * Render common document header: header, venue, caption, title.
    */
+  /**
+   * Pro se filer info block: top-left of page one, above the court header,
+   * the way court clerks expect to find the filer's contact details.
+   * `filerBlock` is { lines: string[] } or a plain array of lines.
+   */
+  renderFilerBlock(doc, filerBlock) {
+    const lines = Array.isArray(filerBlock) ? filerBlock : filerBlock?.lines;
+    if (!Array.isArray(lines) || lines.length === 0) return;
+    doc.fontSize(11).font('Times-Roman');
+    doc.text(lines.join('\n'), doc.page.margins.left, doc.y, {
+      align: 'left',
+      lineGap: 2,
+    });
+    doc.moveDown(1.5);
+  }
+
+  /**
+   * Two-column court caption: party block on the left, case number / judge
+   * on the right, separated by a vertical rule, closed by a horizontal rule
+   * — the layout clerks expect on a pleading. Emitters opt in by putting
+   * `structured: { left: [...], right: [...] }` on caseCaption; everything
+   * else falls back to the legacy centered text.
+   */
+  renderStructuredCaption(doc, structured) {
+    const left = Array.isArray(structured.left) ? structured.left.join('\n') : '';
+    const right = Array.isArray(structured.right) ? structured.right.join('\n') : '';
+    const marginL = doc.page.margins.left;
+    const marginR = doc.page.margins.right;
+    const fullWidth = doc.page.width - marginL - marginR;
+    const leftWidth = Math.floor(fullWidth * 0.55);
+    const dividerX = marginL + leftWidth + 12;
+    const rightX = dividerX + 14;
+    const rightWidth = doc.page.width - marginR - rightX;
+
+    doc.fontSize(12).font('Times-Roman');
+    const leftHeight = doc.heightOfString(left, { width: leftWidth, lineGap: 4 });
+    const rightHeight = doc.heightOfString(right, { width: rightWidth, lineGap: 4 });
+    const blockHeight = Math.max(leftHeight, rightHeight) + 16;
+    this.checkPageBreak(doc, blockHeight + 30);
+
+    const topY = doc.y;
+    doc.moveTo(marginL, topY).lineTo(doc.page.width - marginR, topY).stroke();
+    doc.text(left, marginL, topY + 10, { width: leftWidth, align: 'left', lineGap: 4 });
+    doc.text(right, rightX, topY + 10, { width: rightWidth, align: 'left', lineGap: 4 });
+    const bottomY = topY + blockHeight;
+    doc.moveTo(dividerX, topY).lineTo(dividerX, bottomY).stroke();
+    doc.moveTo(marginL, bottomY).lineTo(doc.page.width - marginR, bottomY).stroke();
+    doc.x = marginL;
+    doc.y = bottomY;
+    doc.moveDown(1.0);
+  }
+
   renderDocumentHeader(doc, sections) {
+    if (sections.filerBlock) {
+      this.renderFilerBlock(doc, sections.filerBlock);
+    }
+
     if (sections.header) {
       doc.fontSize(16).font('Times-Bold');
       doc.text(sections.header, { align: 'center' });
@@ -717,16 +741,21 @@ class PDFService {
     }
 
     if (sections.caseCaption) {
-      this.checkPageBreak(doc, 120);
-      doc.fontSize(12).font('Times-Roman');
-      doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
-      doc.moveDown(1.5);
+      const structured = sections.caseCaption?.structured;
+      if (structured && (structured.left?.length || structured.right?.length)) {
+        this.renderStructuredCaption(doc, structured);
+      } else {
+        this.checkPageBreak(doc, 120);
+        doc.fontSize(12).font('Times-Roman');
+        doc.text(this.getFormatted(sections.caseCaption), { align: 'center' });
+        doc.moveDown(1.5);
 
-      const borderY = doc.y;
-      doc.moveTo(doc.page.margins.left, borderY)
-         .lineTo(doc.page.width - doc.page.margins.right, borderY)
-         .stroke();
-      doc.moveDown(1.0);
+        const borderY = doc.y;
+        doc.moveTo(doc.page.margins.left, borderY)
+           .lineTo(doc.page.width - doc.page.margins.right, borderY)
+           .stroke();
+        doc.moveDown(1.0);
+      }
     }
 
     if (sections.title) {

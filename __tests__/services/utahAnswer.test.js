@@ -225,7 +225,7 @@ describe('answerToPetition — signer is the respondent', () => {
     });
     expect(sections.signatureBlock.name).toBe('John Example');
     expect(sections.caseCaption.formatted).toContain('JOHN EXAMPLE,\nRespondent.');
-    expect(sections.caseCaption.formatted).toContain('[PETITIONER NAME]'.toUpperCase());
+    expect(sections.caseCaption.formatted).toContain('_________________________________,');
   });
 
   test('no role at all defaults to treating the user as respondent', () => {
@@ -237,9 +237,9 @@ describe('answerToPetition — signer is the respondent', () => {
     expect(sections.signatureBlock.title).toBe('Respondent');
   });
 
-  test('sparse data never throws and falls back to bracket placeholders', () => {
+  test('sparse data never throws and falls back to fill-in blanks', () => {
     const { sections } = answerToPetition();
-    expect(sections.signatureBlock.name).toBe('[RESPONDENT NAME]');
+    expect(sections.signatureBlock.name).toBe('_________________________________');
     expect(sections.caseCaption.formatted).toContain('Case No. ______________');
     expect(sections.title).toBe('ANSWER');
   });

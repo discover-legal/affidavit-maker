@@ -226,10 +226,16 @@ class BaseDivorcePetitionTemplate {
     const validation = this.validateData(divorceData);
     const id = uuidv4();
 
-    // Generate all sections, threading paragraph numbers between them
-    const header = this.generateHeader();
-    const venue = this.generateVenue(divorceData.county);
+    // Generate all sections, threading paragraph numbers between them.
+    // With a structured caption, the page opens with the filer block and the
+    // court-name line; the old STATE OF X / COUNTY OF Y venue opener belongs
+    // to the verification jurat, not the top of a petition.
     const caseCaption = this.generateCaseCaption(divorceData);
+    const filerBlock = this.generateFilerBlock(divorceData);
+    const header = caseCaption.structured
+      ? caseCaption.courtHeaderLine
+      : this.generateHeader();
+    const venue = caseCaption.structured ? null : this.generateVenue(divorceData.county);
     const title = this.generateTitle();
     const parties = this.generatePartiesSection(divorceData);
     divorceData._paragraphNum = parties.nextParagraphNumber;
@@ -254,6 +260,7 @@ class BaseDivorcePetitionTemplate {
       documentType: this.documentType,
       timestamp: new Date(),
       sections: {
+        filerBlock,
         header,
         venue,
         caseCaption,
@@ -334,12 +341,73 @@ class BaseDivorcePetitionTemplate {
     caption += `AND\n\n`;
     caption += `${respondent}, Respondent`;
 
+    // Structured caption: the PDF layer lays this out as the conventional
+    // two-column caption block (parties left; case number and judge right)
+    // with the court name as the page header. Blanks, never [TOKENS] — a
+    // filed document is completed by hand, not by placeholder.
+    const partyLeft = divorceData.petitionerName
+      ? `${petitioner},`
+      : '_________________________________,';
+    const partyRight = divorceData.respondentName
+      ? `${respondent},`
+      : '_________________________________,';
+    const structured = {
+      left: [
+        'IN THE MATTER OF THE MARRIAGE OF:',
+        '',
+        partyLeft,
+        '          Petitioner,',
+        '',
+        'and',
+        '',
+        partyRight,
+        '          Respondent.',
+      ],
+      right: [
+        `${caseLabel} ${divorceData.caseNumber || '_______________'}`,
+        '',
+        'Judge _______________',
+      ],
+    };
+    const courtHeaderLine =
+      divorceData.court || this.getDefaultCourt(divorceData.county)
+        ? `IN THE ${courtName}`
+        : 'IN THE ______________________ COURT';
+
     return {
       courtName,
+      courtHeaderLine,
       caseNumber: divorceData.caseNumber,
       petitioner: divorceData.petitionerName,
       respondent: divorceData.respondentName,
-      formatted: caption
+      formatted: caption,
+      structured
+    };
+  }
+
+  /**
+   * Pro se filer info block — top-left of page one, the contact details
+   * court clerks require of a self-represented filer. Values render when
+   * the case data has them; otherwise blanks to complete by hand.
+   *
+   * @param {Object} divorceData - The divorce data
+   * @returns {Object} Filer block with lines[]
+   */
+  generateFilerBlock(divorceData) {
+    const name = divorceData.petitionerName || '_________________________________';
+    const address =
+      divorceData.petitionerAddress || divorceData.address || divorceData.mailingAddress || '';
+    const phone =
+      divorceData.petitionerPhone || divorceData.phone || divorceData.phoneNumber || '';
+    const email = divorceData.petitionerEmail || divorceData.email || '';
+    return {
+      lines: [
+        name,
+        `Address: ${address || '_________________________________'}`,
+        `Phone: ${phone || '____________________'}`,
+        `Email: ${email || '____________________'}`,
+        'Petitioner, Pro Se',
+      ],
     };
   }
 

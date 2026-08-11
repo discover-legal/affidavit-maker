@@ -142,9 +142,9 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       caption += `Judge ${divorceData.judgeName}\n\n`;
     }
 
-    // Parties
-    const petitioner = divorceData.petitionerName || '[PETITIONER NAME]';
-    const respondent = divorceData.respondentName || '[RESPONDENT NAME]';
+    // Parties — blanks when unknown, never [TOKENS] on a filable document.
+    const petitioner = divorceData.petitionerName || '_________________________________';
+    const respondent = divorceData.respondentName || '_________________________________';
 
     caption += `${petitioner.toUpperCase()},\n`;
     caption += `Petitioner,\n\n`;
@@ -154,10 +154,27 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     return {
       courtName,
+      courtHeaderLine: `IN THE ${courtName.toUpperCase()}`,
       caseNumber: divorceData.caseNumber,
       petitioner: divorceData.petitionerName,
       respondent: divorceData.respondentName,
-      formatted: caption
+      formatted: caption,
+      structured: {
+        left: [
+          `${petitioner.toUpperCase()},`,
+          '          Petitioner,',
+          '',
+          'vs.',
+          '',
+          `${respondent.toUpperCase()},`,
+          '          Respondent.',
+        ],
+        right: [
+          `Case No. ${caseNumber}`,
+          '',
+          `Judge ${divorceData.judgeName || '_______________'}`,
+        ],
+      }
     };
   }
 
@@ -359,9 +376,9 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const name = divorceData.petitionerName || '[PETITIONER NAME]';
     const county = normalizeCounty(divorceData.county);
 
-    return `VERIFICATION
-
-State of Utah
+    // No "VERIFICATION" line here — the section title is rendered by the
+    // PDF layer; repeating it in the text doubled the heading.
+    return `State of Utah
 County of ${county}
 
 I, ${name}, being first duly sworn upon oath, depose and state:

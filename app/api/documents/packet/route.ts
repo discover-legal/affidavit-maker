@@ -13,6 +13,11 @@ import {
 } from '@/lib/api/errors';
 import { ALL_STATES, ALL_PROVINCES } from '@/lib/api/catalog-data';
 import { paymentsEnabled } from '@/lib/api/stripe';
+import {
+  buildDocumentStructure,
+  type AffidavitData,
+  type TemplateManager,
+} from '@/lib/api/documentStructure';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,10 +35,6 @@ type PdfServiceResult = {
   filename?: string;
   pages?: number;
   documentType?: string;
-};
-
-type TemplateManager = {
-  generateAffidavit: (state: string, data: unknown) => unknown;
 };
 
 type EvidenceStorageModule = {
@@ -225,10 +226,16 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     let documentStructure: unknown;
     if (stateCode && templateManager) {
       try {
-        documentStructure = templateManager.generateAffidavit(stateCode, {
+        // Same builder as documents/generate: divorce packages route to
+        // their jurisdiction-specific petition/decree templates instead of
+        // being flattened into a generic affidavit with [PLACEHOLDER]
+        // captions. The saved row's document_type is authoritative.
+        documentStructure = buildDocumentStructure(templateManager, stateCode, {
           ...content,
           state: stateCode,
-        });
+          documentType:
+            doc.document_type ?? (content.documentType as string | undefined),
+        } as AffidavitData);
       } catch (templateErr) {
         logger.warn('document_packet_template_failed_falling_back', {
           userId: user.id,
@@ -368,9 +375,19 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       parties.push(`Affiant: ${content.affiantName.trim()}`);
     }
 
+    // The structure knows the real pleading name ("Verified Petition for
+    // Divorce"); the saved title/"Legal Document" is only a fallback.
+    const structureTitle = (
+      documentStructure as { metadata?: { documentTitle?: unknown } } | null
+    )?.metadata?.documentTitle;
+    const mainTitle =
+      typeof structureTitle === 'string' && structureTitle.trim()
+        ? structureTitle.trim()
+        : title;
+
     const packetBuffer = await assemblePacket({
       mainPdfBuffer,
-      mainTitle: title,
+      mainTitle,
       evidence,
       state: stateCode,
       county: typeof content.county === 'string' ? content.county : undefined,
@@ -379,8 +396,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     });
 
     const baseName = sanitizeFilename(
-      title !== 'Legal Document'
-        ? title
+      mainTitle !== 'Legal Document'
+        ? mainTitle
         : typeof content.affiantName === 'string'
         ? content.affiantName
         : undefined,

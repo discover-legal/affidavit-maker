@@ -44,7 +44,7 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
-const { UTAH_UNSWORN_DECLARATION, normalizeCountyName } = require('./utah');
+const { UTAH_UNSWORN_DECLARATION, utahCaption, filerBlock } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -67,7 +67,7 @@ function resolvePetitioner(data) {
   return (
     str(data.petitionerName) ||
     [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '[PETITIONER NAME]'
+    '_________________________________'
   );
 }
 
@@ -75,28 +75,10 @@ function resolveRespondent(data) {
   return (
     str(data.respondentName) ||
     [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '[RESPONDENT NAME]'
+    '_________________________________'
   );
 }
 
-function utahCaption(data) {
-  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
-  const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
-  const caseNumber = str(data.caseNumber) || BLANK_SHORT;
-  const formatted = [
-    `${resolvePetitioner(data).toUpperCase()},`,
-    'Petitioner,',
-    '',
-    'v.',
-    '',
-    `${resolveRespondent(data).toUpperCase()},`,
-    'Respondent.',
-    '',
-    `Case No. ${caseNumber}`,
-    `Judge ${BLANK_SHORT}`,
-  ].join('\n');
-  return { header, caseCaption: { formatted } };
-}
 
 function parseAmount(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -281,6 +263,7 @@ function feeWaiverMotion(data = {}, opts = {}) {
       signatureStyle: opts.signatureStyle === 'notary' ? 'notary' : 'unsworn',
     },
     sections: {
+      filerBlock: filerBlock(data, movant, 'Movant, Pro Se'),
       header,
       caseCaption,
       title: 'MOTION TO WAIVE FEES',

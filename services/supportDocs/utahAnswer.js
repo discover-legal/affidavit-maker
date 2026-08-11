@@ -20,7 +20,7 @@
 // as every other Utah support-doc builder.
 
 const crypto = require('node:crypto');
-const { UTAH_UNSWORN_DECLARATION, normalizeCountyName } = require('./utah');
+const { UTAH_UNSWORN_DECLARATION, normalizeCountyName, utahCaption, filerBlock } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -77,30 +77,11 @@ function resolveParties(data) {
   }
 
   return {
-    petitioner: petitioner || '[PETITIONER NAME]',
-    respondent: respondent || '[RESPONDENT NAME]',
+    petitioner: petitioner || '_________________________________',
+    respondent: respondent || '_________________________________',
   };
 }
 
-/** Utah district-court caption block (same layout as utah.js). */
-function utahCaption(data, parties) {
-  const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
-  const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
-  const caseNumber = str(data.caseNumber) || BLANK_SHORT;
-  const formatted = [
-    `${parties.petitioner.toUpperCase()},`,
-    'Petitioner,',
-    '',
-    'v.',
-    '',
-    `${parties.respondent.toUpperCase()},`,
-    'Respondent.',
-    '',
-    `Case No. ${caseNumber}`,
-    `Judge ${BLANK_SHORT}`,
-  ].join('\n');
-  return { header, caseCaption: { formatted } };
-}
 
 /** Unsworn-declaration (default) or notary signature sections. */
 function signatureSections(name, title, opts = {}) {
@@ -197,10 +178,27 @@ function paragraphList(list) {
 }
 
 /** User-written relief requests: trimmed, whitespace-collapsed, capped. */
+/**
+ * Requests are composed into "Respondent asks the court to ${request}", but
+ * users phrase them as full asks ("that the court divide the property
+ * fairly"), which doubled the frame: "asks the court to that the court
+ * divide…". Strip any leading framing so the request reads as a bare verb
+ * phrase.
+ */
+function normalizeRequestPhrase(text) {
+  let out = text;
+  const LEADING_FRAMES =
+    /^(please\s+|i\s+(?:respectfully\s+)?(?:ask|request)\s+(?:that\s+)?|that\s+|the\s+court\s+(?:should\s+|to\s+)?|to\s+)/i;
+  for (let i = 0; i < 5 && LEADING_FRAMES.test(out); i += 1) {
+    out = out.replace(LEADING_FRAMES, '');
+  }
+  return out.charAt(0).toLowerCase() + out.slice(1);
+}
+
 function sanitizeRequests(raw) {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((r) => str(r).replace(/\s+/g, ' ').slice(0, 500))
+    .map((r) => normalizeRequestPhrase(str(r).replace(/\s+/g, ' ')).slice(0, 500))
     .filter(Boolean)
     .slice(0, 20);
 }
@@ -386,6 +384,7 @@ function answerToPetition(data = {}, opts = {}) {
   return baseStructure(
     'answer',
     {
+      filerBlock: filerBlock(data, parties.respondent, 'Respondent, Pro Se'),
       header,
       caseCaption,
       title,

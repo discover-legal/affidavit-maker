@@ -320,9 +320,7 @@ class IllinoisDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PETITIONER NAME]';
 
-    return `VERIFICATION
-
-Under penalties as provided by law pursuant to Section 1-109 of the Code of Civil Procedure, the undersigned certifies that the statements set forth in this instrument are true and correct, except as to matters therein stated to be on information and belief, and as to such matters the undersigned certifies as aforesaid that the undersigned verily believes the same to be true.
+    return `Under penalties as provided by law pursuant to Section 1-109 of the Code of Civil Procedure, the undersigned certifies that the statements set forth in this instrument are true and correct, except as to matters therein stated to be on information and belief, and as to such matters the undersigned certifies as aforesaid that the undersigned verily believes the same to be true.
 
 _________________________________
 ${name}, Petitioner

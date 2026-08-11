@@ -39,7 +39,7 @@ function resolvePetitioner(data) {
   return (
     str(data.petitionerName) ||
     [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '[PETITIONER NAME]'
+    '_________________________________'
   );
 }
 
@@ -47,7 +47,7 @@ function resolveRespondent(data) {
   return (
     str(data.respondentName) ||
     [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '[RESPONDENT NAME]'
+    '_________________________________'
   );
 }
 
@@ -57,23 +57,51 @@ function resolveRespondent(data) {
  *   [PETITIONER], Petitioner, v. [RESPONDENT], Respondent.
  *   Case No. ____ when unknown.
  */
-function utahCaption(data) {
+function utahCaption(data, parties) {
   const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
+  const petitioner = (parties?.petitioner ?? resolvePetitioner(data)).toUpperCase();
+  const respondent = (parties?.respondent ?? resolveRespondent(data)).toUpperCase();
   const formatted = [
-    `${resolvePetitioner(data).toUpperCase()},`,
+    `${petitioner},`,
     'Petitioner,',
     '',
     'v.',
     '',
-    `${resolveRespondent(data).toUpperCase()},`,
+    `${respondent},`,
     'Respondent.',
     '',
     `Case No. ${caseNumber}`,
     `Judge ${BLANK_SHORT}`,
   ].join('\n');
-  return { header, caseCaption: { formatted } };
+  return {
+    header,
+    caseCaption: {
+      formatted,
+      // Rendered by pdfService as the conventional two-column caption block.
+      structured: {
+        left: [`${petitioner},`, '          Petitioner,', '', 'v.', '', `${respondent},`, '          Respondent.'],
+        right: [`Case No. ${caseNumber}`, '', `Judge ${BLANK_SHORT}`],
+      },
+    },
+  };
+}
+
+/**
+ * Pro se filer contact block for the top-left of page one. Values render
+ * when the case data has them; blanks otherwise.
+ */
+function filerBlock(data, name, roleLine) {
+  return {
+    lines: [
+      name || BLANK_LINE,
+      `Address: ${str(data.address) || str(data.mailingAddress) || BLANK_LINE}`,
+      `Phone: ${str(data.phone) || str(data.phoneNumber) || BLANK_SHORT}`,
+      `Email: ${str(data.email) || BLANK_SHORT}`,
+      roleLine,
+    ],
+  };
 }
 
 /** Parse '$3,200', '3200', 3200 → 3200. Anything unparseable → 0. */
@@ -110,7 +138,11 @@ function moneyTable(breakdown, fallbackTotal) {
   const total = rows.length
     ? rows.reduce((sum, it) => sum + parseAmount(it.amount), 0)
     : parseAmount(fallbackTotal);
-  return { lines, total };
+  // An explicitly declared scalar total (even $0) counts as data; a wholly
+  // absent one must render as a blank, not an asserted zero.
+  const hasData =
+    rows.length > 0 || (fallbackTotal !== undefined && fallbackTotal !== null && str(fallbackTotal) !== '');
+  return { lines, total, hasData };
 }
 
 /** First keyEvents entry whose label matches the pattern; returns its date or ''. */
@@ -229,6 +261,7 @@ function acceptanceOfService(data = {}, opts = {}) {
   return baseStructure(
     'acceptance_of_service',
     {
+      filerBlock: filerBlock(data, respondent, 'Respondent, Pro Se'),
       header,
       caseCaption,
       title: 'ACCEPTANCE OF SERVICE',
@@ -290,6 +323,7 @@ function certificateOfService(data = {}, opts = {}) {
   return baseStructure(
     'certificate_of_service',
     {
+      filerBlock: filerBlock(data, resolvePetitioner(data), 'Petitioner, Pro Se'),
       header,
       caseCaption,
       title: 'CERTIFICATE OF SERVICE',
@@ -318,16 +352,18 @@ function financialDeclaration(data = {}, opts = {}) {
   const employment =
     str(data.employment) || str(data.employer) || str(data.occupation) || BLANK_LINE;
 
+  // A sworn filing must never assert "$0" the declarant didn't state — when
+  // nothing is on file, leave the total blank for the filer to complete.
   const incomeContent = [
     'MONTHLY INCOME (itemized):',
     ...(income.lines.length ? income.lines : [`(no itemized income on file) ${BLANK_LINE}`]),
-    `TOTAL MONTHLY INCOME: ${formatMoney(income.total)}`,
+    `TOTAL MONTHLY INCOME: ${income.hasData ? formatMoney(income.total) : `$${BLANK_SHORT}`}`,
   ].join('\n');
 
   const expenseContent = [
     'MONTHLY EXPENSES (itemized):',
     ...(expenses.lines.length ? expenses.lines : [`(no itemized expenses on file) ${BLANK_LINE}`]),
-    `TOTAL MONTHLY EXPENSES: ${formatMoney(expenses.total)}`,
+    `TOTAL MONTHLY EXPENSES: ${expenses.hasData ? formatMoney(expenses.total) : `$${BLANK_SHORT}`}`,
   ].join('\n');
 
   const petitionerDebts = str(data.petitionerDebts);
@@ -356,6 +392,7 @@ function financialDeclaration(data = {}, opts = {}) {
   return baseStructure(
     'financial_declaration',
     {
+      filerBlock: filerBlock(data, petitioner, 'Petitioner, Pro Se'),
       header,
       caseCaption,
       title: 'FINANCIAL DECLARATION',
@@ -438,6 +475,7 @@ function motionForDefaultPackage(data = {}, opts = {}) {
   return baseStructure(
     'default_package',
     {
+      filerBlock: filerBlock(data, petitioner, 'Petitioner, Pro Se'),
       header,
       caseCaption,
       title: 'MOTION FOR DEFAULT',
@@ -594,6 +632,8 @@ function finalizationPrep(data = {}, opts = {}) {
 module.exports = {
   UTAH_UNSWORN_DECLARATION,
   normalizeCountyName,
+  utahCaption,
+  filerBlock,
   acceptanceOfService,
   certificateOfService,
   financialDeclaration,

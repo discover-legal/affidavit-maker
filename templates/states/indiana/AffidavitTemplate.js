@@ -129,7 +129,7 @@ Notary Public, State of Indiana
 My commission expires: ___________
 County of Residence: _____________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

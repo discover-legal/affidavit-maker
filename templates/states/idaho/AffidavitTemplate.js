@@ -127,7 +127,7 @@ Notary Public for Idaho
 Residing at: _____________________
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

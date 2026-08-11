@@ -59,7 +59,7 @@ class RiversDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The Court finds that the following order regarding the custody, welfare, and maintenance of the child(ren) is in the best interests of the child(ren) (Matrimonial Causes Act s.71; Child Rights Act 2003):', type: 'finding' });
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
     divorceData.children.forEach((child, index) => {
-      const childInfo = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+      const childInfo = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
     const custodyType = divorceData.custodyType || 'sole';

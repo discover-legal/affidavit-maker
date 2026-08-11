@@ -129,7 +129,7 @@ Residing at: _______________________
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

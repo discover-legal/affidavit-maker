@@ -207,7 +207,7 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       if (divorceData.children && Array.isArray(divorceData.children)) {
         divorceData.children.forEach(child => {
           const name = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-          const birthDate = typeof child === 'object' && child.birthDate ? this.formatDate(child.birthDate) : '[BIRTH DATE]';
+          const birthDate = typeof child === 'object' && child.birthDate ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : '[BIRTH DATE]';
           items.push({
             number: paragraphNum++,
             content: `${name}, born ${birthDate}`,

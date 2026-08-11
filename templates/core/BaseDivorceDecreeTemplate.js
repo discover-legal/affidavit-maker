@@ -10,6 +10,7 @@
 // dropped every divorce decree from the registry. `node:crypto` is a
 // built-in and always resolvable.
 const { randomUUID: uuidv4 } = require('node:crypto');
+const { normalizeCountyName } = require('./countyName');
 
 /**
  * Escape HTML special characters to prevent XSS/injection
@@ -171,6 +172,7 @@ class BaseDivorceDecreeTemplate {
    * @returns {Object} Complete document with sections, validation, and metadata
    */
   generateDocument(divorceData = {}) {
+    divorceData = { ...divorceData, county: normalizeCountyName(divorceData.county) };
     const validation = this.validateData(divorceData);
     const id = uuidv4();
 
@@ -264,11 +266,11 @@ class BaseDivorceDecreeTemplate {
     caption += `IN THE ${courtName}\n\n`;
 
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    const caseNumber = divorceData.caseNumber || '____________________';
     caption += `${caseLabel} ${caseNumber}\n\n`;
 
-    const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
-    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
+    const petitioner = (divorceData.petitionerName || '_________________________________').toUpperCase();
+    const respondent = (divorceData.respondentName || '_________________________________').toUpperCase();
 
     caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
     caption += `${petitioner}, Petitioner\n\n`;
@@ -322,11 +324,11 @@ class BaseDivorceDecreeTemplate {
     text += `On this date, the Court considered the above-entitled and numbered cause.\n\n`;
 
     if (divorceData.appearanceType === 'agreed' || divorceData.isUncontested) {
-      text += `Petitioner, ${divorceData.petitionerName || '[PETITIONER NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
-      text += `Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${divorceData.respondentAppeared ? 'appeared and announced agreement' : 'having been duly served, did not appear but signed a Waiver of Citation and Agreement'}.`;
+      text += `Petitioner, ${divorceData.petitionerName || '_________________________________'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
+      text += `Respondent, ${divorceData.respondentName || '_________________________________'}, ${divorceData.respondentAppeared ? 'appeared and announced agreement' : 'having been duly served, did not appear but signed a Waiver of Citation and Agreement'}.`;
     } else {
-      text += `Petitioner, ${divorceData.petitionerName || '[PETITIONER NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
-      text += `Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${divorceData.respondentAppeared ? 'appeared' : 'although duly cited, did not appear and wholly made default'}.`;
+      text += `Petitioner, ${divorceData.petitionerName || '_________________________________'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
+      text += `Respondent, ${divorceData.respondentName || '_________________________________'}, ${divorceData.respondentAppeared ? 'appeared' : 'although duly cited, did not appear and wholly made default'}.`;
     }
 
     return {
@@ -370,7 +372,7 @@ class BaseDivorceDecreeTemplate {
   generateDissolutionSection(divorceData) {
     return {
       title: 'DIVORCE GRANTED',
-      text: `IT IS ORDERED AND DECREED that the marriage between ${divorceData.petitionerName || '[PETITIONER NAME]'} and ${divorceData.respondentName || '[RESPONDENT NAME]'} is dissolved, and the parties are divorced.`,
+      text: `IT IS ORDERED AND DECREED that the marriage between ${divorceData.petitionerName || '_________________________________'} and ${divorceData.respondentName || '_________________________________'} is dissolved, and the parties are divorced.`,
       type: 'dissolution'
     };
   }
@@ -522,7 +524,7 @@ class BaseDivorceDecreeTemplate {
     divorceData.children.forEach((child, index) => {
       const childInfo = typeof child === 'string'
         ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+        : `${child.name || '______________________'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '______________'}`;
       items.push({
         content: `${index + 1}. ${childInfo}`,
         type: 'child_item'
@@ -724,12 +726,12 @@ class BaseDivorceDecreeTemplate {
         blocks: [
           {
             line: '_________________________________',
-            name: divorceData.petitionerName || '[PETITIONER NAME]',
+            name: divorceData.petitionerName || '_________________________________',
             title: 'Petitioner'
           },
           {
             line: '_________________________________',
-            name: divorceData.respondentName || '[RESPONDENT NAME]',
+            name: divorceData.respondentName || '_________________________________',
             title: 'Respondent'
           }
         ],

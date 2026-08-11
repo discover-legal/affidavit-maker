@@ -131,7 +131,7 @@ State of Connecticut
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

@@ -129,7 +129,7 @@ Notary Public, ${county} County, Georgia
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

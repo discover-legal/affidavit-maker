@@ -139,7 +139,7 @@ My commission expires: ___________
 Parish of: _______________________
 Bar Roll / Notary ID: ____________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

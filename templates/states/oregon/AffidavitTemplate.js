@@ -128,7 +128,7 @@ Notary Public for Oregon
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

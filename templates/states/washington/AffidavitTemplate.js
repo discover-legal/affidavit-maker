@@ -129,7 +129,7 @@ Residing at: ___________________
 
 My appointment expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

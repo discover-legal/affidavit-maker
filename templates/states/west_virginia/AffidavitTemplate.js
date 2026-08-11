@@ -127,7 +127,7 @@ Notary Public, State of West Virginia
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

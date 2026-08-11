@@ -283,7 +283,7 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
       divorceData.children.forEach((child, index) => {
         const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-        const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate) : null;
+        const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
         const residence = typeof child === 'object' ? child.residence : null;
 
         let childInfo = birthDate ? `${childName}, born ${birthDate}` : childName;

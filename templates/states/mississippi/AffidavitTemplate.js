@@ -129,7 +129,7 @@ Notary Public, State of Mississippi
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

@@ -127,7 +127,7 @@ Notary Public
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

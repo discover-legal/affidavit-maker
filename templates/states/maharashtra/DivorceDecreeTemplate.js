@@ -59,7 +59,7 @@ class MaharashtraDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The Court finds that the following custody order is in the best interest and welfare of the child(ren):', type: 'finding' });
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
     divorceData.children.forEach((child, index) => {
-      const childInfo = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+      const childInfo = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
     const custodyType = divorceData.custodyType || 'joint';

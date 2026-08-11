@@ -59,11 +59,11 @@ class BaseDocument {
    * Used by pleadings, motions, orders, and declarations.
    */
   generateCaseCaption(data) {
-    const courtName   = (data.court || data.courtName || '[COURT NAME]').toUpperCase();
+    const courtName   = (data.court || data.courtName || '______________________ COURT').toUpperCase();
     const caseLabel   = data.caseNumberLabel || 'CASE NO.';
-    const caseNumber  = data.caseNumber || data.causeNumber || '[CASE NUMBER]';
-    const petitioner  = data.petitionerName || data.plaintiff || data.petitioner || '[PETITIONER]';
-    const respondent  = data.respondentName || data.defendant || data.respondent || '[RESPONDENT]';
+    const caseNumber  = data.caseNumber || data.causeNumber || '____________________';
+    const petitioner  = data.petitionerName || data.plaintiff || data.petitioner || '_________________________________';
+    const respondent  = data.respondentName || data.defendant || data.respondent || '_________________________________';
 
     const formatted = [
       `IN THE ${courtName}`,

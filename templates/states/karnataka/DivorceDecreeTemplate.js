@@ -41,7 +41,7 @@ class KarnatakaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) return null;
     const items = [];
     items.push({ content: 'The Court orders the following custody arrangement in the best interest of the child(ren):', type: 'finding' });
-    divorceData.children.forEach((child, i) => { const info = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`; items.push({ content: `${i + 1}. ${info}`, type: 'child_item' }); });
+    divorceData.children.forEach((child, i) => { const info = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`; items.push({ content: `${i + 1}. ${info}`, type: 'child_item' }); });
     const ct = divorceData.custodyType || 'joint';
     if (ct === 'joint') items.push({ content: 'IT IS ORDERED that both parties shall have joint custody of the child(ren).', type: 'order' });
     else { items.push({ content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have sole custody.`, type: 'order' }); items.push({ content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} shall have visitation rights.`, type: 'order' }); }

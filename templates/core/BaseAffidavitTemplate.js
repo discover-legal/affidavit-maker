@@ -147,20 +147,20 @@ class BaseAffidavitTemplate {
     let caption = '';
 
     // Court name - use 'court' field (matches schema), fallback to courtName for backwards compatibility
-    let courtName = affidavitData.court || affidavitData.courtName || '[COURT NAME]';
+    let courtName = affidavitData.court || affidavitData.courtName || '______________________ COURT';
     courtName = courtName.toUpperCase();
 
     // State-specific court formatting handled in subclasses
     caption += `IN THE ${courtName}\n\n`;
 
     // Case number - default uses "CASE NO." (override in state-specific templates if needed)
-    const caseNumber = affidavitData.caseNumber || '[CASE NUMBER]';
+    const caseNumber = affidavitData.caseNumber || '____________________';
     caption += `CASE NO. ${caseNumber.toUpperCase()}\n\n`;
 
     // Add party names if both are provided (style of cause format)
     // Extract from affidavitData or use placeholders
-    const plaintiff = affidavitData.plaintiff || '[PLAINTIFF NAME]';
-    const defendant = affidavitData.defendant || '[DEFENDANT NAME]';
+    const plaintiff = affidavitData.plaintiff || '_________________________________';
+    const defendant = affidavitData.defendant || '_________________________________';
 
     caption += `${plaintiff.toUpperCase()}\n`;
     caption += `V.\n`;
@@ -189,6 +189,7 @@ class BaseAffidavitTemplate {
     // templates (see BaseDivorcePetitionTemplate.js). `require('uuid')` here
     // threw at generation time in the production container.
     const id = require('node:crypto').randomUUID();
+    affidavitData = { ...affidavitData, county: require('./countyName').normalizeCountyName(affidavitData.county) };
 
     // Generate all sections
     const header = this.generateHeader();

@@ -125,7 +125,7 @@ Notary Public for South Carolina
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

@@ -122,7 +122,7 @@ Notary Public, District of Columbia
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

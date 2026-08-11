@@ -129,7 +129,7 @@ Notary Public, State of Hawaii
 My commission expires: ___________
 Judicial Circuit: _________________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

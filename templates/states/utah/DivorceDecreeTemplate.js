@@ -289,7 +289,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     divorceData.children.forEach((child, index) => {
       const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-      const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate) : null;
+      const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
       items.push({
         content: birthDate ? `${index + 1}. ${childName}, born ${birthDate}` : `${index + 1}. ${childName}`,
         type: 'child_item'

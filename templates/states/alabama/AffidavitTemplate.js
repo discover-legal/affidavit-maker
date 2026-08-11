@@ -124,7 +124,7 @@ Notary Public, State of Alabama
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

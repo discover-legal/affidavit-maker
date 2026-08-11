@@ -215,7 +215,7 @@ class NewHampshireDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         divorceData.children.forEach((child, index) => {
           const childInfo = typeof child === 'string'
             ? child
-            : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+            : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
           items.push({
             number: paragraphNum++,
             content: `Child ${index + 1}: ${childInfo}`,

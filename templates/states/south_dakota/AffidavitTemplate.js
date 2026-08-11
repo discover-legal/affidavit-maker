@@ -126,7 +126,7 @@ Notary Public, State of South Dakota
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

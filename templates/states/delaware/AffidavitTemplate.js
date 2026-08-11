@@ -127,7 +127,7 @@ Notary Public, State of Delaware
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

@@ -223,6 +223,12 @@ class BaseDivorcePetitionTemplate {
    * @returns {Object} Complete document with sections, validation, and metadata
    */
   generateDocument(divorceData = {}) {
+    // Normalize once at entry so no downstream "${county} County" composition
+    // can double the word. Preserve absence — the '[COUNTY]' default here
+    // would leak a token into validation and captions.
+    if (divorceData.county) {
+      divorceData = { ...divorceData, county: normalizeCountyName(divorceData.county, '') };
+    }
     const validation = this.validateData(divorceData);
     const id = uuidv4();
 
@@ -324,17 +330,17 @@ class BaseDivorcePetitionTemplate {
     let caption = '';
 
     // Court name
-    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '[COURT NAME]').toUpperCase();
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '______________________ COURT').toUpperCase();
     caption += `IN THE ${courtName}\n\n`;
 
     // Case number
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    const caseNumber = divorceData.caseNumber || '____________________';
     caption += `${caseLabel} ${caseNumber}\n\n`;
 
     // Party names in family law format
-    const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
-    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
+    const petitioner = (divorceData.petitionerName || '_________________________________').toUpperCase();
+    const respondent = (divorceData.respondentName || '_________________________________').toUpperCase();
 
     caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
     caption += `${petitioner}, Petitioner\n\n`;
@@ -657,7 +663,7 @@ class BaseDivorcePetitionTemplate {
         divorceData.children.forEach((child, index) => {
           const childInfo = typeof child === 'string'
             ? child
-            : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+            : `${child.name || '______________________'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '______________'}`;
           items.push({
             number: paragraphNum++,
             content: `Child ${index + 1}: ${childInfo}`,
@@ -811,7 +817,7 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Verification text
    */
   getVerificationText(divorceData) {
-    const name = divorceData.petitionerName || '[PETITIONER NAME]';
+    const name = divorceData.petitionerName || '_________________________________';
     return `I, ${name}, Petitioner, declare under penalty of perjury that the facts stated in this Petition are true and correct to the best of my knowledge and belief.`;
   }
 
@@ -822,7 +828,7 @@ class BaseDivorcePetitionTemplate {
    * @returns {Object} Signature block
    */
   generateSignatureBlock(petitionerName) {
-    const name = petitionerName || '[PETITIONER NAME]';
+    const name = petitionerName || '_________________________________';
     return {
       line: '_________________________________',
       name,

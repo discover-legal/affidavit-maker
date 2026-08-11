@@ -31,7 +31,7 @@ class CrossRiverDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) return null;
     const items = [];
     items.push({ content: 'The Court orders the following custody arrangement in the best interests of the child(ren) (MCA s.71; Child Rights Act 2003):', type: 'finding' });
-    divorceData.children.forEach((child, i) => { const info = typeof child === 'string' ? child : `${child.name || '[CHILD]'}, born ${this.formatDate(child.birthDate) || '[DOB]'}`; items.push({ content: `${i + 1}. ${info}`, type: 'child_item' }); });
+    divorceData.children.forEach((child, i) => { const info = typeof child === 'string' ? child : `${child.name || '[CHILD]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[DOB]'}`; items.push({ content: `${i + 1}. ${info}`, type: 'child_item' }); });
     items.push({ content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner'} shall have custody of the child(ren) pursuant to MCA s.71.`, type: 'order' });
     return { title: 'CUSTODY OF CHILD(REN)', items, type: 'custody' };
   }

@@ -127,7 +127,7 @@ Notary Public, State of Iowa
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

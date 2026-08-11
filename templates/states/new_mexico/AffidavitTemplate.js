@@ -125,7 +125,7 @@ Notary Public, State of New Mexico
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

@@ -127,7 +127,7 @@ Notary Public, Commonwealth of Kentucky
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

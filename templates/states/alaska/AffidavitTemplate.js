@@ -126,7 +126,7 @@ Notary Public, State of Alaska
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

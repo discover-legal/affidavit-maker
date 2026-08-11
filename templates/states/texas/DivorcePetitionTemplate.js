@@ -257,7 +257,7 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       if (divorceData.children && divorceData.children.length > 0) {
         divorceData.children.forEach((child, index) => {
           const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-          const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate) : null;
+          const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
           const childInfo = birthDate ? `${childName}, born ${birthDate}` : childName;
 
           items.push({

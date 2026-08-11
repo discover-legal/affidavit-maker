@@ -129,7 +129,7 @@ State of New Hampshire
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

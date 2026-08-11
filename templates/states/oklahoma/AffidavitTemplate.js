@@ -131,7 +131,7 @@ Notary Public, State of Oklahoma
 My commission number: ____________
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

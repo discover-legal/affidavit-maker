@@ -233,7 +233,7 @@ class PennsylvaniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
       divorceData.children.forEach((child, index) => {
         const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-        const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate) : null;
+        const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
         items.push({
           number: paragraphNum++,
           content: birthDate

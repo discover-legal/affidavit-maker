@@ -127,7 +127,7 @@ Notary Public, State of Kansas
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

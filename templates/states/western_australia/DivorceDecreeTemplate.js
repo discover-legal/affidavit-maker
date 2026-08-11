@@ -57,7 +57,7 @@ class WesternAustraliaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The Court finds that the following parenting orders are in the best interests of the child(ren) (s.60CA):', type: 'finding' });
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
     divorceData.children.forEach((child, i) => {
-      const info = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate) || '[BIRTH DATE]'}`;
+      const info = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
       items.push({ content: `${i + 1}. ${info}`, type: 'child_item' });
     });
     const custodyType = divorceData.custodyType || 'joint';

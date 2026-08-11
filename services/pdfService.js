@@ -91,7 +91,30 @@ class PDFService {
     return { ...this.defaultOptions };
   }
 
+  /**
+   * A filed document must never show template placeholder tokens
+   * ("[CASE NUMBER]", "[BIRTH DATE]", …) — the ~110 jurisdiction templates
+   * carry dozens of token vocabularies as missing-data fallbacks, and this
+   * choke point converts every one to a fill-in-by-hand blank in the final
+   * PDF/DOCX. Editor previews keep the tokens as "what's missing" hints.
+   */
+  static PLACEHOLDER_TOKEN = /\[(?:[A-Z][A-Z /_-]{2,40})\]/g;
+
+  sanitizeForFiling(value) {
+    if (typeof value === 'string') {
+      return value.replace(PDFService.PLACEHOLDER_TOKEN, '______________');
+    }
+    if (Array.isArray(value)) return value.map((v) => this.sanitizeForFiling(v));
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) out[k] = this.sanitizeForFiling(v);
+      return out;
+    }
+    return value;
+  }
+
   async generatePDF(document, options = {}) {
+    document = this.sanitizeForFiling(document);
     // documentId no longer names the output file (generation happens in a
     // private mkdtemp workDir) but is still required to authorize exhibits.
     const { documentId, userId } = options;
@@ -188,6 +211,7 @@ class PDFService {
    * Returns { filepath, filename, documentType, success }.
    */
   async generateWordDoc(document, options = {}) {
+    document = this.sanitizeForFiling(document);
     const documentsDir = path.resolve(
       process.env.DOCUMENTS_PATH || path.join(__dirname, '..', 'documents')
     );

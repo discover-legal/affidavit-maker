@@ -130,7 +130,7 @@ Notary Public, State of Maryland
 
 My commission expires: ___________
 
-[NOTARY SEAL]`;
+(SEAL)`;
   }
 
   /**

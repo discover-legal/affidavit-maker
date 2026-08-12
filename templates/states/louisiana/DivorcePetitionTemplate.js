@@ -10,7 +10,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Legal References:
  * - La. C.C. Art. 102 — No-fault divorce (file first, wait 180/365 days)
  * - La. C.C. Art. 103 — No-fault divorce (already separated) and fault grounds
- * - La. C.C. Art. 10 — Domicile
+ * - La. C.C.P. Art. 10 — Jurisdiction; six months' residence in a parish creates a rebuttable presumption of domicile
  * - La. C.C.P. Art. 3941 — Venue (parish of domicile)
  * - La. C.C. Art. 2336 et seq. — Community property regime
  * - La. R.S. 9:2801 — Partition of community property
@@ -56,11 +56,11 @@ class LouisianaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // Louisiana — domicile required; 6-month parish residency establishes domicile
+    // Louisiana — domicile required; 6-month parish residency creates a rebuttable presumption of domicile
     this.residencyRequirements = {
       domicile: true,
       parishMonths: 6,
-      description: 'Petitioner must be domiciled in Louisiana. Six months of parish residency establishes domicile for filing purposes. (La. C.C. Art. 10; La. C.C.P. Art. 3941)'
+      description: 'Petitioner must be domiciled in Louisiana. Six months of residence in a parish creates a rebuttable presumption of domicile. (La. C.C.P. Arts. 10, 3941)'
     };
 
     // Louisiana waiting period depends on divorce type and children

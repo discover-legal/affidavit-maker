@@ -1,6 +1,6 @@
 // templates/states/saskatchewan/DivorcePetitionTemplate.js
 // Saskatchewan divorce petition template
-// Governing Law: Divorce Act (RSC 1985, c. 3); The Family Property Act, SS 1997, c. F-6.3
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); The Family Property Act, SS 1997, c. F-6.3
 
 'use strict';
 
@@ -13,8 +13,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Court of King's Bench for Saskatchewan.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Jurisdiction — either spouse ordinarily resident in province for 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Jurisdiction — either spouse habitually resident in province for 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
@@ -26,7 +26,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3(1)):
- * - Either spouse must have been ordinarily resident in Saskatchewan for at least 1 year
+ * - Either spouse must have been habitually resident in Saskatchewan for at least 1 year
  *   immediately before the application.
  *
  * Saskatchewan-Specific:
@@ -72,7 +72,7 @@ class SaskatchewanDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Saskatchewan for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Saskatchewan for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing beyond the separation ground itself
@@ -101,13 +101,13 @@ class SaskatchewanDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Saskatchewan jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Saskatchewan for 1 year.
+   * Either spouse must have been habitually resident in Saskatchewan for 1 year.
    * Saskatchewan uses "Petitioner" and "Respondent".
    * The court is Court of King's Bench for Saskatchewan (note: "for Saskatchewan" not
    * "of Saskatchewan"; renamed from Court of Queen's Bench in September 2022).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in the Province of Saskatchewan for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in the Province of Saskatchewan for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -139,7 +139,7 @@ class SaskatchewanDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of family property pursuant to The Family Property Act, SS 1997, c. F-6.3;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];

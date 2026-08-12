@@ -1,6 +1,6 @@
 // templates/states/manitoba/DivorcePetitionTemplate.js
 // Manitoba divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Court of King's Bench Act, CCSM c. C280
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Court of King's Bench Act, CCSM c. C280
 
 'use strict';
 
@@ -10,11 +10,11 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Manitoba Divorce Application Template
  *
  * Manitoba uses the term "Petition" for divorce proceedings filed in the
- * Court of King's Bench of Manitoba.
+ * Court of King's Bench of Manitoba (Family Division).
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Jurisdiction — either spouse ordinarily resident in province for 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Jurisdiction — either spouse habitually resident in province for 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
@@ -25,12 +25,12 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3(1)):
- * - Either spouse must have been ordinarily resident in Manitoba for at least 1 year
+ * - Either spouse must have been habitually resident in Manitoba for at least 1 year
  *   immediately before the application.
  *
  * Manitoba-Specific:
  * - Parties are "Petitioner" and "Respondent" (Manitoba divorce practice terminology)
- * - Court is Court of King's Bench of Manitoba (note: changed from "Court of Queen's Bench"
+ * - Court is Court of King's Bench of Manitoba (Family Division) (renamed from "Court of Queen's Bench"
  *   upon accession of King Charles III in September 2022)
  * - The Court sits in Winnipeg (Brandon for western Manitoba)
  * - Court File No. instead of "CASE NO." or "CAUSE NO."
@@ -70,7 +70,7 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Manitoba for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Manitoba for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing beyond the separation ground itself
@@ -94,18 +94,18 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   getDefaultCourt(county) {
     const location = (county || '[LOCATION]').toUpperCase();
-    return `COURT OF KING'S BENCH OF MANITOBA — ${location}`;
+    return `COURT OF KING'S BENCH OF MANITOBA (FAMILY DIVISION) — ${location}`;
   }
 
   /**
    * Manitoba jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Manitoba for 1 year.
+   * Either spouse must have been habitually resident in Manitoba for 1 year.
    * Manitoba uses "Petitioner" and "Respondent" (Manitoba divorce practice).
    * The court is the Court of King's Bench of Manitoba (renamed from Court of Queen's Bench
    * upon accession of King Charles III in September 2022; Court of King's Bench Act, CCSM c. C280).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in the Province of Manitoba for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in the Province of Manitoba for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -136,7 +136,7 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Equalization of net marital property pursuant to the Family Property Act, CCSM c. F25;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];

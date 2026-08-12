@@ -1,6 +1,6 @@
 // templates/states/alberta/DivorcePetitionTemplate.js
 // Alberta divorce petition template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Alberta Rules of Court, Alta Reg 124/2010
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Alberta Rules of Court, Alta Reg 124/2010
 
 'use strict';
 
@@ -13,7 +13,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Divorce is commenced as a civil action; parties are Plaintiff and Defendant.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal)
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal)
  *   - s.8(2)(a): 1-year separation (primary ground)
  *   - s.8(2)(b)(i): Adultery
  *   - s.8(2)(b)(ii): Physical or mental cruelty
@@ -23,7 +23,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in Alberta for at least 1 year.
+ * - Either spouse must have been habitually resident in Alberta for at least 1 year.
  *
  * Alberta-Specific:
  * - Parties are "Plaintiff" and "Defendant" (Alberta Court of King's Bench civil proceedings;
@@ -65,7 +65,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Alberta for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Alberta for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     this.waitingPeriod = {
@@ -132,12 +132,12 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Alberta jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Alberta for 1 year.
+   * Either spouse must have been habitually resident in Alberta for 1 year.
    * Divorce in Alberta is a civil action; parties are "Plaintiff" and "Defendant"
    * (Alberta Rules of Court, Alta Reg 124/2010; not "Petitioner/Respondent").
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Plaintiff or the Defendant has been ordinarily resident in the Province of Alberta for at least one year immediately preceding the filing of this Statement of Claim, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Plaintiff or the Defendant has been habitually resident in the Province of Alberta for at least one year immediately preceding the filing of this Statement of Claim, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -145,7 +145,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   getVenueReason(divorceData) {
     const district = divorceData.county || '[JUDICIAL DISTRICT]';
-    return `the Plaintiff or Defendant resides in the Judicial District of ${district}`;
+    return `the Plaintiff or Defendant resides in the Judicial Centre of ${district}`;
   }
 
   getGroundsText(groundsForDivorce) {
@@ -178,7 +178,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of family property pursuant to the Family Property Act, RSA 2000, c. F-4.7;',
       'An order allocating responsibility for family debt in an equitable manner;'
     ];

@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - Texas Family Code Chapter 6 (Suit for Dissolution of Marriage)
- * - Texas Family Code § 6.301 (Petition)
+ * - Texas Family Code § 6.301 (General Residency Rule)
  * - Texas Family Code § 6.401 (Waiver of Service)
  * - Texas Rules of Civil Procedure Rule 45, 47
  *

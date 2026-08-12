@@ -11,7 +11,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Neb. Rev. Stat. §42-347 et seq. — Dissolution of Marriage
  * - Neb. Rev. Stat. §42-349 — Residency requirement (1 year state or 1 year military)
  * - Neb. Rev. Stat. §42-361 — Grounds (no-fault only — irretrievably broken)
- * - Neb. Rev. Stat. §42-372 — 60-day waiting period from filing or service
+ * - Neb. Rev. Stat. §42-363 — no hearing until 60 days after perfection of service
  * - Neb. Rev. Stat. §42-365 — Property division and alimony (equitable distribution)
  * - Neb. Rev. Stat. §42-364 — Child custody and parenting time
  * - Neb. Rev. Stat. §42-364.16 — Nebraska Child Support Guidelines
@@ -64,7 +64,7 @@ class NebraskaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       days: 60,
       startsFrom: 'filing_or_service',
       exceptions: [],
-      description: 'No decree may be entered until at least 60 days after the filing or service of the complaint, whichever is later. (Neb. Rev. Stat. §42-372)'
+      description: 'No hearing may be held and no decree entered until at least 60 days after perfection of service of process. (Neb. Rev. Stat. §42-363)'
     };
   }
 
@@ -305,7 +305,7 @@ Plaintiff`;
     }
 
     warnings.push('Nebraska requires 1 year of state residency (or 1 year of military stationing) before filing. (Neb. Rev. Stat. §42-349)');
-    warnings.push('No decree may be entered until 60 days after filing or service, whichever is later. (Neb. Rev. Stat. §42-372)');
+    warnings.push('No hearing may be held until 60 days after perfection of service of process. (Neb. Rev. Stat. §42-363)');
     warnings.push('Nebraska is a no-fault only state. The sole ground is that the marriage is irretrievably broken. (Neb. Rev. Stat. §42-361)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

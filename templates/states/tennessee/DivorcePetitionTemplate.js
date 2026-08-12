@@ -137,11 +137,10 @@ class TennesseeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const grounds = divorceData.groundsForDivorce || 'irreconcilable_differences';
 
     if (grounds === 'irreconcilable_differences' || grounds === 'no_fault') {
-      // Update document title for no-fault
-      this.documentTitle = 'PETITION FOR DIVORCE';
+      // TN styles the initiating pleading a Complaint for all grounds.
       items.push({
         number: paragraphNum++,
-        content: 'Irreconcilable differences have developed between the parties making it impossible to continue the marital relationship and which differences cannot be reconciled. Both parties consent to the divorce on the ground of irreconcilable differences. (TCA 36-4-101(a)(13))',
+        content: 'Irreconcilable differences have developed between the parties making it impossible to continue the marital relationship and which differences cannot be reconciled. Both parties consent to the divorce on the ground of irreconcilable differences. (TCA 36-4-101(a)(14))',
         type: 'grounds'
       });
     } else if (grounds === 'adultery') {
@@ -184,7 +183,7 @@ class TennesseeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       this.documentTitle = 'PETITION FOR DIVORCE';
       items.push({
         number: paragraphNum++,
-        content: 'Irreconcilable differences have developed between the parties making it impossible to continue the marital relationship. (TCA 36-4-101(a)(13))',
+        content: 'Irreconcilable differences have developed between the parties making it impossible to continue the marital relationship. (TCA 36-4-101(a)(14))',
         type: 'grounds'
       });
     }

@@ -64,7 +64,7 @@ class DCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       days: 0,
       startsFrom: 'filing_date',
       exceptions: [],
-      description: 'DC has no mandatory waiting period after filing. However, the parties must demonstrate either mutual consent or living separate and apart for six or more months.'
+      description: 'DC has no mandatory waiting period after filing. Effective January 26, 2024, a divorce is granted upon the assertion by one or both parties that they no longer wish to remain married (D.C. Code § 16-904(a)); the former mutual-consent and six-month-separation requirements were eliminated.'
     };
   }
 

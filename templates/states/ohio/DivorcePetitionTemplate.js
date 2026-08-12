@@ -54,7 +54,7 @@ class OhioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 6,
       countyDays: 90,
-      description: 'Plaintiff or Defendant must have been a resident of Ohio for at least 6 months AND a resident of the county for at least 90 days immediately before filing.'
+      description: 'Plaintiff must have been a resident of Ohio for at least 6 months AND a resident of the county for at least 90 days immediately before filing.'
     };
 
     // Ohio waiting period per R.C. § 3105.10

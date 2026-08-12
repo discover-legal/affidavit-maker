@@ -1,6 +1,6 @@
 // templates/states/ontario/DivorcePetitionTemplate.js
 // Ontario divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Family Law Rules, O. Reg. 114/99
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Family Law Rules, O. Reg. 114/99
 
 'use strict';
 
@@ -13,7 +13,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * The standard form is Form 8 (Application — General) under the Family Law Rules.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b)(i): Adultery (rare)
  *   - s.8(2)(b)(ii): Physical or mental cruelty (rare)
@@ -25,7 +25,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   "decision-making responsibility" replace "custody" and "access" in divorce proceedings
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in Ontario for at least 1 year
+ * - Either spouse must have been habitually resident in Ontario for at least 1 year
  *   immediately before the divorce application.
  *
  * Ontario-Specific:
@@ -66,7 +66,7 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Ontario for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Ontario for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing in Ontario beyond the separation ground itself
@@ -136,12 +136,12 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Ontario jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in the province for 1 year.
+   * Either spouse must have been habitually resident in the province for 1 year.
    * There is no county-days requirement; Ontario has no sub-provincial residency condition.
    * Correct party label is "Applicant" (not "Petitioner" — Ontario Family Law Rules, O. Reg. 114/99).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Applicant or the Respondent has been ordinarily resident in the Province of Ontario for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Applicant or the Respondent has been habitually resident in the Province of Ontario for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -171,7 +171,7 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of net family property pursuant to sections 5-9 of the Family Law Act, RSO 1990, c. F.3;',
       'An order for possession of the matrimonial home pursuant to section 24 of the Family Law Act;',
       'An order allocating responsibility for debts in an equitable manner;'

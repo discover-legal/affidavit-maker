@@ -67,8 +67,8 @@ class ConnecticutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.waitingPeriod = {
       days: 90,
       startsFrom: 'return_date',
-      exceptions: [],
-      description: 'The court cannot enter a judgment of dissolution until at least 90 days have elapsed after the return date. (Conn. Gen. Stat. §46b-67)'
+      exceptions: ['agreed_or_uncontested'],
+      description: 'Under Public Act 23-46 (2023), the court may proceed to judgment as early as the second day after the return date in agreed or uncontested matters; a contested dissolution trial may not begin until 90 days after the return date. (Conn. Gen. Stat. §46b-67)'
     };
   }
 

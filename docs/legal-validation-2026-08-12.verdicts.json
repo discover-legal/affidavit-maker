@@ -1,0 +1,2116 @@
+{
+ "AB": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule per s.3(1) correct; note the Act's wording since 2021-03-01 is 'habitually resident', not 'ordinarily resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "No post-filing cooling-off; 1-yr separation ground s.8(2)(a); divorce effective 31st day after judgment s.12(1)"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.alberta.ca/respond-statement-of-claim-divorce",
+   "note": "Court of King's Bench of Alberta correct; caption should use 'Judicial Centre of ___' not 'Judicial District'"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.alberta.ca/respond-statement-of-claim-divorce",
+   "note": "AB uniquely still commences divorce by Statement of Claim for Divorce (Form FL-1)"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Alberta Rules of Court, Alta Reg 124/2010",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)' \u00e2\u0080\u0094 RSC 1985 c.3 alone is not the Divorce Act's citation; Alberta Rules cite is correct"
+  }
+ },
+ "AK": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.alaska.gov/shc/family/start.htm",
+   "note": "No minimum duration; filer must be an AK resident (present + intent to stay) at filing. But the in-text cite AS 25.24.090 is misattached \u2014 see citation."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "At least 30 days after FILING before the decree can be signed (Alaska Court System; dissolution hearings \u226530 days after petition filed) \u2014 not 30 days after service, and AS 25.24.090 is not the authority.",
+   "source": "https://courts.alaska.gov/shc/family/start.htm",
+   "note": "Days=30 is right; trigger and statute cite are wrong."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.alaska.gov/shc/family/docs/shc-101n.pdf",
+   "note": "Divorce complaints are filed in the Superior Court for the State of Alaska (caption 'at [city]'; judicial districts exist)."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.alaska.gov/shc/family/docs/shc-101n.pdf",
+   "note": "'Complaint for Divorce' (SHC-101) is correct for single-filer divorce; joint uncontested route is a dissolution petition."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "'Incompatibility of temperament' \u2014 AS 25.24.050(5)(C); 'irreconcilable breakdown' is not a statutory Alaska ground.",
+   "source": "https://codes.findlaw.com/ak/title-25-marital-and-domestic-relations/ak-st-sect-25-24-050.html",
+   "note": "groundsSection is substantively correct; precise pinpoint is (5)(C), template cites (5)."
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "statuteCitations is empty; the only in-text authority, AS 25.24.090, is titled 'Use of spouse's residence' (lets plaintiff rely on the other spouse's AK residence) and supports neither the residency-duration nor waiting-period claims.",
+   "source": "https://codes.findlaw.com/ak/title-25-marital-and-domestic-relations/ak-st-sect-25-24-090.html",
+   "note": "Cite AS 25.24.050 (grounds), AS 25.24.900 (military residency), and court-system guidance instead."
+  }
+ },
+ "AL": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/alabama/title-30/chapter-2/article-1/section-30-2-5/",
+   "note": "\u00a730-2-5: 6-month bona fide residency required only when defendant is a nonresident; no minimum when both reside in AL."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/alabama/2021/title-30/chapter-2/article-1/section-30-2-8-1/",
+   "note": "\u00a730-2-8.1: no final judgment until 30 days from filing of summons and complaint; temporary orders permitted."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/al/title-30-marital-and-domestic-relations/al-code-sect-30-2-1/",
+   "note": "\u00a730-2-1 vests divorce jurisdiction in the circuit court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/alabama/title-30/chapter-2/article-1/section-30-2-5/",
+   "note": "Complaint for Divorce with Plaintiff/Defendant matches AL statutory usage ('filing of the complaint')."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Statutory no-fault wording: 'complete incompatibility of temperament' (Ala. Code \u00a730-2-1(a)(7)) or 'irretrievable breakdown of the marriage' (\u00a730-2-1(a)(9)); 'irreconcilable breakdown' is not an Alabama formulation.",
+   "source": "https://codes.findlaw.com/al/title-30-marital-and-domestic-relations/al-code-sect-30-2-1/",
+   "note": "Template's groundsSection (incompatibility, (a)(7)) is correct \u2014 render it instead of the generic groundsText."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/alabama/title-30/chapter-2/article-1/section-30-2-5/",
+   "note": "Title 30 ch. 2 is 'Divorce and Alimony'; first pinpoint \u00a730-2-5 (residency, nonresident defendant) is correct and current."
+  }
+ },
+ "AR": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/ar/title-9-family-law/ar-code-sect-9-12-307/",
+   "note": "\u00a79-12-307(a)(1)(A): 60 days' residence before commencement plus 3 full months before final judgment."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/ar/title-9-family-law/ct-gen-st-sect-9-12-307/",
+   "note": "30 days from filing of complaint confirmed, but pinpoint is \u00a79-12-307(a)(1)(B), not (b) \u2014 subsection (b) defines 'residence'. (Text verified at https://codes.findlaw.com/ar/title-9-family-law/ar-code-sect-9-12-307/)"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://arcourts.gov/courts/circuit-courts",
+   "note": "Amendment 80 (2001) merged chancery into circuit courts; domestic relations is one of the five circuit-court divisions."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/ar/title-9-family-law/ar-code-sect-9-12-307/",
+   "note": "'Complaint for Divorce' with Plaintiff matches Arkansas statutory usage ('filing of the complaint')."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Arkansas recognizes NO irreconcilable-differences/breakdown ground; the only no-fault ground is living separate and apart for 18 continuous months, Ark. Code \u00a79-12-301(b)(5).",
+   "source": "https://law.justia.com/codes/arkansas/title-9/subtitle-2/chapter-12/subchapter-3/section-9-12-301/",
+   "note": "groundsSection's 18-month separation text is correct (pinpoint should be (b)(5)); the generic groundsText must never print for AR."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/arkansas/title-9/subtitle-2/chapter-12/subchapter-3/section-9-12-301/",
+   "note": "\u00a79-12-307 residency pinpoint correct; chapter 12 is formally 'Divorce and Annulment'."
+  }
+ },
+ "AZ": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00312.htm",
+   "note": "\u00a725-312: one party domiciled (or military presence) in AZ maintained 90 days before filing."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00329.htm",
+   "note": "\u00a725-329: no trial/hearing on dissolution until 60 days after service or acceptance of process."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00311.htm",
+   "note": "\u00a725-311: superior court has original jurisdiction over dissolution."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00311.htm",
+   "note": "'Petition for Dissolution of Marriage' with Petitioner/Respondent is the correct AZ instrument."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00312.htm",
+   "note": "'Irretrievably broken' (no reasonable prospect of reconciliation) is the required \u00a725-312 finding; covenant marriages excepted (\u00a725-903)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.azleg.gov/ars/25/00311.htm",
+   "note": "First pinpoint \u00a725-311 ('Jurisdiction; filing of petition') is correct and current."
+  }
+ },
+ "BC": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act; 31-day effectiveness s.12(1)"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/169_2009_00_multi",
+   "note": "Supreme Court of British Columbia; registry-based venue correct"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www2.gov.bc.ca/assets/gov/law-crime-and-justice/courthouse-services/court-files-records/court-forms/supreme-family/f3.pdf",
+   "note": "Notice of Family Claim (Form F3) under Supreme Court Family Rules"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Supreme Court Family Rules, B.C. Reg. 169/2009",
+   "source": "https://www.canlii.org/en/bc/laws/regu/bc-reg-169-2009/latest/bc-reg-169-2009.html",
+   "note": "Omits '(2nd Supp.)' and 'BC Reg. 16' is wrong/truncated \u00e2\u0080\u0094 correct is B.C. Reg. 169/2009"
+  }
+ },
+ "CA": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/residency-requirements-divorce/california/",
+   "note": "Fam. Code \u00a72320: 6 months state + 3 months county residency by one spouse before filing."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/divorce-timeline/california/",
+   "note": "\u00a72339: judgment final no earlier than 6 months from the EARLIER of service or respondent's appearance; cannot be shortened. Template omits the appearance alternative but is otherwise right."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/complete-guide-to-divorce-california",
+   "note": "Superior Court of California, County of X is the correct trial court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=FAM&sectionNum=2310",
+   "note": "'Petition for Dissolution of Marriage' (Judicial Council FL-100), Petitioner/Respondent \u2014 'dissolution' is the statutory term."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "'Irreconcilable differences, which have caused the irremediable breakdown of the marriage' (Fam. Code \u00a72310(a)); 'irreconcilable breakdown' is a non-statutory hybrid.",
+   "source": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=FAM&sectionNum=2310",
+   "note": "groundsSection is verbatim correct \u2014 render it instead of groundsText."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=FAM&sectionNum=2313",
+   "note": "Division 6 name correct; \u00a7\u00a72310-2313 is a valid grounds-chapter range (\u00a72313 exists \u2014 support after incapacity-based dissolution)."
+  }
+ },
+ "CO": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://colorado.public.law/statutes/crs_14-10-106",
+   "note": "\u00a714-10-106(1)(a)(I): one party domiciled in CO for 91 days preceding commencement; description right, 'stateMonths: 3' shorthand should be 91 days."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://colorado.public.law/statutes/crs_14-10-106",
+   "note": "\u00a714-10-106(1)(a)(III): decree only after 91+ days since court acquired jurisdiction over respondent (service, co-petitioner joinder, or appearance)."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://colorado.public.law/statutes/crs_14-10-106",
+   "note": "Statute directs the district court to enter the decree; JDF 1101 is filed in district court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courts.state.co.us/userfiles/file/Court_Probation/10th_Judicial_District/Pueblo/Self-Help%20Center/Divorce/Divorce%20Without%20Children/3_0%20Petition%20WithoutChildren.pdf",
+   "note": "'Petition for Dissolution of Marriage' (JDF 1101), Petitioner/Co-Petitioner/Respondent \u2014 correct CO usage."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "'The marriage is irretrievably broken' \u2014 C.R.S. \u00a714-10-106(1)(a)(II); 'irreconcilable breakdown' is not the Colorado formulation.",
+   "source": "https://colorado.public.law/statutes/crs_14-10-106",
+   "note": "groundsSection wording is correct; its pinpoint is more precisely (1)(a)(II)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/colorado/title-14/dissolution-of-marriage-parental-responsibilities/article-10/section-14-10-106/",
+   "note": "\u00a714-10-101 (Uniform Dissolution of Marriage Act, Article 10) is correct and current."
+  }
+ },
+ "CT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/connecticut/title-46b/chapter-815j/section-46b-44-formerly-sec-46-35/",
+   "note": "\u00a746b-44: 12 months' residency preceding filing OR decree (can file earlier if met by decree). Caveat: the alternate ground is 'domiciled in CT at time of marriage and returned intending to remain', not 'married in Connecticut' as the template phrases it."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "P.A. 23-46 rewrote \u00a746b-67: the court may proceed on the complaint from the second day following the return date (agreed/uncontested judgments need no 90-day wait); only a CONTESTED trial may not commence until 90 days after the return date.",
+   "source": "https://codes.findlaw.com/ct/title-46b-family-law/ct-gen-st-sect-46b-67.html",
+   "note": "Template's blanket 'no judgment until 90 days after return date, no exceptions' is outdated (pre-2023 law; waiver existed since 2015)."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.jud.ct.gov/lawlib/Notebooks/Pathfinders/divorce/divorce.pdf",
+   "note": "Superior Court, Judicial District of X is correct; 'Family Division' is an informal label for the Superior Court family docket."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.jud.ct.gov/lawlib/Notebooks/Pathfinders/divorce/divorce.pdf",
+   "note": "CT uses a Complaint for dissolution of marriage (official form 'Divorce Complaint (Dissolution of Marriage)', JD-FM-159) with Plaintiff/Defendant."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "'The marriage has broken down irretrievably' \u2014 Conn. Gen. Stat. \u00a746b-40(c)(1); 'irreconcilable breakdown' is not the statutory wording.",
+   "source": "https://codes.findlaw.com/ct/title-46b-family-law/ct-gen-st-sect-46b-40.html",
+   "note": "groundsSection is verbatim correct with the right pinpoint \u2014 render it instead of groundsText."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/ct/title-46b-family-law/ct-gen-st-sect-46b-40.html",
+   "note": "\u00a746b-40 et seq. (ch. 815j, Dissolution of Marriage, Legal Separation and Annulment) is correct and current."
+  }
+ },
+ "DC": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://code.dccouncil.gov/us/dc/council/code/sections/16-902",
+   "note": "\u00a716-902: one party bona fide resident of DC for at least 6 months next preceding commencement."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "0 days is right, but the description's 'mutual consent or living separate and apart for six or more months' requirement no longer exists \u2014 eliminated effective Jan 26, 2024; a divorce is granted upon assertion by one or both parties that they no longer wish to remain married (D.C. Code \u00a716-904(a)).",
+   "source": "https://code.dccouncil.gov/us/dc/council/code/sections/16-904",
+   "note": "Description states repealed pre-2024 law."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.dccourts.gov/index.php/services/divorce-matters",
+   "note": "Superior Court of DC, Family Court Division is correct."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.dccourts.gov/sites/default/files/2022-01/complaint-for-absolute-divorce.pdf",
+   "note": "Complaint with Plaintiff/Defendant is correct; official DC form is titled 'Complaint for Absolute Divorce' \u2014 consider adding 'Absolute'."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "DC's ground is the assertion by one or both parties that they no longer wish to remain married (D.C. Code \u00a716-904(a), eff. Jan 26, 2024); 'irreconcilable breakdown' is not a DC ground.",
+   "source": "https://code.dccouncil.gov/us/dc/council/code/sections/16-904",
+   "note": "The groundsSection already prints the correct \u00a716-904(a) language; groundsText is the outdated generic sentence."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://code.dccouncil.gov/us/dc/council/code/sections/16-902",
+   "note": "First substantive cite \u00a716-902 (6-month residency) is correct; the list's leading 'Code \u00a716-9' is a truncated chapter reference (should be Title 16, ch. 9, \u00a716-901 et seq.)."
+  }
+ },
+ "DE": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://delcode.delaware.gov/title13/c015/index.html",
+   "note": "13 Del. C. \u00a71504: either party actually resided in DE continuously 6+ months preceding commencement (or stationed in armed services); no county duration."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "No fixed post-filing cooling-off, but 13 Del. C. \u00a71507(e) bars any divorce ruling until the parties have been separated 6 months ('separation' per \u00a71503 = living separate and apart 6+ months immediately preceding the ruling; same-roof separation allowed); the 6-month separation is not required where the ground is respondent's misconduct.",
+   "source": "https://delcode.delaware.gov/title13/c015/index.html",
+   "note": "Template's 'no mandatory waiting period' omits the 6-month separation gate that effectively delays decrees; corroborated by https://courts.delaware.gov/family/divorce/."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.delaware.gov/family/divorce/",
+   "note": "Family Court of the State of Delaware handles divorce (Kent, New Castle, Sussex); 10 Del. C. \u00a7921 jurisdiction cite in template list is consistent."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.delaware.gov/family/divorce/",
+   "note": "Petition for Divorce with Petitioner/Respondent is correct (official form styled 'Petition for Divorce/Annulment')."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Delaware's sole ground: the marriage is irretrievably broken and reconciliation is improbable, with breakdown characterized by separation (voluntary, respondent's misconduct, mental illness, or incompatibility) \u2014 13 Del. C. \u00a71505. 'Irreconcilable breakdown' is not the statutory formulation.",
+   "source": "https://delcode.delaware.gov/title13/c015/index.html",
+   "note": "The groundsSection ('irretrievably broken... reconciliation improbable') is correct; only groundsText uses the wrong generic phrase."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://delcode.delaware.gov/title13/c015/index.html",
+   "note": "First substantive cite \u00a71504 correctly matches the 6-month residency/jurisdiction provision."
+  }
+ },
+ "FL": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flsenate.gov/Laws/Statutes/2025/61.021",
+   "note": "\u00a761.021: one party must reside in FL 6 months before filing; no county duration."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flsenate.gov/Laws/Statutes/2025/61.19",
+   "note": "\u00a761.19: no final judgment until at least 20 days from filing; court may enter earlier on showing injustice would result."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flcourts.gov/Resources-Services/Office-of-Family-Courts/History-of-Family-Courts-in-Florida/Family-Law-Forms/Petition-for-Dissolution-of-Marriage-12.901-Forms-A-B3",
+   "note": "Filed with clerk of the circuit court; circuit-court caption is correct."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flcourts.gov/Resources-Services/Office-of-Family-Courts/History-of-Family-Courts-in-Florida/Family-Law-Forms/Petition-for-Dissolution-of-Marriage-12.901-Forms-A-B3",
+   "note": "'Petition for Dissolution of Marriage' with Petitioner matches Supreme Court approved forms 12.901."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flsenate.gov/Laws/Statutes/2025/61.19",
+   "note": "'Marriage is irretrievably broken' is the FL no-fault ground, Fla. Stat. \u00a761.052(1)(a)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.flsenate.gov/Laws/Statutes/2025/61.19",
+   "note": "First substantive cite \u00a761.19 correctly matches the 20-day judgment delay."
+  }
+ },
+ "GA": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/2010/title-19/chapter-5/19-5-2",
+   "note": "O.C.G.A. \u00a719-5-2: 6 months bona fide residence before filing; nonresident plaintiff may file in county of a defendant who has resided there 6 months."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/title-19/chapter-5/section-19-5-3/",
+   "note": "\u00a719-5-3(13): no divorce on the irretrievably-broken ground until not less than 30 days from date of service on respondent."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/2010/title-19/chapter-5/19-5-2",
+   "note": "Superior Court of the county is correct; superior courts have exclusive divorce jurisdiction in GA."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/title-19/chapter-5/section-19-5-3/",
+   "note": "Complaint for Divorce with Plaintiff/Defendant matches common GA superior court pro se practice (statute also uses 'petition'; both styles accepted)."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/title-19/chapter-5/section-19-5-3/",
+   "note": "'The marriage is irretrievably broken' is ground (13), GA's no-fault ground since 1973."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/georgia/title-19/chapter-5/section-19-5-3/",
+   "note": "First cite O.C.G.A. \u00a719-5-1 (total divorce) is a current, correct section; \u00a719-5-2/\u00a719-5-3 also verified."
+  }
+ },
+ "HI": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "HRS \u00a7580-1 requires either party to have been domiciled or physically present in Hawaii for a continuous period of at least six months (statutory text: next preceding the application; case law allows the 6 months to be satisfied before entry of the decree), and the applicant must have been domiciled/physically present in the filing circuit for at least 3 months for that circuit's family court.",
+   "source": "https://law.justia.com/codes/hawaii/title-31/chapter-580/section-580-1/",
+   "note": "Template's 'no minimum duration of domicile' is incorrect \u2014 a 6-month state presence requirement exists."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/hawaii/",
+   "note": "No statutory post-filing cooling-off period in HRS ch. 580; but the \u00a7580-1 six-month presence requirement can delay a decree for new arrivals."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/hawaii/title-31/chapter-580/section-580-1/",
+   "note": "Family court of the circuit has exclusive original jurisdiction; matches official caption (e.g., Family Court, First Circuit)."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courts.state.hi.us/docs/form/hawaii/3FP266.pdf",
+   "note": "Official Hawaii Judiciary form is 'Complaint for Divorce' with Plaintiff/Defendant."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "HRS \u00a7580-41(1): 'The marriage is irretrievably broken' (other grounds are separation-based); 'irreconcilable breakdown/differences' is not Hawaii's statutory formulation.",
+   "source": "https://www.womenslaw.org/laws/hi/statutes/580-41-divorce",
+   "note": "Both groundsText and the groundsSection's 'irreconcilable differences' phrasing should be replaced with 'irretrievably broken'."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/hawaii/title-31/chapter-580/section-580-1/",
+   "note": "\u00a7580-1 is the correct jurisdiction/residency section, but the no-duration claim the template attaches to it is wrong (see residency)."
+  }
+ },
+ "IA": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "1 year Iowa residency unless respondent is an Iowa resident served by personal service \u00e2\u0080\u0094 Iowa Code \u00c2\u00a7598.6, not \u00c2\u00a7598.5 (\u00c2\u00a7598.5 is 'Contents of petition')",
+   "source": "https://www.legis.iowa.gov/docs/code/598.6.pdf",
+   "note": "Duration (12 months) and exception substance are correct; only the section cite printed in the petition is wrong (598.5 \u00e2\u0086\u0092 598.6)."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legis.iowa.gov/docs/code/598.19.pdf",
+   "note": "Iowa Code \u00c2\u00a7598.19: no decree until 90 days after service (or acceptance/publication); waivable for emergency. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.iowabar.org/?pg=Divorce",
+   "note": "'Iowa District Court for ___ County' is the correct trial court and standard caption."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.iowabar.org/?pg=Divorce",
+   "note": "Iowa uses Petition for Dissolution of Marriage; Petitioner/Respondent."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Breakdown of the marriage relationship to the extent that the legitimate objects of matrimony have been destroyed and there remains no reasonable likelihood that the marriage can be preserved (Iowa Code \u00c2\u00a7598.5(1)(g), \u00c2\u00a7598.17)",
+   "source": "https://www.legis.iowa.gov/docs/code/598.17.pdf",
+   "note": "'Irreconcilable breakdown' is not Iowa's statutory formula; groundsSection already prints the correct language."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/iowa/title-xv/chapter-598/",
+   "note": "First citation 'Iowa Code Chapter 598 (Dissolution of Marriage)' is correct/current. Caveat: list glosses \u00c2\u00a7598.5 as the residency section \u00e2\u0080\u0094 residency is \u00c2\u00a7598.6."
+  }
+ },
+ "ID": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://legislature.idaho.gov/statutesrules/idstat/Title32/T32CH7/SECT32-701/",
+   "note": "\u00a732-701: plaintiff must be an Idaho resident for six full weeks preceding commencement."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://legislature.idaho.gov/statutesrules/idstat/Title32/T32CH7/SECT32-716/",
+   "note": "\u00a732-716: no hearing on the merits or final decree until at least 21 days after commencement of the action and service of process; court may stay up to 90 days for reconciliation where minor children."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://courtselfhelp.idaho.gov/Forms/divorce",
+   "note": "District court is correct (magistrate division hears family law); full caption normally includes the judicial district and 'Magistrate Division'."
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Idaho's initiating document is a 'Petition for Divorce' with Petitioner/Respondent (Idaho Court Assistance Office official forms), not 'Complaint for Divorce' with Plaintiff/Defendant.",
+   "source": "https://courtselfhelp.idaho.gov/Forms/divorce",
+   "note": "Template title and party labels (including verificationText 'Plaintiff') should be updated."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "The no-fault ground is 'irreconcilable differences' \u2014 Idaho Code \u00a732-603(8), not \u00a732-603(7) (subsection (7) is permanent insanity); groundsText should say 'irreconcilable differences' (defined at \u00a732-616), not 'irreconcilable breakdown'.",
+   "source": "https://legislature.idaho.gov/statutesrules/idstat/Title32/T32CH6/SECT32-603/",
+   "note": "groundsSection pins the wrong subsection (7); correct pin cite is (8)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://legislature.idaho.gov/statutesrules/idstat/Title32/T32CH6/SECT32-603/",
+   "note": "First cite Idaho Code \u00a732-601 et seq. (divorce chapter) is correct; but fix the later \u00a732-603(7) entries to (8)."
+  }
+ },
+ "IL": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/il/chapter-750-families/il-st-sect-750-5-401/",
+   "note": "750 ILCS 5/401(a): 90 days residence (or military presence) preceding commencement or the making of the finding \u2014 may be completed after filing, before judgment."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/il/chapter-750-families/il-st-sect-750-5-401/",
+   "note": "No mandatory cooling-off period; 6 months living separate and apart merely creates an irrebuttable presumption of irreconcilable differences."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/il/chapter-750-families/il-st-sect-750-5-401/",
+   "note": "Circuit Court of the county is the correct IL trial court for dissolution."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.illinoisdivorce.com/grounds-for-divorce",
+   "note": "'Petition for Dissolution of Marriage' with Petitioner/Respondent is correct under the IMDMA."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/il/chapter-750-families/il-st-sect-750-5-401/",
+   "note": "Wording matches current 750 ILCS 5/401(a) verbatim, but the printed pin cite '401(a)(2)' is stale \u2014 since P.A. 99-90 (eff. 2016) irreconcilable differences is the sole ground at 401(a); update the parenthetical."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/il/chapter-750-families/il-st-sect-750-5-401/",
+   "note": "First cite (750) ILCS 5 = IMDMA and 5/401 are correct; the '750' prefix is truncated in the list and later '5/401(a)(2)' entries should read 5/401(a)."
+  }
+ },
+ "IN": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/indiana/title-31/article-15/chapter-2/section-31-15-2-6/",
+   "note": "IC 31-15-2-6: one party resident of Indiana (or stationed at a military installation) 6 months, and of the county 3 months, immediately preceding filing. Matches template."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/indiana/title-31/article-15/chapter-2/section-31-15-2-10/",
+   "note": "IC 31-15-2-10: final hearing not earlier than 60 days after filing of the petition. Matches 60 days from filing_date."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/indiana/",
+   "note": "Indiana circuit courts (and superior courts) hear dissolutions; 'Example County Circuit Court' is a valid default caption."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/indiana/",
+   "note": "Indiana uses Petition for Dissolution of Marriage; parties are Petitioner/Respondent."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Irretrievable breakdown of the marriage (IC 31-15-2-3(1)) \u00e2\u0080\u0094 statutory term is 'irretrievable', not 'irreconcilable breakdown'",
+   "source": "https://law.justia.com/codes/indiana/title-31/article-15/chapter-2/",
+   "note": "groundsText uses non-statutory generic wording; groundsSection ('irretrievably broken, IC 31-15-2-3(1)') is already correct."
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://law.justia.com/codes/indiana/title-31/article-15/chapter-2/section-31-15-2-6/",
+   "note": "statuteCitations array is empty \u00e2\u0080\u0094 nothing to validate. Inline cites in template text (IC 31-15-2-6, 31-15-2-10, 31-15-2-3(1)) all verified correct."
+  }
+ },
+ "KS": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://ksrevisor.gov/statutes/chapters/ch23/023_027_0003.html",
+   "note": "K.S.A. 23-2703: one party an actual resident of Kansas 60 days immediately preceding filing (military stationing counts). Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://ksrevisor.gov/statutes/chapters/ch23/023_027_0008.html",
+   "note": "K.S.A. 23-2708: divorce may not be heard until 60 days after filing unless the judge declares an emergency. Matches 60 days from filing."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/filing-for-divorce/kansas/",
+   "note": "District Court of the county is correct. Caveat: 'Division of Domestic Relations' suffix is not a statewide caption standard \u00e2\u0080\u0094 plain 'District Court of ___ County, Kansas' is the generic form."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/divorce-papers/kansas/",
+   "note": "Kansas uses Petition for Divorce; Petitioner/Respondent."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "The parties are incompatible (K.S.A. 23-2701(a)(1)) \u00e2\u0080\u0094 Kansas grounds are incompatibility, failure to perform a material marital duty, or incompatibility by reason of mental illness",
+   "source": "https://ksrevisor.gov/statutes/chapters/ch23/023_027_0001.html",
+   "note": "'Irreconcilable breakdown' is not a Kansas ground; groundsSection ('The parties are incompatible') is already correct."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://ksrevisor.gov/statutes/chapters/ch23/023_027_0001.html",
+   "note": "\u00c2\u00a723-2701 is the current Kansas grounds statute (post-2011 recodification from ch. 60 to ch. 23 art. 27)."
+  }
+ },
+ "KY": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=1447",
+   "note": "KRS 403.140(1)(a): one party resident of Kentucky (or armed forces stationed there) 180 days before filing. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "No decree until the parties have lived apart for 60 days; 'living apart' includes living under the same roof without sexual cohabitation (KRS 403.170(1)) \u00e2\u0080\u0094 trigger is separation, not the filing date",
+   "source": "https://www.womenslaw.org/laws/ky/statutes/403170-marriage-irretrievable-breakdown",
+   "note": "Days (60) and cite (KRS 403.170(1)) are right; startsFrom:'filing_date' is wrong \u00e2\u0080\u0094 the statute measures 60 days of living apart."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://kentoncourtclerk.org/?p=155",
+   "note": "Dissolution is filed in Circuit Court, Family Court division where established; 'Family Court, Example County' is acceptable, but 'Circuit Court (Family Division)' is the universally safe caption since not every county has a family court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.kycourts.gov/Legal-Forms/Legal%20Forms/252A.pdf",
+   "note": "Official AOC-252A form is titled 'Petition for Dissolution of Marriage'; parties Petitioner/Respondent."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "The marriage is irretrievably broken (KRS 403.170) \u00e2\u0080\u0094 Kentucky's sole ground",
+   "source": "https://www.womenslaw.org/laws/ky/statutes/403170-marriage-irretrievable-breakdown",
+   "note": "'Irreconcilable breakdown' is not the statutory term; groundsSection ('irretrievably broken') is already correct."
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=1447",
+   "note": "statuteCitations array is empty \u00e2\u0080\u0094 nothing to validate. Inline cites KRS 403.140 and 403.170 verified correct."
+  }
+ },
+ "LA": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "One spouse must be domiciled in Louisiana (La. C.C.P. art. 10(A)(7)); 6 months' residence in a parish creates a REBUTTABLE PRESUMPTION of domicile (La. C.C.P. art. 10(B)) \u00e2\u0080\u0094 cite Code of Civil Procedure art. 10, not 'La. C.C. Art. 10' (Civil Code art. 10 is an unrelated interpretation-of-laws provision)",
+   "source": "https://law.justia.com/codes/louisiana/code-of-civil-procedure/article-10/",
+   "note": "Substance (domicile + 6-month presumption + venue per C.C.P. art. 3941) is right; the petition prints the wrong code for art. 10 and overstates presumption as 'establishes domicile'."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/louisiana/",
+   "note": "Art. 102: 180 days (no minor children) / 365 days (minor children) living separate and apart from service of petition or written waiver (periods set by C.C. art. 103.1); Art. 103(1) no wait if separation completed pre-filing; fault grounds no wait. Caveat: in abuse/protective-order cases the period is 180 days even with children."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/filing-for-divorce/louisiana/",
+   "note": "District Court (judicial district) for the parish is correct; caption is usually '__ Judicial District Court, Parish of __'. Exception: East Baton Rouge Parish has a dedicated Family Court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/divorce-papers/louisiana/",
+   "note": "Louisiana uses Petition for Divorce; parties Petitioner/Defendant."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Living separate and apart for the statutory period \u00e2\u0080\u0094 La. Civ. Code arts. 102 / 103(1) (periods in art. 103.1); 'irreconcilable breakdown' is not a Louisiana ground",
+   "source": "https://divorce.law/louisiana/",
+   "note": "groundsSection correctly pleads an Article 102 divorce; the generic groundsText sentence is legally meaningless in Louisiana."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/louisiana/",
+   "note": "First substantive citation 'Civil Code Article 102' is the correct current no-fault divorce article. Caveat: literal first array entry 'Napoleonic Code tradition)' is a scraped comment fragment, not a citation."
+  }
+ },
+ "MA": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section5",
+   "note": "c.208 s.5: cause in MA -> plaintiff domiciled at filing; cause outside MA -> 1 year. Statute puts the 1-year on the plaintiff, template says 'one party' (minor)."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section1B",
+   "note": "s.1B: no hearing earlier than 6 months after filing (narrow waiver); 1A has no pre-hearing wait; nisi becomes absolute 90 days later (c.208 s.21). Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.mass.gov/lists/probate-and-family-court-forms-for-divorce",
+   "note": "Probate and Family Court Department is the divorce trial court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.mass.gov/info-details/probate-and-family-court-complaint-for-divorce-under-gl-c-208-ss-1b-cjd-101b",
+   "note": "Official 1B form is 'Complaint for Divorce' (CJD-101B); parties Plaintiff/Defendant. (1A joint filing is a 'Joint Petition'.)"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section1B",
+   "note": "Irretrievable breakdown under s.1B; template wording tracks statute."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section1B",
+   "note": "First cite 's.1B' = M.G.L. c.208 s.1B, correct and current; fragments lack the 'c.208' prefix but render fine in context."
+  }
+ },
+ "MB": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "WRONG",
+   "correct": "Court of King's Bench of Manitoba (Family Division)",
+   "source": "https://www.manitobacourts.mb.ca/court-of-queens-bench/court-proceedings/family-law/rule-70/",
+   "note": "Divorce is a Rule 70 family proceeding in the Family Division; official captions read 'THE KING'S BENCH (FAMILY DIVISION)'"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.manitobacourts.mb.ca/court-of-queens-bench/court-proceedings/family-law/rule-70/",
+   "note": "Petition for Divorce (Form 70A) under KB Rule 70"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); The Court of King's Bench Act, C.C.S.M. c. C280",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; CCSM c. C280 part is correct"
+  }
+ },
+ "MD": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gfl&section=7-101",
+   "note": "Fam. Law \u00c2\u00a77-101: 6-month Maryland residency required only if grounds occurred outside the state; otherwise current residency suffices. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gfl&section=7-103",
+   "note": "No mandatory post-filing waiting period; prerequisites live in the grounds (6-month pre-filing separation, or mutual consent with signed settlement agreement). Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://mdcourts.gov/sites/default/files/import/video/docs/tipsheetdetermininglegalreasons.pdf",
+   "note": "Circuit Court for the county (or Baltimore City) is Maryland's divorce trial court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.womenslaw.org/laws/md/statutes/ss-7-103-absolute-divorce",
+   "note": "Complaint for Absolute Divorce (form CC-DR-020), Plaintiff/Defendant \u00e2\u0080\u0094 correct; limited divorce was abolished Oct 1, 2023."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Irreconcilable differences based on the reasons stated by the complainant (Fam. Law \u00c2\u00a77-103(a)(2), post-Oct-2023 law)",
+   "source": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gfl&section=7-103",
+   "note": "'Irreconcilable breakdown' is not the statutory term; groundsSection correctly pleads irreconcilable differences and its (a)(2) cite matches current numbering ((a)(1) 6-month separation, (a)(2) irreconcilable differences, (a)(3) mutual consent)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gfl&section=7-103",
+   "note": "'Md. Code, Fam. Law \u00c2\u00a77-101 et seq.' is correct/current. Caveat: deeper in the list, '\u00c2\u00a77-103(a)(8)' is stale pre-2023 numbering (mutual consent is now (a)(3))."
+  }
+ },
+ "ME": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://legislature.maine.gov/statutes/19-A/title19-Asec901.html",
+   "note": "19-A \u00c2\u00a7901(1): plaintiff resided in good faith 6 months; or plaintiff resident + married in Maine; or plaintiff resident + parties resided in Maine when cause accrued; or defendant is a resident. Template's alternatives are a close paraphrase (its 'grounds arose in Maine' branch should be tied to plaintiff residency)."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "60-day minimum before the final hearing (Maine Judicial Branch states it runs from filing of the divorce paperwork; several sources describe 60 days after service) \u00e2\u0080\u0094 and it is NOT codified at 19-A \u00c2\u00a7902: \u00c2\u00a7902 is the grounds statute and \u00c2\u00a7901 covers residency; neither contains a waiting period, so the cite must be removed/replaced",
+   "source": "https://www.courts.maine.gov/courts/family/divorce-separation/index.html",
+   "note": "The 60-day duration is right; the statutory citation (19-A \u00c2\u00a7902) is wrong \u00e2\u0080\u0094 verified against official text of \u00c2\u00a7901 and \u00c2\u00a7902."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courts.maine.gov/courts/family/divorce-separation/index.html",
+   "note": "Maine District Court (Family Division) hears divorces. Caveat: District Courts sit by division/location, not county, so 'Example County' captioning is slightly off-form."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/filing-for-divorce/maine/",
+   "note": "Maine uses Complaint for Divorce (forms FM-004/FM-005); parties Plaintiff/Defendant."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Irreconcilable marital differences (19-A M.R.S. \u00c2\u00a7902(1)(H))",
+   "source": "https://legislature.maine.gov/statutes/19-A/title19-Asec902.html",
+   "note": "'Irreconcilable breakdown' is not the statutory term; groundsSection ('There exist irreconcilable marital differences') is already correct."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://legislature.maine.gov/statutes/19-A/title19-Asec951-A.html",
+   "note": "First citation '\u00c2\u00a7951-A' = 19-A M.R.S. \u00c2\u00a7951-A Spousal support \u00e2\u0080\u0094 current statute (amended through PL 2023)."
+  }
+ },
+ "MI": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-9",
+   "note": "MCL 552.9: 180 days in state + 10 days in county immediately before filing. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-9f",
+   "note": "MCL 552.9f: 60 days from filing (no minors); 6 months with minor children, reducible to 60 for hardship. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-6",
+   "note": "Complaint filed in circuit court; family division handles divorce."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-6",
+   "note": "'Complaint for Divorce', Plaintiff/Defendant \u2014 correct for Michigan."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-6",
+   "note": "Template reproduces MCL 552.6 statutory language verbatim (breakdown of the marriage relationship / objects of matrimony destroyed) \u2014 MI's only ground."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legislature.mi.gov/Laws/MCL?objectName=MCL-552-6",
+   "note": "MCL 552.6 is the correct, current grounds statute."
+  }
+ },
+ "MN": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.revisor.mn.gov/statutes/cite/518.07",
+   "note": "518.07: one party resident/domiciliary 180 days immediately preceding commencement; no county requirement. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://mncourts.gov/help-topics/divorce",
+   "note": "No mandatory post-filing waiting period in Minnesota. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://mncourts.gov/help-topics/divorce",
+   "note": "District Court of the county where either spouse resides. Matches."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://mncourts.gov/help-topics/divorce",
+   "note": "'Petition for Dissolution of Marriage', Petitioner/Respondent \u2014 correct MN usage."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.revisor.mn.gov/statutes/cite/518.06",
+   "note": "518.06 sole ground: irretrievable breakdown of the marriage relationship. groundsSection matches; note groundsText's 'irreconcilable breakdown' is not the statutory term."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.revisor.mn.gov/statutes/cite/518.06",
+   "note": "Minn. Stat. 518.06 (grounds) correct and current."
+  }
+ },
+ "MO": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "452.305: one party resident (or armed-services member stationed in MO) 90 days preceding commencement. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "452.305.1(1): judgment only after 30 days have elapsed since filing of the petition. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "Circuit court (family court divisions in some circuits). Matches."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "'Petition for Dissolution of Marriage', Petitioner/Respondent \u2014 correct MO usage."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "Irretrievably broken / no reasonable likelihood marriage can be preserved \u2014 452.305 with 452.320 procedures; wording matches."
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://revisor.mo.gov/main/OneSection.aspx?section=452.305",
+   "note": "statuteCitations array is EMPTY \u2014 nothing to verify. In-text cites RSMo 452.305 and 452.320 are correct; template comments should be populated to match other states."
+  }
+ },
+ "MS": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-5/",
+   "note": "93-5-5: one party bona fide resident 6 months before filing (not acquired to secure divorce). Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-2/",
+   "note": "93-5-2: irreconcilable-differences complaint must be on file 60 days before hearing; no statutory wait for fault grounds. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-2/",
+   "note": "Chancery Court hears all Mississippi divorces. Matches."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-2/",
+   "note": "'Complaint for Divorce' correct. 'Complainant' is traditional chancery usage still seen in MS practice; MRCP-styled filings use Plaintiff \u2014 acceptable."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-2/",
+   "note": "Irreconcilable differences recognized (93-5-2) BUT requires joint complaint or served/appearing defendant, both parties' written consent/agreement, and is unavailable if contested \u2014 MS has no unilateral no-fault; template should surface this consent requirement."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/mississippi/title-93/chapter-5/section-93-5-5/",
+   "note": "Title 93 ch.5 is Divorce and Alimony; first section-level cite 93-5-5 (6-month residency) correct."
+  }
+ },
+ "MT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://mca.legmt.gov/bills/mca/title_0400/chapter_0040/part_0010/section_0040/0400-0040-0010-0040.html",
+   "note": "40-4-104(1)(a): domicile (or military station) in MT maintained 90 days preceding the findings; conventionally stated as 90 days before filing. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "No decree until 21 days after the date of service \u2014 MCA 40-4-105(3) (response due within 21 days of service). MCA 40-4-107 is the irretrievable-breakdown findings section (30-60 day continuance if one party denies breakdown), not the waiting period.",
+   "source": "https://mca.legmt.gov/bills/mca/title_0400/chapter_0040/part_0010/section_0050/0400-0040-0010-0050.html",
+   "note": "21 days is right; wrong statute cited (40-4-107 vs 40-4-105) and trigger is date of service, not 'served or files a response'."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://mca.legmt.gov/bills/mca/title_0400/chapter_0040/part_0010/section_0040/0400-0040-0010-0040.html",
+   "note": "District court is Montana's dissolution trial court. Matches."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.montanalawhelp.org/resource/ultimate-diy-guide-divorce-and-custody-montana",
+   "note": "'Petition for Dissolution of Marriage', Petitioner/Respondent \u2014 correct MT usage."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://mca.legmt.gov/bills/mca/title_0400/chapter_0040/part_0010/section_0040/0400-0040-0010-0040.html",
+   "note": "Irretrievably broken per 40-4-104(1)(b) \u2014 must be supported by 180-day separation or serious marital discord finding."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://mca.legmt.gov/bills/mca/title_0400/chapter_0040/part_0010/section_0040/0400-0040-0010-0040.html",
+   "note": "First cite 40-4-104 (dissolution/residency/grounds) correct and current."
+  }
+ },
+ "NB": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courtsnb-coursnb.ca/content/cour/en/kings-bench/content/family-division/court-forms.html",
+   "note": "Court of King's Bench of New Brunswick correct; captions typically add 'Family Division' with the judicial district"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www2.gnb.ca/content/dam/gnb/Departments/ag-pg/PDF/Forms/FORM-72a.pdf",
+   "note": "Petition for Divorce (Form 72A) under Rule 72"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Marital Property Act, R.S.N.B. 2012, c. 107",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; NB Marital Property Act cite is correct"
+  }
+ },
+ "NC": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/nc/chapter-50-divorce-and-alimony/nc-gen-st-sect-50-6/",
+   "note": "6 months NC residence by either party (G.S. 50-8, jurisdictional) plus 1-yr separation (G.S. 50-6) \u2014 matches template"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nccourts.gov/help-topics/divorce-and-marriage/separation-and-divorce",
+   "note": "No statutory post-filing cooling-off; 1-yr separate-and-apart must precede filing; procedurally defendant still gets a 30-day answer period before judgment"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nccourts.gov/help-topics/divorce-and-marriage/separation-and-divorce",
+   "note": "District Court Division of the General Court of Justice"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nccourts.gov/assets/documents/forms/cv710-en.pdf",
+   "note": "'Complaint for Absolute Divorce' is the correct instrument; verified complaint required (G.S. 50-8)"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/nc/chapter-50-divorce-and-alimony/nc-gen-st-sect-50-6/",
+   "note": "G.S. 50-6: lived separate and apart one year + 6-month residency; separation is NC's only practical no-fault ground (other route is 3-yr incurable insanity, G.S. 50-5.1); intent-to-be-permanent is correct case-law gloss"
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://www.ncleg.gov/Laws/GeneralStatuteSections/Chapter50",
+   "note": "First cite \u00a7 50-1 exists in Ch. 50 Art. 1 but its text could not be retrieved (ncleg 403, FindLaw 404); substantive cites 50-6/50-8/50-3 used in rendered text are correct"
+  }
+ },
+ "ND": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://ndlegis.gov/cencode/t14c05.pdf",
+   "note": "NDCC 14-05-17: plaintiff resident in good faith 6 months preceding commencement; template omits the alternative (6 months immediately preceding entry of decree) but states the primary rule accurately"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://ndlegis.gov/cencode/t14c05.pdf",
+   "note": "Chapter 14-05 imposes no mandatory waiting/cooling-off period"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.ndcourts.gov/legal-self-help/divorce",
+   "note": "District Court (ndcourts self-help; page blocked direct fetch but corroborated via ndcourts documents)"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.ndcourts.gov/legal-self-help/divorce/start-a-divorce-on-your-own-plaintiff",
+   "note": "Divorce starts by serving Summons and Complaint; Plaintiff/Defendant \u2014 'Complaint for Divorce' is correct"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://ndlegis.gov/cencode/t14c05.pdf",
+   "note": "Irreconcilable differences is a statutory cause (NDCC 14-05-03(7), defined 14-05-09.1); groundsSection matches; groundsText's 'irreconcilable breakdown' is a paraphrase \u2014 prefer statutory term 'irreconcilable differences'"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://ndlegis.gov/cencode/t14c05.pdf",
+   "note": "First substantive cite \u00a714-05-17 (residence requirements) is correct and current; verified against official Century Code PDF"
+  }
+ },
+ "NE": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://nebraskalegislature.gov/laws/statutes.php?statute=42-349",
+   "note": "42-349: one year actual residence with bona fide intent to remain (or military stationed in NE 1 year). Template omits the alternative for marriages solemnized in NE with continuous residence since, but stated rule is correct."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "No hearing/trial (and no decree) until 60 days after perfection of service of process \u2014 Neb. Rev. Stat. 42-363 (jurisdictional). 42-372, which the template cites, governs decree finality and appeals, not the waiting period.",
+   "source": "https://nebraskalegislature.gov/laws/statutes.php?statute=42-363",
+   "note": "60 days is right; trigger is perfection of service (not 'filing or service, whichever is later') and the statute is 42-363, not 42-372."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://nebraskalegislature.gov/laws/statutes.php?statute=42-349",
+   "note": "District court of a county where either party resides. Matches."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/divorce-papers/nebraska/",
+   "note": "'Complaint for Dissolution of Marriage' (official forms DC 6:4(1)/6:5.1), Plaintiff/Defendant \u2014 correct current NE usage."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://nebraskalegislature.gov/laws/statutes.php?statute=42-361",
+   "note": "42-361: marriage irretrievably broken \u2014 Nebraska's sole no-fault ground. Matches."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://nebraskalegislature.gov/laws/statutes.php?statute=42-349",
+   "note": "First cites 42-347 et seq. and 42-349 (residency) correct; but the list's entry labeling 42-372 as the 60-day waiting statute is wrong (should be 42-363)."
+  }
+ },
+ "NH": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://gc.nh.gov/rsa/html/XLIII/458/458-5.htm",
+   "note": "RSA 458:5: both domiciled (no minimum); or plaintiff domiciled + defendant served in-state; or plaintiff domiciled 1 yr \u2014 matches template"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://newhampshirecourts.org/divorce",
+   "note": "No mandatory waiting period; decree final when signed (secondary corroboration; official site blocked fetch)"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://newhampshirecourts.org/divorce",
+   "note": "Circuit Court, Family Division hears divorces (RSA 490-D); official courts.nh.gov page 403'd"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/divorce-papers/new-hampshire/",
+   "note": "Petition for Divorce (NHJB-2057-F), Petitioner/Respondent"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://gc.nh.gov/rsa/html/XLIII/458/458-7-a.htm",
+   "note": "RSA 458:7-a: 'irreconcilable differences which have caused the irremediable breakdown' \u2014 groundsSection matches verbatim; groundsText is a loose paraphrase"
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://gc.nh.gov/rsa/html/XLIII/458/458-5.htm",
+   "note": "statuteCitations array empty \u2014 nothing to verify; inline RSA 458:5 and 458:7-a are correct"
+  }
+ },
+ "NJ": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "1 year bona fide NJ residence for ALL grounds including irreconcilable differences; only adultery is exempt from the 1-yr duration (N.J.S.A. 2A:34-10). Template description and jurisdictionSection wrongly assert 18 months",
+   "source": "https://law.justia.com/codes/new-jersey/title-2a/section-2a-34-10/",
+   "note": "stateMonths=12 is right, but rendered petition text prints 'eighteen (18) months ... as required by N.J.S.A. 2A:34-10' \u2014 statute says 1 year"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.njcourts.gov/self-help/divorce",
+   "note": "No statutory post-filing waiting period; irreconcilable differences must have existed 6+ months"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.njcourts.gov/self-help/divorce",
+   "note": "Superior Court, Chancery Division, Family Part"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.njcourts.gov/self-help/divorce",
+   "note": "Complaint for Divorce; Plaintiff/Defendant; NJ uses certification not notarized verification \u2014 template's certification form is correct NJ practice"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.njcourts.gov/self-help/divorce",
+   "note": "N.J.S.A. 2A:34-2(i) irreconcilable differences for 6 months, no reasonable prospect of reconciliation \u2014 matches"
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://law.justia.com/codes/new-jersey/title-2a/section-2a-34-10/",
+   "note": "statuteCitations array empty \u2014 nothing to verify; inline 2A:34-2(i) correct; 2A:34-10 is the right section but template pairs it with wrong 18-month text"
+  }
+ },
+ "NL": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "WRONG",
+   "correct": "Supreme Court of Newfoundland and Labrador (Family Division, or General Division depending on location)",
+   "source": "https://www.court.nl.ca/supreme/faq/family-q17/",
+   "note": "'Trial Division' is obsolete \u00e2\u0080\u0094 since 2018 the court has General Division and Family Division; court says divorce goes to General or Family Division by location"
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Originating Application (Family Law), Form F4.03A (or Joint Originating Application F4.04A)",
+   "source": "https://www.court.nl.ca/supreme/family-division/info-common-legal-issues/divorce-and-separation/",
+   "note": "NL abandoned 'Petition for Divorce'; divorce is commenced by Originating Application under the Supreme Court Family Rules"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Law Act, R.S.N.L. 1990, c. F-2",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; RSNL 1990 c. F-2 part is correct"
+  }
+ },
+ "NM": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.divorcenet.com/states/new_mexico/nm_faq02",
+   "note": "6 months domicile before filing, NMSA 40-4-5 (official statute sites blocked fetch; secondary corroboration)"
+  },
+  "waitingPeriod": {
+   "verdict": "UNCERTAIN",
+   "source": "https://www.divorcenet.com/states/new_mexico/nm_faq02",
+   "note": "Secondary sources say courts wait 30 days after service before hearings, but it functions as the respondent's 30-day answer window and doesn't apply to joint petitions; could not confirm a statutory 'mandatory cooling-off before final decree'"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://selfrepresentation.nmcourts.gov/divorce/",
+   "note": "District Court"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://nmcourts.gov/wp-content/uploads/sites/62/2023/11/4A-103.pdf",
+   "note": "Supreme Court-approved forms 4A-102/4A-103 'Petition for Dissolution of Marriage'; Petitioner/Respondent"
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Incompatibility \u2014 NMSA 1978 \u00a740-4-1(A) (defined \u00a740-4-2: discord/conflict of personalities destroying legitimate ends of marriage); 'irreconcilable breakdown' is not NM's statutory ground",
+   "source": "https://www.divorcenet.com/states/new_mexico/nm_faq02",
+   "note": "groundsText prints generic breakdown sentence; groundsSection's incompatibility wording is correct"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.divorcenet.com/states/new_mexico/nm_faq02",
+   "note": "First substantive cite \u00a740-4-5 (residence, 6 months) is the correct current section; corroborated via secondary source only"
+  }
+ },
+ "NS": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://courts.ns.ca/sites/default/files/forms/CPR%20rules/Rule%2059%20Forms/NSSCFD_Form_59.09_Petition_for_Divorce_PDF_21_02.pdf",
+   "note": "Supreme Court of Nova Scotia (Family Division) matches official Form 59.09 caption"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nsfamilylaw.ca/separation-divorce/divorce/divorce-forms-rule-59",
+   "note": "NS retains Petition for Divorce (Form 59.09, CPR Rule 59)"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Matrimonial Property Act, R.S.N.S. 1989, c. 275",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; MPA chapter shows as 'c. 2' (truncated/wrong) \u00e2\u0080\u0094 correct chapter is 275"
+  }
+ },
+ "NT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nwtcourts.ca/en/forms/",
+   "note": "Supreme Court of the Northwest Territories is correct"
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Petition for Divorce (or Joint Petition for Divorce)",
+   "source": "https://www.nwtcourts.ca/en/forms/",
+   "note": "NWT Supreme Court divorce originating documents are 'Petition for Divorce' / 'Joint Petition for Divorce', not 'Application for Divorce'"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Law Act, S.N.W.T. 1997, c. 18",
+   "source": "https://www.justice.gov.nt.ca/en/files/legislation/family-law/family-law.a.pdf",
+   "note": "Omits '(2nd Supp.)'; SNWT 1997 c. 18 part is correct"
+  }
+ },
+ "NU": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nunavutcourts.ca/index.php/forms/category/145-divorce-forms",
+   "note": "Nunavut Court of Justice is correct \u00e2\u0080\u0094 Canada's only unified superior court hears divorce (there is no separate 'Supreme Court of Nunavut' trial court for divorce filings)"
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Petition for Divorce (or Joint Petition for Divorce), per Nunavut Divorce Rules R-015-2021",
+   "source": "https://www.nunavutcourts.ca/index.php/forms/category/145-divorce-forms",
+   "note": "NCJ divorce forms use 'Petition for Divorce', not 'Application for Divorce'"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Law Act, S.N.W.T. (Nu) 1997, c. 18 (consolidated as C.S.Nu. c. F-30)",
+   "source": "https://www.canlii.org/en/nu/laws/stat/csnu-c-f-30/latest/csnu-c-f-30.html",
+   "note": "'Family Law Act (SNu 2012, c. 30)' does not exist \u00e2\u0080\u0094 Nunavut's FLA is the duplicated SNWT 1997 c. 18 statute; also omits '(2nd Supp.)'"
+  }
+ },
+ "NV": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/nevada/chapter-125/statute-125-020/",
+   "note": "NRS 125.020: either party resident 6 weeks before filing; resident witness practice standard"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://selfhelp.nvcourts.gov/faq/questions-about-divorce",
+   "note": "NV courts self-help FAQ: 'No. There is no waiting period.'"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/nevada/chapter-125/statute-125-020/",
+   "note": "NRS 125.020 title: verified complaint; jurisdiction of district court"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://selfhelp.nvcourts.gov/faq/questions-about-divorce",
+   "note": "Complaint for Divorce (or Joint Petition); NRS 125.020 requires verified complaint"
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Incompatibility \u2014 NRS 125.010(3); 'irreconcilable breakdown' is not a Nevada statutory ground",
+   "source": "https://law.justia.com/codes/nevada/chapter-125/statute-125-010/",
+   "note": "groundsText prints generic breakdown sentence; also groundsSection cites NRS 125.010(2) which is the 1-yr separation ground, incompatibility is (3)"
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://law.justia.com/codes/nevada/chapter-125/statute-125-020/",
+   "note": "statuteCitations array is empty \u2014 nothing to verify; inline NRS 125.020 correct, inline NRS 125.010(2) subsection wrong for incompatibility"
+  }
+ },
+ "NY": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nysenate.gov/legislation/laws/DOM/230",
+   "note": "DRL \u00a7230 matches all five template options: 2 yrs; or 1 yr + married in NY / lived as spouses in NY / cause arose in NY; or cause arose in NY + both residents (no duration)"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nysenate.gov/legislation/laws/DOM/170",
+   "note": "No mandatory waiting period; DRL \u00a7170(7) requires irretrievable breakdown for 6+ months stated under oath"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nycourts.gov/Courthelp/family/divorceOverview.shtml",
+   "note": "Supreme Court is the only NY court that grants divorce"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nycourts.gov/Courthelp/family/divorceOverview.shtml",
+   "note": "Commenced by Summons with Notice or Summons + Verified Complaint; Plaintiff/Defendant; 'Verified Complaint' is the correct pleading name"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nysenate.gov/legislation/laws/DOM/170",
+   "note": "DRL \u00a7170(7) wording matches: relationship broken down irretrievably for at least six months, stated under oath"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.nysenate.gov/legislation/laws/DOM/170",
+   "note": "First cite \u00a7170 = DRL grounds for divorce \u2014 correct and current"
+  }
+ },
+ "OH": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "Only the PLAINTIFF's residency counts: plaintiff must be an Ohio resident at least 6 months before filing (R.C. 3105.03); the 90-day county residency is a venue basis under Civ.R. 3(C) for the plaintiff, not a defendant-alternative statutory requirement",
+   "source": "https://codes.ohio.gov/ohio-revised-code/section-3105.03",
+   "note": "Durations (6 mo / 90 days) are right, but description says 'Plaintiff or Defendant' \u2014 statute says plaintiff only; the jurisdictionSection text itself attributes correctly to plaintiff"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.supremecourt.ohio.gov/courts/services-to-courts/domestic-relations-resource-guide/termination-of-marriage/",
+   "note": "Civ.R. 75(K): divorce may not be heard until 42 days after service of process; non-waivable"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.ohio.gov/ohio-revised-code/section-3105.03",
+   "note": "Court of Common Pleas hears divorce; Domestic Relations Division correct in counties that have one"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.supremecourt.ohio.gov/courts/services-to-courts/domestic-relations-resource-guide/termination-of-marriage/",
+   "note": "Adversarial action is a Complaint for Divorce; 'dissolution' is the separate joint-petition procedure (R.C. 3105.61), correctly distinguished"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/oh/title-xxxi-domestic-relations-children/oh-rev-code-sect-3105-01/",
+   "note": "R.C. 3105.01(K) is incompatibility, 'unless denied by either party' \u2014 template omits the denial caveat but ground and letter are correct"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/oh/title-xxxi-domestic-relations-children/oh-rev-code-sect-3105-01/",
+   "note": "First substantive cite \u00a7 3105.01 is the current grounds statute"
+  }
+ },
+ "OK": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "State residency (6 months) may be satisfied by petitioner OR respondent (43 O.S. \u00a7 102); the 30-day county rule is a VENUE provision in 43 O.S. \u00a7 103, and filing in the county where respondent resides is an alternative",
+   "source": "https://law.justia.com/codes/oklahoma/title-43/section-43-103/",
+   "note": "Template attributes 6-month rule to petitioner only and cites \u00a7 102 for the 30-day county requirement; county rule lives in \u00a7 103 and is not the only venue option"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/oklahoma/title-43/section-43-107-1/",
+   "note": "90 days from filing with minor children (43 O.S. \u00a7 107.1; waivable for good cause \u2014 template omits this exception) and petition must be on file 10 days when no children"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/oklahoma/title-43/section-43-102/",
+   "note": "Divorce is filed in District Court"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://oklaw.org/self-help-forms",
+   "note": "'Petition for Divorce' is accepted; note Oklahoma self-help/court forms more commonly title it 'Petition for Dissolution of Marriage'"
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Oklahoma's no-fault ground is incompatibility (43 O.S. \u00a7 101); 'irreconcilable breakdown' is not a statutory ground",
+   "source": "https://law.justia.com/codes/oklahoma/title-43/section-43-101/",
+   "note": "groundsText prints the generic irreconcilable-breakdown sentence; the groundsSection ('The parties are incompatible. (43 O.S. \u00a7101)') is the correct one"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/oklahoma/title-43/section-43-107-1/",
+   "note": "First cite \u00a7 107.1 is the current Title 43 waiting-period statute"
+  }
+ },
+ "ON": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://ontariocourtforms.on.ca/en/family-law-rules-forms/8a/",
+   "note": "Superior Court of Justice (incl. Family Court branch locations) is correct"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://ontariocourtforms.on.ca/en/family-law-rules-forms/8a/",
+   "note": "Form 8A 'Application (Divorce)' \u00e2\u0080\u0094 'Application for Divorce' is correct ON terminology"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Law Rules, O. Reg. 114/99",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; O. Reg. 114/99 part is correct"
+  }
+ },
+ "OR": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "ORS 107.075: resident/domiciled at filing if marriage solemnized in Oregon; otherwise 6 months continuous residency"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "No mandatory waiting period; former ORS 107.065 90-day period repealed by 2011 c.114 \u00a71"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "Dissolution is filed in circuit court"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "Oregon uses 'dissolution of marriage'; 'Petition for Dissolution of Marriage' is the correct instrument"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "ORS 107.025: 'irreconcilable differences ... have caused the irremediable breakdown of the marriage' \u2014 groundsSection matches exactly; groundsText paraphrases ('irreconcilable breakdown') but the ground is recognized"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.oregonlegislature.gov/bills_laws/ors/ors107.html",
+   "note": "ORS ch. 107 is the dissolution chapter; first specific cite ORS 107.075 (residency) is correct and current"
+  }
+ },
+ "PA": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legis.state.pa.us/WU01/LI/LI/CT/HTM/23/00.031.004.000..HTM",
+   "note": "23 Pa.C.S. \u00a7 3104(b): at least one party bona fide resident of PA 6 months before commencement; no county durational requirement"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.law.cornell.edu/regulations/pennsylvania/231-Pa-Code-r-1920.42",
+   "note": "\u00a7 3301(c) says 90 days from 'commencement of an action', but Pa.R.C.P. 1920.42 requires consent affidavits signed 90+ days after service of the complaint, so 'from service' matches operative practice; \u00a7 3301(d) 1-year separation (Act 102 of 2016) also confirmed"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.pacodeandbulletin.gov/Display/pacode?file=/secure/pacode/data/231/chapter1920/chap1920toc.html&d=reduce",
+   "note": "Divorce actions are brought in the Court of Common Pleas"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.pacodeandbulletin.gov/Display/pacode?file=/secure/pacode/data/231/chapter1920/s1920.72.html&d=reduce",
+   "note": "Pa.R.C.P. 1920.72 prescribes the form of complaint; 'Complaint in Divorce' is standard PA styling"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legis.state.pa.us/WU01/LI/LI/CT/HTM/23/00.033.001.000..HTM",
+   "note": "23 Pa.C.S. \u00a7 3301(c): irretrievable breakdown with mutual consent is a recognized no-fault ground"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.legis.state.pa.us/WU01/LI/LI/CT/HTM/23/00.033.001.000..HTM",
+   "note": "First cite \u00a7 3101 is the Divorce Code short-title section of 23 Pa.C.S.; correct and current"
+  }
+ },
+ "PE": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "WRONG",
+   "correct": "Supreme Court of Prince Edward Island",
+   "source": "https://www.courts.pe.ca/supreme-court",
+   "note": "'(Trial Division)' is obsolete \u00e2\u0080\u0094 the 2008 Judicature Act made the Supreme Court a single-division trial court and moved appeals to the new Court of Appeal of PEI"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courts.pe.ca/sites/www.courts.pe.ca/files/Forms%20and%20Rules/A-70.pdf",
+   "note": "PEI retains Petition for Divorce (Form 70A, Rule 70)"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Law Act, R.S.P.E.I. 1988, c. F-2.1",
+   "source": "https://www.canlii.org/en/pe/laws/stat/rspei-1988-c-f-2.1/latest/rspei-1988-c-f-2.1.html",
+   "note": "PEI has no 'Matrimonial Property Act' \u00e2\u0080\u0094 matrimonial property is governed by the Family Law Act; also omits '(2nd Supp.)'"
+  }
+ },
+ "QC": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.quebec.ca/en/family-and-support-for-individuals/separation-divorce/marriage-civil-union/divorce/about",
+   "note": "Superior Court (Cour sup\u00c3\u00a9rieure) by judicial district is correct"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.quebec.ca/en/family-and-support-for-individuals/separation-divorce/marriage-civil-union/divorce/about",
+   "note": "Application for divorce / demande en divorce is correct; note QC parties are styled Applicant/Defendant (demandeur/d\u00c3\u00a9fendeur), template's 'Plaintiff' is slightly off"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Code of Civil Procedure, CQLR c. C-25.01",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; CCP cite is correct"
+  }
+ },
+ "RI": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://webserver.rilegislature.gov/Statutes/TITLE15/15-5/15-5-12.htm",
+   "note": "\u00a7 15-5-12: plaintiff domiciled inhabitant/resident 1 year before filing; statute alternatively allows defendant's 1-year domicile with in-state service \u2014 template states the primary rule"
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "3 months after trial and decision before final judgment (\u00a7 15-5-23); for the living-separate-and-apart (3-year) ground the exception is 20 days after entry of decision (\u00a7 15-5-3(b)), not 21",
+   "source": "https://webserver.rilegislature.gov/Statutes/TITLE15/15-5/15-5-3.htm",
+   "note": "Core 90-day/3-month claim confirmed; only the exception's day-count is off by one"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://webserver.rilegislature.gov/Statutes/TITLE15/15-5/15-5-12.htm",
+   "note": "Divorce is heard in Rhode Island Family Court (R.I. Gen. Laws \u00a7 8-10-3), which the template's citation list includes"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://webserver.rilegislature.gov/Statutes/TITLE15/15-5/15-5-12.htm",
+   "note": "\u00a7 15-5-12 speaks of the 'complaint for divorce'; 'Complaint for Divorce' is the correct instrument"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/rhode-island/title-15/chapter-15-5/section-15-5-3/",
+   "note": "\u00a7 15-5-3.1: irreconcilable differences causing irremediable breakdown is RI's no-fault ground; groundsSection cites it correctly, groundsText is a loose paraphrase"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://webserver.rilegislature.gov/Statutes/TITLE15/15-5/15-5-12.htm",
+   "note": "Chapter 15-5 (Divorce and Separation) and first specific cite \u00a7 15-5-12 (residency) are correct and current"
+  }
+ },
+ "SC": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.scstatehouse.gov/code/t20c003.php",
+   "note": "\u00a7 20-3-30: plaintiff 1 year; only 3 months when both parties are SC residents at commencement \u2014 matches template"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.scstatehouse.gov/code/t20c003.php",
+   "note": "\u00a7 20-3-80: no final decree before 3 months (~90 days) after filing; exception lets desertion/one-year-separation cases proceed after responsive pleadings or default; no-fault requires 1-year separation before filing \u2014 matches template's two-track claim"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.scstatehouse.gov/code/t20c003.php",
+   "note": "Family Court has exclusive jurisdiction over divorce in SC (S.C. Code \u00a7 63-3-530)"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.sccourts.org/forms/",
+   "note": "SC self-represented litigant divorce packets use 'Complaint for Divorce (One-Year Continuous Separation)'"
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "SC does not recognize irreconcilable differences/'irreconcilable breakdown'; the only no-fault ground is living separate and apart without cohabitation for 1 year, S.C. Code \u00a7 20-3-10(5)",
+   "source": "https://www.scstatehouse.gov/code/t20c003.php",
+   "note": "groundsText prints the generic irreconcilable-breakdown sentence; the groundsSection (one-year continuous separation, \u00a7 20-3-10(5)) is the correct one"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.scstatehouse.gov/code/t20c003.php",
+   "note": "Title 20, Chapter 3 is the Divorce chapter; first specific cite \u00a7 20-3-30 (residency) correct and current"
+  }
+ },
+ "SD": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://sdlegislature.gov/Statutes/Codified_Laws/DisplayStatute.aspx?Statute=25-4-30&Type=Statute",
+   "note": "SDCL 25-4-30: plaintiff must be a resident (or service member stationed in-state) at time of commencement; no durational minimum. Template's 'if the cause of action arose in SD' conditional is surplus \u2014 there is no duration requirement in any case"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://ujs.sd.gov/media/xrzmfd1k/ujs-309-instructions-and-form-for-summons-without-minor-children_04_2024.pdf",
+   "note": "SDCL 25-4-34: divorce may not be heard/determined until 60 days from completed service of summons and complaint; SD UJS forms restate this"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://ujs.sd.gov/media/xrzmfd1k/ujs-309-instructions-and-form-for-summons-without-minor-children_04_2024.pdf",
+   "note": "Divorce is filed in Circuit Court"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://ujs.sd.gov/media/2zynoops/divorce-without-children-plaintiff-print-all-packet_07_2026.pdf",
+   "note": "SD UJS divorce packets use Summons and Complaint; 'Complaint for Divorce' is correct"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://sdlegislature.gov/Statutes/25-4",
+   "note": "Irreconcilable differences is a recognized SD ground (SDCL 25-4-2(7)); SDCL 25-4-17.1 defines it \u2014 template's citation is the definitional section, acceptable"
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://sdlegislature.gov/Statutes/25-4",
+   "note": "SDCL ch. 25-4 (Divorce and Separate Maintenance) and first specific cite \u00a7 25-4-30 (residency) correct and current"
+  }
+ },
+ "SK": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://sasklawcourts.ca/",
+   "note": "Court of King's Bench for Saskatchewan, Judicial Centre venue \u00e2\u0080\u0094 correct"
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://plaindivorce.com/blog/guide-to-uncontested-divorce-in-saskatchewan/",
+   "note": "Petition for Divorce (Form 15-1) under KB Rules Part 15 family proceedings"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); The Family Property Act, S.S. 1997, c. F-6.3",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; Family Property Act chapter truncated to 'F-6.' \u00e2\u0080\u0094 full cite is F-6.3"
+  }
+ },
+ "TN": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/tn/title-36-domestic-relations/tn-code-sect-36-4-104/",
+   "note": "Template's blanket 6-month rule is the safe simplification; statutorily the 6-month requirement applies when the grounds arose out of state while plaintiff resided out of state (TCA 36-4-104). Over-inclusive, not wrong."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/tn/title-36-domestic-relations/tn-code-sect-36-4-101/",
+   "note": "TCA 36-4-101(b): complaint must be on file 60 days (no unmarried child under 18) / 90 days (with such child) before being heard. Matches template."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://divorce.law/guides/filing-for-divorce/tennessee/",
+   "note": "TN divorces are filed in Circuit or Chancery Court; Circuit Court caption is proper."
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Complaint for Divorce (TN Supreme Court approved forms use 'Verified Complaint for Divorce')",
+   "source": "https://divorce.law/guides/divorce-papers/tennessee/",
+   "note": "TN practice styles the initial pleading a Complaint, not a Petition; template's own verificationText already says 'Complaint/Petition'."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Irreconcilable differences is Tenn. Code Ann. \u00a7 36-4-101(a)(14), not (a)(13); (a)(13) is abandonment/refusal to provide",
+   "source": "https://codes.findlaw.com/tn/title-36-domestic-relations/tn-code-sect-36-4-101/",
+   "note": "The ground itself (irreconcilable differences, mutual consent) is valid; only the printed subdivision cite is wrong."
+  },
+  "citation": {
+   "verdict": "UNCERTAIN",
+   "source": "https://codes.findlaw.com/tn/title-36-domestic-relations/tn-code-sect-36-4-104/",
+   "note": "statuteCitations array is empty \u2014 nothing to verify. Inline cites TCA 36-4-104 (residency) and 36-4-101(b) (waiting) are correct; grounds cite (a)(13) is wrong per grounds finding."
+  }
+ },
+ "TX": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/tx/family-code/fam-sect-6-301/",
+   "note": "\u00a7 6.301: 6-month Texas domiciliary + 90-day county resident. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/tx/family-code/fam-sect-6-702/",
+   "note": "\u00a7 6.702: no divorce before 60th day after filing; exceptions for family-violence conviction/deferred adjudication and active protective orders. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://texaslawhelp.org/guide/i-need-a-divorce-we-do-not-have-minor-children",
+   "note": "Filed in District Court (a few counties use a county court at law with family jurisdiction)."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://texaslawhelp.org/form/original-petition-for-divorce-divorce-set-a",
+   "note": "'Original Petition for Divorce' is the standard TX instrument name."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://texas.public.law/statutes/tex._fam._code_section_6.001",
+   "note": "Printed wording tracks \u00a7 6.001 insupportability verbatim."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/texas/family-code/title-1/subtitle-c/chapter-6/",
+   "note": "First substantive cite 'Family Code Chapter 6 (Suit for Dissolution of Marriage)' is correct. Minor: later entry labels \u00a7 6.301 '(Petition)' \u2014 \u00a7 6.301 is actually the General Residency Rule."
+  }
+ },
+ "UT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.utcourts.gov/en/self-help/case-categories/family/divorce.html",
+   "note": "3 months residency in the Utah county of filing (Utah Code \u00a7 81-4-402(1)); county residency necessarily includes state residency. Matches template."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.utcourts.gov/en/self-help/case-categories/family/divorce.html",
+   "note": "30 days from filing before decree, waivable for extraordinary circumstances, per recodified \u00a7 81-4-402. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.utcourts.gov/en/self-help/case-categories/family/divorce.html",
+   "note": "District Court is correct."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.utcourts.gov/en/self-help/case-categories/family/divorce.html",
+   "note": "'Petition for Divorce' is the instrument; 'Verified' prefix acceptable."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.utcourts.gov/en/self-help/case-categories/family/divorce.html",
+   "note": "Irreconcilable differences is a Utah ground, now Utah Code \u00a7 81-4-405 (formerly \u00a7 30-3-1(3)) \u2014 matches template's cite."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/utah/title-81/chapter-4/part-4/section-81-4-402/",
+   "note": "Title 81 (Utah Domestic Relations Code), Chapter 4 'Dissolution of Marriage' \u2014 recodification (eff. 9/1/2024) correctly handled; \u00a7 81-4-402 is 'Petition for divorce \u2014 Divorce proceedings \u2014 Temporary orders'."
+  }
+ },
+ "VA": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.lis.virginia.gov/vacode/title20/section20-97/",
+   "note": "\u00a7 20-97: one party an actual bona fide resident and domiciliary of Virginia for at least 6 months preceding filing. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.lis.virginia.gov/vacode/title20/section20-91/",
+   "note": "Substance correct: 1-year separation, reduced to 6 months with separation agreement + no minor children. Note both provisions are in \u00a7 20-91(A)(9)(a) \u2014 the template's attribution of the 1-year rule to '(9)(b)' is a miscite ((9)(b) is a retroactivity/validation provision)."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.fairfaxcounty.gov/circuit/civil-case-information/divorce",
+   "note": "Circuit Court is correct for VA divorce."
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "COMPLAINT FOR DIVORCE",
+   "source": "https://www.fairfaxcounty.gov/circuit/civil-case-information/divorce",
+   "note": "'Bill of Complaint' is obsolete since Virginia's 2006 law/equity merger (Rule 3:2); current practice files a 'Complaint'."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "Cite Va. Code \u00a7 20-91(A)(9)(a) for the 1-year separation ground; (9)(b) merely validates prior decrees/retroactivity",
+   "source": "https://law.lis.virginia.gov/vacode/title20/section20-91/",
+   "note": "The separation-based no-fault ground and its wording are valid; only the printed subdivision cite '(9)(b)' is wrong \u2014 both the 1-year and 6-month rules live in (A)(9)(a)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.lis.virginia.gov/vacode/title20/section20-91/",
+   "note": "'Va. Code \u00a7 20-91 et seq.' \u2014 \u00a7 20-91 is grounds for divorce; correct and current."
+  }
+ },
+ "VT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/vt/title-15-domestic-relations/vt-st-tit-15-sect-592.html",
+   "note": "6 months residency to file (15 V.S.A. \u00a7 592) \u2014 correct; note \u00a7 592 also requires 1 year residency before the final hearing, which the template omits."
+  },
+  "waitingPeriod": {
+   "verdict": "WRONG",
+   "correct": "Vermont has a 90-day (3-month) nisi period: the decree becomes absolute 3 months after entry unless the court sets an earlier date (15 V.S.A. \u00a7 554); additionally no final hearing until a party has resided in VT 1 year (\u00a7 592)",
+   "source": "https://legislature.vermont.gov/statutes/section/15/011/00554",
+   "note": "Template claims 'no mandatory waiting period' \u2014 incorrect; the nisi period is mandatory by default."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.vtcourts.gov/family/divorce",
+   "note": "Family Division of the Superior Court (styled 'Vermont Superior Court, [County] Unit, Family Division')."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.vtcourts.gov/family/divorce",
+   "note": "'Complaint for Divorce' is correct."
+  },
+  "grounds": {
+   "verdict": "WRONG",
+   "correct": "'The parties have lived separate and apart for six consecutive months and the resumption of marital relations is not reasonably probable' \u2014 15 V.S.A. \u00a7 551(7)",
+   "source": "https://codes.findlaw.com/vt/title-15-domestic-relations/vt-st-tit-15-sect-551.html",
+   "note": "'Irretrievably broken' is NOT a Vermont statutory ground; \u00a7 551 lists 7 grounds and the no-fault ground is the 6-month separation, \u00a7 551(7)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/vt/title-15-domestic-relations/vt-st-tit-15-sect-551.html",
+   "note": "First cite '\u00a7 551' (15 V.S.A. \u00a7 551) is the correct grounds section, though the template pairs it with non-statutory 'irretrievably broken' wording (see grounds)."
+  }
+ },
+ "WA": {
+  "residency": {
+   "verdict": "WRONG",
+   "correct": "Substance is right (no durational requirement \u2014 petitioner must be a WA resident, or armed-forces member stationed in WA, or married to one), but the governing statute is RCW 26.09.030; RCW 26.09.020 is 'Petition\u2014Contents'",
+   "source": "https://app.leg.wa.gov/rcw/default.aspx?cite=26.09.030",
+   "note": "Template's duration claim confirmed; the printed cite (RCW 26.09.020) points to the petition-contents section, not the residency basis."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://app.leg.wa.gov/rcw/default.aspx?cite=26.09.030",
+   "note": "90 days is correct (RCW 26.09.030), but the trigger is 90 days elapsed since BOTH filing and service/publication of summons \u2014 template's 'from filing_date' is incomplete."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courts.wa.gov/forms/",
+   "note": "Superior Court of Washington, County of ___ \u2014 correct."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.knaufsantoslaw.com/blog/divorce-forms/washington-state-divorce-papers-pdf/",
+   "note": "Statutory instrument is a petition for dissolution of marriage (RCW 26.09.020); note WA's mandatory pattern form FL Divorce 201 is titled 'Petition for Divorce (Dissolution)'."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://app.leg.wa.gov/rcw/default.aspx?cite=26.09.030",
+   "note": "'Irretrievably broken' is the sole WA ground (RCW 26.09.030)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://app.leg.wa.gov/rcw/default.aspx?cite=26.09.030",
+   "note": "Chapter 26.09 (official title 'Dissolution proceedings\u2014Legal separation') is the right chapter. Fix within list: 'RCW 26.09.020 \u2014 Residency requirement' is mislabeled; residency + 90-day rule are RCW 26.09.030."
+  }
+ },
+ "WI": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://docs.legis.wisconsin.gov/document/statutes/767.301",
+   "note": "\u00a7 767.301: bona fide resident of WI 6 months + county 30 days preceding filing. Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://docs.legis.wisconsin.gov/document/statutes/767.335",
+   "note": "\u00a7 767.335: no trial/final hearing until 120 days after service of summons+petition or after filing of joint petition. Matches; note the statute does allow an emergency-hearing exception (health/safety) which the template's empty exceptions list omits."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.wicourts.gov/formdisplay/FA-4109V.pdf?formNumber=FA-4109V&formType=Form&formatId=2&language=en",
+   "note": "Circuit Court is correct; filings go to the Clerk of Circuit Court."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.wicourts.gov/formdisplay/FA-4109V.pdf?formNumber=FA-4109V&formType=Form&formatId=2&language=en",
+   "note": "'Petition' is the WI instrument (official forms FA-4108V/FA-4109V, \u00a7 767.215)."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://docs.legis.wisconsin.gov/document/statutes/767.315",
+   "note": "'Irretrievably broken' is the sole WI ground (\u00a7 767.315)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://docs.legis.wisconsin.gov/statutes/statutes/767",
+   "note": "Chapter 767 'Actions Affecting the Family' \u2014 correct chapter and name; \u00a7\u00a7 767.301/.315/.335 all verified current."
+  }
+ },
+ "WV": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/wv/chapter-48-domestic-relations/wv-code-sect-48-5-105/",
+   "note": "\u00a7 48-5-105: marriage in WV \u2192 resident at commencement, no minimum duration; marriage outside WV \u2192 1 year continuous residency preceding filing. Template matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/wv/chapter-48-domestic-relations/wv-code-sect-48-5-201/",
+   "note": "No mandatory post-filing waiting period; irreconcilable-differences divorce requires respondent's answer admitting the allegation (\u00a7 48-5-201). Minor: the 1-year voluntary separation alternative is \u00a7 48-5-202, not \u00a7 48-5-201."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courtswv.gov/node/615",
+   "note": "Family Court is correct (WV Judiciary form SCA-FC-101 filed in family court)."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.courtswv.gov/node/615",
+   "note": "'Petition for Divorce' matches official form SCA-FC-101."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/wv/chapter-48-domestic-relations/wv-code-sect-48-5-201/",
+   "note": "Irreconcilable differences is a valid WV no-fault ground (\u00a7 48-5-201); requires the respondent's answer admitting it \u2014 otherwise use 1-year separation (\u00a7 48-5-202)."
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "W. Va. Code \u00a7 48-5-101 et seq. \u2014 every WV citation in the template is prefixed 'Va. Code', which denotes the Virginia Code",
+   "source": "https://code.wvlegislature.gov/48-5-105/",
+   "note": "Section numbers are right for West Virginia; the reporter prefix is wrong throughout the WV citation list."
+  }
+ },
+ "WY": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/wy/title-20-domestic-relations/wy-st-sect-20-2-107/",
+   "note": "\u00a7 20-2-107: 60 days residency immediately preceding filing (or residence since a Wyoming-solemnized marriage). Matches."
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/wyoming/2010/Title20/chapter2.html",
+   "note": "\u00a7 20-2-108: no decree entered less than 20 days from the date the complaint is filed. Matches."
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.wyocourts.gov/legal-help-by-topic/divorce/",
+   "note": "District Court is correct."
+  },
+  "terminology": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.wyocourts.gov/legal-help-by-topic/divorce/",
+   "note": "'Complaint for Divorce' matches the Wyoming Judicial Branch self-help packets."
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://codes.findlaw.com/wy/title-20-domestic-relations/wy-st-sect-20-2-104/",
+   "note": "'Irreconcilable differences in the marital relationship' is Wyoming's no-fault ground (\u00a7 20-2-104)."
+  },
+  "citation": {
+   "verdict": "CONFIRMED",
+   "source": "https://law.justia.com/codes/wyoming/2010/Title20/chapter2.html",
+   "note": "Wyo. Stat. \u00a7 20-2-101 et seq. (Title 20, Ch. 2 'Dissolution of Marriage') is correct; \u00a7 20-2-104 grounds and \u00a7 20-2-107/-108 entries verified."
+  }
+ },
+ "YT": {
+  "residency": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-3.html",
+   "note": "One-year rule correct; statute now says 'habitually resident'"
+  },
+  "waitingPeriod": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/section-12.html",
+   "note": "Consistent with Divorce Act"
+  },
+  "court": {
+   "verdict": "CONFIRMED",
+   "source": "https://www.yukoncourts.ca/sites/default/files/2022-10/Form%2091A%20STATEMENT%20OF%20CLAIM%20DIVORCE.pdf",
+   "note": "Supreme Court of Yukon is correct"
+  },
+  "terminology": {
+   "verdict": "WRONG",
+   "correct": "Statement of Claim (Family Law \u00e2\u0080\u0094 Divorce), Form 91A under Supreme Court Rule 63",
+   "source": "https://yukon.ca/en/legal-and-social-supports/family-law/file-divorce",
+   "note": "Yukon commences sole divorce by Statement of Claim (Form 91A), not 'Petition for Divorce'"
+  },
+  "grounds": {
+   "verdict": "CONFIRMED",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-2.html",
+   "note": "Matches s.8(2)(a)"
+  },
+  "citation": {
+   "verdict": "WRONG",
+   "correct": "Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Property and Support Act, R.S.Y. 2002, c. 83",
+   "source": "https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html",
+   "note": "Omits '(2nd Supp.)'; FPSA name/year correct (chapter truncated in template)"
+  }
+ }
+}

@@ -1,6 +1,6 @@
 // templates/states/nova_scotia/DivorcePetitionTemplate.js
 // Nova Scotia divorce petition template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Matrimonial Property Act, RSNS 1989, c. 275
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Matrimonial Property Act, RSNS 1989, c. 275
 
 'use strict';
 
@@ -13,8 +13,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Supreme Court of Nova Scotia (Family Division).
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Jurisdiction — either spouse ordinarily resident in province for 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Jurisdiction — either spouse habitually resident in province for 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
@@ -27,7 +27,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3(1)):
- * - Either spouse must have been ordinarily resident in Nova Scotia for at least 1 year
+ * - Either spouse must have been habitually resident in Nova Scotia for at least 1 year
  *   immediately before the application.
  *
  * Nova Scotia-Specific:
@@ -74,7 +74,7 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Nova Scotia for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Nova Scotia for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing beyond the separation ground itself
@@ -103,13 +103,13 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Nova Scotia jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in NS for 1 year.
+   * Either spouse must have been habitually resident in NS for 1 year.
    * NS uses "Petitioner" and "Respondent".
    * Court is the Supreme Court of Nova Scotia (Family Division).
    * Judicature Act, RSNS 1989, c. 240; Nova Scotia Civil Procedure Rules.
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in the Province of Nova Scotia for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in the Province of Nova Scotia for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -141,7 +141,7 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of matrimonial assets pursuant to section 12 of the Matrimonial Property Act, RSNS 1989, c. 275;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];

@@ -58,12 +58,12 @@ class VermontDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'One party must have resided in the State of Vermont for at least six (6) months immediately preceding the filing of this Complaint. (15 V.S.A. § 592)'
     };
 
-    // Vermont has no mandatory statutory waiting period
+    // Vermont decrees issue nisi and become absolute three months after entry
     this.waitingPeriod = {
-      days: 0,
-      startsFrom: 'filing_date',
-      exceptions: [],
-      description: 'No mandatory waiting period in Vermont, though the process typically takes several months.'
+      days: 90,
+      startsFrom: 'decree_entry',
+      exceptions: ['court_may_set_earlier_date'],
+      description: 'Vermont decrees are issued nisi and become absolute three months after entry unless the court fixes an earlier date (15 V.S.A. § 554). A final hearing also requires one year of Vermont residency (15 V.S.A. § 592).'
     };
   }
 

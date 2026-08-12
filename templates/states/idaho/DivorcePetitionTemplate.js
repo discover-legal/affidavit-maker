@@ -37,7 +37,7 @@ class IdahoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'ID';
     this.stateName = 'Idaho';
-    this.documentTitle = 'COMPLAINT FOR DIVORCE';
+    this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {
       this.metadata = require('./divorce-metadata.json');
@@ -138,7 +138,7 @@ class IdahoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (grounds === 'irreconcilable_differences' || grounds === 'no_fault') {
       items.push({
         number: paragraphNum++,
-        content: 'Irreconcilable differences have caused the irremediable breakdown of the marriage. (Idaho Code §32-603(7))',
+        content: 'Irreconcilable differences, which are substantial reasons for not continuing the marriage, have caused the irremediable breakdown of the marriage. (Idaho Code §§32-603(8), 32-616)',
         type: 'grounds'
       });
     } else if (grounds === 'adultery') {
@@ -180,7 +180,7 @@ class IdahoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else if (grounds === 'permanent_insanity') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant is permanently insane, as established by competent medical testimony. (Idaho Code §32-603(8))',
+        content: 'Defendant is permanently insane, as established by competent medical testimony. (Idaho Code §32-603(7))',
         type: 'grounds'
       });
     } else if (grounds === 'living_separate_5_years') {
@@ -192,7 +192,7 @@ class IdahoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else {
       items.push({
         number: paragraphNum++,
-        content: 'Irreconcilable differences have caused the irremediable breakdown of the marriage. (Idaho Code §32-603(7))',
+        content: 'Irreconcilable differences, which are substantial reasons for not continuing the marriage, have caused the irremediable breakdown of the marriage. (Idaho Code §§32-603(8), 32-616)',
         type: 'grounds'
       });
     }

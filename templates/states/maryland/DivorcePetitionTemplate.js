@@ -143,7 +143,7 @@ class MarylandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (grounds === 'mutual_consent') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties mutually consent to the divorce and have executed a written settlement agreement resolving all issues of alimony, property distribution, and, if applicable, child custody, visitation, and child support. (Md. Code, Fam. Law § 7-103(a)(8))',
+        content: 'The parties mutually consent to the divorce and have executed a written settlement agreement resolving all issues of alimony, property distribution, and, if applicable, child custody, visitation, and child support. (Md. Code, Fam. Law § 7-103(a)(3))',
         type: 'grounds'
       });
     } else if (grounds === 'irreconcilable_differences' || grounds === 'no_fault') {

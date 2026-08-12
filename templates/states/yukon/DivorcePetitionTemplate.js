@@ -1,6 +1,6 @@
 // templates/states/yukon/DivorcePetitionTemplate.js
 // Yukon divorce petition template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Family Property and Support Act (RSY 2002, c. 83)
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Family Property and Support Act (RSY 2002, c. 83)
 
 'use strict';
 
@@ -13,8 +13,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * under Yukon Supreme Court Rule 63, filed in the Supreme Court of Yukon (Whitehorse).
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Jurisdiction — either spouse ordinarily resident in territory for 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Jurisdiction — either spouse habitually resident in territory for 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
@@ -26,7 +26,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   replace "custody" and "access" in divorce proceedings
  *
  * Residency Requirement (Divorce Act, s.3(1)):
- * - Either spouse must have been ordinarily resident in Yukon for at least 1 year
+ * - Either spouse must have been habitually resident in Yukon for at least 1 year
  *   immediately before the divorce petition.
  *
  * Yukon-Specific:
@@ -47,7 +47,7 @@ class YukonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'YT';
     this.stateName = 'Yukon';
     this.countryCode = 'CA';
-    this.documentTitle = 'PETITION FOR DIVORCE';
+    this.documentTitle = 'STATEMENT OF CLAIM (DIVORCE)';
 
     try {
       this.metadata = require('./divorce-metadata.json');
@@ -67,7 +67,7 @@ class YukonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Yukon for at least one year immediately before the divorce petition (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Yukon for at least one year immediately before the divorce petition (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing beyond the separation ground itself
@@ -147,10 +147,10 @@ class YukonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Yukon jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Yukon for 1 year.
+   * Either spouse must have been habitually resident in Yukon for 1 year.
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in Yukon for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in Yukon for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -177,7 +177,7 @@ class YukonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of family assets pursuant to the Family Property and Support Act, RSY 2002, c. 83;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];

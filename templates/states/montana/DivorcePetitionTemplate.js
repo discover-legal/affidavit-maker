@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - MCA §40-4-104 — Dissolution of marriage (residency, grounds)
- * - MCA §40-4-107 — 21-day waiting period from service or response
+ * - MCA §40-4-105(3) — no decree until 21 days after service
  * - MCA §40-4-202 — Property disposition (equitable distribution)
  * - MCA §40-4-203 — Maintenance (spousal support)
  * - MCA §40-4-212 — Parenting plan required
@@ -20,7 +20,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Called "Dissolution of Marriage" (NOT divorce)
  * - Purely no-fault — "irretrievable breakdown" or 180-day separation
  * - 90-day residency requirement (MCA §40-4-104)
- * - 21-day waiting period from service or response (MCA §40-4-107)
+ * - No decree until 21 days after the date of service (MCA §40-4-105(3))
  * - Montana eliminated "custody" and "visitation" in 2005 — uses "parenting" exclusively
  * - "Parenting Plan" required in all cases with minor children (MCA §40-4-212)
  * - "Parenting Time" (not visitation)
@@ -63,9 +63,9 @@ class MontanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Montana — 21-day waiting period from service or response
     this.waitingPeriod = {
       days: 21,
-      startsFrom: 'service_or_response',
+      startsFrom: 'service_date',
       exceptions: [],
-      description: 'No decree may be entered until at least 21 days after the respondent is served or files a response. (MCA §40-4-107)'
+      description: 'No decree may be entered until at least 21 days after the date of service. (MCA §40-4-105(3))'
     };
   }
 

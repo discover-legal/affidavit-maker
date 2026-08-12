@@ -1,16 +1,16 @@
 // templates/states/virginia/DivorcePetitionTemplate.js
-// Virginia-specific Bill of Complaint for Divorce template
+// Virginia-specific Complaint for Divorce template
 // Complies with Va. Code § 20-91 et seq.
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
 /**
- * Virginia Bill of Complaint for Divorce Template
+ * Virginia Complaint for Divorce Template
  *
  * Legal References:
  * - Va. Code § 20-91 (Grounds for divorce from the bond of matrimony)
- * - Va. Code § 20-91(9)(a) (6-month separation: no children + separation agreement)
- * - Va. Code § 20-91(9)(b) (1-year separation: general)
+ * - Va. Code § 20-91(A)(9)(a) (no-fault separation: 1 year; 6 months with separation
+ *   agreement and no minor children)
  * - Va. Code § 20-97 (Residency requirement — 6 months domicile)
  * - Va. Code § 20-98 (Venue)
  * - Va. Code § 20-107.1 (Spousal support and maintenance)
@@ -38,7 +38,7 @@ class VirginiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'VA';
     this.stateName = 'Virginia';
-    this.documentTitle = 'BILL OF COMPLAINT FOR DIVORCE';
+    this.documentTitle = 'COMPLAINT FOR DIVORCE';
 
     // Load metadata if available
     try {
@@ -68,7 +68,7 @@ class VirginiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.waitingPeriod = {
       days: 180, // Minimum — 6 months with agreement, no children
       startsFrom: 'separation_date',
-      description: '6 months separation required if no minor children and parties have a signed separation agreement (§ 20-91(9)(a)). Otherwise, 1 year separation required (§ 20-91(9)(b)).'
+      description: '6 months separation required if no minor children and parties have a signed separation agreement (§ 20-91(A)(9)(a)). Otherwise, 1 year separation required (§ 20-91(A)(9)(a)).'
     };
 
     // Virginia formatting requirements
@@ -227,11 +227,11 @@ class VirginiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     switch (grounds) {
       case 'separation_6mo':
-        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of six (6) months. There are no minor children born of or adopted during this marriage, and the parties have entered into a separation agreement resolving all matters. Complainant seeks a divorce from the bond of matrimony pursuant to Va. Code § 20-91(9)(a).`;
+        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of six (6) months. There are no minor children born of or adopted during this marriage, and the parties have entered into a separation agreement resolving all matters. Complainant seeks a divorce from the bond of matrimony pursuant to Va. Code § 20-91(A)(9)(a).`;
 
       case 'separation_1yr':
       case 'separation':
-        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of one (1) year. Complainant seeks a divorce from the bond of matrimony pursuant to Va. Code § 20-91(9)(b).`;
+        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of one (1) year. Complainant seeks a divorce from the bond of matrimony pursuant to Va. Code § 20-91(A)(9)(a).`;
 
       case 'adultery':
         return 'Defendant has been guilty of adultery committed since the marriage, pursuant to Va. Code § 20-91(1). Complainant seeks a divorce from the bond of matrimony on the ground of adultery.';
@@ -243,7 +243,7 @@ class VirginiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         return `Defendant has been guilty of cruelty and caused reasonable apprehension of bodily hurt to Complainant and/or willfully deserted and abandoned Complainant since on or about ${separationDate}, and such desertion has continued for more than one year, pursuant to Va. Code § 20-91(6). Complainant seeks a divorce from the bond of matrimony on the ground of cruelty and/or desertion.`;
 
       default:
-        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of one (1) year, pursuant to Va. Code § 20-91(9)(b).`;
+        return `The parties have lived separate and apart without any cohabitation and without interruption since on or about ${separationDate}, a period in excess of one (1) year, pursuant to Va. Code § 20-91(A)(9)(a).`;
     }
   }
 
@@ -457,7 +457,7 @@ Registration No.: ___________`;
 
         if (divorceData.groundsForDivorce === 'separation_6mo') {
           if (hasChildren) {
-            errors.push('The 6-month separation ground (Va. Code § 20-91(9)(a)) requires NO minor children. You indicated there are minor children. A 1-year separation is required when there are minor children.');
+            errors.push('The 6-month separation ground (Va. Code § 20-91(A)(9)(a)) requires NO minor children. You indicated there are minor children. A 1-year separation is required when there are minor children.');
           }
           if (!hasSeparationAgreement) {
             warnings.push('The 6-month separation ground requires a signed property settlement or separation agreement. Consider using the 1-year separation ground instead.');
@@ -467,7 +467,7 @@ Registration No.: ___________`;
           }
         } else {
           if (separationDate > oneYearAgo) {
-            errors.push('Virginia requires parties to have lived separate and apart for ONE FULL YEAR before filing under Va. Code § 20-91(9)(b). The parties have not yet been separated for one year based on the provided separation date.');
+            errors.push('Virginia requires parties to have lived separate and apart for ONE FULL YEAR before filing under Va. Code § 20-91(A)(9)(a). The parties have not yet been separated for one year based on the provided separation date.');
           }
         }
       }

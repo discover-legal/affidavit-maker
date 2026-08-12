@@ -1,6 +1,6 @@
 // templates/states/newfoundland/DivorcePetitionTemplate.js
 // Newfoundland and Labrador divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Family Law Act, RSNL 1990, c. F-2
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Family Law Act, RSNL 1990, c. F-2
 
 'use strict';
 
@@ -16,8 +16,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * over divorce matters.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Residency — either spouse ordinarily resident in NL for at least 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Residency — either spouse habitually resident in NL for at least 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty (rare)
  * - Family Law Act, RSNL 1990, c. F-2 (provincial — property division on marriage breakdown)
@@ -27,12 +27,12 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Child Support Guidelines, SOR/97-175 (federal support calculation)
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in NL for at least 1 year
+ * - Either spouse must have been habitually resident in NL for at least 1 year
  *   immediately before the divorce application.
  *
  * NL-Specific:
  * - Parties are "Petitioner" and "Respondent"
- * - Court is Supreme Court of Newfoundland and Labrador (Trial Division)
+ * - Court is Supreme Court of Newfoundland and Labrador (General Division, or Family Division where established)
  * - Court File No. instead of "CAUSE NO." or "CASE NO."
  * - Uncontested divorce typically handled on paper without a hearing
  * - Property division: Family Law Act, RSNL 1990, c. F-2 (equal division presumption)
@@ -48,7 +48,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'NL';
     this.stateName = 'Newfoundland and Labrador';
     this.countryCode = 'CA';
-    this.documentTitle = 'PETITION FOR DIVORCE';
+    this.documentTitle = 'ORIGINATING APPLICATION (FAMILY LAW)';
 
     try {
       this.metadata = require('./metadata.json');
@@ -65,11 +65,11 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // NL residency: 1 year ordinarily resident in province (Divorce Act s.3(1))
+    // NL residency: 1 year habitually resident in province (Divorce Act s.3(1))
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Newfoundland and Labrador for at least one year immediately before the application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Newfoundland and Labrador for at least one year immediately before the application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing in NL beyond the separation ground itself
@@ -101,7 +101,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Default court name
    */
   getDefaultCourt(county) {
-    return `SUPREME COURT OF NEWFOUNDLAND AND LABRADOR (TRIAL DIVISION) — ${(county || '[LOCATION]').toUpperCase()}`;
+    return `SUPREME COURT OF NEWFOUNDLAND AND LABRADOR — ${(county || '______________').toUpperCase()}`;
   }
 
   /**
@@ -145,7 +145,7 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of matrimonial property pursuant to the Family Law Act, RSNL 1990, c. F-2;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];
@@ -184,12 +184,12 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * NL jurisdiction statement — ordinarily resident for 1 year.
+   * NL jurisdiction statement — habitually resident for 1 year.
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in the Province of Newfoundland and Labrador for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in the Province of Newfoundland and Labrador for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act.`;
   }
 
   /**

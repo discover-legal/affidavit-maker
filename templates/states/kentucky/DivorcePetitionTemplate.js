@@ -61,9 +61,9 @@ class KentuckyDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Kentucky — 60-day waiting period from filing
     this.waitingPeriod = {
       days: 60,
-      startsFrom: 'filing_date',
+      startsFrom: 'separation',
       exceptions: [],
-      description: 'A decree cannot be entered until 60 days have elapsed after the filing of the petition. (KRS 403.170(1))'
+      description: 'A decree cannot be entered until the parties have lived apart for 60 days; living apart includes living under the same roof without sexual cohabitation. (KRS 403.170(1))'
     };
   }
 

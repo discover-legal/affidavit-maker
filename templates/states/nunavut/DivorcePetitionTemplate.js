@@ -1,6 +1,6 @@
 // templates/states/nunavut/DivorcePetitionTemplate.js
 // Nunavut divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Family Law Act (SNu 2012, c. 30)
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Family Law Act, SNWT (Nu) 1997, c. 18 (consolidated as C.S.Nu. c. F-30)
 
 'use strict';
 
@@ -17,18 +17,18 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * combines the jurisdiction of a superior court and a territorial court into one court.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Jurisdiction — either spouse ordinarily resident in territory for 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Jurisdiction — either spouse habitually resident in territory for 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
- * - Family Law Act, SNu 2012, c. 30 (territorial — division of family property)
+ * - Family Law Act, SNWT (Nu) 1997, c. 18 (territorial — division of family property)
  * - Federal Child Support Guidelines, SOR/97-175
  * - 2021 Divorce Act amendments: "parenting time" and "decision-making responsibility"
  *   replace "custody" and "access" in divorce proceedings
  *
  * Residency Requirement (Divorce Act, s.3(1)):
- * - Either spouse must have been ordinarily resident in Nunavut for at least 1 year
+ * - Either spouse must have been habitually resident in Nunavut for at least 1 year
  *   immediately before the divorce application.
  *
  * Nunavut-Specific:
@@ -36,7 +36,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Court is the Nunavut Court of Justice (single-level court — unique in Canada)
  * - Nunavut has no counties — communities are the geographic units
  * - FILE NO. is the case number label
- * - Property division under the Family Law Act (SNu 2012, c. 30)
+ * - Property division under the Family Law Act, SNWT (Nu) 1997, c. 18 (consolidated as C.S.Nu. c. F-30)
  * - The court circuit sits in various communities across the territory
  *
  * @class NunavutDivorcePetitionTemplate
@@ -49,7 +49,7 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'NU';
     this.stateName = 'Nunavut';
     this.countryCode = 'CA';
-    this.documentTitle = 'APPLICATION FOR DIVORCE';
+    this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {
       this.metadata = require('./divorce-metadata.json');
@@ -69,7 +69,7 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Nunavut for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Nunavut for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing beyond the separation ground itself
@@ -150,10 +150,10 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Nunavut jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Nunavut for 1 year.
+   * Either spouse must have been habitually resident in Nunavut for 1 year.
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Applicant or the Respondent has been ordinarily resident in Nunavut for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Applicant or the Respondent has been habitually resident in Nunavut for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -166,7 +166,7 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   /**
    * Nunavut relief section — uses Canadian Divorce Act corollary relief terminology.
    * Post-2021 amendments: "parenting time" and "decision-making responsibility".
-   * Property division: Family Law Act (SNu 2012, c. 30).
+   * Property division: Family Law Act, SNWT (Nu) 1997, c. 18 (consolidated as C.S.Nu. c. F-30).
    * Spousal support: Divorce Act s.15.2.
    */
   generateReliefSection(divorceData) {
@@ -180,8 +180,8 @@ class NunavutDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
-      'Division of family property pursuant to the Family Law Act, SNu 2012, c. 30;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
+      'Division of family property pursuant to the Family Law Act, SNWT (Nu) 1997, c. 18;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];
 

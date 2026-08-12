@@ -142,13 +142,13 @@ class NevadaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (grounds === 'incompatibility' || grounds === 'no_fault') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties are incompatible. (NRS 125.010(2))',
+        content: 'The parties are incompatible. (NRS 125.010(3))',
         type: 'grounds'
       });
     } else if (grounds === 'separation_one_year') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties have lived separate and apart for one (1) year without cohabitation. (NRS 125.010(3))',
+        content: 'The parties have lived separate and apart for one (1) year without cohabitation. (NRS 125.010(2))',
         type: 'grounds'
       });
     } else if (grounds === 'insanity') {
@@ -160,7 +160,7 @@ class NevadaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else {
       items.push({
         number: paragraphNum++,
-        content: 'The parties are incompatible. (NRS 125.010(2))',
+        content: 'The parties are incompatible. (NRS 125.010(3))',
         type: 'grounds'
       });
     }

@@ -1,6 +1,6 @@
 // templates/states/quebec/DivorcePetitionTemplate.js
 // Quebec divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Code of Civil Procedure, CQLR c. C-25.01
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Code of Civil Procedure, CQLR c. C-25.01
 
 'use strict';
 
@@ -18,7 +18,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *     as authentic acts — binding without court approval in some cases
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — grounds and divorce order)
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — grounds and divorce order)
  *   - s.8(2)(a): 1-year separation (séparation d'un an)
  *   - s.8(2)(b)(i): Adultery (adultère)
  *   - s.8(2)(b)(ii): Physical or mental cruelty (cruauté physique ou mentale)
@@ -31,10 +31,10 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in Quebec for at least 1 year.
+ * - Either spouse must have been habitually resident in Quebec for at least 1 year.
  *
  * Quebec-Specific:
- * - Parties: Plaintiff (Demandeur/Demanderesse) and Defendant (Défendeur/Défenderesse)
+ * - Parties: Applicant (Demandeur/Demanderesse) and Defendant (Défendeur/Défenderesse)
  *   (Quebec civil law terminology — not common-law "Petitioner/Respondent")
  * - Court: Superior Court (Cour supérieure) — the only court with jurisdiction for divorce
  * - Judicial districts: Montréal, Québec, Longueuil, Laval, Gatineau, Sherbrooke, Trois-Rivières, etc.
@@ -72,7 +72,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Quebec for at least one year immediately before the application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Quebec for at least one year immediately before the application (Divorce Act, s.3(1)).'
     };
 
     this.waitingPeriod = {
@@ -99,7 +99,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Quebec case caption uses "Plaintiff" (Demandeur/Demanderesse) and "Defendant"
+   * Quebec case caption uses "Applicant" (Demandeur/Demanderesse) and "Defendant"
    * (Défendeur/Défenderesse) per Quebec civil law (Code of Civil Procedure, CQLR c. C-25.01).
    * Quebec is a civil law jurisdiction — not "Petitioner/Respondent".
    */
@@ -117,7 +117,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       `${caseLabel} ${caseNumber}`,
       '',
       `${plaintiff},`,
-      `Plaintiff (Demandeur/Demanderesse)`,
+      `Applicant (Demandeur/Demanderesse)`,
       '',
       `v.`,
       '',
@@ -136,13 +136,13 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Quebec jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in Quebec for 1 year.
-   * Quebec civil law tradition: parties are "Plaintiff" (Demandeur/Demanderesse) and
+   * Either spouse must have been habitually resident in Quebec for 1 year.
+   * Quebec civil law tradition: parties are "Applicant" (Demandeur/Demanderesse) and
    * "Defendant" (Défendeur/Défenderesse) — not "Petitioner/Respondent".
    * Quebec Code of Civil Procedure, CQLR c. C-25.01.
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Plaintiff or the Defendant has been ordinarily resident in the Province of Quebec for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 / La Loi sur le divorce, LRC 1985, c. 3.`;
+    return `Either the Applicant or the Defendant has been habitually resident in the Province of Quebec for at least one year immediately preceding the filing of this Application, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.) / La Loi sur le divorce, LRC 1985, c. 3 (2e suppl.).`;
   }
 
   /**
@@ -156,7 +156,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
-      // Quebec civil law: parties are Plaintiff (Demandeur/Demanderesse) and Defendant (Défendeur/Défenderesse)
+      // Quebec civil law: parties are Applicant (Demandeur/Demanderesse) and Defendant (Défendeur/Défenderesse)
       return 'The Defendant has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';
     }
     if (g.includes('cruelty') || g.includes('violence')) {
@@ -185,7 +185,7 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 / en vertu de l\'article 8 de la Loi sur le divorce, LRC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.) / en vertu de l\'article 8 de la Loi sur le divorce, LRC 1985, c. 3;',
       'Partition of the family patrimony pursuant to articles 414-426 of the Civil Code of Quebec, CQLR c. CCQ-1991 (patrimoine familial — mandatory equal division);',
       'Settlement of the matrimonial regime pursuant to articles 448-484 of the Civil Code of Quebec (société d\'acquêts by default — partnership of acquests);',
       'An order allocating responsibility for joint debts in an equitable manner;'
@@ -229,11 +229,11 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Quebec uses a solemn affirmation under the Code of Civil Procedure, CQLR c. C-25.01.
    * "Penalty of perjury" is a US concept; false declarations in Quebec are an offence
    * under Criminal Code, RSC 1985, c. C-46, s.131 (perjury) or s.137 (fabricating evidence).
-   * Correct party label is "Plaintiff" (Demandeur/Demanderesse) per Quebec civil law.
+   * Correct party label is "Applicant" (Demandeur/Demanderesse) per Quebec civil law.
    */
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
-    return `I, ${name}, Plaintiff (Demandeur/Demanderesse), solemnly affirm that the facts stated in this Application for Divorce are true, to the best of my knowledge, information, and belief.`;
+    return `I, ${name}, Applicant (Demandeur/Demanderesse), solemnly affirm that the facts stated in this Application for Divorce are true, to the best of my knowledge, information, and belief.`;
   }
 }
 

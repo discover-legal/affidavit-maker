@@ -1,6 +1,6 @@
 // templates/states/british_columbia/DivorcePetitionTemplate.js
 // British Columbia divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); BC Supreme Court Family Rules, BC Reg. 169/2009
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); BC Supreme Court Family Rules, BC Reg. 169/2009
 
 'use strict';
 
@@ -13,7 +13,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * or "Notice of Joint Family Claim" (Form F1) when both spouses agree.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal)
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal)
  *   - s.8(2)(a): 1-year separation (primary ground)
  *   - s.8(2)(b)(i): Adultery
  *   - s.8(2)(b)(ii): Physical or mental cruelty
@@ -24,7 +24,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Child Support Guidelines, SOR/97-175
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in BC for at least 1 year.
+ * - Either spouse must have been habitually resident in BC for at least 1 year.
  *
  * BC-Specific:
  * - Parties are "Claimant" and "Respondent"
@@ -64,7 +64,7 @@ class BCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in British Columbia for at least one year immediately before the application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in British Columbia for at least one year immediately before the application (Divorce Act, s.3(1)).'
     };
 
     this.waitingPeriod = {
@@ -130,12 +130,12 @@ class BCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * BC jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been ordinarily resident in BC for 1 year.
+   * Either spouse must have been habitually resident in BC for 1 year.
    * Correct party label is "Claimant" (not "Petitioner" — BC Supreme Court Family Rules,
    * BC Reg. 169/2009, Form F3 — Notice of Family Claim).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Claimant or the Respondent has been ordinarily resident in the Province of British Columbia for at least one year immediately preceding the filing of this Notice of Family Claim, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3.`;
+    return `Either the Claimant or the Respondent has been habitually resident in the Province of British Columbia for at least one year immediately preceding the filing of this Notice of Family Claim, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
@@ -176,7 +176,7 @@ class BCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
       'Division of family property and debt pursuant to Part 5 of the Family Law Act, SBC 2011, c. 25;',
       'An order allocating responsibility for family debt in an equitable manner;'
     ];

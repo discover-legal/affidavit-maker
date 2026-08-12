@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - Iowa Code §598 — Dissolution of Marriage and Domestic Relations
- * - Iowa Code §598.5 — Residency requirement (1 year)
+ * - Iowa Code §598.6 — Residency requirement (1 year)
  * - Iowa Code §598.17 — Grounds — irretrievable breakdown (no-fault only)
  * - Iowa Code §598.19 — 90-day waiting period from service
  * - Iowa Code §598.21 — Property division — equitable distribution of ALL property
@@ -57,7 +57,7 @@ class IowaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyMonths: 0,
-      description: 'At least one party must have been a resident of Iowa for at least one (1) year prior to filing, unless the defendant is a resident of Iowa. (Iowa Code §598.5)'
+      description: 'At least one party must have been a resident of Iowa for at least one (1) year prior to filing, unless the defendant is a resident of Iowa. (Iowa Code §598.6)'
     };
 
     // Iowa waiting period — 90 days from service
@@ -112,7 +112,7 @@ class IowaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Petitioner has been a resident of the State of Iowa for at least one (1) year immediately preceding the filing of this Petition. (Iowa Code §598.5)`;
+    return `Petitioner has been a resident of the State of Iowa for at least one (1) year immediately preceding the filing of this Petition. (Iowa Code §598.6)`;
   }
 
   /**
@@ -305,7 +305,7 @@ Petitioner`;
       errors.push('County is required for Iowa dissolution petitions');
     }
 
-    warnings.push('Iowa requires 1 year of state residency before filing (unless the defendant is an Iowa resident). (Iowa Code §598.5)');
+    warnings.push('Iowa requires 1 year of state residency before filing (unless the defendant is an Iowa resident). (Iowa Code §598.6)');
     warnings.push('No decree shall be entered until 90 days after the date the petition is served on the respondent. (Iowa Code §598.19)');
     warnings.push('Iowa law subjects ALL property of both spouses to equitable division, including pre-marital property. (Iowa Code §598.21)');
 

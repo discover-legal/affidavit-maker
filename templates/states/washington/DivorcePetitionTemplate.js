@@ -10,7 +10,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Legal References:
  * - RCW 26.09 — Dissolution of Marriage, Legal Separation
  * - RCW 26.09.010 — Jurisdiction of Superior Court over dissolution proceedings
- * - RCW 26.09.020 — Residency requirement (resident of WA at time of filing with intent to remain)
+ * - RCW 26.09.030 — Residency requirement (resident of WA at time of filing with intent to remain)
  * - RCW 26.09.030 — Irretrievable breakdown; 90-day waiting period from date of filing
  * - RCW 26.09.080 — Disposition of property (community property)
  * - RCW 26.09.090 — Maintenance (spousal maintenance)
@@ -55,7 +55,7 @@ class WashingtonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'At least one party must be a resident of Washington with intent to remain at the time of filing. There is no minimum residency period. (RCW 26.09.020)'
+      description: 'At least one party must be a resident of Washington with intent to remain at the time of filing. There is no minimum residency period. (RCW 26.09.030)'
     };
 
     // Washington waiting period — 90 days from filing (RCW 26.09.030)
@@ -64,7 +64,7 @@ class WashingtonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       days: 90,
       startsFrom: 'filing_date',
       exceptions: [],
-      description: 'Washington requires a mandatory 90-day waiting period from the date the petition is filed before a final decree may be entered. (RCW 26.09.030)'
+      description: 'Washington requires that at least 90 days have elapsed after both the filing of the petition and the service of the summons (or joining of the respondent) before a final decree may be entered. (RCW 26.09.030)'
     };
   }
 
@@ -144,7 +144,7 @@ class WashingtonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Petitioner is a resident of the State of Washington and intends to remain in the State of Washington, satisfying the residency requirement of RCW 26.09.020. This Court has jurisdiction over this proceeding pursuant to RCW 26.09.010.`;
+    return `Petitioner is a resident of the State of Washington and intends to remain in the State of Washington, satisfying the residency requirement of RCW 26.09.030. This Court has jurisdiction over this proceeding pursuant to RCW 26.09.010.`;
   }
 
   /**
@@ -338,7 +338,7 @@ Petitioner`;
       errors.push('County is required for Washington dissolution petitions');
     }
 
-    warnings.push('Washington requires that at least one party be a resident of Washington with intent to remain at time of filing. There is no minimum residency period. (RCW 26.09.020)');
+    warnings.push('Washington requires that at least one party be a resident of Washington with intent to remain at time of filing. There is no minimum residency period. (RCW 26.09.030)');
     warnings.push('Washington requires a mandatory 90-day waiting period from the date the petition is filed before a decree may be entered. (RCW 26.09.030)');
     warnings.push('Washington is a community property state. The court will divide community property in a just and equitable manner. (RCW 26.09.080)');
 

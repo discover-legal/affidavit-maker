@@ -53,9 +53,9 @@ class HawaiiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     // Hawaii — domicile required, no minimum duration
     this.residencyRequirements = {
-      stateMonths: 0,
-      countyMonths: 0,
-      description: 'The plaintiff must be domiciled in the State of Hawaii at the time the complaint is filed. There is no minimum duration of domicile required. (HRS §580-1)'
+      stateMonths: 6,
+      countyMonths: 3,
+      description: 'Either party must have been domiciled or physically present in Hawaii for a continuous period of at least six months next preceding the application, and in the circuit of filing for at least three months. (HRS §580-1)'
     };
 
     // Hawaii — no mandatory waiting period
@@ -163,7 +163,7 @@ class HawaiiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else if (grounds === 'irreconcilable_differences') {
       items.push({
         number: paragraphNum++,
-        content: 'There exist irreconcilable differences which have caused the irretrievable breakdown of the marriage. (HRS §580-41)',
+        content: 'The marriage of the parties is irretrievably broken. (HRS §580-41(1))',
         type: 'grounds'
       });
     } else {

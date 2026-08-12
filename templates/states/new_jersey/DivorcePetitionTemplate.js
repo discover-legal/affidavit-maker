@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - N.J.S.A. 2A:34-2 — Grounds for divorce
- * - N.J.S.A. 2A:34-10 — Residency requirements (1 year; 18 months for irreconcilable differences)
+ * - N.J.S.A. 2A:34-10 — Residency: 1 year bona fide residence for all grounds (adultery exempt from the duration)
  * - N.J.S.A. 2A:34-23 — Alimony — types and factors
  * - N.J.S.A. 2A:34-23.1 — Equitable distribution of property
  * - N.J.S.A. 9:2-4 — Child custody — legal and residential custody
@@ -26,7 +26,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Docket number format: FM-[county code]-[number]-[year]
  * - Case Information Statement (CIS) required with filing
  * - No mandatory waiting period; irreconcilable differences requires 6 months of irreconcilable differences
- * - 1-year residency (or 18 months for irreconcilable differences)
+ * - 1-year bona fide residency (all grounds; adultery exempt from the duration)
  * - Equitable distribution state (not community property)
  * - "Alimony" (several types) — not "maintenance" or "spousal support"
  */
@@ -59,7 +59,7 @@ class NewJerseyDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'One party must have been a bona fide resident of New Jersey for at least one (1) year immediately before filing, unless the ground is adultery committed in New Jersey or irreconcilable differences (which requires 18 months residency).'
+      description: 'One party must have been a bona fide resident of New Jersey for at least one (1) year immediately before filing, unless the ground is adultery, which has no durational requirement. (N.J.S.A. 2A:34-10)'
     };
 
     // New Jersey waiting period — none for most grounds
@@ -133,7 +133,7 @@ class NewJerseyDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const grounds = divorceData.groundsForDivorce || 'irreconcilable_differences';
 
     if (grounds === 'irreconcilable_differences') {
-      return `${plaintiff} has been a bona fide resident of the State of New Jersey for at least eighteen (18) months immediately preceding the commencement of this action, as required by N.J.S.A. 2A:34-10, and continues to reside in ${divorceData.county || '[COUNTY]'} County.`;
+      return `${plaintiff} has been a bona fide resident of the State of New Jersey for at least one (1) year immediately preceding the commencement of this action, as required by N.J.S.A. 2A:34-10, and continues to reside in ${divorceData.county || '[COUNTY]'} County.`;
     }
     if (grounds === 'adultery' && divorceData.adulteryCommittedInNJ) {
       return `The ground for divorce occurred within the State of New Jersey. Plaintiff resides in ${divorceData.county || '[COUNTY]'} County, New Jersey.`;

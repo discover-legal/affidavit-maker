@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - AS 25.24 — Divorce and Dissolution
- * - AS 25.24.090 — Residency (domicile in Alaska; 30-day wait after service)
+ * - AS 25.24.090 — Use of spouse's residence (residency itself: domicile at filing, no minimum duration)
  * - AS 25.24.050 — Grounds for divorce (fault and no-fault)
  * - AS 25.24.160 — Property division (equitable distribution); alimony
  * - AS 25.20.060 — Custody and visitation (shared custody)
@@ -58,15 +58,15 @@ class AlaskaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       domicile: true,
       stateMonths: 0,
-      description: 'The plaintiff must be domiciled in Alaska at the time of filing. There is no minimum duration of residency required. (AS 25.24.090)'
+      description: 'The plaintiff must be domiciled in Alaska at the time of filing. There is no minimum duration of residency required.'
     };
 
-    // Alaska waiting period — 30 days after service
+    // Alaska waiting period — 30 days after filing
     this.waitingPeriod = {
       days: 30,
-      startsFrom: 'service_date',
+      startsFrom: 'filing_date',
       exceptions: [],
-      description: 'The court may not enter a decree of divorce until at least 30 days after service of process on the defendant. (AS 25.24.090)'
+      description: 'The court may not sign the divorce decree until at least 30 days after the complaint is filed (Alaska Court System).'
     };
   }
 

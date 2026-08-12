@@ -65,7 +65,7 @@ class DelawareDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       days: 0,
       startsFrom: 'filing_date',
       exceptions: [],
-      description: 'Delaware has no mandatory waiting period after filing for divorce.'
+      description: 'Delaware has no fixed post-filing waiting period, but no divorce may be decreed until the parties have been separated for six months (13 Del. C. §§ 1503(7), 1507(e)), except where the ground is the respondent\'s misconduct.'
     };
   }
 

@@ -1,6 +1,6 @@
 // templates/states/prince_edward_island/DivorcePetitionTemplate.js
 // Prince Edward Island divorce application template
-// Governing Law: Divorce Act (RSC 1985, c. 3); Matrimonial Property Act, RSPEI 1988, c. M-6
+// Governing Law: Divorce Act (RSC 1985, c. 3 (2nd Supp.)); Family Law Act, RSPEI 1988, c. F-2.1
 
 'use strict';
 
@@ -10,33 +10,32 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Prince Edward Island Divorce Petition Template
  *
  * PEI uses the term "Petition" for divorce proceedings.
- * The Supreme Court of Prince Edward Island (Trial Division) has exclusive
+ * The Supreme Court of Prince Edward Island has exclusive
  * jurisdiction over divorce matters. Family law proceedings are handled by the
- * Family Section which sits within the Trial Division.
+ * Family Section.
  *
  * Key Legal References:
- * - Divorce Act, RSC 1985, c. 3 (federal — governs divorce nationwide)
- *   - s.3(1): Residency — either spouse ordinarily resident in PEI for at least 1 year
+ * - Divorce Act, RSC 1985, c. 3 (2nd Supp.) (federal — governs divorce nationwide)
+ *   - s.3(1): Residency — either spouse habitually resident in PEI for at least 1 year
  *   - s.8(2)(a): Separation for 1 year is the primary ground
  *   - s.8(2)(b): Adultery or physical/mental cruelty (rare)
- * - Matrimonial Property Act, RSPEI 1988, c. M-6 (equal division of matrimonial property)
+ * - Family Law Act, RSPEI 1988, c. F-2.1 (division of family property)
  * - Family Law Act, RSPEI 1988, c. F-2.1 (spousal and child support, domestic contracts)
  * - Alimony Act, RSPEI 1988, c. A-10 (spousal support and maintenance)
  * - Custody Jurisdiction and Enforcement Act, RSPEI 1988, c. C-33 (custody orders)
  * - Child Support Guidelines, SOR/97-175 (federal support calculation)
  *
  * Residency Requirement (Divorce Act, s.3):
- * - Either spouse must have been ordinarily resident in PEI for at least 1 year
+ * - Either spouse must have been habitually resident in PEI for at least 1 year
  *   immediately before the divorce application.
  *
  * PEI-Specific:
  * - Parties are "Petitioner" and "Respondent"
- * - Court is Supreme Court of Prince Edward Island (Trial Division)
- *   (Family Section sits within the Trial Division — not a separate division)
+ * - Court is Supreme Court of Prince Edward Island
  * - Court File No. instead of "CAUSE NO." or "CASE NO."
  * - PEI is the smallest province — court proceedings may be less formal
  *   but all statutory requirements still apply
- * - Matrimonial property divided equally by default (Matrimonial Property Act, s.4)
+ * - Matrimonial property divided equally by default (Family Law Act, RSPEI 1988, c. F-2.1)
  * - Support is termed "maintenance" under the Maintenance Enforcement Act and Family Law Act
  *
  * @class PEIDivorcePetitionTemplate
@@ -66,11 +65,11 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // PEI residency: 1 year ordinarily resident in province (Divorce Act s.3(1))
+    // PEI residency: 1 year habitually resident in province (Divorce Act s.3(1))
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been ordinarily resident in Prince Edward Island for at least one year immediately before the application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been habitually resident in Prince Edward Island for at least one year immediately before the application (Divorce Act, s.3(1)).'
     };
 
     // No mandatory waiting period after filing in PEI beyond the separation ground itself
@@ -97,17 +96,17 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Default court for PEI divorce — Supreme Court of Prince Edward Island (Trial Division).
+   * Default court for PEI divorce — Supreme Court of Prince Edward Island.
    * The Family Section sits within the Trial Division; the formal court name is Trial Division.
    * Judicature Act, RSPEI 1988, c. J-2.1.
    * @param {string} county - City or location of filing
    * @returns {string} Default court name
    */
   getDefaultCourt(county) {
-    // PEI court: Supreme Court of Prince Edward Island (Trial Division)
+    // PEI court: Supreme Court of Prince Edward Island
     // The Family Section sits within the Trial Division (not a separate division).
     // Correct formal name per the Judicature Act, RSPEI 1988, c. J-2.1.
-    return `SUPREME COURT OF PRINCE EDWARD ISLAND (TRIAL DIVISION)`;
+    return `SUPREME COURT OF PRINCE EDWARD ISLAND`;
   }
 
   /**
@@ -136,7 +135,7 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * "Corollary relief" (not "ancillary relief") is the correct term under the Divorce Act.
    * Post-March 1, 2021 amendments (Bill C-78): "parenting time" and
    * "decision-making responsibility" replace "custody" and "access" (Divorce Act, ss.16.1-16.92).
-   * Matrimonial Property Act, RSPEI 1988, c. M-6 governs equal division of matrimonial property.
+   * Family Law Act, RSPEI 1988, c. F-2.1 governs equal division of matrimonial property.
    * Spousal support is termed "maintenance" under the Family Law Act, RSPEI 1988, c. F-2.1,
    * and Alimony Act, RSPEI 1988, c. A-10.
    * Petitioner/Respondent labels per PEI divorce practice.
@@ -152,8 +151,8 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3;',
-      'Division of matrimonial property pursuant to the Matrimonial Property Act, RSPEI 1988, c. M-6;',
+      'A divorce order pursuant to section 8 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.);',
+      'Division of matrimonial property pursuant to the Family Law Act, RSPEI 1988, c. F-2.1;',
       'An order allocating responsibility for debts in an equitable manner;'
     ];
 
@@ -191,12 +190,12 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * PEI jurisdiction statement — ordinarily resident for 1 year.
+   * PEI jurisdiction statement — habitually resident for 1 year.
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Petitioner or the Respondent has been ordinarily resident in the Province of Prince Edward Island for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act.`;
+    return `Either the Petitioner or the Respondent has been habitually resident in the Province of Prince Edward Island for at least one year immediately preceding the filing of this Petition, as required by section 3(1) of the Divorce Act.`;
   }
 
   /**

@@ -9,7 +9,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Legal References:
  * - 43 O.S. §101 — Grounds for divorce (fault and no-fault)
- * - 43 O.S. §102 — Residency requirement (6 months state, 30 days county)
+ * - 43 O.S. §102 — Residency (6 months, either party); §103 — venue (30 days county, or respondent's county)
  * - 43 O.S. §107.1 — Waiting period (90 days with children, 10 days without)
  * - 43 O.S. §109 — Joint custody
  * - 43 O.S. §112 — Best interests of the child
@@ -56,7 +56,7 @@ class OklahomaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 6,
       countyDays: 30,
-      description: 'The petitioner must have been a resident and actual inhabitant of the State of Oklahoma for at least six (6) months and a resident of the county of filing for at least thirty (30) days immediately preceding the filing. (43 O.S. §102)'
+      description: 'Either party must have been a resident and actual inhabitant of the State of Oklahoma for at least six (6) months immediately preceding the filing (43 O.S. §102). Venue lies in the county where the petitioner has resided for thirty (30) days or the county where the respondent resides (43 O.S. §103).'
     };
 
     // Oklahoma waiting period — 90 days with children, 10 days without
@@ -120,7 +120,7 @@ class OklahomaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Petitioner has been a bona fide resident and actual inhabitant of the State of Oklahoma for at least six (6) months and a resident of ${divorceData.county || '[COUNTY]'} County for at least thirty (30) days immediately preceding the filing of this Petition. (43 O.S. §102)`;
+    return `Petitioner has been a bona fide resident and actual inhabitant of the State of Oklahoma for at least six (6) months and a resident of ${divorceData.county || '[COUNTY]'} County for at least thirty (30) days immediately preceding the filing of this Petition. (43 O.S. §§102, 103)`;
   }
 
   /**
@@ -403,7 +403,7 @@ My commission expires: ___________`;
       errors.push('County is required for Oklahoma divorce petitions');
     }
 
-    warnings.push('Oklahoma requires 6 months state residency and 30 days county residency before filing. (43 O.S. §102)');
+    warnings.push('Oklahoma requires 6 months state residency (either party); venue requires 30 days in the filing county or filing where the respondent resides. (43 O.S. §§102, 103)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       warnings.push('The final decree cannot be entered until 90 days have elapsed after filing because there are minor children. (43 O.S. §107.1)');

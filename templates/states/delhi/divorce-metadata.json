@@ -72,14 +72,14 @@
         "code": "presumed_dead",
         "name": "Presumed Dead",
         "description": "Spouse has not been heard of as being alive for a period of seven years or more.",
-        "statute": "HMA s.13(1)(vii) / SMA s.27(1)(g)"
+        "statute": "HMA s.13(1)(vii) / SMA s.27(1)(h)"
       }
     ],
     "wifeAdditional": [
       {
         "code": "bigamy",
         "name": "Bigamy (wife only)",
-        "description": "The husband has married again or had a wife living at the time of the marriage.",
+        "description": "The husband had another wife living at the time of the marriage (applies only to marriages solemnized before the Hindu Marriage Act commenced on 18 May 1955).",
         "statute": "HMA s.13(2)(i)"
       },
       {
@@ -134,7 +134,7 @@
       "description": "Inter-faith or secular marriages"
     },
     {
-      "code": "Indian Divorce Act 1869",
+      "code": "Divorce Act, 1869",
       "description": "Divorce for Christians"
     },
     {

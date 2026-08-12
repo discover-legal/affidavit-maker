@@ -19,7 +19,7 @@
  *   - 20-week reflection period from application to Conditional Order
  *   - 6-week gap from Conditional Order to Final Order
  *   - Financial remedy is separate from the divorce itself (Form A)
- *   - Court uses Statement of Truth (CPR Part 22), not sworn affidavits
+ *   - Court uses Statement of Truth (FPR 2010, Part 17), not sworn affidavits
  *   - Child maintenance calculated by CMS (Child Maintenance Service), not the court
  *   - Filing fee: GBP £612 (Help with Fees / HWF remission available; increased from £593 in April 2025)
  *   - A4 paper size, GBP currency
@@ -64,7 +64,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in England and Wales.
 Collecting residency/domicile information.
 
-LEGAL REQUIREMENT — Matrimonial Causes Act 1973, s.5(2):
+LEGAL REQUIREMENT — Domicile and Matrimonial Proceedings Act 1973, s.5(2):
 To file in England and Wales, EITHER:
 (a) one of the parties must be domiciled in England and Wales at the date the application is issued, OR
 (b) one of the parties must have been habitually resident in England and Wales for at least 1 year

@@ -28,7 +28,7 @@
       { "code": "mental_disorder", "name": "Unsoundness of Mind", "description": "Incurably of unsound mind or suffering from mental disorder.", "statute": "HMA s.13(1)(iii) / SMA s.27(1)(e)" },
       { "code": "venereal_disease", "name": "Venereal Disease", "description": "Suffering from venereal disease in communicable form.", "statute": "HMA s.13(1)(v) / SMA s.27(1)(f)" },
       { "code": "renunciation", "name": "Renunciation of the World", "description": "Entered a religious order (HMA only).", "statute": "HMA s.13(1)(vi)" },
-      { "code": "presumed_dead", "name": "Presumed Dead", "description": "Not heard of as alive for 7+ years.", "statute": "HMA s.13(1)(vii) / SMA s.27(1)(g)" }
+      { "code": "presumed_dead", "name": "Presumed Dead", "description": "Not heard of as alive for 7+ years.", "statute": "HMA s.13(1)(vii) / SMA s.27(1)(h)" }
     ]
   },
   "terminology": {
@@ -52,7 +52,7 @@
   "legalCitations": [
     { "code": "Hindu Marriage Act 1955", "description": "Marriage and divorce for Hindus, Buddhists, Jains, Sikhs" },
     { "code": "Special Marriage Act 1954", "description": "Inter-faith or secular marriages" },
-    { "code": "Indian Divorce Act 1869", "description": "Divorce for Christians" },
+    { "code": "Divorce Act, 1869", "description": "Divorce for Christians" },
     { "code": "Dissolution of Muslim Marriages Act 1939", "description": "Divorce by Muslim wives" },
     { "code": "Family Courts Act 1984", "description": "Family Courts" },
     { "code": "BNSS s.144 (formerly CrPC s.125)", "description": "Maintenance" }

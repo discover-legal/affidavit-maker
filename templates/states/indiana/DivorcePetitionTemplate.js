@@ -15,7 +15,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - IC 31-15-7-5 — Disposition of property (equitable distribution, presumption of equal)
  * - IC 31-15-7-2 — Spousal maintenance
  * - IC 31-17-2 — Custody determination (legal and physical custody)
- * - IC 31-16-6 — Indiana Child Support Guidelines
+ * - IC 31-16-6 — Child support orders (guidelines are the Ind. Child Support Rules and Guidelines)
  *
  * Indiana-Specific Notes:
  * - Called "Dissolution of Marriage" — NOT divorce

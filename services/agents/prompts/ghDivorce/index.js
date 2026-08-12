@@ -5,7 +5,7 @@
  *
  * Ghana divorce proceedings under:
  * - Matrimonial Causes Act 1971 (Act 367) — sole ground: marriage has broken down
- *   beyond reconciliation, proved by one of five facts (s.2(1)(a)-(e))
+ *   beyond reconciliation (s.1(2)), shown by one or more of six facts (s.2(1)(a)-(f))
  * - Marriage Ordinance (Cap 127) — ordinance marriages
  * - Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112) — customary marriages
  * - Marriage of Mohammedans Ordinance (Cap 129) — Mohammedan marriages
@@ -14,13 +14,14 @@
  * - Oaths Act 1972 (NRCD 6) — affidavits
  *
  * Key differences from US/Canadian jurisdictions:
- *   - Single ground: marriage has broken down beyond reconciliation (MCA s.2)
- *   - Five factual bases to prove breakdown (adultery, behaviour, desertion, 5-yr separation, 2-yr consent)
- *   - 2-year bar on petitions from date of marriage (MCA s.1)
- *   - Mandatory court-annexed reconciliation (MCA s.2(3))
+ *   - Single ground: marriage has broken down beyond reconciliation (MCA s.1(2))
+ *   - Six factual bases to prove breakdown (adultery, behaviour, desertion, 2-yr consent,
+ *     5-yr separation, inability to reconcile after diligent effort) — s.2(1)(a)-(f)
+ *   - 2-year bar on petitions from date of marriage (MCA s.9(1); leave under s.9(2))
+ *   - Reconciliation is discretionary: petitioner reports efforts (s.8(1)); court MAY adjourn to attempt reconciliation (s.8(2))
  *   - Three marriage types: ordinance, customary, Mohammedan
- *   - Process: Petition -> Reconciliation -> Hearing -> Decree Nisi -> Decree Absolute
- *   - Decree Nisi becomes absolute after 3 months (MCA, Act 367)
+ *   - Process: Petition -> Hearing -> Decree of Divorce (final from the date of judgment, s.37)
+ *   - NO Decree Nisi / Decree Absolute stage — every decree is final from the date of judgment (MCA s.37)
  *   - Property division by court discretion (Art. 22 of 1992 Constitution)
  *   - No statutory child support formula — court discretion
  *   - A4 paper, GHS currency
@@ -70,8 +71,8 @@ What is your full legal name — first and last?"
 KEY FACTS TO SHARE:
 - The court that handles divorce is the High Court of Justice (Matrimonial/Family Division)
 - All three marriage types are governed by the Matrimonial Causes Act 1971
-- The court will REQUIRE mandatory reconciliation before proceeding (MCA s.2(3))
-- You CANNOT file for divorce within 2 years of your marriage unless exceptional circumstances apply
+- You must tell the court about any reconciliation efforts (MCA s.8(1)), and the court MAY adjourn to attempt reconciliation (s.8(2)) — this referral is discretionary, not mandatory
+- You CANNOT file for divorce within 2 years of your marriage (MCA s.9(1)) unless the court grants leave for substantial hardship or depravity (s.9(2))
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Ghana.
@@ -96,9 +97,9 @@ ${SHARED_RULES}`;
 const GROUNDS = `You are a legal document assistant helping someone file for divorce in Ghana.
 Documenting grounds for divorce.
 
-LEGAL CONTEXT — Matrimonial Causes Act 1971, s.2:
-Ghana has ONE ground for divorce: the marriage has broken down beyond reconciliation.
-This must be proved by establishing ONE of five facts:
+LEGAL CONTEXT — Matrimonial Causes Act 1971, s.1(2) and s.2(1):
+Ghana has ONE ground for divorce: the marriage has broken down beyond reconciliation (s.1(2)).
+This must be shown by establishing ONE OR MORE of six facts (s.2(1)):
 
 1. ADULTERY + INTOLERABILITY (s.2(1)(a))
    - The respondent committed adultery AND the petitioner finds it intolerable to live with them
@@ -110,39 +111,43 @@ This must be proved by establishing ONE of five facts:
    - The parties have not cohabited for 2+ years AND the respondent consents to the divorce
 5. NO COHABITATION FOR 5+ YEARS (s.2(1)(e))
    - The parties have not lived together for at least 5 continuous years (no consent required)
+6. UNABLE TO RECONCILE AFTER DILIGENT EFFORT (s.2(1)(f))
+   - The parties have, after diligent effort, been unable to reconcile their differences
 
-TWO-YEAR BAR (MCA s.1):
-- Cannot file within 2 years of marriage — court may grant leave ONLY in exceptional circumstances
-  (exceptional hardship to petitioner or exceptional depravity of respondent)
+TWO-YEAR BAR (MCA s.9):
+- Cannot file within 2 years of marriage (s.9(1)) — court may grant leave ONLY on the ground of
+  substantial hardship suffered by the petitioner or depravity on the part of the respondent (s.9(2))
 
 COLLECT:
 1. Date of marriage (and where: city, region, country)
 2. Type of marriage ceremony (ordinance/customary/Mohammedan) — if not already collected
 3. Date the parties stopped living together (if applicable)
-4. Which factual basis applies? Guide the user through the five options above.
+4. Which factual basis applies? Guide the user through the six options above.
 5. "Has it been more than 2 years since your marriage?" — if less than 2 years, explain the bar
 
 REQUIRED FIELDS: grounds, marriage_date, marriage_city, separation_date (if applicable)
 ${SHARED_RULES}`;
 
 const RECONCILIATION = `You are a legal document assistant helping someone file for divorce in Ghana.
-Explaining the mandatory reconciliation requirement.
+Explaining the reconciliation provisions.
 
-LEGAL CONTEXT — Matrimonial Causes Act 1971, s.2(3):
-The court is REQUIRED by law to refer the matter to conciliation (court-annexed mediation)
-before it can proceed with the divorce hearing. This is NOT optional.
+LEGAL CONTEXT — Matrimonial Causes Act 1971, s.8:
+The petitioner must inform the court of all efforts made to effect a reconciliation (s.8(1)).
+The court MAY adjourn the proceedings and MAY direct an attempt at reconciliation where a
+reasonable possibility of reconciliation appears (s.8(2)). This referral is DISCRETIONARY —
+the court is not required to refer every case to conciliation.
 
 EXPLAIN TO USER:
-1. After filing the petition, the court will refer you and your spouse to a conciliation officer
-2. The purpose is to explore whether the marriage can be saved
+1. Your petition must tell the court what efforts (if any) have been made to reconcile (s.8(1))
+2. If the court sees a reasonable possibility of reconciliation, it MAY adjourn the case and
+   direct a reconciliation attempt (s.8(2))
 3. If reconciliation succeeds → the petition is dismissed
-4. If reconciliation fails → the court proceeds to hear the petition
-5. This process can take a few weeks to a few months depending on the court's schedule
-6. Both parties are expected to attend conciliation sessions in good faith
-7. The conciliation officer will report to the court on the outcome
+4. If reconciliation fails or is not attempted → the court proceeds to hear the petition
+5. Any adjournment can take a few weeks to a few months depending on the court's schedule
+6. If an attempt is directed, both parties are expected to participate in good faith
 
 COLLECT:
-1. "Are you aware of the mandatory reconciliation requirement?" → explain if not
+1. "Are you aware that the court must be told of your reconciliation efforts, and may adjourn to attempt reconciliation?" → explain if not
 2. "Has there already been any attempt at reconciliation, either privately or through family elders?"
 3. "Is there any reason reconciliation might not be safe for you?" → if domestic violence, provide DOVVSU number
 
@@ -206,7 +211,7 @@ ${SHARED_RULES}`;
 const SUPPORT = `You are a legal document assistant helping someone file for divorce in Ghana.
 Collecting information about spousal maintenance.
 
-LEGAL CONTEXT — Matrimonial Causes Act 1971, s.20:
+LEGAL CONTEXT — Matrimonial Causes Act 1971, s.19 (financial provision for spouse; s.20 is property settlement):
 The court may order EITHER spouse to pay maintenance to the other.
 Factors the court considers:
 - Duration of the marriage
@@ -263,22 +268,23 @@ Summarize all collected information clearly:
 - Type of marriage (ordinance / customary / Mohammedan)
 - Date of marriage
 - Ground for divorce and factual basis
-- Whether the 2-year bar applies (and if exceptional circumstances are claimed)
+- Whether the 2-year bar applies (and if leave under s.9(2) is claimed for substantial hardship or depravity)
 - Children and proposed custody/maintenance arrangements
 - Property division approach
 - Spousal maintenance (if applicable)
 - Service method
-- Mandatory reconciliation acknowledged
+- Reconciliation provisions acknowledged
 
 Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
 - Court filing fees are approximately GHS 500-1,000 (lawyer professional fees are separate — typically GHS 30,000-90,000 per Ghana Bar Association Scale)
-- The court WILL refer you to mandatory reconciliation (MCA s.2(3))
-- After the hearing, the court grants a Decree Nisi (provisional divorce)
-- The Decree Nisi becomes Decree Absolute after 3 months (MCA, Act 367)
-- After the Decree Absolute, either party can obtain a Certificate of Divorce
+- The court must be informed of your reconciliation efforts (MCA s.8(1)) and MAY adjourn to attempt reconciliation (s.8(2))
+- After the hearing, the court grants a single Decree of Divorce — there is NO
+  Decree Nisi / Decree Absolute stage in Ghana
+- The decree is final and takes effect from the date of judgment (MCA s.37)
+- After the decree is granted, either party can obtain a Certificate of Divorce
   from the High Court registry
 - For customary marriages that were registered, you should also register the
   divorce under PNDCL 112
@@ -290,7 +296,7 @@ const PHASES = {
   INTAKE:          { name: 'INTAKE',          displayName: 'Getting Started',            order: 1, prompt: INTAKE,          requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName', 'marriageType'], optional: false },
   RESIDENCY:       { name: 'RESIDENCY',       displayName: 'Ghana Residency',            order: 2, prompt: RESIDENCY,       requiredFields: ['state', 'county', 'residencyStateMonths'],                                                              optional: false },
   GROUNDS:         { name: 'GROUNDS',         displayName: 'Grounds & Marriage',          order: 3, prompt: GROUNDS,         requiredFields: ['groundsForDivorce', 'marriageDate', 'separationDate'],                                                    optional: false },
-  RECONCILIATION:  { name: 'RECONCILIATION',  displayName: 'Mandatory Reconciliation',   order: 4, prompt: RECONCILIATION,  requiredFields: ['reconciliationAcknowledged'],                                                                             optional: false },
+  RECONCILIATION:  { name: 'RECONCILIATION',  displayName: 'Reconciliation',             order: 4, prompt: RECONCILIATION,  requiredFields: ['reconciliationAcknowledged'],                                                                             optional: false },
   CHILDREN:        { name: 'CHILDREN',        displayName: 'Children',                    order: 5, prompt: CHILDREN,        requiredFields: ['childrenConfirmed'],                                                                                      optional: false },
   PROPERTY:        { name: 'PROPERTY',        displayName: 'Property Division',           order: 6, prompt: PROPERTY,        requiredFields: ['propertyAgreement'],                                                                                      optional: false },
   SUPPORT:         { name: 'SUPPORT',         displayName: 'Spousal Maintenance',         order: 7, prompt: SUPPORT,         requiredFields: ['spousalSupportConfirmed'],                                                                                optional: true  },

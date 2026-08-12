@@ -159,7 +159,7 @@ class FCTDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCertificateNote() {
-    return 'Either party may apply to this Court for the Decree Nisi to be made Absolute after the expiration of the said three months. A certified copy of the Decree Absolute may be obtained from the Court Registry.';
+    return 'Upon the expiration of the said three months, the Decree Nisi becomes absolute by force of section 58 of the Act; no application is required. A certified copy of the Decree Absolute may be obtained from the Court Registry.';
   }
 }
 

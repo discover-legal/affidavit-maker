@@ -234,15 +234,20 @@ class SouthAfricaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * South Africa grounds for divorce.
+   * South Africa grounds for divorce (both grounds are no-fault).
    * Divorce Act 70 of 1979:
-   *   - s.4(1): Irretrievable breakdown of the marriage
-   *   - s.5: Mental illness or continuous unconsciousness
+   *   - s.4(1): Irretrievable breakdown of the marriage (s.4(2) lists proof
+   *     facts: 1 year's separation; adultery + irreconcilability;
+   *     habitual-criminal imprisonment)
+   *   - s.5(1): Mental illness; s.5(2): continuous unconsciousness
    */
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'irretrievable_breakdown').toLowerCase();
-    if (g.includes('mental') || g.includes('unconscious')) {
-      return 'The Defendant has been admitted to a psychiatric hospital or similar institution and there is no reasonable prospect of recovery, as contemplated in section 5 of the Divorce Act 70 of 1979.';
+    if (g.includes('unconscious')) {
+      return 'The Defendant is in a state of continuous unconsciousness which has lasted for a continuous period of not less than six months, and there is no reasonable prospect that the Defendant will regain consciousness, as contemplated in section 5(2) of the Divorce Act 70 of 1979.';
+    }
+    if (g.includes('mental')) {
+      return 'The Defendant has been admitted to a psychiatric hospital or similar institution for a continuous period of not less than two years and there is no reasonable prospect of a cure, as contemplated in section 5(1) of the Divorce Act 70 of 1979.';
     }
     // Default: irretrievable breakdown
     return 'The marriage relationship between the parties has broken down irretrievably with no reasonable prospect of the restoration of a normal marriage relationship, as contemplated in section 4(1) of the Divorce Act 70 of 1979.';

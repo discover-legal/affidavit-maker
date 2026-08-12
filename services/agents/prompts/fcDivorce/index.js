@@ -79,7 +79,7 @@ This must be proved by establishing at least ONE of the following facts:
 4. DESERTION FOR 1 YEAR (s.15(2)(d))
 5. 2-YEAR SEPARATION WITH CONSENT (s.15(2)(e))
 6. 3-YEAR SEPARATION (s.15(2)(f))
-7. FAILURE TO COMPLY WITH RESTITUTION ORDER (s.15(2)(g))
+7. FAILURE TO COMPLY WITH RESTITUTION ORDER FOR 1+ YEAR (s.15(2)(g)) — other party has failed, for a period of not less than one year, to comply with a decree of restitution of conjugal rights
 8. PRESUMPTION OF DEATH (s.15(2)(h)) — other party absent 7+ years
 
 TWO-YEAR BAR (s.30): Cannot file within 2 years of the marriage date unless the court grants leave.

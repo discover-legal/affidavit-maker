@@ -13,7 +13,7 @@
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No waiting period after filing. The 12-month separation period must be complete before the application is heard. Divorce Order takes effect 1 month and 1 day after it is made (Family Law Act 1975 (Cth), s.55)."
+    "description": "No waiting period after filing. The 12-month separation period must be complete immediately before the application is filed (Family Law Act 1975 (Cth), s.48(2)). Divorce Order takes effect 1 month and 1 day after it is made (Family Law Act 1975 (Cth), s.55)."
   },
   "groundsForDivorce": {
     "noFault": [
@@ -21,7 +21,7 @@
         "code": "separation",
         "name": "Irretrievable Breakdown (12-Month Separation)",
         "description": "The marriage has broken down irretrievably, demonstrated by the parties having lived separately and apart for a continuous period of not less than 12 months.",
-        "statute": "Family Law Act 1975 (Cth), s.48(1)"
+        "statute": "Family Law Act 1975 (Cth), s.48(1)-(2)"
       }
     ],
     "fault": []
@@ -61,7 +61,7 @@
       "description": "Federal statute — sole ground for divorce is irretrievable breakdown of marriage (s.48)"
     },
     {
-      "code": "Family Law Rules 2004 (Cth)",
+      "code": "Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)",
       "description": "Procedural rules for family law proceedings"
     },
     {

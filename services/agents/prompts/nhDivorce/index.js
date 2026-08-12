@@ -14,7 +14,7 @@
  *   - Equitable distribution of ALL property (including separate) — RSA 458:16-a
  *   - "Legal custody" and "physical custody" — RSA 461-A
  *   - "Parenting time" or "residential responsibility" — RSA 461-A
- *   - Alimony — RSA 458:19
+ *   - Alimony — RSA 458:19-a (term alimony formula; definitions at RSA 458:19)
  *   - No mandatory waiting period
  */
 
@@ -70,8 +70,8 @@ New Hampshire recognizes both fault and no-fault grounds:
 5. Conviction of a crime (1+ year imprisonment) — RSA 458:7(IV)
 6. Two years' absence — RSA 458:7(VI)
 7. Habitual drunkenness for 2 years — RSA 458:7(VII)
-8. Treatment endangering health or reason — RSA 458:7(VIII)
-9. Joining a religious sect that professes marriage is void — RSA 458:7(V)
+8. Treatment endangering health or reason — RSA 458:7(V)
+9. Joining a religious sect that professes marriage is void — RSA 458:7(VIII)
 
 Most filings use irreconcilable differences.
 
@@ -128,8 +128,11 @@ ${SHARED_RULES}`;
 const SUPPORT = `You are a legal document assistant helping someone file for divorce in New Hampshire.
 Collecting alimony information.
 
-LEGAL CONTEXT — RSA 458:19:
-New Hampshire uses "alimony." The court considers:
+LEGAL CONTEXT — RSA 458:19-a:
+New Hampshire uses "alimony." Since 1/1/2019, TERM ALIMONY is formula-based: the lesser of
+the payee's reasonable need or 23% of the difference between the parties' gross incomes,
+for up to 50% of the length of the marriage (RSA 458:19-a; reimbursement alimony is
+available under RSA 458:19-aa). The court also considers:
 - Length of the marriage
 - Age and health of each party
 - Occupation, sources of income, vocational skills, employability

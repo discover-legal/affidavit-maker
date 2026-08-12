@@ -14,7 +14,7 @@
       { "code": "adultery", "name": "Adultery", "statute": "MCA s.15(2)(b)", "description": "Respondent committed adultery." },
       { "code": "intolerable_behaviour", "name": "Intolerable Behaviour", "statute": "MCA s.15(2)(c)", "description": "Respondent behaved intolerably." },
       { "code": "desertion", "name": "Desertion for One Year", "statute": "MCA s.15(2)(d)", "description": "Respondent deserted for 1+ year." },
-      { "code": "restitution", "name": "Failure to Comply with Restitution Order", "statute": "MCA s.15(2)(g)", "description": "Failed to comply with conjugal rights order." },
+      { "code": "restitution", "name": "Failure to Comply with Restitution Order", "statute": "MCA s.15(2)(g)", "description": "Failed to comply with conjugal rights order for 1+ year." },
       { "code": "presumption_of_death", "name": "Presumption of Death (Absent 7 Years)", "statute": "MCA s.15(2)(h)", "description": "Other party absent 7+ years, petitioner has no reason to believe them alive." }
     ]
   },

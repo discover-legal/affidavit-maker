@@ -9,11 +9,11 @@
   "residencyRequirements": {
     "stateMonths": 0,
     "countyDays": 0,
-    "description": "Either spouse must be domiciled in New Zealand at the time of the application (Family Proceedings Act 1980, s.38). Domicile is distinct from residency — it means NZ is the person's permanent home."
+    "description": "Either spouse must be domiciled in New Zealand at the time of the application (Family Proceedings Act 1980, s.37). Domicile is distinct from residency — it means NZ is the person's permanent home."
   },
   "waitingPeriod": {
-    "days": 0,
-    "description": "No waiting period after the order is made. A dissolution order takes effect immediately upon being granted (Family Proceedings Act 1980, s.46). However, the 2-year separation must be completed before the application is filed."
+    "days": 30,
+    "description": "A dissolution order made by a Registrar (the usual course for joint or undefended applications decided on the papers) takes effect as a final order 1 month after it is made (Family Proceedings Act 1980, s.42). An order made by a Family Court Judge at a hearing takes effect immediately. The 2-year separation must be completed before the application is filed."
   },
   "groundsForDivorce": {
     "noFault": [
@@ -102,7 +102,7 @@
     "guidelines": "Family Proceedings Act 1980, ss.63-74",
     "notes": "Maintenance is based on the reasonable needs of the applicant and the ability of the other spouse to pay. It is not automatic and must be specifically applied for."
   },
-  "effectiveDateRule": "The dissolution order takes effect immediately upon being made by the court (Family Proceedings Act 1980, s.46). There is no further waiting period after the order is granted.",
+  "effectiveDateRule": "A dissolution order made by a Registrar takes effect as a final order 1 month after it is made; an order made by a Family Court Judge at a hearing takes effect immediately (Family Proceedings Act 1980, s.42). An appeal or a request for a hearing suspends finality.",
   "certificateNote": "A certificate confirming the dissolution may be obtained from the Family Court registry after the order takes effect.",
   "paperSize": "A4",
   "currency": "NZD"

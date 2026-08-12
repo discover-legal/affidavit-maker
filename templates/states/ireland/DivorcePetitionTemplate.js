@@ -18,14 +18,14 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.5(1)(a): Lived apart for at least 2 of the preceding 3 years (as amended 2019)
  *   - s.5(1)(b): No reasonable prospect of reconciliation
  *   - s.5(1)(c): Proper provision made or will be made for spouses and dependants
- * - Family Law Act 2019, s.9: Reduced separation from 4/5 years to 2/3 years
+ * - Family Law Act 2019, s.3(1)(a): Reduced separation from 4/5 years to 2/3 years
  *   (implementing 38th Amendment to the Constitution)
  * - Constitution of Ireland, Art. 41.3.2 (divorce provision)
- * - Family Law Act 1995: s.16 factors for financial provision (applied by analogy)
+ * - Family Law (Divorce) Act 1996, s.20(2): factors for financial provision
  * - Guardianship of Infants Act 1964 (as amended): custody, access, guardianship
  * - Children and Family Relationships Act 2015: modern parentage and guardianship
  *
- * Residency Requirement (1996 Act, s.39(1)(a)):
+ * Residency Requirement (1996 Act, s.39(1)(a)-(b)):
  * - Either spouse must be domiciled in Ireland on the date of institution of proceedings, OR
  * - Ordinarily resident in Ireland for at least 1 year immediately before that date.
  *
@@ -65,17 +65,17 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // Ireland residency: domiciled or ordinarily resident for 1 year (s.39(1)(a))
+    // Ireland residency: domiciled (s.39(1)(a)) or ordinarily resident for 1 year (s.39(1)(b))
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must be domiciled in Ireland on the date of institution of proceedings OR ordinarily resident in Ireland for at least one year immediately before that date (Family Law (Divorce) Act 1996, s.39(1)(a)).'
+      description: 'Either spouse must be domiciled in Ireland on the date of institution of proceedings (Family Law (Divorce) Act 1996, s.39(1)(a)) OR ordinarily resident in Ireland for at least one year immediately before that date (s.39(1)(b)).'
     };
 
     // No mandatory waiting period after filing
     this.waitingPeriod = {
       days: 0,
-      description: 'No mandatory waiting period after filing. The 2-year separation must already be satisfied before or by the date the court grants the decree.'
+      description: 'No mandatory waiting period after filing. The spouses must have lived apart for at least two of the three years immediately preceding the date of institution of the proceedings (s.5(1)(a)).'
     };
 
     this.formatting = {
@@ -136,11 +136,11 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Ireland jurisdiction statement — Family Law (Divorce) Act 1996, s.39(1)(a).
-   * Either spouse must be domiciled in Ireland or ordinarily resident for 1 year.
+   * Ireland jurisdiction statement — Family Law (Divorce) Act 1996, s.39(1)(a)-(b).
+   * Either spouse must be domiciled in Ireland (s.39(1)(a)) or ordinarily resident for 1 year (s.39(1)(b)).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Applicant or the Respondent is domiciled in Ireland, or has been ordinarily resident in Ireland for at least one year immediately preceding the institution of these proceedings, as required by section 39(1)(a) of the Family Law (Divorce) Act 1996.`;
+    return `Either the Applicant or the Respondent is domiciled in Ireland, or has been ordinarily resident in Ireland for at least one year immediately preceding the institution of these proceedings, as required by section 39(1)(a) and (b) of the Family Law (Divorce) Act 1996.`;
   }
 
   /**
@@ -154,9 +154,9 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   /**
    * Ireland relief section — uses Irish family law terminology.
    * "Proper provision" is the constitutional and statutory standard.
-   * Property orders: Family Law (Divorce) Act 1996, ss.14-18.
-   * Maintenance: s.13 (periodical payments), s.14 (lump sum), s.15 (property adjustment).
-   * Pension: s.17 (pension adjustment orders).
+   * Financial orders: Family Law (Divorce) Act 1996, ss.13-17 —
+   * s.13 (periodical payments and lump sums), s.14 (property adjustment),
+   * s.16 (financial compensation), s.17 (pension adjustment orders).
    */
   generateReliefSection(divorceData) {
     const items = [];
@@ -169,14 +169,14 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A Decree of Divorce pursuant to section 5 of the Family Law (Divorce) Act 1996, as amended by section 9 of the Family Law Act 2019;',
-      'Such property adjustment orders as the Court considers proper pursuant to section 15 of the Family Law (Divorce) Act 1996;',
-      'Such financial compensation orders as the Court considers proper pursuant to sections 13 and 14 of the Family Law (Divorce) Act 1996;',
+      'A Decree of Divorce pursuant to section 5 of the Family Law (Divorce) Act 1996, as amended by section 3 of the Family Law Act 2019;',
+      'Such property adjustment orders as the Court considers proper pursuant to section 14 of the Family Law (Divorce) Act 1996;',
+      'Such financial compensation orders as the Court considers proper pursuant to section 16 of the Family Law (Divorce) Act 1996;',
       'A pension adjustment order, if applicable, pursuant to section 17 of the Family Law (Divorce) Act 1996;'
     ];
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Such orders for the custody of and right of access to dependent children as the Court considers proper pursuant to section 5(2) of the Guardianship of Infants Act 1964 (as amended);');
+      reliefItems.push('Such orders for the custody of and right of access to dependent children as the Court considers proper pursuant to section 5(2) of the Family Law (Divorce) Act 1996 and section 11 of the Guardianship of Infants Act 1964 (as amended);');
       reliefItems.push('Such orders for the maintenance of dependent children as the Court considers proper;');
     }
 
@@ -231,7 +231,7 @@ class IrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return (
       'The Applicant and the Respondent have lived apart from one another for a period of, ' +
       'or periods amounting to, at least two years during the preceding three years, within the ' +
-      'meaning of section 5(1)(a) of the Family Law (Divorce) Act 1996, as amended by section 9 ' +
+      'meaning of section 5(1)(a) of the Family Law (Divorce) Act 1996, as amended by section 3(1)(a) ' +
       'of the Family Law Act 2019. There is no reasonable prospect of a reconciliation between ' +
       'the spouses (s.5(1)(b)). The Applicant submits that proper provision has been made or will ' +
       'be made for the spouses and any dependent members of the family (s.5(1)(c)).'

@@ -64,7 +64,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone petition for divorce in Northern Ireland.
 Collecting residency/domicile information.
 
-LEGAL REQUIREMENT — MC(NI)O 1978, Art.3:
+LEGAL REQUIREMENT — MC(NI)O 1978, Art.49:
 To file in Northern Ireland, EITHER:
 (a) one of the parties must be domiciled in Northern Ireland at the date the petition
     is presented, OR
@@ -89,7 +89,8 @@ LEGAL CONTEXT — Matrimonial Causes (NI) Order 1978, Art.3:
 NI requires proof of irretrievable breakdown through ONE of five facts:
 
 1. ADULTERY (Art.3(2)(a))
-   - The Respondent committed adultery AND the Petitioner finds it intolerable to live with them
+   - The Respondent has committed adultery since the date of the marriage
+     (unlike England & Wales, there is NO additional "intolerable to live with" requirement)
    - Cannot rely on own adultery; must not have lived together for 6+ months after discovery
 
 2. UNREASONABLE BEHAVIOUR (Art.3(2)(b))

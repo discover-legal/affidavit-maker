@@ -9,7 +9,7 @@
   "residencyRequirements": { "stateMonths": 12, "countyDays": 0, "description": "Either spouse must be an Australian citizen, domiciled in Australia, or ordinarily resident in Australia for at least 12 months (Family Law Act 1975 (Cth), s.39(3))." },
   "waitingPeriod": { "days": 0, "description": "No waiting period. Divorce Order takes effect 1 month and 1 day after made (s.55)." },
   "groundsForDivorce": {
-    "noFault": [{ "code": "separation", "name": "Irretrievable Breakdown (12-Month Separation)", "description": "12 months of continuous separation.", "statute": "Family Law Act 1975 (Cth), s.48(1)" }],
+    "noFault": [{ "code": "separation", "name": "Irretrievable Breakdown (12-Month Separation)", "description": "12 months of continuous separation.", "statute": "Family Law Act 1975 (Cth), s.48(1)-(2)" }],
     "fault": []
   },
   "terminology": { "caseNumberLabel": "File Number", "custody": "Parenting Orders", "physicalCustody": "Time Spent with Child", "jointCustody": "Parental Responsibility (shared)", "soleCustody": "Sole Parental Responsibility", "alimony": "Spousal Maintenance", "childSupport": "Child Support", "maritalProperty": "Property Settlement (s.79)" },

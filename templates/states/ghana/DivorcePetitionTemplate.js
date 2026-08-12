@@ -14,12 +14,13 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Key Legal References:
  * - Matrimonial Causes Act 1971 (Act 367) — sole ground: marriage has broken down
- *   beyond reconciliation (s.2)
+ *   beyond reconciliation (s.1(2))
  *   - s.2(1)(a): adultery + intolerability
  *   - s.2(1)(b): unreasonable behaviour
  *   - s.2(1)(c): desertion for 2+ years
  *   - s.2(1)(d): 2-year separation with consent
  *   - s.2(1)(e): no cohabitation for 5+ years
+ *   - s.2(1)(f): unable to reconcile after diligent effort
  * - Marriage Ordinance (Cap 127) — ordinance marriages
  * - Customary Marriage and Divorce (Registration) Act 1985 (PNDCL 112) — customary marriages
  * - Marriage of Mohammedans Ordinance (Cap 129) — Mohammedan marriages
@@ -29,13 +30,15 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Residency Requirement (MCA s.31):
  * - Either party must be domiciled in Ghana OR resident for at least 3 years before filing.
  *
- * Two-Year Bar (MCA s.1):
- * - No petition within 2 years of marriage except by leave of court in exceptional circumstances.
+ * Two-Year Bar (MCA s.9):
+ * - No petition within 2 years of marriage (s.9(1)) except by leave of court
+ *   for substantial hardship or depravity (s.9(2)).
  *
- * Mandatory Reconciliation (MCA s.2(3)):
- * - Court MUST refer parties to conciliation before proceeding.
+ * Reconciliation (MCA s.8):
+ * - Petitioner reports reconciliation efforts (s.8(1)); the court MAY adjourn
+ *   to attempt reconciliation (s.8(2)) — discretionary, not mandatory.
  *
- * Process: Petition -> Reconciliation -> Hearing -> Decree Nisi -> Decree Absolute
+ * Process: Petition -> Hearing -> Decree of Divorce (final from judgment, s.37)
  *
  * Ghana-Specific:
  * - Parties are "Petitioner" and "Respondent"
@@ -82,7 +85,7 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // No mandatory waiting period after filing, but reconciliation is required
     this.waitingPeriod = {
       days: 0,
-      description: 'No mandatory waiting period after filing. However, the court MUST refer parties to conciliation before proceeding (MCA s.2(3)). Petition cannot be filed within 2 years of marriage except by leave of court (MCA s.1).'
+      description: 'No mandatory waiting period after filing. The petitioner reports reconciliation efforts (MCA s.8(1)) and the court may adjourn to attempt reconciliation (s.8(2)). Petition cannot be filed within 2 years of marriage (MCA s.9(1)) except by leave of court (s.9(2)).'
     };
 
     this.formatting = {
@@ -205,7 +208,7 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('An order for maintenance of the Petitioner pursuant to section 20 of the Matrimonial Causes Act 1971 (Act 367);');
+      reliefItems.push('An order for financial provision for the Petitioner pursuant to section 19 of the Matrimonial Causes Act 1971 (Act 367);');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {
@@ -243,8 +246,9 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Ghana grounds for divorce.
-   * Matrimonial Causes Act 1971, s.2(1) — sole ground is that the marriage
-   * has broken down beyond reconciliation, proved by one of five facts.
+   * Matrimonial Causes Act 1971 — sole ground is that the marriage has
+   * broken down beyond reconciliation (s.1(2)), shown by one of the six
+   * facts in s.2(1).
    */
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'consent_separation').toLowerCase();
@@ -259,6 +263,9 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
     if (g.includes('five') || g.includes('5')) {
       return 'The parties have not lived as man and wife for a continuous period of at least five years immediately preceding the presentation of this Petition, within the meaning of section 2(1)(e) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
+    }
+    if (g.includes('reconcile') || g.includes('diligent')) {
+      return 'The parties to the marriage have, after diligent effort, been unable to reconcile their differences, within the meaning of section 2(1)(f) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';
     }
     // Default: 2-year separation with consent
     return 'The parties have not lived as man and wife for a continuous period of at least two years immediately preceding the presentation of this Petition, and the Respondent consents to the grant of a decree of divorce, within the meaning of section 2(1)(d) of the Matrimonial Causes Act 1971 (Act 367). The marriage has accordingly broken down beyond reconciliation.';

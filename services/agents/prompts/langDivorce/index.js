@@ -101,7 +101,7 @@ This must be proved by establishing at least ONE of the following facts:
 4. DESERTION FOR 1 YEAR (s.15(2)(d)) — respondent deserted petitioner for at least 1 continuous year
 5. 2-YEAR SEPARATION WITH CONSENT (s.15(2)(e)) — lived apart 2+ years, respondent does not object
 6. 3-YEAR SEPARATION (s.15(2)(f)) — lived apart 3+ years, no consent required
-7. FAILURE TO COMPLY WITH RESTITUTION ORDER (s.15(2)(g)) — respondent failed to comply with conjugal rights order
+7. FAILURE TO COMPLY WITH RESTITUTION ORDER FOR 1+ YEAR (s.15(2)(g)) — respondent has failed, for a period of not less than one year, to comply with a decree of restitution of conjugal rights
 8. PRESUMPTION OF DEATH (s.15(2)(h)) — other party absent for 7+ years, petitioner has no reason to believe them alive
 
 TWO-YEAR BAR (s.30): Cannot file within 2 years of the marriage date unless the court grants leave
@@ -232,7 +232,7 @@ IMPORTANT REMINDERS TO SHARE:
 - An affidavit in support of the petition must be sworn before a Commissioner for Oaths
 - After the court grants a Decree Nisi, there is a 3-month waiting period before it becomes a Decree Absolute
 - Only the Decree Absolute formally dissolves the marriage
-- Either party can apply to make the Decree Nisi absolute after the 3 months
+- The Decree Nisi becomes absolute AUTOMATICALLY by force of MCA s.58 on the expiry of the 3 months — no application is needed (where there are children under 16, s.57/s.58(1)(a) can delay this)
 - Paper size for all documents is A4
 ${SHARED_RULES}`;
 

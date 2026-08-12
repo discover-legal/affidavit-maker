@@ -22,7 +22,13 @@ class KarnatakaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
     const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
-    const caption = [`IN THE ${courtName}`, '', `Case No. ${caseNumber}`, '', 'IN THE MATTER OF:', '', petitioner, 'Petitioner', '', 'VERSUS', '', respondent, 'Respondent'].join('\n');
+    // Mutual-consent petitions are presented jointly (HMA s.13B(1) / SMA s.28(1))
+    const g = (divorceData.groundsForDivorce || 'mutual_consent').toLowerCase();
+    const joint = g.includes('mutual') || g.includes('consent');
+    const partyLines = joint
+      ? [petitioner, 'Petitioner No. 1', '', 'AND', '', respondent, 'Petitioner No. 2']
+      : [petitioner, 'Petitioner', '', 'VERSUS', '', respondent, 'Respondent'];
+    const caption = [`IN THE ${courtName}`, '', `Case No. ${caseNumber}`, '', 'IN THE MATTER OF:', '', ...partyLines].join('\n');
     return { courtName, caseNumber: divorceData.caseNumber, petitioner: divorceData.petitionerName, respondent: divorceData.respondentName, formatted: caption };
   }
 

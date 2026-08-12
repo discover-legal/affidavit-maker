@@ -9,20 +9,17 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
 /**
  * Ghana Divorce Decree Template
  *
- * In Ghana, the divorce process produces two orders:
- * 1. Decree Nisi — provisional dissolution of the marriage
- * 2. Decree Absolute — final dissolution (3 months after Decree Nisi)
- *
- * The Decree Nisi is granted by the High Court (Matrimonial/Family Division)
- * after the hearing. Either party may apply to have the Decree Nisi made
- * absolute after 3 months.
+ * In Ghana the court grants a single decree of divorce: under MCA 1971
+ * s.37 every decree is final and takes effect from the date the court
+ * gives judgment. Ghana has NO decree nisi / decree absolute stage.
  *
  * Key Legal References:
  * - Matrimonial Causes Act 1971 (Act 367)
- *   - s.2: Sole ground — marriage has broken down beyond reconciliation
- *   - s.2(3): Mandatory reconciliation before proceeding
- *   - Decree Nisi becomes absolute after 3 months (court practice)
- *   - s.20: Maintenance orders
+ *   - s.1(2): Sole ground — marriage has broken down beyond reconciliation
+ *   - s.2(1): The six facts that establish breakdown
+ *   - s.8: Reconciliation — petitioner reports efforts; court MAY adjourn
+ *   - s.19: Financial provision for spouse (s.20 is property settlement)
+ *   - s.37: Decrees are final from the date of judgment
  * - Children's Act 1998 (Act 560) — best interests of the child
  * - 1992 Constitution, Art. 22 — spouse's property rights
  *
@@ -36,7 +33,7 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.state = 'GH';
     this.stateName = 'Ghana';
     this.countryCode = 'GH';
-    this.documentTitle = 'DECREE NISI';
+    this.documentTitle = 'DECREE OF DIVORCE';
 
     try {
       this.metadata = require('./metadata.json');
@@ -123,15 +120,15 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ghana dissolution section — Decree Nisi.
+   * Ghana dissolution section — single final decree (MCA s.37).
    * The Matrimonial Causes Act uses "broken down beyond reconciliation".
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Dissolution section
    */
   generateDissolutionSection(divorceData) {
     return {
-      title: 'DECREE NISI',
-      text: `THE COURT, having heard the petition and being satisfied that the marriage between ${divorceData.petitionerName || '[PETITIONER NAME]'} and ${divorceData.respondentName || '[RESPONDENT NAME]'} has broken down beyond reconciliation within the meaning of section 2 of the Matrimonial Causes Act 1971 (Act 367), and having referred the matter to conciliation as required by section 2(3), and conciliation having failed:\n\nIT IS HEREBY DECREED that the said marriage solemnised on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'} be dissolved, unless sufficient cause be shown to this Court within three months from the date hereof why this Decree should not be made absolute.`,
+      title: 'DECREE OF DIVORCE',
+      text: `THE COURT, having heard the petition, having been informed of the efforts made to effect a reconciliation (section 8 of the Matrimonial Causes Act 1971 (Act 367)), and being satisfied on all the evidence that the marriage between ${divorceData.petitionerName || '[PETITIONER NAME]'} and ${divorceData.respondentName || '[RESPONDENT NAME]'} has broken down beyond reconciliation within the meaning of sections 1(2) and 2(1) of the said Act:\n\nIT IS HEREBY DECREED that the said marriage solemnised on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'} be and is hereby dissolved. This decree is final and takes effect from the date of this judgment (section 37).`,
       type: 'dissolution'
     };
   }
@@ -279,7 +276,7 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ghana spousal maintenance — MCA s.20.
+   * Ghana spousal maintenance — MCA s.19 (financial provision for spouse).
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Spousal maintenance section or null if not applicable
    */
@@ -292,12 +289,12 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.spousalSupportWaived) {
       items.push({
-        content: 'IT IS ORDERED that each party waives and releases any claim for maintenance from the other party under section 20 of the Matrimonial Causes Act 1971 (Act 367).',
+        content: 'IT IS ORDERED that each party waives and releases any claim for maintenance from the other party under section 19 of the Matrimonial Causes Act 1971 (Act 367).',
         type: 'order'
       });
     } else if (divorceData.spousalSupportAwarded) {
       items.push({
-        content: `IT IS ORDERED pursuant to section 20 of the Matrimonial Causes Act 1971 (Act 367) that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner'} in the amount of GHS ${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED pursuant to section 19 of the Matrimonial Causes Act 1971 (Act 367) that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner'} in the amount of GHS ${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
         type: 'order'
       });
     }
@@ -306,7 +303,7 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ghana final orders section — Decree Nisi / Decree Absolute language.
+   * Ghana final orders section.
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Final orders section
    */
@@ -337,17 +334,17 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ghana Decree Nisi becomes absolute after 3 months.
+   * Ghana decrees are final from the date of judgment (MCA s.37).
    */
   getEffectiveDateText() {
-    return 'This Decree Nisi shall become absolute after the expiration of three months from the date hereof, unless the Court otherwise directs or an appeal is pending (Matrimonial Causes Act 1971, Act 367). Either party may apply to have this Decree Nisi made absolute after the said period.';
+    return 'This Decree is final and takes effect from the date of this judgment (Matrimonial Causes Act 1971 (Act 367), section 37).';
   }
 
   /**
-   * Ghana Certificate of Divorce — available after Decree Absolute.
+   * Ghana Certificate of Divorce — available once the decree is granted.
    */
   getCertificateNote() {
-    return 'A Certificate of Divorce may be obtained from the High Court registry after the Decree Absolute has been made.';
+    return 'A Certificate of Divorce may be obtained from the High Court registry after the grant of this Decree.';
   }
 
   /**

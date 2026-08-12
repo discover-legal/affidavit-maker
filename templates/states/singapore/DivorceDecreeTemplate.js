@@ -11,10 +11,12 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *
  * Singapore's divorce process has two stages:
  * 1. Interim Judgment (formerly "Decree Nisi") — marriage is NOT yet dissolved
- * 2. Certificate of Making Interim Judgment Final (formerly "Decree Absolute")
- *    — marriage is dissolved only at this stage
+ * 2. Final Judgment (formerly "Decree Absolute"; before 15 Oct 2024 the
+ *    "Certificate of Making Interim Judgment Final") — marriage is dissolved
+ *    only at this stage
  *
- * The minimum gap between stages is 3 months (Women's Charter, s.99(3)).
+ * The Interim Judgment must not be made final before 3 months from its grant
+ * unless the court fixes a shorter period (Women's Charter, s.99(1)).
  *
  * Key Legal References:
  * - Women's Charter 1961
@@ -24,10 +26,11 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  *   - s.112: Division of matrimonial assets — "just and equitable"
  *   - s.113-114: Maintenance of wife (gender-specific)
  *   - s.125: Welfare of child paramount in custody matters
- * - Guardianship of Infants Act (Cap 122)
+ * - Guardianship of Infants Act 1934
  * - Family Justice (General) Rules 2024
  *
- * IMPORTANT: Muslim marriages are handled by the Syariah Court under AMLA (Cap 3).
+ * IMPORTANT: Muslim marriages are handled by the Syariah Court under the
+ * Administration of Muslim Law Act 1966 (AMLA).
  * This template applies ONLY to non-Muslim divorces under the Women's Charter.
  *
  * @class SingaporeDivorceDecreeTemplate
@@ -67,7 +70,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Divorce Suit No.';
+    return 'No. FC/OA';
   }
 
   getDefaultCourt(county) {
@@ -92,27 +95,27 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Singapore case caption uses Plaintiff/Defendant labels.
+   * Singapore case caption uses Applicant/Respondent labels (filings from 15 Oct 2024).
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Case caption
    */
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[SUIT NUMBER]';
-    const plaintiff = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
-    const defendant = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
+    const caseNumber = divorceData.caseNumber || '[NUMBER]/[YEAR]';
+    const applicant = (divorceData.petitionerName || '[APPLICANT NAME]').toUpperCase();
+    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
     const formatted = (
       `IN THE ${courtName}\n` +
       `OF THE REPUBLIC OF SINGAPORE\n\n` +
       `${caseLabel} ${caseNumber}\n\n` +
       `BETWEEN:\n\n` +
-      `${plaintiff}\n` +
-      `Plaintiff\n\n` +
+      `${applicant}\n` +
+      `Applicant\n\n` +
       `— and —\n\n` +
-      `${defendant}\n` +
-      `Defendant`
+      `${respondent}\n` +
+      `Respondent`
     );
 
     return {
@@ -125,7 +128,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Singapore appearances section uses "Plaintiff" / "Defendant".
+   * Singapore appearances section uses "Applicant" / "Respondent".
    */
   generateAppearancesSection(divorceData) {
     let text = '';
@@ -133,11 +136,11 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     text += 'On this date, the Court considered the above-entitled matter.\n\n';
 
     if (divorceData.appearanceType === 'agreed' || divorceData.isUncontested) {
-      text += `The Plaintiff, ${divorceData.petitionerName || '[PLAINTIFF NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by counsel' : 'in person'}.\n\n`;
-      text += `The Defendant, ${divorceData.respondentName || '[DEFENDANT NAME]'}, ${divorceData.respondentAppeared ? 'appeared and consented to the proceedings' : 'having been duly served, did not appear and did not contest the proceedings'}.`;
+      text += `The Applicant, ${divorceData.petitionerName || '[APPLICANT NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by counsel' : 'in person'}.\n\n`;
+      text += `The Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${divorceData.respondentAppeared ? 'appeared and consented to the proceedings' : 'having been duly served, did not appear and did not contest the proceedings'}.`;
     } else {
-      text += `The Plaintiff, ${divorceData.petitionerName || '[PLAINTIFF NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by counsel' : 'in person'}.\n\n`;
-      text += `The Defendant, ${divorceData.respondentName || '[DEFENDANT NAME]'}, ${divorceData.respondentAppeared ? 'appeared' : 'although duly served, did not appear'}.`;
+      text += `The Applicant, ${divorceData.petitionerName || '[APPLICANT NAME]'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by counsel' : 'in person'}.\n\n`;
+      text += `The Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${divorceData.respondentAppeared ? 'appeared' : 'although duly served, did not appear'}.`;
     }
 
     return {
@@ -154,7 +157,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateDissolutionSection(divorceData) {
     return {
       title: 'INTERIM JUDGMENT GRANTED',
-      text: `IT IS ADJUDGED that the marriage between ${divorceData.petitionerName || '[PLAINTIFF NAME]'} (Plaintiff) and ${divorceData.respondentName || '[DEFENDANT NAME]'} (Defendant), solemnized on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}, has irretrievably broken down and the Court grants an Interim Judgment dissolving the said marriage pursuant to section 95 read with section 99 of the Women's Charter 1961.\n\nNOTE: This Interim Judgment does NOT dissolve the marriage. The marriage is dissolved only when the Certificate of Making Interim Judgment Final is issued (Women's Charter, s.99(3)).`,
+      text: `IT IS ADJUDGED that the marriage between ${divorceData.petitionerName || '[APPLICANT NAME]'} (Applicant) and ${divorceData.respondentName || '[RESPONDENT NAME]'} (Respondent), solemnized on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}, has irretrievably broken down and the Court grants an Interim Judgment dissolving the said marriage pursuant to section 95 read with section 99 of the Women's Charter 1961.\n\nNOTE: This Interim Judgment does NOT dissolve the marriage. The marriage is dissolved only when the Final Judgment is extracted (Women's Charter, s.99(1)).`,
       type: 'dissolution'
     };
   }
@@ -182,7 +185,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
         items.push({
-          content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.petitionerName || 'the Plaintiff'}:`,
+          content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.petitionerName || 'the Applicant'}:`,
           type: 'order'
         });
         divorceData.petitionerProperty.forEach(prop => {
@@ -192,7 +195,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
         items.push({
-          content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.respondentName || 'the Defendant'}:`,
+          content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.respondentName || 'the Respondent'}:`,
           type: 'order'
         });
         divorceData.respondentProperty.forEach(prop => {
@@ -213,7 +216,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Singapore child custody section — welfare of child is paramount
-   * (Guardianship of Infants Act, Cap 122; Women's Charter, s.125).
+   * (Guardianship of Infants Act 1934; Women's Charter, s.125).
    * Uses Singapore terminology: "custody", "care and control", and "access".
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Child custody section or null if no children
@@ -226,7 +229,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const items = [];
 
     items.push({
-      content: 'The Court finds that the following orders are in the best interests and welfare of the child(ren) (Women\'s Charter, s.125; Guardianship of Infants Act, Cap 122):',
+      content: 'The Court finds that the following orders are in the best interests and welfare of the child(ren) (Women\'s Charter, s.125; Guardianship of Infants Act 1934):',
       type: 'finding'
     });
 
@@ -242,16 +245,16 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const custodyType = divorceData.custodyType || 'joint';
     if (custodyType === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'the Plaintiff'} and ${divorceData.respondentName || 'the Defendant'} shall have joint custody of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || 'the Applicant'} and ${divorceData.respondentName || 'the Respondent'} shall have joint custody of the child(ren).`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Plaintiff'} shall have care and control of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant'} shall have care and control of the child(ren).`,
         type: 'order'
       });
     } else {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Plaintiff'} shall have sole custody, care and control of the child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant'} shall have sole custody, care and control of the child(ren).`,
         type: 'order'
       });
     }
@@ -267,7 +270,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Access language
    */
   getVisitationLanguage(divorceData) {
-    return `IT IS ORDERED that ${divorceData.respondentName || 'the Defendant'} shall have reasonable access to the child(ren) as agreed between the parties, or failing agreement, as determined by the Court. Neither party shall do anything to alienate the child(ren) from the other party.`;
+    return `IT IS ORDERED that ${divorceData.respondentName || 'the Respondent'} shall have reasonable access to the child(ren) as agreed between the parties, or failing agreement, as determined by the Court. Neither party shall do anything to alienate the child(ren) from the other party.`;
   }
 
   /**
@@ -285,7 +288,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED pursuant to section 69 of the Women's Charter 1961 that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Defendant'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Plaintiff'} maintenance for the child(ren) in the sum of SGD $${divorceData.childSupportAmount} per month.`,
+        content: `IT IS ORDERED pursuant to section 69 of the Women's Charter 1961 that ${divorceData.childSupportObligor || divorceData.respondentName || 'the Respondent'} shall pay to ${divorceData.childSupportObligee || divorceData.petitionerName || 'the Applicant'} maintenance for the child(ren) in the sum of SGD $${divorceData.childSupportAmount} per month.`,
         type: 'order'
       });
     } else {
@@ -324,7 +327,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     } else if (divorceData.spousalSupportAwarded) {
       items.push({
-        content: `IT IS ORDERED pursuant to sections 113-114 of the Women's Charter 1961 that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'the Defendant'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'the Plaintiff'} in the sum of SGD $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED pursuant to sections 113-114 of the Women's Charter 1961 that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'the Respondent'} shall pay maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'the Applicant'} in the sum of SGD $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
         type: 'order'
       });
     }
@@ -370,24 +373,26 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Singapore effective date: Interim Judgment must be made final after 3 months.
+   * Singapore effective date: Interim Judgment must not be made final before
+   * 3 months from its grant unless the court fixes a shorter period (s.99(1)).
    */
   getEffectiveDateText() {
-    return 'This is an Interim Judgment. The marriage is NOT dissolved by this judgment. Either party may apply for the Certificate of Making Interim Judgment Final no earlier than 3 months after the date of this Interim Judgment (Women\'s Charter, s.99(3)).';
+    return 'This is an Interim Judgment. The marriage is NOT dissolved by this judgment. The Interim Judgment must not be made final before the expiration of 3 months from its grant, unless the Court fixes a shorter period (Women\'s Charter, s.99(1)).';
   }
 
   /**
-   * Singapore certificate note — Certificate of Making Interim Judgment Final.
+   * Singapore certificate note — Final Judgment (formerly the Certificate of
+   * Making Interim Judgment Final).
    */
   getCertificateNote() {
-    return 'The marriage is dissolved only upon the making of the Certificate of Making Interim Judgment Final. The Certificate may be applied for by either party after the expiry of 3 months from the date of this Interim Judgment, unless the Court otherwise directs (Women\'s Charter, s.99).';
+    return 'The marriage is dissolved only upon the extraction of the Final Judgment. The Final Judgment may be extracted by either party after the expiry of 3 months from the date of this Interim Judgment or once the ancillary matters are resolved, whichever is later, unless the Court otherwise directs (Women\'s Charter, s.99).';
   }
 
   /**
    * Note about Muslim marriages being handled by the Syariah Court.
    */
   getMuslimLawNote() {
-    return 'NOTE: This judgment is issued under the Women\'s Charter 1961 and applies to non-Muslim marriages only. Marriages solemnized under Muslim law are governed by the Administration of Muslim Law Act (AMLA, Cap 3) and divorce proceedings for such marriages are handled by the Syariah Court.';
+    return 'NOTE: This judgment is issued under the Women\'s Charter 1961 and applies to non-Muslim marriages only. Marriages solemnized under Muslim law are governed by the Administration of Muslim Law Act 1966 (AMLA) and divorce proceedings for such marriages are handled by the Syariah Court.';
   }
 
   /**
@@ -401,7 +406,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Singapore signature block for agreed proceedings uses "Plaintiff" / "Defendant".
+   * Singapore signature block for agreed proceedings uses "Applicant" / "Respondent".
    */
   generateSignatureBlock(divorceData) {
     if (divorceData.isUncontested || divorceData.appearanceType === 'agreed') {
@@ -410,13 +415,13 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         blocks: [
           {
             line: '_________________________________',
-            name: divorceData.petitionerName || '[PLAINTIFF NAME]',
-            title: 'Plaintiff'
+            name: divorceData.petitionerName || '[APPLICANT NAME]',
+            title: 'Applicant'
           },
           {
             line: '_________________________________',
-            name: divorceData.respondentName || '[DEFENDANT NAME]',
-            title: 'Defendant'
+            name: divorceData.respondentName || '[RESPONDENT NAME]',
+            title: 'Respondent'
           }
         ],
         type: 'party_signatures'

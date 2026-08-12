@@ -32,7 +32,7 @@
   },
   "legalCitations": [
     { "code": "Family Law Act 1975 (Cth)", "description": "Federal statute — governs divorce, property, parenting, and spousal maintenance" },
-    { "code": "Family Law Rules 2004 (Cth)", "description": "Procedural rules for the FCFCOA" },
+    { "code": "Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)", "description": "Procedural rules for the FCFCOA" },
     { "code": "Oaths, Affidavits and Declarations Act 2010 (NT)", "description": "NT statute — requirements for sworn affidavits and statutory declarations" }
   ],
   "affidavitJurat": "Sworn/Affirmed at ___ in the Northern Territory on the ___ day of ___, ___.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths",

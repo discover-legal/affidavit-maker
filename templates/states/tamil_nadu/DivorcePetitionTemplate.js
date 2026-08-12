@@ -18,7 +18,12 @@ class TamilNaduDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   generateCaseCaption(dd) {
     const cn = (dd.court || this.getDefaultCourt()).toUpperCase(); const no = dd.caseNumber || '[CASE NUMBER]';
     const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase(); const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
-    return { courtName: cn, caseNumber: dd.caseNumber, petitioner: dd.petitionerName, respondent: dd.respondentName, formatted: [`IN THE ${cn}`, '', `Case No. ${no}`, '', 'IN THE MATTER OF:', '', p, 'Petitioner', '', 'VERSUS', '', r, 'Respondent'].join('\n') };
+    const g = (dd.groundsForDivorce || 'mutual_consent').toLowerCase();
+    // Mutual-consent petitions are presented jointly (HMA s.13B(1) / SMA s.28(1))
+    const partyLines = (g.includes('mutual') || g.includes('consent'))
+      ? [p, 'Petitioner No. 1', '', 'AND', '', r, 'Petitioner No. 2']
+      : [p, 'Petitioner', '', 'VERSUS', '', r, 'Respondent'];
+    return { courtName: cn, caseNumber: dd.caseNumber, petitioner: dd.petitionerName, respondent: dd.respondentName, formatted: [`IN THE ${cn}`, '', `Case No. ${no}`, '', 'IN THE MATTER OF:', '', ...partyLines].join('\n') };
   }
   getJurisdictionStatement() { return `This Hon'ble Court has jurisdiction under HMA s.19 / SMA s.31.`; }
   getVenueReason(dd) { return `the Petitioner or Respondent resides at ${dd.county || 'Chennai'}`; }

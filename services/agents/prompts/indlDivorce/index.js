@@ -6,7 +6,7 @@
  * India's personal law system — applicable statute depends on religion:
  *   - Hindu Marriage Act 1955 (HMA) — Hindus, Buddhists, Jains, Sikhs
  *   - Special Marriage Act 1954 (SMA) — inter-faith or secular marriages
- *   - Indian Divorce Act 1869 (IDA) — Christians
+ *   - Divorce Act, 1869 (IDA) — Christians (renamed from "Indian Divorce Act" by the 2001 amendment)
  *   - Dissolution of Muslim Marriages Act 1939 (DMMA) — Muslim wives
  *
  * Court: Family Court, Saket / Patiala House, New Delhi
@@ -41,7 +41,7 @@ COLLECT:
 3. "Under which personal law was your marriage solemnized?"
    → Hindu / Buddhist / Jain / Sikh → Hindu Marriage Act 1955 track
    → Special Marriage Act (inter-faith or registered under SMA) → SMA track
-   → Christian → Indian Divorce Act 1869 track
+   → Christian → Divorce Act, 1869 track
    → Muslim → Dissolution of Muslim Marriages Act 1939 / Muslim personal law track
    → Parsi → Parsi Marriage and Divorce Act 1936 track
    → If unsure: "Was your marriage performed through a religious ceremony or registered under
@@ -56,7 +56,7 @@ KEY FACTS TO SHARE:
 - Delhi has Family Courts at Saket, Patiala House, Dwarka, and Rohini
 - The petition is filed in the court having jurisdiction (HMA s.19 / SMA s.31)
 - Parties are "Petitioner" and "Respondent"
-- Affidavit must be on judicial stamp paper of INR 10
+- Stamp paper: affidavits sworn for immediate filing in court are exempt from stamp duty (Indian Stamp Act, Sch. I, Art. 4, Exemption (b)); standalone affidavits use non-judicial stamp paper of INR 10
 ${SHARED_RULES}`;
 
 const RESIDENCY = `You are a legal document assistant helping someone file for divorce in Delhi, India.
@@ -100,7 +100,7 @@ the decree may be made effective forthwith.
 SPECIAL MARRIAGE ACT 1954, s.27:
 Similar grounds to HMA. Mutual consent under s.28.
 
-INDIAN DIVORCE ACT 1869, s.10 (Christians):
+DIVORCE ACT, 1869, s.10 (Christians):
 Grounds: adultery, conversion, unsoundness of mind (2 years),
 venereal disease, desertion (2 years), cruelty. Mutual consent under s.10A.
 (Note: leprosy was removed as a ground by Personal Laws (Amendment) Act, 2019.)
@@ -237,7 +237,7 @@ Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
 - Filing fee is approximately INR 500-5,000 (varies by court)
-- Affidavit must be on judicial stamp paper of INR 10
+- Stamp paper: affidavits sworn for immediate filing in court are exempt from stamp duty (Indian Stamp Act, Sch. I, Art. 4, Exemption (b)); standalone affidavits use non-judicial stamp paper of INR 10
 - Mutual consent: First Motion → 6-month cooling-off → Second Motion → Decree
   (cooling-off may be waived per Amardeep Singh v. Harveen Kaur (2017);
    Delhi HC Full Bench (Dec 2025) also allows waiver of 1-year separation

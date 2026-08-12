@@ -20,18 +20,17 @@
       {
         "code": "irretrievable_breakdown",
         "name": "Irretrievable Breakdown",
-        "description": "The marriage relationship has broken down irretrievably with no reasonable prospect of restoration of a normal marriage relationship. There are no specific enumerated facts required — the court examines the totality of the evidence. Factors the court may consider include continuous unconsciousness, the parties having lived apart, and the nature of the marital relationship.",
-        "statute": "Divorce Act 70 of 1979, s.4(1)"
-      }
-    ],
-    "fault": [
+        "description": "The marriage relationship has broken down irretrievably with no reasonable prospect of restoration of a normal marriage relationship. Section 4(2) expressly lists facts the court may accept as proof of irretrievable breakdown (without excluding other evidence): (a) the parties have not lived together as husband and wife for a continuous period of at least one year immediately prior to the action; (b) the defendant has committed adultery and the plaintiff finds it irreconcilable with a continued marriage relationship; (c) the defendant has been declared an habitual criminal and is undergoing imprisonment.",
+        "statute": "Divorce Act 70 of 1979, s.4(1)-(2)"
+      },
       {
         "code": "mental_illness",
         "name": "Mental Illness or Continuous Unconsciousness",
-        "description": "The defendant has been admitted to a psychiatric hospital or similar institution for a continuous period of at least 2 years, or has been in a state of continuous unconsciousness for at least 6 months, and there is no reasonable prospect of recovery.",
+        "description": "The defendant has been admitted to a psychiatric hospital or similar institution for a continuous period of at least 2 years with no reasonable prospect of cure (s.5(1)), or has been in a state of continuous unconsciousness for at least 6 months with no reasonable prospect of recovery (s.5(2)). South African divorce law is entirely no-fault — this is a no-fault ground.",
         "statute": "Divorce Act 70 of 1979, s.5"
       }
-    ]
+    ],
+    "fault": []
   },
   "terminology": {
     "caseNumberLabel": "Case No.",
@@ -98,7 +97,7 @@
     },
     {
       "code": "General (Family) Laws Amendment Bill (B20-2025)",
-      "description": "PENDING (tabled 2025, not yet enacted) — will amend the Divorce Act, Matrimonial Property Act, and Mediation in Certain Divorce Matters Act to allow courts to redistribute assets in out-of-community-of-property marriages, implementing the Constitutional Court ruling in RB v JB 2023"
+      "description": "PENDING (tabled 2025, not yet enacted) — will amend the Divorce Act, Matrimonial Property Act, and Mediation in Certain Divorce Matters Act to allow courts to redistribute assets in out-of-community-of-property marriages, implementing the Constitutional Court ruling in EB (born S) v ER (born B) N.O. and Others; KG v Minister of Home Affairs and Others [2023] ZACC 32; 2024 (2) SA 1 (CC) (10 October 2023)"
     }
   ],
   "filingFees": {

@@ -10,8 +10,8 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * Lagos State Divorce Decree Template
  *
  * In Nigeria, the court first grants a Decree Nisi, which becomes a
- * Decree Absolute after 3 months (MCA s.58). Either party may apply
- * to make it absolute. Only the Decree Absolute dissolves the marriage.
+ * Decree Absolute automatically by force of law after 3 months (MCA s.58)
+ * — no application is needed. Only the Decree Absolute dissolves the marriage.
  *
  * Key Legal References:
  * - Matrimonial Causes Act 1970, Cap M7 LFN 2004
@@ -310,7 +310,7 @@ class LagosDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * Certificate of Decree Absolute.
    */
   getCertificateNote() {
-    return 'Either party may apply to this Court for the Decree Nisi to be made Absolute after the expiration of the said three months. A certified copy of the Decree Absolute may be obtained from the Court Registry.';
+    return 'Upon the expiration of the said three months, the Decree Nisi becomes absolute by force of section 58 of the Act; no application is required. A certified copy of the Decree Absolute may be obtained from the Court Registry.';
   }
 }
 

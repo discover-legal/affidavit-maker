@@ -52,7 +52,7 @@ class CrossRiverDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     return { title: 'FINAL ORDERS', items: [
       { content: 'IT IS HEREBY DECREED that the marriage is dissolved by this Decree Nisi.', type: 'order' },
       { content: 'This Decree Nisi shall become a Decree Absolute after three months (MCA s.58).', type: 'order' },
-      { content: 'Either party may apply to make the Decree Absolute after the said three months.', type: 'order' }
+      { content: 'Upon the expiration of the said three months, the Decree Nisi becomes absolute by force of section 58 of the Act; no application is required.', type: 'order' }
     ], type: 'final_orders' };
   }
 }

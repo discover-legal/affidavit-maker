@@ -81,7 +81,35 @@ source URL; every WRONG below was fixed in the same change set unless noted.
 | YT | terminology | Statement of Claim (Family Law â Divorce), Form 91A under Supreme Court Rule 63 | https://yukon.ca/en/legal-and-social-supports/family-law/file-divorce |
 | YT | citation | Divorce Act, R.S.C. 1985, c. 3 (2nd Supp.); Family Property and Support Act, R.S.Y. 2002, c. 83 | https://laws-lois.justice.gc.ca/eng/acts/d-3.4/page-1.html |
 
-## Uncertain — needs human legal review
+## Uncertain — RESOLVED by the 2026-08-12 follow-up pass
+
+All nine uncertains below were resolved the same day. The seven "statuteCitations
+array is empty" rows were an extractor bug — the metadata key is `legalCitations`,
+which existed and was populated in all seven states; a dedicated pass then
+validated those arrays (IN, KY, MO, NH, NJ, NV, TN — 42 entries):
+
+- **KY, MO, NJ**: every entry CONFIRMED.
+- **IN**: IC 31-16-6 mislabeled "Indiana Child Support Guidelines" — it is the
+  child-support-orders chapter; the Guidelines are Indiana Supreme Court rules. Fixed.
+- **NH**: alimony cite moved to RSA 458:19-a (post-2018 reform formula statute;
+  458:19 is definitions only); RSA 458:7 paragraphs V/VIII were swapped between
+  the endangering-treatment and religious-sect grounds; the "30-day appearance
+  (RSA 458:9)" claim had no statutory basis (458:9 is venue/notice). All fixed.
+- **NV**: metadata grounds block had NRS 125.010(2)/(3) swapped (template was
+  right); NRS 125C.001 replaced with 125C.002/.0025 for custody definitions;
+  NRS 125B percentage schedule is repealed — guidelines are NAC 425.140 et seq.
+  (eff. 2020-02-01). All fixed, including rendered decree/petition text.
+- **TN**: systematic subsection misnumbering — 12 of 13 metadata ground
+  pinpoints and 6 of 8 template recitals wrong (adultery is (a)(3) not (a)(4),
+  desertion (a)(4), felony (a)(6), cruel treatment (a)(11), indignities (a)(12),
+  two-year separation (a)(15), irreconcilable differences (a)(14)). All fixed.
+- **NC citation**: § 50-1 was REPEALED by Session Laws 1971, c. 1185 — the
+  "Complies with § 50-1 et seq." header comments now cite Chapter 50 / § 50-6.
+- **NM waitingPeriod**: WRONG — New Mexico has no statutory cooling-off; the
+  30 days is the respondent's answer window (Rule 1-012(A) NMRA) gating only
+  default decrees. Metadata and template now say days: 0.
+
+Original rows for reference:
 
 | Jurisdiction | Claim | Note |
 |---|---|---|
@@ -106,4 +134,6 @@ source URL; every WRONG below was fixed in the same change set unless noted.
   names/instruments/citations) were fixed at the source.
 - Full per-claim verdicts with sources: see the JSON files referenced in the
   validation commit message.
-- International templates (~46, behind ENABLE_INTERNATIONAL=false) were NOT validated.
+- International templates (46, behind ENABLE_INTERNATIONAL=false) were validated
+  in a same-day follow-up pass — see legal-validation-intl-2026-08-12.md
+  (276 claims: 220 confirmed, 56 wrong and fixed, 0 uncertain).

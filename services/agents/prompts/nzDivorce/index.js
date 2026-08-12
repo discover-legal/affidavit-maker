@@ -19,7 +19,9 @@
  *   - Domicile, not residency, is the jurisdictional requirement
  *   - Property: EQUAL SHARING of "relationship property" is the starting point
  *   - Children: "day-to-day care" and "contact" (Care of Children Act 2004)
- *   - Dissolution order takes effect IMMEDIATELY (no 31-day wait like Canada)
+ *   - Registrar-made dissolution orders (the usual undefended route) take effect as final
+ *     orders 1 MONTH after they are made (FPA s.42); orders made by a Family Court Judge
+ *     at a hearing take effect immediately
  *   - Child support is assessed by Inland Revenue, not the court
  *   - A4 paper, NZD currency
  */
@@ -60,7 +62,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone apply for dissolution of marriage in New Zealand.
 Collecting domicile information.
 
-LEGAL REQUIREMENT — Family Proceedings Act 1980, s.38:
+LEGAL REQUIREMENT — Family Proceedings Act 1980, s.37:
 To file in New Zealand, EITHER spouse must be DOMICILED in New Zealand.
 Domicile is different from residency — it means New Zealand is the person's permanent home.
 
@@ -241,7 +243,7 @@ Then confirm: user_confirmed_review: true
 IMPORTANT REMINDERS TO SHARE:
 - Filing fee is approximately NZD $242
 - If undefended: the dissolution is usually granted without a hearing (on the papers)
-- The dissolution order takes effect IMMEDIATELY — there is no further waiting period
+- If the order is made by a Registrar (the usual undefended route), it takes effect as a final order 1 MONTH after it is made (Family Proceedings Act 1980, s.42); an order made by a Family Court Judge at a hearing takes effect immediately. A pending appeal or a requested hearing delays finality
 - A certificate confirming the dissolution can be obtained from the Family Court registry
 - Property and children matters can be resolved separately from the dissolution itself
 - If you need legal advice, consider contacting Community Law (free legal help) or a family lawyer

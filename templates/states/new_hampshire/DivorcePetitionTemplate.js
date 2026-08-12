@@ -13,7 +13,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - RSA 458:7 — Fault grounds for divorce
  * - RSA 458:7-a — No-fault ground (irreconcilable differences)
  * - RSA 458:16-a — Property division (equitable distribution of ALL property)
- * - RSA 458:19 — Alimony
+ * - RSA 458:19-a — Alimony (term alimony formula; definitions at RSA 458:19)
  * - RSA 461-A — Parental Rights and Responsibilities (custody and parenting time)
  * - RSA 458-C — New Hampshire Child Support Guidelines
  *
@@ -27,7 +27,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - No mandatory waiting period
  * - "Legal Custody" and "Physical Custody" (standard)
  * - "Parenting Time" or "Residential Responsibility" (RSA 461-A)
- * - "Alimony" (RSA 458:19)
+ * - "Alimony" (RSA 458:19-a)
  * - Equitable distribution of ALL property — including separate (RSA 458:16-a)
  * - Filed in Circuit Court, Family Division
  * - Case number label: "CASE NO."
@@ -292,7 +292,7 @@ class NewHampshireDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.requestSpousalSupport) {
-      reliefItems.push('Award alimony to Petitioner pursuant to RSA 458:19;');
+      reliefItems.push('Award alimony to Petitioner pursuant to RSA 458:19-a;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {

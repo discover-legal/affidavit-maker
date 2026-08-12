@@ -1,6 +1,6 @@
 // templates/states/north_carolina/DivorceDecreeTemplate.js
 // North Carolina-specific Judgment of Absolute Divorce template
-// Complies with N.C.G.S. § 50-1 et seq.
+// Complies with N.C.G.S. Chapter 50 (§ 50-6 et seq.; § 50-1 was repealed in 1971)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 

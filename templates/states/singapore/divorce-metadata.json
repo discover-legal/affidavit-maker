@@ -6,19 +6,19 @@
   "documentTypes": ["divorce_petition", "divorce_decree"],
   "version": "1.0",
   "legallyCompliant": true,
-  "personalLawNote": "This metadata covers non-Muslim divorces under the Women's Charter 1961 (previously cited as Cap 353 under the Revised Edition). Muslim marriages are governed by the Administration of Muslim Law Act (AMLA) and processed through the Syariah Court.",
+  "personalLawNote": "This metadata covers non-Muslim divorces under the Women's Charter 1961 (previously cited as Cap 353 under the Revised Edition). Muslim marriages are governed by the Administration of Muslim Law Act 1966 (AMLA) and processed through the Syariah Court.",
   "residencyRequirements": {
     "stateMonths": 36,
     "countyDays": 0,
-    "description": "Either party must be domiciled in Singapore at the time of filing, OR either party must have been habitually resident in Singapore for at least 3 years immediately before the filing of the writ (Women's Charter, s.93)."
+    "description": "Either party must be domiciled in Singapore at the time of filing, OR either party must have been habitually resident in Singapore for at least 3 years immediately before the filing of the originating application (Women's Charter, s.93)."
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No mandatory waiting period after filing. However, an application for divorce cannot be filed within 3 years of the date of marriage unless leave of court is obtained on grounds of exceptional hardship or exceptional depravity (Women's Charter, s.94). After the Interim Judgment is granted, a minimum of 3 months must elapse before the Certificate of Making Interim Judgment Final may be applied for (s.99(3))."
+    "description": "No mandatory waiting period after filing. However, an application for divorce cannot be filed within 3 years of the date of marriage unless leave of court is obtained on grounds of exceptional hardship or exceptional depravity (Women's Charter, s.94). After the Interim Judgment is granted, it must not be made final before the expiration of 3 months from its grant unless the court fixes a shorter period (s.99(1)); the parties then extract the Final Judgment after 3 months or once the ancillary matters are resolved, whichever is later."
   },
   "threeYearBar": {
     "years": 3,
-    "description": "No party shall file an application for divorce within 3 years of the date of marriage unless the court grants leave on grounds of exceptional hardship suffered by the plaintiff or exceptional depravity on the part of the defendant (Women's Charter, s.94).",
+    "description": "No party shall file an application for divorce within 3 years of the date of marriage unless the court grants leave on grounds of exceptional hardship suffered by the applicant or exceptional depravity on the part of the respondent (Women's Charter, s.94).",
     "exceptions": ["exceptional hardship", "exceptional depravity"]
   },
   "groundsForDivorce": {
@@ -26,7 +26,7 @@
       {
         "code": "separation_consent",
         "name": "3-Year Separation with Consent",
-        "description": "The parties have lived apart for a continuous period of at least 3 years immediately preceding the application for divorce, and the defendant consents to a judgment being granted.",
+        "description": "The parties have lived apart for a continuous period of at least 3 years immediately preceding the application for divorce, and the respondent consents to a judgment being granted.",
         "statute": "Women's Charter, s.95A(1)(d)"
       },
       {
@@ -46,25 +46,25 @@
       {
         "code": "adultery",
         "name": "Adultery",
-        "description": "The defendant has committed adultery and the plaintiff finds it intolerable to live with the defendant.",
+        "description": "The respondent has committed adultery and the applicant finds it intolerable to live with the respondent.",
         "statute": "Women's Charter, s.95A(1)(a)"
       },
       {
         "code": "unreasonable_behaviour",
         "name": "Unreasonable Behaviour",
-        "description": "The defendant has behaved in such a way that the plaintiff cannot reasonably be expected to live with the defendant.",
+        "description": "The respondent has behaved in such a way that the applicant cannot reasonably be expected to live with the respondent.",
         "statute": "Women's Charter, s.95A(1)(b)"
       },
       {
         "code": "desertion",
         "name": "Desertion for 2 Years",
-        "description": "The defendant has deserted the plaintiff for a continuous period of at least 2 years immediately preceding the application for divorce.",
+        "description": "The respondent has deserted the applicant for a continuous period of at least 2 years immediately preceding the application for divorce.",
         "statute": "Women's Charter, s.95A(1)(c)"
       }
     ]
   },
   "terminology": {
-    "caseNumberLabel": "Divorce Suit No.",
+    "caseNumberLabel": "No. FC/OA",
     "custody": "Custody, Care and Control",
     "physicalCustody": "Care and Control",
     "jointCustody": "Joint Custody",
@@ -98,20 +98,16 @@
       "description": "Primary statute (formerly cited as Cap 353) — Part X governs divorce; s.112 governs division of matrimonial assets; s.113-114 governs maintenance"
     },
     {
-      "code": "Administration of Muslim Law Act (AMLA, Cap 3)",
+      "code": "Administration of Muslim Law Act 1966 (AMLA)",
       "description": "Muslim marriages — divorced through the Syariah Court, not Family Justice Courts"
     },
     {
-      "code": "Guardianship of Infants Act (Cap 122)",
+      "code": "Guardianship of Infants Act 1934",
       "description": "Welfare of the child is the paramount consideration in custody matters"
     },
     {
-      "code": "Family Justice Rules 2024",
+      "code": "Family Justice (General) Rules 2024",
       "description": "Procedural rules governing family proceedings (replaced the Family Justice Rules 2014, effective 15 October 2024)"
-    },
-    {
-      "code": "Family Justice (Maintenance and Child Welfare) Rules 2024",
-      "description": "Rules for maintenance proceedings and child welfare in family proceedings"
     }
   ],
   "filingFees": {
@@ -130,6 +126,6 @@
   },
   "mandatoryCoParentingProgramme": "Since 1 July 2024, all parents with children under 21 must attend the mandatory co-parenting programme before filing for divorce.",
   "maintenanceGenderNote": "Under the Women's Charter, s.113, only a wife may claim maintenance from the husband (or a former wife from a former husband). A husband cannot claim maintenance from the wife unless he is incapacitated. This is a gender-specific provision unique to Singapore law.",
-  "effectiveDateRule": "The Interim Judgment (formerly Decree Nisi) does not dissolve the marriage. The parties must apply for the Certificate of Making Interim Judgment Final (formerly Decree Absolute) after a minimum of 3 months. The marriage is dissolved only when the Final Judgment is made (Women's Charter, s.99).",
-  "certificateNote": "The marriage is only dissolved upon the making of the Certificate of Making Interim Judgment Final. Either party may apply for this certificate no earlier than 3 months after the Interim Judgment (Women's Charter, s.99(3))."
+  "effectiveDateRule": "The Interim Judgment (formerly Decree Nisi) does not dissolve the marriage. It must not be made final before the expiration of 3 months from its grant unless the court fixes a shorter period (Women's Charter, s.99(1)). The marriage is dissolved only when the Final Judgment (formerly the Certificate of Making Interim Judgment Final) is extracted.",
+  "certificateNote": "The marriage is only dissolved upon the extraction of the Final Judgment. The Final Judgment may be extracted after 3 months from the Interim Judgment or once the ancillary matters are resolved, whichever is later (Women's Charter, s.99(1))."
 }

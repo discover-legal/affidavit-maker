@@ -19,7 +19,7 @@
   "residencyRequirements": {
     "stateWeeks": 6,
     "countyMonths": null,
-    "description": "At least one spouse must have been a resident of the State of Nevada for at least six (6) weeks immediately preceding the filing of the complaint. A Resident Witness Affidavit is required to prove residency.",
+    "description": "At least one spouse must have been a resident of the State of Nevada for at least six (6) weeks immediately preceding the filing of the complaint. Residency is corroborated by a Resident Witness Affidavit (NRS 125.123; court practice).",
     "statute": "NRS 125.020"
   },
 
@@ -36,13 +36,13 @@
         "code": "incompatibility",
         "name": "Incompatibility",
         "description": "The parties are incompatible",
-        "statute": "NRS 125.010(2)"
+        "statute": "NRS 125.010(3)"
       },
       {
         "code": "separation_one_year",
         "name": "Living Separate and Apart for One Year",
         "description": "The parties have lived separate and apart for one year without cohabitation",
-        "statute": "NRS 125.010(3)"
+        "statute": "NRS 125.010(2)"
       }
     ],
     "fault": [
@@ -66,7 +66,7 @@
   "legalCitations": [
     {
       "code": "NRS 125.020",
-      "description": "Residency requirement — 6 weeks state residency; Resident Witness Affidavit required"
+      "description": "Residency requirement — 6 weeks state residency (corroborating affidavit per NRS 125.123)"
     },
     {
       "code": "NRS 125.010",
@@ -81,16 +81,16 @@
       "description": "Alimony — court may award alimony to either party"
     },
     {
-      "code": "NRS 125C.001",
-      "description": "Child custody definitions — joint legal custody, joint physical custody"
+      "code": "NRS 125C.002; NRS 125C.0025",
+      "description": "Joint legal custody (NRS 125C.002) and joint physical custody (NRS 125C.0025)"
     },
     {
       "code": "NRS 125C.0035",
       "description": "Best interest of the child standard for custody determination"
     },
     {
-      "code": "NRS 125B",
-      "description": "Nevada Child Support Guidelines — percentage of income model"
+      "code": "NAC 425.140 et seq.",
+      "description": "Nevada Child Support Guidelines (eff. Feb 1, 2020, adopted under NRS 425.620) — tiered percentages of the obligor's gross monthly income"
     }
   ],
 
@@ -150,7 +150,7 @@
       },
       {
         "name": "Child Support Worksheet",
-        "description": "Calculation per Nevada Child Support Guidelines (NRS 125B)",
+        "description": "Calculation per the Nevada Child Support Guidelines (NAC 425.140 et seq.)",
         "required": true
       },
       {
@@ -192,10 +192,10 @@
   },
 
   "childSupportGuidelines": {
-    "calculationBasis": "percentage_of_income",
-    "description": "Nevada uses a percentage-of-income model under NRS 125B.070. Child support is calculated as a percentage of the obligor's gross income: 18% for one child, 25% for two, 29% for three, 31% for four, and an additional 2% for each additional child. The court may deviate based on the best interest of the child.",
-    "statute": "NRS 125B",
-    "notes": "The statutory percentages serve as a presumptive amount. The court may adjust based on factors including the cost of health insurance, child care, and special needs."
+    "calculationBasis": "tiered_percentage_of_income",
+    "description": "Nevada uses tiered percentages of the obligor's gross monthly income under NAC 425.140 (eff. Feb 1, 2020): for one child, 16% of the first $6,000, 8% of the next $4,000, and 4% above $10,000; two children 22%/11%/6%, with higher tiers for more children. The court may deviate based on the best interest of the child.",
+    "statute": "NAC 425.140 et seq. (adopted under NRS 425.620)",
+    "notes": "The guideline percentages serve as a presumptive amount. The court may adjust based on factors including the cost of health insurance, child care, and special needs."
   },
 
   "maintenanceGuidelines": {

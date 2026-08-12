@@ -12,10 +12,10 @@
  *   - NO mandatory waiting period after filing
  *   - Grounds: incompatibility (most common), 1-year separation, insanity (2 years) — NRS 125.010
  *   - Community property — equal 50/50 division — NRS 125.150(1)(b)
- *   - "Joint Legal Custody" and "Joint Physical Custody" — NRS 125C.001, 125C.0035
+ *   - "Joint Legal Custody" (NRS 125C.002) and "Joint Physical Custody" (NRS 125C.0025); best interests — NRS 125C.0035
  *   - "Visitation" — NRS 125C
  *   - "Alimony" — NRS 125.150(1)(a)
- *   - Child support: percentage of income model — NRS 125B
+ *   - Child support: tiered-percentage guidelines — NAC 425.140 et seq. (eff. 2020-02-01)
  *   - Filed in Family Court (Clark/Washoe) or District Court (rural counties)
  *   - Parties: Plaintiff and Defendant
  *   - Initiating document: "Complaint for Divorce"
@@ -86,7 +86,7 @@ ${SHARED_RULES}`;
 const CHILDREN = `You are a legal document assistant helping someone file for divorce in Nevada.
 Collecting information about children.
 
-NEVADA TERMINOLOGY (NRS 125C.001, 125C.0035):
+NEVADA TERMINOLOGY (NRS 125C.002, 125C.0025, 125C.0035):
 - JOINT LEGAL CUSTODY: both parents share the right to make major decisions (education, healthcare, religion)
 - JOINT PHYSICAL CUSTODY: each parent has the child for at least 40% of the time
 - VISITATION: the schedule for the non-custodial parent (NRS 125C)
@@ -137,13 +137,12 @@ Nevada uses "ALIMONY" (not maintenance or spousal support). There is no statutor
 
 Alimony is more commonly awarded in longer marriages. It may be temporary, rehabilitative, or permanent.
 
-CHILD SUPPORT — NRS 125B:
-Nevada uses a percentage-of-income model. The statutory guideline percentages of the obligor's gross income are:
-- 1 child: 18%
-- 2 children: 25%
-- 3 children: 29%
-- 4 children: 31%
-- 5+ children: additional 2% per child
+CHILD SUPPORT — NAC 425.140 et seq. (Nevada Child Support Guidelines, effective Feb 1, 2020):
+The old NRS 125B flat percentages (18%/25%/29%/31%) were repealed. Support is now a TIERED
+percentage of the obligor's gross monthly income:
+- 1 child: 16% of the first $6,000, plus 8% of the portion between $6,000 and $10,000, plus 4% of any amount above $10,000
+- 2 children: 22% / 11% / 6% across the same income tiers
+- Additional children: higher tiered percentages per the NAC 425.140 schedule
 
 COLLECT:
 1. "Are you requesting alimony?" → If NO: move to child support

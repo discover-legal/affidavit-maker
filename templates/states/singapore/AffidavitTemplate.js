@@ -1,6 +1,6 @@
 // templates/states/singapore/AffidavitTemplate.js
-// Singapore affidavit template — legally compliant with Oaths and Declarations Act (Cap 211)
-// Governing Law: Oaths and Declarations Act (Cap 211); Family Justice Rules 2024
+// Singapore affidavit template — legally compliant with Oaths and Declarations Act 2000
+// Governing Law: Oaths and Declarations Act 2000; Family Justice (General) Rules 2024
 
 'use strict';
 
@@ -10,13 +10,14 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  * Singapore Affidavit Template
  *
  * Key compliance notes:
- * - Sworn or affirmed before a Commissioner for Oaths under the Oaths and Declarations Act (Cap 211)
+ * - Sworn or affirmed before a Commissioner for Oaths under the Oaths and Declarations Act 2000
  * - Uses "Republic of Singapore" in the header
  * - A4 paper size (international standard)
- * - Divorce Suit No. instead of Case No.
+ * - "No. FC/OA [number]/[year]" case numbering (originating applications, post-15-Oct-2024)
  * - No perjury statement required (the oath/affirmation provides the solemn undertaking)
- * - Parties are "Plaintiff" and "Defendant" (for divorce writs under Women's Charter)
- * - NOTE: Muslim marriages are handled by the Syariah Court under AMLA (Cap 3)
+ * - Parties are "Applicant" and "Respondent" (filings from 15 October 2024 under the
+ *   Women's Charter; "Plaintiff/Defendant" only for pre-15-Oct-2024 writ filings)
+ * - NOTE: Muslim marriages are handled by the Syariah Court under AMLA 1966
  *
  * @class SingaporeAffidavitTemplate
  * @extends BaseAffidavitTemplate
@@ -51,22 +52,22 @@ class SingaporeAffidavitTemplate extends BaseAffidavitTemplate {
 
   /**
    * Singapore case caption.
-   * Family Justice Courts use "Divorce Suit No." for divorce proceedings.
+   * Family Justice Courts number originating applications "No. FC/OA [number]/[year]".
    */
   generateCaseCaption(affidavitData) {
     const court = affidavitData.court || affidavitData.courtName || 'FAMILY JUSTICE COURTS';
-    const suitNo = affidavitData.caseNumber || '[SUIT NUMBER]';
-    const plaintiff = affidavitData.plaintiff || affidavitData.petitionerName || '[PLAINTIFF NAME]';
-    const defendant = affidavitData.defendant || affidavitData.respondentName || '[DEFENDANT NAME]';
+    const suitNo = affidavitData.caseNumber || '[NUMBER]/[YEAR]';
+    const plaintiff = affidavitData.plaintiff || affidavitData.petitionerName || '[APPLICANT NAME]';
+    const defendant = affidavitData.defendant || affidavitData.respondentName || '[RESPONDENT NAME]';
 
     const formatted =
       `${court.toUpperCase()}\n\n` +
-      `Divorce Suit No. ${suitNo}\n\n` +
+      `No. FC/OA ${suitNo}\n\n` +
       `${plaintiff.toUpperCase()}\n` +
-      `Plaintiff\n\n` +
+      `Applicant\n\n` +
       `— and —\n\n` +
       `${defendant.toUpperCase()}\n` +
-      `Defendant`;
+      `Respondent`;
 
     return {
       courtName: court,
@@ -96,7 +97,7 @@ class SingaporeAffidavitTemplate extends BaseAffidavitTemplate {
 
   /**
    * Singapore jurat block — sworn/affirmed before a Commissioner for Oaths
-   * under the Oaths and Declarations Act (Cap 211).
+   * under the Oaths and Declarations Act 2000.
    */
   generateNotaryBlock(affidavitData) {
     return (

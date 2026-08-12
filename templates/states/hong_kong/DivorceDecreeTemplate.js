@@ -65,19 +65,20 @@ class HongKongDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Case No.';
+    return 'Number FCMC';
   }
 
   getDefaultCourt(county) {
-    return 'FAMILY COURT OF THE HONG KONG SPECIAL ADMINISTRATIVE REGION';
+    return 'DISTRICT COURT OF THE HONG KONG SPECIAL ADMINISTRATIVE REGION';
   }
 
   /**
-   * Hong Kong document header.
+   * Hong Kong document header — the Family Court is a division of the District
+   * Court, so the prescribed case heading is the District Court's.
    * @returns {string} Header text
    */
   generateHeader() {
-    return 'IN THE FAMILY COURT OF THE\nHONG KONG SPECIAL ADMINISTRATIVE REGION';
+    return 'IN THE DISTRICT COURT OF THE\nHONG KONG SPECIAL ADMINISTRATIVE REGION\nMATRIMONIAL CAUSES';
   }
 
   /**
@@ -103,7 +104,8 @@ class HongKongDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
     const formatted = (
-      `IN THE ${courtName}\n\n` +
+      `IN THE ${courtName}\n` +
+      `MATRIMONIAL CAUSES\n\n` +
       `${caseLabel} ${caseNumber}\n\n` +
       `IN THE MATTER OF THE MATRIMONIAL CAUSES ORDINANCE (CAP 179)\n\n` +
       `BETWEEN:\n\n` +

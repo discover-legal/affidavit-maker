@@ -13,8 +13,8 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - NRS 125.010 — Grounds (incompatibility, 1-year separation, insanity)
  * - NRS 125.150(1)(b) — Community property — equal 50/50 division
  * - NRS 125.150(1)(a) — Alimony
- * - NRS 125C.001, 125C.0035 — Custody (joint legal, joint physical; best interest)
- * - NRS 125B — Child support guidelines (percentage of income)
+ * - NRS 125C.002, 125C.0025, 125C.0035 — Custody (joint legal, joint physical; best interest)
+ * - NAC 425.140 et seq. — Child support guidelines (tiered percentage of income, eff. 2020)
  *
  * Nevada-Specific Terms:
  * - "Decree of Divorce" (not Decree of Dissolution)
@@ -295,12 +295,12 @@ class NevadaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per month, calculated in accordance with the Nevada Child Support Guidelines, NRS 125B.`,
+        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per month, calculated in accordance with the Nevada Child Support Guidelines, NAC 425.140 et seq..`,
         type: 'order'
       });
     } else {
       items.push({
-        content: `IT IS ORDERED that child support shall be paid in accordance with the Nevada Child Support Guidelines, NRS 125B. The parties shall complete a Child Support Worksheet.`,
+        content: `IT IS ORDERED that child support shall be paid in accordance with the Nevada Child Support Guidelines, NAC 425.140 et seq.. The parties shall complete a Child Support Worksheet.`,
         type: 'order'
       });
     }
@@ -402,7 +402,7 @@ COUNTY OF ${countyUpper}, STATE OF NEVADA`,
     }
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      warnings.push('A completed Child Support Worksheet must be filed per NRS 125B.');
+      warnings.push('A completed Child Support Worksheet must be filed per the Nevada Child Support Guidelines (NAC ch. 425).');
       warnings.push('Custody and visitation must be determined in the best interests of the child(ren). (NRS 125C.0035)');
     }
 

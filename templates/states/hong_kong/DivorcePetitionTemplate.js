@@ -19,7 +19,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *     behaviour, desertion 1 yr, separation 1 yr with consent, separation 2 yr)
  *   - s.11B: joint application by mutual agreement (1-yr separation or 1-yr prior notice)
  *   - s.12: 1-year bar — no petition within first year of marriage
- *   - s.3: domicile or 3-year habitual residence requirement
+ *   - s.3: domicile, 3-year habitual residence, or substantial connection requirement
  * - Matrimonial Proceedings and Property Ordinance (Cap 192) — financial provision,
  *   property adjustment, maintenance
  * - Guardianship of Minors Ordinance (Cap 13) — custody, care and control of children
@@ -27,14 +27,15 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Domicile / Residency (MCO s.3):
  * - Either party domiciled in HK, OR
- * - Either party habitually resident in HK for 3 continuous years before filing
+ * - Either party habitually resident in HK for 3 continuous years before filing, OR
+ * - Either party has a substantial connection with HK at the date of the petition
  *
  * One-Year Bar (MCO s.12):
  * - Cannot present a petition within 1 year of marriage (leave required for
  *   exceptional hardship or depravity of respondent)
  *
  * Process:
- * - Petition (Form 2) -> Acknowledgment of Service (Form 2A) -> Decree Nisi ->
+ * - Petition (Form 2) -> Acknowledgment of Service (Form 4) -> Decree Nisi ->
  *   6 weeks -> Application for Decree Absolute -> Decree Absolute
  *
  * Hong Kong-Specific:
@@ -72,11 +73,11 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // HK domicile/residency: domiciled in HK or 3 years habitual residence (MCO s.3)
+    // HK jurisdiction: domicile, 3 years habitual residence, or substantial connection (MCO s.3)
     this.residencyRequirements = {
       stateMonths: 36,
       countyDays: 0,
-      description: 'Either party must be domiciled in Hong Kong OR have been habitually resident in Hong Kong for a continuous period of at least 3 years immediately before the presentation of the petition (Matrimonial Causes Ordinance, s.3).'
+      description: 'Either party must be domiciled in Hong Kong, have been habitually resident in Hong Kong for a continuous period of at least 3 years immediately before the presentation of the petition, OR have a substantial connection with Hong Kong at the date of the petition (Matrimonial Causes Ordinance, s.3).'
     };
 
     // No waiting period after filing, but 1-year bar on petitions within first year of marriage
@@ -95,11 +96,11 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Case No.';
+    return 'Number FCMC';
   }
 
   getDefaultCourt(county) {
-    return 'FAMILY COURT OF THE HONG KONG SPECIAL ADMINISTRATIVE REGION';
+    return 'DISTRICT COURT OF THE HONG KONG SPECIAL ADMINISTRATIVE REGION';
   }
 
   /**
@@ -116,6 +117,7 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     const caption = [
       `IN THE ${courtName}`,
+      `MATRIMONIAL CAUSES`,
       '',
       `${caseLabel} ${caseNumber}`,
       '',
@@ -143,17 +145,18 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Hong Kong jurisdiction statement — Matrimonial Causes Ordinance, s.3.
-   * Either party must be domiciled in HK or habitually resident for 3 years.
+   * Either party must be domiciled in HK, habitually resident for 3 years,
+   * or have a substantial connection with HK at the date of the petition.
    */
   getJurisdictionStatement(divorceData) {
-    return 'The Petitioner states that this Honourable Court has jurisdiction to hear this Petition by reason of the fact that [the Petitioner/the Respondent] is domiciled in Hong Kong / has been habitually resident in Hong Kong for a continuous period of at least three years immediately preceding the presentation of this Petition, as required by section 3 of the Matrimonial Causes Ordinance (Cap 179).';
+    return 'The Petitioner states that this Honourable Court has jurisdiction to hear this Petition by reason of the fact that [the Petitioner/the Respondent] is domiciled in Hong Kong / has been habitually resident in Hong Kong for a continuous period of at least three years immediately preceding the presentation of this Petition / had a substantial connection with Hong Kong at the date of the presentation of this Petition, as required by section 3 of the Matrimonial Causes Ordinance (Cap 179).';
   }
 
   /**
-   * Hong Kong venue reason — Petitioner or Respondent resides in HK.
+   * Hong Kong venue reason — Petitioner or Respondent connected with HK.
    */
   getVenueReason(divorceData) {
-    return 'the Petitioner or Respondent is domiciled or habitually resident in Hong Kong';
+    return 'the Petitioner or Respondent is domiciled in, habitually resident in, or has a substantial connection with Hong Kong';
   }
 
   /**
@@ -186,7 +189,7 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.hasProperty !== false) {
-      reliefItems.push('That such orders be made for the adjustment of property and financial provision as this Honourable Court thinks fit pursuant to section 7 of the Matrimonial Proceedings and Property Ordinance (Cap 192);');
+      reliefItems.push('That such orders be made for the adjustment of property and financial provision as this Honourable Court thinks fit pursuant to sections 6 and 6A of the Matrimonial Proceedings and Property Ordinance (Cap 192);');
     }
 
     reliefItems.push('Such further or other relief as this Honourable Court deems just and expedient.');

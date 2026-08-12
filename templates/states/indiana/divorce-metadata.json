@@ -96,7 +96,7 @@
     },
     {
       "code": "IC 31-16-6",
-      "description": "Indiana Child Support Guidelines"
+      "description": "Child support orders — amount and factors (support is calculated under the Indiana Child Support Rules and Guidelines adopted by the Indiana Supreme Court)"
     }
   ],
 
@@ -156,7 +156,7 @@
       },
       {
         "name": "Child Support Obligation Worksheet",
-        "description": "Calculation per Indiana Child Support Guidelines (IC 31-16-6)",
+        "description": "Calculation per the Indiana Child Support Rules and Guidelines (Ind. Sup. Ct.); support orders under IC 31-16-6",
         "required": true
       },
       {
@@ -200,7 +200,7 @@
   "childSupportGuidelines": {
     "calculationBasis": "income_shares",
     "description": "Indiana uses an income shares model. Both parents' weekly gross incomes are combined and the child support obligation is determined from the Indiana Child Support Guidelines schedule based on combined weekly adjusted income and the number of children.",
-    "statute": "IC 31-16-6",
+    "statute": "Indiana Child Support Rules and Guidelines (Ind. Sup. Ct.); IC 31-16-6 (support orders)",
     "notes": "The court may deviate from the guidelines if application would be unjust. Parenting time credits may apply."
   },
 

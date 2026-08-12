@@ -33,7 +33,7 @@ COLLECT:
 3. "Under which personal law was your marriage solemnized?"
    → Hindu / Buddhist / Jain / Sikh → Hindu Marriage Act 1955
    → Special Marriage Act → SMA track
-   → Christian → Indian Divorce Act 1869
+   → Christian → Divorce Act, 1869 (renamed from "Indian Divorce Act" by the 2001 amendment)
    → Muslim → DMMA / Muslim personal law
    → Parsi → Parsi Marriage and Divorce Act 1936
 
@@ -44,7 +44,7 @@ Let's start — what is your full legal name (first and last)?"
 
 KEY FACTS:
 - Maharashtra has Family Courts in Mumbai (Bandra), Pune, Nagpur, and other districts
-- Affidavit must be on judicial stamp paper of INR 100 (Maharashtra; INR 100 confirmed valid per Stamp Dept. circular 30-Oct-2024)
+- Stamp paper: affidavits sworn for immediate filing in court are exempt from stamp duty (Indian Stamp Act, Sch. I, Art. 4, Exemption (b)); standalone affidavits use non-judicial stamp paper of INR 100 (Maharashtra; INR 100 confirmed valid per Stamp Dept. circular 30-Oct-2024)
 - Parties are "Petitioner" and "Respondent"
 ${SHARED_RULES}`;
 

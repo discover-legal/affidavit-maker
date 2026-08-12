@@ -44,7 +44,7 @@ class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (g.includes('desertion')) return 'The Respondent has deserted the Petitioner for at least one continuous year (MCA s.15(2)(d)).';
     if (g.includes('separation_no_consent') || g.includes('three')) return 'The parties have lived apart for at least three continuous years (MCA s.15(2)(f)).';
     if (g.includes('refusal') || g.includes('consummate')) return 'The Respondent has wilfully and persistently refused to consummate the marriage (MCA s.15(2)(a)).';
-    if (g.includes('restitution')) return 'The Respondent has failed to comply with a decree of restitution of conjugal rights (MCA s.15(2)(g)).';
+    if (g.includes('restitution')) return 'The Respondent has, for a period of not less than one year, failed to comply with a decree of restitution of conjugal rights (MCA s.15(2)(g)).';
     if (g.includes('death') || g.includes('absent') || g.includes('presumption')) return 'The other party to the marriage has been absent for at least seven years and the Petitioner has no reason to believe that the other party has been alive at any time within that period (MCA s.15(2)(h)).';
     return 'The parties have lived apart for at least two continuous years and the Respondent does not object (MCA s.15(2)(e)).';
   }

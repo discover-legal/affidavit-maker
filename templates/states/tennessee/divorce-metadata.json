@@ -37,7 +37,7 @@
         "code": "irreconcilable_differences",
         "name": "Irreconcilable Differences",
         "description": "Both parties agree the marriage has irreconcilable differences; or parties have lived apart for 2+ years with no minor children",
-        "statute": "TCA 36-4-101(a)(13)"
+        "statute": "TCA 36-4-101(a)(14)"
       }
     ],
     "fault": [
@@ -45,61 +45,61 @@
         "code": "adultery",
         "name": "Adultery",
         "description": "Either party committed adultery",
-        "statute": "TCA 36-4-101(a)(4)"
+        "statute": "TCA 36-4-101(a)(3)"
       },
       {
         "code": "desertion",
         "name": "Willful Desertion",
         "description": "Willful or malicious desertion for one full year without reasonable cause",
-        "statute": "TCA 36-4-101(a)(3)"
+        "statute": "TCA 36-4-101(a)(4)"
       },
       {
         "code": "felony_conviction",
         "name": "Felony Conviction",
         "description": "Conviction of a felony and sentence to confinement in a penitentiary",
-        "statute": "TCA 36-4-101(a)(5)"
+        "statute": "TCA 36-4-101(a)(6)"
       },
       {
         "code": "attempted_murder",
         "name": "Attempted Murder of Spouse",
         "description": "Attempting to take the life of the other spouse by poison or other means",
-        "statute": "TCA 36-4-101(a)(2)"
+        "statute": "TCA 36-4-101(a)(7)"
       },
       {
         "code": "bigamy",
         "name": "Bigamy",
         "description": "A prior marriage that has not been dissolved",
-        "statute": "TCA 36-4-101(a)(1)"
+        "statute": "TCA 36-4-101(a)(2)"
       },
       {
         "code": "alcohol_drug_addiction",
         "name": "Habitual Drunkenness or Drug Addiction",
         "description": "Habitual drunkenness or abuse of narcotic drugs contracted after marriage",
-        "statute": "TCA 36-4-101(a)(6)"
+        "statute": "TCA 36-4-101(a)(10)"
       },
       {
         "code": "impotence",
         "name": "Impotence",
         "description": "Impotence and inability to procreate at the time of marriage",
-        "statute": "TCA 36-4-101(a)(8)"
+        "statute": "TCA 36-4-101(a)(1)"
       },
       {
         "code": "cruel_treatment",
         "name": "Cruel and Inhuman Treatment",
         "description": "Cruel and inhuman treatment or conduct toward the spouse as renders cohabitation unsafe",
-        "statute": "TCA 36-4-101(a)(10)"
+        "statute": "TCA 36-4-101(a)(11)"
       },
       {
         "code": "indignities",
         "name": "Indignities",
         "description": "Such indignities as to render the other's position intolerable and force withdrawal",
-        "statute": "TCA 36-4-101(a)(11)"
+        "statute": "TCA 36-4-101(a)(12)"
       },
       {
         "code": "abandonment_refusal",
         "name": "Abandonment or Refusal to Provide",
         "description": "Abandonment or refusal or neglect to provide for spouse when able to do so",
-        "statute": "TCA 36-4-101(a)(12)"
+        "statute": "TCA 36-4-101(a)(13)"
       },
       {
         "code": "pregnancy_by_another",
@@ -111,7 +111,7 @@
         "code": "two_year_separation",
         "name": "Two-Year Separation",
         "description": "The parties have lived apart for two consecutive years with no minor children of the marriage",
-        "statute": "TCA 36-4-101(a)(7)"
+        "statute": "TCA 36-4-101(a)(15)"
       }
     ],
     "notes": "Tennessee allows both no-fault (irreconcilable differences) and fault grounds. For irreconcilable differences, both parties must agree to the divorce or have been separated for 2+ years with no minor children. Fault may affect alimony awards."
@@ -143,7 +143,7 @@
     },
     {
       "code": "TCA 36-6-402",
-      "description": "Custody — primary and alternate residential parent"
+      "description": "Parenting plan definitions — primary residential parent (custody best-interest factors at TCA 36-6-106)"
     },
     {
       "code": "TCA 36-6-404",

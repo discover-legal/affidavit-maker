@@ -9,16 +9,20 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
 /**
  * Kenya Divorce Decree Template
  *
- * In Kenya, divorce proceedings result in a Decree Nisi (conditional decree)
- * followed by a Decree Absolute (final dissolution). The Decree Nisi is issued
- * by the High Court (Family Division) or Kadhi's Court (Islamic marriages).
+ * In Kenya, divorce proceedings in practice result in a Decree Nisi (conditional
+ * decree) followed by a Decree Absolute (final dissolution) — a court practice
+ * inherited from the repealed Matrimonial Causes Act; the Marriage Act, 2014 is
+ * silent on the nisi/absolute stages. The Decree Nisi is issued by the
+ * magistrates' court ('court' = resident magistrate's court, Marriage Act, 2014,
+ * s.2) or Kadhi's Court (Islamic marriages); the High Court hears appeals.
  * Either party may apply for the Decree Absolute after a prescribed period
  * (typically 30 days from Decree Nisi).
  *
  * Key Legal References:
  * - Marriage Act, 2014 (No. 4 of 2014)
- *   - s.66: Grounds for divorce
- *   - s.67-68: Mandatory reconciliation attempt
+ *   - s.65-71: Grounds for divorce (marriage-type specific; s.66 civil)
+ *   - ss.64, 66(4), 68: Voluntary/discretionary conciliation (s.67 is
+ *     recognition of foreign decrees)
  *   - s.77-80: Maintenance
  * - Matrimonial Property Act, 2013 (No. 49 of 2013) — contribution-based property division
  * - Children Act, 2022 (No. 29 of 2022) — custody, parental responsibility, child maintenance
@@ -65,8 +69,8 @@ class KenyaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getDefaultCourt(county) {
-    const location = (county || '[LOCATION]').toUpperCase();
-    return `HIGH COURT OF KENYA AT ${location}`;
+    const station = (county || '[STATION]').toUpperCase();
+    return `CHIEF MAGISTRATE'S COURT AT ${station}`;
   }
 
   /**

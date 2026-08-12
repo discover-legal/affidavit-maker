@@ -13,7 +13,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - RSA 458:7 — Fault grounds
  * - RSA 458:7-a — No-fault ground (irreconcilable differences)
  * - RSA 458:16-a — Property division (equitable distribution of ALL property)
- * - RSA 458:19 — Alimony
+ * - RSA 458:19-a — Alimony (term alimony formula; definitions at RSA 458:19)
  * - RSA 461-A — Parental Rights and Responsibilities
  * - RSA 458-C — Child Support Guidelines
  *
@@ -22,7 +22,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - "CASE NO." label
  * - "Legal Custody" / "Physical Custody"
  * - "Parenting Time" or "Residential Responsibility" (RSA 461-A)
- * - "Alimony" (RSA 458:19)
+ * - "Alimony" (RSA 458:19-a)
  * - Equitable distribution of ALL property (including separate)
  * - Circuit Court, Family Division
  */
@@ -330,7 +330,7 @@ class NewHampshireDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
 
       items.push({
-        content: `The Court, having considered the factors set forth in RSA 458:19, orders alimony as follows:`,
+        content: `The Court, having considered the factors set forth in RSA 458:19-a, orders alimony as follows:`,
         type: 'finding'
       });
 

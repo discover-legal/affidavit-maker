@@ -62,7 +62,7 @@
       {
         "code": "restitution",
         "name": "Failure to Comply with Restitution Order",
-        "description": "The respondent has, since the celebration of the marriage, failed to comply with a decree of restitution of conjugal rights made under the Act.",
+        "description": "The respondent has, for a period of not less than one year, failed to comply with a decree of restitution of conjugal rights made under the Act.",
         "statute": "Matrimonial Causes Act s.15(2)(g)"
       },
       {
@@ -137,7 +137,7 @@
   },
   "decreeProcess": {
     "decreeNisi": "Court grants Decree Nisi after hearing the petition on its merits.",
-    "decreeAbsolute": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Either party may apply to make it absolute.",
+    "decreeAbsolute": "Decree Nisi becomes Decree Absolute automatically by force of law 3 months after it is made (MCA s.58); no application is needed. Where there are children under 16, the decree does not become absolute until the court has declared it is satisfied with the arrangements for their welfare (MCA s.57).",
     "waitingMonths": 3
   },
   "paperSize": "A4",

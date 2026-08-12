@@ -1,6 +1,6 @@
 // templates/states/victoria/AffidavitTemplate.js
-// Victoria affidavit template — legally compliant with Evidence (Miscellaneous Provisions) Act 1958 (Vic)
-// Governing Law: Family Law Act 1975 (Cth); Evidence (Miscellaneous Provisions) Act 1958 (Vic)
+// Victoria affidavit template — legally compliant with Oaths and Affirmations Act 2018 (Vic)
+// Governing Law: Family Law Act 1975 (Cth); Oaths and Affirmations Act 2018 (Vic)
 
 'use strict';
 

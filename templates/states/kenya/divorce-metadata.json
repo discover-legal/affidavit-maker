@@ -15,18 +15,18 @@
   "residencyRequirements": {
     "stateMonths": 0,
     "countyDays": 0,
-    "description": "Either party must be resident in Kenya at the time of filing the petition (Marriage Act, 2014, s.65). There is no minimum duration of residency."
+    "description": "The Marriage Act, 2014 contains no express residency requirement for divorce petitions. Petitions are in practice filed at the magistrates' court station where the parties reside ('court' means a resident magistrate's court, Marriage Act, 2014, s.2); s.67 governs recognition of foreign divorce decrees. There is no minimum duration of residency."
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No statutory waiting period after filing. The court issues a Decree Nisi which becomes absolute after a prescribed period (typically 30 days). Mandatory reconciliation attempt required before the court proceeds (Marriage Act, 2014, s.67-68)."
+    "description": "No statutory waiting period after filing. In practice the court issues a Decree Nisi made absolute after roughly 30 days to six weeks — a practice inherited from the repealed Matrimonial Causes Act; the 2014 Act itself is silent. Conciliation is voluntary/discretionary and marriage-type specific (Marriage Act, 2014, ss.64, 66(4), 68)."
   },
   "groundsForDivorce": {
     "noFault": [
       {
         "code": "irretrievable_breakdown",
         "name": "Irretrievable Breakdown of the Marriage",
-        "description": "The marriage has broken down irretrievably with no reasonable prospect of reconciliation. Under s.66(6), the marriage is deemed to have irretrievably broken down where: (a) any of the other grounds for dissolution have been proven, (b) the parties have been separated for at least 2 years, (c) a spouse has been sentenced to imprisonment for 7+ years, or (d) a spouse suffers from incurable insanity (certified by two medical practitioners, one a psychiatrist).",
+        "description": "The marriage has broken down irretrievably. Under s.66(6), a marriage is deemed to have irretrievably broken down where: (a) a spouse commits adultery; (b) a spouse is cruel to the other spouse or to any child of the marriage; (c) a spouse willfully neglects the other spouse for at least two years; (d) the spouses have been separated for at least two years, whether voluntarily or by decree of the court; (e) a spouse has deserted the other spouse for at least three years; (f) a spouse has been sentenced to imprisonment for life or for a term of seven years or more; (g) a spouse suffers from incurable insanity, certified by two doctors (at least one qualified or experienced in psychiatry); or (h) any other ground the court deems appropriate.",
         "statute": "Marriage Act, 2014, s.66(2)(e) and s.66(6)"
       }
     ],
@@ -47,16 +47,16 @@
         "code": "desertion",
         "name": "Desertion for 3+ Years",
         "description": "The respondent has deserted the petitioner for a continuous period of at least three years immediately preceding the date of presentation of the petition.",
-        "statute": "Marriage Act, 2014, s.66(2)(c)"
+        "statute": "Marriage Act, 2014, s.66(2)(d)"
       },
       {
         "code": "exceptional_depravity",
         "name": "Exceptional Depravity",
         "description": "The respondent has exhibited exceptional depravity such that the petitioner cannot reasonably be expected to continue living with them.",
-        "statute": "Marriage Act, 2014, s.66(2)(d)"
+        "statute": "Marriage Act, 2014, s.66(2)(c)"
       }
     ],
-    "overarchingRequirement": "For all grounds, the court must be satisfied that the marriage has broken down irretrievably (Marriage Act, 2014, s.66(1)). NOTE: The 3-year bar on civil marriage petitions (formerly s.66(1)-(2)) was struck down by the Court of Appeal in 2022 and is no longer enforceable as of June 2025."
+    "overarchingRequirement": "There is no overarching breakdown requirement — irretrievable breakdown is itself one of the civil-marriage grounds (s.66(2)(e), particularised by s.66(6)). Grounds are marriage-type specific: s.65 (Christian), s.66 (civil), s.69 (customary), s.70 (Hindu), s.71 (Islamic law governs). NOTE: The 3-year bar on civil marriage petitions (formerly s.66(1)) was struck down by the Court of Appeal in 2022 and is no longer enforceable as of June 2025."
   },
   "marriageTypes": {
     "recognized": [
@@ -64,30 +64,30 @@
         "code": "civil",
         "name": "Civil Marriage",
         "description": "Marriage registered under Part IV of the Marriage Act, 2014",
-        "court": "High Court — Family Division"
+        "court": "Magistrates' Court (resident magistrate's court, Marriage Act, 2014, s.2); the High Court hears appeals"
       },
       {
         "code": "christian",
         "name": "Christian Marriage",
-        "description": "Marriage celebrated under Part V of the Marriage Act, 2014",
-        "court": "High Court — Family Division"
+        "description": "Marriage celebrated under Part III of the Marriage Act, 2014",
+        "court": "Magistrates' Court (resident magistrate's court, Marriage Act, 2014, s.2); the High Court hears appeals"
       },
       {
         "code": "customary",
         "name": "Customary Marriage",
-        "description": "Marriage celebrated under Part VI of the Marriage Act, 2014 according to customary law",
-        "court": "High Court — Family Division"
+        "description": "Marriage celebrated under Part V of the Marriage Act, 2014 according to customary law",
+        "court": "Magistrates' Court (resident magistrate's court, Marriage Act, 2014, s.2); the High Court hears appeals"
       },
       {
         "code": "hindu",
         "name": "Hindu Marriage",
-        "description": "Marriage celebrated under Part VII of the Marriage Act, 2014",
-        "court": "High Court — Family Division"
+        "description": "Marriage celebrated under Part VI of the Marriage Act, 2014",
+        "court": "Magistrates' Court (resident magistrate's court, Marriage Act, 2014, s.2); the High Court hears appeals"
       },
       {
         "code": "islamic",
         "name": "Islamic Marriage",
-        "description": "Marriage celebrated under Part VIII of the Marriage Act, 2014",
+        "description": "Marriage celebrated under Part VII of the Marriage Act, 2014",
         "court": "Kadhi's Court (Art. 170, Constitution of Kenya)"
       }
     ]
@@ -139,8 +139,8 @@
       "description": "Kadhi's Courts — jurisdiction over Islamic personal law matters"
     },
     {
-      "code": "Marriage Act, 2014, s.67-68",
-      "description": "Mandatory reconciliation — court must refer parties to attempt reconciliation before granting divorce"
+      "code": "Marriage Act, 2014, ss.64, 66(4), 68",
+      "description": "Voluntary/discretionary conciliation, marriage-type specific — s.64 (Christian marriages: parties may seek church reconciliation bodies), s.66(4) (civil marriages: court may refer a dispute to a conciliatory process agreed between the parties), s.68 (customary marriages: parties may undergo customary conciliation or dispute resolution). s.67 governs recognition of foreign divorce decrees."
     },
     {
       "code": "Protection Against Domestic Violence Act, 2015 (No. 2 of 2015)",
@@ -163,11 +163,11 @@
   },
   "threeYearBar": {
     "years": 0,
-    "description": "The 3-year bar on divorce petitions for civil marriages (formerly in Marriage Act, 2014, s.66(1)-(2)) was declared unconstitutional by the Court of Appeal in 2022 (Civil Appeal No. E003 of 2020). The 3-year grace period for Parliament to amend the law lapsed in June 2025 without legislative action. There is now no minimum marriage duration before filing for divorce.",
+    "description": "The 3-year bar on divorce petitions for civil marriages (formerly in Marriage Act, 2014, s.66(1)) was declared unconstitutional by the Court of Appeal in 2022 (National Assembly of Kenya v Kina & another, Civil Appeal 166 of 2019, [2022] KECA 548, upholding Tukero ole Kina v Attorney General [2019] eKLR). The 3-year grace period for Parliament to amend the law lapsed in June 2025 without legislative action. There is now no minimum marriage duration before filing for divorce.",
     "struckDown": true,
-    "courtOfAppealRuling": "Civil Appeal No. E003 of 2020 (Ole Kina v Attorney General)"
+    "courtOfAppealRuling": "National Assembly of Kenya v Kina & another, Civil Appeal 166 of 2019, [2022] KECA 548 (10 June 2022)"
   },
-  "decreeProcess": "The court first issues a Decree Nisi (conditional decree). After 30 days (to allow for reconciliation or objections), either party may apply for the Decree Absolute, which finally dissolves the marriage.",
-  "reconciliationNote": "The court MUST refer the parties to attempt reconciliation before proceeding to hear the petition (Marriage Act, 2014, s.67-68). This is a mandatory step.",
+  "decreeProcess": "In practice the court first issues a Decree Nisi (conditional decree) — a court practice inherited from the repealed Matrimonial Causes Act; the Marriage Act, 2014 itself is silent on the nisi/absolute stages. After a prescribed period (typically 30 days, to allow for reconciliation or objections), either party may apply for the Decree Absolute, which finally dissolves the marriage.",
+  "reconciliationNote": "Conciliation under the Marriage Act, 2014 is voluntary and discretionary, and marriage-type specific: parties to a Christian marriage may seek reconciliation through church bodies (s.64); in civil-marriage proceedings the court may refer a dispute to a conciliatory process agreed between the parties (s.66(4)); parties to a customary marriage may undergo customary conciliation or dispute resolution (s.68). No blanket mandatory court referral applies.",
   "mutualConsentNote": "In April 2025, the High Court at Nairobi (Constitutional Petition No. E075 of 2022) confirmed that divorce by mutual consent is NOT available under Kenyan law. Petitioners must prove one of the statutory fault-based or breakdown grounds under s.66(2)."
 }

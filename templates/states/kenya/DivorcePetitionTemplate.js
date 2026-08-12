@@ -10,35 +10,44 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Kenya Divorce Petition Template
  *
  * Kenya uses the term "Petition" for divorce proceedings under the Marriage Act, 2014.
- * The petition is filed in the High Court (Family Division) for civil, Christian,
- * customary, and Hindu marriages, or in the Kadhi's Court for Islamic marriages.
+ * The petition is filed in the magistrates' court ('court' means a resident
+ * magistrate's court, Marriage Act, 2014, s.2) for civil, Christian, customary,
+ * and Hindu marriages, or in the Kadhi's Court for Islamic marriages. The High
+ * Court hears appeals.
  *
  * Key Legal References:
  * - Marriage Act, 2014 (No. 4 of 2014)
+ *   - s.2: "court" means a resident magistrate's court
  *   - s.6: Types of marriage recognized (civil, Christian, customary, Hindu, Islamic)
- *   - s.65: Jurisdiction — either party must be resident in Kenya at time of filing
- *   - s.66(2): Grounds — (a) adultery, (b) cruelty, (c) desertion 3+ years,
- *              (d) exceptional depravity, (e) irretrievable breakdown
- *   NOTE: The 3-year bar on filing (formerly s.66(1)-(2)) was declared unconstitutional
- *   by the Court of Appeal in 2022 (Civil Appeal E003/2020). The grace period for
+ *   - s.65: Grounds for dissolution of Christian marriages (Part III marriages)
+ *   - s.66(2): Civil-marriage grounds — (a) adultery, (b) cruelty, (c) exceptional
+ *              depravity, (d) desertion 3+ years, (e) irretrievable breakdown
+ *   NOTE: The 3-year bar on filing (formerly s.66(1)) was declared unconstitutional
+ *   by the Court of Appeal in 2022 (National Assembly of Kenya v Kina & another,
+ *   Civil Appeal 166 of 2019, [2022] KECA 548). The grace period for
  *   Parliament to legislate lapsed June 2025. No minimum marriage duration applies.
- *   - s.66(6): Irretrievable breakdown defined — other grounds proven, 2-year separation,
- *              7+ year imprisonment, or incurable insanity
- *   - s.67-68: Mandatory reconciliation — court must refer parties to attempt reconciliation
+ *   - s.66(6): Irretrievable breakdown deemed on eight limbs — adultery; cruelty;
+ *              willful neglect 2+ years; separation 2+ years; desertion 3+ years;
+ *              imprisonment for life or 7+ years; certified incurable insanity;
+ *              any other ground the court deems appropriate
+ *   - ss.64, 66(4), 68: Voluntary/discretionary conciliation (marriage-type specific);
+ *              s.67 governs recognition of foreign divorce decrees
  *   - s.77-80: Maintenance
  * - Matrimonial Property Act, 2013 (No. 49 of 2013) — contribution-based property division
  * - Children Act, 2022 (No. 29 of 2022) — best interests of child, parenting plan
  * - Constitution of Kenya, 2010, Art. 170 — Kadhi's Courts for Islamic marriages
  *
- * Residency Requirement (Marriage Act, 2014, s.65):
- * - Either party must be resident in Kenya at the time of filing
- * - No minimum duration specified
+ * Residency:
+ * - The Marriage Act, 2014 contains no express residency requirement — petitions
+ *   are in practice filed at the magistrates' court station where the parties reside
  *
  * Kenya-Specific:
  * - Parties are "Petitioner" and "Respondent"
- * - Court is High Court (Family Division) or Kadhi's Court (Islamic marriages)
+ * - Court is the magistrates' court (s.2) or Kadhi's Court (Islamic marriages);
+ *   the High Court hears appeals
  * - Filing fee: approx KES 2,000-45,000 (varies by court and claim value)
- * - Process: Petition -> Reconciliation attempt -> Decree Nisi -> Decree Absolute
+ * - Process: Petition -> Hearing -> Decree Nisi -> Decree Absolute (the nisi/absolute
+ *   stages are court practice; the 2014 Act is silent)
  * - A4 paper size, KES currency
  *
  * @class KenyaDivorcePetitionTemplate
@@ -68,17 +77,17 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // Kenya residency: resident in Kenya at time of filing (Marriage Act s.65)
+    // Kenya residency: the Marriage Act, 2014 has no express residency requirement
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either party must be resident in Kenya at the time of filing the petition (Marriage Act, 2014, s.65).'
+      description: 'The Marriage Act, 2014 contains no express residency requirement. Petitions are in practice filed at the magistrates\' court station where the parties reside.'
     };
 
-    // No mandatory waiting period after filing — reconciliation is mandatory, then Decree Nisi → Absolute
+    // No mandatory waiting period after filing — conciliation is voluntary/discretionary, then Decree Nisi → Absolute (court practice)
     this.waitingPeriod = {
       days: 0,
-      description: 'No statutory waiting period after filing. Mandatory reconciliation attempt required (s.67-68). Decree Nisi becomes Decree Absolute after a prescribed period (typically 30 days).'
+      description: 'No statutory waiting period after filing. Conciliation is voluntary/discretionary (Marriage Act, 2014, ss.64, 66(4), 68). In practice the Decree Nisi becomes the Decree Absolute after a prescribed period (typically 30 days); the 2014 Act itself is silent on the nisi/absolute stages.'
     };
 
     this.formatting = {
@@ -95,13 +104,14 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getDefaultCourt(county) {
-    const location = (county || '[LOCATION]').toUpperCase();
-    return `HIGH COURT OF KENYA AT ${location}`;
+    const station = (county || '[STATION]').toUpperCase();
+    return `CHIEF MAGISTRATE'S COURT AT ${station}`;
   }
 
   /**
    * Kenya case caption uses "Petitioner" and "Respondent".
-   * Filed in the High Court (Family Division) or Kadhi's Court (Islamic marriages).
+   * Filed in the magistrates' court ('court' = resident magistrate's court,
+   * Marriage Act, 2014, s.2) or Kadhi's Court (Islamic marriages).
    */
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '[COURT NAME]').toUpperCase();
@@ -140,11 +150,12 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Kenya jurisdiction statement — Marriage Act, 2014, s.65.
-   * Either party must be resident in Kenya at the time of filing.
+   * Kenya jurisdiction statement — Marriage Act, 2014, s.2.
+   * Divorce causes are heard by the magistrates' courts; the Act contains
+   * no express residency requirement.
    */
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner (or Respondent) is resident in the Republic of Kenya at the time of filing this Petition, as required by section 65 of the Marriage Act, 2014 (No. 4 of 2014).`;
+    return `This Honourable Court has jurisdiction to hear and determine this Petition, being a resident magistrate's court within the meaning of section 2 of the Marriage Act, 2014 (No. 4 of 2014), and the parties reside within the local limits of its jurisdiction.`;
   }
 
   /**
@@ -217,28 +228,29 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Kenya grounds for divorce.
-   * Marriage Act, 2014, s.66(2) — the court must be satisfied that the marriage
-   * has broken down irretrievably on one of the following grounds:
+   * Kenya grounds for divorce (civil marriages).
+   * Marriage Act, 2014, s.66(2) — a party may petition on one of these grounds:
    *   (a) adultery
    *   (b) cruelty (physical or mental)
-   *   (c) desertion for 3+ years
-   *   (d) exceptional depravity
-   *   (e) irretrievable breakdown of the marriage (s.66(6))
+   *   (c) exceptional depravity
+   *   (d) desertion for 3+ years
+   *   (e) irretrievable breakdown of the marriage (particularised by s.66(6))
+   * There is no overarching breakdown requirement. Grounds are marriage-type
+   * specific: s.65 (Christian), s.69 (customary), s.70 (Hindu), s.71 (Islamic).
    */
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'irretrievable_breakdown').toLowerCase();
     if (g.includes('adultery')) {
-      return 'The Respondent has committed one or more acts of adultery and the Petitioner finds it intolerable to continue living with the Respondent, within the meaning of section 66(2)(a) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has committed one or more acts of adultery and the Petitioner finds it intolerable to continue living with the Respondent, within the meaning of section 66(2)(a) of the Marriage Act, 2014.';
     }
     if (g.includes('desertion')) {
-      return 'The Respondent has deserted the Petitioner for a continuous period of at least three years immediately preceding the presentation of this Petition, within the meaning of section 66(2)(c) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has deserted the Petitioner for a continuous period of at least three years immediately preceding the presentation of this Petition, within the meaning of section 66(2)(d) of the Marriage Act, 2014.';
     }
     if (g.includes('depravity') || g.includes('exceptional')) {
-      return 'The Respondent has exhibited exceptional depravity such that the Petitioner cannot reasonably be expected to continue living with the Respondent, within the meaning of section 66(2)(d) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has exhibited exceptional depravity such that the Petitioner cannot reasonably be expected to continue living with the Respondent, within the meaning of section 66(2)(c) of the Marriage Act, 2014.';
     }
     if (g.includes('cruelty')) {
-      return 'The Respondent has inflicted cruelty, whether mental or physical, on the Petitioner or on the children of the marriage, within the meaning of section 66(2)(b) of the Marriage Act, 2014. The marriage has broken down irretrievably.';
+      return 'The Respondent has inflicted cruelty, whether mental or physical, on the Petitioner or on the children of the marriage, within the meaning of section 66(2)(b) of the Marriage Act, 2014.';
     }
     // Default: irretrievable breakdown
     return 'The marriage between the Petitioner and the Respondent has broken down irretrievably with no reasonable prospect of reconciliation, within the meaning of section 66(2)(e) of the Marriage Act, 2014.';

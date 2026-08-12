@@ -21,11 +21,11 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   - s.95A(1): Six facts proving irretrievable breakdown (6th added 1 July 2024)
  *   - s.112: Division of matrimonial assets — "just and equitable"
  *   - s.113-114: Maintenance of wife (gender-specific)
- * - Guardianship of Infants Act (Cap 122) — welfare of child paramount
+ * - Guardianship of Infants Act 1934 — welfare of child paramount
  * - Family Justice (General) Rules 2024 — procedural rules (effective 15 Oct 2024)
  *
  * IMPORTANT: Muslim marriages solemnized under the Administration of Muslim Law Act
- * (AMLA, Cap 3) are handled by the Syariah Court, not the Family Justice Courts.
+ * 1966 (AMLA) are handled by the Syariah Court, not the Family Justice Courts.
  * This template applies ONLY to non-Muslim divorces.
  *
  * Residency Requirement (Women's Charter, s.93):
@@ -37,11 +37,12 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *   on grounds of exceptional hardship or exceptional depravity
  *
  * Singapore-Specific:
- * - Parties are "Plaintiff" and "Defendant" (not "Petitioner/Respondent")
+ * - Parties are "Applicant" and "Respondent" for filings from 15 October 2024
+ *   ("Plaintiff/Defendant" only for pre-15-Oct-2024 writ filings)
  * - Court is the Family Justice Courts (established 2014)
  * - Filing fee: approx. SGD $200-$350 (legal aid available via Legal Aid Bureau)
  * - A4 paper size
- * - Divorce Suit No. (not "CASE NO." or "CAUSE NO.")
+ * - Case number: "No. FC/OA [number]/[year]" (the writ-era "Divorce Suit No." is obsolete)
  *
  * @class SingaporeDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -93,7 +94,7 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Divorce Suit No.';
+    return 'No. FC/OA';
   }
 
   getDefaultCourt(county) {
@@ -101,16 +102,16 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Singapore case caption uses "Plaintiff" and "Defendant".
+   * Singapore case caption uses "Applicant" and "Respondent" (filings from 15 Oct 2024).
    * Women's Charter proceedings use Originating Application filed in Family Justice Courts.
    */
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '[COURT NAME]').toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[SUIT NUMBER]';
+    const caseNumber = divorceData.caseNumber || '[NUMBER]/[YEAR]';
 
-    const plaintiff = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
-    const defendant = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
+    const applicant = (divorceData.petitionerName || '[APPLICANT NAME]').toUpperCase();
+    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
     const caption = [
       `IN THE ${courtName}`,
@@ -120,13 +121,13 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       '',
       `BETWEEN:`,
       '',
-      `${plaintiff}`,
-      `Plaintiff`,
+      `${applicant}`,
+      `Applicant`,
       '',
       `AND`,
       '',
-      `${defendant}`,
-      `Defendant`
+      `${respondent}`,
+      `Respondent`
     ].join('\n');
 
     return {
@@ -156,7 +157,7 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Singapore jurisdiction statement — Women's Charter, s.93.
    */
   getJurisdictionStatement(divorceData) {
-    return 'Either the Plaintiff or the Defendant is domiciled in Singapore at the date of this application, or has been habitually resident in Singapore for a period of at least 3 years immediately preceding the date of filing, as required by section 93 of the Women\'s Charter 1961.';
+    return 'Either the Applicant or the Respondent is domiciled in Singapore at the date of this application, or has been habitually resident in Singapore for a period of at least 3 years immediately preceding the date of filing, as required by section 93 of the Women\'s Charter 1961.';
   }
 
   /**
@@ -167,7 +168,7 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Singapore parties section uses "Plaintiff" and "Defendant".
+   * Singapore parties section uses "Applicant" and "Respondent".
    */
   generatePartiesSection(divorceData) {
     const items = [];
@@ -175,13 +176,13 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     items.push({
       number: paragraphNum++,
-      content: `The Plaintiff, ${divorceData.petitionerName || '[PLAINTIFF NAME]'}, is domiciled in or habitually resident in the Republic of Singapore.`,
+      content: `The Applicant, ${divorceData.petitionerName || '[APPLICANT NAME]'}, is domiciled in or habitually resident in the Republic of Singapore.`,
       type: 'party_identification'
     });
 
     items.push({
       number: paragraphNum++,
-      content: `The Defendant, ${divorceData.respondentName || '[DEFENDANT NAME]'}, is ${divorceData.respondentAddress ? `resident at ${divorceData.respondentAddress}` : 'a resident of Singapore'}.`,
+      content: `The Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, is ${divorceData.respondentAddress ? `resident at ${divorceData.respondentAddress}` : 'a resident of Singapore'}.`,
       type: 'party_identification'
     });
 
@@ -200,7 +201,7 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Singapore relief section — Women's Charter terminology.
-   * Uses "Plaintiff" / "Defendant" and Singapore-specific statutory references.
+   * Uses "Applicant" / "Respondent" and Singapore-specific statutory references.
    */
   generateReliefSection(divorceData) {
     const items = [];
@@ -208,26 +209,26 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     items.push({
       number: null,
-      content: 'THE PLAINTIFF CLAIMS:',
+      content: 'THE APPLICANT CLAIMS:',
       type: 'relief_intro'
     });
 
     const reliefItems = [
-      'That the marriage between the Plaintiff and the Defendant be dissolved pursuant to section 95 of the Women\'s Charter 1961;',
+      'That the marriage between the Applicant and the Respondent be dissolved pursuant to section 95 of the Women\'s Charter 1961;',
       'That the matrimonial assets of the parties be divided in a just and equitable manner pursuant to section 112 of the Women\'s Charter 1961;'
     ];
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('That orders be made for custody, care and control, and access in respect of the child(ren) of the marriage, with the welfare of the child(ren) as the paramount consideration (Guardianship of Infants Act, Cap 122);');
-      reliefItems.push('That the Defendant pay maintenance for the child(ren) of the marriage pursuant to section 69 of the Women\'s Charter 1961;');
+      reliefItems.push('That orders be made for custody, care and control, and access in respect of the child(ren) of the marriage, with the welfare of the child(ren) as the paramount consideration (Guardianship of Infants Act 1934);');
+      reliefItems.push('That the Respondent pay maintenance for the child(ren) of the marriage pursuant to section 69 of the Women\'s Charter 1961;');
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('That the Defendant pay maintenance to the Plaintiff pursuant to sections 113-114 of the Women\'s Charter 1961;');
+      reliefItems.push('That the Respondent pay maintenance to the Applicant pursuant to sections 113-114 of the Women\'s Charter 1961;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {
-      reliefItems.push(`That the Plaintiff's former name, ${divorceData.previousName}, be restored;`);
+      reliefItems.push(`That the Applicant's former name, ${divorceData.previousName}, be restored;`);
     }
 
     reliefItems.push('Such further or other relief as this Honourable Court deems fit.');
@@ -252,12 +253,12 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Singapore verification text.
-   * Affidavits in Singapore are sworn/affirmed under the Oaths and Declarations Act (Cap 211).
-   * Perjury is an offence under the Penal Code (Cap 224), s.181/191.
+   * Affidavits in Singapore are sworn/affirmed under the Oaths and Declarations Act 2000.
+   * Perjury is an offence under the Penal Code 1871, s.181/191.
    */
   getVerificationText(divorceData) {
-    const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
-    return `I, ${name}, the Plaintiff, do solemnly swear (or affirm) that the facts stated in this Originating Application for Divorce are true to the best of my knowledge, information, and belief.`;
+    const name = divorceData.petitionerName || '[APPLICANT NAME]';
+    return `I, ${name}, the Applicant, do solemnly swear (or affirm) that the facts stated in this Originating Application for Divorce are true to the best of my knowledge, information, and belief.`;
   }
 
   /**
@@ -276,13 +277,13 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_consent').toLowerCase();
     if (g.includes('adultery')) {
-      return 'The Defendant has committed adultery and the Plaintiff finds it intolerable to live with the Defendant, within the meaning of section 95A(1)(a) of the Women\'s Charter 1961.';
+      return 'The Respondent has committed adultery and the Applicant finds it intolerable to live with the Respondent, within the meaning of section 95A(1)(a) of the Women\'s Charter 1961.';
     }
     if (g.includes('unreasonable') || g.includes('behaviour') || g.includes('cruelty')) {
-      return 'The Defendant has behaved in such a way that the Plaintiff cannot reasonably be expected to live with the Defendant, within the meaning of section 95A(1)(b) of the Women\'s Charter 1961.';
+      return 'The Respondent has behaved in such a way that the Applicant cannot reasonably be expected to live with the Respondent, within the meaning of section 95A(1)(b) of the Women\'s Charter 1961.';
     }
     if (g.includes('desertion')) {
-      return 'The Defendant has deserted the Plaintiff for a continuous period of at least 2 years immediately preceding the filing of this application, within the meaning of section 95A(1)(c) of the Women\'s Charter 1961.';
+      return 'The Respondent has deserted the Applicant for a continuous period of at least 2 years immediately preceding the filing of this application, within the meaning of section 95A(1)(c) of the Women\'s Charter 1961.';
     }
     if (g.includes('4') || g.includes('four') || g.includes('no_consent') || g.includes('without_consent')) {
       return 'The parties have lived apart for a continuous period of at least 4 years immediately preceding the filing of this application, within the meaning of section 95A(1)(e) of the Women\'s Charter 1961.';
@@ -291,20 +292,20 @@ class SingaporeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return 'Both parties agree that the marriage has broken down irretrievably, within the meaning of section 95A(1)(f) of the Women\'s Charter 1961.';
     }
     // Default: 3-year separation with consent
-    return 'The parties have lived apart for a continuous period of at least 3 years immediately preceding the filing of this application, and the Defendant consents to a judgment being granted, within the meaning of section 95A(1)(d) of the Women\'s Charter 1961.';
+    return 'The parties have lived apart for a continuous period of at least 3 years immediately preceding the filing of this application, and the Respondent consents to a judgment being granted, within the meaning of section 95A(1)(d) of the Women\'s Charter 1961.';
   }
 
   /**
-   * Singapore signature block uses "Plaintiff" label.
+   * Singapore signature block uses "Applicant" label.
    */
   generateSignatureBlock(petitionerName) {
-    const name = petitionerName || '[PLAINTIFF NAME]';
+    const name = petitionerName || '[APPLICANT NAME]';
     return {
       line: '_________________________________',
       name,
-      title: 'Plaintiff',
+      title: 'Applicant',
       date: 'Date: _____________________',
-      formatted: `_________________________________\n${name}\nPlaintiff\n\nDate: _____________________`
+      formatted: `_________________________________\n${name}\nApplicant\n\nDate: _____________________`
     };
   }
 }

@@ -64,7 +64,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone apply for divorce in Ireland.
 Collecting residency/domicile information.
 
-LEGAL REQUIREMENT — Family Law (Divorce) Act 1996, s.39(1)(a):
+LEGAL REQUIREMENT — Family Law (Divorce) Act 1996, s.39(1)(a)-(b):
 To file in Ireland, EITHER spouse must be:
 - Domiciled in Ireland on the date of institution of proceedings, OR
 - Ordinarily resident in Ireland for at least ONE YEAR immediately before that date.
@@ -85,8 +85,9 @@ Documenting grounds for divorce.
 
 LEGAL CONTEXT — Family Law (Divorce) Act 1996, s.5(1), as amended by Family Law Act 2019:
 Ireland has ONE route to divorce with THREE conditions:
-1. SEPARATION: The spouses must have lived apart for at least 2 of the preceding 3 years
-   (reduced from 4 of 5 years by the 2019 Act, implementing the 38th Amendment to the Constitution)
+1. SEPARATION: The spouses must have lived apart for at least 2 of the 3 years immediately
+   preceding the date the proceedings are instituted (s.5(1)(a) — measured at institution, not decree;
+   reduced from 4 of 5 years by the 2019 Act, s.3(1)(a), implementing the 38th Amendment to the Constitution)
    - "Living apart" can include living under the same roof if the marriage relationship has ended
    - Periods of attempted reconciliation (up to 6 months total) do not reset the clock
 2. NO RECONCILIATION: The court must be satisfied there is no reasonable prospect of reconciliation
@@ -138,7 +139,7 @@ LEGAL CONTEXT:
 Ireland uses "proper provision" orders — NOT community property or equalization:
 - The court has BROAD DISCRETION to make whatever property/financial orders it considers proper
 - There is no automatic 50/50 split or mathematical formula
-- Relevant factors (Family Law Act 1995, s.16, applied by analogy):
+- Relevant factors (Family Law (Divorce) Act 1996, s.20(2)):
   → Income, earning capacity, and financial resources of each spouse
   → Financial needs, obligations, and responsibilities of each spouse
   → Standard of living before the marriage broke down
@@ -150,11 +151,11 @@ Ireland uses "proper provision" orders — NOT community property or equalizatio
   → Value of any benefit (e.g., pension) that a spouse would lose by reason of the divorce
 
 TYPES OF ORDERS AVAILABLE:
-- Property adjustment orders (s.15): transfer of property between spouses
-- Lump sum orders (s.14): one-off payment
+- Property adjustment orders (s.14): transfer of property between spouses
+- Lump sum orders (s.13): one-off payment
 - Periodical payments (s.13): ongoing maintenance
 - Pension adjustment orders (s.17)
-- Financial compensation orders (s.18)
+- Financial compensation orders (s.16)
 
 IMPORTANT — FAMILY HOME:
 Both spouses have a right to the family home regardless of whose name is on the title,
@@ -179,7 +180,7 @@ Collecting information about spousal maintenance.
 
 LEGAL CONTEXT — Family Law (Divorce) Act 1996, s.13 (periodical payments):
 Spousal maintenance in Ireland is discretionary. The court considers:
-- The s.16 factors (Family Law Act 1995) — means, needs, earning capacity, duration of marriage,
+- The s.20(2) factors (Family Law (Divorce) Act 1996) — means, needs, earning capacity, duration of marriage,
   contributions, standard of living, age, health, conduct
 - There is NO statutory formula or advisory guidelines (unlike the Canadian SSAG)
 - Maintenance can be time-limited or indefinite

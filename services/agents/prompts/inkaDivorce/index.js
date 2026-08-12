@@ -31,7 +31,7 @@ COLLECT:
 3. "Under which personal law was your marriage solemnized?"
    → Hindu / Buddhist / Jain / Sikh → HMA 1955
    → Special Marriage Act → SMA
-   → Christian → Indian Divorce Act 1869
+   → Christian → Divorce Act, 1869 (renamed from "Indian Divorce Act" by the 2001 amendment)
    → Muslim → DMMA / Muslim personal law
 
 OPENING:

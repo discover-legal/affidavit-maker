@@ -173,7 +173,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return 'Since the celebration of the marriage, the Respondent has wilfully and persistently refused to consummate the marriage, within the meaning of section 15(2)(a) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
     }
     if (g.includes('restitution')) {
-      return 'The Respondent has failed to comply with a decree of restitution of conjugal rights made under the Act, within the meaning of section 15(2)(g) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
+      return 'The Respondent has, for a period of not less than one year, failed to comply with a decree of restitution of conjugal rights made under the Act, within the meaning of section 15(2)(g) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
     }
     if (g.includes('death') || g.includes('absent') || g.includes('presumption')) {
       return 'The other party to the marriage has, for a period of not less than seven years, been absent from the Petitioner and the Petitioner has no reason to believe that the other party has been alive at any time within that period, within the meaning of section 15(2)(h) of the Matrimonial Causes Act, Cap M7 LFN 2004.';

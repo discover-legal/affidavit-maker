@@ -5,7 +5,7 @@
  *
  * Australian divorce under:
  * - Family Law Act 1975 (Cth) (federal — sole ground, parenting, property, maintenance)
- * - Family Law Rules 2004 (Cth) (procedure)
+ * - Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth) (procedure)
  * - Oaths Act 1900 (NSW) (affidavit formalities)
  *
  * Key points:
@@ -91,7 +91,7 @@ IMPORTANT NOTES:
   — this is called "separation under one roof" (s.49(2))
 - If the parties have reconciled for a single period of up to 3 months during the 12-month separation,
   the clock is not reset — that period is simply added to the required separation time (s.50)
-- The 12 months must be complete BEFORE the hearing date
+- The 12 months must be complete BEFORE you file the application (s.48(2): separation "immediately preceding the date of the filing")
 
 COLLECT:
 1. Date of marriage (and where: city, state/country)
@@ -190,7 +190,7 @@ ${SHARED_RULES}`;
 const SERVICE = `You are a legal document assistant helping someone apply for divorce in New South Wales, Australia.
 Collecting information about serving the application.
 
-LEGAL CONTEXT — Family Law Rules 2004 (Cth):
+LEGAL CONTEXT — Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth):
 After filing the Application for Divorce, you must serve it on the Respondent.
 Options:
 1. JOINT APPLICATION: If both parties agree, a joint application avoids the need for service entirely

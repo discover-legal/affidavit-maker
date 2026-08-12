@@ -1,6 +1,6 @@
 // templates/states/delhi/DivorcePetitionTemplate.js
 // Delhi divorce petition template
-// Governing Law: Hindu Marriage Act 1955 / Special Marriage Act 1954 / Indian Divorce Act 1869
+// Governing Law: Hindu Marriage Act 1955 / Special Marriage Act 1954 / Divorce Act, 1869
 
 'use strict';
 
@@ -13,7 +13,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * on the religion of the parties:
  *   - Hindu Marriage Act 1955 (HMA) — Hindus, Buddhists, Jains, Sikhs
  *   - Special Marriage Act 1954 (SMA) — inter-faith or secular marriages
- *   - Indian Divorce Act 1869 (IDA) — Christians
+ *   - Divorce Act, 1869 (IDA) — Christians
  *   - Dissolution of Muslim Marriages Act 1939 (DMMA) — Muslim wives
  *
  * Filing jurisdiction (HMA s.19 / SMA s.31):
@@ -98,6 +98,12 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
+    // Mutual-consent petitions are presented jointly (HMA s.13B(1) / SMA s.28(1))
+    const g = (divorceData.groundsForDivorce || 'mutual_consent').toLowerCase();
+    const joint = g.includes('mutual') || g.includes('consent');
+    const partyLines = joint
+      ? [`${petitioner}`, `Petitioner No. 1`, '', `AND`, '', `${respondent}`, `Petitioner No. 2`]
+      : [`${petitioner}`, `Petitioner`, '', `VERSUS`, '', `${respondent}`, `Respondent`];
     const caption = [
       `IN THE ${courtName}`,
       '',
@@ -105,13 +111,7 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       '',
       `IN THE MATTER OF:`,
       '',
-      `${petitioner}`,
-      `Petitioner`,
-      '',
-      `VERSUS`,
-      '',
-      `${respondent}`,
-      `Respondent`
+      ...partyLines
     ].join('\n');
 
     return {

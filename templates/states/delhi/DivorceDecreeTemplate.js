@@ -1,6 +1,6 @@
 // templates/states/delhi/DivorceDecreeTemplate.js
 // Delhi divorce decree template
-// Governing Law: Hindu Marriage Act 1955 / Special Marriage Act 1954 / Indian Divorce Act 1869
+// Governing Law: Hindu Marriage Act 1955 / Special Marriage Act 1954 / Divorce Act, 1869
 
 'use strict';
 

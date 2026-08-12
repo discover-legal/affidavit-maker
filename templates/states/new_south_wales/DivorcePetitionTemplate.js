@@ -1,6 +1,6 @@
 // templates/states/new_south_wales/DivorcePetitionTemplate.js
 // New South Wales divorce application template
-// Governing Law: Family Law Act 1975 (Cth); Family Law Rules 2004 (Cth)
+// Governing Law: Family Law Act 1975 (Cth); Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)
 
 'use strict';
 
@@ -11,17 +11,17 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Australian divorce is governed entirely by federal law — the Family Law Act 1975 (Cth).
  * There is only one ground: irretrievable breakdown of the marriage, evidenced by
- * 12 months of continuous separation (s.48(1)).
+ * 12 months of continuous separation immediately before filing (s.48(2)).
  *
  * Key Legal References:
  * - Family Law Act 1975 (Cth)
  *   - s.39(3): Jurisdiction — Australian citizen, domiciled, or ordinarily resident 12 months
- *   - s.48(1): Sole ground — irretrievable breakdown (12-month separation)
+ *   - s.48(1)-(2): Sole ground — irretrievable breakdown, proved by 12-month separation before filing
  *   - s.55: Divorce order takes effect 1 month and 1 day after made
  *   - s.60CA: Best interests of the child as paramount consideration
  *   - s.79: Property settlement — just and equitable division
  *   - ss.72-75: Spousal maintenance
- * - Family Law Rules 2004 (Cth) — procedural rules
+ * - Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth) — procedural rules
  * - Oaths Act 1900 (NSW) — affidavit formalities
  *
  * Court: Federal Circuit and Family Court of Australia (FCFCOA)

@@ -32,7 +32,7 @@
   },
   "legalCitations": [
     { "code": "Family Law Act 1975 (Cth)", "description": "Federal statute — governs divorce, property, parenting, and spousal maintenance" },
-    { "code": "Family Law Rules 2004 (Cth)", "description": "Procedural rules for the FCFCOA" },
+    { "code": "Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)", "description": "Procedural rules for the FCFCOA" },
     { "code": "Evidence Act 2001 (Tas)", "description": "Tasmanian statute — requirements for sworn affidavits" }
   ],
   "affidavitJurat": "Sworn/Affirmed at ___ in the State of Tasmania on the ___ day of ___, ___.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths",

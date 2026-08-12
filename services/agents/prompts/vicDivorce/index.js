@@ -5,8 +5,8 @@
  *
  * Victoria divorce under:
  * - Family Law Act 1975 (Cth) (federal — sole ground, parenting, property, maintenance)
- * - Family Law Rules 2004 (Cth) (procedure)
- * - Evidence (Miscellaneous Provisions) Act 1958 (Vic) (affidavit formalities)
+ * - Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth) (procedure)
+ * - Oaths and Affirmations Act 2018 (Vic) (affidavit formalities)
  *
  * Court: Federal Circuit and Family Court of Australia — Melbourne Registry
  * Registry locations: Melbourne, Dandenong
@@ -71,7 +71,7 @@ shown by 12 months of continuous separation.
 - NO fault-based grounds exist in Australia
 - Separation under one roof is possible (s.49(2)) — must show the relationship has ended
 - Up to 3 months reconciliation does not reset the clock (s.50)
-- The 12 months must be complete BEFORE the hearing
+- The 12 months must be complete BEFORE you file the application (s.48(2): separation "immediately preceding the date of the filing")
 
 COLLECT:
 1. Date of marriage (and where: city, state/country)
@@ -145,7 +145,7 @@ ${SHARED_RULES}`;
 const SERVICE = `You are a legal document assistant helping someone apply for divorce in Victoria, Australia.
 Collecting information about serving the application.
 
-LEGAL CONTEXT — Family Law Rules 2004 (Cth):
+LEGAL CONTEXT — Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth):
 Options:
 1. JOINT APPLICATION: Both parties sign — no service required
 2. PERSONAL SERVICE: Hand-delivery by a person other than the Applicant

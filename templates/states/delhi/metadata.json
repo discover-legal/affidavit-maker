@@ -33,7 +33,7 @@
   },
   "divorceTerminology": {
     "parties": ["Petitioner", "Respondent"],
-    "grounds": "Hindu Marriage Act 1955 / Special Marriage Act 1954 / Indian Divorce Act 1869",
+    "grounds": "Hindu Marriage Act 1955 / Special Marriage Act 1954 / Divorce Act, 1869",
     "primaryGround": "mutual consent (HMA s.13B / SMA s.28)",
     "propertyDivision": "No specific matrimonial property statute; Hindu Succession Act 1956; court-ordered settlement"
   },
@@ -54,7 +54,7 @@
     },
     {
       "code": "ida",
-      "name": "Indian Divorce Act 1869",
+      "name": "Divorce Act, 1869",
       "applies": "Christians",
       "grounds_section": "s.10",
       "mutual_consent_section": "s.10A"
@@ -84,7 +84,7 @@
       "description": "Governs inter-faith and secular marriages and divorces"
     },
     {
-      "code": "Indian Divorce Act 1869",
+      "code": "Divorce Act, 1869",
       "description": "Governs divorce for Christians in India"
     },
     {

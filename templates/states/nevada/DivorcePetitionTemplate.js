@@ -13,8 +13,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - NRS 125.010 — Grounds for divorce (incompatibility, 1-year separation, insanity)
  * - NRS 125.150(1)(b) — Community property — equal 50/50 division
  * - NRS 125.150(1)(a) — Alimony
- * - NRS 125C.001, 125C.0035 — Custody (joint legal, joint physical; best interest standard)
- * - NRS 125B — Nevada Child Support Guidelines (percentage of income)
+ * - NRS 125C.002, 125C.0025, 125C.0035 — Custody (joint legal, joint physical; best interest standard)
+ * - NAC 425.140 et seq. — Nevada Child Support Guidelines (tiered percentage of income, eff. 2020)
  *
  * Nevada-Specific Notes:
  * - Called "Divorce" — not dissolution of marriage
@@ -271,7 +271,7 @@ class NevadaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       reliefItems.push('Award joint legal custody and determine physical custody of the minor child(ren) in the best interests of the child(ren) pursuant to NRS 125C.0035;');
       reliefItems.push('Establish a visitation schedule pursuant to NRS 125C;');
-      reliefItems.push('Order child support in accordance with the Nevada Child Support Guidelines, NRS 125B;');
+      reliefItems.push('Order child support in accordance with the Nevada Child Support Guidelines, NAC 425.140 et seq.;');
     }
 
     if (divorceData.requestSpousalSupport) {
@@ -337,7 +337,7 @@ Plaintiff`;
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       warnings.push('Custody must be determined in the best interests of the child(ren). Nevada has a presumption favoring joint custody. (NRS 125C.0035)');
-      warnings.push('Child support must be calculated using the Nevada Child Support Guidelines (NRS 125B).');
+      warnings.push('Child support must be calculated using the Nevada Child Support Guidelines (NAC 425.140 et seq.).');
     }
 
     return { errors, warnings };

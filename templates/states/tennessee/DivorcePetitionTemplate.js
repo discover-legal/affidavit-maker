@@ -146,37 +146,37 @@ class TennesseeDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     } else if (grounds === 'adultery') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been guilty of adultery. (TCA 36-4-101(a)(4))',
+        content: 'Defendant has been guilty of adultery. (TCA 36-4-101(a)(3))',
         type: 'grounds'
       });
     } else if (grounds === 'desertion') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been guilty of willful or malicious desertion for one full year without reasonable cause. (TCA 36-4-101(a)(3))',
+        content: 'Defendant has been guilty of willful or malicious desertion for one full year without reasonable cause. (TCA 36-4-101(a)(4))',
         type: 'grounds'
       });
     } else if (grounds === 'felony_conviction') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been convicted of a felony and sentenced to confinement in a penitentiary. (TCA 36-4-101(a)(5))',
+        content: 'Defendant has been convicted of a felony and sentenced to confinement in a penitentiary. (TCA 36-4-101(a)(6))',
         type: 'grounds'
       });
     } else if (grounds === 'cruel_treatment') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has been guilty of such cruel and inhuman treatment or conduct toward Plaintiff as renders cohabitation unsafe and improper. (TCA 36-4-101(a)(10))',
+        content: 'Defendant has been guilty of such cruel and inhuman treatment or conduct toward Plaintiff as renders cohabitation unsafe and improper. (TCA 36-4-101(a)(11))',
         type: 'grounds'
       });
     } else if (grounds === 'indignities') {
       items.push({
         number: paragraphNum++,
-        content: 'Defendant has offered such indignities to Plaintiff as to render Plaintiff\'s position intolerable and thereby forced Plaintiff to withdraw. (TCA 36-4-101(a)(11))',
+        content: 'Defendant has offered such indignities to Plaintiff as to render Plaintiff\'s position intolerable and thereby forced Plaintiff to withdraw. (TCA 36-4-101(a)(12))',
         type: 'grounds'
       });
     } else if (grounds === 'two_year_separation') {
       items.push({
         number: paragraphNum++,
-        content: 'The parties have lived apart without cohabitation for a continuous period of more than two (2) years and there are no minor children of the marriage. (TCA 36-4-101(a)(7))',
+        content: 'The parties have lived apart without cohabitation for a continuous period of more than two (2) years and there are no minor children of the marriage. (TCA 36-4-101(a)(15))',
         type: 'grounds'
       });
     } else {

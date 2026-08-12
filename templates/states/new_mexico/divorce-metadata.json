@@ -24,10 +24,10 @@
   },
 
   "waitingPeriod": {
-    "days": 30,
-    "startsFrom": "service_date",
+    "days": 0,
+    "startsFrom": null,
     "exceptions": [],
-    "description": "New Mexico has a mandatory 30-day cooling-off period after service of process before the court may enter a final decree."
+    "description": "New Mexico has no mandatory waiting period between filing and final decree; uncontested decrees may be entered once the paperwork is complete. A respondent has 30 days after service to answer (Rule 1-012(A) NMRA), so a default decree is only available after that answer window runs."
   },
 
   "groundsForDissolution": {

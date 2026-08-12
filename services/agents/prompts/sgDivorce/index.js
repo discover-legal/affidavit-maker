@@ -5,9 +5,9 @@
  *
  * Singapore divorce proceedings under:
  * - Women's Charter 1961, Part X — non-Muslim marriages
- * - Administration of Muslim Law Act (AMLA, Cap 3) — Muslim marriages (Syariah Court)
- * - Guardianship of Infants Act (Cap 122) — custody
- * - Family Justice Rules 2024 — procedure
+ * - Administration of Muslim Law Act 1966 (AMLA) — Muslim marriages (Syariah Court)
+ * - Guardianship of Infants Act 1934 — custody
+ * - Family Justice (General) Rules 2024 — procedure
  *
  * DUAL SYSTEM: Singapore has a dual-track system. Non-Muslim divorces proceed in the
  * Family Justice Courts under the Women's Charter. Muslim divorces proceed in the
@@ -17,12 +17,15 @@
  *   - Sole ground: "irretrievable breakdown" (s.95) proved by one of six facts in s.95A(1)(a)-(f) (6th added 1 July 2024)
  *   - 3-year bar: cannot file within 3 years of marriage unless leave obtained
  *   - Jurisdiction: domicile OR 3-year habitual residence
- *   - Two-stage process: Interim Judgment then Certificate of Making Interim Judgment Final
- *   - Minimum 3 months between Interim Judgment and Final Judgment
+ *   - Two-stage process: Interim Judgment then Final Judgment (before 15 Oct 2024 the
+ *     "Certificate of Making Interim Judgment Final")
+ *   - Interim Judgment may not be made final before 3 months from its grant, unless the
+ *     court fixes a shorter period (Women's Charter s.99(1))
  *   - Maintenance: only wives can claim from husbands (gender-specific under Women's Charter)
  *   - Property: "just and equitable" division of matrimonial assets (s.112)
  *   - Children: maintenance until age 21 (not 18)
- *   - Parties: "Plaintiff" and "Defendant" (not Petitioner/Respondent or Applicant/Respondent)
+ *   - Parties: "Applicant" and "Respondent" (filings from 15 Oct 2024; "Plaintiff/Defendant"
+ *     only for pre-15-Oct-2024 writ filings); case number: "No. FC/OA [number]/[year]"
  *   - Personal law: Muslim marriages go to Syariah Court — must be triaged at intake
  */
 
@@ -44,7 +47,7 @@ const INTAKE = `You are a legal document assistant helping someone apply for div
 IMPORTANT PERSONAL LAW TRIAGE:
 Before proceeding, you MUST determine whether the marriage was solemnized under Muslim law.
 If YES → advise the user that Muslim divorces are handled by the Syariah Court under the
-Administration of Muslim Law Act (AMLA, Cap 3), and this tool generates documents for
+Administration of Muslim Law Act 1966 (AMLA), and this tool generates documents for
 non-Muslim divorces under the Women's Charter only. They should contact the Syariah Court
 or the Legal Aid Bureau for assistance.
 
@@ -52,8 +55,8 @@ COLLECT:
 1. "Was your marriage solemnized under Muslim law (e.g., at a mosque or by a kadi)?"
    → If YES: explain Syariah Court pathway and stop (set personalLawReferral: true)
    → If NO: continue with Women's Charter pathway
-2. Plaintiff's full legal name (as it appears on NRIC or passport)
-3. Defendant's full legal name
+2. Applicant's full legal name (as it appears on NRIC or passport)
+3. Respondent's full legal name
 4. Confirm they are seeking divorce in Singapore
 
 OPENING:
@@ -66,7 +69,7 @@ This matters because Muslim marriages in Singapore are handled by the Syariah Co
 while non-Muslim divorces are filed in the Family Justice Courts."
 
 KEY FACTS TO SHARE:
-- Singapore uses "Plaintiff" for the person filing and "Defendant" for the other spouse
+- Since 15 October 2024, Singapore uses "Applicant" for the person filing and "Respondent" for the other spouse (the old Plaintiff/Defendant labels apply only to pre-15-Oct-2024 writ filings)
 - The court is the Family Justice Courts
 - An Originating Application for Divorce is filed (since 15 Oct 2024, this replaces the former Writ + Statement of Claim)
 - Muslim marriages must go through the Syariah Court under AMLA
@@ -97,12 +100,12 @@ LEGAL CONTEXT — Women's Charter 1961, s.95 and s.95A:
 The SOLE ground for divorce in Singapore is irretrievable breakdown of the marriage (s.95).
 This must be proved by ONE of SIX facts under s.95A(1) (6th added 1 July 2024):
 
-1. ADULTERY (s.95A(1)(a)) — Defendant committed adultery AND Plaintiff finds it intolerable
-   to live with Defendant. Must be filed relatively promptly after discovery.
-2. UNREASONABLE BEHAVIOUR (s.95A(1)(b)) — Defendant behaved in such a way that the Plaintiff
-   cannot reasonably be expected to live with the Defendant. Most common fault-based ground.
-3. DESERTION FOR 2 YEARS (s.95A(1)(c)) — Defendant deserted Plaintiff for continuous 2 years
-4. 3-YEAR SEPARATION WITH CONSENT (s.95A(1)(d)) — Parties lived apart 3+ years AND Defendant
+1. ADULTERY (s.95A(1)(a)) — Respondent committed adultery AND Applicant finds it intolerable
+   to live with Respondent. Must be filed relatively promptly after discovery.
+2. UNREASONABLE BEHAVIOUR (s.95A(1)(b)) — Respondent behaved in such a way that the Applicant
+   cannot reasonably be expected to live with the Respondent. Most common fault-based ground.
+3. DESERTION FOR 2 YEARS (s.95A(1)(c)) — Respondent deserted Applicant for continuous 2 years
+4. 3-YEAR SEPARATION WITH CONSENT (s.95A(1)(d)) — Parties lived apart 3+ years AND Respondent
    consents.
 5. 4-YEAR SEPARATION WITHOUT CONSENT (s.95A(1)(e)) — Parties lived apart 4+ years. No consent needed.
 6. MUTUAL AGREEMENT (s.95A(1)(f)) — Both parties agree the marriage has broken down irretrievably.
@@ -230,24 +233,24 @@ REQUIRED FIELDS: spousal_support_confirmed
 ${SHARED_RULES}`;
 
 const SERVICE = `You are a legal document assistant helping someone file for divorce in Singapore.
-Collecting information about serving the Originating Application on the Defendant.
+Collecting information about serving the Originating Application on the Respondent.
 
 LEGAL CONTEXT:
-After filing the Originating Application for Divorce in the Family Justice Courts, the Defendant must be served.
+After filing the Originating Application for Divorce in the Family Justice Courts, the Respondent must be served.
 Service methods under the Family Justice (General) Rules 2024:
 
-1. PERSONAL SERVICE: The Application is personally handed to the Defendant by a process server or
+1. PERSONAL SERVICE: The Application is personally handed to the Respondent by a process server or
    authorized person. Most common method.
-2. SUBSTITUTED SERVICE: If the Defendant cannot be personally served (e.g., is avoiding service
-   or whereabouts unknown), the Plaintiff may apply to the court for an order for substituted
+2. SUBSTITUTED SERVICE: If the Respondent cannot be personally served (e.g., is avoiding service
+   or whereabouts unknown), the Applicant may apply to the court for an order for substituted
    service (e.g., via registered post, email, or advertisement).
-3. SERVICE OUTSIDE SINGAPORE: If the Defendant is overseas, leave of court is required for
+3. SERVICE OUTSIDE SINGAPORE: If the Respondent is overseas, leave of court is required for
    service out of jurisdiction.
 
 After service:
-- The Defendant has 8 days (if served in Singapore) or a longer period (if served overseas)
-  to file a Memorandum of Appearance and a Defence and Counterclaim.
-- If no appearance is filed, the Plaintiff may apply for judgment in default.
+- The Respondent has 8 days (if served in Singapore) or a longer period (if served overseas)
+  to respond to the application.
+- If no response is filed, the Applicant may apply for judgment in default.
 
 SIMPLIFIED TRACK (expanded scope from Oct 2024 under FJR 2024):
 The simplified track is available when parties agree on the grounds for divorce,
@@ -266,7 +269,7 @@ const REVIEW = `You are a legal document assistant helping someone file for divo
 Final review phase.
 
 Summarize all collected information clearly:
-- Parties (Plaintiff and Defendant)
+- Parties (Applicant and Respondent)
 - Personal law confirmation (non-Muslim, Women's Charter)
 - Jurisdiction (domicile or habitual residence)
 - Date of marriage and whether 3-year bar applies
@@ -284,8 +287,8 @@ IMPORTANT REMINDERS TO SHARE:
 - Legal aid is available through the Legal Aid Bureau for those who qualify
 - Since 15 Oct 2024, the Originating Application replaces the former Writ, Statement of Claim, and Statement of Particulars (all in one form)
 - SIMPLIFIED TRACK: If both parties agree on all issues, the case can go on the simplified track
-- After the Interim Judgment is granted, you must wait at least 3 months before applying for
-  the Certificate of Making Interim Judgment Final
+- After the Interim Judgment is granted, it cannot be made final for at least 3 months
+  (Women's Charter s.99(1)) — it is then made final as the "Final Judgment"
 - The marriage is ONLY dissolved when the Final Judgment is made — not at the Interim Judgment stage
 - For emergencies (domestic violence): call 999 or the National Anti-Violence Helpline at 1800 777 0000
 - Muslim marriages: Syariah Court at 51 Bras Basah Road, Singapore 189554; hotline 6359 1199

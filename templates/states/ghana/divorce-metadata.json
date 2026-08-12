@@ -13,11 +13,11 @@
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No mandatory waiting period after filing. However, the court MUST refer the matter to conciliation before proceeding (MCA s.2(3)). A petition cannot be filed within 2 years of marriage unless exceptional circumstances apply (MCA s.1)."
+    "description": "No mandatory waiting period after filing. The petitioner must inform the court of all efforts made to effect a reconciliation (MCA s.8(1)), and the court MAY adjourn the proceedings to attempt reconciliation where a reasonable possibility appears (s.8(2)) — referral is discretionary, not mandatory. No petition may be presented within two years of the marriage (MCA s.9(1)) except by leave of court (s.9(2))."
   },
   "twoYearBar": {
     "years": 2,
-    "description": "No petition for divorce shall be presented to the court within two years of marriage. The court may grant leave in exceptional circumstances of exceptional hardship or exceptional depravity (MCA s.1)."
+    "description": "No petition for divorce shall be presented to the court within two years of the date of the marriage (MCA s.9(1)). The court may grant leave on the ground of substantial hardship suffered by the petitioner or depravity on the part of the respondent (s.9(2))."
   },
   "groundsForDivorce": {
     "noFault": [
@@ -32,6 +32,12 @@
         "name": "Five-Year Separation",
         "description": "The parties have not lived as man and wife for a continuous period of at least 5 years immediately preceding the presentation of the petition. No consent from the respondent is required.",
         "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(e)"
+      },
+      {
+        "code": "unable_to_reconcile",
+        "name": "Inability to Reconcile After Diligent Effort",
+        "description": "The parties to the marriage have, after diligent effort, been unable to reconcile their differences.",
+        "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(1)(f)"
       }
     ],
     "fault": [
@@ -69,7 +75,7 @@
     "mohammedan": {
       "name": "Mohammedan Marriage",
       "description": "Marriage performed under Islamic law and registered under the Marriage of Mohammedans Ordinance",
-      "statute": "Marriage of Mohammedans Ordinance (Cap 129)"
+      "statute": "Marriages Act, 1884-1985 (CAP 127), Part Two (formerly Marriage of Mohammedans Ordinance, Cap 129)"
     }
   },
   "terminology": {
@@ -101,19 +107,19 @@
       }
     ]
   },
-  "mandatoryReconciliation": {
+  "reconciliation": {
     "required": true,
-    "description": "The court MUST refer the matter to conciliation (court-annexed mediation) before proceeding with the hearing (MCA s.2(3)). Only if reconciliation fails may the court proceed to hear the petition.",
-    "statute": "Matrimonial Causes Act 1971 (Act 367), s.2(3)"
+    "description": "The petitioner must inform the court of all efforts made to effect a reconciliation (MCA s.8(1)). Where a reasonable possibility of reconciliation appears, the court MAY adjourn the proceedings to enable an attempt at reconciliation (s.8(2)) — the referral is discretionary.",
+    "statute": "Matrimonial Causes Act 1971 (Act 367), s.8"
   },
   "decreeProcess": {
-    "stages": ["Decree Nisi", "Decree Absolute"],
-    "description": "After the hearing, the court first grants a Decree Nisi. Either party may apply for the Decree Nisi to be made absolute after the prescribed period. The court may rescind the decree nisi before it is made absolute if cause is shown."
+    "stages": ["Decree of Divorce"],
+    "description": "The court grants a single decree of divorce. Under MCA s.37 every decree is final and takes effect from the date the court gives judgment — Ghana has no decree nisi / decree absolute stage."
   },
   "legalCitations": [
     {
       "code": "Matrimonial Causes Act 1971 (Act 367)",
-      "description": "Governs all divorce proceedings in Ghana — sole ground is irretrievable breakdown (s.2)"
+      "description": "Governs all divorce proceedings in Ghana — sole ground is that the marriage has broken down beyond reconciliation (s.1(2)), shown by the six facts in s.2(1)"
     },
     {
       "code": "Marriage Ordinance (Cap 127)",
@@ -152,9 +158,9 @@
   },
   "spousalSupportGuidelines": {
     "calculationBasis": "court_discretion",
-    "guidelines": "Matrimonial Causes Act 1971 (Act 367), s.20",
+    "guidelines": "Matrimonial Causes Act 1971 (Act 367), s.19",
     "notes": "The court may order either spouse to pay maintenance to the other. Factors include the duration of the marriage, the financial capacity and needs of each spouse, and whether either party contributed to the education or career of the other."
   },
-  "effectiveDateRule": "The Decree Nisi becomes absolute after the prescribed period has elapsed and on application by either party. The marriage is not dissolved until the Decree Absolute is made.",
-  "certificateNote": "A Certificate of Divorce may be obtained from the High Court registry after the Decree Absolute is made."
+  "effectiveDateRule": "The decree of divorce is final and takes effect from the date the court gives judgment (MCA s.37).",
+  "certificateNote": "A Certificate of Divorce may be obtained from the High Court registry after the decree is granted."
 }

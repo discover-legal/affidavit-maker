@@ -31,7 +31,7 @@
   "divorceTerminology": {
     "parties": ["Applicant", "Respondent"],
     "grounds": "Family Law Act 1975 (Cth)",
-    "primaryGround": "irretrievable breakdown shown by 12-month separation (s.48(1))",
+    "primaryGround": "irretrievable breakdown shown by 12-month separation (s.48(1)-(2))",
     "propertyDivision": "Family Law Act 1975 (Cth), s.79 — just and equitable division"
   },
   "legalCitations": [
@@ -40,11 +40,11 @@
       "description": "Federal statute — governs divorce, property, parenting, and spousal maintenance across all Australian states and territories"
     },
     {
-      "code": "Family Law Rules 2004 (Cth)",
+      "code": "Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)",
       "description": "Procedural rules for proceedings in the Federal Circuit and Family Court of Australia"
     },
     {
-      "code": "Evidence (Miscellaneous Provisions) Act 1958 (Vic)",
+      "code": "Oaths and Affirmations Act 2018 (Vic)",
       "description": "Victorian statute — requirements for sworn affidavits and statutory declarations"
     },
     {

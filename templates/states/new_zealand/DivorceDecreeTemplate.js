@@ -12,14 +12,16 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * In New Zealand, the final order is called an "Order for Dissolution of Marriage"
  * (not a "Decree" or "Divorce Order"). It is issued by the Family Court.
  *
- * The dissolution order takes effect immediately upon being made by the court
- * (Family Proceedings Act 1980, s.46) — there is no further waiting period.
+ * A dissolution order made by a Registrar (the usual course for joint or
+ * undefended applications) takes effect as a final order 1 month after it is
+ * made; an order made by a Family Court Judge at a hearing takes effect
+ * immediately (Family Proceedings Act 1980, s.42).
  *
  * Key Legal References:
  * - Family Proceedings Act 1980
- *   - s.38: Domicile requirement
+ *   - s.37: Domicile requirement
  *   - s.39: Sole ground — 2-year separation
- *   - s.46: Order takes effect immediately
+ *   - s.42: Registrar-made orders final after 1 month; Judge-made orders immediate
  * - Property (Relationships) Act 1976 (equal sharing of relationship property)
  * - Care of Children Act 2004 (guardianship, day-to-day care, contact)
  * - Child Support Act 1991 (child support — Inland Revenue)
@@ -335,10 +337,11 @@ class NewZealandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * NZ dissolution effective date: immediately upon being made (s.46).
+   * NZ dissolution effective date (s.42): a Registrar-made order becomes final
+   * 1 month after it is made; a Judge-made order takes effect immediately.
    */
   getEffectiveDateText() {
-    return 'This Order for Dissolution of Marriage takes effect immediately upon being made (Family Proceedings Act 1980, s.46).';
+    return 'Where this Order is made by a Registrar, it takes effect as a final order one month after the date on which it is made; where it is made by a Family Court Judge at a hearing, it takes effect immediately (Family Proceedings Act 1980, s.42).';
   }
 
   /**

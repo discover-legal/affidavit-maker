@@ -14,8 +14,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * applicant simply states that the marriage has irretrievably broken down.
  *
  * Key Legal References:
- * - DDSA 2020, s.1(1): Sole ground — irretrievable breakdown
- * - DDSA 2020, s.1(5): 20-week reflection period
+ * - MCA 1973, s.1(1) (as substituted by DDSA 2020, s.1): Sole ground — irretrievable breakdown
+ * - MCA 1973, s.1(5) (as substituted): 20-week reflection period; s.1(4)(b): 6-week gap to Final Order
  * - Matrimonial Causes Act 1973, s.23-25A: Financial remedy orders
  * - Children Act 1989: Welfare of children, s.8 orders
  * - Family Procedure Rules 2010 (SI 2010/2955)
@@ -26,7 +26,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - "Final Order" (not "Decree Absolute")
  * - Joint applications are available
  *
- * Residency Requirement (MCA 1973, s.5(2)):
+ * Residency Requirement (Domicile and Matrimonial Proceedings Act 1973, s.5(2)):
  * - Either party domiciled in England/Wales, OR
  * - Either party habitually resident for at least 1 year
  *
@@ -136,7 +136,7 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * England jurisdiction statement — domicile or habitual residence.
    */
   getJurisdictionStatement(divorceData) {
-    return 'The Applicant confirms that either the Applicant or the Respondent is domiciled in England and Wales, or has been habitually resident in England and Wales for at least one year immediately preceding the date of this application, in accordance with section 5(2) of the Matrimonial Causes Act 1973.';
+    return 'The Applicant confirms that either the Applicant or the Respondent is domiciled in England and Wales, or has been habitually resident in England and Wales for at least one year immediately preceding the date of this application, in accordance with section 5(2) of the Domicile and Matrimonial Proceedings Act 1973.';
   }
 
   /**
@@ -161,7 +161,7 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A Final Order of divorce dissolving the marriage pursuant to section 1 of the Divorce, Dissolution and Separation Act 2020;'
+      'A Final Order of divorce dissolving the marriage pursuant to section 1 of the Matrimonial Causes Act 1973 (as substituted by the Divorce, Dissolution and Separation Act 2020);'
     ];
 
     if (divorceData.requestFinancialRemedy !== false) {
@@ -199,7 +199,7 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * England verification uses Statement of Truth (CPR Part 22).
+   * England verification uses Statement of Truth (Family Procedure Rules 2010, Part 17).
    */
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[APPLICANT NAME]';
@@ -213,7 +213,7 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * separation is required.
    */
   getGroundsText(groundsForDivorce) {
-    return 'The marriage has irretrievably broken down, within the meaning of section 1(1) of the Divorce, Dissolution and Separation Act 2020. This is the sole ground for divorce and no further particulars are required.';
+    return 'The marriage has irretrievably broken down, within the meaning of section 1(1) of the Matrimonial Causes Act 1973 (as substituted by the Divorce, Dissolution and Separation Act 2020). This is the sole ground for divorce and no further particulars are required.';
   }
 }
 

@@ -7,9 +7,9 @@
   "version": "1.0",
   "legallyCompliant": true,
   "residencyRequirements": {
-    "stateMonths": 0,
+    "stateMonths": 12,
     "countyDays": 40,
-    "description": "Either party must be domiciled in Scotland at the date the action is raised, OR have been habitually resident in Scotland for at least 40 days immediately before the action (Domicile and Matrimonial Proceedings Act 1973, s.7)."
+    "description": "Either party must be domiciled in Scotland on the date the action is begun, OR have been habitually resident in Scotland throughout the one year ending with that date (Domicile and Matrimonial Proceedings Act 1973, s.8(2)(a); Court of Session: s.7(2A)). For sheriff court actions, either party must additionally have been resident in the sheriffdom for at least 40 days ending with that date (s.8(2)(b))."
   },
   "waitingPeriod": {
     "days": 0,
@@ -63,13 +63,13 @@
         "required": true
       },
       {
-        "name": "Form F26 (Simplified Divorce Application — 1 year with consent)",
-        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 1-year separation with consent",
+        "name": "Form F31 (Simplified Divorce Application — 1 year with consent)",
+        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 1-year separation with consent (Court of Session equivalent: Form SPA)",
         "required": false
       },
       {
-        "name": "Form F28 (Simplified Divorce Application — 2 years)",
-        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 2-year separation without consent",
+        "name": "Form F33 (Simplified Divorce Application — 2 years)",
+        "description": "Used for simplified (DIY) divorce where no children under 16 and no financial claims — 2-year separation without consent (Court of Session equivalent: Form SPB)",
         "required": false
       },
       {

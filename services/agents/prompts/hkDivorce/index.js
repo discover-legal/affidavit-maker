@@ -12,7 +12,7 @@
  * Key differences from other jurisdictions:
  *   - Sole ground is irretrievable breakdown proved by one of five facts (s.11A(2)), plus joint application route (s.11B)
  *   - 1-year bar: cannot petition within first year of marriage (s.12)
- *   - Domicile in HK OR 3-year habitual residence required (s.3)
+ *   - Jurisdiction (s.3): domicile in HK, 3-year habitual residence, OR substantial connection with HK at the date of the petition
  *   - Parties are "Petitioner" and "Respondent" (traditional English terminology)
  *   - Court is Family Court (District Court level)
  *   - Two-stage process: Decree Nisi -> 6 weeks -> Decree Absolute
@@ -68,14 +68,17 @@ Collecting residency / domicile information.
 LEGAL REQUIREMENT — Matrimonial Causes Ordinance, s.3:
 The court has jurisdiction if, at the date of the petition, EITHER party:
   (a) is domiciled in Hong Kong, OR
-  (b) has been habitually resident in Hong Kong for a continuous period of at least
-      THREE YEARS immediately before the presentation of the petition.
+  (b) has been habitually resident in Hong Kong throughout the period of
+      THREE YEARS immediately before the presentation of the petition, OR
+  (c) has a SUBSTANTIAL CONNECTION with Hong Kong at that date (e.g., living
+      and working in HK, home and family life centred in HK).
 
 COLLECT:
-1. "Are you domiciled in Hong Kong, or have you been living here for at least 3 years?"
-   → If yes to either: jurisdiction is established
-   → If no: ask about the Respondent's domicile/residence
-   → If neither qualifies: they cannot file in Hong Kong
+1. "Are you domiciled in Hong Kong, have you been living here for at least 3 years,
+   or do you have a substantial connection with Hong Kong?"
+   → If yes to any: jurisdiction is established
+   → If no: ask about the Respondent's domicile/residence/connection
+   → If neither party qualifies on any limb: they cannot file in Hong Kong
 2. "Which district are you filing from?" (for court location)
    → Family Court is at Wanchai Tower
 3. Confirm the other spouse's location (if relevant to jurisdiction)
@@ -132,8 +135,8 @@ LEGAL CONTEXT:
 - The welfare of the child is the "first and paramount consideration" (Cap 13, s.3)
 - There is NO statutory child support formula — the court exercises discretion
   considering the child's needs, each parent's income, and all circumstances
-- If there are children under 18, the court requires a Statement of Arrangements
-  for Children (Form 4)
+- If there are children under 18, the court requires a Statement as to Arrangements
+  for Children (Form 2B; Form 2D for joint applications)
 - The court will NOT grant a decree unless satisfied that adequate arrangements
   have been or will be made for the children
 
@@ -154,8 +157,9 @@ Documenting the division of property.
 
 LEGAL CONTEXT:
 Hong Kong does NOT have a community property or equalization regime.
-The court has BROAD DISCRETION under s.7 of the Matrimonial Proceedings and Property
-Ordinance (Cap 192) to divide property, considering:
+The court has BROAD DISCRETION under the Matrimonial Proceedings and Property
+Ordinance (Cap 192) to divide property — property adjustment/transfer orders under s.6
+and orders for sale under s.6A — having regard to the s.7 factors:
 - Income, earning capacity, property, and financial resources of each party
 - Financial needs, obligations, and responsibilities
 - Standard of living enjoyed before the breakdown of the marriage
@@ -168,7 +172,7 @@ Ordinance (Cap 192) to divide property, considering:
 Types of orders available:
 - Lump sum payment (s.4 MPPO)
 - Periodical payments (s.3 MPPO)
-- Property adjustment / transfer (s.6 MPPO)
+- Property adjustment / transfer (s.6 MPPO; orders for sale s.6A)
 
 COLLECT:
 1. Real estate (the family home and any other properties)
@@ -219,12 +223,12 @@ After filing the Petition (Form 2), it must be served on the Respondent.
 Options:
 1. PERSONAL SERVICE: The petition is delivered directly to the Respondent by a
    process server or bailiff (standard method)
-2. ACKNOWLEDGED SERVICE: The Respondent signs an Acknowledgment of Service (Form 2A)
+2. ACKNOWLEDGED SERVICE: The Respondent signs an Acknowledgment of Service (Form 4)
    — this is the most common and simplest method
 3. SUBSTITUTED SERVICE: If the Respondent cannot be found — requires a court order
    allowing service by advertisement, email, or other means
 
-The Respondent has 7 days after service to return the Acknowledgment of Service (Form 2A).
+The Respondent has 7 days after service to return the Acknowledgment of Service (Form 4).
 If the Respondent wishes to contest, they must file an Answer within 28 days of service.
 If no Answer is filed, the case proceeds as uncontested.
 
@@ -242,7 +246,7 @@ Final review phase.
 
 Summarize all collected information clearly:
 - Parties and their locations
-- Jurisdictional basis (domicile or 3-year habitual residence)
+- Jurisdictional basis (domicile, 3-year habitual residence, or substantial connection)
 - Ground for divorce and the fact relied upon
 - Date of marriage and separation
 - Children and proposed custody / care and control arrangements
@@ -258,7 +262,7 @@ IMPORTANT REMINDERS TO SHARE:
 - The petition cannot be filed within the first year of marriage (s.12 MCO)
 - If uncontested and relying on 1-year separation with consent, the process is
   relatively straightforward
-- After filing: Respondent has 7 days to return Acknowledgment of Service (Form 2A)
+- After filing: Respondent has 7 days to return Acknowledgment of Service (Form 4)
 - If uncontested: the court typically handles the matter on paper without a hearing
 - The court will pronounce a Decree Nisi first
 - After 6 weeks: the Petitioner can apply for the Decree Nisi to be made Absolute

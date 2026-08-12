@@ -288,7 +288,7 @@ class EnglandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({
       content: 'IT IS ORDERED that the marriage between the parties solemnised on ' +
         `${divorceData.marriageDate || '[DATE]'} is dissolved, the Final Order having been made ` +
-        'pursuant to the Divorce, Dissolution and Separation Act 2020.',
+        'pursuant to section 1 of the Matrimonial Causes Act 1973 (as substituted by the Divorce, Dissolution and Separation Act 2020).',
       type: 'order'
     });
 

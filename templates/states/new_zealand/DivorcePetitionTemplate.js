@@ -14,15 +14,16 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Key Legal References:
  * - Family Proceedings Act 1980
- *   - s.38: Domicile requirement — either spouse must be domiciled in NZ
+ *   - s.37: Domicile requirement — either spouse must be domiciled in NZ
  *   - s.39: Sole ground — irreconcilable breakdown shown by 2-year separation
- *   - s.46: Order takes effect immediately (no further waiting period)
+ *   - s.42: Registrar-made orders become final 1 month after being made;
+ *           an order made by a Judge at a hearing takes effect immediately
  * - Property (Relationships) Act 1976 (relationship property — equal sharing)
  * - Care of Children Act 2004 (guardianship, day-to-day care, contact)
  * - Child Support Act 1991 (child support — administered by Inland Revenue)
  * - Oaths and Declarations Act 1957 (affidavit requirements)
  *
- * Domicile Requirement (Family Proceedings Act, s.38):
+ * Domicile Requirement (Family Proceedings Act, s.37):
  * - Either spouse must be domiciled in New Zealand at the time of the application.
  *   Domicile means NZ is the person's permanent home.
  *
@@ -65,13 +66,13 @@ class NewZealandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either spouse must be domiciled in New Zealand at the time of the application (Family Proceedings Act 1980, s.38).'
+      description: 'Either spouse must be domiciled in New Zealand at the time of the application (Family Proceedings Act 1980, s.37).'
     };
 
-    // No waiting period after order is granted
+    // Registrar-made orders become final 1 month after being made (s.42)
     this.waitingPeriod = {
-      days: 0,
-      description: 'Dissolution order takes effect immediately upon being made (Family Proceedings Act 1980, s.46). The 2-year separation must be completed before filing.'
+      days: 30,
+      description: 'A dissolution order made by a Registrar takes effect as a final order 1 month after it is made; an order made by a Family Court Judge at a hearing takes effect immediately (Family Proceedings Act 1980, s.42). The 2-year separation must be completed before filing.'
     };
 
     this.formatting = {
@@ -132,11 +133,11 @@ class NewZealandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * NZ jurisdiction statement — Family Proceedings Act 1980, s.38.
+   * NZ jurisdiction statement — Family Proceedings Act 1980, s.37.
    * Domicile (not residency) is the requirement.
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Applicant or the Respondent is domiciled in New Zealand at the time of this application, as required by section 38 of the Family Proceedings Act 1980.`;
+    return `Either the Applicant or the Respondent is domiciled in New Zealand at the time of this application, as required by section 37 of the Family Proceedings Act 1980.`;
   }
 
   /**

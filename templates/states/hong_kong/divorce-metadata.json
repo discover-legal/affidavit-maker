@@ -9,7 +9,7 @@
   "residencyRequirements": {
     "stateMonths": 36,
     "countyDays": 0,
-    "description": "Either party must be domiciled in Hong Kong OR have been habitually resident in Hong Kong for a continuous period of at least 3 years immediately before the presentation of the petition (Matrimonial Causes Ordinance, s.3)."
+    "description": "Either party must be domiciled in Hong Kong, have been habitually resident in Hong Kong for a continuous period of at least 3 years immediately before the presentation of the petition, OR have a substantial connection with Hong Kong at the date of the petition (Matrimonial Causes Ordinance, s.3)."
   },
   "waitingPeriod": {
     "days": 0,
@@ -62,14 +62,14 @@
     ]
   },
   "terminology": {
-    "caseNumberLabel": "Case No.",
+    "caseNumberLabel": "Number FCMC",
     "custody": "Custody, Care and Control",
     "physicalCustody": "Care and Control",
     "jointCustody": "Joint Custody",
     "soleCustody": "Sole Custody",
     "alimony": "Maintenance",
     "childSupport": "Child Maintenance",
-    "maritalProperty": "Matrimonial Property (Matrimonial Proceedings and Property Ordinance, Cap 192, s.7)"
+    "maritalProperty": "Matrimonial Property (Matrimonial Proceedings and Property Ordinance, Cap 192, ss.6-6A)"
   },
   "requiredForms": {
     "basic": [
@@ -79,12 +79,12 @@
         "required": true
       },
       {
-        "name": "Form 4 — Statement of Arrangements for Children",
-        "description": "Required if there are children of the family under 18",
+        "name": "Form 2B — Statement as to Arrangements for Children",
+        "description": "Required if there are children of the family under 18 (Form 2D for joint applications)",
         "required": false
       },
       {
-        "name": "Form 2A — Acknowledgment of Service",
+        "name": "Form 4 — Acknowledgment of Service",
         "description": "Respondent's acknowledgment of receipt of the petition",
         "required": true
       }

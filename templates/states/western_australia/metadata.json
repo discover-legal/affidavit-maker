@@ -33,7 +33,7 @@
   "legalCitations": [
     { "code": "Family Law Act 1975 (Cth)", "description": "Federal statute — governs divorce, property, parenting, and spousal maintenance" },
     { "code": "Family Court Act 1997 (WA)", "description": "Western Australian statute — establishes the Family Court of Western Australia (the only state with its own family court)" },
-    { "code": "Family Law Rules 2004 (Cth)", "description": "Procedural rules (as modified for WA by Family Court Rules 2021 (WA))" },
+    { "code": "Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)", "description": "Procedural rules (as modified for WA by Family Court Rules 2021 (WA))" },
     { "code": "Family Court Rules 2021 (WA)", "description": "WA-specific procedural rules for the Family Court of Western Australia" },
     { "code": "Oaths, Affidavits and Statutory Declarations Act 2005 (WA)", "description": "WA statute — requirements for sworn affidavits" }
   ],

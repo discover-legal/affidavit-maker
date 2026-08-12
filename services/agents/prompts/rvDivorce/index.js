@@ -59,7 +59,7 @@ LEGAL CONTEXT — MCA s.15: Sole ground is irretrievable breakdown, proved by on
 4. Desertion for 1 year (s.15(2)(d))
 5. 2-year separation with consent (s.15(2)(e))
 6. 3-year separation (s.15(2)(f))
-7. Failure to comply with restitution order (s.15(2)(g))
+7. Failure to comply with a restitution-of-conjugal-rights decree for not less than 1 year (s.15(2)(g))
 8. Presumption of death — absent 7+ years (s.15(2)(h))
 
 TWO-YEAR BAR (s.30): Cannot file within 2 years of marriage without leave.

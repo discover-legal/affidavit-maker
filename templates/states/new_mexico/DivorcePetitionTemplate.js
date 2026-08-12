@@ -21,7 +21,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Both fault and no-fault — "incompatibility" is most common ground
  * - Fault grounds: cruel and inhuman treatment, adultery, abandonment
  * - 6-month domicile residency requirement (no county requirement)
- * - 30-day cooling-off period after service
+ * - No mandatory waiting period (respondent's answer window is 30 days, Rule 1-012(A) NMRA)
  * - "Legal Custody" and "Physical Custody" (standard terminology)
  * - "Timesharing" / "Visitation" (per NMSA §40-4-9.1)
  * - Joint custody presumed to be in best interests
@@ -61,12 +61,13 @@ class NewMexicoDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       description: 'At least one party must have been domiciled in New Mexico for at least six (6) months immediately preceding the filing of this Petition. (NMSA §40-4-5)'
     };
 
-    // New Mexico waiting period — 30 days after service
+    // New Mexico has no mandatory waiting period between filing and decree;
+    // the 30 days is only the respondent's answer window (Rule 1-012(A) NMRA).
     this.waitingPeriod = {
-      days: 30,
-      startsFrom: 'service_date',
+      days: 0,
+      startsFrom: null,
       exceptions: [],
-      description: 'There is a mandatory 30-day cooling-off period after service of process before the court may enter a final decree.'
+      description: 'No mandatory waiting period between filing and final decree. A respondent has 30 days after service to answer (Rule 1-012(A) NMRA); default decrees become available only after that window runs.'
     };
   }
 
@@ -335,7 +336,7 @@ Petitioner`;
     }
 
     warnings.push('New Mexico requires 6 months domicile before filing. (NMSA §40-4-5)');
-    warnings.push('There is a mandatory 30-day cooling-off period after service before the court may enter a final decree.');
+    warnings.push('The respondent has 30 days after service to answer (Rule 1-012(A) NMRA); a default decree is only available after that window runs.');
     warnings.push('New Mexico is a community property state — property acquired during marriage is divided equally. (NMSA §40-4-7)');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

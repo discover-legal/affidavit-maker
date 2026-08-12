@@ -101,17 +101,18 @@ South Africa recognises two grounds for divorce:
 
 1. IRRETRIEVABLE BREAKDOWN (s.4(1)) — by far the most common
    The marriage relationship has broken down irretrievably with no reasonable
-   prospect of restoration. There are NO specific enumerated facts required —
-   the court examines the totality of the evidence. The court may consider:
-   - The parties' own testimony that the relationship has broken down
-   - Whether the parties have been living apart and for how long
-   - The overall state of the marital relationship
-   NOTE: There is NO mandatory separation period — the court decides based on
-   all the evidence whether the breakdown is irretrievable
+   prospect of restoration. Section 4(2) expressly lists facts the court may
+   accept as proof of breakdown (without excluding other evidence):
+   - No cohabitation as husband and wife for a continuous period of at least ONE YEAR
+   - Adultery which the plaintiff finds irreconcilable with a continued marriage relationship
+   - The defendant has been declared an habitual criminal and is undergoing imprisonment
+   NOTE: There is NO mandatory separation period — the s.4(2) facts are
+   non-exhaustive, and the court decides on all the evidence whether the
+   breakdown is irretrievable
 
-2. MENTAL ILLNESS OR CONTINUOUS UNCONSCIOUSNESS (s.5) — rare
-   - Mental illness: admitted to institution for 2+ continuous years, no prospect of recovery
-   - Unconsciousness: 6+ continuous months, no prospect of recovery
+2. MENTAL ILLNESS (s.5(1)) OR CONTINUOUS UNCONSCIOUSNESS (s.5(2)) — rare, and also no-fault
+   - Mental illness (s.5(1)): admitted to institution for 2+ continuous years, no prospect of recovery
+   - Unconsciousness (s.5(2)): 6+ continuous months, no prospect of recovery
 
 COLLECT:
 1. Date of marriage and where (city, country)

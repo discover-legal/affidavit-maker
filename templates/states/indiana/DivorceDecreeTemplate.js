@@ -15,7 +15,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * - IC 31-15-7-5 — Property division (equitable, presumption of equal)
  * - IC 31-15-7-2 — Spousal maintenance
  * - IC 31-17-2 — Child custody (legal and physical)
- * - IC 31-16-6 — Child support guidelines
+ * - IC 31-16-6 — Child support orders (guidelines are the Ind. Child Support Rules and Guidelines)
  *
  * Indiana-Specific Terms:
  * - "Decree of Dissolution of Marriage" (not Final Decree of Divorce)
@@ -286,12 +286,12 @@ class IndianaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per week, calculated in accordance with the Indiana Child Support Guidelines, IC 31-16-6.`,
+        content: `IT IS ORDERED that ${obligor} shall pay child support to ${obligee} in the amount of $${divorceData.childSupportAmount} per week, calculated in accordance with the Indiana Child Support Rules and Guidelines and IC 31-16-6.`,
         type: 'order'
       });
     } else {
       items.push({
-        content: `IT IS ORDERED that child support shall be paid in accordance with the Indiana Child Support Guidelines, IC 31-16-6. The parties shall complete a Child Support Obligation Worksheet.`,
+        content: `IT IS ORDERED that child support shall be paid in accordance with the Indiana Child Support Rules and Guidelines and IC 31-16-6. The parties shall complete a Child Support Obligation Worksheet.`,
         type: 'order'
       });
     }
@@ -390,7 +390,7 @@ STATE OF INDIANA`,
     }
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      warnings.push('A completed Child Support Obligation Worksheet must be attached per IC 31-16-6.');
+      warnings.push('A completed Child Support Obligation Worksheet must be attached per the Indiana Child Support Rules and Guidelines.');
       warnings.push('Parenting time must be established per the Indiana Parenting Time Guidelines.');
     }
 

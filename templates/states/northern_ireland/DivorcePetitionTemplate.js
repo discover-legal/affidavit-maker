@@ -27,7 +27,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - "Decree Nisi" and "Decree Absolute" (not Conditional Order / Final Order)
  * - "Ancillary relief" (not "financial remedy")
  *
- * Residency (MC(NI)O 1978, Art.3):
+ * Residency (MC(NI)O 1978, Art.49):
  * - Either party domiciled in NI, OR
  * - Either party habitually resident in NI for 1 year before petition
  *
@@ -65,7 +65,7 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either party must be domiciled in Northern Ireland, or have been habitually resident in Northern Ireland for at least one year immediately before the petition (Matrimonial Causes (NI) Order 1978, Art.3).'
+      description: 'Either party must be domiciled in Northern Ireland, or have been habitually resident in Northern Ireland for at least one year immediately before the petition (Matrimonial Causes (NI) Order 1978, Art.49).'
     };
 
     // 6 weeks from Decree Nisi to Decree Absolute
@@ -134,7 +134,7 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
    * NI jurisdiction statement.
    */
   getJurisdictionStatement(divorceData) {
-    return 'The Petitioner states that either the Petitioner or the Respondent is domiciled in Northern Ireland, or has been habitually resident in Northern Ireland for at least one year immediately preceding the date of this Petition, in accordance with Article 3 of the Matrimonial Causes (Northern Ireland) Order 1978.';
+    return 'The Petitioner states that either the Petitioner or the Respondent is domiciled in Northern Ireland, or has been habitually resident in Northern Ireland for at least one year immediately preceding the date of this Petition, in accordance with Article 49 of the Matrimonial Causes (Northern Ireland) Order 1978.';
   }
 
   /**
@@ -211,7 +211,7 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_2yr_consent').toLowerCase();
     if (g.includes('adultery')) {
-      return 'The marriage has broken down irretrievably in that the Respondent has committed adultery and the Petitioner finds it intolerable to live with the Respondent, within the meaning of Article 3(2)(a) of the Matrimonial Causes (Northern Ireland) Order 1978.';
+      return 'The marriage has broken down irretrievably in that, since the date of the marriage, the Respondent has committed adultery, within the meaning of Article 3(2)(a) of the Matrimonial Causes (Northern Ireland) Order 1978.';
     }
     if (g.includes('behaviour') || g.includes('unreasonable')) {
       return 'The marriage has broken down irretrievably in that the Respondent has behaved in such a way that the Petitioner cannot reasonably be expected to live with the Respondent, within the meaning of Article 3(2)(b) of the Matrimonial Causes (Northern Ireland) Order 1978.';

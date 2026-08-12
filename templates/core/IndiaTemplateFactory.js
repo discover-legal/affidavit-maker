@@ -59,7 +59,7 @@ function createIndiaAffidavitTemplate(config) {
       const errors = [];
       const warnings = [];
       if (!d.county && !d.city) errors.push(`District or city is required for ${config.stateName} affidavits.`);
-      warnings.push(`Affidavit must be on judicial stamp paper of ${config.stampPaperValue} (${config.stateName}).`);
+      warnings.push(`Stamp paper: affidavits sworn for immediate filing in court are exempt from stamp duty (Indian Stamp Act, Sch. I, Art. 4, Exemption (b)); standalone affidavits use non-judicial stamp paper of ${config.stampPaperValue} (${config.stateName}).`);
       return { errors, warnings };
     }
 
@@ -86,7 +86,7 @@ function createIndiaDivorcePetitionTemplate(config) {
       try { this.metadata = require(config.metadataPath); } catch (e) { this.metadata = null; }
       this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
       this.residencyRequirements = { stateMonths: 0, countyDays: 0, description: 'HMA s.19 / SMA s.31 jurisdiction rules.' };
-      this.waitingPeriod = { days: 180, description: '6-month cooling-off (waivable per Amardeep Singh v. Harveen Kaur (2017)). Supreme Court may also grant divorce directly under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)).' };
+      this.waitingPeriod = { days: 180, description: '6-month cooling-off between First and Second Motion for mutual consent (HMA s.13B(2) / SMA s.28(2)), waivable per Amardeep Singh v. Harveen Kaur (2017). Mutual-consent petitions require one year of living separately before filing (s.13B(1)), and no divorce petition lies within one year of marriage (HMA s.14 / SMA s.29). The Supreme Court may also grant divorce directly under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023)).' };
       this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
     }
 
@@ -98,12 +98,20 @@ function createIndiaDivorcePetitionTemplate(config) {
       const no = dd.caseNumber || '[CASE NUMBER]';
       const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase();
       const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
+      // Mutual-consent petitions are presented jointly "by both the parties
+      // together" (HMA s.13B(1) / SMA s.28(1)) — styled Petitioner No. 1 /
+      // No. 2 with no opposing party, unlike contested grounds.
+      const g = (dd.groundsForDivorce || 'mutual_consent').toLowerCase();
+      const joint = g.includes('mutual') || g.includes('consent');
+      const parties = joint
+        ? [p, 'Petitioner No. 1', '', 'AND', '', r, 'Petitioner No. 2']
+        : [p, 'Petitioner', '', 'VERSUS', '', r, 'Respondent'];
       return {
         courtName: cn,
         caseNumber: dd.caseNumber,
         petitioner: dd.petitionerName,
         respondent: dd.respondentName,
-        formatted: [`IN THE ${cn}`, '', `Case No. ${no}`, '', 'IN THE MATTER OF:', '', p, 'Petitioner', '', 'VERSUS', '', r, 'Respondent'].join('\n')
+        formatted: [`IN THE ${cn}`, '', `Case No. ${no}`, '', 'IN THE MATTER OF:', '', ...parties].join('\n')
       };
     }
 
@@ -172,12 +180,17 @@ function createIndiaDivorceDecreeTemplate(config) {
       const no = dd.caseNumber || '[CASE NUMBER]';
       const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase();
       const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
+      // Mutual-consent matters carry the joint style through to the decree
+      const g = (dd.groundsForDivorce || 'mutual_consent').toLowerCase();
+      const parties = (g.includes('mutual') || g.includes('consent'))
+        ? `${p}\nPetitioner No. 1\n\nAND\n\n${r}\nPetitioner No. 2`
+        : `${p}\nPetitioner\n\nVersus\n\n${r}\nRespondent`;
       return {
         courtName: cn,
         caseNumber: dd.caseNumber,
         petitioner: dd.petitionerName,
         respondent: dd.respondentName,
-        formatted: `IN THE ${cn}\n\nCase No. ${no}\n\nIN THE MATTER OF:\n\n${p}\nPetitioner\n\nVersus\n\n${r}\nRespondent`
+        formatted: `IN THE ${cn}\n\nCase No. ${no}\n\nIN THE MATTER OF:\n\n${parties}`
       };
     }
 

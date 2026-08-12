@@ -15,7 +15,8 @@
  *   - Parenting plan required with joint custody — NMSA §40-4-9.1
  *   - Spousal support — NMSA §40-4-7
  *   - Child support — income shares model — NMSA §40-4-11.1
- *   - 30-day cooling-off period after service
+ *   - NO mandatory waiting period — the 30 days is only the respondent's answer window
+ *     (Rule 1-012(A) NMRA); uncontested decrees may be entered without waiting
  */
 
 const SHARED_RULES = `
@@ -149,7 +150,7 @@ OPTIONS:
 2. PERSONAL SERVICE: By sheriff or certified process server
 3. SERVICE BY PUBLICATION: If respondent cannot be located after diligent effort
 
-Note: New Mexico has a mandatory 30-day cooling-off period after service before the court can finalize the dissolution. The waiting period runs from the date of SERVICE, not from filing.
+Note: New Mexico has NO mandatory cooling-off period. The Respondent has 30 days after service to file a response (Rule 1-012(A) NMRA) — a DEFAULT decree cannot be requested until that 30-day answer window has run, but an uncontested dissolution (where the Respondent has signed the settlement documents) can be finalized as soon as the judge signs the Final Decree.
 
 COLLECT:
 1. "Has your spouse agreed to accept service voluntarily?"
@@ -194,7 +195,7 @@ Summarize all collected information, ask for confirmation, handle corrections, t
 user_confirmed_review: true
 
 Remind the user:
-- 30-day mandatory cooling-off period after service before the court can enter a final decree
+- There is NO mandatory cooling-off period — the Respondent has 30 days after service to answer (Rule 1-012(A) NMRA); default decrees wait for that window, but uncontested decrees may be entered without waiting
 - The filing fee is $137 statewide (may be waived for low-income filers)
 - New Mexico is a community property state — property acquired during marriage is divided equally 50/50 (NMSA §40-4-7)
 - Joint custody is presumed to be in the best interests of the child(ren) (NMSA §40-4-9.1)

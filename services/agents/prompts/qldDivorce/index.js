@@ -4,7 +4,7 @@
  * Queensland Divorce Phase Prompts
  *
  * - Family Law Act 1975 (Cth) (federal)
- * - Family Law Rules 2004 (Cth) (procedure)
+ * - Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth) (procedure)
  * - Oaths Act 1867 (Qld) (affidavit formalities)
  * Court: FCFCOA — Brisbane, Cairns, Townsville, Rockhampton registries
  */

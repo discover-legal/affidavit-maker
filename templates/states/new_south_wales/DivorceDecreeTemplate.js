@@ -1,6 +1,6 @@
 // templates/states/new_south_wales/DivorceDecreeTemplate.js
 // New South Wales divorce order template
-// Governing Law: Family Law Act 1975 (Cth); Family Law Rules 2004 (Cth)
+// Governing Law: Family Law Act 1975 (Cth); Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth)
 
 'use strict';
 

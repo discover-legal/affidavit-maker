@@ -29,10 +29,10 @@
     "commissionerForOaths": true
   },
   "courtSystem": {
-    "trialCourt": "High Court of Kenya",
-    "familyDivision": "High Court of Kenya — Family Division",
+    "trialCourt": "Magistrates' Court (divorce causes; 'court' = resident magistrate's court, Marriage Act 2014 s.2)",
+    "familyDivision": "Chief Magistrate's Court at the local station",
     "kadhisCourt": "Kadhi's Court",
-    "appealCourt": "Court of Appeal of Kenya"
+    "appealCourt": "High Court of Kenya (appeals), then Court of Appeal of Kenya"
   },
   "divorceTerminology": {
     "parties": ["Petitioner", "Respondent"],

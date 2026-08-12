@@ -20,13 +20,13 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * Key Legal References:
  * - Family Law (Divorce) Act 1996
  *   - s.5: Three conditions for granting a decree (separation, no reconciliation, proper provision)
- *   - ss.13-14: Periodical payments and lump sum orders
- *   - s.15: Property adjustment orders
- *   - s.16: Miscellaneous ancillary orders
+ *   - s.13: Periodical payments and lump sum orders
+ *   - s.14: Property adjustment orders
+ *   - s.15: Miscellaneous ancillary orders
+ *   - s.16: Financial compensation orders
  *   - s.17: Pension adjustment orders
- *   - s.18: Financial compensation orders
- * - Family Law Act 2019, s.9: Reduced separation period from 4/5 to 2/3 years
- * - Family Law Act 1995, s.16: Factors for financial provision (applied by analogy)
+ * - Family Law Act 2019, s.3(1)(a): Reduced separation period from 4/5 to 2/3 years
+ * - Family Law (Divorce) Act 1996, s.20(2): Factors for financial provision
  * - Guardianship of Infants Act 1964 (as amended): custody and access
  *
  * @class IrelandDivorceDecreeTemplate
@@ -128,9 +128,9 @@ class IrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   /**
    * Ireland property division — "proper provision" orders under the 1996 Act.
    * There is no automatic 50/50 split or equalization formula in Ireland.
-   * The court has broad discretion to make property adjustment orders (s.15),
-   * lump sum orders (s.14), and financial compensation orders (s.18)
-   * based on the factors in Family Law Act 1995, s.16.
+   * The court has broad discretion to make property adjustment orders (s.14),
+   * lump sum orders (s.13), and financial compensation orders (s.16)
+   * based on the factors in Family Law (Divorce) Act 1996, s.20(2).
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Property division section
    */
@@ -144,13 +144,13 @@ class IrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     } else {
       items.push({
-        content: 'The Court has considered proper provision for the parties pursuant to section 5(1)(c) of the Family Law (Divorce) Act 1996, having regard to the factors set out in section 16 of the Family Law Act 1995.',
+        content: 'The Court has considered proper provision for the parties pursuant to section 5(1)(c) of the Family Law (Divorce) Act 1996, having regard to the factors set out in section 20(2) of that Act.',
         type: 'finding'
       });
 
       if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
         items.push({
-          content: `IT IS ORDERED pursuant to section 15 of the Family Law (Divorce) Act 1996 that the following property is transferred to ${divorceData.petitionerName || 'Applicant'}:`,
+          content: `IT IS ORDERED pursuant to section 14 of the Family Law (Divorce) Act 1996 that the following property is transferred to ${divorceData.petitionerName || 'Applicant'}:`,
           type: 'order'
         });
         divorceData.petitionerProperty.forEach(prop => {
@@ -160,7 +160,7 @@ class IrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
         items.push({
-          content: `IT IS ORDERED pursuant to section 15 of the Family Law (Divorce) Act 1996 that the following property is transferred to ${divorceData.respondentName || 'Respondent'}:`,
+          content: `IT IS ORDERED pursuant to section 14 of the Family Law (Divorce) Act 1996 that the following property is transferred to ${divorceData.respondentName || 'Respondent'}:`,
           type: 'order'
         });
         divorceData.respondentProperty.forEach(prop => {
@@ -170,14 +170,14 @@ class IrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       if (divorceData.lumpSumAmount) {
         items.push({
-          content: `IT IS ORDERED pursuant to section 14 of the Family Law (Divorce) Act 1996 that ${divorceData.lumpSumPayor || divorceData.respondentName || 'Respondent'} shall pay to ${divorceData.lumpSumPayee || divorceData.petitionerName || 'Applicant'} a lump sum of \u20ac${divorceData.lumpSumAmount}.`,
+          content: `IT IS ORDERED pursuant to section 13 of the Family Law (Divorce) Act 1996 that ${divorceData.lumpSumPayor || divorceData.respondentName || 'Respondent'} shall pay to ${divorceData.lumpSumPayee || divorceData.petitionerName || 'Applicant'} a lump sum of \u20ac${divorceData.lumpSumAmount}.`,
           type: 'order'
         });
       }
 
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty && !divorceData.lumpSumAmount) {
         items.push({
-          content: 'IT IS ORDERED that each party retains the personal property currently in that party\'s possession, subject to any further property adjustment orders the Court considers proper under sections 14 and 15 of the Family Law (Divorce) Act 1996.',
+          content: 'IT IS ORDERED that each party retains the personal property currently in that party\'s possession, subject to any further property adjustment orders the Court considers proper under section 14 of the Family Law (Divorce) Act 1996.',
           type: 'order'
         });
       }
@@ -282,7 +282,7 @@ class IrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   /**
-   * Ireland spousal maintenance order — discretionary, based on s.16 factors.
+   * Ireland spousal maintenance order — discretionary, based on the s.20(2) factors (1996 Act).
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Spousal maintenance section or null if not applicable
    */

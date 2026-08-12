@@ -80,13 +80,13 @@
         "code": "endangering_treatment",
         "name": "Treatment Endangering Health or Reason",
         "description": "Treatment that seriously injures health or endangers reason",
-        "statute": "RSA 458:7(VIII)"
+        "statute": "RSA 458:7(V)"
       },
       {
         "code": "religious_sect",
         "name": "Joining Religious Sect Against Marriage",
         "description": "Joining a religious sect or society that professes to believe the relation of husband and wife void, and refusal to cohabit for six months",
-        "statute": "RSA 458:7(V)"
+        "statute": "RSA 458:7(VIII)"
       }
     ],
     "notes": "New Hampshire has both fault and no-fault grounds. The most common ground is irreconcilable differences (no-fault). New Hampshire uniquely includes joining a religious sect that believes marriage is void as a fault ground."
@@ -117,8 +117,8 @@
       "description": "Property division — equitable distribution of all property"
     },
     {
-      "code": "RSA 458:19",
-      "description": "Alimony"
+      "code": "RSA 458:19-a",
+      "description": "Alimony — term alimony formula (lesser of the payee's reasonable need or 23% of the difference in gross incomes; duration up to 50% of the marriage length); reimbursement alimony at RSA 458:19-aa; definitions at RSA 458:19"
     },
     {
       "code": "RSA 461-A",
@@ -207,13 +207,13 @@
   "responseDeadlines": {
     "inState": {
       "days": 30,
-      "description": "Respondent must file an appearance within 30 days of service"
+      "description": "Respondent files an appearance by the deadline in the court's orders of notice (commonly 30 days from service)"
     },
     "outOfState": {
       "days": 30,
-      "description": "Respondent served outside New Hampshire has 30 days to file an appearance"
+      "description": "Respondent served outside New Hampshire files an appearance by the deadline in the court's orders of notice (commonly 30 days)"
     },
-    "statute": "RSA 458:9"
+    "statute": "Court orders of notice / N.H. Circuit Court Family Division rules (service and venue governed by RSA 458:9)"
   },
 
   "childSupportGuidelines": {
@@ -226,8 +226,8 @@
   "maintenanceGuidelines": {
     "type": "alimony",
     "description": "New Hampshire courts may award alimony after considering factors including the length of the marriage, the age and health of each party, the occupation and sources of income, vocational skills and employability, the property division, and the ability of each party to be self-supporting.",
-    "eligibility": "Available based on need and ability to pay. No formula-based calculation.",
-    "statute": "RSA 458:19"
+    "eligibility": "Available based on need and ability to pay. Since 1/1/2019, term alimony has a statutory formula: the lesser of the payee's reasonable need or 23% of the difference between the parties' gross incomes, for up to 50% of the length of the marriage (RSA 458:19-a(II)).",
+    "statute": "RSA 458:19-a"
   },
 
   "court": {

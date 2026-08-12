@@ -1,6 +1,6 @@
 // templates/states/north_carolina/DivorcePetitionTemplate.js
 // North Carolina-specific Complaint for Absolute Divorce template
-// Complies with N.C.G.S. § 50-1 et seq.
+// Complies with N.C.G.S. Chapter 50 (§ 50-6 et seq.; § 50-1 was repealed in 1971)
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 

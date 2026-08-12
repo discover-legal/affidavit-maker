@@ -9,19 +9,19 @@
   "residencyRequirements": {
     "stateMonths": 12,
     "countyDays": 0,
-    "description": "Either spouse must be domiciled in Ireland on the date of institution of proceedings OR ordinarily resident in Ireland for at least one year immediately before that date (Family Law (Divorce) Act 1996, s.39(1)(a))."
+    "description": "Either spouse must be domiciled in Ireland on the date of institution of proceedings (Family Law (Divorce) Act 1996, s.39(1)(a)) OR ordinarily resident in Ireland for at least one year immediately before that date (s.39(1)(b))."
   },
   "waitingPeriod": {
     "days": 0,
-    "description": "No mandatory waiting period after filing. The 2-year separation must already be satisfied before or by the date the court grants the decree. There is no separate post-filing cooling-off period."
+    "description": "No mandatory waiting period after filing. The spouses must have lived apart for at least two of the three years immediately preceding the date of institution of the proceedings (Family Law (Divorce) Act 1996, s.5(1)(a)). There is no separate post-filing cooling-off period."
   },
   "groundsForDivorce": {
     "noFault": [
       {
         "code": "separation_2_of_3",
         "name": "Two-Year Separation",
-        "description": "The spouses have lived apart from one another for a period of, or periods amounting to, at least two years during the preceding three years (as amended by Family Law Act 2019, implementing the 38th Amendment to the Constitution).",
-        "statute": "Family Law (Divorce) Act 1996, s.5(1)(a), as amended by Family Law Act 2019, s.9"
+        "description": "The spouses have lived apart from one another for a period of, or periods amounting to, at least two years during the three years preceding the institution of the proceedings (as amended by Family Law Act 2019, implementing the 38th Amendment to the Constitution).",
+        "statute": "Family Law (Divorce) Act 1996, s.5(1)(a), as amended by Family Law Act 2019, s.3(1)(a)"
       }
     ],
     "fault": [],
@@ -48,7 +48,7 @@
     "soleCustody": "Sole Custody",
     "alimony": "Maintenance",
     "childSupport": "Child Maintenance",
-    "maritalProperty": "Proper Provision (Family Law (Divorce) Act 1996, ss.14-18)"
+    "maritalProperty": "Proper Provision (Family Law (Divorce) Act 1996, ss.13-17)"
   },
   "requiredForms": {
     "basic": [
@@ -112,7 +112,7 @@
   },
   "spousalSupportGuidelines": {
     "calculationBasis": "discretionary",
-    "guidelines": "Family Law Act 1995, s.16 factors (applied by analogy in divorce proceedings under the 1996 Act)",
+    "guidelines": "Family Law (Divorce) Act 1996, s.20(2) factors",
     "notes": "No fixed formula. Court considers means, needs, earning capacity, duration of marriage, contributions to family welfare, and conduct."
   },
   "effectiveDateRule": "The Decree of Divorce takes effect immediately when granted by the court. There is no statutory waiting period between the granting of the decree and its effectiveness.",

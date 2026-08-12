@@ -22,9 +22,10 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  *
  * Note: Desertion was removed as a ground by the Family Law (Scotland) Act 2006.
  *
- * Residency (Domicile and Matrimonial Proceedings Act 1973, s.7):
- * - Either party domiciled in Scotland, OR
- * - Either party habitually resident in Scotland for 40 days before action raised
+ * Jurisdiction (Domicile and Matrimonial Proceedings Act 1973, s.8(2); Court of Session: s.7(2A)):
+ * - Either party domiciled in Scotland on the date the action is begun, OR
+ * - Either party habitually resident in Scotland throughout the one year ending with that date
+ * - Sheriff court venue: either party resident in the sheriffdom for 40 days ending with that date (s.8(2)(b))
  *
  * Filing fee: approx. GBP £185 (Sheriff Court ordinary cause); simplified: approx. £151
  * Paper size: A4
@@ -56,11 +57,11 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'groundsForDivorce'
     ];
 
-    // Scotland residency: domicile or 40 days habitual residence
+    // Scotland jurisdiction: domicile or 1-year habitual residence; 40-day sheriffdom residence is the venue limb
     this.residencyRequirements = {
-      stateMonths: 0,
+      stateMonths: 12,
       countyDays: 40,
-      description: 'Either party must be domiciled in Scotland, or have been habitually resident in Scotland for at least 40 days immediately before the action is raised (Domicile and Matrimonial Proceedings Act 1973, s.7).'
+      description: 'Either party must be domiciled in Scotland on the date the action is begun, or have been habitually resident in Scotland throughout the one year ending with that date (Domicile and Matrimonial Proceedings Act 1973, s.8(2)(a); Court of Session: s.7(2A)). For sheriff court actions, either party must additionally have been resident in the sheriffdom for at least 40 days ending with that date (s.8(2)(b)).'
     };
 
     this.waitingPeriod = {
@@ -123,10 +124,11 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Scotland jurisdiction statement — domicile or 40 days habitual residence.
+   * Scotland jurisdiction statement — domicile or 1-year habitual residence,
+   * plus the 40-day sheriffdom residence venue limb (DMPA 1973, s.8(2)).
    */
   getJurisdictionStatement(divorceData) {
-    return 'The Pursuer avers that either the Pursuer or the Defender is domiciled in Scotland, or has been habitually resident in Scotland for a period of not less than 40 days immediately preceding the raising of this action, in terms of section 7 of the Domicile and Matrimonial Proceedings Act 1973.';
+    return 'The Pursuer avers that either the Pursuer or the Defender is domiciled in Scotland on the date this action is begun, or has been habitually resident in Scotland throughout the period of one year ending with that date, in terms of section 8(2)(a) of the Domicile and Matrimonial Proceedings Act 1973; and further that either party has been resident in the sheriffdom for a period of not less than 40 days ending with that date, in terms of section 8(2)(b) of the said Act.';
   }
 
   /**

@@ -100,7 +100,7 @@ class RiversDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'IT IS HEREBY DECREED that the marriage between the Petitioner and the Respondent be and is hereby dissolved by this Decree Nisi.', type: 'order' });
     items.push({ content: 'IT IS ORDERED that all ancillary relief requested and not expressly granted is dismissed.', type: 'order' });
     items.push({ content: 'IT IS ORDERED that each party shall execute and deliver such further documents as may be necessary to give effect to this Decree.', type: 'order' });
-    items.push({ content: 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58).', type: 'order' });
+    items.push({ content: 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58). Where there are children of the marriage under sixteen years, the Decree Nisi shall not become absolute unless the Court has, by order, declared its satisfaction with the arrangements made for their welfare (Matrimonial Causes Act, s.57).', type: 'order' });
     items.push({ content: 'Upon the expiration of the said three months, the Decree Nisi becomes absolute by force of section 58 of the Act; no application is required. A certified copy of the Decree Absolute may be obtained from the Court Registry.', type: 'order' });
     return { title: 'FINAL ORDERS', items, type: 'final_orders' };
   }

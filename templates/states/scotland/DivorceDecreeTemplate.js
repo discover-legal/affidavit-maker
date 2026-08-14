@@ -6,6 +6,16 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 
+// The six sheriffdoms of Scotland (for the "SHERIFFDOM OF ... AT ..." heading, per Form G1 style)
+const SCOTTISH_SHERIFFDOMS = [
+  'GLASGOW AND STRATHKELVIN',
+  'GRAMPIAN, HIGHLAND AND ISLANDS',
+  'LOTHIAN AND BORDERS',
+  'NORTH STRATHCLYDE',
+  'SOUTH STRATHCLYDE, DUMFRIES AND GALLOWAY',
+  'TAYSIDE, CENTRAL AND FIFE'
+];
+
 /**
  * Scotland Decree of Divorce Template
  *
@@ -63,9 +73,20 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     return 'Court Ref. No.';
   }
 
+  /**
+   * Sheriff-court process is headed "SHERIFFDOM OF [sheriffdom] AT [place]"
+   * (Ordinary Cause Rules 1993, Form G1 style). Whichever slot the interview did
+   * not capture keeps a placeholder for the filer to complete.
+   */
   getDefaultCourt(county) {
-    const location = (county || '[LOCATION]').toUpperCase();
-    return `SHERIFF COURT AT ${location}`;
+    const value = (county || '').trim().toUpperCase();
+    if (!value) {
+      return 'SHERIFFDOM OF [SHERIFFDOM] AT [PLACE]';
+    }
+    if (SCOTTISH_SHERIFFDOMS.includes(value)) {
+      return `SHERIFFDOM OF ${value} AT [PLACE]`;
+    }
+    return `SHERIFFDOM OF [SHERIFFDOM] AT ${value}`;
   }
 
   /**
@@ -93,8 +114,11 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const pursuer = (divorceData.petitionerName || '[PURSUER NAME]').toUpperCase();
     const defender = (divorceData.respondentName || '[DEFENDER NAME]').toUpperCase();
 
+    // Form G1-style headings begin "SHERIFFDOM OF ..." with no "IN THE" prefix.
+    const heading = courtName.startsWith('SHERIFFDOM') ? courtName : `IN THE ${courtName}`;
+
     const formatted = (
-      `IN THE ${courtName}\n\n` +
+      `${heading}\n\n` +
       `${caseLabel} ${caseNumber}\n\n` +
       `DECREE OF DIVORCE\n\n` +
       `${pursuer}\n` +

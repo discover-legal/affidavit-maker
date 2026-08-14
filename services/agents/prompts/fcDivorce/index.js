@@ -57,7 +57,7 @@ To file in Nigeria, EITHER party must be:
 (a) domiciled in Nigeria at the date of the petition; OR
 (b) ordinarily resident in Nigeria for three years immediately before the date of the petition.
 
-The FCT High Court has jurisdiction if either party resides within the Federal Capital Territory.
+A person domiciled in Nigeria may file in the High Court of any State or of the FCT (MCA s.2(3), s.114); residence in the Federal Capital Territory makes the FCT High Court the natural venue.
 
 COLLECT:
 1. "Are you or your spouse domiciled in Nigeria?"
@@ -73,16 +73,16 @@ LEGAL CONTEXT — Matrimonial Causes Act, s.15:
 The SOLE ground for divorce is that the marriage has broken down irretrievably.
 This must be proved by establishing at least ONE of the following facts:
 
-1. WILFUL REFUSAL TO CONSUMMATE (s.15(2)(a))
-2. ADULTERY (s.15(2)(b))
-3. INTOLERABLE BEHAVIOUR (s.15(2)(c))
-4. DESERTION FOR 1 YEAR (s.15(2)(d))
-5. 2-YEAR SEPARATION WITH CONSENT (s.15(2)(e))
-6. 3-YEAR SEPARATION (s.15(2)(f))
+1. WILFUL REFUSAL TO CONSUMMATE (s.15(2)(a)) — wilful and persistent refusal
+2. ADULTERY (s.15(2)(b)) — and petitioner finds it intolerable to live with the respondent
+3. INTOLERABLE BEHAVIOUR (s.15(2)(c)) — such that petitioner cannot reasonably be expected to live with the respondent
+4. DESERTION FOR 1 YEAR (s.15(2)(d)) — at least 1 continuous year immediately preceding the petition
+5. 2-YEAR SEPARATION WITH CONSENT (s.15(2)(e)) — lived apart 2+ years immediately preceding the petition; respondent does not object to a decree
+6. 3-YEAR SEPARATION (s.15(2)(f)) — lived apart 3+ years immediately preceding the petition
 7. FAILURE TO COMPLY WITH RESTITUTION ORDER FOR 1+ YEAR (s.15(2)(g)) — other party has failed, for a period of not less than one year, to comply with a decree of restitution of conjugal rights
-8. PRESUMPTION OF DEATH (s.15(2)(h)) — other party absent 7+ years
+8. PRESUMPTION OF DEATH (s.15(2)(h)) — reasonable grounds to presume the other party dead; absence for 7+ years with no reason to believe them alive is sufficient proof (s.16(2)(a))
 
-TWO-YEAR BAR (s.30): Cannot file within 2 years of the marriage date unless the court grants leave.
+TWO-YEAR BAR (s.30): Cannot file within 2 years of the marriage date unless the court grants leave. The bar does not apply to petitions based on wilful refusal to consummate (s.15(2)(a)), adultery (s.15(2)(b)) or s.16(1)(a), or to cross-proceedings (s.30(2)).
 
 COLLECT:
 1. Date of marriage and where it took place
@@ -172,7 +172,7 @@ IMPORTANT REMINDERS:
 - Filing fees vary (approximately NGN 20,000-50,000)
 - Original or certified copy of marriage certificate required
 - Affidavit in support must be sworn before a Commissioner for Oaths
-- After Decree Nisi, 3-month wait before Decree Absolute
+- After Decree Nisi, 3-month wait before Decree Absolute (automatic under s.58; where there are children under 16, subject to the court's s.57 declaration)
 - Paper size: A4
 ${SHARED_RULES}`;
 

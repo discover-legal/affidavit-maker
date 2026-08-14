@@ -46,7 +46,7 @@ class MaharashtraAffidavitTemplate extends BaseAffidavitTemplate {
     if (!affidavitData.county && !affidavitData.city) {
       errors.push('District or city is required for Maharashtra affidavits.');
     }
-    warnings.push('Affidavit must be executed on judicial stamp paper of INR 100 (Maharashtra; per Stamp Dept. circular dated 30-Oct-2024, INR 100 remains valid for affidavits despite Oct 2024 ordinance).');
+    warnings.push('Stamp paper: affidavits sworn for immediate filing in court are exempt from stamp duty (Maharashtra Stamp Act, Sch. I, Art. 4, exemption); standalone affidavits use non-judicial stamp paper (Art. 4 duty INR 500 since the October 2024 amendment).');
     return { errors, warnings };
   }
 

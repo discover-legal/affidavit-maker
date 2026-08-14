@@ -28,13 +28,19 @@
         "name": "2-Year Separation without Consent",
         "description": "Spouses have not cohabited for a continuous period of at least two years. No consent from the defender is required.",
         "statute": "Divorce (Scotland) Act 1976, s.1(2)(e), as amended by Family Law (Scotland) Act 2006"
+      },
+      {
+        "code": "interim_gender_recognition_certificate",
+        "name": "Interim Gender Recognition Certificate",
+        "description": "An interim gender recognition certificate under the Gender Recognition Act 2004 has, after the date of the marriage, been issued to either party. This is a free-standing second ground of divorce — irretrievable breakdown does not need to be established.",
+        "statute": "Divorce (Scotland) Act 1976, s.1(1)(b), inserted by the Gender Recognition Act 2004, Sch.2 para.6"
       }
     ],
     "fault": [
       {
         "code": "adultery",
         "name": "Adultery",
-        "description": "The defender has committed adultery. The pursuer must not have cohabited with the defender after becoming aware of the adultery (condonation bars the ground).",
+        "description": "The defender has committed adultery. Cohabitation continued or resumed after the pursuer learns of the adultery does not condone it unless it continues beyond three months from that continuation or resumption (s.2(2)); condonation bars the ground.",
         "statute": "Divorce (Scotland) Act 1976, s.1(2)(a)"
       },
       {

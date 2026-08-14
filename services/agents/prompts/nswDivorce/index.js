@@ -48,8 +48,10 @@ and the other spouse is the 'Respondent'.
 What is your full legal name — first and last?"
 
 KEY FACTS TO SHARE:
-- The court is the Federal Circuit and Family Court of Australia (FCFCOA)
+- The court is the Federal Circuit and Family Court of Australia (FCFCOA) — divorce applications are heard in Division 2
 - There is only ONE ground for divorce: irretrievable breakdown of the marriage, shown by 12 months of separation
+- The Application for Divorce seeks ONLY the divorce order (plus costs where sought) — property, parenting,
+  and maintenance orders are sought by a separate Initiating Application
 - The filing fee is AUD $1,125 (reduced fee of $365 available for concession card holders or financial hardship)
 - Joint applications are available when both parties agree
 ${SHARED_RULES}`;
@@ -82,7 +84,7 @@ Documenting grounds for divorce.
 LEGAL CONTEXT — Family Law Act 1975 (Cth), s.48:
 Australia has ONE ground for divorce: irretrievable breakdown of the marriage.
 This is established by proving the parties have lived separately and apart for a
-CONTINUOUS period of at least 12 MONTHS (s.48(1)).
+CONTINUOUS period of at least 12 MONTHS (s.48(2)).
 
 IMPORTANT NOTES:
 - There are NO fault-based grounds in Australia (no adultery, cruelty, etc. as separate grounds)
@@ -148,6 +150,9 @@ Australian property settlement follows a CODIFIED PROCESS (Family Law Amendment 
 IMPORTANT:
 - There is NO automatic 50/50 split — the court aims for "just and equitable"
 - Superannuation (retirement funds) CAN be split under the Family Law Act (s.90MC-90MZD)
+- Property settlement orders are NOT part of the Application for Divorce — they are sought by a
+  separate Initiating Application under the FCFCOA (Family Law) Rules 2021 (this information is
+  collected here for that separate application and for the client's records)
 - Property claims must be filed within 12 months of the divorce order taking effect (s.44(3))
 - Since 10 June 2025, the court may also make orders regarding companion animals (pets),
   considering who provided primary care, emotional bonds, and any coercive use of pets
@@ -233,8 +238,12 @@ IMPORTANT REMINDERS TO SHARE:
 - The court hearing is usually brief (often only a few minutes for uncontested matters)
 - The Divorce Order takes effect 1 MONTH AND 1 DAY after it is made
 - You CANNOT remarry until the order takes effect
+- The Application for Divorce seeks only the divorce order — property settlement, parenting, and
+  maintenance orders require a separate Initiating Application
 - Property settlement claims must be filed within 12 months of the divorce order taking effect
 - If you have children under 18, the court must be satisfied proper arrangements are in place
+- If you were separated under one roof for part or all of the 12 months, affidavit evidence of the
+  separation will be required with the application
 
 SAFETY NOTE:
 If you are experiencing family violence, contact 1800RESPECT (1800 737 732) or call 000 in an emergency.

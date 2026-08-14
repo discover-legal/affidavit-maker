@@ -9,8 +9,10 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
 /**
  * Federal Capital Territory (Abuja) Divorce Petition Template
  *
- * The FCT High Court is established under the Constitution (s.255) and has
- * jurisdiction over matrimonial causes where either party resides in the FCT.
+ * The FCT High Court is established under the Constitution (s.255) and hears
+ * matrimonial causes under the MCA. A person domiciled in Nigeria may file in
+ * the High Court of any State or of the FCT (MCA s.2(3), s.114); FCT residence
+ * is the usual venue basis.
  *
  * @class FCTDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -42,12 +44,12 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). The FCT High Court has jurisdiction if either party resides within the Federal Capital Territory.'
+      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). Any person domiciled in Nigeria may file in the High Court of any state or of the FCT (MCA s.2(3), s.114); the FCT High Court is the usual venue when either party resides within the Federal Capital Territory.'
     };
 
     this.waitingPeriod = {
       days: 0,
-      description: 'No mandatory waiting period after filing. Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage without leave (MCA s.30).'
+      description: 'No mandatory waiting period after filing. Decree Nisi becomes Decree Absolute after 3 months (MCA s.58); where there are children under 16, subject to the s.57 declaration as to arrangements for them. Cannot petition within 2 years of marriage without leave (MCA s.30); the bar does not apply to petitions based on wilful refusal to consummate or adultery (MCA s.30(2)).'
     };
 
     this.formatting = {
@@ -104,7 +106,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of the Federal Capital Territory, Abuja.`;
+    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). By virtue of sections 2(3) and 114 of the said Act, proceedings may be instituted in the High Court of any State or of the Federal Capital Territory; the Petitioner resides within the Federal Capital Territory, and this Honourable Court is accordingly the appropriate venue.`;
   }
 
   getVenueReason(divorceData) {
@@ -176,7 +178,7 @@ class FCTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return 'The Respondent has, for a period of not less than one year, failed to comply with a decree of restitution of conjugal rights made under the Act, within the meaning of section 15(2)(g) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
     }
     if (g.includes('death') || g.includes('absent') || g.includes('presumption')) {
-      return 'The other party to the marriage has, for a period of not less than seven years, been absent from the Petitioner and the Petitioner has no reason to believe that the other party has been alive at any time within that period, within the meaning of section 15(2)(h) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
+      return 'The other party to the marriage has been absent from the Petitioner for such time and in such circumstances as to provide reasonable grounds for presuming that he or she is dead, within the meaning of section 15(2)(h) of the Matrimonial Causes Act, Cap M7 LFN 2004; the other party has been continually absent from the Petitioner for a period of not less than seven years and the Petitioner has no reason to believe that the other party has been alive at any time within that period, which is sufficient proof of that fact pursuant to section 16(2)(a) of the said Act.';
     }
     return 'The parties to the marriage have lived apart for a continuous period of at least two years immediately preceding the presentation of this Petition, and the Respondent does not object to the grant of a decree, within the meaning of section 15(2)(e) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
   }

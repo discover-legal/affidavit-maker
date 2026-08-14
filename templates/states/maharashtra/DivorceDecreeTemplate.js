@@ -18,17 +18,23 @@ class MaharashtraDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
 
-  getCaseNumberLabel() { return 'Case No.'; }
-  getDefaultCourt(county) { return 'FAMILY COURT, BANDRA, MUMBAI'; }
-  generateHeader() { return 'IN THE FAMILY COURT AT MUMBAI'; }
+  // Family Court, Mumbai dockets matrimonial matters as "Petition No. A-.../year"
+  getCaseNumberLabel() { return 'Petition No.'; }
+  // Prefer the filer's own district/city over the hardcoded default court
+  getDefaultCourt(county) {
+    const loc = county && String(county).trim();
+    if (loc && loc.toUpperCase() !== 'MUMBAI') return `FAMILY COURT, ${loc.toUpperCase()}`;
+    return 'FAMILY COURT, BANDRA, MUMBAI';
+  }
+  generateHeader(divorceData = {}) { return `IN THE ${(divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city)).toUpperCase()}`; }
   generateVenue(county) { return (county || 'MUMBAI').toUpperCase(); }
 
   generateCaseCaption(divorceData) {
-    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city)).toUpperCase();
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
     const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
-    const formatted = `IN THE ${courtName}\n\nCase No. ${caseNumber}\n\nIN THE MATTER OF:\n\n${petitioner}\nPetitioner\n\nVersus\n\n${respondent}\nRespondent`;
+    const formatted = `IN THE ${courtName}\n\n${this.getCaseNumberLabel()} ${caseNumber}\n\nIN THE MATTER OF:\n\n${petitioner}\nPetitioner\n\nVersus\n\n${respondent}\nRespondent`;
     return { courtName, caseNumber: divorceData.caseNumber, petitioner: divorceData.petitionerName, respondent: divorceData.respondentName, formatted };
   }
 

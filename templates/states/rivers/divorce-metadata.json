@@ -9,10 +9,10 @@
   "residencyRequirements": {
     "stateMonths": 0,
     "countyDays": 0,
-    "description": "Either party must be domiciled in Nigeria at the time of filing (MCA s.2). A wife who has been ordinarily resident in Nigeria for at least 3 years immediately preceding the petition is deemed domiciled in Nigeria (MCA s.7(b)). The Rivers State High Court has jurisdiction if either party resides within the state."
+    "description": "Either party must be domiciled in Nigeria at the time of filing (MCA s.2). A wife who has been ordinarily resident in Nigeria for at least 3 years immediately preceding the petition is deemed domiciled in Nigeria (MCA s.7(b)). Any person domiciled in Nigeria may file in the High Court of any state (MCA s.2(3)); the Rivers State High Court is the usual venue when either party resides within the state."
   },
-  "waitingPeriod": { "days": 0, "description": "No mandatory waiting period after filing. Decree Nisi becomes Decree Absolute after 3 months (MCA s.58). Cannot petition within 2 years of marriage without leave (MCA s.30)." },
-  "twoYearBar": { "years": 2, "description": "A petition for dissolution shall not be filed within two years of the date of marriage unless the court grants leave on grounds of exceptional hardship or exceptional depravity (MCA s.30)." },
+  "waitingPeriod": { "days": 0, "description": "No mandatory waiting period after filing. Decree Nisi becomes Decree Absolute automatically after 3 months (MCA s.58); where there are children under 16, subject to the court's s.57 declaration on arrangements for them. Cannot petition within 2 years of marriage without leave (MCA s.30); the bar does not apply to petitions based on wilful refusal to consummate, adultery, or s.16(1)(a) (s.30(2))." },
+  "twoYearBar": { "years": 2, "description": "A petition for dissolution shall not be filed within two years of the date of marriage unless the court grants leave on grounds of exceptional hardship or exceptional depravity (MCA s.30). The bar does not apply to petitions based on wilful refusal to consummate (s.15(2)(a)), adultery (s.15(2)(b)) or s.16(1)(a), or to cross-proceedings (MCA s.30(2))." },
   "groundsForDivorce": {
     "noFault": [
       { "code": "separation_consent", "name": "2-Year Separation with Consent", "description": "Lived apart 2+ years, respondent does not object.", "statute": "Matrimonial Causes Act s.15(2)(e)" },
@@ -24,7 +24,7 @@
       { "code": "intolerable_behaviour", "name": "Intolerable Behaviour", "description": "Respondent behaved such that petitioner cannot reasonably live with them.", "statute": "Matrimonial Causes Act s.15(2)(c)" },
       { "code": "desertion", "name": "Desertion for One Year", "description": "Respondent deserted for at least 1 continuous year.", "statute": "Matrimonial Causes Act s.15(2)(d)" },
       { "code": "restitution", "name": "Failure to Comply with Restitution Order", "description": "Respondent failed to comply with conjugal rights order for 1+ year.", "statute": "Matrimonial Causes Act s.15(2)(g)" },
-      { "code": "presumption_of_death", "name": "Presumption of Death (Absent 7 Years)", "description": "Other party absent for 7+ years, petitioner has no reason to believe them alive.", "statute": "Matrimonial Causes Act s.15(2)(h)" }
+      { "code": "presumption_of_death", "name": "Presumption of Death (Absent 7 Years)", "description": "Reasonable grounds to presume the other party dead (s.15(2)(h)); absence for 7+ years with no reason to believe them alive suffices (s.16(2)(a)).", "statute": "Matrimonial Causes Act s.15(2)(h)" }
     ]
   },
   "terminology": {
@@ -53,7 +53,7 @@
   "filingFees": { "approximate": "NGN 15,000-40,000", "varies": true, "notes": "Filing fees vary by court registry." },
   "childSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "Matrimonial Causes Act s.71; Child Rights Act 2003", "notes": "No statutory formula — court discretion." },
   "spousalSupportGuidelines": { "calculationBasis": "court_discretion", "guidelines": "Matrimonial Causes Act s.70", "notes": "Court may order maintenance for either spouse." },
-  "decreeProcess": { "decreeNisi": "Court grants Decree Nisi after hearing.", "decreeAbsolute": "Decree Nisi becomes Decree Absolute after 3 months (MCA s.58).", "waitingMonths": 3 },
+  "decreeProcess": { "decreeNisi": "Court grants Decree Nisi after hearing.", "decreeAbsolute": "Decree Nisi becomes Decree Absolute automatically by force of law 3 months after it is made (MCA s.58); no application is needed. Where there are children under 16, the decree does not become absolute until the court has declared it is satisfied with the arrangements for their welfare (MCA s.57).", "waitingMonths": 3 },
   "paperSize": "A4",
   "currency": "NGN",
   "emergencyNumber": "112",

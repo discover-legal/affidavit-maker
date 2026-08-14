@@ -10,7 +10,7 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * New South Wales Divorce Order Template
  *
  * In Australia, the final divorce document is a "Divorce Order" (not "Decree").
- * It is issued by the Federal Circuit and Family Court of Australia (FCFCOA).
+ * It is issued by the Federal Circuit and Family Court of Australia (Division 2).
  *
  * The Divorce Order takes effect 1 month and 1 day after it is made
  * (Family Law Act 1975 (Cth), s.55). The parties may not remarry until
@@ -66,7 +66,7 @@ class NewSouthWalesDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   getDefaultCourt(county) {
     const city = (county || '[CITY]').toUpperCase();
-    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${city} REGISTRY`;
+    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${city} REGISTRY`;
   }
 
   generateHeader() {

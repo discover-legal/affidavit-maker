@@ -13,7 +13,7 @@ class ACTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
   getCaseNumberLabel() { return 'File Number'; }
-  getDefaultCourt() { return 'FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — CANBERRA REGISTRY'; }
+  getDefaultCourt() { return 'FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — CANBERRA REGISTRY'; }
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt()).toUpperCase();
     const caseNumber = divorceData.caseNumber || '[FILE NUMBER]';
@@ -23,16 +23,20 @@ class ACTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
   getJurisdictionStatement() { return `Either the Applicant or the Respondent is an Australian citizen, is domiciled in Australia, or has been ordinarily resident in Australia for at least twelve months (Family Law Act 1975 (Cth), s.39(3)).`; }
   getVenueReason() { return 'the Applicant or Respondent resides in the Australian Capital Territory'; }
+  // Application for Divorce seeks only the divorce order (plus costs where sought);
+  // property/parenting/maintenance orders go in a separate Initiating Application.
   generateReliefSection(divorceData) {
     const items = [{ number: null, content: 'THE APPLICANT SEEKS THE FOLLOWING ORDERS:', type: 'relief_intro' }];
-    const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);', 'A property settlement order pursuant to section 79;'];
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) { reliefItems.push('Parenting orders pursuant to Part VII;'); reliefItems.push('A child support assessment through Services Australia;'); }
-    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) reliefItems.push('A spousal maintenance order (ss.72-75);');
-    reliefItems.push('Such further or other orders as appropriate.');
+    const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'];
+    if (divorceData.costsRequested || divorceData.requestCosts) reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
+    reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
     reliefItems.forEach((r, i) => items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }));
+    if (divorceData.hasProperty !== false || divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0) || divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
+      items.push({ number: null, content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application under the Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth); they cannot be included in this Application for Divorce.', type: 'relief_intro' });
+    }
     return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }
   getVerificationText(divorceData) { return `I, ${divorceData.petitionerName || '[APPLICANT NAME]'}, the Applicant, solemnly affirm that this Application is true and correct.`; }
-  getGroundsText() { return 'The marriage has broken down irretrievably (s.48(1)). The parties have lived separately and apart for at least 12 months.'; }
+  getGroundsText() { return 'The marriage has broken down irretrievably (s.48(1)). The parties have lived separately and apart for a continuous period of at least 12 months immediately preceding the date of filing of this Application (s.48(2)).'; }
 }
 module.exports = ACTDivorcePetitionTemplate;

@@ -31,7 +31,7 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   getDefaultCourt(county) {
     const city = (county || '[CITY]').toUpperCase();
-    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${city} REGISTRY`;
+    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${city} REGISTRY`;
   }
 
   generateHeader() { return 'STATE OF VICTORIA'; }

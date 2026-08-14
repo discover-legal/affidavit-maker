@@ -155,7 +155,7 @@ class FCTDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getEffectiveDateText() {
-    return 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58).';
+    return 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58). Where there are children of the marriage under sixteen years, the Decree Nisi shall not become absolute unless the Court has, by order, declared its satisfaction with the arrangements made for their welfare (Matrimonial Causes Act, s.57).';
   }
 
   getCertificateNote() {

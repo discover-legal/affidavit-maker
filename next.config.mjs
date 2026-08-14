@@ -251,6 +251,13 @@ const nextConfig = {
       },
     ];
   },
+
+  async rewrites() {
+    // The staging Render service health-checks /health while the app serves
+    // /api/health — answer both so a dashboard misconfiguration can't fail
+    // an otherwise good deploy.
+    return [{ source: '/health', destination: '/api/health' }];
+  },
 };
 
 export default nextConfig;

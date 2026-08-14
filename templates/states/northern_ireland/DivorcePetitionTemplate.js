@@ -163,7 +163,7 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
     ];
 
     if (divorceData.requestAncillaryRelief !== false) {
-      reliefItems.push('That the court make such order for ancillary relief as it considers just, including orders for periodical payments, lump sum, property adjustment, and/or pension sharing pursuant to Articles 25-27 of the Matrimonial Causes (Northern Ireland) Order 1978;');
+      reliefItems.push('That the court make such order for ancillary relief as it considers just, including orders for periodical payments and/or lump sum (Article 25), property adjustment (Article 26), and/or pension sharing (Article 26A) under the Matrimonial Causes (Northern Ireland) Order 1978, having regard to the matters set out in Article 27;');
     }
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {

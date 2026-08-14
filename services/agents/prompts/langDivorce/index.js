@@ -77,7 +77,7 @@ To file in Nigeria, EITHER party must be:
 (a) domiciled in Nigeria at the date of the petition; OR
 (b) ordinarily resident in Nigeria for three years immediately before the date of the petition.
 
-The Lagos High Court has jurisdiction if either party resides within Lagos State.
+A person domiciled in Nigeria may file in the High Court of ANY state (MCA s.2(3)); residence in Lagos State makes the Lagos High Court the natural venue.
 
 COLLECT:
 1. "Are you or your spouse domiciled in Nigeria?" (domicile = permanent home / intention to remain)
@@ -102,10 +102,11 @@ This must be proved by establishing at least ONE of the following facts:
 5. 2-YEAR SEPARATION WITH CONSENT (s.15(2)(e)) — lived apart 2+ years, respondent does not object
 6. 3-YEAR SEPARATION (s.15(2)(f)) — lived apart 3+ years, no consent required
 7. FAILURE TO COMPLY WITH RESTITUTION ORDER FOR 1+ YEAR (s.15(2)(g)) — respondent has failed, for a period of not less than one year, to comply with a decree of restitution of conjugal rights
-8. PRESUMPTION OF DEATH (s.15(2)(h)) — other party absent for 7+ years, petitioner has no reason to believe them alive
+8. PRESUMPTION OF DEATH (s.15(2)(h)) — reasonable grounds to presume the other party dead; absence for 7+ years with no reason to believe them alive is sufficient proof (s.16(2)(a))
 
 TWO-YEAR BAR (s.30): Cannot file within 2 years of the marriage date unless the court grants leave
-for exceptional hardship or exceptional depravity.
+for exceptional hardship or exceptional depravity. The bar does NOT apply to petitions based on wilful
+refusal to consummate (s.15(2)(a)), adultery (s.15(2)(b)) or s.16(1)(a), or to cross-proceedings (s.30(2)).
 
 COLLECT:
 1. Date of marriage and where it took place (city, state)

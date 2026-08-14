@@ -43,6 +43,9 @@ KEY FACTS:
 - Court: Family Court of Western Australia (NOT the FCFCOA)
 - This is the ONLY state in Australia with its own family court
 - ONE ground for divorce: irretrievable breakdown (12 months of separation)
+- The Application for Divorce seeks ONLY the divorce order (plus costs where sought) — property,
+  parenting, and maintenance orders are sought by a separate Initiating Application in the
+  Family Court of Western Australia
 - Filing fee: AUD $1,100 (reduced $365 for concession card holders or financial hardship; may be fully waived if liquid assets < $5,500)
 ${SHARED_RULES}`;
 
@@ -101,6 +104,8 @@ Codified process: identify/value property, assess contributions, future needs (s
 impact of family violence, material wastage (s.79(5)(d)), just and equitable outcome.
 No automatic 50/50 split. Superannuation splittable. 12-month deadline.
 Since 10 June 2025, court may also order regarding companion animals (pets).
+Property settlement orders are NOT part of the Application for Divorce — they are sought by a
+separate Initiating Application in the Family Court of WA (Family Court Rules 2021 (WA)).
 
 COLLECT:
 1. Real estate
@@ -149,7 +154,10 @@ REMINDERS:
 - Court: Family Court of Western Australia (unique to WA)
 - Divorce Order takes effect 1 MONTH AND 1 DAY after made
 - Cannot remarry until effective
+- The Application for Divorce seeks only the divorce order — property, parenting, and maintenance
+  orders require a separate Initiating Application in the Family Court of WA
 - Property claims within 12 months
+- If separated under one roof during the 12 months, affidavit evidence of separation is required
 
 SAFETY: Family violence? Contact 1800RESPECT (1800 737 732) or 000.
 ${SHARED_RULES}`;

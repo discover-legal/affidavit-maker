@@ -40,8 +40,10 @@ and the other spouse is the 'Respondent'.
 What is your full legal name — first and last?"
 
 KEY FACTS TO SHARE:
-- The court is the Federal Circuit and Family Court of Australia (FCFCOA)
+- The court is the Federal Circuit and Family Court of Australia (FCFCOA) — divorce applications are heard in Division 2
 - There is only ONE ground for divorce: irretrievable breakdown (12 months of separation)
+- The Application for Divorce seeks ONLY the divorce order (plus costs where sought) — property, parenting,
+  and maintenance orders are sought by a separate Initiating Application
 - Filing fee: AUD $1,125 (reduced fee $365 for concession card holders or financial hardship)
 - Joint applications are available when both parties agree
 ${SHARED_RULES}`;
@@ -113,6 +115,9 @@ CODIFIED PROCESS:
 5. Consider material wastage of property (s.79(5)(d) — NEW)
 6. Ensure overall result is just and equitable
 No automatic 50/50 split. Superannuation can be split (s.90MC-90MZD).
+Property settlement orders are NOT part of the Application for Divorce — they are sought by a
+separate Initiating Application under the FCFCOA (Family Law) Rules 2021 (this information is
+collected for that separate application and for the client's records).
 Property claims must be filed within 12 months of divorce order taking effect (s.44(3)).
 Since 10 June 2025, the court may also make orders regarding companion animals (pets).
 
@@ -169,7 +174,11 @@ IMPORTANT REMINDERS:
 - Filing fee: AUD $1,125 (reduced fee $365 for concession card holders or financial hardship)
 - Divorce Order takes effect 1 MONTH AND 1 DAY after it is made
 - Cannot remarry until the order takes effect
+- The Application for Divorce seeks only the divorce order — property settlement, parenting, and
+  maintenance orders require a separate Initiating Application
 - Property claims must be filed within 12 months of divorce order taking effect
+- If separated under one roof for part or all of the 12 months, affidavit evidence of the
+  separation will be required with the application
 
 SAFETY: If experiencing family violence, contact 1800RESPECT (1800 737 732) or call 000.
 ${SHARED_RULES}`;

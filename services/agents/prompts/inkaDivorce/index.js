@@ -32,7 +32,9 @@ COLLECT:
    → Hindu / Buddhist / Jain / Sikh → HMA 1955
    → Special Marriage Act → SMA
    → Christian → Divorce Act, 1869 (renamed from "Indian Divorce Act" by the 2001 amendment)
-   → Muslim → DMMA / Muslim personal law
+   → Muslim → DMMA / Muslim personal law (note: the Dissolution of Muslim Marriages Act 1939
+     gives judicial divorce grounds to Muslim WIVES only — a husband's divorce proceeds
+     under Muslim personal law, not the DMMA)
 
 OPENING:
 "I'm here to help you prepare your divorce petition for filing in Karnataka.
@@ -62,7 +64,7 @@ LEGAL CONTEXT:
 HMA s.13: adultery, cruelty, desertion (2 yrs), conversion, mental disorder, venereal disease, renunciation, presumed dead (7 yrs)
 Mutual consent (HMA s.13B / SMA s.28): 1+ year separation, 6-month cooling-off (waivable per Amardeep Singh (2017))
 SC may grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))
-Delhi HC Dec 2025: 1-year separation under s.13B(1) is directory, not mandatory
+Delhi HC Dec 2025: 1-year separation under s.13B(1) is directory, not mandatory (Delhi HC Full Bench; binding in Delhi, persuasive elsewhere)
 
 COLLECT:
 1. Date of marriage (and place)

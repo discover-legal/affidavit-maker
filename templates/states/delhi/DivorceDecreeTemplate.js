@@ -54,15 +54,22 @@ class DelhiDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Case No.';
+    // Delhi Family Courts docket matrimonial matters as "HMA No. ___/[year]"
+    return 'HMA No.';
   }
 
   getDefaultCourt(county) {
+    // Prefer the filer's own district/city over the hardcoded default
+    // (Saket serves only the South / South-East districts).
+    const loc = county && String(county).trim();
+    if (loc && !['DELHI', 'NEW DELHI'].includes(loc.toUpperCase())) {
+      return `FAMILY COURT, ${loc.toUpperCase()}`;
+    }
     return 'FAMILY COURT, SAKET, NEW DELHI';
   }
 
-  generateHeader() {
-    return 'IN THE FAMILY COURT AT NEW DELHI';
+  generateHeader(divorceData = {}) {
+    return `IN THE ${(divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city)).toUpperCase()}`;
   }
 
   generateVenue(county) {
@@ -71,7 +78,7 @@ class DelhiDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   generateCaseCaption(divorceData) {
-    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
     const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();

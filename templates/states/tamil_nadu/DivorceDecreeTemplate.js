@@ -11,14 +11,20 @@ class TamilNaduDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'caseNumber', 'marriageDate'];
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
-  getCaseNumberLabel() { return 'Case No.'; }
-  getDefaultCourt() { return 'FAMILY COURT, CHENNAI'; }
-  generateHeader() { return 'IN THE FAMILY COURT AT CHENNAI'; }
+  // Chennai Family Court dockets divorce petitions as "O.P. No." (Original Petition)
+  getCaseNumberLabel() { return 'O.P. No.'; }
+  // Prefer the filer's own district/city over the hardcoded default court
+  getDefaultCourt(county) {
+    const loc = county && String(county).trim();
+    if (loc && loc.toUpperCase() !== 'CHENNAI') return `FAMILY COURT, ${loc.toUpperCase()}`;
+    return 'FAMILY COURT, CHENNAI';
+  }
+  generateHeader(dd = {}) { return `IN THE ${(dd.court || this.getDefaultCourt(dd.county || dd.city)).toUpperCase()}`; }
   generateVenue(county) { return (county || 'CHENNAI').toUpperCase(); }
   generateCaseCaption(dd) {
-    const cn = (dd.court || this.getDefaultCourt()).toUpperCase(); const no = dd.caseNumber || '[CASE NUMBER]';
+    const cn = (dd.court || this.getDefaultCourt(dd.county || dd.city)).toUpperCase(); const no = dd.caseNumber || '[CASE NUMBER]';
     const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase(); const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
-    return { courtName: cn, caseNumber: dd.caseNumber, petitioner: dd.petitionerName, respondent: dd.respondentName, formatted: `IN THE ${cn}\n\nCase No. ${no}\n\nIN THE MATTER OF:\n\n${p}\nPetitioner\n\nVersus\n\n${r}\nRespondent` };
+    return { courtName: cn, caseNumber: dd.caseNumber, petitioner: dd.petitionerName, respondent: dd.respondentName, formatted: `IN THE ${cn}\n\n${this.getCaseNumberLabel()} ${no}\n\nIN THE MATTER OF:\n\n${p}\nPetitioner\n\nVersus\n\n${r}\nRespondent` };
   }
   generatePropertyDivisionSection(dd) {
     const items = [];

@@ -23,6 +23,18 @@
         "name": "Mutual Consent",
         "description": "Both spouses jointly petition for divorce after living separately for at least one year. A 6-month cooling-off period applies (waivable per Amardeep Singh v. Harveen Kaur (2017)). The Delhi HC Full Bench (Dec 2025) held the 1-year separation requirement is also waivable under s.14(1) in cases of exceptional hardship/depravity.",
         "statute": "HMA s.13B / SMA s.28"
+      },
+      {
+        "code": "judicial_separation_no_resumption",
+        "name": "No Resumption of Cohabitation after Judicial Separation",
+        "description": "Either party may petition where there has been no resumption of cohabitation for one year or upwards after the passing of a decree for judicial separation.",
+        "statute": "HMA s.13(1A)(i)"
+      },
+      {
+        "code": "restitution_non_compliance",
+        "name": "No Restitution of Conjugal Rights after Decree",
+        "description": "Either party may petition where there has been no restitution of conjugal rights for one year or upwards after the passing of a decree for restitution of conjugal rights.",
+        "statute": "HMA s.13(1A)(ii)"
       }
     ],
     "fault": [
@@ -87,11 +99,23 @@
         "name": "Rape, Sodomy, or Bestiality by Husband (wife only)",
         "description": "The husband has been guilty of rape, sodomy, or bestiality since the solemnization of the marriage.",
         "statute": "HMA s.13(2)(ii)"
+      },
+      {
+        "code": "maintenance_decree_no_cohabitation",
+        "name": "Maintenance Decree with No Cohabitation (wife only)",
+        "description": "A decree or order awarding maintenance to the wife notwithstanding that she was living apart has been passed against the husband (Hindu Adoptions and Maintenance Act 1956 s.18, or CrPC s.125 — now BNSS s.144), and cohabitation between the parties has not been resumed for one year or upwards since.",
+        "statute": "HMA s.13(2)(iii)"
+      },
+      {
+        "code": "option_of_puberty",
+        "name": "Option of Puberty (wife only)",
+        "description": "Her marriage (whether consummated or not) was solemnized before she attained the age of fifteen years and she repudiated the marriage after attaining that age but before attaining the age of eighteen years.",
+        "statute": "HMA s.13(2)(iv)"
       }
     ]
   },
   "terminology": {
-    "caseNumberLabel": "Case No.",
+    "caseNumberLabel": "HMA No.",
     "custody": "Custody and Guardianship",
     "physicalCustody": "Physical Custody",
     "jointCustody": "Joint Custody",

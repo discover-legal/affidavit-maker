@@ -18,7 +18,9 @@
   },
   "groundsForDivorce": {
     "noFault": [
-      { "code": "mutual_consent", "name": "Mutual Consent", "description": "Both spouses jointly petition after living separately for at least one year. 6-month cooling-off period applies (may be waived).", "statute": "HMA s.13B / SMA s.28" }
+      { "code": "mutual_consent", "name": "Mutual Consent", "description": "Both spouses jointly petition after living separately for at least one year. 6-month cooling-off period applies (may be waived).", "statute": "HMA s.13B / SMA s.28" },
+      { "code": "judicial_separation_no_resumption", "name": "No Resumption of Cohabitation after Judicial Separation", "description": "No resumption of cohabitation for one year or upwards after a decree for judicial separation (either party may petition).", "statute": "HMA s.13(1A)(i)" },
+      { "code": "restitution_non_compliance", "name": "No Restitution of Conjugal Rights after Decree", "description": "No restitution of conjugal rights for one year or upwards after a decree for restitution of conjugal rights (either party may petition).", "statute": "HMA s.13(1A)(ii)" }
     ],
     "fault": [
       { "code": "adultery", "name": "Adultery", "description": "Voluntary sexual intercourse with a person other than the petitioner after solemnization.", "statute": "HMA s.13(1)(i) / SMA s.27(1)(a)" },
@@ -29,10 +31,16 @@
       { "code": "venereal_disease", "name": "Venereal Disease", "description": "Suffering from venereal disease in communicable form.", "statute": "HMA s.13(1)(v) / SMA s.27(1)(f)" },
       { "code": "renunciation", "name": "Renunciation of the World", "description": "Entered a religious order (HMA only).", "statute": "HMA s.13(1)(vi)" },
       { "code": "presumed_dead", "name": "Presumed Dead", "description": "Not heard of as alive for 7+ years.", "statute": "HMA s.13(1)(vii) / SMA s.27(1)(h)" }
+    ],
+    "wifeAdditional": [
+      { "code": "bigamy", "name": "Pre-Act Bigamy (wife only)", "description": "The husband had another wife living at the time of the marriage (applies only to marriages solemnized before the Hindu Marriage Act commenced on 18 May 1955).", "statute": "HMA s.13(2)(i)" },
+      { "code": "rape_sodomy_bestiality", "name": "Rape, Sodomy, or Bestiality by Husband (wife only)", "description": "The husband has been guilty of rape, sodomy, or bestiality since the solemnization of the marriage.", "statute": "HMA s.13(2)(ii)" },
+      { "code": "maintenance_decree_no_cohabitation", "name": "Maintenance Decree with No Cohabitation (wife only)", "description": "A maintenance decree or order (Hindu Adoptions and Maintenance Act 1956 s.18, or CrPC s.125 — now BNSS s.144) has been passed against the husband, and cohabitation has not been resumed for one year or upwards since.", "statute": "HMA s.13(2)(iii)" },
+      { "code": "option_of_puberty", "name": "Option of Puberty (wife only)", "description": "Her marriage (whether consummated or not) was solemnized before she attained fifteen years and she repudiated it after attaining that age but before attaining eighteen years.", "statute": "HMA s.13(2)(iv)" }
     ]
   },
   "terminology": {
-    "caseNumberLabel": "Case No.",
+    "caseNumberLabel": "Petition No.",
     "custody": "Custody and Guardianship",
     "physicalCustody": "Physical Custody",
     "jointCustody": "Joint Custody",
@@ -44,7 +52,7 @@
   "requiredForms": {
     "basic": [
       { "name": "Petition for Divorce", "description": "Filed under applicable personal law with affidavit on stamp paper", "required": true },
-      { "name": "Affidavit of the Petitioner", "description": "Sworn affidavit on judicial stamp paper (INR 100 in Maharashtra; Maharashtra Stamp Dept. circular dated 30-Oct-2024 confirmed INR 100 remains valid for affidavits despite Oct 2024 ordinance raising minimum to INR 500)", "required": true },
+      { "name": "Affidavit of the Petitioner", "description": "Sworn affidavit. Affidavits made for the immediate purpose of being filed in court are exempt from stamp duty (Maharashtra Stamp Act, Sch. I, Art. 4, exemption); standalone affidavits are executed on non-judicial stamp paper (Art. 4 duty INR 500 since the October 2024 amendment)", "required": true },
       { "name": "Marriage Certificate", "description": "Original or certified copy", "required": true },
       { "name": "Address Proof", "description": "Aadhaar card, voter ID, passport, or utility bill", "required": true }
     ]
@@ -62,7 +70,7 @@
   "spousalSupportGuidelines": { "calculationBasis": "judicial_discretion", "guidelines": "HMA s.25 / s.24; SMA s.36-37; BNSS s.144", "notes": "No fixed formula; court considers duration, earning capacity, standard of living" },
   "effectiveDateRule": "The decree takes effect from the date it is passed.",
   "certificateNote": "A certified copy of the decree may be obtained from the court registry.",
-  "stampPaperValue": "INR 100",
+  "stampPaperValue": "INR 500",
   "paperSize": "A4",
   "currency": "INR",
   "emergencyNumber": "112",

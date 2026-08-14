@@ -21,7 +21,7 @@
  *   - Financial remedy is separate from the divorce itself (Form A)
  *   - Court uses Statement of Truth (FPR 2010, Part 17), not sworn affidavits
  *   - Child maintenance calculated by CMS (Child Maintenance Service), not the court
- *   - Filing fee: GBP £612 (Help with Fees / HWF remission available; increased from £593 in April 2025)
+ *   - Filing fee: GBP £628 (Help with Fees / HWF remission available; increased from £612 in July 2026)
  *   - A4 paper size, GBP currency
  */
 
@@ -235,7 +235,7 @@ Ask the user to confirm all details are correct. Handle any corrections.
 Then confirm: user_confirmed_review: true
 
 IMPORTANT REMINDERS TO SHARE:
-- Filing fee is GBP £612 (Help with Fees / HWF remission available for low-income applicants)
+- Filing fee is GBP £628 (Help with Fees / HWF remission available for low-income applicants)
 - Most applications are filed online at https://www.gov.uk/apply-for-divorce
 - 20-WEEK TIMELINE: After the application is issued, there is a mandatory 20-week reflection period
   before you can apply for the Conditional Order

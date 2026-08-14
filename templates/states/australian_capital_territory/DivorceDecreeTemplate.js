@@ -11,7 +11,7 @@ class ACTDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
   getCaseNumberLabel() { return 'File Number'; }
-  getDefaultCourt() { return 'FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — CANBERRA REGISTRY'; }
+  getDefaultCourt() { return 'FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — CANBERRA REGISTRY'; }
   generateHeader() { return 'AUSTRALIAN CAPITAL TERRITORY'; }
   generateVenue() { return 'CANBERRA REGISTRY'; }
   generateCaseCaption(divorceData) {

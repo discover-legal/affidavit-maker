@@ -9,8 +9,13 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
 /**
  * Victoria Divorce Application Template
  *
- * Court: Federal Circuit and Family Court of Australia — Melbourne Registry
+ * Court: Federal Circuit and Family Court of Australia (Division 2) — Melbourne Registry
  * Oaths: Oaths and Affirmations Act 2018 (Vic)
+ *
+ * The Application for Divorce seeks ONLY the divorce order (plus costs where
+ * sought). Property settlement (s.79), parenting (Part VII), and spousal
+ * maintenance (ss.72-75) orders are brought by a separate Initiating
+ * Application under the FCFCOA (Family Law) Rules 2021 (Cth).
  *
  * @class VictoriaDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -45,7 +50,7 @@ class VictoriaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   getDefaultCourt(county) {
     const city = (county || '[CITY]').toUpperCase();
-    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${city} REGISTRY`;
+    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${city} REGISTRY`;
   }
 
   generateCaseCaption(divorceData) {
@@ -73,6 +78,9 @@ class VictoriaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `the Applicant or Respondent resides within the jurisdiction of the ${location} registry`;
   }
 
+  // The Application for Divorce seeks only the divorce order (plus costs where
+  // sought) — property/parenting/maintenance orders go in a separate Initiating
+  // Application under the FCFCOA (Family Law) Rules 2021 (Cth).
   generateReliefSection(divorceData) {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 15;
@@ -80,22 +88,32 @@ class VictoriaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     items.push({ number: null, content: 'THE APPLICANT SEEKS THE FOLLOWING ORDERS:', type: 'relief_intro' });
 
     const reliefItems = [
-      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);',
-      'A property settlement order pursuant to section 79 of the Family Law Act 1975 (Cth);'
+      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'
     ];
 
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Parenting orders pursuant to Part VII of the Family Law Act 1975 (Cth);');
-      reliefItems.push('A child support assessment through Services Australia (Child Support);');
+    if (divorceData.costsRequested || divorceData.requestCosts) {
+      reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     }
-    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A spousal maintenance order pursuant to sections 72-75 of the Family Law Act 1975 (Cth);');
-    }
-    reliefItems.push('Such further or other orders as the Court considers appropriate.');
+    reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
 
     reliefItems.forEach((relief, index) => {
       items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + index) });
     });
+
+    const hasAncillaryClaims =
+      divorceData.hasProperty !== false ||
+      divorceData.hasMinorChildren === true ||
+      (divorceData.children && divorceData.children.length > 0) ||
+      divorceData.spousalSupportRequested ||
+      divorceData.requestSpousalSupport;
+
+    if (hasAncillaryClaims) {
+      items.push({
+        number: null,
+        content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application under the Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth); they cannot be included in this Application for Divorce.',
+        type: 'relief_intro'
+      });
+    }
 
     return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: paragraphNum };
   }

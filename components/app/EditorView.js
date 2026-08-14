@@ -13,6 +13,7 @@ import ValidationSidebar from './ValidationSidebar';
 import PaymentModal from './PaymentModal';
 import ConfirmDialog from './ConfirmDialog';
 import ReviewGate from './ReviewGate';
+import LegalReviewBadge from './LegalReviewBadge';
 import CoffeeLink from './CoffeeLink';
 import QuickExit from './QuickExit';
 import { advisorFlags } from './lifeStory';
@@ -838,6 +839,8 @@ const EditorView = ({ isNew = false, onBack }) => {
               {currentDocument.affiantName || 'Unnamed'}{currentDocument.state && ` - ${currentDocument.state}`}
             </span>
           </div>
+
+          {currentDocument.state && <LegalReviewBadge stateCode={currentDocument.state} />}
 
           {currentDocument.facts?.length > 0 && (
             <div className="flex items-center gap-2">

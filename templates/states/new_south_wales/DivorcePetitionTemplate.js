@@ -24,8 +24,14 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth) — procedural rules
  * - Oaths Act 1900 (NSW) — affidavit formalities
  *
- * Court: Federal Circuit and Family Court of Australia (FCFCOA)
+ * Court: Federal Circuit and Family Court of Australia (Division 2) (FCFCOA)
  * Registry: Sydney (Parramatta), Newcastle, Wollongong
+ *
+ * The Application for Divorce seeks ONLY the divorce order (plus costs where
+ * sought). Property settlement (s.79), parenting (Part VII), and spousal
+ * maintenance (ss.72-75) orders cannot be added to divorce proceedings — they
+ * are brought by a separate Initiating Application under the FCFCOA (Family
+ * Law) Rules 2021 (Cth).
  *
  * @class NewSouthWalesDivorcePetitionTemplate
  * @extends BaseDivorcePetitionTemplate
@@ -64,7 +70,7 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // No waiting period after filing — 12-month separation must already be complete
     this.waitingPeriod = {
       days: 0,
-      description: 'No waiting period after filing. The 12-month separation must be complete before the hearing. Divorce Order takes effect 1 month and 1 day after it is made (s.55).'
+      description: 'No waiting period after filing. The 12-month separation must be complete before the application is filed (s.48(2)). Divorce Order takes effect 1 month and 1 day after it is made (s.55).'
     };
 
     this.formatting = {
@@ -82,7 +88,7 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   getDefaultCourt(county) {
     const city = (county || '[CITY]').toUpperCase();
-    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${city} REGISTRY`;
+    return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${city} REGISTRY`;
   }
 
   /**
@@ -139,7 +145,10 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Relief section — Australian divorce and ancillary relief.
+   * Relief section — the Application for Divorce seeks only the divorce order
+   * (plus costs where sought). Property settlement, parenting, and maintenance
+   * orders are brought by a separate Initiating Application under the FCFCOA
+   * (Family Law) Rules 2021 (Cth); they cannot be included here.
    */
   generateReliefSection(divorceData) {
     const items = [];
@@ -152,20 +161,14 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     const reliefItems = [
-      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);',
-      'A property settlement order pursuant to section 79 of the Family Law Act 1975 (Cth), providing for a just and equitable division of property;'
+      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'
     ];
 
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Parenting orders pursuant to Part VII of the Family Law Act 1975 (Cth), providing for the parenting arrangements for the child(ren) of the marriage;');
-      reliefItems.push('A child support order or assessment through Services Australia (Child Support) pursuant to the Child Support (Assessment) Act 1989 (Cth);');
+    if (divorceData.costsRequested || divorceData.requestCosts) {
+      reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     }
 
-    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A spousal maintenance order pursuant to sections 72-75 of the Family Law Act 1975 (Cth);');
-    }
-
-    reliefItems.push('Such further or other orders as the Court considers appropriate.');
+    reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);
@@ -177,6 +180,21 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         letter
       });
     });
+
+    const hasAncillaryClaims =
+      divorceData.hasProperty !== false ||
+      divorceData.hasMinorChildren === true ||
+      (divorceData.children && divorceData.children.length > 0) ||
+      divorceData.spousalSupportRequested ||
+      divorceData.requestSpousalSupport;
+
+    if (hasAncillaryClaims) {
+      items.push({
+        number: null,
+        content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application under the Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth); they cannot be included in this Application for Divorce.',
+        type: 'relief_intro'
+      });
+    }
 
     return {
       title: 'ORDERS SOUGHT',

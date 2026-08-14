@@ -39,7 +39,7 @@
   "requiredForms": {
     "basic": [
       { "name": "Application for Divorce", "description": "Initiates divorce proceedings under the Family Law Act 1975 (Cth)", "required": true },
-      { "name": "Affidavit — Proof of Separation", "description": "Supporting affidavit confirming the 12-month separation period", "required": true },
+      { "name": "Affidavit — Proof of Separation", "description": "Affidavit(s) explaining the separation — required only if the parties were separated under one roof for some or all of the 12-month separation period, or if the Court requests further evidence of separation", "required": false },
       { "name": "Marriage Certificate", "description": "Certified copy of the marriage certificate", "required": true }
     ]
   },

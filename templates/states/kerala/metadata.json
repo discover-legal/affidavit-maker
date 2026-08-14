@@ -10,7 +10,7 @@
     { "code": "hma", "name": "Hindu Marriage Act 1955", "applies": "Hindu, Buddhist, Jain, Sikh" },
     { "code": "sma", "name": "Special Marriage Act 1954", "applies": "Inter-faith or secular marriages" },
     { "code": "ida", "name": "Divorce Act, 1869", "applies": "Christians", "notes": "Kerala has a significant Christian population — IDA filings are very common" },
-    { "code": "dmma", "name": "Dissolution of Muslim Marriages Act 1939", "applies": "Muslim wives" }
+    { "code": "dmma", "name": "Dissolution of Muslim Marriages Act 1939", "applies": "Muslim wives (wife-only judicial grounds; a husband's divorce proceeds under Muslim personal law, not the DMMA)" }
   ],
   "legalCitations": [{ "code": "Hindu Marriage Act 1955", "description": "Marriage and divorce" }, { "code": "Special Marriage Act 1954", "description": "Inter-faith marriages" }, { "code": "Divorce Act, 1869", "description": "Divorce for Christians" }, { "code": "Family Courts Act 1984", "description": "Family Courts" }, { "code": "BNSS s.144", "description": "Maintenance" }],
   "affidavitJurat": "Verified at _____________ on this _____ day of _________________, _______.\n\nDeponent\n\nSworn before me:\n________________________________\nNotary Public / Oath Commissioner\nKerala",

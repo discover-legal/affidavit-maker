@@ -54,23 +54,23 @@
     "basic": [
       {
         "name": "Family Law Civil Bill",
-        "description": "Initiates divorce proceedings in the Circuit Family Court",
+        "description": "Initiates divorce proceedings in the Circuit Family Court (the Courts Service online portal styles it the Divorce Civil Bill, Form 2N)",
         "required": true
       },
       {
-        "name": "Affidavit of Means",
-        "description": "Full sworn disclosure of income, assets, debts, and outgoings — required in all family law proceedings",
+        "name": "Affidavit of Means (Form 37A)",
+        "description": "Full sworn disclosure of income, assets, debts, and outgoings — required in all family law proceedings (styled Statement of Truth of Means in online applications)",
         "required": true
       },
       {
-        "name": "Affidavit of Welfare",
-        "description": "Details of dependent children, their living arrangements, health, education, and welfare — REQUIRED if there are dependent children",
+        "name": "Affidavit of Welfare (Form 37B)",
+        "description": "Details of dependent children, their living arrangements, health, education, and welfare — REQUIRED if there are dependent children (styled Statement of Truth of Welfare in online applications)",
         "required": false
       },
       {
-        "name": "Decree of Divorce",
-        "description": "Final order dissolving the marriage, granted by the Circuit Court or High Court",
-        "required": true
+        "name": "Solicitor's Statutory Declaration (Form 37D)",
+        "description": "Statutory declaration that the solicitor discussed reconciliation, mediation, and separation alternatives — s.6 of the Family Law (Divorce) Act 1996 for the applicant's solicitor, s.7 for the respondent's solicitor; filed only where the party is represented. The Decree of Divorce itself is the court's final order, not a form the applicant files.",
+        "required": false
       }
     ]
   },

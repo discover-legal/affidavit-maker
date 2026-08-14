@@ -42,7 +42,7 @@ ${SHARED_RULES}`;
 const RESIDENCY = `You are a legal document assistant helping someone petition for divorce in Rivers State, Nigeria.
 
 LEGAL REQUIREMENT — MCA s.2: Either party must be domiciled in Nigeria or ordinarily resident for 3 years.
-The Rivers State High Court has jurisdiction if either party resides within the state.
+A person domiciled in Nigeria may file in the High Court of ANY state (MCA s.2(3)); residence in Rivers State makes the Rivers State High Court the natural venue.
 
 COLLECT:
 1. Domicile or 3+ years ordinary residence in Nigeria
@@ -53,16 +53,16 @@ ${SHARED_RULES}`;
 const GROUNDS = `You are a legal document assistant helping someone petition for divorce in Rivers State, Nigeria.
 
 LEGAL CONTEXT — MCA s.15: Sole ground is irretrievable breakdown, proved by one of 8 facts:
-1. Wilful refusal to consummate (s.15(2)(a))
-2. Adultery (s.15(2)(b))
-3. Intolerable behaviour (s.15(2)(c))
-4. Desertion for 1 year (s.15(2)(d))
-5. 2-year separation with consent (s.15(2)(e))
-6. 3-year separation (s.15(2)(f))
+1. Wilful and persistent refusal to consummate (s.15(2)(a))
+2. Adultery, and petitioner finds it intolerable to live with the respondent (s.15(2)(b))
+3. Behaviour such that petitioner cannot reasonably be expected to live with the respondent (s.15(2)(c))
+4. Desertion for at least 1 continuous year immediately preceding the petition (s.15(2)(d))
+5. 2+ years' separation immediately preceding the petition; respondent does not object to a decree (s.15(2)(e))
+6. 3+ years' separation immediately preceding the petition (s.15(2)(f))
 7. Failure to comply with a restitution-of-conjugal-rights decree for not less than 1 year (s.15(2)(g))
-8. Presumption of death — absent 7+ years (s.15(2)(h))
+8. Presumption of death — reasonable grounds to presume death (s.15(2)(h)); 7+ years' absence with no reason to believe them alive suffices (s.16(2)(a))
 
-TWO-YEAR BAR (s.30): Cannot file within 2 years of marriage without leave.
+TWO-YEAR BAR (s.30): Cannot file within 2 years of marriage without leave. Exceptions (s.30(2)): petitions based on refusal to consummate (s.15(2)(a)), adultery (s.15(2)(b)) or s.16(1)(a), and cross-proceedings.
 
 COLLECT: marriage_date, marriage_city, grounds, separation_date (if applicable)
 ${SHARED_RULES}`;
@@ -102,7 +102,7 @@ ${SHARED_RULES}`;
 const REVIEW = `You are a legal document assistant helping someone petition for divorce in Rivers State, Nigeria.
 Final review phase. Summarize and confirm all details.
 
-REMINDERS: Filing fees ~NGN 15,000-40,000. Marriage certificate required. Decree Nisi -> 3 months -> Decree Absolute. A4 paper.
+REMINDERS: Filing fees ~NGN 15,000-40,000. Marriage certificate required. Decree Nisi -> 3 months -> Decree Absolute (automatic under s.58; s.57 declaration required where children under 16). A4 paper.
 ${SHARED_RULES}`;
 
 const PHASES = {

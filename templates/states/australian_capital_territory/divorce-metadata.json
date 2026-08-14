@@ -14,8 +14,8 @@
   },
   "terminology": { "caseNumberLabel": "File Number", "custody": "Parenting Orders", "physicalCustody": "Time Spent with Child", "jointCustody": "Parental Responsibility (shared)", "soleCustody": "Sole Parental Responsibility", "alimony": "Spousal Maintenance", "childSupport": "Child Support", "maritalProperty": "Property Settlement (s.79)" },
   "requiredForms": { "basic": [
-    { "name": "Application for Divorce", "description": "Filed in the FCFCOA — Canberra registry", "required": true },
-    { "name": "Affidavit — Proof of Separation", "description": "Supporting affidavit", "required": true },
+    { "name": "Application for Divorce", "description": "Filed in the FCFCOA (Division 2) — Canberra registry", "required": true },
+    { "name": "Affidavit — Proof of Separation", "description": "Required only if the parties were separated under one roof during the 12-month separation (or at the Court's request)", "required": false },
     { "name": "Marriage Certificate", "description": "Certified copy", "required": true }
   ]},
   "legalCitations": [

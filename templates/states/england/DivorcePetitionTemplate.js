@@ -30,7 +30,7 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * - Either party domiciled in England/Wales, OR
  * - Either party habitually resident for at least 1 year
  *
- * Filing fee: approx. GBP £612 (Help with Fees / HWF remission available; increased from £593 in April 2025)
+ * Filing fee: approx. GBP £628 (Help with Fees / HWF remission available; increased from £612 in July 2026)
  * Paper size: A4
  *
  * @class EnglandDivorcePetitionTemplate

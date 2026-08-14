@@ -12,6 +12,8 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
  * In Nigeria, the court first grants a Decree Nisi, which becomes a
  * Decree Absolute automatically by force of law after 3 months (MCA s.58)
  * — no application is needed. Only the Decree Absolute dissolves the marriage.
+ * Where there are children under 16, the decree does not become absolute until
+ * the court has made the s.57 declaration as to arrangements for them.
  *
  * Key Legal References:
  * - Matrimonial Causes Act 1970, Cap M7 LFN 2004
@@ -303,7 +305,7 @@ class LagosDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * Decree Nisi becomes Decree Absolute after 3 months (MCA s.58).
    */
   getEffectiveDateText() {
-    return 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58).';
+    return 'This Decree Nisi shall become a Decree Absolute after the expiration of three months from the date hereof, unless cause is shown to the contrary or this Court otherwise directs (Matrimonial Causes Act, s.58). Where there are children of the marriage under sixteen years, the Decree Nisi shall not become absolute unless the Court has, by order, declared its satisfaction with the arrangements made for their welfare (Matrimonial Causes Act, s.57).';
   }
 
   /**

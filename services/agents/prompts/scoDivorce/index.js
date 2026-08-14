@@ -14,6 +14,7 @@
  *   - Scotland has NOT adopted no-fault divorce
  *   - Must prove one of four facts: adultery, unreasonable behaviour,
  *     1-year separation with consent, or 2-year separation without consent
+ *     (separate second ground: interim gender recognition certificate, s.1(1)(b))
  *   - Parties are "Pursuer" and "Defender" (not Applicant/Respondent)
  *   - Court is Sheriff Court (most cases) or Court of Session
  *   - "Decree of divorce" (not "Final Order")
@@ -98,7 +99,8 @@ Scotland requires proof of irretrievable breakdown through ONE of four facts:
 
 1. ADULTERY (s.1(2)(a))
    - The Defender committed adultery
-   - The Pursuer must not have cohabited after learning of the adultery (condonation)
+   - Condonation bars the ground, but cohabitation continued or resumed after learning of
+     the adultery only condones it if it continues beyond 3 months (s.2(2))
 
 2. UNREASONABLE BEHAVIOUR (s.1(2)(b))
    - The Defender behaved such that the Pursuer cannot reasonably be expected to cohabit
@@ -115,6 +117,10 @@ Scotland requires proof of irretrievable breakdown through ONE of four facts:
    - Used when one party refuses to cooperate
 
 NOTE: Desertion was REMOVED as a ground by the 2006 Act.
+
+NOTE: There is also a second, free-standing ground of divorce: an interim gender
+recognition certificate under the Gender Recognition Act 2004 issued to either party
+after the date of the marriage (s.1(1)(b)). No breakdown facts are needed for that ground.
 
 COLLECT:
 1. Date of marriage (and where: city, country)

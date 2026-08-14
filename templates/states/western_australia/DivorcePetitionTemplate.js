@@ -45,22 +45,29 @@ class WesternAustraliaDivorcePetitionTemplate extends BaseDivorcePetitionTemplat
     return `the Applicant or Respondent resides in Western Australia and the Family Court of Western Australia has jurisdiction pursuant to the Family Court Act 1997 (WA)`;
   }
 
+  // The Application for Divorce seeks only the divorce order (plus costs where
+  // sought) — property/parenting/maintenance orders go in a separate Initiating
+  // Application in the Family Court of Western Australia (Family Court Rules 2021 (WA)).
   generateReliefSection(divorceData) {
     const items = [];
     items.push({ number: null, content: 'THE APPLICANT SEEKS THE FOLLOWING ORDERS:', type: 'relief_intro' });
     const reliefItems = [
-      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);',
-      'A property settlement order pursuant to section 79 of the Family Law Act 1975 (Cth);'
+      'A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'
     ];
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Parenting orders pursuant to Part VII of the Family Law Act 1975 (Cth);');
-      reliefItems.push('A child support assessment through Services Australia (Child Support);');
+    if (divorceData.costsRequested || divorceData.requestCosts) {
+      reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     }
-    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
-      reliefItems.push('A spousal maintenance order pursuant to sections 72-75 of the Family Law Act 1975 (Cth);');
-    }
-    reliefItems.push('Such further or other orders as the Court considers appropriate.');
+    reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
     reliefItems.forEach((r, i) => items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }));
+    const hasAncillaryClaims =
+      divorceData.hasProperty !== false ||
+      divorceData.hasMinorChildren === true ||
+      (divorceData.children && divorceData.children.length > 0) ||
+      divorceData.spousalSupportRequested ||
+      divorceData.requestSpousalSupport;
+    if (hasAncillaryClaims) {
+      items.push({ number: null, content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application in the Family Court of Western Australia under the Family Court Rules 2021 (WA); they cannot be included in this Application for Divorce.', type: 'relief_intro' });
+    }
     return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }
 

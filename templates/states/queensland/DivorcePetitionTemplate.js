@@ -19,7 +19,7 @@ class QueenslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getCaseNumberLabel() { return 'File Number'; }
-  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
+  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
 
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
@@ -33,17 +33,20 @@ class QueenslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getJurisdictionStatement() { return `Either the Applicant or the Respondent is an Australian citizen, is domiciled in Australia, or has been ordinarily resident in Australia for at least twelve months immediately preceding the filing of this Application, as required by section 39(3) of the Family Law Act 1975 (Cth).`; }
   getVenueReason(divorceData) { return `the Applicant or Respondent resides within the jurisdiction of the ${divorceData.county || '[REGISTRY LOCATION]'} registry`; }
 
+  // The Application for Divorce seeks only the divorce order (plus costs where sought) —
+  // property/parenting/maintenance orders go in a separate Initiating Application
+  // under the FCFCOA (Family Law) Rules 2021 (Cth).
   generateReliefSection(divorceData) {
     const items = [];
     items.push({ number: null, content: 'THE APPLICANT SEEKS THE FOLLOWING ORDERS:', type: 'relief_intro' });
-    const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);', 'A property settlement order pursuant to section 79 of the Family Law Act 1975 (Cth);'];
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Parenting orders pursuant to Part VII of the Family Law Act 1975 (Cth);');
-      reliefItems.push('A child support assessment through Services Australia (Child Support);');
-    }
-    if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) reliefItems.push('A spousal maintenance order pursuant to sections 72-75 of the Family Law Act 1975 (Cth);');
-    reliefItems.push('Such further or other orders as the Court considers appropriate.');
+    const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'];
+    if (divorceData.costsRequested || divorceData.requestCosts) reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
+    reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
     reliefItems.forEach((relief, i) => { items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }); });
+    const hasAncillaryClaims = divorceData.hasProperty !== false || divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0) || divorceData.spousalSupportRequested || divorceData.requestSpousalSupport;
+    if (hasAncillaryClaims) {
+      items.push({ number: null, content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application under the Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth); they cannot be included in this Application for Divorce.', type: 'relief_intro' });
+    }
     return { title: 'ORDERS SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }
 

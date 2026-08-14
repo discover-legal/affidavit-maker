@@ -40,13 +40,13 @@
     "basic": [
       {
         "name": "Application for Divorce",
-        "description": "Initiates divorce proceedings under the Family Law Act 1975 (Cth). Filed in the Federal Circuit and Family Court of Australia.",
+        "description": "Initiates divorce proceedings under the Family Law Act 1975 (Cth). Filed in the Federal Circuit and Family Court of Australia (Division 2).",
         "required": true
       },
       {
         "name": "Affidavit — Proof of Separation",
-        "description": "Supporting affidavit confirming the 12-month separation period",
-        "required": true
+        "description": "Affidavit(s) explaining the separation — required only if the parties were separated under one roof for some or all of the 12-month separation period, or if the Court requests further evidence of separation",
+        "required": false
       },
       {
         "name": "Marriage Certificate",

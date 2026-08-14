@@ -187,10 +187,10 @@ Spousal maintenance (periodical payments) in NI depends on the Art.27 factors
 (equivalent to England's s.25 factors). The court has broad discretion.
 
 Types of financial orders:
-1. Periodical payments (monthly maintenance)
-2. Lump sum payment
-3. Property adjustment order
-4. Pension sharing order
+1. Periodical payments (monthly maintenance) (Art.25)
+2. Lump sum payment (Art.25)
+3. Property adjustment order (Art.26)
+4. Pension sharing order (Art.26A)
 
 The court increasingly considers a clean break where appropriate — ending financial
 ties between the parties as soon as is just and reasonable.

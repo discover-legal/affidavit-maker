@@ -176,8 +176,10 @@ class BaseDivorceDecreeTemplate {
     const validation = this.validateData(divorceData);
     const id = uuidv4();
 
-    // Generate all sections
-    const header = this.generateHeader();
+    // Generate all sections. generateHeader receives the divorce data so
+    // jurisdiction templates can name the filer's actual court; base and
+    // legacy overrides declare no parameters and simply ignore it.
+    const header = this.generateHeader(divorceData);
     const venue = this.generateVenue(divorceData.county);
     const caseCaption = this.generateCaseCaption(divorceData);
     const title = this.generateTitle();

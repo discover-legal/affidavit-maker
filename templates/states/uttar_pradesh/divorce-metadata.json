@@ -4,11 +4,21 @@
   "residencyRequirements": { "stateMonths": 0, "countyDays": 0, "description": "HMA s.19 / SMA s.31 jurisdiction rules." },
   "waitingPeriod": { "days": 180, "description": "6-month cooling-off for mutual consent (waivable per Amardeep Singh v. Harveen Kaur (2017)). SC may also grant divorce under Art. 142 on irretrievable breakdown (Shilpa Sailesh v. Varun Sreenivasan (2023))." },
   "groundsForDivorce": {
-    "noFault": [{ "code": "mutual_consent", "name": "Mutual Consent", "statute": "HMA s.13B / SMA s.28" }],
+    "noFault": [
+      { "code": "mutual_consent", "name": "Mutual Consent", "statute": "HMA s.13B / SMA s.28" },
+      { "code": "judicial_separation_no_resumption", "name": "No Resumption of Cohabitation for 1 Year after Judicial Separation", "statute": "HMA s.13(1A)(i)" },
+      { "code": "restitution_non_compliance", "name": "No Restitution of Conjugal Rights for 1 Year after Restitution Decree", "statute": "HMA s.13(1A)(ii)" }
+    ],
     "fault": [
       { "code": "adultery", "name": "Adultery", "statute": "HMA s.13(1)(i)" }, { "code": "cruelty", "name": "Cruelty", "statute": "HMA s.13(1)(ia)" },
       { "code": "desertion", "name": "Desertion (2 years)", "statute": "HMA s.13(1)(ib)" }, { "code": "conversion", "name": "Conversion", "statute": "HMA s.13(1)(ii)" },
       { "code": "mental_disorder", "name": "Unsoundness of Mind", "statute": "HMA s.13(1)(iii)" }, { "code": "venereal_disease", "name": "Venereal Disease", "statute": "HMA s.13(1)(v)" }, { "code": "renunciation", "name": "Renunciation", "statute": "HMA s.13(1)(vi)" }, { "code": "presumed_dead", "name": "Presumed Dead (7 years)", "statute": "HMA s.13(1)(vii)" }
+    ],
+    "wifeAdditional": [
+      { "code": "bigamy", "name": "Pre-Act Bigamy (wife only)", "statute": "HMA s.13(2)(i)" },
+      { "code": "rape_sodomy_bestiality", "name": "Rape, Sodomy, or Bestiality by Husband (wife only)", "statute": "HMA s.13(2)(ii)" },
+      { "code": "maintenance_decree_no_cohabitation", "name": "Maintenance Decree with No Cohabitation for 1 Year (wife only)", "statute": "HMA s.13(2)(iii)" },
+      { "code": "option_of_puberty", "name": "Option of Puberty (wife only)", "statute": "HMA s.13(2)(iv)" }
     ]
   },
   "terminology": { "caseNumberLabel": "Case No.", "custody": "Custody and Guardianship", "alimony": "Maintenance / Alimony", "childSupport": "Child Maintenance" },

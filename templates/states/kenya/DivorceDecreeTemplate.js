@@ -65,7 +65,7 @@ class KenyaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Case No.';
+    return 'Divorce Cause No.';
   }
 
   getDefaultCourt(county) {

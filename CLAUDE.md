@@ -378,7 +378,7 @@ Every endpoint the SPA calls is now backed by a Next.js Route Handler. Full inve
 
 **Payment**: POST `create-intent`, GET `status/[paymentIntentId]`, GET `history`, GET `pricing`, POST `webhook` (raw-body Stripe verification + idempotency).
 
-**Templates**: `affidavit-types`, `affidavit-types/by-category`, `affidavit-types/[typeId]`, `states`, `document-types`, `validate`, `divorce/states`, `divorce/requirements/[state]`, `divorce/document-types/[state]`, `divorce/validate`.
+**Templates**: `affidavit-types`, `affidavit-types/by-category`, `affidavit-types/[typeId]`, `states`, `document-types`, `validate`, `divorce/states`, `divorce/requirements/[state]`, `divorce/document-types/[state]`, `divorce/validate`, `validation` + `validation/[state]` (legal-review changelog per jurisdiction — when each claim was last verified, what was corrected, sources; data from `templates/validation-history.json`, regenerated via `scripts/buildValidationHistory.js`, surfaced in the editor by `LegalReviewBadge`).
 
 **Profile**: GET `/api/profile` (life-story profile: structured fields + accumulated facts, table `user_profiles`), DELETE `/api/profile` (privacy erase). The chat route hydrates every conversation from this profile and merges each turn's extractions back, so facts persist across sessions and documents (`lib/api/profile.ts`).
 

@@ -91,10 +91,18 @@ function createIndiaDivorcePetitionTemplate(config) {
     }
 
     getCaseNumberLabel() { return 'Case No.'; }
-    getDefaultCourt() { return config.defaultCourt.toUpperCase(); }
+    // Prefer the filer's own district/city over the hardcoded default court:
+    // dd.court → FAMILY COURT, <location> → config.defaultCourt. A location
+    // matching the default city keeps the court's official style (e.g.
+    // West Bengal: Kolkata → "Family Court, Calcutta").
+    getDefaultCourt(county) {
+      const loc = county && String(county).trim();
+      if (loc && loc.toUpperCase() !== config.defaultCity.toUpperCase()) return `FAMILY COURT, ${loc.toUpperCase()}`;
+      return config.defaultCourt.toUpperCase();
+    }
 
     generateCaseCaption(dd) {
-      const cn = (dd.court || this.getDefaultCourt()).toUpperCase();
+      const cn = (dd.court || this.getDefaultCourt(dd.county || dd.city)).toUpperCase();
       const no = dd.caseNumber || '[CASE NUMBER]';
       const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase();
       const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
@@ -111,7 +119,7 @@ function createIndiaDivorcePetitionTemplate(config) {
         caseNumber: dd.caseNumber,
         petitioner: dd.petitionerName,
         respondent: dd.respondentName,
-        formatted: [`IN THE ${cn}`, '', `Case No. ${no}`, '', 'IN THE MATTER OF:', '', ...parties].join('\n')
+        formatted: [`IN THE ${cn}`, '', `${this.getCaseNumberLabel()} ${no}`, '', 'IN THE MATTER OF:', '', ...parties].join('\n')
       };
     }
 
@@ -147,6 +155,12 @@ function createIndiaDivorcePetitionTemplate(config) {
       if (s.includes('adultery')) return 'The Respondent has committed adultery (HMA s.13(1)(i)).';
       if (s.includes('cruelty')) return 'The Respondent has treated the Petitioner with cruelty (HMA s.13(1)(ia)).';
       if (s.includes('desertion')) return 'The Respondent has deserted the Petitioner for not less than two years (HMA s.13(1)(ib)).';
+      if (s.includes('judicial')) return 'There has been no resumption of cohabitation as between the parties to the marriage for a period of one year or upwards after the passing of a decree for judicial separation in a proceeding to which they were parties (HMA s.13(1A)(i)).';
+      if (s.includes('restitution')) return 'There has been no restitution of conjugal rights as between the parties to the marriage for a period of one year or upwards after the passing of a decree for restitution of conjugal rights in a proceeding to which they were parties (HMA s.13(1A)(ii)).';
+      if (s.includes('bigamy')) return 'The Respondent husband had married again before the commencement of the Hindu Marriage Act 1955 (18 May 1955), or another wife of the husband married before such commencement was alive at the time of the solemnization of the marriage of the Petitioner, and that other wife was alive at the presentation of this petition (HMA s.13(2)(i); wife only).';
+      if (s.includes('rape') || s.includes('sodomy') || s.includes('bestiality')) return 'The Respondent husband has, since the solemnization of the marriage, been guilty of rape, sodomy or bestiality (HMA s.13(2)(ii); wife only).';
+      if (s.includes('maintenance') && s.includes('cohabitation')) return 'A decree or order awarding maintenance to the Petitioner wife notwithstanding that she was living apart has been passed against the Respondent husband (Hindu Adoptions and Maintenance Act 1956 s.18, or CrPC s.125 — now BNSS s.144), and cohabitation between the parties has not been resumed for one year or upwards since the passing of that decree or order (HMA s.13(2)(iii); wife only).';
+      if (s.includes('puberty') || s.includes('repudiat')) return 'The marriage of the Petitioner (whether consummated or not) was solemnized before she attained the age of fifteen years, and she repudiated the marriage after attaining that age but before attaining the age of eighteen years (HMA s.13(2)(iv); wife only).';
       return 'The parties have mutually consented to dissolve the marriage (HMA s.13B / SMA s.28).';
     }
   }
@@ -171,12 +185,18 @@ function createIndiaDivorceDecreeTemplate(config) {
     }
 
     getCaseNumberLabel() { return 'Case No.'; }
-    getDefaultCourt() { return config.defaultCourt.toUpperCase(); }
-    generateHeader() { return `IN THE ${config.defaultCourt.toUpperCase()}`; }
+    // Prefer the filer's own district/city over the hardcoded default court
+    // (dd.court → FAMILY COURT, <location> → config.defaultCourt).
+    getDefaultCourt(county) {
+      const loc = county && String(county).trim();
+      if (loc && loc.toUpperCase() !== config.defaultCity.toUpperCase()) return `FAMILY COURT, ${loc.toUpperCase()}`;
+      return config.defaultCourt.toUpperCase();
+    }
+    generateHeader(dd = {}) { return `IN THE ${(dd.court || this.getDefaultCourt(dd.county || dd.city)).toUpperCase()}`; }
     generateVenue(county) { return (county || config.defaultCity).toUpperCase(); }
 
     generateCaseCaption(dd) {
-      const cn = (dd.court || this.getDefaultCourt()).toUpperCase();
+      const cn = (dd.court || this.getDefaultCourt(dd.county || dd.city)).toUpperCase();
       const no = dd.caseNumber || '[CASE NUMBER]';
       const p = (dd.petitionerName || '[PETITIONER NAME]').toUpperCase();
       const r = (dd.respondentName || '[RESPONDENT NAME]').toUpperCase();
@@ -190,7 +210,7 @@ function createIndiaDivorceDecreeTemplate(config) {
         caseNumber: dd.caseNumber,
         petitioner: dd.petitionerName,
         respondent: dd.respondentName,
-        formatted: `IN THE ${cn}\n\nCase No. ${no}\n\nIN THE MATTER OF:\n\n${parties}`
+        formatted: `IN THE ${cn}\n\n${this.getCaseNumberLabel()} ${no}\n\nIN THE MATTER OF:\n\n${parties}`
       };
     }
 
@@ -256,11 +276,11 @@ function createIndiaDivorceDecreeTemplate(config) {
 function createIndiaDivorcePrompts(config) {
   const SHARED_RULES = `\nEXTRACTION RULES:\n- Always call process_phase_data\n- Use FIRST PERSON for facts\n- Never repeat or fabricate\n- Ask ONE clarifying question if unclear\n- Be warm, professional, concise\n\nPHASE ADVANCEMENT:\n- Set phase_complete: true ONLY when all required fields collected\n`;
 
-  const INTAKE = `You are a legal document assistant helping someone file for divorce in ${config.stateName}, India.\n\nCRITICAL — PERSONAL LAW TRIAGE:\nYou MUST determine the applicable personal law first.\n\nCOLLECT:\n1. Petitioner's full legal first and last name\n2. Respondent's full legal first and last name\n3. Personal law: Hindu/Buddhist/Jain/Sikh → HMA | Special Marriage Act → SMA | Christian → IDA | Muslim → DMMA\n\nOPENING:\n"I'm here to help you prepare your divorce petition for filing in ${config.stateName}.\nLet's start — what is your full legal name?"\n\nKEY FACTS:\n- Court: ${config.defaultCourt}\n- Stamp paper: ${config.stampPaperValue}\n${SHARED_RULES}`;
+  const INTAKE = `You are a legal document assistant helping someone file for divorce in ${config.stateName}, India.\n\nCRITICAL — PERSONAL LAW TRIAGE:\nYou MUST determine the applicable personal law first.\n\nCOLLECT:\n1. Petitioner's full legal first and last name\n2. Respondent's full legal first and last name\n3. Personal law: Hindu/Buddhist/Jain/Sikh → HMA | Special Marriage Act → SMA | Christian → IDA | Muslim → DMMA (wife-only: the Dissolution of Muslim Marriages Act 1939 gives judicial divorce grounds to Muslim WIVES; a husband's divorce proceeds under Muslim personal law, not the DMMA)\n\nOPENING:\n"I'm here to help you prepare your divorce petition for filing in ${config.stateName}.\nLet's start — what is your full legal name?"\n\nKEY FACTS:\n- Court: ${config.defaultCourt}\n- Stamp paper: ${config.stampPaperValue}\n${SHARED_RULES}`;
 
   const RESIDENCY = `Legal document assistant for ${config.stateName} divorce.\nJurisdiction per HMA s.19 / SMA s.31: filed where marriage was solemnized, respondent resides, parties last resided together, or petitioner (wife) resides.\n\nCOLLECT:\n1. Where was marriage solemnized?\n2. Current residence → confirm ${config.stateName}\n3. Spouse's residence\n4. Preferred court location\n${SHARED_RULES}`;
 
-  const GROUNDS = `Legal document assistant for ${config.stateName} divorce.\nHMA s.13 / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\nAmardeep Singh (2017): 6-month cooling-off waivable\nShilpa Sailesh v. Varun Sreenivasan (2023): SC may grant divorce under Art. 142 on irretrievable breakdown\nDelhi HC Full Bench (Dec 2025): 1-year separation under s.13B(1) is directory, not mandatory\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
+  const GROUNDS = `Legal document assistant for ${config.stateName} divorce.\nHMA s.13 / mutual consent HMA s.13B / SMA s.28 / IDA s.10 / DMMA s.2\nAmardeep Singh (2017): 6-month cooling-off waivable\nShilpa Sailesh v. Varun Sreenivasan (2023): SC may grant divorce under Art. 142 on irretrievable breakdown\nDelhi HC Full Bench (Dec 2025): 1-year separation under s.13B(1) is directory, not mandatory (binding in Delhi, persuasive elsewhere)\n\nCOLLECT:\n1. Date of marriage (place)\n2. Date of separation\n3. Ground: mutual consent or specific?\nREQUIRED: grounds, marriage_date, marriage_city, separation_date\n${SHARED_RULES}`;
 
   const CHILDREN = `Legal document assistant for ${config.stateName} divorce.\nHMA s.26 / HMGA 1956 / GWA 1890 / BNSS s.144. Welfare of child paramount.\n\nCOLLECT:\n1. Minor/dependent children? → If NO: phase complete\n2. Each child: name, DOB, living arrangements\n3. Custody proposal\n4. Maintenance agreement\nREQUIRED: children_confirmed\n${SHARED_RULES}`;
 
@@ -270,7 +290,7 @@ function createIndiaDivorcePrompts(config) {
 
   const SERVICE = `Legal document assistant for ${config.stateName} divorce.\nService: personal, substituted, registered post, mutual consent.\n\nCOLLECT:\n1. Mutual consent or contested?\n2. Respondent's address\n3. Cooperative?\nREQUIRED: service_method, respondent_address\n${SHARED_RULES}`;
 
-  const REVIEW = `Legal document assistant for ${config.stateName} divorce. Final review.\nSummarize all information. Ask user to confirm. user_confirmed_review: true\n\nREMINDERS:\n- Stamp paper: ${config.stampPaperValue}\n- Filing fee: ~${config.filingFee || 'varies by court'}\n- Mutual consent: First Motion → 6-month cooling-off → Second Motion\n- Cooling-off waivable (Amardeep Singh (2017)); 1-year separation waivable (Delhi HC Dec 2025)\n- Emergency: 181 or 112\n${SHARED_RULES}`;
+  const REVIEW = `Legal document assistant for ${config.stateName} divorce. Final review.\nSummarize all information. Ask user to confirm. user_confirmed_review: true\n\nREMINDERS:\n- Stamp paper: ${config.stampPaperValue}\n- Filing fee: ~${config.filingFee || 'varies by court'}\n- Mutual consent: First Motion → 6-month cooling-off → Second Motion\n- Cooling-off waivable (Amardeep Singh (2017)); 1-year separation waivable (Delhi HC Full Bench, Dec 2025 — binding in Delhi, persuasive elsewhere)\n- Emergency: 181 or 112\n${SHARED_RULES}`;
 
   const PHASES = {
     INTAKE:    { name: 'INTAKE',    displayName: 'Getting Started',        order: 1, prompt: INTAKE,    requiredFields: ['petitionerFirstName', 'petitionerLastName', 'respondentFirstName', 'respondentLastName'], optional: false },

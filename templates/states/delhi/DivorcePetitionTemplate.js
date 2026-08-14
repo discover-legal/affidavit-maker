@@ -83,15 +83,23 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Case No.';
+    // Delhi Family Courts docket matrimonial matters as "HMA No. ___/[year]"
+    // (Hindu Marriage Act track — the overwhelmingly common case type).
+    return 'HMA No.';
   }
 
   getDefaultCourt(county) {
+    // Prefer the filer's own district/city over the hardcoded default
+    // (Saket serves only the South / South-East districts).
+    const loc = county && String(county).trim();
+    if (loc && !['DELHI', 'NEW DELHI'].includes(loc.toUpperCase())) {
+      return `FAMILY COURT, ${loc.toUpperCase()}`;
+    }
     return 'FAMILY COURT, SAKET, NEW DELHI';
   }
 
   generateCaseCaption(divorceData) {
-    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '[COURT NAME]').toUpperCase();
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city) || '[COURT NAME]').toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
 
@@ -194,6 +202,24 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
     if (g.includes('desertion')) {
       return 'The Respondent has deserted the Petitioner for a continuous period of not less than two years immediately preceding the presentation of this petition, within the meaning of Section 13(1)(ib) of the Hindu Marriage Act 1955.';
+    }
+    if (g.includes('judicial')) {
+      return 'There has been no resumption of cohabitation as between the parties to the marriage for a period of one year or upwards after the passing of a decree for judicial separation in a proceeding to which they were parties, within the meaning of Section 13(1A)(i) of the Hindu Marriage Act 1955.';
+    }
+    if (g.includes('restitution')) {
+      return 'There has been no restitution of conjugal rights as between the parties to the marriage for a period of one year or upwards after the passing of a decree for restitution of conjugal rights in a proceeding to which they were parties, within the meaning of Section 13(1A)(ii) of the Hindu Marriage Act 1955.';
+    }
+    if (g.includes('bigamy')) {
+      return 'The Respondent husband had married again before the commencement of the Hindu Marriage Act 1955, or another wife of the husband married before such commencement was alive at the time of the solemnization of the marriage of the Petitioner, and that other wife was alive at the presentation of this petition, within the meaning of Section 13(2)(i) of the Hindu Marriage Act 1955 (wife only).';
+    }
+    if (g.includes('rape') || g.includes('sodomy') || g.includes('bestiality')) {
+      return 'The Respondent husband has, since the solemnization of the marriage, been guilty of rape, sodomy or bestiality, within the meaning of Section 13(2)(ii) of the Hindu Marriage Act 1955 (wife only).';
+    }
+    if (g.includes('maintenance') && g.includes('cohabitation')) {
+      return 'A decree or order awarding maintenance to the Petitioner wife notwithstanding that she was living apart has been passed against the Respondent husband (Hindu Adoptions and Maintenance Act 1956 s.18, or CrPC s.125 — now BNSS s.144), and cohabitation between the parties has not been resumed for one year or upwards since the passing of that decree or order, within the meaning of Section 13(2)(iii) of the Hindu Marriage Act 1955 (wife only).';
+    }
+    if (g.includes('puberty') || g.includes('repudiat')) {
+      return 'The marriage of the Petitioner (whether consummated or not) was solemnized before she attained the age of fifteen years, and she repudiated the marriage after attaining that age but before attaining the age of eighteen years, within the meaning of Section 13(2)(iv) of the Hindu Marriage Act 1955 (wife only).';
     }
     // Default: mutual consent
     return 'The Petitioner and Respondent have been living separately for more than one year and have mutually consented to dissolve the marriage by a decree of divorce under Section 13B of the Hindu Marriage Act 1955 / Section 28 of the Special Marriage Act 1954.';

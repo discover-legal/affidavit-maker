@@ -116,10 +116,22 @@ s.37/s.42 pinpoints, South Africa's s.4(2) facts, the Nigerian restitution
 one-year element, and New Hampshire's swapped RSA 458:7 paragraphs and
 pre-2019 alimony statute.
 
-## Notes — flagged but not graded WRONG
+## Notes — flagged but not graded WRONG (ALL ADDRESSED in the 2026-08-14 follow-up)
 
 Cross-cutting observations recorded in the verdicts JSON that did not flip a
-verdict; candidates for future passes:
+verdict. Every item below was subsequently fixed in the follow-up pass
+completed 2026-08-14 (India: s.13(1A) + wife-only s.13(2) grounds added to all
+16 states, DMMA wife-only caveat, location-aware default courts, real docket
+labels (HMA No./M.C. No./Petition No./O.P. No.), Maharashtra stamp duty
+corrected to the INR 500 2024 ordinance; Nigeria: s.2(3) any-state
+jurisdiction, s.30(2) bar exceptions, s.57 child gate in all 12, s.16(2)(a)
+presumption pinpoint, compact grounds fleshed out to full statutory elements;
+Australia: divorce-order-only ORDERS SOUGHT with a separate-Initiating-
+Application note, "(DIVISION 2)" captions for the 7 FCFCOA states,
+Proof-of-Separation marked conditional; UK/Ireland: England fee £628,
+Scotland interim-gender-recognition ground + SHERIFFDOM heading, Ireland
+requiredForms, NI Art.26A; Kenya: "Divorce Cause No." styling). The original
+observations, for the record:
 - India: HMA s.13(1A) and the wife-only s.13(2) grounds are absent from the
   factory states' metadata (present in Delhi's bespoke set); DMMA grounds are
   wife-only, which the Muslim triage note doesn't say; local docket

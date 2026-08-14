@@ -6,6 +6,16 @@
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
+// The six sheriffdoms of Scotland (for the Form G1 "SHERIFFDOM OF ... AT ..." heading)
+const SCOTTISH_SHERIFFDOMS = [
+  'GLASGOW AND STRATHKELVIN',
+  'GRAMPIAN, HIGHLAND AND ISLANDS',
+  'LOTHIAN AND BORDERS',
+  'NORTH STRATHCLYDE',
+  'SOUTH STRATHCLYDE, DUMFRIES AND GALLOWAY',
+  'TAYSIDE, CENTRAL AND FIFE'
+];
+
 /**
  * Scotland Divorce Petition Template (Initial Writ)
  *
@@ -13,12 +23,15 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * (or a Summons in the Court of Session for complex cases). The party raising the action
  * is the "Pursuer" and the other party is the "Defender".
  *
- * Scotland has NOT adopted no-fault divorce. The sole ground is "irretrievable breakdown"
- * but it must be proved by one of four facts:
+ * Scotland has NOT adopted no-fault divorce. The principal ground is "irretrievable
+ * breakdown" (s.1(1)(a)), which must be proved by one of four facts:
  *   (a) Adultery — Divorce (Scotland) Act 1976, s.1(2)(a)
  *   (b) Unreasonable behaviour — s.1(2)(b)
  *   (c) 1-year separation with consent — s.1(2)(d) (reduced from 2 years by 2006 Act)
  *   (d) 2-year separation without consent — s.1(2)(e) (reduced from 5 years by 2006 Act)
+ * There is a second, free-standing ground: an interim gender recognition certificate
+ * under the Gender Recognition Act 2004 issued to either party after the date of the
+ * marriage — s.1(1)(b) (inserted by GRA 2004, Sch.2 para.6).
  *
  * Note: Desertion was removed as a ground by the Family Law (Scotland) Act 2006.
  *
@@ -82,9 +95,21 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return 'Court Ref. No.';
   }
 
+  /**
+   * Sheriff-court initial writs are headed "SHERIFFDOM OF [sheriffdom] AT [place]"
+   * (Ordinary Cause Rules 1993, Form G1). The interview usually captures either the
+   * sheriffdom or the court town in `county`; whichever slot is unknown keeps a
+   * placeholder for the filer to complete.
+   */
   getDefaultCourt(county) {
-    const location = (county || '[LOCATION]').toUpperCase();
-    return `SHERIFF COURT AT ${location}`;
+    const value = (county || '').trim().toUpperCase();
+    if (!value) {
+      return 'SHERIFFDOM OF [SHERIFFDOM] AT [PLACE]';
+    }
+    if (SCOTTISH_SHERIFFDOMS.includes(value)) {
+      return `SHERIFFDOM OF ${value} AT [PLACE]`;
+    }
+    return `SHERIFFDOM OF [SHERIFFDOM] AT ${value}`;
   }
 
   /**
@@ -98,8 +123,11 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const pursuer = (divorceData.petitionerName || '[PURSUER NAME]').toUpperCase();
     const defender = (divorceData.respondentName || '[DEFENDER NAME]').toUpperCase();
 
+    // Form G1 headings begin "SHERIFFDOM OF ..." with no "IN THE" prefix.
+    const heading = courtName.startsWith('SHERIFFDOM') ? courtName : `IN THE ${courtName}`;
+
     const caption = [
-      `IN THE ${courtName}`,
+      heading,
       '',
       `${caseLabel} ${caseNumber}`,
       '',
@@ -205,9 +233,14 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b) Unreasonable behaviour — s.1(2)(b)
    *   (c) 1-year separation with consent — s.1(2)(d)
    *   (d) 2-year separation without consent — s.1(2)(e)
+   * Separate second ground: interim gender recognition certificate issued to either
+   * party after the date of the marriage — s.1(1)(b) (Gender Recognition Act 2004).
    */
   getGroundsText(groundsForDivorce) {
     const g = (groundsForDivorce || 'separation_1yr_consent').toLowerCase();
+    if (g.includes('gender') || g.includes('recognition') || g.includes('grc')) {
+      return 'An interim gender recognition certificate under the Gender Recognition Act 2004 has, after the date of the marriage, been issued to a party to the marriage, in terms of section 1(1)(b) of the Divorce (Scotland) Act 1976.';
+    }
     if (g.includes('adultery')) {
       return 'The marriage has broken down irretrievably by reason of the Defender\'s adultery, in terms of section 1(2)(a) of the Divorce (Scotland) Act 1976.';
     }

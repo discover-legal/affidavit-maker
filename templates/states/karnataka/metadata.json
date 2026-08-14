@@ -18,7 +18,7 @@
     { "code": "hma", "name": "Hindu Marriage Act 1955", "applies": "Hindu, Buddhist, Jain, Sikh", "grounds_section": "s.13", "mutual_consent_section": "s.13B" },
     { "code": "sma", "name": "Special Marriage Act 1954", "applies": "Inter-faith or secular marriages", "grounds_section": "s.27", "mutual_consent_section": "s.28" },
     { "code": "ida", "name": "Divorce Act, 1869", "applies": "Christians", "grounds_section": "s.10", "mutual_consent_section": "s.10A" },
-    { "code": "dmma", "name": "Dissolution of Muslim Marriages Act 1939", "applies": "Muslim wives", "grounds_section": "s.2", "notes": "Triple Talaq banned" }
+    { "code": "dmma", "name": "Dissolution of Muslim Marriages Act 1939", "applies": "Muslim wives (wife-only judicial grounds; a husband's divorce proceeds under Muslim personal law, not the DMMA)", "grounds_section": "s.2", "notes": "Triple Talaq banned" }
   ],
   "legalCitations": [
     { "code": "Hindu Marriage Act 1955", "description": "Marriage and divorce for Hindus, Buddhists, Jains, Sikhs" },

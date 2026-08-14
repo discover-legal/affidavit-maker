@@ -17,7 +17,7 @@ class QueenslandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() { return 'File Number'; }
-  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
+  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
   generateHeader() { return 'STATE OF QUEENSLAND'; }
   generateVenue(county) { return `${(county || '[REGISTRY LOCATION]').toUpperCase()} REGISTRY`; }
 

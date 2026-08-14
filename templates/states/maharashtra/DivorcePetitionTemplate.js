@@ -20,11 +20,17 @@ class MaharashtraDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
   }
 
-  getCaseNumberLabel() { return 'Case No.'; }
-  getDefaultCourt(county) { return 'FAMILY COURT, BANDRA, MUMBAI'; }
+  // Family Court, Mumbai dockets matrimonial matters as "Petition No. A-.../year"
+  getCaseNumberLabel() { return 'Petition No.'; }
+  // Prefer the filer's own district/city over the hardcoded default court
+  getDefaultCourt(county) {
+    const loc = county && String(county).trim();
+    if (loc && loc.toUpperCase() !== 'MUMBAI') return `FAMILY COURT, ${loc.toUpperCase()}`;
+    return 'FAMILY COURT, BANDRA, MUMBAI';
+  }
 
   generateCaseCaption(divorceData) {
-    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county || divorceData.city)).toUpperCase();
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
     const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
@@ -34,7 +40,7 @@ class MaharashtraDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const partyLines = joint
       ? [petitioner, 'Petitioner No. 1', '', 'AND', '', respondent, 'Petitioner No. 2']
       : [petitioner, 'Petitioner', '', 'VERSUS', '', respondent, 'Respondent'];
-    const caption = [`IN THE ${courtName}`, '', `Case No. ${caseNumber}`, '', 'IN THE MATTER OF:', '', ...partyLines].join('\n');
+    const caption = [`IN THE ${courtName}`, '', `${this.getCaseNumberLabel()} ${caseNumber}`, '', 'IN THE MATTER OF:', '', ...partyLines].join('\n');
     return { courtName, caseNumber: divorceData.caseNumber, petitioner: divorceData.petitionerName, respondent: divorceData.respondentName, formatted: caption };
   }
 
@@ -74,6 +80,12 @@ class MaharashtraDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (g.includes('adultery')) return 'The Respondent has had voluntary sexual intercourse with a person other than the Petitioner after solemnization of the marriage (HMA s.13(1)(i)).';
     if (g.includes('cruelty')) return 'The Respondent has treated the Petitioner with cruelty (HMA s.13(1)(ia)).';
     if (g.includes('desertion')) return 'The Respondent has deserted the Petitioner for a continuous period of not less than two years (HMA s.13(1)(ib)).';
+    if (g.includes('judicial')) return 'There has been no resumption of cohabitation as between the parties to the marriage for a period of one year or upwards after the passing of a decree for judicial separation in a proceeding to which they were parties (HMA s.13(1A)(i)).';
+    if (g.includes('restitution')) return 'There has been no restitution of conjugal rights as between the parties to the marriage for a period of one year or upwards after the passing of a decree for restitution of conjugal rights in a proceeding to which they were parties (HMA s.13(1A)(ii)).';
+    if (g.includes('bigamy')) return 'The Respondent husband had married again before the commencement of the Hindu Marriage Act 1955 (18 May 1955), or another wife of the husband married before such commencement was alive at the time of the solemnization of the marriage of the Petitioner, and that other wife was alive at the presentation of this petition (HMA s.13(2)(i); wife only).';
+    if (g.includes('rape') || g.includes('sodomy') || g.includes('bestiality')) return 'The Respondent husband has, since the solemnization of the marriage, been guilty of rape, sodomy or bestiality (HMA s.13(2)(ii); wife only).';
+    if (g.includes('maintenance') && g.includes('cohabitation')) return 'A decree or order awarding maintenance to the Petitioner wife notwithstanding that she was living apart has been passed against the Respondent husband (Hindu Adoptions and Maintenance Act 1956 s.18, or CrPC s.125 — now BNSS s.144), and cohabitation between the parties has not been resumed for one year or upwards since (HMA s.13(2)(iii); wife only).';
+    if (g.includes('puberty') || g.includes('repudiat')) return 'The marriage of the Petitioner (whether consummated or not) was solemnized before she attained the age of fifteen years, and she repudiated the marriage after attaining that age but before attaining the age of eighteen years (HMA s.13(2)(iv); wife only).';
     return 'The Petitioner and Respondent have been living separately for more than one year and have mutually consented to dissolve the marriage under Section 13B of the Hindu Marriage Act 1955 / Section 28 of the Special Marriage Act 1954.';
   }
 }

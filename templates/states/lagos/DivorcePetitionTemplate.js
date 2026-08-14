@@ -15,8 +15,8 @@ const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTempl
  * Key Legal References:
  * - Matrimonial Causes Act 1970, Cap M7 LFN 2004 (MCA)
  *   - s.15: Sole ground is irretrievable breakdown, proved by one of eight facts (s.15(2)(a)-(h))
- *   - s.30: 2-year bar — cannot file within 2 years of marriage without leave
- *   - s.58: Decree Nisi becomes Decree Absolute after 3 months
+ *   - s.30: 2-year bar — cannot file within 2 years of marriage without leave (inapplicable to s.15(2)(a)/(b) or s.16(1)(a) petitions, s.30(2))
+ *   - s.58: Decree Nisi becomes Decree Absolute after 3 months (s.57 declaration required where children under 16)
  *   - s.70-73: Ancillary relief (maintenance, property, custody)
  * - Marriage Act, Cap M6 LFN 2004 (governs statutory marriages)
  * - Child Rights Act 2003 (adopted by Lagos State)
@@ -56,13 +56,13 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 0,
       countyDays: 0,
-      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). Lagos High Court has jurisdiction if either party resides within the state.'
+      description: 'Either party must be domiciled in Nigeria (MCA s.2). A wife ordinarily resident in Nigeria for three years is deemed domiciled (MCA s.7(b)). Any person domiciled in Nigeria may file in the High Court of any state (MCA s.2(3)); the Lagos High Court is the usual venue when either party resides within the state.'
     };
 
     // MCA s.30 — 2-year bar from date of marriage
     this.waitingPeriod = {
       days: 0,
-      description: 'No mandatory waiting period after filing. However, a petition cannot be filed within 2 years of marriage unless the court grants leave on grounds of exceptional hardship (MCA s.30). Decree Nisi becomes Decree Absolute after 3 months (MCA s.58).'
+      description: 'No mandatory waiting period after filing. However, a petition cannot be filed within 2 years of marriage unless the court grants leave on grounds of exceptional hardship (MCA s.30); the bar does not apply to petitions based on wilful refusal to consummate or adultery (MCA s.30(2)). Decree Nisi becomes Decree Absolute after 3 months (MCA s.58); where there are children under 16, subject to the s.57 declaration as to arrangements for them.'
     };
 
     this.formatting = {
@@ -125,7 +125,7 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * Jurisdiction statement — MCA s.2.
    */
   getJurisdictionStatement(divorceData) {
-    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). The Petitioner resides within the jurisdiction of the High Court of Lagos State.`;
+    return `The Petitioner/Respondent is domiciled in Nigeria as required by section 2 of the Matrimonial Causes Act, Cap M7 LFN 2004 (or, being a wife, has been ordinarily resident in Nigeria for a continuous period of not less than three years immediately preceding the date of this Petition and is thereby deemed domiciled pursuant to section 7(b) of the said Act). By virtue of section 2(3) of the said Act, proceedings may be instituted in the High Court of any State; the Petitioner resides within Lagos State, and this Honourable Court is accordingly the appropriate venue.`;
   }
 
   /**
@@ -221,7 +221,7 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return 'The Respondent has, for a period of not less than one year, failed to comply with a decree of restitution of conjugal rights made under the Act, within the meaning of section 15(2)(g) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
     }
     if (g.includes('death') || g.includes('absent') || g.includes('presumption')) {
-      return 'The other party to the marriage has, for a period of not less than seven years, been absent from the Petitioner and the Petitioner has no reason to believe that the other party has been alive at any time within that period, within the meaning of section 15(2)(h) of the Matrimonial Causes Act, Cap M7 LFN 2004.';
+      return 'The other party to the marriage has been absent from the Petitioner for such time and in such circumstances as to provide reasonable grounds for presuming that he or she is dead, within the meaning of section 15(2)(h) of the Matrimonial Causes Act, Cap M7 LFN 2004; the other party has been continually absent from the Petitioner for a period of not less than seven years and the Petitioner has no reason to believe that the other party has been alive at any time within that period, which is sufficient proof of that fact pursuant to section 16(2)(a) of the said Act.';
     }
     // Default: 2-year separation with consent
     return 'The parties to the marriage have lived apart for a continuous period of at least two years immediately preceding the presentation of this Petition, and the Respondent does not object to the grant of a decree, within the meaning of section 15(2)(e) of the Matrimonial Causes Act, Cap M7 LFN 2004.';

@@ -11,7 +11,7 @@ class TasmaniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
   getCaseNumberLabel() { return 'File Number'; }
-  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
+  getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
   generateHeader() { return 'STATE OF TASMANIA'; }
   generateVenue(county) { return `${(county || '[REGISTRY]').toUpperCase()} REGISTRY`; }
   generateCaseCaption(divorceData) {

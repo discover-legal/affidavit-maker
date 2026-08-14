@@ -43,6 +43,8 @@ COLLECT:
    → Special Marriage Act (inter-faith or registered under SMA) → SMA track
    → Christian → Divorce Act, 1869 track
    → Muslim → Dissolution of Muslim Marriages Act 1939 / Muslim personal law track
+     (note: the DMMA gives judicial divorce grounds to Muslim WIVES only — a husband's
+     divorce proceeds under Muslim personal law, not the DMMA)
    → Parsi → Parsi Marriage and Divorce Act 1936 track
    → If unsure: "Was your marriage performed through a religious ceremony or registered under
      the Special Marriage Act?"

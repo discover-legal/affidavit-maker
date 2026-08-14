@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 
 export async function GET(
   req: Request,
-  { params }: { params: { state: string } },
+  { params: paramsPromise }: { params: Promise<{ state: string }> },
 ) {
   const limit = await checkRateLimit('templates', rateLimitKey(req, 'templates'), RATE_LIMITS.standard);
   if (!limit.ok) {
@@ -23,6 +23,7 @@ export async function GET(
   }
 
   try {
+    const params = await paramsPromise;
     const code = (params.state || '').toUpperCase();
     const jurisdictions = history.jurisdictions as Record<string, unknown>;
     const entry = jurisdictions[code];

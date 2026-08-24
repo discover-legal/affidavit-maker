@@ -45,7 +45,7 @@ export const OFFERINGS: readonly Offering[] = [
     featured: true,
     features: [
       'Full guided divorce interview',
-      'Petition + decree generated together',
+      'Petition + decree drafts generated together',
       'Children, property, and support modules',
       'Respondent path: answer builder if you were served',
       "Tailored to your state's waiting periods & grounds",
@@ -165,7 +165,7 @@ export const STEPS = [
   {
     n: '04',
     title: 'Download, then keep going',
-    body: 'Get formatted PDF drafts plus what comes next: serving, responding, hearing prep, and a filing packet.',
+    body: 'Get organized PDF drafts and a case packet, plus what comes next: serving, responding, and hearing prep.',
   },
 ] as const;
 
@@ -178,7 +178,7 @@ export const FEATURE_QUADRANT = [
     iconColor: 'text-brand',
   },
   {
-    title: 'Court-format PDFs',
+    title: 'Court-format drafts',
     body: 'Margins, fonts, line numbers.',
     icon: ShieldCheck,
     iconBg: 'bg-purple-50',
@@ -223,7 +223,7 @@ export const FAQS = [
   },
   {
     q: 'Do I still need to file with the court myself?',
-    a: 'Yes. We prepare document drafts and a filing packet; you review and file them with the court using your court’s current instructions. The what’s-next roadmap walks you through serving, waiting periods, and hearings.',
+    a: 'Yes. We prepare organized drafts and a case packet to work from. Where your state publishes official court forms, you file on those — we link them from your account — using your drafts as source material, or bring everything to a lawyer or your court’s self-help center. The what’s-next roadmap walks you through serving, waiting periods, and hearings.',
   },
   {
     q: 'What happens to my information?',

@@ -1,11 +1,11 @@
 // services/courtPacket/index.js
 /**
- * Court filing-packet assembler.
+ * Case-packet assembler.
  *
  * Merges a generated main document PDF plus the user's uploaded evidence
- * into ONE court-ready PDF:
+ * into ONE organized draft PDF:
  *
- *   1. Cover sheet — "FILING PACKET", parties, where-to-file court block
+ *   1. Cover sheet — "CASE PACKET", parties, where-to-file court block
  *      (Utah county → district court via ./utahCourts), plain-language
  *      checklist, information-not-advice line.
  *   2. Table of contents — main document + each exhibit with its page
@@ -196,7 +196,7 @@ function drawCoverPage(page, fonts, opts) {
   const { mainTitle, parties, state, county, packetDate } = opts;
   let y = PAGE_HEIGHT - 130;
 
-  drawCentered(page, 'FILING PACKET', y, fonts.bold, 28);
+  drawCentered(page, 'CASE PACKET', y, fonts.bold, 28);
   y -= 40;
 
   if (mainTitle) {
@@ -396,7 +396,7 @@ function drawIndexPages(doc, fonts, exhibits) {
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Assemble the filing packet.
+ * Assemble the case packet.
  *
  * @param {object} opts
  * @param {Buffer} opts.mainPdfBuffer - The generated main document PDF (required).
@@ -408,7 +408,7 @@ function drawIndexPages(doc, fonts, exhibits) {
  * @param {string} [opts.county] - County name for the where-to-file block.
  * @param {string} [opts.packetDate] - Display date; defaults to today (YYYY-MM-DD).
  * @param {string|string[]} [opts.parties] - Optional party line(s) for the cover.
- * @returns {Promise<Buffer>} The merged, court-ready PDF.
+ * @returns {Promise<Buffer>} The merged, organized draft PDF.
  */
 async function assemblePacket(opts) {
   const {
@@ -481,7 +481,7 @@ async function assemblePacket(opts) {
 
   // ── Pass 2 (drawing): emit pages in final order ────────────────────────────
   const out = await PDFDocument.create();
-  out.setTitle(enc(`Filing Packet — ${mainTitle}`));
+  out.setTitle(enc(`Case Packet — ${mainTitle}`));
   out.setProducer('Discover.Legal');
   const fonts = {
     regular: await out.embedFont(StandardFonts.TimesRoman),

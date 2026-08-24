@@ -36,6 +36,7 @@ import {
   Scale,
 } from 'lucide-react';
 import { getInitialLang, setLang, type Lang } from '@/lib/i18n';
+import { officialFormsLink } from '@/lib/officialForms';
 import {
   childBirthDate,
   formatFriendlyDate,
@@ -125,6 +126,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'check.heading': 'Check our work',
     'check.sub':
       'The court’s own free tools. Use them to double-check your paperwork before your day.',
+    'check.official.body':
+      'Your courts’ official forms — the versions you actually file. Use your drafts from here to fill them in.',
     'check.ocap.title': 'Utah OCAP — Online Court Assistance Program',
     'check.ocap.body':
       'The Utah courts’ official free document tool. You can build the same paperwork there and compare it against yours.',
@@ -216,6 +219,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'check.heading': 'Verifica nuestro trabajo',
     'check.sub':
       'Las herramientas gratuitas del propio tribunal. Úsalas para verificar tu papeleo antes de tu día.',
+    'check.official.body':
+      'Los formularios oficiales de tus tribunales — las versiones que realmente se presentan. Usa tus borradores de aquí para completarlos.',
     'check.ocap.title': 'OCAP de Utah — Online Court Assistance Program',
     'check.ocap.body':
       'La herramienta oficial y gratuita de documentos de los tribunales de Utah. Puedes preparar el mismo papeleo ahí y compararlo con el tuyo.',
@@ -598,7 +603,18 @@ export default function HearingPrepClient() {
 
   const currentQuestion = questions[qIndex];
 
+  const officialForms = officialFormsLink(stateCode);
   const checkLinks = [
+    ...(officialForms
+      ? [
+          {
+            key: 'official',
+            href: officialForms.url,
+            title: officialForms.name,
+            body: tt(lang, 'check.official.body'),
+          },
+        ]
+      : []),
     {
       key: 'ocap',
       href: 'https://www.utcourts.gov/ocap/',

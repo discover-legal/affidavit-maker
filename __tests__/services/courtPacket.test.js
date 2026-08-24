@@ -145,7 +145,7 @@ describe('assemblePacket', () => {
     expect(packet.subarray(0, 4).toString('latin1')).toBe('%PDF');
     // 1 cover + 1 TOC + 2 main = 4. No separators, no exhibit index.
     expect(await pageCount(packet)).toBe(4);
-    expect(containsText(packet, 'FILING PACKET')).toBe(true);
+    expect(containsText(packet, 'CASE PACKET')).toBe(true);
     expect(containsText(packet, 'TABLE OF CONTENTS')).toBe(true);
     expect(containsText(packet, 'Third District Court')).toBe(true);
     expect(containsText(packet, 'EXHIBIT INDEX')).toBe(false);

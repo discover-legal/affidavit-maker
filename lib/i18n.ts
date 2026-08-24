@@ -71,7 +71,7 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'docs.aria': 'Papers you can create',
     'docs.heading': 'Papers you can create',
     'docs.intro':
-      'Court-ready PDFs filled in from your story. Review everything before you sign or file.',
+      'Draft PDFs that organize your story. Use them to fill in your state’s official forms, or bring them to a lawyer or your court’s self-help center. Review everything before you sign anything.',
     'docs.download': 'Download',
     'docs.preparing': 'Preparing…',
     'docs.error': 'The download didn’t work. Please try again.',
@@ -79,6 +79,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'docs.answerNote': 'This one is built step by step — you choose what to admit or deny.',
     'docs.handoffTitle': 'Taking this to a lawyer?',
     'docs.handoffBody': 'Download a case summary they can read in ten minutes.',
+    'docs.officialPre':
+      'Your state’s courts publish the official forms — file on those, using these drafts to fill them in: ',
     'docs.ocapPre': 'Utah has a free official tool you can use to check our work: ',
     'docs.ocapLink': 'OCAP, the Utah Courts’ Online Court Assistance Program',
     'docs.hearing': 'Your day in court — how to prepare',
@@ -226,7 +228,7 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'docs.aria': 'Documentos que puedes crear',
     'docs.heading': 'Documentos que puedes crear',
     'docs.intro':
-      'PDFs listos para el tribunal, completados con tu historia. Revisa todo antes de firmar o presentar.',
+      'Borradores en PDF que organizan tu historia. Úsalos para completar los formularios oficiales de tu estado, o llévalos a un abogado o al centro de autoayuda de tu tribunal. Revisa todo antes de firmar.',
     'docs.download': 'Descargar',
     'docs.preparing': 'Preparando…',
     'docs.error': 'No se pudo descargar. Intenta de nuevo.',
@@ -234,6 +236,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'docs.answerNote': 'Este se prepara paso a paso — tú eliges qué admitir o negar.',
     'docs.handoffTitle': '¿Vas a llevar esto a un abogado?',
     'docs.handoffBody': 'Descarga un resumen de tu caso que pueden leer en diez minutos.',
+    'docs.officialPre':
+      'Los tribunales de tu estado publican los formularios oficiales — presenta esos, usando estos borradores para completarlos: ',
     'docs.ocapPre':
       'Utah tiene una herramienta oficial gratuita para verificar nuestro trabajo: ',
     'docs.ocapLink': 'OCAP, el programa de asistencia en línea de los tribunales de Utah',

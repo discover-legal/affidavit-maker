@@ -56,7 +56,15 @@ npm run db:migrate    # Run database migrations
 
 ## Project Overview
 
-A **full-stack Next.js application** at `discover.legal` that helps users create legally-compliant legal documents using AI assistance. The same Next.js service serves marketing (landing, resources, articles, brand, legal), the authenticated app (dashboard, editor), and the API (`/api/*`).
+A **full-stack Next.js application** at `discover.legal` that helps users create legally-compliant legal documents using AI assistance.
+
+**Positioning (2026-08, liability posture)**: free, donation-supported, and a
+PREP tool — it organizes the user's story into draft documents; it is NOT the
+filing conduit. Where a jurisdiction publishes official court forms
+(`lib/officialForms.ts`, 60 verified jurisdictions), the UI links them and the
+copy tells users to file on those, using our drafts as source material. Never
+reintroduce "court-ready" / "ready to file" claims; the packet is a "Case
+packet", downloads are "drafts". The same Next.js service serves marketing (landing, resources, articles, brand, legal), the authenticated app (dashboard, editor), and the API (`/api/*`).
 
 Users can:
 - Chat with an AI to document facts

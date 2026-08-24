@@ -55,8 +55,11 @@ const DIVORCE_PHASE_NAMES_BY_STATE = {
   }
 };
 
-// Supported states for document creation — Utah first (primary launch state)
-const SUPPORTED_STATES = [
+// Quick-pick states shown as buttons — Utah first (primary launch state).
+// The FULL jurisdiction list (every supported state, province, and — when
+// enabled — international jurisdiction) is fetched from /api/templates/states
+// and offered in the dropdown below the quick picks.
+const POPULAR_STATES = [
   { code: 'UT', name: 'Utah' },
   { code: 'TX', name: 'Texas' },
   { code: 'AZ', name: 'Arizona' },
@@ -72,6 +75,31 @@ const API_BASE_URL = '';
 const ChatInterface = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+
+  // Full jurisdiction list for the picker. The quick-pick buttons work even
+  // if this fetch fails — the dropdown simply doesn't render (fail-open to
+  // the popular seven, never a broken picker).
+  const [moreStates, setMoreStates] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/templates/states`);
+        if (!res.ok) return;
+        const list = await res.json();
+        if (cancelled || !Array.isArray(list)) return;
+        const popular = new Set(POPULAR_STATES.map((s) => s.code));
+        const rest = list
+          .map((s) => ({ code: s.stateCode, name: s.stateName }))
+          .filter((s) => s.code && s.name && !popular.has(s.code))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setMoreStates(rest);
+      } catch {
+        /* keep quick picks only */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Gap-tap prefill from the profile page (?ask=<topic>): put the user's
   // "I want to add…" message in the input for them to edit and send.
@@ -397,6 +425,29 @@ First, please select your state above. Each state has different legal requiremen
 
   // State-aware divorce interview progress
   const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(currentDocument.documentType);
+  const chooseState = (state) => {
+    updateDocumentData({ state: state.code });
+    const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
+    const knowsUserName = Boolean(currentDocument.affiantName || currentDocument.petitionerFirstName);
+    const knowsSpouseName = Boolean(currentDocument.respondentName || currentDocument.respondentFirstName);
+    const nextPrompt = isDivorcePackage
+      ? knowsUserName && knowsSpouseName
+        ? `I already have both names from My Story. To continue, how long have you lived in ${state.name}, and which county do you live in?`
+        : knowsUserName
+          ? `I already have your name from My Story. To continue, tell me your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
+          : `To begin, tell me your full legal name, your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
+      : knowsUserName
+        ? 'I already have your name from My Story. Tell me what happened, including dates, people, and what you personally saw or did.'
+        : 'Start with your full legal name, then tell me what happened in your own words.';
+    setMessages(prev => [...prev, {
+      type: 'bot',
+      content: `Great! You've selected ${state.name}. ${isDivorcePackage
+        ? `I'll make sure your divorce documents comply with ${state.name} requirements.`
+        : `I'll make sure your affidavit complies with ${state.name} requirements.`
+      }\n\n${nextPrompt}`
+    }]);
+  };
+
   const orchestratorPhase = currentDocument.orchestratorState?.currentPhase;
   const currentPhaseIndex = orchestratorPhase ? DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
   const divorcePhaseNames = DIVORCE_PHASE_NAMES_BY_STATE[currentDocument.state] || DEFAULT_DIVORCE_PHASE_NAMES;
@@ -415,37 +466,35 @@ First, please select your state above. Each state has different legal requiremen
             <span className="text-xs text-red-500 font-medium">(Required)</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {SUPPORTED_STATES.map((state) => (
+            {POPULAR_STATES.map((state) => (
               <button
                 key={state.code}
-                onClick={() => {
-                  updateDocumentData({ state: state.code });
-                  const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
-                  const knowsUserName = Boolean(currentDocument.affiantName || currentDocument.petitionerFirstName);
-                  const knowsSpouseName = Boolean(currentDocument.respondentName || currentDocument.respondentFirstName);
-                  const nextPrompt = isDivorcePackage
-                    ? knowsUserName && knowsSpouseName
-                      ? `I already have both names from My Story. To continue, how long have you lived in ${state.name}, and which county do you live in?`
-                      : knowsUserName
-                        ? `I already have your name from My Story. To continue, tell me your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
-                        : `To begin, tell me your full legal name, your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
-                    : knowsUserName
-                      ? 'I already have your name from My Story. Tell me what happened, including dates, people, and what you personally saw or did.'
-                      : 'Start with your full legal name, then tell me what happened in your own words.';
-                  setMessages(prev => [...prev, {
-                    type: 'bot',
-                    content: `Great! You've selected ${state.name}. ${isDivorcePackage
-                      ? `I'll make sure your divorce documents comply with ${state.name} requirements.`
-                      : `I'll make sure your affidavit complies with ${state.name} requirements.`
-                    }\n\n${nextPrompt}`
-                  }]);
-                }}
+                onClick={() => chooseState(state)}
                 className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium text-gray-700 hover:text-blue-700"
               >
                 {state.code} - {state.name}
               </button>
             ))}
           </div>
+          {moreStates.length > 0 && (
+            <div className="mt-2">
+              <label className="sr-only" htmlFor="chat-state-select">All states and provinces</label>
+              <select
+                id="chat-state-select"
+                defaultValue=""
+                onChange={(e) => {
+                  const picked = moreStates.find((s) => s.code === e.target.value);
+                  if (picked) chooseState(picked);
+                }}
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="" disabled>All jurisdictions — states, provinces &amp; more…</option>
+                {moreStates.map((s) => (
+                  <option key={s.code} value={s.code}>{s.name} ({s.code})</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 

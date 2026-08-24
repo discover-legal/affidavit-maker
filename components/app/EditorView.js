@@ -807,18 +807,18 @@ const EditorView = ({ isNew = false, onBack }) => {
                 <span className="hidden sm:inline">{isCheckingPayment ? 'Checking...' : (() => {
                   if (currentDocument.documentType !== 'divorce_package') return 'Download PDF';
                   const LABELS = {
-                    divorce_petition: 'Download Petition', petition_dissolution: 'Download Petition',
-                    divorce_decree: 'Download Decree', judgment_dissolution: 'Download Decree',
-                    final_judgment: 'Download Judgment', proposed_judgment: 'Download Proposed Judgment',
-                    waiver_of_service: 'Download Waiver', acknowledgment_of_service: 'Download Acknowledgment',
-                    acknowledgment_of_receipt: 'Download Acknowledgment', cert_last_known_address: 'Download Certificate',
-                    prove_up_affidavit: 'Download Prove-Up', military_status_affidavit: 'Download Military Affidavit',
-                    indigency_affidavit: 'Download Indigency Affidavit', parenting_plan: 'Download Parenting Plan',
-                    child_support_worksheet: 'Download Worksheet', child_support_order: 'Download Support Order',
-                    spousal_support_order: 'Download Support Order', child_custody_order: 'Download Custody Order',
-                    summons_with_notice: 'Download Summons', verified_complaint: 'Download Complaint',
+                    divorce_petition: 'Download Petition draft', petition_dissolution: 'Download Petition draft',
+                    divorce_decree: 'Download Decree draft', judgment_dissolution: 'Download Decree draft',
+                    final_judgment: 'Download Judgment draft', proposed_judgment: 'Download Proposed Judgment draft',
+                    waiver_of_service: 'Download Waiver draft', acknowledgment_of_service: 'Download Acknowledgment draft',
+                    acknowledgment_of_receipt: 'Download Acknowledgment draft', cert_last_known_address: 'Download Certificate draft',
+                    prove_up_affidavit: 'Download Prove-Up draft', military_status_affidavit: 'Download Military Affidavit draft',
+                    indigency_affidavit: 'Download Indigency Affidavit draft', parenting_plan: 'Download Parenting Plan draft',
+                    child_support_worksheet: 'Download Worksheet draft', child_support_order: 'Download Support Order draft',
+                    spousal_support_order: 'Download Support Order draft', child_custody_order: 'Download Custody Order draft',
+                    summons_with_notice: 'Download Summons draft', verified_complaint: 'Download Complaint draft',
                   };
-                  return LABELS[currentDocument.activeSubDocument] || 'Download Document';
+                  return LABELS[currentDocument.activeSubDocument] || 'Download Document draft';
                 })()}</span>
               </button>
             </div>

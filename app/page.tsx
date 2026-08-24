@@ -5,7 +5,7 @@ import { jsonLd } from '@/lib/json-ld';
 const pageTitle =
   'Free AI-Assisted Divorce Drafts & Affidavits';
 const pageDescription =
-  'Free guided interviews prepare divorce petition, decree, affidavit, and supporting court document drafts — with bilingual step-by-step help for serving, responding, and hearings in seven U.S. states.';
+  'Free guided interviews organize your story into divorce petition, decree, affidavit, and supporting document drafts — with bilingual step-by-step help for serving, responding, and hearings in seven U.S. states.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {
@@ -37,7 +37,8 @@ export const metadata: Metadata = {
     'free divorce papers',
     'divorce package',
     'divorce papers online',
-    'online divorce filing',
+    'divorce paperwork organizer',
+    'court forms help',
     'uncontested divorce',
     'AI legal documents',
     'affidavit generator',
@@ -107,7 +108,7 @@ export default function HomePage() {
         url: 'https://discover.legal',
         logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
         description:
-          'Free AI-assisted affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah — bilingual English/Spanish.',
+          'Free AI-assisted preparation and organization of affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah — bilingual English/Spanish.',
       },
       {
         '@type': 'WebSite',
@@ -122,7 +123,7 @@ export default function HomePage() {
         '@id': 'https://discover.legal/#product-divorce-package',
         name: 'Divorce Package',
         description:
-          'Guided divorce document preparation with a petition and proposed decree tailored to your jurisdiction.',
+          'Guided divorce document preparation: organized petition and proposed decree drafts tailored to your jurisdiction — source material for your court’s official forms or a lawyer’s review.',
         image: [PRODUCT_IMAGE],
         brand: BRAND,
         category: 'Legal document preparation',
@@ -137,7 +138,7 @@ export default function HomePage() {
         '@id': 'https://discover.legal/#product-general-affidavit',
         name: 'General Affidavit',
         description:
-          "AI-guided sworn statement of facts, formatted to your jurisdiction's requirements.",
+          "AI-guided sworn-statement draft that organizes your facts, formatted to your jurisdiction's conventions.",
         image: [PRODUCT_IMAGE],
         brand: BRAND,
         category: 'Legal document preparation',

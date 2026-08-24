@@ -32,6 +32,7 @@ import CoffeeLink from './CoffeeLink';
 // so the fetched procedure can be turned into steps right in the browser.
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
 import { getInitialLang, setLang, t, type Lang } from '@/lib/i18n';
+import { officialFormsLink } from '@/lib/officialForms';
 import {
   MONEY_OTHER_LABELS,
   advisorFlags,
@@ -603,6 +604,7 @@ function PapersPanel({ profile, lang }: { profile: Record<string, unknown>; lang
   const [status, setStatus] = useState<Record<string, DownloadStatus>>({});
 
   const state = typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+  const officialForms = officialFormsLink(state);
   const perspective = detectPerspective(profile);
 
   useEffect(() => {
@@ -754,6 +756,21 @@ function PapersPanel({ profile, lang }: { profile: Record<string, unknown>; lang
 
       {/* Check-our-work + hearing-prep pointers. */}
       <div className="mt-3 space-y-1.5 text-sm">
+        {officialForms && (
+          <p className="text-gray-600">
+            {t(lang, 'docs.officialPre')}
+            <a
+              href={officialForms.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-brand-strong underline hover:text-brand"
+            >
+              {officialForms.name}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+            .
+          </p>
+        )}
         {state === 'UT' && (
           <p className="text-gray-600">
             {t(lang, 'docs.ocapPre')}

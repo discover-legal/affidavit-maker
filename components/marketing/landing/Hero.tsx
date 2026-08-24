@@ -43,13 +43,13 @@ export default function Hero() {
               </span>{' '}
               once.
               <br />
-              We draft the court papers.
+              We get your paperwork organized.
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-8 leading-relaxed">
-              A guided interview turns your words into divorce petition, decree, and affidavit
-              drafts — plus the supporting documents courts ask for, and plain-language help with
-              serving, responding, and your day in court. Completely free to use.
+              A guided interview turns your words into organized divorce petition, decree, and
+              affidavit drafts — plus plain-language help with serving, responding, and your day
+              in court. Walk in prepared. Completely free to use.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
@@ -132,7 +132,7 @@ export default function Hero() {
                     <FileStack className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-900">Filing packet</p>
+                    <p className="text-xs font-semibold text-slate-900">Case packet</p>
                     <p className="text-xs text-slate-500">Cover, TOC &amp; exhibits</p>
                   </div>
                 </div>

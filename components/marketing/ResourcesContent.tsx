@@ -145,7 +145,7 @@ export default function ResourcesContent({
             Ready to Create Your Affidavit?
           </h2>
           <p className="text-base sm:text-xl text-blue-100 mb-6 sm:mb-8">
-            Skip the hassle and create professional legal documents in minutes.
+            Get your facts organized into professional document drafts in minutes.
           </p>
           <Link
             href="/api/auth/login?screen_hint=signup"

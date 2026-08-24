@@ -15,8 +15,8 @@ export default function OfferingsSection() {
             Every document. Free.
           </h2>
           <p className="text-lg text-slate-600">
-            The filings people actually need — each one interviewed end-to-end by our AI, filled
-            from your life story, and formatted for your state&rsquo;s court.
+            The drafts people actually need — each one interviewed end-to-end by our AI, filled
+            from your life story, and organized the way your state&rsquo;s courts expect.
           </p>
         </div>
 

@@ -127,6 +127,10 @@ try {
   ok('re-login: profile knows the marriage', storyText.includes('May 1, 2010'));
   ok('re-login: all three children on the portrait', ['Emma', 'Liam', 'Ava'].every((n) => storyText.includes(n)));
   ok('re-login: custody on the ledger', /Joint/i.test(storyText));
+  ok(
+    'official state forms link on the papers panel',
+    storyText.includes('Utah Courts — Forms') || storyText.includes('Utah Courts — Forms'.normalize()),
+  );
   await page.screenshot({ path: `${SHOTS}/3-profile-story.png`, fullPage: true });
 
   // ── 4. Fix my story ──────────────────────────────────────────────────────

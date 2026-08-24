@@ -122,9 +122,9 @@ function extractEvidenceMeta(content: Record<string, unknown>): Map<string, Evid
 /**
  * POST /api/documents/packet
  *
- * "Print your filing packet": assembles the user's saved document (rendered
+ * "Print your case packet": assembles the user's saved document (rendered
  * through the exact pdfService path documents/generate uses) plus every
- * uploaded evidence file into ONE court-ready PDF with a cover sheet,
+ * uploaded evidence file into ONE organized draft PDF with a cover sheet,
  * table of contents, exhibit separator pages, and an exhibit index
  * (services/courtPacket).
  *

@@ -82,10 +82,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Step-by-step service instructions for your state aren’t available here yet. Your court clerk or self-help center can walk you through how service works where you filed.',
     'unavailable.retry': 'Try again',
 
-    'forms.acceptance': 'Download the Acceptance of Service form',
-    'forms.certificate': 'Download the Certificate of Service form',
-    'forms.preparing': 'Preparing your form…',
-    'forms.error': 'The form couldn’t be downloaded. Please try again.',
+    'forms.acceptance': 'Download an Acceptance of Service draft',
+    'forms.certificate': 'Download a Certificate of Service draft',
+    'forms.preparing': 'Preparing your draft…',
+    'forms.error': 'The draft couldn’t be downloaded. Please try again.',
 
     'proof.title': 'Prove it happened',
     'proof.body':
@@ -126,10 +126,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Las instrucciones paso a paso de notificación para tu estado aún no están disponibles aquí. El secretario del tribunal o el centro de autoayuda pueden explicarte cómo funciona la notificación donde presentaste tu caso.',
     'unavailable.retry': 'Intentar de nuevo',
 
-    'forms.acceptance': 'Descargar el formulario de Aceptación de Notificación',
-    'forms.certificate': 'Descargar el formulario de Certificado de Notificación',
-    'forms.preparing': 'Preparando tu formulario…',
-    'forms.error': 'No se pudo descargar el formulario. Intenta de nuevo.',
+    'forms.acceptance': 'Descargar un borrador de Aceptación de Notificación',
+    'forms.certificate': 'Descargar un borrador de Certificado de Notificación',
+    'forms.preparing': 'Preparando tu borrador…',
+    'forms.error': 'No se pudo descargar el borrador. Intenta de nuevo.',
 
     'proof.title': 'Demuestra que sucedió',
     'proof.body':

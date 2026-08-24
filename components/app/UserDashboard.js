@@ -129,12 +129,12 @@ const DocumentRow = ({
               onClick={() => handleFilingPacket(doc)}
               disabled={packetDownloadingId === doc.id}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:border-blue-300 hover:text-blue-700 font-semibold transition-colors disabled:opacity-60"
-              title="Download a ready-to-file PDF packet of this document"
+              title="Download this document and its evidence as one organized PDF"
             >
               {packetDownloadingId === doc.id
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <FileDown className="h-4 w-4" />}
-              <span className="hidden sm:inline">Filing packet</span>
+              <span className="hidden sm:inline">Case packet</span>
             </button>
           )}
           <button
@@ -147,7 +147,7 @@ const DocumentRow = ({
       </div>
       {packetErrorId === doc.id && (
         <p className="mt-2 text-right text-xs text-red-600">
-          The filing packet couldn’t be prepared. Please try again.
+          The case packet couldn’t be prepared. Please try again.
         </p>
       )}
     </li>
@@ -188,7 +188,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   const [procedure, setProcedure] = useState(null);
   const [stepperLang, setStepperLang] = useState('en');
 
-  // Filing packet downloads (POST /api/documents/packet). A 404/501 means
+  // Case packet downloads (POST /api/documents/packet). A 404/501 means
   // the endpoint isn't live yet — hide the buttons instead of erroring.
   const [packetDownloadingId, setPacketDownloadingId] = useState(null);
   const [packetErrorId, setPacketErrorId] = useState(null);
@@ -339,7 +339,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     }
   };
 
-  // Download a ready-to-file PDF packet for a saved document.
+  // Download the document plus its evidence as one organized PDF.
   const handleFilingPacket = async (doc) => {
     setPacketDownloadingId(doc.id);
     setPacketErrorId(null);
@@ -359,14 +359,14 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `filing-packet-${doc.id}.pdf`;
+      a.download = `case-packet-${doc.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       trackEvent('filing_packet_downloaded', { document_id: doc.id });
     } catch (error) {
-      console.error('Filing packet download failed:', error);
+      console.error('Case packet download failed:', error);
       setPacketErrorId(doc.id);
       setTimeout(() => setPacketErrorId((id) => (id === doc.id ? null : id)), 4000);
     } finally {

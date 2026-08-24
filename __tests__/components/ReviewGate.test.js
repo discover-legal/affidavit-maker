@@ -51,7 +51,7 @@ describe('ReviewGate', () => {
       <ReviewGate isOpen affidavitData={affidavitData} onConfirm={onConfirm} onCancel={jest.fn()} />
     );
 
-    const confirmButton = screen.getByRole('button', { name: /Looks right — create my document/ });
+    const confirmButton = screen.getByRole('button', { name: /Looks right — create my draft/ });
     expect(confirmButton).toBeDisabled();
 
     fireEvent.click(confirmButton);

@@ -137,10 +137,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'counterclaim.body':
       'A counterclaim is your own request for a divorce inside the same case — it generally lets the case finish even if the other side drops their petition.',
 
-    'download.title': 'Download your Answer',
+    'download.title': 'Download your Answer draft',
     'download.body':
-      'This builds a PDF from your choices above, with your case caption and a signature block. It uses Utah’s unsworn-declaration signature (no notary needed). Review every line before filing — the court clerk can tell you how and where to file it.',
-    'download.button': 'Download my Answer (PDF)',
+      'This builds a draft PDF from your choices above, with your case caption and a signature block. It uses Utah’s unsworn-declaration signature (no notary needed). Check it against your court’s official Answer form, and review every line — the court clerk can tell you how and where to file.',
+    'download.button': 'Download my Answer draft (PDF)',
     'download.preparing': 'Preparing your Answer…',
     'download.error': 'The document couldn’t be downloaded. Please try again.',
     'download.unavailable':
@@ -223,10 +223,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'counterclaim.body':
       'Una contrademanda es tu propia solicitud de divorcio dentro del mismo caso — generalmente permite que el caso termine aunque la otra parte retire su petición.',
 
-    'download.title': 'Descarga tu Contestación',
+    'download.title': 'Descarga el borrador de tu Contestación',
     'download.body':
-      'Esto genera un PDF con tus decisiones de arriba, el encabezado de tu caso y un bloque de firma. Usa la declaración no jurada de Utah (no necesita notario). Revisa cada línea antes de presentarlo — el secretario del tribunal puede decirte cómo y dónde presentarlo.',
-    'download.button': 'Descargar mi Contestación (PDF)',
+      'Esto genera un borrador en PDF con tus decisiones de arriba, el encabezado de tu caso y un bloque de firma. Usa la declaración no jurada de Utah (no necesita notario). Compáralo con el formulario oficial de Contestación de tu tribunal y revisa cada línea — el secretario del tribunal puede decirte cómo y dónde presentar.',
+    'download.button': 'Descargar el borrador de mi Contestación (PDF)',
     'download.preparing': 'Preparando tu Contestación…',
     'download.error': 'No se pudo descargar el documento. Intenta de nuevo.',
     'download.unavailable':

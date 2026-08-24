@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Scale } from 'lucide-react';
+import StageBadge from '@/components/StageBadge';
 
 export default function LandingFooter() {
   return (
@@ -12,7 +13,7 @@ export default function LandingFooter() {
                 <Scale className="h-5 w-5 text-white" />
               </div>
               <span className="text-lg font-bold text-white">
-                discover<span className="text-brand">.</span>legal
+                discover<span className="text-brand">.</span>legal <StageBadge className="ml-1" />
               </span>
             </div>
             <p className="text-sm text-slate-500 max-w-sm leading-relaxed">

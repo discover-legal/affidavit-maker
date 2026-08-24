@@ -202,7 +202,12 @@ function fullName(profile: Record<string, unknown>): string {
 }
 
 function spouseName(profile: Record<string, unknown>): string {
-  return isRespondent(profile) ? petitionerName(profile) : respondentName(profile);
+  // spouseName is canonical and role-independent; the role-relative caption
+  // fields are only a fallback for profiles written before it existed.
+  return (
+    str(profile.spouseName) ||
+    (isRespondent(profile) ? petitionerName(profile) : respondentName(profile))
+  );
 }
 
 function marriagePlace(profile: Record<string, unknown>): string {
@@ -1020,7 +1025,7 @@ export function storyProgress(profile: Record<string, unknown>): StoryProgress {
       has(profile.petitionerFirstName) ||
       has(profile.petitionerName) ||
       has(profile.firstName),
-    has(profile.respondentName) || has(profile.respondentFirstName),
+    has(profile.spouseName) || has(profile.respondentName) || has(profile.respondentFirstName),
     has(profile.marriageDate),
     has(profile.marriageCity) || has(profile.marriageLocation) || has(profile.marriagePlace),
     has(profile.state) || has(profile.county),

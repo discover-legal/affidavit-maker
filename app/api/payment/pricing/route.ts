@@ -24,6 +24,7 @@ export async function GET(req: Request) {
   }
 
   const locale = getLocale();
+  const enabled = paymentsEnabled();
 
   const build = (key: 'single_affidavit' | 'divorce_package', label: string) => {
     const current = getPrice(locale, key);
@@ -36,18 +37,23 @@ export async function GET(req: Request) {
     };
   };
 
+  // While the kill switch is off the product is free — advertising dormant
+  // price points to any unauthenticated caller undercuts the free posture,
+  // so the amounts only ship when payments are actually armed.
   return NextResponse.json({
     success: true,
     locale,
-    paymentsEnabled: paymentsEnabled(),
+    paymentsEnabled: enabled,
     launch: {
-      active: LAUNCH_PRICING_ACTIVE,
-      discountPct: LAUNCH_PRICING_ACTIVE ? LAUNCH_DISCOUNT_PCT : 0,
-      label: LAUNCH_PRICING_ACTIVE ? LAUNCH_LABEL : null,
+      active: enabled && LAUNCH_PRICING_ACTIVE,
+      discountPct: enabled && LAUNCH_PRICING_ACTIVE ? LAUNCH_DISCOUNT_PCT : 0,
+      label: enabled && LAUNCH_PRICING_ACTIVE ? LAUNCH_LABEL : null,
     },
-    pricing: {
-      single_affidavit: build('single_affidavit', 'Single Affidavit'),
-      divorce_package: build('divorce_package', 'Divorce Package'),
-    },
+    pricing: enabled
+      ? {
+          single_affidavit: build('single_affidavit', 'Single Affidavit'),
+          divorce_package: build('divorce_package', 'Divorce Package'),
+        }
+      : null,
   });
 }

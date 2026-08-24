@@ -108,6 +108,7 @@ module.exports = {
     if (requested === 'ingest_court_document') {
       return toolResponse('ingest_court_document', {
         document_kind: 'Original petition served on you',
+        served_on_user: 'yes',
         events: [
           { label: 'Filed', date: '2026-06-20' },
           { label: 'Served', date: '2026-06-28' },

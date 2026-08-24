@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { FileText, FileDown, Gavel, Loader2, PlusCircle, Trash2, Edit, Check, X, Heart, Scale, ChevronLeft, Briefcase, ArrowRight, BookOpen, Reply, Send, UserCircle } from 'lucide-react';
+import StageBadge from '@/components/StageBadge';
 import { useRouter } from 'next/navigation';
 import Header from './Header';
 import CaseStepper from './CaseStepper';
@@ -14,7 +15,6 @@ import { getInitialLang } from '@/lib/i18n';
 import { useFirm } from '@/contexts/FirmContext';
 import { trackEvent } from '@/lib/utils/analytics';
 import ConfirmDialog from './ConfirmDialog';
-import { formatPrice } from '@/lib/pricing';
 
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE = '';
@@ -197,6 +197,30 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
   // Firm mode: submission status by document id (from /api/firm/submissions)
   const { firmMode, firmName } = useFirm();
   const [firmSubmissions, setFirmSubmissions] = useState({});
+
+  // Price badges show real amounts only when payments are armed server-side;
+  // default (and on any failure) the product presents as free.
+  const [paidPricing, setPaidPricing] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/payment/pricing`);
+        const json = await res.json();
+        if (!cancelled && json?.paymentsEnabled === true && json.pricing) {
+          setPaidPricing(json.pricing);
+        }
+      } catch {
+        /* stay free */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  const priceBadge = (key) => {
+    const p = paidPricing?.[key];
+    if (!p || typeof p.amount !== 'number') return 'Free';
+    return `$${(p.amount / 100).toFixed(2)}${p.currency === 'cad' ? ' CAD' : ''}`;
+  };
 
   // Reset scroll position and refresh documents when dashboard loads
   useEffect(() => {
@@ -514,7 +538,9 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
       )}
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            Dashboard <StageBadge className="ml-1 align-middle" />
+          </h1>
           <p className="text-sm sm:text-base text-gray-600">Create new documents or continue working on your drafts.</p>
         </div>
         {newDocStep === null && (
@@ -667,7 +693,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                 <div className="flex items-center justify-between mb-3">
                   <FileText className="h-7 w-7 text-blue-600" />
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    {formatPrice('us', 'single_affidavit')}
+                    {priceBadge('single_affidavit')}
                   </span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">General Affidavit</h4>
@@ -691,7 +717,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
                     <Heart className="h-4 w-4 text-purple-400 -ml-2 mt-3" />
                   </div>
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                    {formatPrice('us', 'divorce_package')}
+                    {priceBadge('divorce_package')}
                   </span>
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1">Divorce Package</h4>

@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Gavel, Save, Download, MessageSquare, Eye, Settings, GripVertical, Scale, Send } from 'lucide-react';
+import StageBadge from '@/components/StageBadge';
 import { useAuth0 } from '@/lib/auth0-client';
 import { useDocumentData, useSaveMetadata, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
 import { useFirm } from '@/contexts/FirmContext';
@@ -443,13 +444,16 @@ const EditorView = ({ isNew = false, onBack }) => {
         // Kill-switch: when payments are disabled server-side
         // (PAYMENTS_ENABLED=false), the generate endpoint is free — go
         // straight to download instead of a payment modal that can't charge.
-        let paymentsOn = true;
+        // Fail CLOSED (free): if the pricing check can't be reached, a paid
+        // deployment gives away one download; the free deployment must never
+        // flash a Stripe dialog it can't honor.
+        let paymentsOn = false;
         try {
           const pricingRes = await fetch(`${API_BASE_URL}/api/payment/pricing`);
           const pricing = await pricingRes.json();
-          if (pricing && pricing.paymentsEnabled === false) paymentsOn = false;
+          paymentsOn = pricing?.paymentsEnabled === true;
         } catch (pricingError) {
-          console.warn('Pricing check failed, assuming payments enabled:', pricingError);
+          console.warn('Pricing check failed, defaulting to the free path:', pricingError);
         }
 
         if (!paymentsOn) {
@@ -757,6 +761,7 @@ const EditorView = ({ isNew = false, onBack }) => {
                   ? (isNew ? 'New Divorce Package' : 'Edit Divorce Package')
                   : (isNew ? 'New Affidavit' : 'Edit Affidavit')}
               </h1>
+              <StageBadge className="ml-2 flex-shrink-0" />
             </div>
           </div>
 

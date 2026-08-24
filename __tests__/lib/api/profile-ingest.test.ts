@@ -66,16 +66,19 @@ const TINY_PNG_B64 =
 
 const EXTRACTION = {
   document_kind: 'Hearing notice',
+  served_on_user: 'unclear',
   events: [{ label: 'Hearing', date: '2026-08-01' }],
   facts: [{ content: 'A hearing is set for August 1, 2026.', category: 'response' }],
 };
 
-function llmReturnsExtraction() {
+function llmReturnsExtraction(overrides: Partial<typeof EXTRACTION> = {}) {
   chatMock.mockResolvedValue({
     choices: [
       {
         message: {
-          tool_calls: [{ function: { arguments: JSON.stringify(EXTRACTION) } }],
+          tool_calls: [
+            { function: { arguments: JSON.stringify({ ...EXTRACTION, ...overrides }) } },
+          ],
         },
       },
     ],
@@ -117,7 +120,11 @@ describe('POST /api/profile/ingest — pasted text (unchanged path)', () => {
     expect(json.success).toBe(false);
   });
 
-  it('records respondent perspective when the user says these are papers they were served', async () => {
+  // Which side of the case the user is on is the extractor's call
+  // (served_on_user in the tool schema), not a regex over the label — the
+  // model sees the document AND the user's description in any language.
+  it('records respondent perspective when the model says the papers were served on the user', async () => {
+    llmReturnsExtraction({ served_on_user: 'yes' });
     const res = await post({
       text: 'ORIGINAL PETITION AND SUMMONS. These papers were delivered on July 10, 2026.',
       label: 'Papers I was served',
@@ -127,20 +134,34 @@ describe('POST /api/profile/ingest — pasted text (unchanged path)', () => {
     expect(updateUserProfileMock).toHaveBeenCalledWith(7, { role: 'respondent' });
   });
 
-  it('records respondent perspective from the Spanish served-paper description', async () => {
+  it("forwards the user's own description to the model so it can judge who was served", async () => {
     const res = await post({
       text: 'PETICIÓN DE DIVORCIO Y CITACIÓN. Los documentos fueron entregados el 10 de julio de 2026.',
       label: 'Papeles que me entregaron',
     });
 
     expect(res.status).toBe(200);
-    expect(updateUserProfileMock).toHaveBeenCalledWith(7, { role: 'respondent' });
+    expect(chatMock.mock.calls[0][0][1].content).toContain('Papeles que me entregaron');
+    const tool = (chatMock.mock.calls[0][1] as { tools: Array<{ function: { parameters: { properties: Record<string, unknown>; required: string[] } } }> }).tools[0];
+    expect(tool.function.parameters.required).toContain('served_on_user');
   });
 
-  it('does not infer a role from generic service paperwork', async () => {
+  it('does not infer a role when the model says the other side was served', async () => {
+    llmReturnsExtraction({ served_on_user: 'no' });
     const res = await post({
       text: 'PROOF OF SERVICE. The summons was delivered to the respondent on July 10, 2026.',
       label: 'Proof of service',
+    });
+
+    expect(res.status).toBe(200);
+    expect(updateUserProfileMock).not.toHaveBeenCalled();
+  });
+
+  it('does not infer a role when the model is unsure', async () => {
+    // Default EXTRACTION answers 'unclear'.
+    const res = await post({
+      text: 'PETITION FOR DIVORCE. Case number 2026-123. Filed July 1, 2026.',
+      label: 'Divorce petition',
     });
 
     expect(res.status).toBe(200);

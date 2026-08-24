@@ -19,18 +19,33 @@ const ok = (name, pass, detail = '') => {
 const executablePath = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
 const browser = await chromium.launch({ executablePath, args: ['--no-proxy-server'] });
 
+// Accept the current Terms of Service for the E2E user. withAuth 403s every
+// authed endpoint (except the two TOS routes) until this has happened —
+// client-storage seeding alone stopped working when TOS became
+// server-verified (same helper as drive.mjs).
+async function acceptTos(page) {
+  await page.evaluate(async () => {
+    const status = await fetch('/api/auth/tos-status').then((r) => r.json()).catch(() => null);
+    const version = status?.currentTosVersion;
+    if (version && !status?.tosAccepted) {
+      await fetch('/api/auth/accept-tos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tosVersion: version }),
+      });
+    }
+  });
+}
+
 try {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx.addInitScript(() => {
-    localStorage.setItem('tos_accepted_auth0|e2etester', 'true');
-    sessionStorage.setItem('tos_accepted_auth0|e2etester', 'true');
-  });
   const page = await ctx.newPage();
   page.setDefaultTimeout(45000);
 
   // Reset the test user so the run is repeatable.
   await page.goto(`${BASE}/profile`);
   await page.waitForLoadState('networkidle');
+  await acceptTos(page);
   await page.evaluate(async () => {
     await fetch('/api/profile', { method: 'DELETE' });
     const docs = await fetch('/api/documents').then((r) => r.json());
@@ -99,11 +114,9 @@ try {
     `${docState.facts.length} facts`,
   );
 
-  // Profile memory in a fresh context.
+  // Profile memory in a fresh context. TOS acceptance is server-side state
+  // now, so it persists across contexts — no client seeding needed.
   const ctx2 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx2.addInitScript(() => {
-    localStorage.setItem('tos_accepted_auth0|e2etester', 'true');
-  });
   const page2 = await ctx2.newPage();
   await page2.goto(`${BASE}/profile`);
   await page2.waitForLoadState('networkidle');

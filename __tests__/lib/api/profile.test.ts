@@ -219,6 +219,138 @@ describe('updateUserProfile (fix my story)', () => {
   });
 });
 
+describe('party reconciliation (spouseName + role + captions)', () => {
+  const readRow = (profile: Record<string, unknown>) => ({
+    rows: [{ profile, facts: [] }],
+    rowCount: 1,
+  });
+  const savedProfile = (call = 1) => {
+    const params = queryMock.mock.calls[call][1] as unknown[];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('flipping to respondent swaps the captions instead of marrying the user to themself', async () => {
+    const { updateUserProfile } = require('@/lib/api/profile');
+    // Petitioner-drafted profile: the user IS the petitioner in the captions.
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        affiantName: 'Jordan Example',
+        petitionerName: 'Jordan Example',
+        petitionerFirstName: 'Jordan',
+        petitionerLastName: 'Example',
+        respondentName: 'Alex Example',
+        respondentFirstName: 'Alex',
+        respondentLastName: 'Example',
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    // Getting served flips the role — nothing else in the patch.
+    await updateUserProfile(7, { role: 'respondent' });
+
+    const saved = savedProfile();
+    expect(saved.spouseName).toBe('Alex Example');
+    expect(saved.petitionerName).toBe('Alex Example');
+    expect(saved.petitionerFirstName).toBe('Alex');
+    expect(saved.respondentName).toBe('Jordan Example');
+    expect(saved.respondentLastName).toBe('Example');
+  });
+
+  test('merge derives canonical spouseName from an interview that wrote caption fields', async () => {
+    queryMock.mockResolvedValueOnce(readRow({ affiantName: 'Jordan Example' }));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      petitionerName: 'Jordan Example',
+      respondentName: 'Alex Example',
+    });
+
+    expect(savedProfile().spouseName).toBe('Alex Example');
+  });
+
+  test('a corrected caption name outranks the stored spouseName', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        affiantName: 'Jordan Example',
+        spouseName: 'Alex Example',
+        respondentName: 'Alex Example',
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { respondentName: 'Alexandra Example' });
+
+    const saved = savedProfile();
+    expect(saved.spouseName).toBe('Alexandra Example');
+    expect(saved.respondentName).toBe('Alexandra Example');
+  });
+
+  test('never adopts the user themself as spouse, even from a confused write', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        affiantName: 'Jordan Example',
+        role: 'respondent',
+        spouseName: 'Alex Example',
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    // An interview that assumes user = petitioner writes their own name into
+    // the petitioner slot; under role=respondent that slot reads as spouse.
+    await mergeUserProfile(7, { petitionerName: 'Jordan Example' });
+
+    const saved = savedProfile();
+    expect(saved.spouseName).toBe('Alex Example');
+    expect(saved.petitionerName).toBe('Alex Example');
+    expect(saved.respondentName).toBe('Jordan Example');
+  });
+
+  test('an explicitly named same-named spouse is accepted (the Taylor Lautner case)', async () => {
+    const { updateUserProfile } = require('@/lib/api/profile');
+    queryMock.mockResolvedValueOnce(readRow({ affiantName: 'Taylor Lautner' }));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    // Spouses can legally share a full name; an explicit edit is trusted.
+    await updateUserProfile(7, { spouseName: 'Taylor Lautner' });
+
+    const saved = savedProfile();
+    expect(saved.spouseName).toBe('Taylor Lautner');
+    expect(saved.petitionerName).toBe('Taylor Lautner');
+    expect(saved.respondentName).toBe('Taylor Lautner');
+  });
+
+  test('a stored same-named spouse survives later writes untouched', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({ affiantName: 'Taylor Lautner', spouseName: 'Taylor Lautner' }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { marriageDate: '2022-11-11' });
+
+    expect(savedProfile().spouseName).toBe('Taylor Lautner');
+  });
+
+  test('an explicit blank spouseName clears the spouse and their caption side', async () => {
+    const { updateUserProfile } = require('@/lib/api/profile');
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        affiantName: 'Jordan Example',
+        spouseName: 'Alex Example',
+        petitionerName: 'Jordan Example',
+        respondentName: 'Alex Example',
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await updateUserProfile(7, { spouseName: '' });
+
+    const saved = savedProfile();
+    expect(saved.spouseName).toBeUndefined();
+    expect(saved.respondentName).toBeUndefined();
+    expect(saved.petitionerName).toBe('Jordan Example');
+  });
+});
+
 describe('appendKeyEvents', () => {
   test('dedupes by label+date and preserves existing events', async () => {
     const { appendKeyEvents } = require('@/lib/api/profile');

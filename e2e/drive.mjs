@@ -152,6 +152,13 @@ try {
   const afterIngest = await page.textContent('main');
   ok('ingested events land on the timeline', afterIngest.includes('Filed') && afterIngest.includes('Served'));
   ok('waiting-period note appears (UT 30 days)', /30-day waiting period/.test(afterIngest));
+  // The served-paper ingest flips the profile to respondent; the party
+  // captions must swap with it — the story must still name the spouse,
+  // never "You married <your own name>".
+  ok(
+    'role flip keeps the spouse (no self-marriage)',
+    afterIngest.includes('You married Alex Example') && !afterIngest.includes('You married Jordan'),
+  );
   await page.screenshot({ path: `${SHOTS}/4-profile-ingested.png`, fullPage: true });
 
   // ── 6. Payments kill-switch: generation is free ──────────────────────────

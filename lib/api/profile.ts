@@ -60,6 +60,7 @@ const GENERAL_FIELDS: readonly string[] = [
 ];
 
 const FAMILY_FIELDS: readonly string[] = [
+  'spouseName', // canonical, role-independent — see reconcileParties()
   'petitionerFirstName', 'petitionerLastName', 'petitionerName',
   'respondentFirstName', 'respondentLastName', 'respondentName',
   'marriageDate', 'marriageCity', 'marriageStateName', 'marriageLocation',
@@ -108,6 +109,97 @@ function sanitizeRole(profile: Record<string, unknown>): void {
   const role = String(profile.role ?? '').trim().toLowerCase();
   if (role === 'petitioner' || role === 'respondent') profile.role = role;
   else delete profile.role;
+}
+
+function strv(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+function splitFullName(full: string): [string, string] {
+  const parts = full.trim().split(/\s+/);
+  return [parts[0] || '', parts.slice(1).join(' ')];
+}
+
+/**
+ * Keep the canonical identity trio — `affiantName`, `spouseName`, `role` —
+ * and the court-caption fields (petitioner… / respondent…) consistent.
+ *
+ * The caption fields are role-relative and go stale the moment `role`
+ * flips (a petitioner-drafted profile whose owner then gets served becomes
+ * a respondent profile, but the captions still name the user as
+ * petitioner — which once made the story page say the user married
+ * themself). `spouseName` is role-independent and survives the flip, so
+ * after every write the captions are recomputed from the trio.
+ *
+ * `previousRole` is the role the stored captions were written under —
+ * that's the role they must be read with when deriving a missing
+ * `spouseName` from them. `explicitSpouse` (the write naming the spouse
+ * outright via `spouseName`) is trusted verbatim — spouses CAN share a
+ * full name (both Taylor Lautners, say). `incomingCaptionSpouse` (spouse
+ * read out of the write's caption fields) wins over the stored value so
+ * a correction is never clobbered, but is dropped when it matches the
+ * user's own name — that's the stale-caption bug, not a same-named
+ * spouse.
+ */
+function reconcileParties(
+  profile: Record<string, unknown>,
+  previousRole: string,
+  opts: {
+    explicitSpouse?: string;
+    incomingCaptionSpouse?: string;
+    clearSpouse?: boolean;
+  } = {},
+): void {
+  const role = strv(profile.role) === 'respondent' ? 'respondent' : 'petitioner';
+  const captionRole = strv(previousRole) === 'respondent' ? 'respondent' : 'petitioner';
+  const self =
+    strv(profile.affiantName) ||
+    [strv(profile.firstName), strv(profile.lastName)].filter(Boolean).join(' ');
+  const selfSide = role === 'respondent' ? 'respondent' : 'petitioner';
+  const spouseSide = role === 'respondent' ? 'petitioner' : 'respondent';
+
+  const sideName = (side: 'petitioner' | 'respondent'): string =>
+    strv(profile[`${side}Name`]) ||
+    [strv(profile[`${side}FirstName`]), strv(profile[`${side}LastName`])]
+      .filter(Boolean)
+      .join(' ');
+  const setSide = (side: 'petitioner' | 'respondent', name: string): void => {
+    const [first, last] = splitFullName(name);
+    profile[`${side}Name`] = name;
+    profile[`${side}FirstName`] = first;
+    profile[`${side}LastName`] = last;
+  };
+  const clearSide = (side: 'petitioner' | 'respondent'): void => {
+    delete profile[`${side}Name`];
+    delete profile[`${side}FirstName`];
+    delete profile[`${side}LastName`];
+  };
+
+  if (opts.clearSpouse) {
+    delete profile.spouseName;
+    clearSide(spouseSide);
+    if (self) setSide(selfSide, self);
+    return;
+  }
+
+  // Spouse resolution. Explicit and stored spouseName are canonical and
+  // trusted verbatim (same-named spouses exist); only the caption-derived
+  // guesses refuse the user's own name — a caption slot holding the user's
+  // name is the stale-caption bug, not evidence they married their namesake.
+  const captionSpouse = sideName(captionRole === 'respondent' ? 'petitioner' : 'respondent');
+  const incomingCaptionSpouse = strv(opts.incomingCaptionSpouse);
+  const spouse =
+    strv(opts.explicitSpouse) ||
+    (incomingCaptionSpouse && incomingCaptionSpouse !== self ? incomingCaptionSpouse : '') ||
+    strv(profile.spouseName) ||
+    (captionSpouse && captionSpouse !== self ? captionSpouse : '');
+
+  if (spouse) profile.spouseName = spouse;
+
+  if (!self && !spouse) return;
+  if (self) setSide(selfSide, self);
+  if (spouse) setSide(spouseSide, spouse);
+  else if (self && sideName(spouseSide) === self) clearSide(spouseSide);
 }
 
 /** Load the user's life-story profile. Returns an empty profile when none exists. */
@@ -199,6 +291,23 @@ export async function mergeUserProfile(
     if (!isEmptyValue(incoming)) profile[field] = incoming;
   }
   sanitizeRole(profile);
+  // A turn that named the spouse — canonically or via a caption field read
+  // under the post-merge role — outranks the stored spouseName.
+  const mergedRole = strv(profile.role) === 'respondent' ? 'respondent' : 'petitioner';
+  const incomingCaptionSpouse =
+    mergedRole === 'respondent'
+      ? strv(affidavitData.petitionerName) ||
+        [strv(affidavitData.petitionerFirstName), strv(affidavitData.petitionerLastName)]
+          .filter(Boolean)
+          .join(' ')
+      : strv(affidavitData.respondentName) ||
+        [strv(affidavitData.respondentFirstName), strv(affidavitData.respondentLastName)]
+          .filter(Boolean)
+          .join(' ');
+  reconcileParties(profile, strv(stored.profile.role), {
+    explicitSpouse: strv(affidavitData.spouseName),
+    incomingCaptionSpouse,
+  });
   profile.children =
     options.replaceChildren && Array.isArray(affidavitData.children)
       ? (affidavitData.children as unknown[]).filter((c) => c && typeof c === 'object')
@@ -309,6 +418,11 @@ export async function updateUserProfile(
   }
 
   sanitizeRole(profile);
+  reconcileParties(profile, strv(stored.profile.role), {
+    explicitSpouse: strv(patch.spouseName),
+    // A patch that names spouseName but blank is an explicit "no spouse".
+    clearSpouse: 'spouseName' in patch && strv(patch.spouseName) === '',
+  });
 
   if ('children' in patch) {
     const replaced = mergeChildren([], patch.children as unknown[] | undefined);

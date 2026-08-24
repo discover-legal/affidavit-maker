@@ -246,23 +246,33 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+function isRespondent(profile: Record<string, unknown>): boolean {
+  return str(profile.role).toLowerCase() === 'respondent';
+}
+
+function captionName(profile: Record<string, unknown>, side: 'petitioner' | 'respondent'): string {
+  return (
+    str(profile[`${side}Name`]) ||
+    [str(profile[`${side}FirstName`]), str(profile[`${side}LastName`])]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
 function personName(profile: Record<string, unknown>): string {
   return (
     str(profile.affiantName) ||
-    [str(profile.petitionerFirstName), str(profile.petitionerLastName)]
-      .filter(Boolean)
-      .join(' ') ||
-    str(profile.petitionerName) ||
+    captionName(profile, isRespondent(profile) ? 'respondent' : 'petitioner') ||
     [str(profile.firstName), str(profile.lastName)].filter(Boolean).join(' ')
   );
 }
 
 function spouseFullName(profile: Record<string, unknown>): string {
+  // spouseName is canonical and role-independent; the caption fields are a
+  // fallback for older profiles and must be read through the user's role.
   return (
-    str(profile.respondentName) ||
-    [str(profile.respondentFirstName), str(profile.respondentLastName)]
-      .filter(Boolean)
-      .join(' ')
+    str(profile.spouseName) ||
+    captionName(profile, isRespondent(profile) ? 'petitioner' : 'respondent')
   );
 }
 

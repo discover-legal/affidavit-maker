@@ -108,12 +108,18 @@ const INGEST_TOOL = {
       'Extract the key events and factual statements from this legal/court document.',
     parameters: {
       type: 'object',
-      required: ['document_kind', 'events', 'facts'],
+      required: ['document_kind', 'served_on_user', 'events', 'facts'],
       properties: {
         document_kind: {
           type: 'string',
           description:
             'What this document is, in plain words (e.g. "Original petition served on you", "Respondent\'s answer", "Hearing notice", "Temporary order")',
+        },
+        served_on_user: {
+          type: 'string',
+          enum: ['yes', 'no', 'unclear'],
+          description:
+            'Whether the person uploading this document is the one these papers were served ON — i.e. they are the responding party. Judge from the document text AND how the user described it (in any language). "yes" only when that is clear (e.g. the user says they received/were served the papers, or the document is a petition and summons addressed to them as the party being served). Proof that the OTHER side was served is "no". A petition alone says nothing about who is uploading it — when you cannot tell, answer "unclear".',
         },
         events: {
           type: 'array',
@@ -274,6 +280,7 @@ async function extractIntoProfile(
   if (!toolCall) throw new AppError('Could not read this document', 422, 'IngestFailed');
   let extracted: {
     document_kind?: string;
+    served_on_user?: string;
     events?: Array<{ label?: string; date?: string }>;
     facts?: Array<{ content?: string; category?: string }>;
   };
@@ -285,19 +292,16 @@ async function extractIntoProfile(
 
   const kind = String(extracted.document_kind || label || 'Court document').slice(0, 120);
 
-  // Preserve the user's side of the case when they explicitly describe the
-  // upload as papers served on them. The extractor often shortens the event
-  // label to just "Served", which is not enough to distinguish a respondent
-  // from a petitioner uploading proof that their spouse was served.
+  // Which side of the case the user is on comes from the extractor, which
+  // sees both the document text and the user's own description of it
+  // (`served_on_user` in INGEST_TOOL). Only an unambiguous "yes" flips the
+  // profile to respondent — updateUserProfile then reconciles the party
+  // names so the flip never leaves stale petitioner/respondent captions.
   //
-  // Deliberately do not infer "petitioner" here: receiving or uploading a
-  // petition says nothing by itself about which person owns this profile.
-  const userDescription = String(label || '').trim();
-  const userSaysTheyWereServed =
-    /\b(?:i was|i've been|i have been) served\b|\bpapers (?:that )?i was served\b/i.test(userDescription) ||
-    /\b(?:me|te) (?:entregaron|notificaron) (?:los )?papeles\b|\bpapeles que (?:me|te) (?:entregaron|notificaron)\b/i.test(userDescription) ||
-    /\bserved (?:on|to) you\b|\byou were served\b/i.test(kind);
-  if (userSaysTheyWereServed) {
+  // Deliberately no "petitioner" inference on any other answer: receiving
+  // or uploading a petition says nothing by itself about which person owns
+  // this profile.
+  if (extracted.served_on_user === 'yes') {
     await updateUserProfile(userId, { role: 'respondent' });
   }
 

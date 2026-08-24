@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { Scale } from 'lucide-react';
 import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
+import StageBadge from '@/components/StageBadge';
 
 export default function LandingNav() {
   const { user } = useUser({ route: AUTH0_PROFILE_ROUTE });
@@ -24,7 +25,7 @@ export default function LandingNav() {
             </div>
             <div className="text-left">
               <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                discover<span className="text-brand">.</span>legal
+                discover<span className="text-brand">.</span>legal <StageBadge className="ml-1" />
               </span>
             </div>
           </Link>

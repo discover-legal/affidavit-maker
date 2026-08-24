@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Tooltip from '@/components/marketing/Tooltip';
+import StageBadge from '@/components/StageBadge';
 import QuickExit from './QuickExit';
 import CoffeeLink from './CoffeeLink';
 // Pure step computation shared with the server (no server-only imports),
@@ -983,7 +984,8 @@ function EditStoryPanel({
       (initialRole === 'respondent' ? s(profile.respondentName) : s(profile.petitionerName)),
   );
   const [spouse, setSpouse] = useState(
-    initialRole === 'respondent' ? s(profile.petitionerName) : s(profile.respondentName),
+    s(profile.spouseName) ||
+      (initialRole === 'respondent' ? s(profile.petitionerName) : s(profile.respondentName)),
   );
   const [marriageDate, setMarriageDate] = useState(s(profile.marriageDate));
   const [separationDate, setSeparationDate] = useState(s(profile.separationDate));
@@ -1010,6 +1012,7 @@ function EditStoryPanel({
         affiantName: name.trim(),
         firstName,
         lastName,
+        spouseName: spouse.trim(),
         petitionerName: respondent ? spouse.trim() : name.trim(),
         petitionerFirstName: respondent ? spouseFirst : firstName,
         petitionerLastName: respondent ? spouseLast : lastName,
@@ -1480,7 +1483,7 @@ export default function LifeStoryClient() {
             {t(lang, 'header.eyebrow')}
           </p>
           <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">
-            {t(lang, 'header.title')}
+            {t(lang, 'header.title')} <StageBadge className="ml-1 align-middle" />
           </h1>
           <p className="mt-3 max-w-xl text-gray-600">{t(lang, 'header.subtitle')}</p>
         </div>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Scale } from 'lucide-react';
+import StageBadge from '@/components/StageBadge';
 
 type MarketingHeaderProps = {
   /** Show "Back" arrow on the left, linking to `/`. */
@@ -27,7 +28,9 @@ export default function MarketingHeader({ showBack = true }: MarketingHeaderProp
             <Link href="/" className="flex items-center space-x-2 sm:space-x-3">
               <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               <div className="text-left">
-                <span className="text-xl sm:text-2xl font-bold text-blue-600">discover.legal</span>
+                <span className="text-xl sm:text-2xl font-bold text-blue-600">
+                  discover.legal <StageBadge className="ml-1" />
+                </span>
                 <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
               </div>
             </Link>

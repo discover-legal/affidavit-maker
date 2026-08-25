@@ -5,8 +5,36 @@ import {
   categoryLabel,
   computeAge,
   formatFriendlyDate,
+  fullName,
   groupFacts,
+  spouseName,
 } from '@/components/app/lifeStory';
+
+describe('fullName / spouseName (role-aware identity)', () => {
+  const respondentProfile = {
+    role: 'respondent',
+    petitionerName: 'Alex Example',
+    respondentName: 'Jordan S. Example',
+  };
+  test('respondent with captions only: self is the respondent, not the petitioner', () => {
+    expect(fullName(respondentProfile)).toBe('Jordan S. Example');
+    expect(spouseName(respondentProfile)).toBe('Alex Example');
+  });
+  test('affiantName always wins for self', () => {
+    expect(fullName({ ...respondentProfile, affiantName: 'J. Example' })).toBe('J. Example');
+  });
+  test('missing role is treated as petitioner', () => {
+    expect(fullName({ petitionerName: 'Avery Smith', respondentName: 'Sam Smith' }))
+      .toBe('Avery Smith');
+    expect(spouseName({ petitionerName: 'Avery Smith', respondentName: 'Sam Smith' }))
+      .toBe('Sam Smith');
+  });
+  test('split caption fields and firstName/lastName fallbacks', () => {
+    expect(fullName({ role: 'respondent', respondentFirstName: 'Jordan', respondentLastName: 'Example' }))
+      .toBe('Jordan Example');
+    expect(fullName({ firstName: 'Pat', lastName: 'Doe' })).toBe('Pat Doe');
+  });
+});
 
 describe('formatFriendlyDate', () => {
   test('formats ISO dates without timezone drift', () => {

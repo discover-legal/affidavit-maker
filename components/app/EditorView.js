@@ -17,7 +17,7 @@ import ReviewGate from './ReviewGate';
 import LegalReviewBadge from './LegalReviewBadge';
 import CoffeeLink from './CoffeeLink';
 import QuickExit from './QuickExit';
-import { advisorFlags } from './lifeStory';
+import { advisorFlags, fullName as partyDisplayName } from './lifeStory';
 import { trackEvent } from '@/lib/utils/analytics';
 
 // Use relative URLs in production (empty string), localhost in development
@@ -26,8 +26,9 @@ const API_BASE_URL = '';
 export const getDownloadReadiness = (document) => {
   const missing = [];
   if (!document?.state) missing.push('jurisdiction');
-  const partyName = document?.affiantName || document?.petitionerName ||
-    [document?.firstName, document?.lastName].filter(Boolean).join(' ');
+  // Role-aware: for a respondent the petitioner caption is the SPOUSE,
+  // so "your name" must come from the user's own side (lifeStory.fullName).
+  const partyName = partyDisplayName(document || {});
   if (!partyName.trim()) missing.push('your name');
   if (!Array.isArray(document?.facts) || document.facts.length === 0) {
     missing.push('at least one fact');
@@ -374,8 +375,8 @@ const EditorView = ({ isNew = false, onBack }) => {
       let downloadName;
       if (currentDocument.documentType === 'divorce_package') {
         const subDoc = currentDocument.activeSubDocument || 'divorce_petition';
-        const partyName = currentDocument.petitionerName ||
-          [currentDocument.petitionerFirstName, currentDocument.petitionerLastName].filter(Boolean).join(' ');
+        // Role-aware: name the file after the user, not the petitioner caption
+        const partyName = partyDisplayName(currentDocument);
         downloadName = `${subDoc.replace(/_/g, '-')}-${safe(partyName) || 'document'}.pdf`;
       } else {
         downloadName = `affidavit-${safe(currentDocument.affiantName) || 'document'}.pdf`;
@@ -841,7 +842,7 @@ const EditorView = ({ isNew = false, onBack }) => {
           <div className="flex items-center gap-2 min-w-0">
             <span className="hidden sm:inline">Document:</span>
             <span className="font-medium truncate">
-              {currentDocument.affiantName || 'Unnamed'}{currentDocument.state && ` - ${currentDocument.state}`}
+              {partyDisplayName(currentDocument) || 'Unnamed'}{currentDocument.state && ` - ${currentDocument.state}`}
             </span>
           </div>
 

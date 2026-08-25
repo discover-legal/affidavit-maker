@@ -51,4 +51,23 @@ describe('editor launch safety', () => {
       facts: [{ text: 'The parties separated.' }],
     })).toEqual({ ready: true, missing: [] });
   });
+
+  it('reads the name from the user\'s OWN side of the caption under role', () => {
+    // Respondent user, no affiantName: their own respondentName satisfies
+    // the check — the petitioner caption (the spouse) alone does not.
+    expect(getDownloadReadiness({
+      state: 'UT',
+      role: 'respondent',
+      petitionerName: 'Alex Example',
+      respondentName: 'Jordan S. Example',
+      facts: [{ text: 'The parties separated.' }],
+    })).toEqual({ ready: true, missing: [] });
+
+    expect(getDownloadReadiness({
+      state: 'UT',
+      role: 'respondent',
+      petitionerName: 'Alex Example',
+      facts: [{ text: 'The parties separated.' }],
+    })).toEqual({ ready: false, missing: ['your name'] });
+  });
 });

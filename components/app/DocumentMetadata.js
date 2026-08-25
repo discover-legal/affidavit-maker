@@ -31,8 +31,19 @@ const DocumentMetadata = () => {
     updateDocumentData({ [field]: value });
   };
 
+  // When the user is the respondent, the petitioner caption is the SPOUSE —
+  // these inputs then edit the caption only, never the user's own identity.
+  const isRespondentDoc = String(currentDocument.role || '').toLowerCase() === 'respondent';
+
   // When changing name fields for divorce, also keep affiantName in sync
   const handleNameChange = (field, value) => {
+    if (isDivorce && isRespondentDoc) {
+      // Caption-only edit: don't mirror into firstName/lastName/affiantName.
+      if (field === 'firstName') updateDocumentData({ petitionerFirstName: value });
+      if (field === 'lastName') updateDocumentData({ petitionerLastName: value });
+      return;
+    }
+
     const updates = { [field]: value };
 
     if (isDivorce) {
@@ -89,7 +100,9 @@ const DocumentMetadata = () => {
               type="text"
               id="firstName"
               className="form-input"
-              value={currentDocument.firstName || currentDocument.petitionerFirstName || ''}
+              value={isRespondentDoc
+                ? (currentDocument.petitionerFirstName || '')
+                : (currentDocument.firstName || currentDocument.petitionerFirstName || '')}
               onChange={(e) => handleNameChange('firstName', e.target.value)}
               placeholder={isDivorce ? "Petitioner's legal first name" : 'Your legal first name'}
             />
@@ -103,7 +116,9 @@ const DocumentMetadata = () => {
               type="text"
               id="lastName"
               className="form-input"
-              value={currentDocument.lastName || currentDocument.petitionerLastName || ''}
+              value={isRespondentDoc
+                ? (currentDocument.petitionerLastName || '')
+                : (currentDocument.lastName || currentDocument.petitionerLastName || '')}
               onChange={(e) => handleNameChange('lastName', e.target.value)}
               placeholder={isDivorce ? "Petitioner's legal last name" : 'Your legal last name'}
             />

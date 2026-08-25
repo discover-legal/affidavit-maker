@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth0 } from '@/lib/auth0-client';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
+import { fullName as partyDisplayName, spouseName as spouseDisplayName } from './lifeStory';
 import DocumentMetadata from './DocumentMetadata';
 import EvidenceUploadModal from './EvidenceUploadModal';
 
@@ -425,11 +426,16 @@ First, please select your state above. Each state has different legal requiremen
 
   // State-aware divorce interview progress
   const isDivorceDoc = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(currentDocument.documentType);
+  // The user's own name for the status bar — role-aware, never the spouse's
+  // petitioner caption when the user is the respondent.
+  const statusName = partyDisplayName(currentDocument);
   const chooseState = (state) => {
     updateDocumentData({ state: state.code });
     const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
-    const knowsUserName = Boolean(currentDocument.affiantName || currentDocument.petitionerFirstName);
-    const knowsSpouseName = Boolean(currentDocument.respondentName || currentDocument.respondentFirstName);
+    // Role-aware: when the user is the respondent, the petitioner caption is
+    // the spouse — never treat it as the user's own name (or vice versa).
+    const knowsUserName = Boolean(partyDisplayName(currentDocument));
+    const knowsSpouseName = Boolean(spouseDisplayName(currentDocument));
     const nextPrompt = isDivorcePackage
       ? knowsUserName && knowsSpouseName
         ? `I already have both names from My Story. To continue, how long have you lived in ${state.name}, and which county do you live in?`
@@ -629,12 +635,12 @@ First, please select your state above. Each state has different legal requiremen
       {/* Input Area */}
       <div className="border-t bg-white p-4">
         {/* Document Status */}
-        {(currentDocument.affiantName || currentDocument.state) && (
+        {(statusName || currentDocument.state) && (
           <div className="mb-2 flex items-center justify-center gap-4 text-sm">
-            {currentDocument.affiantName && (
+            {statusName && (
               <div className="flex items-center text-green-600">
                 <Check className="h-3 w-3 mr-1" />
-                <span>Name: {currentDocument.affiantName}</span>
+                <span>Name: {statusName}</span>
               </div>
             )}
             {currentDocument.state && (

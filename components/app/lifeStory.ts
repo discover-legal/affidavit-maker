@@ -193,7 +193,14 @@ function respondentName(profile: Record<string, unknown>): string {
   );
 }
 
-function fullName(profile: Record<string, unknown>): string {
+/**
+ * The user's own display name, role-aware: affiantName first, then the
+ * caption name for the user's OWN side under `role` (missing role means
+ * petitioner), then split first/last. Works for both stored profiles and
+ * editor document objects, which mirror the same fields — never reach for
+ * petitionerName without checking role.
+ */
+export function fullName(profile: Record<string, unknown>): string {
   return (
     str(profile.affiantName) ||
     (isRespondent(profile) ? respondentName(profile) : petitionerName(profile)) ||
@@ -201,7 +208,8 @@ function fullName(profile: Record<string, unknown>): string {
   );
 }
 
-function spouseName(profile: Record<string, unknown>): string {
+/** The user's spouse's display name, role-aware (see fullName). */
+export function spouseName(profile: Record<string, unknown>): string {
   // spouseName is canonical and role-independent; the role-relative caption
   // fields are only a fallback for profiles written before it existed.
   return (

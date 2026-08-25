@@ -14,6 +14,7 @@ mkdir -p "$W/e2e" /tmp/e2e-docs
 cp "$REPO_ROOT/e2e/fakeLLM.js" "$W/e2e/fakeLLM.js"
 cp "$REPO_ROOT/e2e/drive.mjs" "$W/e2e/drive.mjs"
 cp "$REPO_ROOT/e2e/drive-real.mjs" "$W/e2e/drive-real.mjs" 2>/dev/null || true
+cp "$REPO_ROOT/e2e/drive-real-matrix.mjs" "$W/e2e/drive-real-matrix.mjs" 2>/dev/null || true
 
 python3 - "$W" <<'EOF'
 import sys
@@ -66,6 +67,14 @@ else
   KEY_LINES=""
 fi
 
+# E2E_INTERNATIONAL=1 activates the ~110 international jurisdictions
+# (required by e2e/drive-real-matrix.mjs's SG leg). Default unchanged: false.
+if [ "${E2E_INTERNATIONAL:-0}" = "1" ]; then
+  INTL=true
+else
+  INTL=false
+fi
+
 cat > "$W/.env.local" <<ENV
 DATABASE_URL=postgresql://affidavit:affidavit@127.0.0.1:5433/affidavit_e2e
 AUTH0_SECRET=e2e0000000000000000000000000000000000000000000000000000000000000
@@ -76,7 +85,7 @@ AUTH0_CLIENT_SECRET=e2e
 E2E_AUTH_BYPASS=1
 E2E_FAKE_LLM=$FAKE
 PAYMENTS_ENABLED=false
-ENABLE_INTERNATIONAL=false
+ENABLE_INTERNATIONAL=$INTL
 DOCUMENTS_PATH=/tmp/e2e-docs
 $KEY_LINES
 ENV

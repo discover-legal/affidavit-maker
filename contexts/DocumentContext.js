@@ -673,11 +673,30 @@ export const DocumentProvider = ({ children }) => {
         if (prof?.success && prof.data) {
           const storedProfile = prof.data.profile || {};
           const storedFacts = Array.isArray(prof.data.facts) ? prof.data.facts : [];
-          const knownPetitionerName = storedProfile.petitionerName || storedProfile.affiantName ||
+          // Role-aware identity: for a respondent user the petitioner caption
+          // is the SPOUSE, so the user's own name (affiantName) must come from
+          // their OWN side of the caption. Missing role = petitioner.
+          const storedRole = String(storedProfile.role || '').toLowerCase();
+          const knownPetitionerName = storedProfile.petitionerName ||
             [storedProfile.petitionerFirstName, storedProfile.petitionerLastName]
               .filter(Boolean)
               .join(' ');
+          const knownRespondentName = storedProfile.respondentName ||
+            [storedProfile.respondentFirstName, storedProfile.respondentLastName]
+              .filter(Boolean)
+              .join(' ');
+          const knownSelfName = storedProfile.affiantName ||
+            (storedRole === 'respondent' ? knownRespondentName : knownPetitionerName);
+          // The petitioner caption itself: for petitioner users it may fall
+          // back to their affiantName (they ARE the petitioner); for
+          // respondent users it must never absorb the user's name.
+          const seedPetitionerName = knownPetitionerName ||
+            (storedRole === 'respondent' ? '' : storedProfile.affiantName || '');
           const familySeedFields = [
+            'role',
+            'spouseName',
+            'petitionerFirstName',
+            'petitionerLastName',
             'respondentName',
             'respondentFirstName',
             'respondentLastName',
@@ -711,10 +730,8 @@ export const DocumentProvider = ({ children }) => {
             ...(storedProfile.affiantName ? { affiantName: storedProfile.affiantName } : {}),
             ...(storedProfile.firstName ? { firstName: storedProfile.firstName } : {}),
             ...(storedProfile.lastName ? { lastName: storedProfile.lastName } : {}),
-            ...(isDivorcePackage && knownPetitionerName ? {
-              affiantName: knownPetitionerName,
-              petitionerName: knownPetitionerName
-            } : {}),
+            ...(isDivorcePackage && knownSelfName ? { affiantName: knownSelfName } : {}),
+            ...(isDivorcePackage && seedPetitionerName ? { petitionerName: seedPetitionerName } : {}),
             ...familySeed,
             ...(isDivorcePackage && storedFacts.length > 0 ? { facts: storedFacts } : {}),
             ...(isDivorcePackage &&

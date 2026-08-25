@@ -1156,19 +1156,30 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
     const newData = { ...currentData };
     let hasNewData = false;
 
+    // The affiant is the USER, on whichever side of the caption they sit —
+    // when role === 'respondent' the petitioner caption is the SPOUSE, so the
+    // firstName/lastName/affiantName mirrors (preview/PDF backward compat)
+    // must come from the user's own side (mirrors lifeStory.fullName():
+    // missing role means petitioner).
+    const userIsRespondent = String(newData.role || '').toLowerCase() === 'respondent';
+
     // Extract Petitioner Information
     if (args.petitioner_first_name) {
       newData.petitionerFirstName = String(args.petitioner_first_name).trim();
-      // Also set affiantName for backward compatibility with preview/PDF generation
-      newData.firstName = newData.petitionerFirstName;
+      if (!userIsRespondent) {
+        // Also set firstName for backward compatibility with preview/PDF generation
+        newData.firstName = newData.petitionerFirstName;
+      }
       hasNewData = true;
     }
     if (args.petitioner_last_name) {
       newData.petitionerLastName = String(args.petitioner_last_name).trim();
-      newData.lastName = newData.petitionerLastName;
-      // Update affiantName for backward compatibility
-      if (newData.petitionerFirstName) {
-        newData.affiantName = `${newData.petitionerFirstName} ${newData.petitionerLastName}`;
+      if (!userIsRespondent) {
+        newData.lastName = newData.petitionerLastName;
+        // Update affiantName for backward compatibility
+        if (newData.petitionerFirstName) {
+          newData.affiantName = `${newData.petitionerFirstName} ${newData.petitionerLastName}`;
+        }
       }
       hasNewData = true;
     }
@@ -1180,10 +1191,20 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
     // Extract Respondent Information
     if (args.respondent_first_name) {
       newData.respondentFirstName = String(args.respondent_first_name).trim();
+      if (userIsRespondent) {
+        // Respondent-role user: the respondent side IS the user (see above).
+        newData.firstName = newData.respondentFirstName;
+      }
       hasNewData = true;
     }
     if (args.respondent_last_name) {
       newData.respondentLastName = String(args.respondent_last_name).trim();
+      if (userIsRespondent) {
+        newData.lastName = newData.respondentLastName;
+        if (newData.respondentFirstName) {
+          newData.affiantName = `${newData.respondentFirstName} ${newData.respondentLastName}`;
+        }
+      }
       hasNewData = true;
     }
     if (args.respondent_address) {

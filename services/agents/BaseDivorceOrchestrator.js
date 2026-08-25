@@ -583,15 +583,23 @@ class BaseDivorceOrchestrator {
     // Derive full names for template compatibility
     if (updated.petitionerFirstName || updated.petitionerLastName) {
       updated.petitionerName = [updated.petitionerFirstName, updated.petitionerLastName].filter(Boolean).join(' ');
-      // The petitioner IS the affiant on a divorce filing — the requirements
-      // checker, document titles, and PDF filenames all read affiantName
-      // (live E2E showed "Name provided" unchecked mid-interview without it).
-      if (!updated.affiantName) {
-        updated.affiantName = updated.petitionerName;
-      }
     }
     if (updated.respondentFirstName || updated.respondentLastName) {
       updated.respondentName = [updated.respondentFirstName, updated.respondentLastName].filter(Boolean).join(' ');
+    }
+    // The affiant is the USER, on whichever side of the caption they sit —
+    // when role === 'respondent' the petitioner caption is the SPOUSE, so
+    // affiantName must default from the user's own side (mirrors
+    // lifeStory.fullName(): missing role means petitioner). The requirements
+    // checker, document titles, and PDF filenames all read affiantName
+    // (live E2E showed "Name provided" unchecked mid-interview without it).
+    if (!updated.affiantName) {
+      const userOwnName = String(updated.role || '').toLowerCase() === 'respondent'
+        ? updated.respondentName
+        : updated.petitionerName;
+      if (userOwnName) {
+        updated.affiantName = userOwnName;
+      }
     }
 
     // Derive marriageLocation from marriageCity + marriageStateName for template compatibility.

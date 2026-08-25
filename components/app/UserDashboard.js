@@ -11,6 +11,7 @@ import CaseStepper from './CaseStepper';
 import CoffeeLink from './CoffeeLink';
 import { useDocumentList, useUIState, useDocumentActions } from '@/contexts/DocumentContext';
 import { computeNextSteps, detectPerspective } from '@/lib/api/procedure';
+import { fullName as partyDisplayName } from './lifeStory';
 import { getInitialLang } from '@/lib/i18n';
 import { useFirm } from '@/contexts/FirmContext';
 import { trackEvent } from '@/lib/utils/analytics';
@@ -58,9 +59,12 @@ const DocumentRow = ({
   const docTypeLabel = (doc.document_type || doc.documentType);
   const isDivorce = ['divorce_package', 'divorce_petition', 'divorce_decree'].includes(docTypeLabel);
   const typeName = getDocTypeLabel(docTypeLabel);
+  // Role-aware: title rows with the USER's name (never the petitioner
+  // caption when the user is the respondent).
+  const partyName = partyDisplayName(doc);
   const displayTitle = doc.documentTitle || doc.title ||
-    (doc.affiantName
-      ? (isDivorce ? `${doc.affiantName} — ${typeName}` : `${doc.affiantName}'s ${typeName}`)
+    (partyName
+      ? (isDivorce ? `${partyName} — ${typeName}` : `${partyName}'s ${typeName}`)
       : `${typeName} #${doc.id}`);
 
   return (
@@ -379,7 +383,7 @@ const UserDashboard = ({ onNewDocument, onContinueDocument }) => {
     const docType = doc.document_type || doc.documentType;
     const typeName = getDocTypeLabel(docType);
     setRenamingDocId(doc.id);
-    setNewName(doc.documentTitle || doc.title || doc.affiantName || `${typeName} #${doc.id}`);
+    setNewName(doc.documentTitle || doc.title || partyDisplayName(doc) || `${typeName} #${doc.id}`);
   };
 
   const cancelRename = () => {

@@ -43,6 +43,23 @@ class EnglandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'ENG';
     this.stateName = 'England & Wales';
     this.countryCode = 'UK';
+
+    // England & Wales terminology (see templates/core/terminology.js): the caption
+    // is the court-name line ("In the Family Court at X"); parties are
+    // Applicant/Respondent (post-April 2022, DDSA 2020); self-represented parties
+    // are "Litigants in Person". No "STATE OF"/"COUNTY OF" lines, no "X County".
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Litigant in Person',
+    };
     this.documentTitle = 'APPLICATION FOR DIVORCE';
 
     try {

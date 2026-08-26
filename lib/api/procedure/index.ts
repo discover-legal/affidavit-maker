@@ -38,6 +38,17 @@ export function getProcedure(state: string): StateProcedure | null {
   return REGISTRY[code] ?? null;
 }
 
+/** Canadian province/territory codes — resources like LawHelp.org are
+ * US-only, and pages must not present US-specific help to these users. */
+const CANADIAN_CODES = new Set([
+  'ON', 'BC', 'AB', 'MB', 'SK', 'QC', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU',
+]);
+
+export function isCanadianJurisdiction(state: string): boolean {
+  const code = typeof state === 'string' ? state.trim().toUpperCase() : '';
+  return CANADIAN_CODES.has(code);
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Next-steps computation
 // ─────────────────────────────────────────────────────────────────────────

@@ -20,7 +20,6 @@ import { logger } from '@/lib/logger';
 const { mergeChildren } = require('@/utils/childrenMerge') as {
   mergeChildren: (a: unknown[] | undefined, b: unknown[] | undefined) => Record<string, unknown>[];
 };
-
 export type ProfileFact = {
   id?: string;
   content?: string;

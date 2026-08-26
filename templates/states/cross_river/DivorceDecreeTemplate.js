@@ -1,11 +1,16 @@
 // templates/states/cross_river/DivorceDecreeTemplate.js
 'use strict';
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 class CrossRiverDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
+  // Nigerian terminology (see templates/core/terminology.js): the caption is the
+  // court-name line + suit number; parties are Petitioner/Respondent under the
+  // Matrimonial Causes Act 1970; High Courts sit in judicial divisions, not
+  // counties. No "STATE OF"/"COUNTY OF" caption lines, no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'CR'; this.stateName = 'Cross River'; this.countryCode = 'NG'; this.documentTitle = 'DECREE NISI';
+    this.state = 'CR'; this.stateName = 'Cross River'; this.countryCode = 'NG'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'Judicial division', districtPlaceholder: '[JUDICIAL DIVISION]', filerLabel: 'Petitioner', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' }; this.documentTitle = 'DECREE NISI';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'caseNumber', 'marriageDate'];
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '1in', paperSize: 'A4' };
@@ -32,7 +37,27 @@ class CrossRiverDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const items = [];
     items.push({ content: 'The Court orders the following custody arrangement in the best interests of the child(ren) (MCA s.71; Child Rights Act 2003):', type: 'finding' });
     divorceData.children.forEach((child, i) => { const info = typeof child === 'string' ? child : `${child.name || '[CHILD]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[DOB]'}`; items.push({ content: `${i + 1}. ${info}`, type: 'child_item' }); });
-    items.push({ content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner'} shall have custody of the child(ren) pursuant to MCA s.71.`, type: 'order' });
+    // Safety rule (see templates/core/parenting.js): this template historically
+    // awarded custody to one named parent unconditionally. Only positively
+    // recognized custody values render a joint or sole order now; absent or
+    // ambiguous data renders neutral as-agreed language — NEVER a sole order.
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    const custodyKind = custody.explicit ? custody.kind : 'unspecified';
+    if (custodyKind === 'joint') {
+      items.push({ content: `IT IS ORDERED that ${divorceData.petitionerName || 'the Petitioner'} and ${divorceData.respondentName || 'the Respondent'} shall have joint custody of the child(ren) pursuant to MCA s.71.`, type: 'order' });
+    } else if (custodyKind === 'sole_petitioner' || custodyKind === 'sole_respondent' || custodyKind === 'legacy_sole') {
+      soleCustodianName = custodyKind === 'sole_petitioner' ? (divorceData.petitionerName || 'the Petitioner')
+        : custodyKind === 'sole_respondent' ? (divorceData.respondentName || 'the Respondent')
+          : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner');
+      items.push({ content: `IT IS ORDERED that ${soleCustodianName} shall have custody of the child(ren) pursuant to MCA s.71.`, type: 'order' });
+    } else {
+      items.push({ content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });
+    }
+    if (custodyKind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({ content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`, type: 'order' });
+    }
     return { title: 'CUSTODY OF CHILD(REN)', items, type: 'custody' };
   }
   generateChildSupportSection(divorceData) {

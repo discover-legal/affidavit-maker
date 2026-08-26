@@ -1,7 +1,12 @@
 /**
  * @jest-environment node
  */
-import { computeNextSteps, detectPerspective, getProcedure } from '@/lib/api/procedure';
+import {
+  computeNextSteps,
+  detectPerspective,
+  getProcedure,
+  isCanadianJurisdiction,
+} from '@/lib/api/procedure';
 import type { StateProcedure } from '@/lib/api/procedure';
 
 const UT = getProcedure('UT') as StateProcedure;
@@ -304,5 +309,21 @@ describe('computeNextSteps — respondent perspective', () => {
     expect(answer?.title).toBe('File your answer');
     expect(answer?.due).toBeUndefined();
     expect(answer?.urgent).toBeUndefined();
+  });
+});
+
+describe('isCanadianJurisdiction', () => {
+  it('recognizes every province and territory code, case-insensitively', () => {
+    for (const code of ['ON', 'BC', 'AB', 'MB', 'SK', 'QC', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU']) {
+      expect(isCanadianJurisdiction(code)).toBe(true);
+    }
+    expect(isCanadianJurisdiction('on')).toBe(true);
+    expect(isCanadianJurisdiction(' on ')).toBe(true);
+  });
+
+  it('rejects US states and junk', () => {
+    expect(isCanadianJurisdiction('UT')).toBe(false);
+    expect(isCanadianJurisdiction('CA')).toBe(false); // California, not Canada
+    expect(isCanadianJurisdiction('')).toBe(false);
   });
 });

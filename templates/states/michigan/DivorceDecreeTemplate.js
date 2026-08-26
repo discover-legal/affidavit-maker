@@ -3,6 +3,7 @@
 // Complies with MCL § 552.6 et seq. (Michigan divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Michigan Judgment of Divorce Template
@@ -253,13 +254,25 @@ class MichiganDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    const primaryParent = divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff';
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    const primaryParent =
+      custody.kind === 'sole_petitioner'
+        ? (divorceData.petitionerName || 'Plaintiff')
+        : custody.kind === 'sole_respondent'
+          ? (divorceData.respondentName || 'Defendant')
+          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
 
-    if (custodyType === 'joint') {
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED that the parties shall have joint legal custody of the minor child(ren). (MCL § 722.26a)`,
         type: 'order'
@@ -268,9 +281,27 @@ class MichiganDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `IT IS ORDERED that ${primaryParent} shall have primary physical custody of the minor child(ren), and ${primaryParent}\'s home shall be the child(ren)\'s primary residence.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      soleCustodianName = primaryParent;
       items.push({
         content: `IT IS ORDERED that ${primaryParent} shall have sole legal and primary physical custody of the minor child(ren). (MCL § 722.26a)`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }

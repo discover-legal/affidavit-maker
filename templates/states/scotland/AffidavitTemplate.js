@@ -29,6 +29,23 @@ class ScotlandAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "SCO"
     this.stateName = this.metadata.stateName;   // "Scotland"
     this.countryCode = 'UK';
+
+    // Scottish terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Sheriff Court / Court of Session); parties are
+    // Pursuer/Defender (Divorce (Scotland) Act 1976); venue is the sheriffdom;
+    // self-represented parties are "Party Litigants". No US caption furniture.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Sheriffdom',
+      districtPlaceholder: '[SHERIFFDOM]',
+      filerLabel: 'Pursuer',
+      responderLabel: 'Defender',
+      selfRepresentedLabel: 'Party Litigant',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

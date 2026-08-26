@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Lagos State Divorce Decree Template
@@ -33,6 +34,23 @@ class LagosDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.state = 'LA_NG';
     this.stateName = 'Lagos';
     this.countryCode = 'NG';
+
+    // Nigerian terminology (see templates/core/terminology.js): the caption is the
+    // court-name line + suit number; parties are Petitioner/Respondent under the
+    // Matrimonial Causes Act 1970; High Courts sit in judicial divisions, not
+    // counties. No "STATE OF"/"COUNTY OF" caption lines, no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Judicial division',
+      districtPlaceholder: '[JUDICIAL DIVISION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'DECREE NISI';
 
     try {
@@ -188,19 +206,58 @@ class LagosDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
-    const custodyType = divorceData.custodyType || 'sole';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    // Historically this template defaulted to a sole order when no custody
+    // type was stored — exactly the unsafe fall-through this refactor removes.
+    // Absent data now renders the neutral as-agreed placeholder instead.
+    const custodyKind = custody.explicit ? custody.kind : 'unspecified';
+    let soleCustodianName = null;
+    if (custodyKind === 'joint') {
       items.push({
         content: `IT IS ORDERED that ${divorceData.petitionerName || 'the Petitioner'} and ${divorceData.respondentName || 'the Respondent'} shall have joint custody of the child(ren) of the marriage pursuant to section 71 of the Matrimonial Causes Act.`,
         type: 'order'
       });
-    } else {
+    } else if (custodyKind === 'sole_petitioner' || custodyKind === 'sole_respondent' || custodyKind === 'legacy_sole') {
+      const custodianName =
+        custodyKind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'the Petitioner')
+          : custodyKind === 'sole_respondent'
+            ? (divorceData.respondentName || 'the Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner');
+      const otherParentName =
+        custodyKind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'the Petitioner')
+          : (divorceData.respondentName || 'the Respondent');
+      soleCustodianName = custodianName;
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner'} shall have sole custody of the child(ren) of the marriage pursuant to section 71 of the Matrimonial Causes Act.`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole custody of the child(ren) of the marriage pursuant to section 71 of the Matrimonial Causes Act.`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${divorceData.respondentName || 'the Respondent'} shall have reasonable access to the child(ren) at such times and places as the parties may agree, or as this Court may direct.`,
+        content: `IT IS ORDERED that ${otherParentName} shall have reasonable access to the child(ren) at such times and places as the parties may agree, or as this Court may direct.`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custodyKind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }

@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Quebec Divorce Judgment Template
@@ -213,8 +214,15 @@ class QuebecDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED that ${divorceData.petitionerName || 'Plaintiff'} and ${divorceData.respondentName || 'Defendant'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
         type: 'order'
@@ -223,13 +231,41 @@ class QuebecDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `IT IS ORDERED that the child(ren) shall primarily reside with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff'}, who shall have primary parenting time.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'Plaintiff')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'Defendant')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'Plaintiff')
+          : (divorceData.respondentName || 'Defendant');
+      soleCustodianName = custodianName;
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff'} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${divorceData.respondentName || 'Defendant'} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Judgment.`,
+        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Judgment.`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.1).',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}, who shall have primary parenting time.`,
         type: 'order'
       });
     }

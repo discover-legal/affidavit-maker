@@ -3,9 +3,13 @@
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
 class TamilNaduDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
+  // Indian terminology (see templates/core/terminology.js): the caption is the
+  // court-name line (Family Court / District Court) + district; parties are
+  // Petitioner/Respondent (HMA 1955 / SMA 1954). No "STATE OF"/"COUNTY OF"
+  // caption lines and no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'IN_TN'; this.stateName = 'Tamil Nadu'; this.countryCode = 'IN';
+    this.state = 'IN_TN'; this.stateName = 'Tamil Nadu'; this.countryCode = 'IN'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'District', districtPlaceholder: '[DISTRICT]', filerLabel: 'Petitioner', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' };
     this.documentTitle = 'PETITION FOR DIVORCE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];

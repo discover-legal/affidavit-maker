@@ -31,6 +31,23 @@ class SouthAfricaAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "ZA"
     this.stateName = this.metadata.stateName;   // "South Africa"
     this.countryCode = 'ZA';
+
+    // South African terminology (see templates/core/terminology.js): the caption
+    // is the court-name line (High Court division / Regional Court); parties are
+    // Plaintiff/Defendant (Divorce Act 70 of 1979). No "STATE OF"/"COUNTY OF"
+    // caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Division',
+      districtPlaceholder: '[DIVISION]',
+      filerLabel: 'Plaintiff',
+      responderLabel: 'Defendant',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

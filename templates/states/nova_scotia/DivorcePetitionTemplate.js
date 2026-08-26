@@ -52,6 +52,23 @@ class NovaScotiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'NS';
     this.stateName = 'Nova Scotia';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Supreme Court (Family Division) petition for divorce; Civil Procedure Rules keep Petitioner/Respondent; filed at a court location, not a county.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

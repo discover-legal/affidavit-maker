@@ -31,6 +31,14 @@ class BaseAffidavitTemplate {
     this.state = null;
     this.stateName = null;
     this.requiredFields = ['affiantName', 'state'];
+    // Jurisdiction-aware terminology. Defaults reproduce the historical US
+    // wording byte-for-byte (note this class's venue label is 'County of');
+    // non-US templates opt in by merging overrides
+    // (see templates/core/terminology.js for the field reference).
+    this.terminology = {
+      ...require('./terminology').DEFAULT_TERMS,
+      districtLabel: 'County of',
+    };
     this.sections = {
       header: true,
       venue: true,
@@ -265,7 +273,9 @@ class BaseAffidavitTemplate {
    * @returns {string} Header text
    */
   generateHeader() {
-    return `STATE OF ${this.stateName.toUpperCase()}`;
+    const label = this.terminology.jurisdictionLabel;
+    if (!label) return null;
+    return `${label} ${this.stateName.toUpperCase()}`;
   }
 
   /**
@@ -276,8 +286,10 @@ class BaseAffidavitTemplate {
    * @returns {string} Venue text
    */
   generateVenue(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
-    return `County of ${countyUpper}`;
+    const t = this.terminology;
+    if (!t.districtLabel) return null;
+    const countyUpper = (county || t.districtPlaceholder).toUpperCase();
+    return `${t.districtLabel} ${countyUpper}`;
   }
 
   /**

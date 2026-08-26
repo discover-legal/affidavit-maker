@@ -51,6 +51,23 @@ class NewBrunswickDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'NB';
     this.stateName = 'New Brunswick';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Court of King's Bench petition filed in a judicial district; NB Rules of Court keep Petitioner/Respondent.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Judicial district',
+      districtStyle: 'plain',
+      districtPlaceholder: '[JUDICIAL DISTRICT]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

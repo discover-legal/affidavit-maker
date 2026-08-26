@@ -4,6 +4,12 @@ const courtNameService = require('./courtNameService');
 const { DEFAULT_LLM_MODEL } = require('./llmConfig');
 const { mergeChildren } = require('../utils/childrenMerge');
 const { randomUUID } = require('node:crypto');
+const {
+  EXTRACTION_QUALITY,
+  FIRST_NAME_DESCRIPTION,
+  LAST_NAME_DESCRIPTION,
+  FACT_CONTENT_DESCRIPTION,
+} = require('./agents/extractionQuality');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -239,11 +245,12 @@ SUPPORTED JURISDICTIONS: Currently available - ${this.supportedStates.map(s => `
 - Response for unsupported states: "I appreciate you sharing that information! Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve ${this.supportedStates.map(s => s.name).join(', ')}. Is there anything else I can help you with?"
 
 EXTRACTION RULES:
-- ALWAYS ask for BOTH legal first name AND legal last name separately
-  * Ask: "What is your legal first name?" then "What is your legal last name?"
-  * Extract first name and last name as separate fields
-  * If user provides full name (e.g., "Mike Jones"), split it into firstName: "Mike" and lastName: "Jones"
-  * Never proceed with just a first name - always ask for the last name too
+- Collect the affiant's FULL legal name (first and last fields)
+  * If only part of the name was given, ask for the missing part — never proceed with just a first name
+  * If the user provides a full name at once (e.g., "Mike Jones"), split it: firstName holds ALL given and middle names, lastName holds the COMPLETE surname including hyphenated/compound parts
+  * "Ellis Jane Smith Son-Wyatt" → firstName: "Ellis Jane", lastName: "Smith Son-Wyatt" — NEVER truncate to "Ellis Smith"
+  * Normalize to proper name case ("mike smith" → "Mike Smith") while preserving internal capitals the user typed (McDonald, van der Berg)
+  * NEVER re-ask for a name (or any value) the user already provided anywhere in the conversation — acknowledge it instead
 - ALWAYS look for states, even informal mentions (texas = extract as "TX")
 - ONLY extract NEW facts that aren't already in the existing facts list
 - Extract EVERYTHING relevant that's NEW
@@ -367,6 +374,7 @@ LEGAL CATEGORIES for extraction:
 ${Object.entries(LEGAL_CATEGORIES).map(([key, cat]) =>
   `• ${key}: ${cat.description}`
 ).join('\n')}
+${EXTRACTION_QUALITY}
 
 Remember: Only extract NEW information. Existing facts will be shown to you.`;
   }
@@ -482,6 +490,7 @@ DIVORCE CATEGORIES for extraction:
 ${Object.entries(DIVORCE_CATEGORIES).map(([key, cat]) =>
   `• ${key}: ${cat.description}`
 ).join('\n')}
+${EXTRACTION_QUALITY}
 
 Remember: Only extract NEW information. Existing data will be shown to you. Be sensitive to the emotional nature of divorce proceedings.`;
   }
@@ -577,11 +586,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             },
             extracted_first_name: {
               type: "string",
-              description: "First name mentioned or extracted. If user gives full name, split it. Use null if not mentioned."
+              description: `Affiant: ${FIRST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             extracted_last_name: {
               type: "string",
-              description: "Last name mentioned or extracted. If user gives full name, split it. Use null if not mentioned."
+              description: `Affiant: ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             extracted_state: {
               type: "string",
@@ -594,7 +603,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             },
             extracted_county: {
               type: "string",
-              description: "County name if mentioned or inferred from address. Use null if not mentioned."
+              description: "County name if mentioned or inferred from address, in proper name case with obvious typos corrected (e.g. 'simcoe county' → 'Simcoe'). Use null if not mentioned."
             },
             case_number: {
               type: "string",
@@ -620,7 +629,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
                 properties: {
                   content: {
                     type: "string",
-                    description: "Original fact as user stated it"
+                    description: FACT_CONTENT_DESCRIPTION
                   },
                   category: {
                     type: "string",
@@ -701,11 +710,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             // Petitioner (person filing)
             petitioner_first_name: {
               type: "string",
-              description: "Petitioner's first name. Use null if not mentioned."
+              description: `Petitioner: ${FIRST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             petitioner_last_name: {
               type: "string",
-              description: "Petitioner's last name. Use null if not mentioned."
+              description: `Petitioner: ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             petitioner_address: {
               type: "string",
@@ -714,11 +723,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             // Respondent (spouse)
             respondent_first_name: {
               type: "string",
-              description: "Respondent's (spouse's) first name. Use null if not mentioned."
+              description: `Respondent (spouse): ${FIRST_NAME_DESCRIPTION} Extract from ANY mention of the spouse, even mid-sentence. Use null if not mentioned.`
             },
             respondent_last_name: {
               type: "string",
-              description: "Respondent's (spouse's) last name. Use null if not mentioned."
+              description: `Respondent (spouse): ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             respondent_address: {
               type: "string",
@@ -736,11 +745,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             },
             extracted_county: {
               type: "string",
-              description: "County name if mentioned. Use null if not mentioned."
+              description: "County name if mentioned, in proper name case with obvious typos corrected (e.g. 'simcoe county' → 'Simcoe'). Use null if not mentioned."
             },
             residency_duration: {
               type: "string",
-              description: "How long petitioner has lived in the state (e.g., '2 years', '6 months'). Use null if not mentioned."
+              description: "How long petitioner has lived in the state, with typos normalized and the unit spelled out (e.g., '35 yeRs' → '35 years'; '2928 days' → '2928 days (approximately 8 years)'). Use null if not mentioned."
             },
             // Marriage Information
             marriage_date: {
@@ -856,7 +865,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
                 properties: {
                   content: {
                     type: "string",
-                    description: "The fact in formal legal language using full names, not pronouns. Must be understandable in isolation."
+                    description: `Formal legal language, understandable in isolation. ${FACT_CONTENT_DESCRIPTION}`
                   },
                   category: {
                     type: "string",
@@ -984,7 +993,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
           sessionId
         });
 
-        return this.processDivorceToolCall(functionResult, affidavitData);
+        return this.processDivorceToolCall(functionResult, affidavitData, message);
       } else {
         logger.info('Affidavit function call extraction', {
           hasFirstName: !!functionResult.extracted_first_name,
@@ -996,7 +1005,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
           sessionId
         });
 
-        return this.processToolCall(functionResult, affidavitData);
+        return this.processToolCall(functionResult, affidavitData, message);
       }
 
     } catch (error) {
@@ -1008,7 +1017,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
   /**
    * ✅ UPDATED: Process tool call with county & case caption
    */
-  processToolCall(args, currentData) {
+  processToolCall(args, currentData, sourceMessage = '') {
     const newData = { ...currentData };
     let hasNewData = false;
 
@@ -1094,6 +1103,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
+      // Provenance: the user's verbatim words (shown as "You said: …" in the
+      // review UI) — fact.content stays the cleaned, court-usable statement.
+      const sourceQuote = typeof sourceMessage === 'string'
+        ? sourceMessage.trim().slice(0, 280)
+        : '';
 
       // Convert evidence facts to proper format
       processedFacts = extractedFacts.map(fact => {
@@ -1101,6 +1115,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
           // Convert to evidence type with evidenceData
           const evidenceItem = {
             ...fact,
+            sourceQuote,
             id: randomUUID(), // Add unique ID for evidence tracking
             type: 'evidence',
             category: 'evidence',
@@ -1129,6 +1144,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
         // Regular fact - ensure it has type: 'fact'
         return {
           ...fact,
+          sourceQuote,
           id: fact.id || randomUUID(),
           type: fact.type || 'fact'
         };
@@ -1152,7 +1168,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
   /**
    * ✅ DIVORCE PACKAGE: Process divorce-specific tool call
    */
-  processDivorceToolCall(args, currentData) {
+  processDivorceToolCall(args, currentData, sourceMessage = '') {
     const newData = { ...currentData };
     let hasNewData = false;
 
@@ -1360,11 +1376,17 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
 
     if (extractedFacts.length > 0) {
       const existingFacts = currentData.facts || [];
+      // Provenance: the user's verbatim words (shown as "You said: …" in the
+      // review UI) — fact.content stays the cleaned, court-usable statement.
+      const sourceQuote = typeof sourceMessage === 'string'
+        ? sourceMessage.trim().slice(0, 280)
+        : '';
 
       processedFacts = extractedFacts.map(fact => {
         if (fact.is_evidence) {
           const evidenceItem = {
             ...fact,
+            sourceQuote,
             id: randomUUID(),
             type: 'evidence',
             category: 'evidence',
@@ -1391,6 +1413,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
         }
         return {
           ...fact,
+          sourceQuote,
           id: fact.id || randomUUID(),
           type: fact.type || 'fact'
         };

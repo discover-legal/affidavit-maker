@@ -33,6 +33,12 @@ const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { PHASES, PHASE_ORDER, buildFactsPrompt } = require('./prompts/generalAffidavit/index');
 const requirementsChecker = require('./AffidavitRequirementsChecker');
+const {
+  EXTRACTION_QUALITY,
+  FIRST_NAME_DESCRIPTION,
+  LAST_NAME_DESCRIPTION,
+  FACT_CONTENT_DESCRIPTION,
+} = require('./extractionQuality');
 
 // ─── LLM tool definition ──────────────────────────────────────────────────────
 
@@ -63,8 +69,8 @@ const AFFIDAVIT_TOOL = {
         },
 
         // ── PARTIES ──
-        affiant_first_name: { type: 'string' },
-        affiant_last_name:  { type: 'string' },
+        affiant_first_name: { type: 'string', description: `Affiant: ${FIRST_NAME_DESCRIPTION}` },
+        affiant_last_name:  { type: 'string', description: `Affiant: ${LAST_NAME_DESCRIPTION}` },
         affiant_address:    { type: 'string', description: 'Street address of affiant' },
         affiant_city:       { type: 'string' },
         affiant_state:      { type: 'string', description: 'Full state name of affiant residence' },
@@ -78,7 +84,7 @@ const AFFIDAVIT_TOOL = {
           items: {
             type: 'object',
             properties: {
-              content:     { type: 'string', description: 'First-person fact statement' },
+              content:     { type: 'string', description: FACT_CONTENT_DESCRIPTION },
               category:    { type: 'string' },
               subcategory: { type: 'string' }
             },
@@ -269,16 +275,16 @@ class GeneralAffidavitOrchestrator {
         checkResult.displayName,
         requirementsChecker.formatMissingForPrompt(checkResult),
         requirementsChecker.formatSatisfiedForPrompt(checkResult)
-      );
+      ) + '\n' + EXTRACTION_QUALITY;
     }
-    return PHASES[phaseName]?.prompt || PHASES['CLASSIFY'].prompt;
+    return (PHASES[phaseName]?.prompt || PHASES['CLASSIFY'].prompt) + '\n' + EXTRACTION_QUALITY;
   }
 
   _buildUserPrompt(message, data, state) {
     const collected = this._summarizeCollected(data);
     return [
       `CURRENT PHASE: ${state.currentPhase} (${PHASES[state.currentPhase]?.displayName || state.currentPhase})`,
-      collected ? `\nALREADY COLLECTED:\n${collected}` : '',
+      collected ? `\nALREADY COLLECTED (do NOT ask for any of this again — acknowledge it and ask only for what is missing):\n${collected}` : '',
       `\nUSER MESSAGE: ${message}`
     ].filter(Boolean).join('');
   }

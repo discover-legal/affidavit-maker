@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Ontario Divorce Application Template
@@ -44,6 +45,23 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'ON';
     this.stateName = 'Ontario';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Form 8 (Family Law Rules, O. Reg. 114/99): caption is the court name + court file no.; parties are Applicant/Respondent; no counties for venue.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'APPLICATION FOR DIVORCE';
 
@@ -153,6 +171,134 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Ontario custody pleading — 2021 Divorce Act terminology: "decision-making
+   * responsibility" (s.16.1), never "custody".
+   * @param {{kind: string}} custody - Resolved arrangement (templates/core/parenting.js)
+   * @param {Object} divorceData - Divorce data
+   * @returns {string|null} Pleading sentence
+   */
+  getCustodyPleading(custody, divorceData) {
+    if (custody.kind === 'joint') {
+      return 'The parties have agreed to share decision-making responsibility for the child(ren), and the Applicant requests a parenting order to that effect pursuant to section 16.1 of the Divorce Act.';
+    }
+    if (custody.kind === 'sole_petitioner') {
+      return 'The Applicant requests sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.';
+    }
+    if (custody.kind === 'sole_respondent') {
+      return `The Applicant requests that ${divorceData.respondentName || 'the Respondent'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
+    }
+    if (custody.kind === 'legacy_sole') {
+      return `The Applicant requests that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
+    }
+    return null;
+  }
+
+  /**
+   * Ontario residence pleading — "parenting time" vocabulary.
+   * @param {string} residenceName - Who the children primarily live with
+   * @returns {string} Pleading sentence
+   */
+  getResidencePleading(residenceName) {
+    return `The Applicant requests that the child(ren) primarily reside with ${residenceName}, who shall have the majority of parenting time.`;
+  }
+
+  /**
+   * Ontario child-support pleading — Federal Child Support Guidelines.
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Pleading sentence
+   */
+  getChildSupportPleading(divorceData) {
+    const payor = divorceData.childSupportObligor || divorceData.respondentName || 'the Respondent';
+    const payee = divorceData.childSupportObligee || divorceData.petitionerName || 'the Applicant';
+    return `The parties have agreed that ${payor} shall pay child support to ${payee} in the amount of $${divorceData.childSupportAmount} per month, consistent with the Federal Child Support Guidelines, SOR/97-175.`;
+  }
+
+  /**
+   * Ontario property section — Family Law Act equalization of net family
+   * property. Ontario is NOT a community-property jurisdiction, so the base
+   * class's "community/marital property" language must never appear here
+   * (the Ontario decree template carries the same guard).
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Property section
+   */
+  generatePropertySection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 12;
+
+    if (divorceData.hasProperty === false) {
+      items.push({
+        number: paragraphNum++,
+        content: 'There is no net family property to be equalized under the Family Law Act, RSO 1990, c. F.3.',
+        type: 'property_info'
+      });
+    } else if (this.hasAgreedPropertyDivision(divorceData)) {
+      for (const content of this.getPropertyAgreementPleadings(divorceData)) {
+        items.push({
+          number: paragraphNum++,
+          content,
+          type: 'property_agreement'
+        });
+      }
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties acquired property during the marriage, including but not limited to real property, personal property, and financial accounts.',
+        type: 'property_info'
+      });
+
+      items.push({
+        number: paragraphNum++,
+        content: 'The Applicant requests an equalization of the parties\' net family property pursuant to Part I of the Family Law Act, RSO 1990, c. F.3.',
+        type: 'property_request'
+      });
+    }
+
+    if (divorceData.hasDebts !== false) {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties have accumulated debts during the marriage. The Applicant requests that the Court allocate responsibility for such debts in a just and equitable manner.',
+        type: 'debt_info'
+      });
+    }
+
+    return {
+      title: 'VI. PROPERTY AND DEBTS',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
+
+  /**
+   * Ontario agreed-property pleadings — equalization vocabulary, no
+   * "community/marital property".
+   * @param {Object} divorceData - Divorce data
+   * @returns {string[]} Pleading paragraphs
+   */
+  getPropertyAgreementPleadings(divorceData) {
+    const pleadings = [];
+
+    let intro = 'The parties have reached an agreement resolving the division of their property and any equalization of net family property under the Family Law Act, RSO 1990, c. F.3.';
+    if (typeof divorceData.propertyAgreement === 'string' && divorceData.propertyAgreement.trim()) {
+      intro += ` ${divorceData.propertyAgreement.trim()}`;
+    }
+    pleadings.push(intro);
+
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.petitionerName || 'the Applicant'} is to receive: ${asList(divorceData.petitionerProperty).join('; ')}.`
+      );
+    }
+    if (asList(divorceData.respondentProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.respondentName || 'the Respondent'} is to receive: ${asList(divorceData.respondentProperty).join('; ')}.`
+      );
+    }
+
+    pleadings.push('The Applicant requests that the Court give effect to the parties\' agreement.');
+    return pleadings;
+  }
+
+  /**
    * Ontario relief section — uses Canadian Divorce Act corollary relief terminology.
    * "Corollary relief" (not "ancillary relief") is the correct term under the Divorce Act.
    * Post-March 1, 2021 amendments (Bill C-78): "parenting time" and
@@ -179,11 +325,18 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       reliefItems.push('A parenting order specifying parenting time and decision-making responsibility pursuant to section 16.1 of the Divorce Act;');
-      reliefItems.push('A child support order pursuant to section 15.1 of the Divorce Act and the Federal Child Support Guidelines, SOR/97-175;');
+      if (divorceData.childSupportAmount) {
+        const payor = divorceData.childSupportObligor || divorceData.respondentName || 'the Respondent';
+        reliefItems.push(`A child support order pursuant to section 15.1 of the Divorce Act and the Federal Child Support Guidelines, SOR/97-175, requiring ${payor} to pay $${divorceData.childSupportAmount} per month;`);
+      } else {
+        reliefItems.push('A child support order pursuant to section 15.1 of the Divorce Act and the Federal Child Support Guidelines, SOR/97-175;');
+      }
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
       reliefItems.push('A spousal support order pursuant to section 15.2 of the Divorce Act, as corollary relief;');
+    } else if (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) {
+      reliefItems.push('An order confirming that neither party shall pay spousal support to the other, each party having waived any claim under section 15.2 of the Divorce Act;');
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {

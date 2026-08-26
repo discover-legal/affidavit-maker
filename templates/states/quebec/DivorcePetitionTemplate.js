@@ -51,6 +51,23 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'QC';
     this.stateName = 'Quebec';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Superior Court proceedings are filed in a judicial district (CCP); parties are Applicant (Demandeur)/Defendant (Defendeur).
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Judicial district',
+      districtStyle: 'plain',
+      districtPlaceholder: '[JUDICIAL DISTRICT]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Defendant',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'APPLICATION FOR DIVORCE\n(DEMANDE EN DIVORCE)';
 

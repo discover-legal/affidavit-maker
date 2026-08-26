@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { getInitialLang, setLang, type Lang } from '@/lib/i18n';
+import { officialFormsLink } from '@/lib/officialForms';
 
 type ServiceMethod = {
   key: string;
@@ -78,9 +79,16 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Courts generally allow a few different ways to complete service. Read through them and pick the one that fits your situation.',
 
     'loading.steps': 'Loading the steps…',
+    'unavailable.title': 'Serving instructions for {state} aren’t written yet',
     'unavailable.body':
-      'Step-by-step service instructions for your state aren’t available here yet. Your court clerk or self-help center can walk you through how service works where you filed.',
-    'unavailable.retry': 'Try again',
+      'We haven’t written step-by-step serving instructions for {state} yet. Here’s what generally holds most places:',
+    'unavailable.general.receive':
+      'The other party must officially receive the papers — courts generally require a neutral adult, like a sheriff or professional process server, to deliver them, not you.',
+    'unavailable.general.proof':
+      'Written proof of when and how the papers were delivered generally must be filed with the court before the case moves forward.',
+    'unavailable.general.clerk':
+      'Your court clerk or self-help services can tell you exactly how service works where you filed.',
+    'unavailable.forms': 'Official forms for your courts:',
 
     'forms.acceptance': 'Download an Acceptance of Service draft',
     'forms.certificate': 'Download a Certificate of Service draft',
@@ -122,9 +130,16 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Los tribunales generalmente permiten varias formas de completar la notificación. Léelas y elige la que se ajuste a tu situación.',
 
     'loading.steps': 'Cargando los pasos…',
+    'unavailable.title': 'Aún no hemos escrito las instrucciones de notificación para {state}',
     'unavailable.body':
-      'Las instrucciones paso a paso de notificación para tu estado aún no están disponibles aquí. El secretario del tribunal o el centro de autoayuda pueden explicarte cómo funciona la notificación donde presentaste tu caso.',
-    'unavailable.retry': 'Intentar de nuevo',
+      'Todavía no hemos escrito las instrucciones paso a paso de notificación para {state}. Esto es lo que generalmente aplica en la mayoría de los lugares:',
+    'unavailable.general.receive':
+      'La otra parte debe recibir oficialmente los papeles — los tribunales generalmente exigen que los entregue un adulto neutral, como un alguacil o un notificador profesional, no tú.',
+    'unavailable.general.proof':
+      'Generalmente se debe presentar ante el tribunal una prueba por escrito de cuándo y cómo se entregaron los papeles antes de que el caso avance.',
+    'unavailable.general.clerk':
+      'El secretario del tribunal o los servicios de autoayuda pueden decirte exactamente cómo funciona la notificación donde presentaste tu caso.',
+    'unavailable.forms': 'Formularios oficiales de tus tribunales:',
 
     'forms.acceptance': 'Descargar un borrador de Aceptación de Notificación',
     'forms.certificate': 'Descargar un borrador de Certificado de Notificación',
@@ -426,15 +441,49 @@ export default function ServeGuideClient() {
         </div>
       )}
 
+      {/* Honest fallback for jurisdictions without written instructions —
+          the 404 is deterministic, so no retry button: general hedged
+          service info + the official forms link instead. */}
       {loadState === 'unavailable' && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <p className="mx-auto max-w-md text-gray-700">{tt(lang, 'unavailable.body')}</p>
-          <button
-            onClick={() => stateCode && loadProcedure(stateCode)}
-            className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong"
-          >
-            {tt(lang, 'unavailable.retry')}
-          </button>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="font-serif text-xl text-gray-900">
+            {tt(lang, 'unavailable.title', { state: stateCode ?? '' })}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-700">
+            {tt(lang, 'unavailable.body', { state: stateCode ?? '' })}
+          </p>
+          <ul className="mt-3 space-y-2.5">
+            {(
+              [
+                'unavailable.general.receive',
+                'unavailable.general.proof',
+                'unavailable.general.clerk',
+              ] as const
+            ).map((key) => (
+              <li key={key} className="flex gap-3 text-sm leading-relaxed text-gray-700">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-tint text-xs font-semibold text-brand-strong"
+                >
+                  •
+                </span>
+                <span className="min-w-0">{tt(lang, key)}</span>
+              </li>
+            ))}
+          </ul>
+          {stateCode && officialFormsLink(stateCode) && (
+            <p className="mt-4 text-sm text-gray-700">
+              {tt(lang, 'unavailable.forms')}{' '}
+              <a
+                href={officialFormsLink(stateCode)!.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-brand underline hover:text-brand-strong"
+              >
+                {officialFormsLink(stateCode)!.name}
+              </a>
+            </p>
+          )}
         </div>
       )}
 

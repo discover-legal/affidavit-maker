@@ -43,6 +43,23 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'NSW';
     this.stateName = 'New South Wales';
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'APPLICATION FOR DIVORCE';
 
     try {

@@ -30,6 +30,23 @@ class SingaporeAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "SG"
     this.stateName = this.metadata.stateName;   // "Singapore"
     this.countryCode = 'SG';
+
+    // Singapore terminology (see templates/core/terminology.js): the caption is
+    // the court-name line (Family Justice Courts); parties are
+    // Applicant/Respondent for filings from 15 Oct 2024 (Family Justice Rules
+    // 2024). No "STATE OF"/"COUNTY OF" caption lines and no "X County" phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

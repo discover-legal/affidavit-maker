@@ -10,6 +10,23 @@ class QueenslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'QLD';
     this.stateName = 'Queensland';
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'APPLICATION FOR DIVORCE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];

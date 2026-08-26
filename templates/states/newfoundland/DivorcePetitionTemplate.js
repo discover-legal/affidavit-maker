@@ -47,6 +47,23 @@ class NewfoundlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'NL';
     this.stateName = 'Newfoundland and Labrador';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Supreme Court of Newfoundland and Labrador sits at judicial centres; this template's validated forms use Petitioner/Respondent.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'ORIGINATING APPLICATION (FAMILY LAW)';
 

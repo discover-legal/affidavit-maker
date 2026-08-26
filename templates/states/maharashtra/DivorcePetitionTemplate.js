@@ -12,6 +12,23 @@ class MaharashtraDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'IN_MH';
     this.stateName = 'Maharashtra';
     this.countryCode = 'IN';
+
+    // Indian terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Family Court / District Court) + district; parties are
+    // Petitioner/Respondent (HMA 1955 / SMA 1954). No "STATE OF"/"COUNTY OF"
+    // caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'District',
+      districtPlaceholder: '[DISTRICT]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'PETITION FOR DIVORCE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];

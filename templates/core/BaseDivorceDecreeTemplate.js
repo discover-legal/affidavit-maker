@@ -11,6 +11,20 @@
 // built-in and always resolvable.
 const { randomUUID: uuidv4 } = require('node:crypto');
 const { normalizeCountyName } = require('./countyName');
+const { asList } = require('./dataShapes');
+const { DEFAULT_TERMS } = require('./terminology');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
+
+/**
+ * Title-case an all-caps document title ("FINAL DECREE OF DIVORCE" →
+ * "Final Decree of Divorce") for cover sheets / packet metadata.
+ */
+const titleCaseDocumentTitle = (title) =>
+  String(title || '')
+    .toLowerCase()
+    .replace(/(^|[\s(—–-])([a-z])/g, (m, pre, ch) => pre + ch.toUpperCase())
+    .replace(/\b(Of|For|And|The|To|In)\b/g, (w) => w.toLowerCase())
+    .replace(/^([a-z])/, (ch) => ch.toUpperCase());
 
 /**
  * Escape HTML special characters to prevent XSS/injection
@@ -50,6 +64,11 @@ class BaseDivorceDecreeTemplate {
     this.stateName = null;
     this.documentType = 'decree';
     this.documentTitle = 'FINAL DECREE OF DIVORCE';
+
+    // Jurisdiction-aware terminology. Defaults reproduce the historical US
+    // wording byte-for-byte; non-US templates opt in by merging overrides
+    // (see templates/core/terminology.js for the field reference).
+    this.terminology = { ...DEFAULT_TERMS };
 
     // Required fields for a valid decree
     this.requiredFields = [
@@ -125,11 +144,11 @@ class BaseDivorceDecreeTemplate {
 
     // Check required fields
     if (!divorceData.petitionerName || divorceData.petitionerName.trim().length < 2) {
-      errors.push('Petitioner name is required');
+      errors.push(`${this.terminology.filerLabel} name is required`);
     }
 
     if (!divorceData.respondentName || divorceData.respondentName.trim().length < 2) {
-      errors.push('Respondent name is required');
+      errors.push(`${this.terminology.responderLabel} name is required`);
     }
 
     if (!divorceData.state) {
@@ -137,7 +156,7 @@ class BaseDivorceDecreeTemplate {
     }
 
     if (!divorceData.county) {
-      errors.push('County is required');
+      errors.push(`${this.terminology.districtTerm} is required`);
     }
 
     if (!divorceData.caseNumber) {
@@ -151,6 +170,18 @@ class BaseDivorceDecreeTemplate {
     // Warnings
     if (!divorceData.divorceDate) {
       warnings.push('Divorce date will be left blank for judge to complete');
+    }
+
+    // Unrecognized custody arrangement: the parenting order will render
+    // neutral as-agreed language with a placeholder rather than guessing at
+    // a sole or joint order.
+    if (Array.isArray(divorceData.children) && divorceData.children.length > 0) {
+      const custody = resolveCustodyArrangement(divorceData);
+      if (custody.explicit && custody.kind === 'unspecified') {
+        warnings.push(
+          `Custody arrangement "${custody.raw}" was not recognized; the parenting order uses neutral as-agreed language with a placeholder — review and complete it before filing`
+        );
+      }
     }
 
     // State-specific validation
@@ -202,6 +233,11 @@ class BaseDivorceDecreeTemplate {
       state: this.state,
       documentType: this.documentType,
       timestamp: new Date(),
+      // Real display title (used by the filing-packet cover/TOC and file
+      // names): document type + jurisdiction, never a generic fallback.
+      metadata: {
+        documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
+      },
       sections: {
         header,
         venue,
@@ -243,7 +279,9 @@ class BaseDivorceDecreeTemplate {
    * @returns {string} Header text
    */
   generateHeader() {
-    return `STATE OF ${this.stateName.toUpperCase()}`;
+    const label = this.terminology.jurisdictionLabel;
+    if (!label) return null;
+    return `${label} ${this.stateName.toUpperCase()}`;
   }
 
   /**
@@ -252,8 +290,10 @@ class BaseDivorceDecreeTemplate {
    * @returns {string} Venue text
    */
   generateVenue(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
-    return `COUNTY OF ${countyUpper}`;
+    const t = this.terminology;
+    if (!t.districtLabel) return null;
+    const countyUpper = (county || t.districtPlaceholder).toUpperCase();
+    return `${t.districtLabel} ${countyUpper}`;
   }
 
   /**
@@ -275,9 +315,9 @@ class BaseDivorceDecreeTemplate {
     const respondent = (divorceData.respondentName || '_________________________________').toUpperCase();
 
     caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
-    caption += `${petitioner}, Petitioner\n\n`;
+    caption += `${petitioner}, ${this.terminology.filerLabel}\n\n`;
     caption += `AND\n\n`;
-    caption += `${respondent}, Respondent`;
+    caption += `${respondent}, ${this.terminology.responderLabel}`;
 
     return {
       courtName,
@@ -325,19 +365,71 @@ class BaseDivorceDecreeTemplate {
 
     text += `On this date, the Court considered the above-entitled and numbered cause.\n\n`;
 
-    if (divorceData.appearanceType === 'agreed' || divorceData.isUncontested) {
-      text += `Petitioner, ${divorceData.petitionerName || '_________________________________'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
-      text += `Respondent, ${divorceData.respondentName || '_________________________________'}, ${divorceData.respondentAppeared ? 'appeared and announced agreement' : 'having been duly served, did not appear but signed a Waiver of Citation and Agreement'}.`;
-    } else {
-      text += `Petitioner, ${divorceData.petitionerName || '_________________________________'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : 'pro se'}.\n\n`;
-      text += `Respondent, ${divorceData.respondentName || '_________________________________'}, ${divorceData.respondentAppeared ? 'appeared' : 'although duly cited, did not appear and wholly made default'}.`;
-    }
+    const selfRepPhrase = this.terminology.selfRepresentedLabel.toLowerCase();
+    text += `${this.terminology.filerLabel}, ${divorceData.petitionerName || '_________________________________'}, appeared ${divorceData.petitionerRepresentation === 'attorney' ? 'by and through counsel' : selfRepPhrase}.\n\n`;
+    text += `${this.terminology.responderLabel}, ${divorceData.respondentName || '_________________________________'}, ${this.getRespondentAppearanceText(divorceData)}.`;
 
     return {
       title: 'APPEARANCES',
       text,
       type: 'appearances'
     };
+  }
+
+  /**
+   * Truthful recital of the respondent's service/appearance status.
+   *
+   * The stored serviceMethod enum is 'waiver' | 'formal' | 'publication' |
+   * 'undecided' ("spouse will accept the papers" maps to 'waiver'). Default
+   * is recited ONLY when the data affirmatively says default — never as a
+   * fallback for missing data: a decree that falsely recites "wholly made
+   * default" against a respondent who acknowledged service and agreed is a
+   * defective order.
+   *
+   * @param {Object} divorceData - The divorce data
+   * @returns {string} Recital fragment following "Respondent, <name>, …"
+   */
+  getRespondentAppearanceText(divorceData) {
+    const uncontested = divorceData.appearanceType === 'agreed' || divorceData.isUncontested;
+    if (divorceData.respondentAppeared) {
+      return uncontested ? 'appeared and announced agreement' : 'appeared';
+    }
+
+    const method = typeof divorceData.serviceMethod === 'string'
+      ? divorceData.serviceMethod.trim().toLowerCase()
+      : '';
+    const defaulted =
+      divorceData.respondentDefaulted === true ||
+      divorceData.defaultJudgment === true ||
+      divorceData.appearanceType === 'default';
+
+    if (method === 'waiver') {
+      return uncontested
+        ? 'accepted service and waived further service of process, and has agreed to the terms of this decree'
+        : 'accepted service and waived further service of process';
+    }
+    if (method === 'publication') {
+      return defaulted
+        ? 'was served by publication and, having failed to appear or answer, made default'
+        : 'was served by publication';
+    }
+    if (method === 'formal') {
+      if (defaulted) {
+        return 'although duly cited, did not appear and wholly made default';
+      }
+      return uncontested
+        ? 'was duly served and has agreed to the terms of this decree'
+        : 'was duly served';
+    }
+
+    // No recognized service data. Recite default only when the data says so;
+    // otherwise fall back to the least-assertive historical language.
+    if (defaulted) {
+      return 'although duly cited, did not appear and wholly made default';
+    }
+    return uncontested
+      ? 'having been duly served, did not appear but signed a Waiver of Citation and Agreement'
+      : 'although duly cited, did not appear';
   }
 
   /**
@@ -399,12 +491,13 @@ class BaseDivorceDecreeTemplate {
       });
 
       // Property awarded to Petitioner
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      const petitionerPropertyList = asList(divorceData.petitionerProperty);
+      if (petitionerPropertyList.length > 0) {
         items.push({
-          content: `IT IS ORDERED that the following property is confirmed and awarded to ${divorceData.petitionerName || 'Petitioner'} as that party's sole and separate property:`,
+          content: `IT IS ORDERED that the following property is confirmed and awarded to ${divorceData.petitionerName || this.terminology.filerLabel} as that party's sole and separate property:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        petitionerPropertyList.forEach(prop => {
           items.push({
             content: `- ${prop}`,
             type: 'property_item'
@@ -413,12 +506,13 @@ class BaseDivorceDecreeTemplate {
       }
 
       // Property awarded to Respondent
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      const respondentPropertyList = asList(divorceData.respondentProperty);
+      if (respondentPropertyList.length > 0) {
         items.push({
-          content: `IT IS ORDERED that the following property is confirmed and awarded to ${divorceData.respondentName || 'Respondent'} as that party's sole and separate property:`,
+          content: `IT IS ORDERED that the following property is confirmed and awarded to ${divorceData.respondentName || this.terminology.responderLabel} as that party's sole and separate property:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        respondentPropertyList.forEach(prop => {
           items.push({
             content: `- ${prop}`,
             type: 'property_item'
@@ -463,7 +557,7 @@ class BaseDivorceDecreeTemplate {
 
       if (divorceData.petitionerDebts && divorceData.petitionerDebts.length > 0) {
         items.push({
-          content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} shall pay and be responsible for the following debts:`,
+          content: `IT IS ORDERED that ${divorceData.petitionerName || this.terminology.filerLabel} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
         divorceData.petitionerDebts.forEach(debt => {
@@ -476,7 +570,7 @@ class BaseDivorceDecreeTemplate {
 
       if (divorceData.respondentDebts && divorceData.respondentDebts.length > 0) {
         items.push({
-          content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} shall pay and be responsible for the following debts:`,
+          content: `IT IS ORDERED that ${divorceData.respondentName || this.terminology.responderLabel} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
         divorceData.respondentDebts.forEach(debt => {
@@ -538,25 +632,64 @@ class BaseDivorceDecreeTemplate {
     // State subclasses should override this method to use jurisdiction-specific
     // terminology (e.g., Texas uses "Joint Managing Conservator"/"Possessory Conservator";
     // Arizona uses "legal decision-making authority"; Illinois uses "parental responsibilities").
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    //
+    // Safety rule: only positively recognized custody values render a joint
+    // or sole order. Anything ambiguous ("joint decision making" maps to
+    // joint; unrecognized free text does NOT map to sole) renders neutral
+    // as-agreed language — a wrong-but-plausible sole order is worse than a
+    // placeholder (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    const t = this.terminology;
+    let soleCustodianName = null;
+
+    if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are awarded joint legal custody of the minor child(ren).`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || t.filerLabel} and ${divorceData.respondentName || t.responderLabel} are awarded joint legal custody of the minor child(ren).`,
+        type: 'order'
+      });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || t.filerLabel)
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || t.responderLabel)
+            : (divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel);
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || t.filerLabel)
+          : (divorceData.respondentName || t.responderLabel);
+      soleCustodianName = custodianName;
+
+      items.push({
+        content: `IT IS ORDERED that ${custodianName} is awarded sole legal and physical custody of the minor child(ren).`,
         type: 'order'
       });
 
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have primary physical custody and the right to designate the primary residence of the child(ren).`,
+        content: `IT IS ORDERED that ${otherParentName} shall have reasonable visitation/parenting time with the minor child(ren) as agreed by the parties or as ordered by the Court.`,
         type: 'order'
       });
     } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is awarded sole legal and physical custody of the minor child(ren).`,
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
         type: 'order'
       });
+    }
 
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the decision-making branch. The joint
+    // branch keeps its historical filer fallback for byte-compatibility.
+    if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} shall have reasonable visitation/parenting time with the minor child(ren) as agreed by the parties or as ordered by the Court.`,
+        content: `IT IS ORDERED that ${residenceName || divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel} shall have primary physical custody and the right to designate the primary residence of the child(ren).`,
+        type: 'order'
+      });
+    } else if (residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }
@@ -598,7 +731,7 @@ class BaseDivorceDecreeTemplate {
 
     if (divorceData.childSupportAmount) {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.childSupportObligor || divorceData.respondentName || 'Respondent'} shall pay child support to ${divorceData.childSupportObligee || divorceData.petitionerName || 'Petitioner'} in the amount of $${divorceData.childSupportAmount} per month.`,
+        content: `IT IS ORDERED that ${divorceData.childSupportObligor || divorceData.respondentName || this.terminology.responderLabel} shall pay child support to ${divorceData.childSupportObligee || divorceData.petitionerName || this.terminology.filerLabel} in the amount of $${divorceData.childSupportAmount} per month.`,
         type: 'order'
       });
 
@@ -632,20 +765,25 @@ class BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
+    // spousalSupportRequested === false is the orchestrator's explicit
+    // "the parties waive spousal support" signal — render the waiver order.
+    const waived =
+      divorceData.spousalSupportWaived ||
+      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
+    if (!divorceData.spousalSupportAwarded && !waived) {
       return null;
     }
 
     const items = [];
 
-    if (divorceData.spousalSupportWaived) {
+    if (waived && !divorceData.spousalSupportAwarded) {
       items.push({
         content: 'IT IS ORDERED that each party waives and relinquishes any claim for spousal maintenance/alimony from the other party, now and forever.',
         type: 'order'
       });
     } else if (divorceData.spousalSupportAwarded) {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent'} shall pay spousal maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner'} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for a period of ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED that ${divorceData.spousalSupportPayor || divorceData.respondentName || this.terminology.responderLabel} shall pay spousal maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || this.terminology.filerLabel} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for a period of ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
         type: 'order'
       });
     }
@@ -669,7 +807,7 @@ class BaseDivorceDecreeTemplate {
 
     return {
       title: 'NAME CHANGE',
-      text: `IT IS ORDERED that the name of ${divorceData.nameChangeParty || divorceData.petitionerName || 'Petitioner'} is changed to ${divorceData.previousName}.`,
+      text: `IT IS ORDERED that the name of ${divorceData.nameChangeParty || divorceData.petitionerName || this.terminology.filerLabel} is changed to ${divorceData.previousName}.`,
       type: 'name_change'
     };
   }
@@ -729,12 +867,12 @@ class BaseDivorceDecreeTemplate {
           {
             line: '_________________________________',
             name: divorceData.petitionerName || '_________________________________',
-            title: 'Petitioner'
+            title: this.terminology.filerLabel
           },
           {
             line: '_________________________________',
             name: divorceData.respondentName || '_________________________________',
-            title: 'Respondent'
+            title: this.terminology.responderLabel
           }
         ],
         type: 'party_signatures'

@@ -44,6 +44,23 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'AB';
     this.stateName = 'Alberta';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Divorce is a Court of King's Bench civil action commenced at a judicial centre; parties are Plaintiff/Defendant.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Judicial centre',
+      districtStyle: 'plain',
+      districtPlaceholder: '[JUDICIAL CENTRE]',
+      filerLabel: 'Plaintiff',
+      responderLabel: 'Defendant',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'STATEMENT OF CLAIM FOR DIVORCE';
 

@@ -58,7 +58,9 @@ describe('buildPracticeQuestions', () => {
     expect(byId.separation.question).toContain('Daniel');
     expect(byId.separation.answer).toBe('You separated on November 2, 2025.');
     expect(byId.residency.question).toContain('Utah County');
-    expect(byId.residency.answer).toBe('You told us about 48 months.');
+    // Hedged: the question no longer asserts any state's residency period.
+    expect(byId.residency.question).not.toMatch(/three months/i);
+    expect(byId.residency.answer).toBe('You told us about 4 years.');
     expect(byId.children.answer).toBe(
       'Sofia Lopez (born March 10, 2017); Leo Lopez (born August 1, 2020)',
     );
@@ -99,6 +101,17 @@ describe('buildPracticeQuestions', () => {
       'Has your state’s waiting period passed since you filed your petition?',
     );
     expect(waiting.answer).toBeNull();
+  });
+
+  it('humanizes residency durations: months under 24, years (and months) at 24+', () => {
+    const answerFor = (months: number) =>
+      buildPracticeQuestions({ residencyStateMonths: months }).find(
+        (q) => q.id === 'residency',
+      )!.answer;
+    expect(answerFor(18)).toBe('You told us about 18 months.');
+    expect(answerFor(24)).toBe('You told us about 2 years.');
+    expect(answerFor(27)).toBe('You told us about 2 years and 3 months.');
+    expect(answerFor(144)).toBe('You told us about 12 years.');
   });
 
   it('renders questions and answers in Spanish', () => {

@@ -1,11 +1,16 @@
 // templates/states/south_australia/DivorceDecreeTemplate.js
 'use strict';
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 class SouthAustraliaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
+  // Australian terminology (see templates/core/terminology.js): divorce is
+  // federal (FCFCOA) — the caption is the court-name line + registry; parties
+  // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+  // "COUNTY OF" caption lines and no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'SA_AU'; this.stateName = 'South Australia'; this.countryCode = 'AU'; this.documentTitle = 'DIVORCE ORDER';
+    this.state = 'SA_AU'; this.stateName = 'South Australia'; this.countryCode = 'AU'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'Registry', districtPlaceholder: '[REGISTRY]', filerLabel: 'Applicant', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' }; this.documentTitle = 'DIVORCE ORDER';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'caseNumber', 'marriageDate'];
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
@@ -13,7 +18,7 @@ class SouthAustraliaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   getCaseNumberLabel() { return 'File Number'; }
   getDefaultCourt(county) { return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${(county || '[CITY]').toUpperCase()} REGISTRY`; }
-  generateHeader() { return 'STATE OF SOUTH AUSTRALIA'; }
+  generateHeader() { return 'SOUTH AUSTRALIA'; }
   generateVenue(county) { return `${(county || '[REGISTRY LOCATION]').toUpperCase()} REGISTRY`; }
 
   generateCaseCaption(divorceData) {
@@ -38,8 +43,25 @@ class SouthAustraliaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) return null;
     const items = [];
     items.push({ content: 'The Court finds that the following parenting orders are in the best interests of the child(ren) (s.60CA):', type: 'finding' });
-    const custodyType = divorceData.custodyType || 'joint';
-    items.push({ content: custodyType === 'joint' ? 'IT IS ORDERED that the parties shall have shared parental responsibility.' : `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'} shall have sole parental responsibility.`, type: 'order' });
+    // Safety rule: only positively recognized custody values render a joint or
+    // sole order; anything ambiguous renders neutral as-agreed language —
+    // NEVER a sole order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
+      items.push({ content: 'IT IS ORDERED that the parties shall have shared parental responsibility.', type: 'order' });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      soleCustodianName = custody.kind === 'sole_petitioner' ? (divorceData.petitionerName || 'Applicant')
+        : custody.kind === 'sole_respondent' ? (divorceData.respondentName || 'Respondent')
+          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+      items.push({ content: `IT IS ORDERED that ${soleCustodianName} shall have sole parental responsibility.`, type: 'order' });
+    } else {
+      items.push({ content: 'IT IS ORDERED that the parties shall exercise parental responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });
+    }
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({ content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`, type: 'order' });
+    }
     return { title: 'PARENTING ORDERS', items, type: 'custody' };
   }
 

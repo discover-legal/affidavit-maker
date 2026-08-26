@@ -11,12 +11,29 @@ class SouthAustraliaAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;
     this.stateName = this.metadata.stateName;
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
     this.sections.perjuryStatement = false;
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
 
-  generateHeader() { return 'STATE OF SOUTH AUSTRALIA'; }
+  generateHeader() { return 'SOUTH AUSTRALIA'; }
   generateVenue(county) { return `AT ${(county || '[CITY/LOCALITY]').toUpperCase()}`; }
 
   generateCaseCaption(affidavitData) {
@@ -37,7 +54,7 @@ class SouthAustraliaAffidavitTemplate extends BaseAffidavitTemplate {
 
   generateNotaryBlock(affidavitData) {
     const city = affidavitData.county || affidavitData.city || '_______________';
-    return `Sworn/Affirmed at ${city},\nin the State of South Australia,\non the _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths`;
+    return `Sworn/Affirmed at ${city},\nin South Australia,\non the _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths`;
   }
 }
 

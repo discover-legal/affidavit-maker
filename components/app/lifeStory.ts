@@ -155,6 +155,29 @@ export function formatFriendlyDate(raw: unknown, lang: Lang = 'en'): string {
   });
 }
 
+/**
+ * Humanize a residency duration for display. Under 24 months stays in
+ * months ("18 months"); 24 and up reads in years, with a months remainder
+ * when there is one ("12 years", "2 years and 3 months"). Pure number
+ * math — never applied to user free text.
+ */
+export function formatResidencyDuration(months: number, lang: Lang = 'en'): string {
+  const es = lang === 'es';
+  const n = Math.floor(months);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  if (n < 24) {
+    if (n === 1) return es ? '1 mes' : '1 month';
+    return es ? `${n} meses` : `${n} months`;
+  }
+  const years = Math.floor(n / 12);
+  const rem = n % 12;
+  const yearsText = es ? `${years} años` : `${years} years`;
+  if (rem === 0) return yearsText;
+  const remText =
+    rem === 1 ? (es ? '1 mes' : '1 month') : es ? `${rem} meses` : `${rem} months`;
+  return es ? `${yearsText} y ${remText}` : `${yearsText} and ${remText}`;
+}
+
 export function childBirthDate(child: ProfileChild): string {
   return str(child.dob) || str(child.dateOfBirth) || str(child.birthDate);
 }
@@ -309,9 +332,7 @@ export function buildRecitals(
   if (Number.isFinite(months) && months > 0) {
     homeSegments.push(
       text(es ? ' — donde has vivido por ' : ' — where you have lived for '),
-      value(
-        months === 1 ? (es ? '1 mes' : '1 month') : `${months} ${es ? 'meses' : 'months'}`,
-      ),
+      value(formatResidencyDuration(months, lang)),
     );
   }
   homeSegments.push(text('.'));

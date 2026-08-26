@@ -14,7 +14,8 @@ import {
 import { ALL_STATES, ALL_PROVINCES } from '@/lib/api/catalog-data';
 import { paymentsEnabled } from '@/lib/api/stripe';
 import {
-  buildDocumentStructure,
+  buildDocumentStructureForType,
+  listPacketDocumentTypes,
   type AffidavitData,
   type TemplateManager,
 } from '@/lib/api/documentStructure';
@@ -58,7 +59,10 @@ type PacketEvidenceItem = {
 
 type CourtPacketModule = {
   assemblePacket: (opts: {
-    mainPdfBuffer: Buffer;
+    /** Multi-document form: every rendered document in filing order. */
+    documents?: Array<{ buffer: Buffer; title?: string }>;
+    /** Single-document form (used when `documents` is absent). */
+    mainPdfBuffer?: Buffer;
     mainTitle?: string;
     evidence?: PacketEvidenceItem[];
     state?: string;
@@ -122,9 +126,11 @@ function extractEvidenceMeta(content: Record<string, unknown>): Map<string, Evid
 /**
  * POST /api/documents/packet
  *
- * "Print your case packet": assembles the user's saved document (rendered
- * through the exact pdfService path documents/generate uses) plus every
- * uploaded evidence file into ONE organized draft PDF with a cover sheet,
+ * "Print your case packet": assembles the user's saved document — every
+ * sub-document of a multi-document package (divorce_package = petition +
+ * decree, in filing order), rendered through the exact pdfService path
+ * documents/generate uses — plus every uploaded evidence file into ONE
+ * organized draft PDF with a cover sheet,
  * table of contents, exhibit separator pages, and an exhibit index
  * (services/courtPacket).
  *
@@ -219,34 +225,47 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       doc.title ||
       'Legal Document';
 
-    // ── STEP 1: Render the main document the same way documents/generate does ─
+    // ── STEP 1: Render the main document(s) the same way documents/generate ──
+    // does. Multi-document packages (divorce_package = petition + decree)
+    // expand to EVERY sub-document in filing order — a filed divorce packet
+    // needs both pleadings, not just the one open in the editor.
     const services = await getServices();
     const templateManager = services.templateManager as TemplateManager | null;
 
-    let documentStructure: unknown;
+    const packetTypes = listPacketDocumentTypes(
+      doc.document_type ?? (content.documentType as string | undefined),
+    );
+
+    const documentStructures: unknown[] = [];
     if (stateCode && templateManager) {
-      try {
-        // Same builder as documents/generate: divorce packages route to
-        // their jurisdiction-specific petition/decree templates instead of
-        // being flattened into a generic affidavit with [PLACEHOLDER]
-        // captions. The saved row's document_type is authoritative.
-        documentStructure = buildDocumentStructure(templateManager, stateCode, {
-          ...content,
-          state: stateCode,
-          documentType:
-            doc.document_type ?? (content.documentType as string | undefined),
-        } as AffidavitData);
-      } catch (templateErr) {
-        logger.warn('document_packet_template_failed_falling_back', {
-          userId: user.id,
-          documentId,
-          state: stateCode,
-          error: templateErr instanceof Error ? templateErr.message : String(templateErr),
-        });
-        documentStructure = undefined;
+      for (const packetType of packetTypes) {
+        try {
+          // Same builder as documents/generate: divorce packages route to
+          // their jurisdiction-specific petition/decree templates instead of
+          // being flattened into a generic affidavit with [PLACEHOLDER]
+          // captions. The saved row's document_type is authoritative.
+          documentStructures.push(
+            buildDocumentStructureForType(
+              templateManager,
+              stateCode,
+              { ...content, state: stateCode, documentType: packetType } as AffidavitData,
+              packetType,
+            ),
+          );
+        } catch (templateErr) {
+          // Per-sub-document degradation: a jurisdiction missing (say) the
+          // decree template still packets the petition.
+          logger.warn('document_packet_template_failed_falling_back', {
+            userId: user.id,
+            documentId,
+            state: stateCode,
+            packetType,
+            error: templateErr instanceof Error ? templateErr.message : String(templateErr),
+          });
+        }
       }
     }
-    if (!documentStructure) {
+    if (documentStructures.length === 0) {
       // Generic degraded path: the saved content lacks the fields the state
       // template needs (or the state is unknown). Render a plain document
       // from whatever facts we have rather than 500-ing.
@@ -263,7 +282,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         })
         .filter(Boolean)
         .map((text, idx) => ({ number: idx + 1, content: text }));
-      documentStructure = {
+      documentStructures.push({
         documentType: 'affidavit',
         state: stateCode,
         sections: {
@@ -272,48 +291,71 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
             'This document was prepared from the saved case record with Discover.Legal.',
           facts: items.length > 0 ? { items } : undefined,
         },
-      };
+      });
     }
 
     const PDFService = require('@/services/pdfService');
     const pdfService = new PDFService({ templateManager });
-
-    let result: PdfServiceResult;
-    try {
-      // Deliberately NOT passing `userId`: pdfService.generatePDF appends its
-      // own exhibit pages when userId is present, and the packet assembler
-      // adds separator pages + exhibits itself — passing userId would
-      // duplicate every exhibit. documentId here is server-generated (it
-      // lands in the temp filename on disk).
-      result = (await pdfService.generatePDF(documentStructure, {
-        documentId: `packet-${documentId}-${Date.now()}`,
-      })) as PdfServiceResult;
-    } catch (pdfErr) {
-      logger.error('document_packet_pdf_failed', {
-        userId: user.id,
-        documentId,
-        error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr),
-      });
-      throw new AppError('Failed to generate document', 500, 'PDFGenerationError');
-    }
-
-    if (!result.success || !result.filepath) {
-      throw new AppError('Document generation returned no filepath', 500, 'PDFGenerationError');
-    }
-    pdfFilepath = result.filepath;
-
     const fs = require('fs') as typeof import('fs');
-    const mainPdfBuffer = await fs.promises.readFile(/* turbopackIgnore: true */ pdfFilepath);
 
-    // Main-document temp file is consumed — clean up now, fire-and-forget
-    // (matching documents/generate).
-    fs.promises.unlink(pdfFilepath).catch((cleanupErr: unknown) => {
-      logger.warn('document_packet_cleanup_failed', {
-        filepath: pdfFilepath,
-        error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+    // Render each structure through the exact pdfService path documents/
+    // generate uses, collecting {buffer, title} in filing order. The
+    // entitlement + rate-limit checks above already ran once for the whole
+    // request — they gate the saved row, not individual renders.
+    const renderedDocuments: Array<{ buffer: Buffer; title: string }> = [];
+    for (let i = 0; i < documentStructures.length; i += 1) {
+      const structure = documentStructures[i];
+      let result: PdfServiceResult;
+      try {
+        // Deliberately NOT passing `userId`: pdfService.generatePDF appends
+        // its own exhibit pages when userId is present, and the packet
+        // assembler adds separator pages + exhibits itself — passing userId
+        // would duplicate every exhibit. documentId here is server-generated
+        // (it lands in the temp filename on disk); the index suffix keeps
+        // each render's temp file unique within the request.
+        result = (await pdfService.generatePDF(structure, {
+          documentId: `packet-${documentId}-${Date.now()}-${i}`,
+        })) as PdfServiceResult;
+      } catch (pdfErr) {
+        logger.error('document_packet_pdf_failed', {
+          userId: user.id,
+          documentId,
+          error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr),
+        });
+        throw new AppError('Failed to generate document', 500, 'PDFGenerationError');
+      }
+
+      if (!result.success || !result.filepath) {
+        throw new AppError('Document generation returned no filepath', 500, 'PDFGenerationError');
+      }
+      pdfFilepath = result.filepath;
+
+      const renderedPath = result.filepath;
+      const buffer = await fs.promises.readFile(/* turbopackIgnore: true */ renderedPath);
+
+      // This render's temp file is consumed — clean up now, fire-and-forget
+      // (matching documents/generate).
+      fs.promises.unlink(renderedPath).catch((cleanupErr: unknown) => {
+        logger.warn('document_packet_cleanup_failed', {
+          filepath: renderedPath,
+          error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+        });
       });
-    });
-    pdfFilepath = undefined;
+      pdfFilepath = undefined;
+
+      // The structure knows the real pleading name ("Verified Petition for
+      // Divorce"); the saved title/"Legal Document" is only a fallback.
+      const structureTitle = (
+        structure as { metadata?: { documentTitle?: unknown } } | null
+      )?.metadata?.documentTitle;
+      renderedDocuments.push({
+        buffer,
+        title:
+          typeof structureTitle === 'string' && structureTitle.trim()
+            ? structureTitle.trim()
+            : title,
+      });
+    }
 
     // ── STEP 2: Load the uploaded evidence for this document ────────────────
     const evidenceStorage = require('@/services/evidenceStorage') as EvidenceStorageModule;
@@ -375,19 +417,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       parties.push(`Affiant: ${content.affiantName.trim()}`);
     }
 
-    // The structure knows the real pleading name ("Verified Petition for
-    // Divorce"); the saved title/"Legal Document" is only a fallback.
-    const structureTitle = (
-      documentStructure as { metadata?: { documentTitle?: unknown } } | null
-    )?.metadata?.documentTitle;
-    const mainTitle =
-      typeof structureTitle === 'string' && structureTitle.trim()
-        ? structureTitle.trim()
-        : title;
-
+    // Multi-document packages pass the filing-order array (petition first);
+    // single-document types keep the historical single-buffer call shape.
+    const mainTitle = renderedDocuments[0].title;
     const packetBuffer = await assemblePacket({
-      mainPdfBuffer,
-      mainTitle,
+      ...(renderedDocuments.length > 1
+        ? { documents: renderedDocuments }
+        : { mainPdfBuffer: renderedDocuments[0].buffer, mainTitle }),
       evidence,
       state: stateCode,
       county: typeof content.county === 'string' ? content.county : undefined,
@@ -409,6 +445,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       userId: user.id,
       documentId,
       state: stateCode,
+      documents: renderedDocuments.length,
       exhibits: evidence.length,
       bytes: packetBuffer.length,
     });

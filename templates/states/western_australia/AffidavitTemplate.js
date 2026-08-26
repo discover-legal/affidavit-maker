@@ -12,12 +12,29 @@ class WesternAustraliaAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "WA_AU"
     this.stateName = this.metadata.stateName;
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
     this.sections.perjuryStatement = false;
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
 
-  generateHeader() { return 'STATE OF WESTERN AUSTRALIA'; }
+  generateHeader() { return 'WESTERN AUSTRALIA'; }
 
   generateVenue(county) {
     return `AT ${(county || '[CITY/LOCALITY]').toUpperCase()}`;
@@ -45,7 +62,7 @@ class WesternAustraliaAffidavitTemplate extends BaseAffidavitTemplate {
     const city = affidavitData.county || affidavitData.city || '_______________';
     return (
       `Sworn/Affirmed at ${city},\n` +
-      `in the State of Western Australia,\n` +
+      `in Western Australia,\n` +
       `on the _____ day of _________________, _______.\n\n` +
       `Before me:\n\n` +
       `________________________________\n` +

@@ -3,10 +3,14 @@
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
 
 class TamilNaduAffidavitTemplate extends BaseAffidavitTemplate {
+  // Indian terminology (see templates/core/terminology.js): the caption is the
+  // court-name line (Family Court / District Court) + district; parties are
+  // Petitioner/Respondent (HMA 1955 / SMA 1954). No "STATE OF"/"COUNTY OF"
+  // caption lines and no "X County" body phrasing.
   constructor() {
     super();
     this.metadata = require('./metadata.json');
-    this.state = this.metadata.stateCode; this.stateName = this.metadata.stateName; this.countryCode = 'IN';
+    this.state = this.metadata.stateCode; this.stateName = this.metadata.stateName; this.countryCode = 'IN'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'District', districtPlaceholder: '[DISTRICT]', filerLabel: 'Petitioner', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' };
     this.requiredFields = this.metadata.requiredFields; this.sections.perjuryStatement = false;
   }
   generateHeader() { return 'IN THE FAMILY COURT AT CHENNAI'; }

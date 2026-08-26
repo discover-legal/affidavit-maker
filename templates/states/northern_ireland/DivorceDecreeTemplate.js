@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Northern Ireland Decree Absolute Template
@@ -37,6 +38,23 @@ class NorthernIrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.state = 'NIR';
     this.stateName = 'Northern Ireland';
     this.countryCode = 'UK';
+
+    // Northern Ireland terminology (see templates/core/terminology.js): the caption
+    // is the court-name line; parties remain Petitioner/Respondent (Matrimonial
+    // Causes (NI) Order 1978 — NI did not adopt the 2022 E&W reforms);
+    // self-represented parties are "Litigants in Person". No US caption furniture.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Litigant in Person',
+    };
     this.documentTitle = 'DECREE ABSOLUTE';
 
     try {
@@ -199,19 +217,54 @@ class NorthernIrelandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED that a shared residence order be made in respect of the child(ren), such that the child(ren) shall reside with both ${divorceData.petitionerName || 'the Petitioner'} and ${divorceData.respondentName || 'the Respondent'} in accordance with the arrangements set out below or as agreed.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'the Petitioner')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'the Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'the Petitioner')
+          : (divorceData.respondentName || 'the Respondent');
+      soleCustodianName = custodianName;
       items.push({
-        content: `IT IS ORDERED that a residence order be made in respect of the child(ren), such that the child(ren) shall reside with ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner'}.`,
+        content: `IT IS ORDERED that a residence order be made in respect of the child(ren), such that the child(ren) shall reside with ${custodianName}.`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that a contact order be made, such that ${divorceData.respondentName || 'the Respondent'} shall have contact with the child(ren) as agreed between the parties or as set out in a schedule attached to this order.`,
+        content: `IT IS ORDERED that a contact order be made, such that ${otherParentName} shall have contact with the child(ren) as agreed between the parties or as set out in a schedule attached to this order.`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }

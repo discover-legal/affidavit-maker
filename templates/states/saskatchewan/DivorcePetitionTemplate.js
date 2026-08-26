@@ -50,6 +50,23 @@ class SaskatchewanDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'SK';
     this.stateName = 'Saskatchewan';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Court of King's Bench petition issued at a judicial centre; KB Rules keep Petitioner/Respondent.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Judicial centre',
+      districtStyle: 'plain',
+      districtPlaceholder: '[JUDICIAL CENTRE]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

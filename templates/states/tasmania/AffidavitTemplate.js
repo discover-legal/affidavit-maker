@@ -4,14 +4,18 @@
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
 
 class TasmaniaAffidavitTemplate extends BaseAffidavitTemplate {
+  // Australian terminology (see templates/core/terminology.js): divorce is
+  // federal (FCFCOA) — the caption is the court-name line + registry; parties
+  // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+  // "COUNTY OF" caption lines and no "X County" body phrasing.
   constructor() {
     super();
     this.metadata = require('./metadata.json');
-    this.state = this.metadata.stateCode; this.stateName = this.metadata.stateName; this.countryCode = 'AU';
+    this.state = this.metadata.stateCode; this.stateName = this.metadata.stateName; this.countryCode = 'AU'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'Registry', districtPlaceholder: '[REGISTRY]', filerLabel: 'Applicant', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' };
     this.requiredFields = this.metadata.requiredFields; this.sections.perjuryStatement = false;
     this.formatting = { fontSize: '12pt', fontFamily: 'Times New Roman', lineHeight: '1.5', margin: '2.54cm', paperSize: 'A4' };
   }
-  generateHeader() { return 'STATE OF TASMANIA'; }
+  generateHeader() { return 'TASMANIA'; }
   generateVenue(county) { return `AT ${(county || '[CITY/LOCALITY]').toUpperCase()}`; }
   generateCaseCaption(affidavitData) {
     const court = affidavitData.court || affidavitData.courtName || 'FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA';
@@ -28,7 +32,7 @@ class TasmaniaAffidavitTemplate extends BaseAffidavitTemplate {
   }
   generateNotaryBlock(affidavitData) {
     const city = affidavitData.county || affidavitData.city || '_______________';
-    return `Sworn/Affirmed at ${city},\nin the State of Tasmania,\non the _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths`;
+    return `Sworn/Affirmed at ${city},\nin Tasmania,\non the _____ day of _________________, _______.\n\nBefore me:\n\n________________________________\n[Name]\nJustice of the Peace / Solicitor / Commissioner for Oaths`;
   }
 }
 module.exports = TasmaniaAffidavitTemplate;

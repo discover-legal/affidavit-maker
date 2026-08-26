@@ -28,6 +28,7 @@ const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, summarizeChildren } = require('../../utils/childrenMerge');
+const { EXTRACTION_QUALITY, FACT_CONTENT_DESCRIPTION } = require('./extractionQuality');
 
 // ─── Phase → default fact category ───────────────────────────────────────────
 const DEFAULT_PHASE_CATEGORY = {
@@ -86,10 +87,10 @@ CONVERSATION RULES (you MUST follow these strictly):
 1. Ask exactly ONE question per message. The COLLECT list above shows everything to gather in this phase, but you MUST ask them one at a time across multiple messages. Never combine two or more questions.
 2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
 3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
-4. Never repeat information the user already provided.
-5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
+4. Never repeat information the user already provided, and never re-ask for anything shown in ALREADY COLLECTED or stated in an earlier message — acknowledge it and ask only for what is missing.
+5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead. (Correcting an obvious typo or normalizing casing is NOT guessing.)
 6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
-7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
+7. Respond in the same language the user writes in. Extract field VALUES with the user's meaning but in clean form — obvious typos corrected and names in proper name case — with field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -229,6 +230,10 @@ class BaseMatterOrchestrator {
     // Core behavior rules (one question at a time, auto-transition)
     parts.push(ORCHESTRATOR_BEHAVIOR);
 
+    // Extraction-quality rules (full names, casing, typo cleanup,
+    // extract-everything, never re-ask, duration conversion)
+    parts.push(EXTRACTION_QUALITY);
+
     // Progress indicator
     const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
     const totalPhases = this.phaseOrder.length;
@@ -271,7 +276,7 @@ class BaseMatterOrchestrator {
     return [
       `CURRENT PHASE: ${state.currentPhase} (${this.phases[state.currentPhase]?.displayName || state.currentPhase})`,
       `PROGRESS: Phase ${currentIdx + 1} of ${this.phaseOrder.length} | ${completedCount} completed`,
-      collected ? `\nALREADY COLLECTED:\n${collected}` : '',
+      collected ? `\nALREADY COLLECTED (do NOT ask for any of this again — acknowledge it and ask only for what is missing):\n${collected}` : '',
       `\nUSER MESSAGE: ${message}`
     ].filter(Boolean).join('\n');
   }
@@ -399,7 +404,7 @@ class BaseMatterOrchestrator {
               items: {
                 type: 'object',
                 properties: {
-                  content:     { type: 'string' },
+                  content:     { type: 'string', description: FACT_CONTENT_DESCRIPTION },
                   category:    { type: 'string' },
                   subcategory: { type: 'string' }
                 },

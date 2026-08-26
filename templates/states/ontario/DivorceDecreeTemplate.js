@@ -5,6 +5,8 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Ontario Divorce Judgment Template
@@ -36,6 +38,20 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.stateName = 'Ontario';
     this.countryCode = 'CA';
     this.documentTitle = 'DIVORCE ORDER';
+
+    // Canadian terminology (see templates/core/terminology.js): parties are
+    // Applicant/Respondent (Family Law Rules, O. Reg. 114/99), venue is a
+    // court location rather than a county, filers are "Self-Represented".
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionTerm: 'Province',
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
 
     try {
       this.metadata = require('./metadata.json');
@@ -155,7 +171,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Applicant'} as that party's exclusive property:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -165,7 +181,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's exclusive property:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -209,23 +225,61 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a shared or sole decision-making order. Legacy
+    // free text like "joint decision making" maps to the shared branch;
+    // anything ambiguous renders neutral as-agreed language with a
+    // placeholder — NEVER a sole order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
         type: 'order'
       });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'Applicant')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'Applicant')
+          : (divorceData.respondentName || 'Respondent');
+      soleCustodianName = custodianName;
+
       items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        type: 'order'
+      });
+      items.push({
+        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order.`,
         type: 'order'
       });
     } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.1).',
         type: 'order'
       });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the decision-making branch. The shared
+    // branch keeps its historical Applicant fallback for compatibility.
+    if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.respondentName || 'Respondent'} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order.`,
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName || divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
+        type: 'order'
+      });
+    } else if (residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}, who shall have primary parenting time.`,
         type: 'order'
       });
     }
@@ -233,6 +287,57 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: this.getVisitationLanguage(divorceData), type: 'order' });
 
     return { title: 'PARENTING ORDER', items, type: 'custody' };
+  }
+
+  /**
+   * Ontario recital of the Respondent's service/appearance status, in
+   * Application/Answer vocabulary (Family Law Rules, O. Reg. 114/99).
+   * serviceMethod enum: 'waiver' | 'formal' | 'publication' | 'undecided'
+   * ("spouse will accept the papers" is stored as 'waiver'). Non-response
+   * is recited only when the data affirmatively says so — never as a
+   * fallback for missing data.
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Recital fragment following "Respondent, <name>, …"
+   */
+  getRespondentAppearanceText(divorceData) {
+    const uncontested = divorceData.appearanceType === 'agreed' || divorceData.isUncontested;
+    if (divorceData.respondentAppeared) {
+      return uncontested ? 'appeared and consented to the terms of this Order' : 'appeared';
+    }
+
+    const method = typeof divorceData.serviceMethod === 'string'
+      ? divorceData.serviceMethod.trim().toLowerCase()
+      : '';
+    const defaulted =
+      divorceData.respondentDefaulted === true ||
+      divorceData.defaultJudgment === true ||
+      divorceData.appearanceType === 'default';
+
+    if (method === 'waiver') {
+      return uncontested
+        ? 'accepted service of the Application and consents to the terms of this Order'
+        : 'accepted service of the Application';
+    }
+    if (method === 'publication') {
+      return defaulted
+        ? 'was served by substituted service or publication and did not file an Answer'
+        : 'was served by substituted service or publication';
+    }
+    if (method === 'formal') {
+      if (defaulted) {
+        return 'was duly served with the Application and did not file an Answer within the time provided';
+      }
+      return uncontested
+        ? 'was duly served with the Application and consents to the terms of this Order'
+        : 'was duly served with the Application';
+    }
+
+    if (defaulted) {
+      return 'was duly served with the Application and did not file an Answer within the time provided';
+    }
+    return uncontested
+      ? 'was served with the Application and does not oppose the relief sought'
+      : 'was served with the Application';
   }
 
   /**
@@ -284,13 +389,18 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
+    // spousalSupportRequested === false is the orchestrator's explicit
+    // "the parties waive spousal support" signal — render the waiver order.
+    const waived =
+      divorceData.spousalSupportWaived ||
+      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
+    if (!divorceData.spousalSupportAwarded && !waived) {
       return null;
     }
 
     const items = [];
 
-    if (divorceData.spousalSupportWaived) {
+    if (waived && !divorceData.spousalSupportAwarded) {
       items.push({
         content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
         type: 'order'

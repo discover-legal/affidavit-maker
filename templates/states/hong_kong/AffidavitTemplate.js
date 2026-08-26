@@ -29,6 +29,23 @@ class HongKongAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "HK"
     this.stateName = this.metadata.stateName;   // "Hong Kong"
     this.countryCode = 'HK';
+
+    // Hong Kong terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Family Court / District Court); parties are
+    // Petitioner/Respondent (Matrimonial Causes Ordinance, Cap 179). No "STATE
+    // OF"/"COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

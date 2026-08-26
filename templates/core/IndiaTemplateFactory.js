@@ -9,6 +9,7 @@
 const BaseAffidavitTemplate = require('./BaseAffidavitTemplate');
 const BaseDivorcePetitionTemplate = require('./BaseDivorcePetitionTemplate');
 const BaseDivorceDecreeTemplate = require('./BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
 
 /**
  * Create an Indian state affidavit template class.
@@ -226,6 +227,10 @@ function createIndiaDivorceDecreeTemplate(config) {
       return { title: 'DIVISION OF PROPERTY', items, type: 'property' };
     }
 
+    // Custody safety (see templates/core/parenting.js): only positively
+    // recognized custody values render a joint or sole order; anything
+    // ambiguous (legacy free text, junk) renders neutral as-agreed language
+    // with a placeholder — NEVER a sole order.
     generateChildCustodySection(dd) {
       if (dd.hasMinorChildren === false || !dd.children?.length) return null;
       const items = [{ content: 'Custody ordered in the best interest of the child(ren):', type: 'finding' }];
@@ -233,8 +238,26 @@ function createIndiaDivorceDecreeTemplate(config) {
         const info = typeof c === 'string' ? c : `${c.name || '[NAME]'}, born ${this.formatDate(c.birthDate) || '[DOB]'}`;
         items.push({ content: `${i + 1}. ${info}`, type: 'child_item' });
       });
-      if ((dd.custodyType || 'joint') === 'joint') items.push({ content: 'IT IS ORDERED that both parties have joint custody.', type: 'order' });
-      else { items.push({ content: `IT IS ORDERED that ${dd.primaryCustodian || dd.petitionerName || 'Petitioner'} has sole custody.`, type: 'order' }); items.push({ content: `${dd.respondentName || 'Respondent'} shall have visitation rights.`, type: 'order' }); }
+      const custody = resolveCustodyArrangement(dd);
+      const residenceName = resolvePrimaryResidenceName(dd);
+      let soleCustodianName = null;
+      if (custody.kind === 'joint') {
+        items.push({ content: 'IT IS ORDERED that both parties have joint custody.', type: 'order' });
+      } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+        soleCustodianName = custody.kind === 'sole_petitioner' ? (dd.petitionerName || 'Petitioner')
+          : custody.kind === 'sole_respondent' ? (dd.respondentName || 'Respondent')
+            : (dd.primaryCustodian || dd.petitionerName || 'Petitioner');
+        const otherParentName = custody.kind === 'sole_respondent'
+          ? (dd.petitionerName || 'Petitioner')
+          : (dd.respondentName || 'Respondent');
+        items.push({ content: `IT IS ORDERED that ${soleCustodianName} has sole custody.`, type: 'order' });
+        items.push({ content: `${otherParentName} shall have visitation rights.`, type: 'order' });
+      } else {
+        items.push({ content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });
+      }
+      if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+        items.push({ content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`, type: 'order' });
+      }
       return { title: 'CUSTODY ORDER', items, type: 'custody' };
     }
 

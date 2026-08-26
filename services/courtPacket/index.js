@@ -170,12 +170,15 @@ function buildCourtBlockLines(state, county) {
       `Find your courthouse, its address and hours: ${LOCATOR_URL}`,
     ];
   }
-  // Non-Utah / unknown state — fully generic block.
+  // Non-Utah / unknown jurisdiction — fully generic, jurisdiction-neutral
+  // block (court naming and sub-jurisdiction vocabulary differ everywhere:
+  // county vs. judicial district vs. registry, district/superior/circuit
+  // court vs. Superior Court of Justice, etc. — so name none of them).
   return [
-    'File with the trial court (often called the district, superior, or circuit',
-    'court) for the county where your case belongs — usually where you or the',
-    'other party lives. The court clerk’s office can confirm you are in the',
-    'right place.',
+    'File with the trial court that handles cases like yours for the area where',
+    'your case belongs — usually where you or the other party lives. The court',
+    'office or clerk can confirm you are in the right place, tell you the exact',
+    'court name, and explain the filing steps.',
   ];
 }
 
@@ -193,14 +196,16 @@ const DISCLAIMER =
 // ── Page builders ────────────────────────────────────────────────────────────
 
 function drawCoverPage(page, fonts, opts) {
-  const { mainTitle, parties, state, county, packetDate } = opts;
+  const { documentTitles, parties, state, county, packetDate } = opts;
   let y = PAGE_HEIGHT - 130;
 
   drawCentered(page, 'CASE PACKET', y, fonts.bold, 28);
   y -= 40;
 
-  if (mainTitle) {
-    for (const line of wrapLines(fonts.regular, 14, mainTitle, CONTENT_WIDTH)) {
+  // Every document in the packet is named on the cover (petition + decree +
+  // …), not just the first.
+  for (const docTitle of documentTitles || []) {
+    for (const line of wrapLines(fonts.regular, 14, docTitle, CONTENT_WIDTH)) {
       drawCentered(page, line, y, fonts.regular, 14);
       y -= 20;
     }
@@ -399,19 +404,25 @@ function drawIndexPages(doc, fonts, exhibits) {
  * Assemble the case packet.
  *
  * @param {object} opts
- * @param {Buffer} opts.mainPdfBuffer - The generated main document PDF (required).
- * @param {string} [opts.mainTitle] - Title shown on cover + TOC.
+ * @param {Array<{buffer: Buffer, title?: string}>} [opts.documents]
+ *        The rendered documents of the package, in filing order (e.g.
+ *        petition then decree). Every entry is included in the packet with
+ *        its own cover/TOC title. Takes precedence over mainPdfBuffer.
+ * @param {Buffer} [opts.mainPdfBuffer] - Single-document form (required when
+ *        `documents` is not given).
+ * @param {string} [opts.mainTitle] - Title for the single-document form.
  * @param {Array<{label?: string, originalName?: string, mime?: string, buffer?: Buffer|null}>} [opts.evidence]
  *        Uploaded evidence, in exhibit order. A missing/unreadable buffer or
  *        an unsupported type becomes a "print separately" placeholder page.
  * @param {string} [opts.state] - Two-letter jurisdiction code ('UT' enables the county court block).
- * @param {string} [opts.county] - County name for the where-to-file block.
+ * @param {string} [opts.county] - County/district/court-location name for the where-to-file block.
  * @param {string} [opts.packetDate] - Display date; defaults to today (YYYY-MM-DD).
  * @param {string|string[]} [opts.parties] - Optional party line(s) for the cover.
  * @returns {Promise<Buffer>} The merged, organized draft PDF.
  */
 async function assemblePacket(opts) {
   const {
+    documents,
     mainPdfBuffer,
     mainTitle = 'Main Document',
     evidence = [],
@@ -421,12 +432,31 @@ async function assemblePacket(opts) {
     parties,
   } = opts || {};
 
-  if (!Buffer.isBuffer(mainPdfBuffer) || !mainPdfBuffer.subarray(0, 4).equals(PDF_MAGIC)) {
-    throw new Error('assemblePacket: mainPdfBuffer must be a PDF buffer');
+  // Normalize to a document list; the historical single-document call shape
+  // (mainPdfBuffer + mainTitle) is the one-element case.
+  let docInputs;
+  if (Array.isArray(documents) && documents.length > 0) {
+    docInputs = documents.map((d, i) => ({
+      buffer: d && d.buffer,
+      title: (d && typeof d.title === 'string' && d.title.trim()) || `Document ${i + 1}`,
+    }));
+    for (const d of docInputs) {
+      if (!Buffer.isBuffer(d.buffer) || !d.buffer.subarray(0, 4).equals(PDF_MAGIC)) {
+        throw new Error('assemblePacket: every documents[] buffer must be a PDF buffer');
+      }
+    }
+  } else {
+    if (!Buffer.isBuffer(mainPdfBuffer) || !mainPdfBuffer.subarray(0, 4).equals(PDF_MAGIC)) {
+      throw new Error('assemblePacket: mainPdfBuffer must be a PDF buffer');
+    }
+    docInputs = [{ buffer: mainPdfBuffer, title: mainTitle }];
   }
 
-  const mainDoc = await PDFDocument.load(mainPdfBuffer);
-  const mainPages = mainDoc.getPageCount();
+  const mainDocs = [];
+  for (const d of docInputs) {
+    const doc = await PDFDocument.load(d.buffer);
+    mainDocs.push({ title: d.title, doc, pages: doc.getPageCount() });
+  }
 
   // ── Pass 1 (planning): classify evidence + compute every page number ──────
   const exhibits = [];
@@ -463,12 +493,15 @@ async function assemblePacket(opts) {
     });
   }
 
-  const tocEntryCount = 1 + exhibits.length;
+  const tocEntryCount = mainDocs.length + exhibits.length;
   const tocPageCount = Math.max(1, Math.ceil(tocEntryCount / TOC_ENTRIES_PER_PAGE));
 
-  const mainStartPage = 1 /* cover */ + tocPageCount + 1;
-  let cursor = mainStartPage + mainPages;
-  const tocEntries = [{ title: mainTitle, page: mainStartPage }];
+  let cursor = 1 /* cover */ + tocPageCount + 1;
+  const tocEntries = [];
+  for (const mainEntry of mainDocs) {
+    tocEntries.push({ title: mainEntry.title, page: cursor });
+    cursor += mainEntry.pages;
+  }
   for (const exhibit of exhibits) {
     tocEntries.push({
       title: exhibit.label
@@ -481,7 +514,7 @@ async function assemblePacket(opts) {
 
   // ── Pass 2 (drawing): emit pages in final order ────────────────────────────
   const out = await PDFDocument.create();
-  out.setTitle(enc(`Case Packet — ${mainTitle}`));
+  out.setTitle(enc(`Case Packet — ${mainDocs.map((d) => d.title).join('; ')}`));
   out.setProducer('Discover.Legal');
   const fonts = {
     regular: await out.embedFont(StandardFonts.TimesRoman),
@@ -491,14 +524,22 @@ async function assemblePacket(opts) {
 
   // 1. Cover
   const cover = out.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  drawCoverPage(cover, fonts, { mainTitle, parties, state, county, packetDate });
+  drawCoverPage(cover, fonts, {
+    documentTitles: mainDocs.map((d) => d.title),
+    parties,
+    state,
+    county,
+    packetDate,
+  });
 
   // 2. TOC
   drawTocPages(out, fonts, tocEntries);
 
-  // 3. Main document
-  const copiedMain = await out.copyPages(mainDoc, mainDoc.getPageIndices());
-  for (const page of copiedMain) out.addPage(page);
+  // 3. The rendered documents, in filing order
+  for (const mainEntry of mainDocs) {
+    const copiedMain = await out.copyPages(mainEntry.doc, mainEntry.doc.getPageIndices());
+    for (const page of copiedMain) out.addPage(page);
+  }
 
   // 4. Exhibits (skipped entirely when there is no evidence)
   for (const exhibit of exhibits) {

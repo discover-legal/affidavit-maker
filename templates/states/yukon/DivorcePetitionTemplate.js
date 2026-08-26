@@ -46,6 +46,23 @@ class YukonDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'YT';
     this.stateName = 'Yukon';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Supreme Court of Yukon petition; Yukon Rules of Court keep Petitioner/Respondent; territory-wide court, no counties.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Territory',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'STATEMENT OF CLAIM (DIVORCE)';
 

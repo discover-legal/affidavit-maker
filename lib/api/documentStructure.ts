@@ -31,6 +31,8 @@ export type AffidavitData = Record<string, unknown> & {
   respondentLastName?: string;
 };
 
+export type GenerationDocumentType = 'affidavit' | 'divorce_petition' | 'divorce_decree';
+
 const DIVORCE_TYPE_ALIASES: Readonly<Record<string, 'divorce_petition' | 'divorce_decree'>> = {
   divorce_petition: 'divorce_petition',
   petition: 'divorce_petition',
@@ -51,7 +53,7 @@ const DIVORCE_TYPE_ALIASES: Readonly<Record<string, 'divorce_petition' | 'divorc
 export function resolveGenerationDocumentType(
   documentType: string | undefined,
   activeSubDocument: string | null | undefined,
-): 'affidavit' | 'divorce_petition' | 'divorce_decree' {
+): GenerationDocumentType {
   const requestedType = (documentType ?? 'affidavit').trim().toLowerCase();
   const effectiveType =
     requestedType === 'divorce_package'
@@ -67,6 +69,31 @@ export function resolveGenerationDocumentType(
     throw new ValidationError('Unsupported divorce package document selection');
   }
   return resolved ?? 'affidavit';
+}
+
+/**
+ * Multi-document package types and their sub-documents in FILING ORDER.
+ * A court packet for a package must contain every sub-document (the editor's
+ * activeSubDocument only selects which one is on screen — the filed packet
+ * needs them all).
+ */
+const PACKAGE_SUB_DOCUMENTS: Readonly<Record<string, readonly GenerationDocumentType[]>> = {
+  divorce_package: ['divorce_petition', 'divorce_decree'],
+};
+
+/**
+ * The full list of concrete document types a saved document expands to when
+ * assembling a case packet, in filing order. divorce_package → petition then
+ * decree; every other type is a single document (via the same resolution used
+ * for generation).
+ */
+export function listPacketDocumentTypes(
+  documentType: string | undefined,
+): GenerationDocumentType[] {
+  const requestedType = (documentType ?? 'affidavit').trim().toLowerCase();
+  const packageDocs = PACKAGE_SUB_DOCUMENTS[requestedType];
+  if (packageDocs) return [...packageDocs];
+  return [resolveGenerationDocumentType(documentType, undefined)];
 }
 
 /**
@@ -119,6 +146,20 @@ export function buildDocumentStructure(
     data.documentType,
     data.activeSubDocument,
   );
+  return buildDocumentStructureForType(templateManager, state, data, resolvedType);
+}
+
+/**
+ * Build the structure for one already-resolved concrete type. Used directly by
+ * the packet route, which expands a package to several concrete types and
+ * builds each in turn.
+ */
+export function buildDocumentStructureForType(
+  templateManager: TemplateManager,
+  state: string,
+  data: AffidavitData,
+  resolvedType: GenerationDocumentType,
+): unknown {
   if (resolvedType === 'affidavit') {
     return templateManager.generateAffidavit(state, data);
   }

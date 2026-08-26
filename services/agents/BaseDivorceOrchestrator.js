@@ -24,6 +24,12 @@ const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, removeChildrenByName, summarizeChildren, hasMinors } = require('../../utils/childrenMerge');
 const { mergeLabeledAmounts, totalOf } = require('../../utils/labeledAmounts');
+const {
+  EXTRACTION_QUALITY,
+  FIRST_NAME_DESCRIPTION,
+  LAST_NAME_DESCRIPTION,
+  FACT_CONTENT_DESCRIPTION,
+} = require('./extractionQuality');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -50,21 +56,22 @@ function buildPhaseTool(stateCode) {
           },
 
           // ── INTAKE ──
-          petitioner_first_name: { type: 'string' },
-          petitioner_last_name:  { type: 'string' },
-          respondent_first_name: { type: 'string' },
-          respondent_last_name:  { type: 'string' },
+          petitioner_first_name: { type: 'string', description: `Filing party: ${FIRST_NAME_DESCRIPTION}` },
+          petitioner_last_name:  { type: 'string', description: `Filing party: ${LAST_NAME_DESCRIPTION}` },
+          respondent_first_name: { type: 'string', description: `Responding spouse: ${FIRST_NAME_DESCRIPTION} Extract it from ANY mention of the spouse (e.g. "was married … to Ellis Jane Smith Son-Wyatt"), even when this phase did not ask for it.` },
+          respondent_last_name:  { type: 'string', description: `Responding spouse: ${LAST_NAME_DESCRIPTION}` },
 
           // ── RESIDENCY ──
           state:                 { type: 'string', description: '2-letter state code' },
-          county:                { type: 'string', description: 'County (or parish/district) where petition is filed' },
-          residency_state_months: { type: 'number', description: 'Months lived in the state' },
-          residency_county_days:  { type: 'number', description: 'Days lived in the filing county' },
+          county:                { type: 'string', description: 'County (or parish/district) where petition is filed, in proper name case with typos corrected (e.g. "simcoe county" → "Simcoe"). Extract from ANY mention ("I live in simcoe county"), even when the phase did not ask for it.' },
+          residency_state_months: { type: 'number', description: 'Months lived in the state. Convert stated durations to months ("5 years" → 60; "18 months" → 18).' },
+          residency_county_days:  { type: 'number', description: 'Days lived in the filing county. Convert stated durations to days ("3 months" → 90).' },
           residency_basis:        { type: 'string', description: 'NY only: which DRL § 230 jurisdictional basis applies (e.g., both_residents, married_in_ny_1yr, last_lived_together_1yr, grounds_arose_1yr, 2yr_residence)' },
           has_protective_order:   { type: 'boolean' },
 
           // ── GROUNDS & MARRIAGE ──
           marriage_date:   { type: 'string' },
+          marriage_duration: { type: 'string', description: 'Length of the marriage when the user states a duration instead of (or before) a date, normalized with the unit spelled out and typos fixed (e.g. "married 2928 days" → "2928 days (approximately 8 years)"; "35 yeRs" → "35 years"). Still ask for the marriage date itself.' },
           marriage_city:   { type: 'string' },
           marriage_state:  { type: 'string' },
           separation_date: { type: 'string' },
@@ -89,16 +96,32 @@ function buildPhaseTool(stateCode) {
             description: 'Names of previously recorded children to remove, ONLY when the user says a recorded child should not be on the record.',
             items: { type: 'string' }
           },
-          custody_arrangement: { type: 'string' },
-          primary_custodian: { type: 'string', description: "Who has primary physical custody: 'petitioner', 'respondent', or the parent's name" },
-          parent_time_plan: { type: 'string', description: "How the non-custodial parent's time is set: 'statutory_minimum' (the state's standard schedule), 'expanded' (the optional expanded statutory schedule), 'equal' (50/50), or 'custom'. Extract ONLY the user's explicit choice." },
+          custody_arrangement: {
+            type: 'string',
+            enum: ['joint', 'sole_petitioner', 'sole_respondent', 'shared', 'split', 'contested', 'undecided'],
+            description: 'Decision-making/custody arrangement as a MACHINE-READ code — templates branch on this exact value, so map the user\'s natural phrasing onto the closest code and put their exact wording in a fact instead. "joint decision making" / "we decide together" / "joint custody" → joint; "I have sole custody" → sole_petitioner; "my spouse has sole custody" → sole_respondent; "50/50" / "equal time" → shared; "each of us keeps one child" → split; "we disagree about custody" → contested; not yet decided → undecided. Where the children mainly LIVE goes in primary_custodian, not here — "kids live with me, we decide together" → joint here plus primary_custodian.'
+          },
+          primary_custodian: { type: 'string', description: "Who the children primarily LIVE with (primary physical custody/residence): 'petitioner', 'respondent', 'shared', or the parent's name. Extract from phrasings like \"the children live mainly with me\" (→ 'petitioner' when the user is the petitioner). Separate from custody_arrangement — record both when the message covers both." },
+          parent_time_plan: {
+            type: 'string',
+            enum: ['statutory_minimum', 'expanded', 'equal', 'custom'],
+            description: "How the non-custodial parent's time is set: 'statutory_minimum' (the state's standard schedule), 'expanded' (the optional expanded statutory schedule), 'equal' (50/50), or 'custom'. Extract ONLY the user's explicit choice."
+          },
           parent_time_details: { type: 'string', description: "The custom schedule in the user's words, ONLY when parent_time_plan is 'custom'." },
           child_support_amount: { type: 'number', description: 'Monthly child support amount in dollars, if agreed or known' },
-          child_support_payor: { type: 'string', description: "Who pays child support: 'petitioner' or 'respondent'" },
+          child_support_payor: {
+            type: 'string',
+            enum: ['petitioner', 'respondent'],
+            description: "Who pays child support: 'petitioner' or 'respondent' (map \"I pay\" / \"my spouse pays\" onto the correct role)."
+          },
 
           // ── PROPERTY ──
           property_confirmed: { type: 'boolean' },
-          property_agreement: { type: 'string', description: 'agreed | contested' },
+          property_agreement: {
+            type: 'string',
+            enum: ['agreed', 'contested', 'pending'],
+            description: 'MACHINE-READ code for the property-division posture: "we have a separation agreement" / "we\'ve worked it all out" → agreed; "we disagree" / "fighting over the house" → contested; "still working on it" → pending. Put the user\'s exact wording in a fact, not here.'
+          },
           has_property: { type: 'boolean', description: 'true if the parties accumulated community/marital property during the marriage, false if none' },
           has_debts:    { type: 'boolean', description: 'true if the parties accumulated community/marital debts during the marriage, false if none' },
           petitioner_property: { type: 'string', description: "Assets the petitioner keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the petitioner." },
@@ -114,7 +137,11 @@ function buildPhaseTool(stateCode) {
           support_basis:    { type: 'string' },
 
           // ── SERVICE OF PROCESS ──
-          service_method:     { type: 'string', description: 'waiver | formal' },
+          service_method: {
+            type: 'string',
+            enum: ['waiver', 'formal', 'publication', 'undecided'],
+            description: 'MACHINE-READ code for how the respondent will be served — document selection branches on this exact value. Map natural phrasings: "spouse will sign the waiver/acknowledgment" / "they\'ll accept the papers" / "acknowledged service" → waiver; "process server" / "sheriff" / "personal service" / "someone will hand-deliver" → formal; "I can\'t find my spouse" / "substituted service" / "service by publication" → publication; not yet decided → undecided. Put the user\'s exact wording in a fact, not here.'
+          },
           respondent_address: { type: 'string' },
 
           // ── INDIGENCY / FEE WAIVER (all states) ──
@@ -152,7 +179,11 @@ function buildPhaseTool(stateCode) {
 
           // ── MILITARY STATUS ──
           military_status_confirmed:  { type: 'boolean' },
-          respondent_military_status: { type: 'string', description: 'not_military | military | unknown' },
+          respondent_military_status: {
+            type: 'string',
+            enum: ['not_military', 'military', 'unknown'],
+            description: 'MACHINE-READ code: "not in the military" → not_military; "on active duty" / "serving" → military; "I don\'t know" → unknown.'
+          },
           military_search_date:       { type: 'string' },
           military_search_method:     { type: 'string' },
 
@@ -160,12 +191,20 @@ function buildPhaseTool(stateCode) {
           reconciliation_acknowledged: { type: 'boolean', description: 'true = user acknowledges mandatory reconciliation requirement' },
 
           // ── MARRIAGE TYPE (Ghana — ordinance/customary/Mohammedan) ──
-          marriage_type: { type: 'string', description: 'Type of marriage: ordinance, customary, or mohammedan' },
+          marriage_type: {
+            type: 'string',
+            enum: ['ordinance', 'customary', 'mohammedan'],
+            description: 'Type of marriage (Ghana): ordinance, customary, or mohammedan'
+          },
 
           // ── FORMER-NAME RESTORATION (any phase) ──
           restore_previous_name: { type: 'boolean', description: 'true ONLY when the user affirmatively says they (or their spouse) want a former name restored as part of the divorce; false ONLY when they explicitly decline. NEVER suggest, recommend, or imply that anyone should change their name — record this only when the user raises it themselves.' },
           previous_name: { type: 'string', description: 'The exact former name to be restored, in the user\'s words, ONLY when the user affirmatively provided it. Never guess, propose, or construct a name (e.g., never assume a maiden name).' },
-          name_change_party: { type: 'string', description: "Whose former name is restored: 'petitioner' or 'respondent'. Record ONLY when the user stated whose name it is; if unstated, ask instead of assuming." },
+          name_change_party: {
+            type: 'string',
+            enum: ['petitioner', 'respondent'],
+            description: "Whose former name is restored: 'petitioner' or 'respondent'. Record ONLY when the user stated whose name it is; if unstated, ask instead of assuming."
+          },
 
           // ── REVIEW ──
           user_confirmed_review: { type: 'boolean' },
@@ -176,7 +215,7 @@ function buildPhaseTool(stateCode) {
             items: {
               type: 'object',
               properties: {
-                content:     { type: 'string', description: 'First-person fact statement' },
+                content:     { type: 'string', description: FACT_CONTENT_DESCRIPTION },
                 category:    { type: 'string' },
                 subcategory: { type: 'string' }
               },
@@ -202,6 +241,7 @@ const FIELD_MAP = {
   residency_basis:             'residencyBasis',
   has_protective_order:        'hasProtectiveOrder',
   marriage_date:               'marriageDate',
+  marriage_duration:           'marriageDuration',
   marriage_city:               'marriageCity',
   marriage_state:              'marriageStateName',
   separation_date:             'separationDate',
@@ -251,6 +291,7 @@ const FIELD_MAP = {
   residency_tx_months:         'residencyStateMonths',
 };
 
+
 // ─── Phase → fact category ────────────────────────────────────────────────────
 const PHASE_CATEGORY = {
   INTAKE:          'general',
@@ -274,10 +315,10 @@ CONVERSATION RULES (you MUST follow these strictly):
 1. Ask exactly ONE question per message. The COLLECT list above shows everything to gather in this phase, but you MUST ask them one at a time across multiple messages. Never combine two or more questions.
 2. When you set phase_complete: true, your response MUST naturally transition to the next topic and ask the first relevant question about it. Never say "let's proceed" or "we're ready to move on" without immediately asking the next question. Never wait for the user to say "proceed."
 3. Keep each response to 1-3 sentences. Acknowledge what the user said briefly, then ask the next question.
-4. Never repeat information the user already provided.
-5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead.
+4. Never repeat information the user already provided, and never re-ask for anything shown in ALREADY COLLECTED or stated in an earlier message — acknowledge it and ask only for what is missing.
+5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead. (Correcting an obvious typo or normalizing casing is NOT guessing.)
 6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
-7. Respond in the same language the user writes in. Keep extracted field VALUES in the user's words, but field names and dates in the structured formats requested.
+7. Respond in the same language the user writes in. Extract field VALUES with the user's meaning but in clean form — obvious typos corrected and names in proper name case — with field names and dates in the structured formats requested.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -400,6 +441,10 @@ class BaseDivorceOrchestrator {
     // Core behavior rules (one question at a time, auto-transition)
     parts.push(ORCHESTRATOR_BEHAVIOR);
 
+    // Extraction-quality rules (full names, casing, typo cleanup,
+    // extract-everything, never re-ask, duration conversion)
+    parts.push(EXTRACTION_QUALITY);
+
     // Progress indicator
     const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
     const totalPhases = this.phaseOrder.length;
@@ -455,7 +500,7 @@ class BaseDivorceOrchestrator {
     return [
       `CURRENT PHASE: ${state.currentPhase} (${this.phases[state.currentPhase]?.displayName || state.currentPhase})`,
       `PROGRESS: Phase ${currentIdx + 1} of ${this.phaseOrder.length} | ${completedCount} completed`,
-      collected ? `\nALREADY COLLECTED:\n${collected}` : '',
+      collected ? `\nALREADY COLLECTED (do NOT ask for any of this again — acknowledge it and ask only for what is missing):\n${collected}` : '',
       `\nUSER MESSAGE: ${message}`
     ].filter(Boolean).join('\n');
   }
@@ -493,6 +538,7 @@ class BaseDivorceOrchestrator {
       items.push(`Time living in state/province: ${d.residencyStateMonths} months`);
     }
     if (d.marriageDate)         items.push(`Marriage date: ${d.marriageDate}`);
+    if (d.marriageDuration)     items.push(`Marriage length: ${d.marriageDuration}`);
     if (d.marriageCity || d.marriageStateName || d.marriageLocation) {
       const marriagePlace = d.marriageLocation ||
         [d.marriageCity, d.marriageStateName].filter(Boolean).join(', ');

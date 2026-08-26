@@ -272,6 +272,50 @@ describe('assemblePacket', () => {
     expect(containsText(otherState, 'utcourts.gov')).toBe(false);
   });
 
+  it('packages every rendered document of the package with its own title', async () => {
+    const petition = await makePdf(3);
+    const decree = await makePdf(2);
+    const packet = await assemblePacket({
+      documents: [
+        { buffer: petition, title: 'Application for Divorce — Ontario' },
+        { buffer: decree, title: 'Divorce Order — Ontario' },
+      ],
+      state: 'ON',
+      county: 'Toronto',
+      packetDate: '2026-08-26',
+      parties: ['Applicant: Avery Quinn', 'Respondent: Jordan Quinn'],
+      evidence: [
+        { label: 'Separation agreement', originalName: 'agreement.png', mime: 'image/png', buffer: TINY_PNG },
+      ],
+    });
+
+    // cover(1) + toc(1) + petition(3) + decree(2) + [sep(1) + png(1)] + index(1) = 10
+    expect(await pageCount(packet)).toBe(10);
+    expect(containsText(packet, 'Application for Divorce')).toBe(true);
+    expect(containsText(packet, 'Divorce Order')).toBe(true);
+    expect(containsText(packet, 'Legal Document')).toBe(false);
+  });
+
+  it('rejects a non-PDF buffer inside documents[]', async () => {
+    await expect(
+      assemblePacket({ documents: [{ buffer: Buffer.from('nope'), title: 'X' }] }),
+    ).rejects.toThrow(/documents\[\] buffer/);
+  });
+
+  it('uses jurisdiction-neutral cover wording outside Utah (no US court-name or county vocabulary)', async () => {
+    const main = await makePdf(1);
+    const packet = await assemblePacket({
+      mainPdfBuffer: main,
+      mainTitle: 'Divorce Order — Ontario',
+      state: 'ON',
+      county: 'Toronto',
+    });
+    expect(containsText(packet, 'trial court')).toBe(true);
+    expect(containsText(packet, 'superior')).toBe(false);
+    expect(containsText(packet, 'circuit')).toBe(false);
+    expect(containsText(packet, 'county where')).toBe(false);
+  });
+
   it('sanitizes non-WinAnsi characters instead of throwing', async () => {
     const main = await makePdf(1);
     const packet = await assemblePacket({

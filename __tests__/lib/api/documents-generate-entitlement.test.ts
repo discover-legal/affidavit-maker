@@ -22,12 +22,19 @@ jest.mock('@/lib/api/services', () => ({
 }));
 jest.mock('@/lib/api/stripe', () => ({ paymentsEnabled: () => true }));
 
-const tempPdf = path.join(process.cwd(), 'generate-entitlement-test.pdf');
+// Unique temp file per generatePDF call: the route unlinks its temp file
+// fire-and-forget after reading it, so reusing one filename across tests
+// lets a stale pending unlink delete the next test's freshly written file
+// (readFile ENOENT → 500 under full-suite load).
+let mockPdfSeq = 0;
+const mockWrittenPdfs: string[] = [];
 jest.mock('@/services/pdfService', () =>
   jest.fn().mockImplementation(() => ({
     generatePDF: async () => {
-      fs.writeFileSync(tempPdf, '%PDF canonical');
-      return { success: true, filepath: tempPdf };
+      const filepath = path.join(process.cwd(), `generate-entitlement-test-${++mockPdfSeq}.pdf`);
+      mockWrittenPdfs.push(filepath);
+      fs.writeFileSync(filepath, '%PDF canonical');
+      return { success: true, filepath };
     },
   })),
 );
@@ -36,7 +43,8 @@ import { POST } from '@/app/api/documents/generate/route';
 
 afterEach(() => {
   jest.clearAllMocks();
-  if (fs.existsSync(tempPdf)) fs.unlinkSync(tempPdf);
+  for (const f of mockWrittenPdfs) fs.rmSync(f, { force: true });
+  mockWrittenPdfs.length = 0;
 });
 
 it('renders only the paid owned saved content, ignoring caller replacement data', async () => {

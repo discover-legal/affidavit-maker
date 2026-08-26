@@ -351,6 +351,55 @@ describe('party reconciliation (spouseName + role + captions)', () => {
   });
 });
 
+describe('names are stored as given (LLM-first casing — no deterministic transform)', () => {
+  const emptyRow = { rows: [{ profile: {}, facts: [] }], rowCount: 1 };
+  const savedProfile = (call = 1) => {
+    const params = queryMock.mock.calls[call][1] as unknown[];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('merge stores name fields verbatim — casing is the model layer\'s job', async () => {
+    queryMock.mockResolvedValueOnce(emptyRow);
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      affiantName: 'Ronald McDonald',
+      spouseName: 'Anne van der Berg',
+    });
+
+    const saved = savedProfile();
+    expect(saved.affiantName).toBe('Ronald McDonald');
+    expect(saved.spouseName).toBe('Anne van der Berg');
+    // Captions derived by reconcileParties (default role: petitioner).
+    expect(saved.petitionerName).toBe('Ronald McDonald');
+    expect(saved.petitionerLastName).toBe('McDonald');
+    expect(saved.respondentName).toBe('Anne van der Berg');
+    expect(saved.respondentLastName).toBe('van der Berg');
+  });
+
+  test('children merge is case-insensitive on identity; the incoming name wins as typed', async () => {
+    queryMock.mockResolvedValueOnce({
+      rows: [
+        {
+          profile: { children: [{ name: 'Emma Example', dob: '2015-04-02' }] },
+          facts: [],
+        },
+      ],
+      rowCount: 1,
+    });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    // Same child typed lowercase must merge (not duplicate); the incoming
+    // spelling is stored as typed — plain last-write, no deterministic casing.
+    await mergeUserProfile(7, { children: [{ name: 'emma example', age: 11 }] });
+
+    const saved = savedProfile();
+    expect(saved.children).toHaveLength(1);
+    expect(saved.children[0].name).toBe('emma example');
+    expect(saved.children[0].age).toBe(11);
+  });
+});
+
 describe('appendKeyEvents', () => {
   test('dedupes by label+date and preserves existing events', async () => {
     const { appendKeyEvents } = require('@/lib/api/profile');

@@ -71,7 +71,9 @@ const EXTRACTION = {
   facts: [{ content: 'A hearing is set for August 1, 2026.', category: 'response' }],
 };
 
-function llmReturnsExtraction(overrides: Partial<typeof EXTRACTION> = {}) {
+function llmReturnsExtraction(
+  overrides: Partial<typeof EXTRACTION> & Record<string, unknown> = {},
+) {
   chatMock.mockResolvedValue({
     choices: [
       {
@@ -155,6 +157,60 @@ describe('POST /api/profile/ingest — pasted text (unchanged path)', () => {
 
     expect(res.status).toBe(200);
     expect(updateUserProfileMock).not.toHaveBeenCalled();
+  });
+
+  // Party names come out of the extractor already model-normalized (proper
+  // casing, compound surnames intact) — there is no deterministic casing
+  // layer. When present they flow into the profile through the standard
+  // merge path (mergeUserProfile → reconcileParties derives spouseName).
+  it('merges model-extracted party names into the profile via mergeUserProfile', async () => {
+    llmReturnsExtraction({
+      petitioner_name: 'Mike Smith',
+      respondent_name: 'Ellis Jame Smith Son-Wyatt',
+    });
+    const res = await post({
+      text: 'IN RE THE MARRIAGE OF MIKE SMITH, Petitioner, AND ELLIS JAME SMITH SON-WYATT, Respondent.',
+      label: 'Divorce petition',
+    });
+
+    expect(res.status).toBe(200);
+    expect(mergeUserProfileMock).toHaveBeenCalledWith(
+      7,
+      { petitionerName: 'Mike Smith', respondentName: 'Ellis Jame Smith Son-Wyatt' },
+      expect.any(Array),
+    );
+  });
+
+  it('merges party names even when the document yields no facts', async () => {
+    llmReturnsExtraction({
+      petitioner_name: 'Mike Smith',
+      facts: [],
+      events: [],
+    });
+    const res = await post({
+      text: 'IN RE THE MARRIAGE OF MIKE SMITH, Petitioner. Case number 2026-123.',
+    });
+
+    expect(res.status).toBe(200);
+    expect(mergeUserProfileMock).toHaveBeenCalledWith(7, { petitionerName: 'Mike Smith' }, []);
+  });
+
+  it('omitted party names leave the merge payload empty (never guessed)', async () => {
+    const res = await post({
+      text: 'NOTICE OF HEARING. A hearing is set for August 1, 2026 in Dept 5.',
+    });
+
+    expect(res.status).toBe(200);
+    // Default EXTRACTION has no party names — the merge carries no name fields.
+    expect(mergeUserProfileMock).toHaveBeenCalledWith(7, {}, expect.any(Array));
+    const tool = (chatMock.mock.calls[0][1] as {
+      tools: Array<{ function: { parameters: { properties: Record<string, { description?: string }>; required: string[] } } }>;
+    }).tools[0];
+    // The fields are optional and instruct the model to include them ONLY
+    // when the document clearly states them.
+    expect(tool.function.parameters.required).not.toContain('petitioner_name');
+    expect(tool.function.parameters.properties.petitioner_name.description).toContain('ONLY when');
+    expect(tool.function.parameters.properties.respondent_name.description).toContain('ONLY when');
   });
 
   it('does not infer a role when the model is unsure', async () => {

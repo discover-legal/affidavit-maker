@@ -43,6 +43,23 @@ class NorthwestTerritoriesDivorcePetitionTemplate extends BaseDivorcePetitionTem
 
     this.state = 'NT';
     this.stateName = 'Northwest Territories';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Supreme Court of the NWT application; parties are Applicant/Respondent; territory-wide court, no counties.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Territory',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

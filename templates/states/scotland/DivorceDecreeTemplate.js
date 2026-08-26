@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 // The six sheriffdoms of Scotland (for the "SHERIFFDOM OF ... AT ..." heading, per Form G1 style)
 const SCOTTISH_SHERIFFDOMS = [
@@ -43,6 +44,23 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.state = 'SCO';
     this.stateName = 'Scotland';
     this.countryCode = 'UK';
+
+    // Scottish terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Sheriff Court / Court of Session); parties are
+    // Pursuer/Defender (Divorce (Scotland) Act 1976); venue is the sheriffdom;
+    // self-represented parties are "Party Litigants". No US caption furniture.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Sheriffdom',
+      districtPlaceholder: '[SHERIFFDOM]',
+      filerLabel: 'Pursuer',
+      responderLabel: 'Defender',
+      selfRepresentedLabel: 'Party Litigant',
+    };
     this.documentTitle = 'DECREE OF DIVORCE';
 
     try {
@@ -224,8 +242,15 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
       items.push({
         content: `THE COURT ORDERS that ${divorceData.petitionerName || 'the Pursuer'} and ${divorceData.respondentName || 'the Defender'} shall have shared parental responsibilities and rights in respect of the child(ren) in terms of section 11 of the Children (Scotland) Act 1995.`,
         type: 'order'
@@ -234,13 +259,41 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `THE COURT ORDERS that the child(ren) shall reside primarily with ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Pursuer'}.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'the Pursuer')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'the Defender')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Pursuer');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'the Pursuer')
+          : (divorceData.respondentName || 'the Defender');
+      soleCustodianName = custodianName;
       items.push({
-        content: `THE COURT ORDERS that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Pursuer'} shall have sole parental responsibilities and rights in respect of the child(ren) in terms of section 11 of the Children (Scotland) Act 1995.`,
+        content: `THE COURT ORDERS that ${custodianName} shall have sole parental responsibilities and rights in respect of the child(ren) in terms of section 11 of the Children (Scotland) Act 1995.`,
         type: 'order'
       });
       items.push({
-        content: `THE COURT ORDERS that ${divorceData.respondentName || 'the Defender'} shall have contact with the child(ren) as agreed by the parties or as set out in a contact schedule annexed to this decree.`,
+        content: `THE COURT ORDERS that ${otherParentName} shall have contact with the child(ren) as agreed by the parties or as set out in a contact schedule annexed to this decree.`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }

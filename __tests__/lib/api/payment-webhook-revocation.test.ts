@@ -41,9 +41,16 @@ function request(): NextRequest {
   });
 }
 
+const ORIGINAL_STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+});
+
+afterAll(() => {
+  if (ORIGINAL_STRIPE_WEBHOOK_SECRET === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+  else process.env.STRIPE_WEBHOOK_SECRET = ORIGINAL_STRIPE_WEBHOOK_SECRET;
 });
 
 describe('Stripe entitlement revocation', () => {

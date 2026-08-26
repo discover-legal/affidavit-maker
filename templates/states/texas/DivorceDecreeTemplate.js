@@ -3,6 +3,7 @@
 // Complies with Texas Family Code and Texas Rules of Civil Procedure
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Texas Final Decree of Divorce Template
@@ -300,9 +301,16 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     });
 
     // Conservatorship appointment
-    const custodyType = divorceData.custodyType || 'joint';
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
 
-    if (custodyType === 'joint') {
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are appointed Joint Managing Conservators of the child(ren).`,
         type: 'order'
@@ -313,14 +321,42 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `IT IS ORDERED AND DECREED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have the exclusive right to designate the primary residence of the child(ren) within ${divorceData.residenceRestriction || divorceData.county || '[COUNTY]'} County, Texas, and contiguous counties.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'Petitioner')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'Petitioner')
+          : (divorceData.respondentName || 'Respondent');
+      soleCustodianName = custodianName;
       items.push({
-        content: `IT IS ORDERED AND DECREED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is appointed Sole Managing Conservator of the child(ren).`,
+        content: `IT IS ORDERED AND DECREED that ${custodianName} is appointed Sole Managing Conservator of the child(ren).`,
         type: 'order'
       });
 
       items.push({
-        content: `IT IS ORDERED AND DECREED that ${divorceData.respondentName || 'Respondent'} is appointed Possessory Conservator of the child(ren).`,
+        content: `IT IS ORDERED AND DECREED that ${otherParentName} is appointed Possessory Conservator of the child(ren).`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }

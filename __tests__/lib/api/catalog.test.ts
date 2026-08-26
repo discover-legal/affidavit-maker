@@ -9,6 +9,13 @@ import {
 } from '@/lib/api/catalog-data';
 
 describe('catalog data', () => {
+  const originalInternational = process.env.ENABLE_INTERNATIONAL;
+
+  afterEach(() => {
+    if (originalInternational === undefined) delete process.env.ENABLE_INTERNATIONAL;
+    else process.env.ENABLE_INTERNATIONAL = originalInternational;
+  });
+
   it('exposes 17 matter types across family + civil practice areas', () => {
     expect(MATTER_TYPES).toHaveLength(17);
     expect(MATTER_TYPES.filter((m) => m.practice_area === 'family')).toHaveLength(10);

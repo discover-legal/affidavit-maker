@@ -11,7 +11,7 @@ const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
  *
  * Key compliance notes:
  * - Sworn before a Justice of the Peace, Solicitor, or Commissioner for Oaths
- * - Uses "State of New South Wales" (Australia uses "State" for its states)
+ * - Header uses the bare state name (matching the ACT/NT territory convention)
  * - Court is Federal Circuit and Family Court of Australia (FCFCOA)
  * - A4 paper size
  * - No perjury statement — the oath/affirmation provides the solemn undertaking
@@ -28,6 +28,23 @@ class NewSouthWalesAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "NSW"
     this.stateName = this.metadata.stateName;   // "New South Wales"
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;
@@ -45,7 +62,7 @@ class NewSouthWalesAffidavitTemplate extends BaseAffidavitTemplate {
    * NSW header uses state designation.
    */
   generateHeader() {
-    return 'STATE OF NEW SOUTH WALES';
+    return 'NEW SOUTH WALES';
   }
 
   /**
@@ -108,7 +125,7 @@ class NewSouthWalesAffidavitTemplate extends BaseAffidavitTemplate {
     const city = affidavitData.county || affidavitData.city || '_______________';
     return (
       `Sworn/Affirmed at ${city},\n` +
-      `in the State of New South Wales,\n` +
+      `in New South Wales,\n` +
       `on the _____ day of _________________, _______.\n\n` +
       `Before me:\n\n` +
       `________________________________\n` +

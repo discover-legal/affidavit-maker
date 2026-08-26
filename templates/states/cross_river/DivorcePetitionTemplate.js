@@ -3,9 +3,13 @@
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
 class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
+  // Nigerian terminology (see templates/core/terminology.js): the caption is the
+  // court-name line + suit number; parties are Petitioner/Respondent under the
+  // Matrimonial Causes Act 1970; High Courts sit in judicial divisions, not
+  // counties. No "STATE OF"/"COUNTY OF" caption lines, no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'CR'; this.stateName = 'Cross River'; this.countryCode = 'NG';
+    this.state = 'CR'; this.stateName = 'Cross River'; this.countryCode = 'NG'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'Judicial division', districtPlaceholder: '[JUDICIAL DIVISION]', filerLabel: 'Petitioner', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' };
     this.documentTitle = 'PETITION FOR DISSOLUTION OF MARRIAGE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];

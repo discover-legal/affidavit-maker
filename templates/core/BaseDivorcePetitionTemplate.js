@@ -12,6 +12,20 @@
 // template from the registry. `node:crypto` is a built-in and always
 // resolvable, so the divorce templates load and register reliably.
 const { randomUUID: uuidv4 } = require('node:crypto');
+const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
+const { asList } = require('./dataShapes');
+
+/**
+ * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
+ * "Petition for Divorce") for cover sheets / packet metadata.
+ */
+const titleCaseDocumentTitle = (title) =>
+  String(title || '')
+    .toLowerCase()
+    .replace(/(^|[\s(—–-])([a-z])/g, (m, pre, ch) => pre + ch.toUpperCase())
+    .replace(/\b(Of|For|And|The|To|In)\b/g, (w) => w.toLowerCase())
+    .replace(/^([a-z])/, (ch) => ch.toUpperCase());
 
 /**
  * Escape HTML special characters to prevent XSS/injection
@@ -58,6 +72,11 @@ class BaseDivorcePetitionTemplate {
     this.stateName = null;
     this.documentType = 'petition';
     this.documentTitle = 'PETITION FOR DIVORCE';
+
+    // Jurisdiction-aware terminology. Defaults reproduce the historical US
+    // wording byte-for-byte; non-US templates opt in by merging overrides
+    // (see templates/core/terminology.js for the field reference).
+    this.terminology = { ...DEFAULT_TERMS };
 
     // Required fields for a valid petition
     this.requiredFields = [
@@ -143,13 +162,15 @@ class BaseDivorcePetitionTemplate {
     const errors = [];
     const warnings = [];
 
+    const t = this.terminology;
+
     // Check required fields
     if (!divorceData.petitionerName || divorceData.petitionerName.trim().length < 2) {
-      errors.push('Petitioner name is required and must be at least 2 characters');
+      errors.push(`${t.filerLabel} name is required and must be at least 2 characters`);
     }
 
     if (!divorceData.respondentName || divorceData.respondentName.trim().length < 2) {
-      errors.push('Respondent name is required and must be at least 2 characters');
+      errors.push(`${t.responderLabel} name is required and must be at least 2 characters`);
     }
 
     if (!divorceData.state) {
@@ -157,7 +178,7 @@ class BaseDivorcePetitionTemplate {
     }
 
     if (!divorceData.county || divorceData.county.trim().length === 0) {
-      errors.push(`County is required for ${this.stateName} divorce petitions`);
+      errors.push(`${t.districtTerm} is required for ${this.stateName} divorce petitions`);
     }
 
     if (!divorceData.marriageDate) {
@@ -190,7 +211,7 @@ class BaseDivorcePetitionTemplate {
     }
 
     if (!divorceData.petitionerAddress) {
-      warnings.push('Petitioner address is recommended for service of process');
+      warnings.push(`${t.filerLabel} address is recommended for service of process`);
     }
 
     // State-specific validation
@@ -265,6 +286,11 @@ class BaseDivorcePetitionTemplate {
       state: this.state,
       documentType: this.documentType,
       timestamp: new Date(),
+      // Real display title (used by the filing-packet cover/TOC and file
+      // names): document type + jurisdiction, never a generic fallback.
+      metadata: {
+        documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
+      },
       sections: {
         filerBlock,
         header,
@@ -299,24 +325,43 @@ class BaseDivorcePetitionTemplate {
 
   /**
    * Generate document header
-   * Override in state-specific templates for custom formatting
+   * Override in state-specific templates for custom formatting.
+   * Returns null (line omitted) when terminology.jurisdictionLabel is null —
+   * e.g. Canadian jurisdictions, whose caption is the court-name line.
    *
-   * @returns {string} Header text
+   * @returns {string|null} Header text
    */
   generateHeader() {
-    return `STATE OF ${this.stateName.toUpperCase()}`;
+    const label = this.terminology.jurisdictionLabel;
+    if (!label) return null;
+    return `${label} ${this.stateName.toUpperCase()}`;
   }
 
   /**
    * Generate venue section
-   * Override in state-specific templates for custom formatting
+   * Override in state-specific templates for custom formatting.
+   * Returns null (line omitted) when terminology.districtLabel is null.
    *
    * @param {string} county - County name
-   * @returns {string} Venue text
+   * @returns {string|null} Venue text
    */
   generateVenue(county) {
-    const countyUpper = (county || '[COUNTY]').toUpperCase();
-    return `COUNTY OF ${countyUpper}`;
+    const t = this.terminology;
+    if (!t.districtLabel) return null;
+    const countyUpper = (county || t.districtPlaceholder).toUpperCase();
+    return `${t.districtLabel} ${countyUpper}`;
+  }
+
+  /**
+   * Phrase body text uses to name the sub-jurisdiction, per
+   * terminology.districtStyle: "Travis County" (US default),
+   * "the Judicial District of Montreal", or plain "Toronto".
+   *
+   * @param {string} county - District name from the case data
+   * @returns {string} District phrase (placeholder when county missing)
+   */
+  districtPhrase(county) {
+    return districtPhrase(this.terminology, normalizeCountyName(county, ''));
   }
 
   /**
@@ -342,10 +387,11 @@ class BaseDivorcePetitionTemplate {
     const petitioner = (divorceData.petitionerName || '_________________________________').toUpperCase();
     const respondent = (divorceData.respondentName || '_________________________________').toUpperCase();
 
+    const t = this.terminology;
     caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
-    caption += `${petitioner}, Petitioner\n\n`;
+    caption += `${petitioner}, ${t.filerLabel}\n\n`;
     caption += `AND\n\n`;
-    caption += `${respondent}, Respondent`;
+    caption += `${respondent}, ${t.responderLabel}`;
 
     // Structured caption: the PDF layer lays this out as the conventional
     // two-column caption block (parties left; case number and judge right)
@@ -362,12 +408,12 @@ class BaseDivorcePetitionTemplate {
         'IN THE MATTER OF THE MARRIAGE OF:',
         '',
         partyLeft,
-        '          Petitioner,',
+        `          ${t.filerLabel},`,
         '',
         'and',
         '',
         partyRight,
-        '          Respondent.',
+        `          ${t.responderLabel}.`,
       ],
       right: [
         `${caseLabel} ${divorceData.caseNumber || '_______________'}`,
@@ -406,13 +452,14 @@ class BaseDivorcePetitionTemplate {
     const phone =
       divorceData.petitionerPhone || divorceData.phone || divorceData.phoneNumber || '';
     const email = divorceData.petitionerEmail || divorceData.email || '';
+    const t = this.terminology;
     return {
       lines: [
         name,
         `Address: ${address || '_________________________________'}`,
         `Phone: ${phone || '____________________'}`,
         `Email: ${email || '____________________'}`,
-        'Petitioner, Pro Se',
+        `${t.filerLabel}, ${t.selfRepresentedLabel}`,
       ],
     };
   }
@@ -457,17 +504,17 @@ class BaseDivorcePetitionTemplate {
   generatePartiesSection(divorceData) {
     const items = [];
     let paragraphNum = 1;
-    const county = normalizeCountyName(divorceData.county);
+    const t = this.terminology;
 
     items.push({
       number: paragraphNum++,
-      content: `Petitioner, ${divorceData.petitionerName || '[PETITIONER NAME]'}, is a resident of ${county} County, ${this.stateName}.`,
+      content: `${t.filerLabel}, ${divorceData.petitionerName || '[PETITIONER NAME]'}, is a resident of ${this.districtPhrase(divorceData.county)}, ${this.stateName}.`,
       type: 'party_identification'
     });
 
     items.push({
       number: paragraphNum++,
-      content: `Respondent, ${divorceData.respondentName || '[RESPONDENT NAME]'}, is ${divorceData.respondentAddress ? `a resident of ${divorceData.respondentAddress}` : 'a resident of this state'}.`,
+      content: `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, is ${divorceData.respondentAddress ? `a resident of ${divorceData.respondentAddress}` : `a resident of this ${t.jurisdictionTerm.toLowerCase()}`}.`,
       type: 'party_identification'
     });
 
@@ -487,7 +534,6 @@ class BaseDivorcePetitionTemplate {
   generateJurisdictionSection(divorceData) {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 3;
-    const county = normalizeCountyName(divorceData.county);
 
     items.push({
       number: paragraphNum++,
@@ -497,7 +543,7 @@ class BaseDivorcePetitionTemplate {
 
     items.push({
       number: paragraphNum++,
-      content: `Venue is proper in ${county} County because ${this.getVenueReason(divorceData)}.`,
+      content: `Venue is proper in ${this.districtPhrase(divorceData.county)} because ${this.getVenueReason(divorceData)}.`,
       type: 'venue'
     });
 
@@ -516,7 +562,8 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    return `Petitioner has been a resident of the State of ${this.stateName} for at least ${this.residencyRequirements.stateMonths} months and of ${divorceData.county || '[COUNTY]'} County for at least ${this.residencyRequirements.countyDays} days immediately preceding the filing of this petition.`;
+    const t = this.terminology;
+    return `${t.filerLabel} has been a resident of the ${t.jurisdictionTerm} of ${this.stateName} for at least ${this.residencyRequirements.stateMonths} months and of ${this.districtPhrase(divorceData.county)} for at least ${this.residencyRequirements.countyDays} days immediately preceding the filing of this petition.`;
   }
 
   /**
@@ -527,7 +574,8 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Venue reason
    */
   getVenueReason(divorceData) {
-    return `Petitioner resides in this county`;
+    const t = this.terminology;
+    return `${t.filerLabel} resides in this ${t.districtTerm.toLowerCase()}`;
   }
 
   /**
@@ -542,7 +590,7 @@ class BaseDivorcePetitionTemplate {
 
     items.push({
       number: paragraphNum++,
-      content: `Petitioner and Respondent were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}.`,
+      content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}.`,
       type: 'marriage_info'
     });
 
@@ -611,6 +659,7 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Grounds text
    */
   getGroundsText(grounds, divorceData) {
+    const t = this.terminology;
     switch (grounds) {
       case 'irreconcilable_differences':
         // Generic no-fault language suitable for most dissolution states.
@@ -625,11 +674,11 @@ class BaseDivorcePetitionTemplate {
       case 'separation':
         return `The parties have lived separate and apart without cohabitation for a period of at least ${divorceData.separationPeriod || '[PERIOD]'}.`;
       case 'abandonment':
-        return `Respondent voluntarily left Petitioner with intention of abandonment and remained away for at least ${divorceData.abandonmentPeriod || 'one year'}.`;
+        return `${t.responderLabel} voluntarily left ${t.filerLabel} with intention of abandonment and remained away for at least ${divorceData.abandonmentPeriod || 'one year'}.`;
       case 'cruelty':
-        return 'Respondent has been guilty of cruel treatment toward Petitioner of a nature that renders further cohabitation insupportable.';
+        return `${t.responderLabel} has been guilty of cruel treatment toward ${t.filerLabel} of a nature that renders further cohabitation insupportable.`;
       case 'adultery':
-        return 'Respondent has committed adultery.';
+        return `${t.responderLabel} has committed adultery.`;
       default:
         // Generic fallback — does not use Texas-specific "insupportability" language.
         return 'The marriage has suffered an irreconcilable breakdown, and there is no reasonable prospect of reconciliation.';
@@ -675,9 +724,41 @@ class BaseDivorcePetitionTemplate {
       // Add statement about no other children
       items.push({
         number: paragraphNum++,
-        content: 'No other children were born to or adopted by Petitioner and Respondent during the marriage, and none are expected.',
+        content: `No other children were born to or adopted by ${this.terminology.filerLabel} and ${this.terminology.responderLabel} during the marriage, and none are expected.`,
         type: 'children_info'
       });
+
+      // Plead the arrangements the parties actually reached (custody enum,
+      // primary residence, agreed child support). Unknown data keeps the
+      // generic pleading language unchanged.
+      const custody = resolveCustodyArrangement(divorceData);
+      if (custody.explicit) {
+        const custodyPleading = this.getCustodyPleading(custody, divorceData);
+        if (custodyPleading) {
+          items.push({
+            number: paragraphNum++,
+            content: custodyPleading,
+            type: 'custody_request'
+          });
+        }
+      }
+
+      const residenceName = resolvePrimaryResidenceName(divorceData);
+      if (residenceName) {
+        items.push({
+          number: paragraphNum++,
+          content: this.getResidencePleading(residenceName, divorceData),
+          type: 'residence_request'
+        });
+      }
+
+      if (divorceData.childSupportAmount) {
+        items.push({
+          number: paragraphNum++,
+          content: this.getChildSupportPleading(divorceData),
+          type: 'child_support_request'
+        });
+      }
     }
 
     return {
@@ -685,6 +766,54 @@ class BaseDivorcePetitionTemplate {
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Pleading text for a recognized custody arrangement. Jurisdiction
+   * subclasses override for local terminology (e.g., Ontario pleads
+   * "decision-making responsibility" under the Divorce Act).
+   *
+   * @param {{kind: string}} custody - Resolved arrangement (templates/core/parenting.js)
+   * @param {Object} divorceData - The divorce data
+   * @returns {string|null} Pleading sentence, or null to keep generic language
+   */
+  getCustodyPleading(custody, divorceData) {
+    const t = this.terminology;
+    if (custody.kind === 'joint') {
+      return `The parties have agreed to joint legal custody of the minor child(ren), and ${t.filerLabel} requests that the Court order that arrangement.`;
+    }
+    if (custody.kind === 'sole_petitioner') {
+      return `${t.filerLabel} requests sole legal and physical custody of the minor child(ren).`;
+    }
+    if (custody.kind === 'sole_respondent') {
+      return `${t.filerLabel} requests that ${divorceData.respondentName || t.responderLabel} be awarded sole legal and physical custody of the minor child(ren).`;
+    }
+    if (custody.kind === 'legacy_sole') {
+      return `${t.filerLabel} requests that ${divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel} be awarded sole legal and physical custody of the minor child(ren).`;
+    }
+    return null;
+  }
+
+  /**
+   * Pleading text for the child(ren)'s primary residence.
+   * @param {string} residenceName - Who the children primarily live with
+   * @param {Object} divorceData - The divorce data
+   * @returns {string} Pleading sentence
+   */
+  getResidencePleading(residenceName, divorceData) {
+    return `${this.terminology.filerLabel} requests that the child(ren) primarily reside with ${residenceName}.`;
+  }
+
+  /**
+   * Pleading text for an agreed child-support amount.
+   * @param {Object} divorceData - The divorce data
+   * @returns {string} Pleading sentence
+   */
+  getChildSupportPleading(divorceData) {
+    const t = this.terminology;
+    const payor = divorceData.childSupportObligor || divorceData.respondentName || t.responderLabel;
+    const payee = divorceData.childSupportObligee || divorceData.petitionerName || t.filerLabel;
+    return `The parties have agreed that ${payor} shall pay child support to ${payee} in the amount of $${divorceData.childSupportAmount} per month, subject to the Court's approval under the applicable child support guidelines.`;
   }
 
   /**
@@ -703,6 +832,16 @@ class BaseDivorcePetitionTemplate {
         content: 'There is no community or marital property to be divided.',
         type: 'property_info'
       });
+    } else if (this.hasAgreedPropertyDivision(divorceData)) {
+      // The parties described an agreed division — plead it instead of the
+      // generic "divide in a just and right manner" boilerplate.
+      for (const content of this.getPropertyAgreementPleadings(divorceData)) {
+        items.push({
+          number: paragraphNum++,
+          content,
+          type: 'property_agreement'
+        });
+      }
     } else {
       items.push({
         number: paragraphNum++,
@@ -712,7 +851,7 @@ class BaseDivorcePetitionTemplate {
 
       items.push({
         number: paragraphNum++,
-        content: 'Petitioner requests that the Court divide the community/marital property in a just and right manner.',
+        content: `${this.terminology.filerLabel} requests that the Court divide the community/marital property in a just and right manner.`,
         type: 'property_request'
       });
     }
@@ -720,7 +859,7 @@ class BaseDivorcePetitionTemplate {
     if (divorceData.hasDebts !== false) {
       items.push({
         number: paragraphNum++,
-        content: 'The parties have accumulated debts during the marriage. Petitioner requests that the Court allocate responsibility for such debts in a just and equitable manner.',
+        content: `The parties have accumulated debts during the marriage. ${this.terminology.filerLabel} requests that the Court allocate responsibility for such debts in a just and equitable manner.`,
         type: 'debt_info'
       });
     }
@@ -733,6 +872,55 @@ class BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Whether the case data describes an agreed property division (a
+   * propertyAgreement flag/description, or itemized property lists).
+   * @param {Object} divorceData - The divorce data
+   * @returns {boolean}
+   */
+  hasAgreedPropertyDivision(divorceData) {
+    return Boolean(
+      divorceData.propertyAgreement ||
+      asList(divorceData.petitionerProperty).length > 0 ||
+      asList(divorceData.respondentProperty).length > 0
+    );
+  }
+
+  /**
+   * Pleading paragraphs for the parties' agreed property division.
+   * Jurisdiction subclasses override for local property regimes (e.g.,
+   * Ontario's Family Law Act equalization — no "community property").
+   *
+   * @param {Object} divorceData - The divorce data
+   * @returns {string[]} Pleading paragraphs
+   */
+  getPropertyAgreementPleadings(divorceData) {
+    const t = this.terminology;
+    const pleadings = [];
+
+    let intro = 'The parties have reached an agreement regarding the division of their community/marital property.';
+    if (typeof divorceData.propertyAgreement === 'string' && divorceData.propertyAgreement.trim()) {
+      intro += ` ${divorceData.propertyAgreement.trim()}`;
+    }
+    pleadings.push(intro);
+
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.petitionerName || t.filerLabel} is to receive: ${asList(divorceData.petitionerProperty).join('; ')}.`
+      );
+    }
+    if (asList(divorceData.respondentProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.respondentName || t.responderLabel} is to receive: ${asList(divorceData.respondentProperty).join('; ')}.`
+      );
+    }
+
+    pleadings.push(
+      `${t.filerLabel} requests that the Court approve the parties' agreement and divide the property accordingly.`
+    );
+    return pleadings;
+  }
+
+  /**
    * Generate relief requested section
    *
    * @param {Object} divorceData - The divorce data
@@ -741,16 +929,17 @@ class BaseDivorcePetitionTemplate {
   generateReliefSection(divorceData) {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 15;
+    const t = this.terminology;
 
     items.push({
       number: null,
-      content: 'WHEREFORE, Petitioner requests that the Court:',
+      content: `WHEREFORE, ${t.filerLabel} requests that the Court:`,
       type: 'relief_intro'
     });
 
     // Standard relief requests
     const reliefItems = [
-      'Grant a divorce dissolving the marriage between Petitioner and Respondent;',
+      `Grant a divorce dissolving the marriage between ${t.filerLabel} and ${t.responderLabel};`,
       'Divide the community/marital property in a just and right manner;',
       'Allocate responsibility for debts in an equitable manner;'
     ];
@@ -759,21 +948,29 @@ class BaseDivorcePetitionTemplate {
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       reliefItems.push('Determine custody and parenting time/visitation arrangements for the minor child(ren);');
       reliefItems.push('Order appropriate parenting time/visitation for the non-custodial parent;');
-      reliefItems.push('Order child support in accordance with state guidelines;');
+      if (divorceData.childSupportAmount) {
+        const payor = divorceData.childSupportObligor || divorceData.respondentName || t.responderLabel;
+        reliefItems.push(`Order that ${payor} pay child support of $${divorceData.childSupportAmount} per month, in accordance with state guidelines;`);
+      } else {
+        reliefItems.push('Order child support in accordance with state guidelines;');
+      }
     }
 
-    // Add spousal support if requested
-    if (divorceData.requestSpousalSupport) {
-      reliefItems.push('Award spousal maintenance/alimony to Petitioner;');
+    // Spousal support: request it when requested, plead the parties' waiver
+    // when the data explicitly says support is not sought.
+    if (divorceData.requestSpousalSupport || divorceData.spousalSupportRequested) {
+      reliefItems.push(`Award spousal maintenance/alimony to ${t.filerLabel};`);
+    } else if (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) {
+      reliefItems.push('Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;');
     }
 
     // Add name change if requested
     if (divorceData.requestNameChange && divorceData.previousName) {
-      reliefItems.push(`Restore Petitioner's former name: ${divorceData.previousName};`);
+      reliefItems.push(`Restore ${t.filerLabel}'s former name: ${divorceData.previousName};`);
     }
 
     // Add general relief
-    reliefItems.push('Grant such other and further relief to which Petitioner may be entitled.');
+    reliefItems.push(`Grant such other and further relief to which ${t.filerLabel} may be entitled.`);
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index); // a, b, c format
@@ -818,7 +1015,7 @@ class BaseDivorcePetitionTemplate {
    */
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '_________________________________';
-    return `I, ${name}, Petitioner, declare under penalty of perjury that the facts stated in this Petition are true and correct to the best of my knowledge and belief.`;
+    return `I, ${name}, ${this.terminology.filerLabel}, declare under penalty of perjury that the facts stated in this Petition are true and correct to the best of my knowledge and belief.`;
   }
 
   /**
@@ -829,12 +1026,13 @@ class BaseDivorcePetitionTemplate {
    */
   generateSignatureBlock(petitionerName) {
     const name = petitionerName || '_________________________________';
+    const title = `${this.terminology.filerLabel}, ${this.terminology.selfRepresentedLabel}`;
     return {
       line: '_________________________________',
       name,
-      title: 'Petitioner, Pro Se',
+      title,
       date: 'Date: _____________________',
-      formatted: `_________________________________\n${name}\nPetitioner, Pro Se\n\nDate: _____________________`
+      formatted: `_________________________________\n${name}\n${title}\n\nDate: _____________________`
     };
   }
 

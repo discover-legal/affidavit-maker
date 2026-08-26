@@ -690,3 +690,39 @@ No changes to:
 Just drop in your new template and restart the server. The template loader will find it and register it automatically.
 
 **That's the power of the new template system!**
+
+---
+
+## Non-US Jurisdictions: the Terminology Layer
+
+The base classes (`BaseDivorcePetitionTemplate`, `BaseDivorceDecreeTemplate`,
+`BaseAffidavitTemplate`, `BaseDocument`) default to US caption furniture:
+`STATE OF X` / `COUNTY OF Y` header lines, `"X County"` body phrasing, and
+`Petitioner`/`Respondent`/`Pro Se` labels. A non-US jurisdiction must NOT
+override every section to fix this — it opts in via `this.terminology` in its
+constructor (full field reference in `templates/core/terminology.js`):
+
+```js
+this.terminology = {
+  ...this.terminology,
+  jurisdictionLabel: null,           // null omits the "STATE OF X" header line
+  jurisdictionTerm: 'Province',      // "the Province of X" / "this province"
+  districtLabel: null,               // null omits the "COUNTY OF Y" venue line
+  districtTerm: 'Judicial district', // noun for validation messages / 'prefix' style
+  districtStyle: 'plain',            // 'suffix' "X County" | 'prefix' "the D of X" | 'plain' "X"
+  districtPlaceholder: '[JUDICIAL DISTRICT]',
+  filerLabel: 'Applicant',
+  responderLabel: 'Respondent',
+  selfRepresentedLabel: 'Self-Represented',
+};
+```
+
+Defaults reproduce the historical US wording byte-for-byte, so US templates
+need no changes. All 13 Canadian `DivorcePetitionTemplate`s are the reference
+opt-ins. Where local practice is uncertain, prefer the neutral correct form:
+the court-name caption line plus a `[COURT LOCATION]`/`[REGISTRY]`-style
+placeholder — never "County".
+
+`services/previewRenderer.js` (plain-facts preview) resolves its header via
+`venueHeaderLines()` in the same module; extend that lookup when adding a
+country whose documents must not open with `STATE OF` / `COUNTY OF`.

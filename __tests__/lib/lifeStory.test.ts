@@ -5,10 +5,34 @@ import {
   categoryLabel,
   computeAge,
   formatFriendlyDate,
+  formatResidencyDuration,
   fullName,
   groupFacts,
   spouseName,
 } from '@/components/app/lifeStory';
+
+describe('formatResidencyDuration', () => {
+  it('keeps short durations in months', () => {
+    expect(formatResidencyDuration(1)).toBe('1 month');
+    expect(formatResidencyDuration(18)).toBe('18 months');
+    expect(formatResidencyDuration(23)).toBe('23 months');
+  });
+
+  it('humanizes 24+ months into years, with a months remainder', () => {
+    expect(formatResidencyDuration(24)).toBe('2 years');
+    expect(formatResidencyDuration(27)).toBe('2 years and 3 months');
+    expect(formatResidencyDuration(144)).toBe('12 years');
+    expect(formatResidencyDuration(145)).toBe('12 years and 1 month');
+  });
+
+  it('is bilingual and safe on junk', () => {
+    expect(formatResidencyDuration(144, 'es')).toBe('12 años');
+    expect(formatResidencyDuration(27, 'es')).toBe('2 años y 3 meses');
+    expect(formatResidencyDuration(1, 'es')).toBe('1 mes');
+    expect(formatResidencyDuration(0)).toBe('');
+    expect(formatResidencyDuration(NaN)).toBe('');
+  });
+});
 
 describe('fullName / spouseName (role-aware identity)', () => {
   const respondentProfile = {
@@ -99,7 +123,7 @@ describe('buildRecitals', () => {
         'May 1, 2010',
         'Austin, Texas',
         'Travis County, TX',
-        '48 months',
+        '4 years',
         '$5,200 a month',
         'protective order',
       ]),

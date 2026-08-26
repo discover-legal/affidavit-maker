@@ -57,6 +57,23 @@ class GhanaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'GH';
     this.stateName = 'Ghana';
     this.countryCode = 'GH';
+
+    // Ghanaian terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (High Court at X); parties are Petitioner/Respondent
+    // (Matrimonial Causes Act 1971 (Act 367)). No "STATE OF"/"COUNTY OF" caption
+    // lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {

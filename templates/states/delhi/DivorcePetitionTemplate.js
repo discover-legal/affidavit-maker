@@ -45,6 +45,23 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'IN_DL';
     this.stateName = 'Delhi';
     this.countryCode = 'IN';
+
+    // Indian terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Family Court / District Court) + district; parties are
+    // Petitioner/Respondent (HMA 1955 / SMA 1954). No "STATE OF"/"COUNTY OF"
+    // caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Territory',
+      districtTerm: 'District',
+      districtPlaceholder: '[DISTRICT]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {

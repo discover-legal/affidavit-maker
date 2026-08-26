@@ -43,6 +43,23 @@ class BCDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'BC';
     this.stateName = 'British Columbia';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Notice of Family Claim (SCFR Form F3): filed at a Supreme Court registry; parties are Claimant/Respondent.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Registry',
+      districtStyle: 'plain',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Claimant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'NOTICE OF FAMILY CLAIM';
 

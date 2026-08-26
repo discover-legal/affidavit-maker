@@ -47,6 +47,23 @@ class PEIDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'PE';
     this.stateName = 'Prince Edward Island';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Supreme Court of PEI petition; Rules of Civil Procedure keep Petitioner/Respondent; single-court province, no counties for venue.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

@@ -60,6 +60,23 @@ class KenyaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'KE';
     this.stateName = 'Kenya';
     this.countryCode = 'KE';
+
+    // Kenyan terminology (see templates/core/terminology.js): the caption is the
+    // court-name line; parties are Petitioner/Respondent (Marriage Act, 2014);
+    // venue is the court station. No "STATE OF"/"COUNTY OF" caption lines and no
+    // "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court station',
+      districtPlaceholder: '[COURT STATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {

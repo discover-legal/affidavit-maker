@@ -37,9 +37,11 @@ import {
 } from 'lucide-react';
 import { getInitialLang, setLang, type Lang } from '@/lib/i18n';
 import { officialFormsLink } from '@/lib/officialForms';
+import { isCanadianJurisdiction } from '@/lib/api/procedure';
 import {
   childBirthDate,
   formatFriendlyDate,
+  formatResidencyDuration,
   parseKnownDate,
   type ProfileChild,
 } from '@/components/app/lifeStory';
@@ -58,6 +60,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.eyebrow': 'Step by step',
     'hero.title': 'Your day in court',
     'hero.intro':
+      'Most uncontested divorces are finished “on the papers,” with no hearing at all. But if the court sets one, here’s what generally happens — so nothing about the day takes you by surprise.',
+    'hero.introUt':
       'Most uncontested {stateName} divorces are finished “on the papers,” with no hearing at all. But if the court sets one, here’s what generally happens — so nothing about the day takes you by surprise.',
     'hero.upl':
       'This page is general information about how hearings usually work, not legal advice. Your court decides what applies in your case.',
@@ -66,8 +70,12 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'before.heading': 'Before the day',
     'before.sub': 'What people generally get ready ahead of a hearing.',
     'before.courses':
+      'Because you have minor children ({names}), many courts require divorcing parents to complete a parent education course — if yours does, bring proof that you finished it.',
+    'before.coursesUt':
       'Because you have minor children ({names}), {stateName} generally requires divorcing parents to complete a parent education course — bring proof that you finished it.',
     'before.financials':
+      'Financial disclosure: you and {name} may each have been asked to complete and exchange financial disclosure forms — if so, bring your copies.',
+    'before.financialsUt':
       'Financial declarations: you and {name} generally each need to have completed and exchanged a Financial Declaration. Bring your copy.',
     'before.copies':
       'Bring a copy of every paper filed in your case — the petition, proof of service, any agreement, and anything the court has sent you.',
@@ -117,6 +125,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
 
     'interp.heading': 'Interpreters and accommodations',
     'interp.interpreter':
+      'If you’re more comfortable in another language, many courts provide court interpreters for court proceedings — often at no cost. Requests are made through the court — ask the clerk as early as possible, ideally when the hearing is scheduled.',
+    'interp.interpreterUt':
       'If you’re more comfortable in another language, Utah courts generally provide court interpreters at no cost for court proceedings. Requests are made through the court — ask the clerk as early as possible, ideally when the hearing is scheduled.',
     'interp.interpLink':
       'On the Utah courts website, search for “interpreter services.”',
@@ -136,9 +146,14 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Free help from court staff by phone, chat, and email. On the site, search for “Self-Help Center.”',
     'check.lawhelp.title': 'LawHelp.org',
     'check.lawhelp.body': 'Find free or low-cost legal help near you.',
+    'check.selfhelpGeneric.title': 'Your court’s self-help services',
+    'check.selfhelpGeneric.body':
+      'Many courts offer free self-help services by phone or in person — ask the clerk what’s available where you filed.',
 
     'advisor.body':
       'A hearing is a strong moment to at least talk to a lawyer — even once. Many lawyers offer limited-scope help: preparing you for the hearing, or appearing just for it, without taking over your whole case. You can keep working here freely either way — and free or low-cost legal help is available through ',
+    'advisor.bodyCa':
+      'A hearing is a strong moment to at least talk to a lawyer — even once. Many lawyers offer limited-scope help: preparing you for the hearing, or appearing just for it, without taking over your whole case. You can keep working here freely either way — and free or low-cost legal help may be available in your area; court staff can often point you to it.',
   },
   es: {
     'lang.en': 'English',
@@ -151,6 +166,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.eyebrow': 'Paso a paso',
     'hero.title': 'Tu día en el tribunal',
     'hero.intro':
+      'La mayoría de los divorcios no disputados se terminan “sobre los papeles”, sin ninguna audiencia. Pero si el tribunal programa una, esto es lo que generalmente sucede — para que nada del día te tome por sorpresa.',
+    'hero.introUt':
       'La mayoría de los divorcios no disputados en {stateName} se terminan “sobre los papeles”, sin ninguna audiencia. Pero si el tribunal programa una, esto es lo que generalmente sucede — para que nada del día te tome por sorpresa.',
     'hero.upl':
       'Esta página es información general sobre cómo suelen funcionar las audiencias, no asesoría legal. Tu tribunal decide qué aplica en tu caso.',
@@ -159,8 +176,12 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'before.heading': 'Antes del día',
     'before.sub': 'Lo que la gente generalmente prepara antes de una audiencia.',
     'before.courses':
+      'Como tienes hijos menores ({names}), muchos tribunales exigen que los padres que se divorcian completen un curso de educación para padres — si el tuyo lo exige, lleva prueba de que lo terminaste.',
+    'before.coursesUt':
       'Como tienes hijos menores ({names}), {stateName} generalmente exige que los padres que se divorcian completen un curso de educación para padres — lleva prueba de que lo terminaste.',
     'before.financials':
+      'Divulgación financiera: es posible que a ti y a {name} les hayan pedido completar e intercambiar formularios de divulgación financiera — si es así, lleva tus copias.',
+    'before.financialsUt':
       'Declaraciones financieras: tú y {name} generalmente necesitan haber completado e intercambiado una Declaración Financiera. Lleva tu copia.',
     'before.copies':
       'Lleva una copia de cada documento presentado en tu caso — la petición, la prueba de notificación, cualquier acuerdo y todo lo que el tribunal te haya enviado.',
@@ -210,6 +231,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
 
     'interp.heading': 'Intérpretes y adaptaciones',
     'interp.interpreter':
+      'Si te sientes más cómodo en otro idioma, muchos tribunales ofrecen intérpretes para los procedimientos judiciales — a menudo sin costo. Las solicitudes se hacen a través del tribunal — pídelo al secretario lo antes posible, idealmente cuando se programe la audiencia.',
+    'interp.interpreterUt':
       'Si te sientes más cómodo en otro idioma, los tribunales de Utah generalmente ofrecen intérpretes sin costo para los procedimientos judiciales. Las solicitudes se hacen a través del tribunal — pídelo al secretario lo antes posible, idealmente cuando se programe la audiencia.',
     'interp.interpLink':
       'En el sitio web de los tribunales de Utah, busca “interpreter services” (servicios de intérprete).',
@@ -230,9 +253,14 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'check.lawhelp.title': 'LawHelp.org',
     'check.lawhelp.body':
       'Encuentra ayuda legal gratuita o de bajo costo cerca de ti.',
+    'check.selfhelpGeneric.title': 'Los servicios de autoayuda de tu tribunal',
+    'check.selfhelpGeneric.body':
+      'Muchos tribunales ofrecen servicios gratuitos de autoayuda por teléfono o en persona — pregunta al secretario qué hay disponible donde presentaste tu caso.',
 
     'advisor.body':
       'Una audiencia es un buen momento para al menos hablar con un abogado — aunque sea una vez. Muchos abogados ofrecen ayuda de alcance limitado: prepararte para la audiencia, o presentarse solo para ella, sin llevar todo tu caso. Puedes seguir trabajando aquí libremente de cualquier forma — y hay ayuda legal gratuita o de bajo costo disponible a través de ',
+    'advisor.bodyCa':
+      'Una audiencia es un buen momento para al menos hablar con un abogado — aunque sea una vez. Muchos abogados ofrecen ayuda de alcance limitado: prepararte para la audiencia, o presentarse solo para ella, sin llevar todo tu caso. Puedes seguir trabajando aquí libremente de cualquier forma — y puede haber ayuda legal gratuita o de bajo costo en tu área; el personal del tribunal a menudo puede orientarte.',
   },
 };
 
@@ -390,17 +418,18 @@ export function buildPracticeQuestions(
       ? 'tu condado'
       : 'your county';
   const months = Number(profile.residencyStateMonths);
+  const residencyDuration =
+    Number.isFinite(months) && months > 0 ? formatResidencyDuration(months, lang) : '';
   questions.push({
     id: 'residency',
     question: es
-      ? `¿Has vivido en ${where} durante al menos tres meses antes de presentar tu caso?`
-      : `Have you lived in ${where} for at least three months before you filed?`,
-    answer:
-      Number.isFinite(months) && months > 0
-        ? es
-          ? `Nos contaste de unos ${months} meses.`
-          : `You told us about ${months} months.`
-        : null,
+      ? `¿Has vivido en ${where} el tiempo suficiente para cumplir el requisito de residencia donde presentaste tu caso?`
+      : `Have you lived in ${where} long enough to meet the residency requirement where you filed?`,
+    answer: residencyDuration
+      ? es
+        ? `Nos contaste de unos ${residencyDuration}.`
+        : `You told us about ${residencyDuration}.`
+      : null,
   });
 
   // 5 — children names and birth dates
@@ -566,6 +595,11 @@ export default function HearingPrepClient() {
   }, []);
 
   const stateCode = str(profile.state).toUpperCase() || 'UT';
+  // Utah-specific guidance (OCAP, utcourts.gov, Financial Declaration,
+  // interpreter policy) renders ONLY for UT profiles; everyone else gets
+  // jurisdiction-neutral, hedged wording. LawHelp.org is US-only.
+  const isUT = stateCode === 'UT';
+  const isCA = isCanadianJurisdiction(stateCode);
   const stateName = stateInfo?.stateName || (stateCode === 'UT' ? 'Utah' : stateCode);
   // Utah's 30-day wait is a safe local default; other states only get a
   // number when their procedure endpoint provides one.
@@ -592,10 +626,14 @@ export default function HearingPrepClient() {
 
   const checklist: string[] = [];
   if (children.length > 0) {
-    checklist.push(tt(lang, 'before.courses', { names: childNames, stateName }));
+    checklist.push(
+      tt(lang, isUT ? 'before.coursesUt' : 'before.courses', { names: childNames, stateName }),
+    );
   }
   checklist.push(
-    tt(lang, 'before.financials', { name: spouseFirst || tt(lang, 'hero.otherParty') }),
+    tt(lang, isUT ? 'before.financialsUt' : 'before.financials', {
+      name: spouseFirst || tt(lang, 'hero.otherParty'),
+    }),
   );
   checklist.push(tt(lang, 'before.copies'));
   checklist.push(tt(lang, 'before.arrive'));
@@ -615,24 +653,34 @@ export default function HearingPrepClient() {
           },
         ]
       : []),
-    {
-      key: 'ocap',
-      href: 'https://www.utcourts.gov/ocap/',
-      title: tt(lang, 'check.ocap.title'),
-      body: tt(lang, 'check.ocap.body'),
-    },
-    {
-      key: 'selfhelp',
-      href: 'https://www.utcourts.gov',
-      title: tt(lang, 'check.selfhelp.title'),
-      body: tt(lang, 'check.selfhelp.body'),
-    },
-    {
-      key: 'lawhelp',
-      href: 'https://www.lawhelp.org/find-help',
-      title: tt(lang, 'check.lawhelp.title'),
-      body: tt(lang, 'check.lawhelp.body'),
-    },
+    // Utah's own tools are Utah-only — never presented to other profiles.
+    ...(isUT
+      ? [
+          {
+            key: 'ocap',
+            href: 'https://www.utcourts.gov/ocap/',
+            title: tt(lang, 'check.ocap.title'),
+            body: tt(lang, 'check.ocap.body'),
+          },
+          {
+            key: 'selfhelp',
+            href: 'https://www.utcourts.gov',
+            title: tt(lang, 'check.selfhelp.title'),
+            body: tt(lang, 'check.selfhelp.body'),
+          },
+        ]
+      : []),
+    // LawHelp.org covers the US only — omitted for Canadian provinces.
+    ...(!isCA
+      ? [
+          {
+            key: 'lawhelp',
+            href: 'https://www.lawhelp.org/find-help',
+            title: tt(lang, 'check.lawhelp.title'),
+            body: tt(lang, 'check.lawhelp.body'),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -686,7 +734,7 @@ export default function HearingPrepClient() {
           {tt(lang, 'hero.title')}
         </h1>
         <p className="mt-3 max-w-xl text-gray-600">
-          {tt(lang, 'hero.intro', { stateName })}
+          {tt(lang, isUT ? 'hero.introUt' : 'hero.intro', { stateName })}
         </p>
         <p className="mt-2 max-w-xl text-sm text-gray-500">{tt(lang, 'hero.upl')}</p>
       </header>
@@ -862,20 +910,22 @@ export default function HearingPrepClient() {
             <Languages className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-sm leading-relaxed text-gray-700">
-                {tt(lang, 'interp.interpreter')}
+                {tt(lang, isUT ? 'interp.interpreterUt' : 'interp.interpreter')}
               </p>
-              <p className="mt-1.5 text-sm text-gray-600">
-                {tt(lang, 'interp.interpLink')}{' '}
-                <a
-                  href="https://www.utcourts.gov"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-brand underline hover:text-brand-strong"
-                >
-                  utcourts.gov
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              </p>
+              {isUT && (
+                <p className="mt-1.5 text-sm text-gray-600">
+                  {tt(lang, 'interp.interpLink')}{' '}
+                  <a
+                    href="https://www.utcourts.gov"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-brand underline hover:text-brand-strong"
+                  >
+                    utcourts.gov
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  </a>
+                </p>
+              )}
             </div>
           </div>
           <div className="mt-4 flex gap-3 border-t border-gray-100 pt-4">
@@ -908,24 +958,39 @@ export default function HearingPrepClient() {
               <span className="mt-1 block text-sm text-gray-600">{link.body}</span>
             </a>
           ))}
+          {!isUT && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <span className="text-sm font-semibold text-gray-900">
+                {tt(lang, 'check.selfhelpGeneric.title')}
+              </span>
+              <span className="mt-1 block text-sm text-gray-600">
+                {tt(lang, 'check.selfhelpGeneric.body')}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Advisor note — persistent, never dismissable; the user can always keep going. */}
       <div className="mt-10 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 font-sans sm:p-5">
         <Scale className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
-        <p className="text-sm text-amber-900">
-          {tt(lang, 'advisor.body')}
-          <a
-            href="https://www.lawhelp.org/find-help"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold underline hover:text-amber-700"
-          >
-            LawHelp.org
-          </a>
-          .
-        </p>
+        {isCA ? (
+          // LawHelp.org is US-only — Canadian provinces get a neutral line.
+          <p className="text-sm text-amber-900">{tt(lang, 'advisor.bodyCa')}</p>
+        ) : (
+          <p className="text-sm text-amber-900">
+            {tt(lang, 'advisor.body')}
+            <a
+              href="https://www.lawhelp.org/find-help"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline hover:text-amber-700"
+            >
+              LawHelp.org
+            </a>
+            .
+          </p>
+        )}
       </div>
     </main>
   );

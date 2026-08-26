@@ -30,6 +30,23 @@ class EnglandAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "ENG"
     this.stateName = this.metadata.stateName;   // "England & Wales"
     this.countryCode = 'UK';
+
+    // England & Wales terminology (see templates/core/terminology.js): the caption
+    // is the court-name line ("In the Family Court at X"); parties are
+    // Applicant/Respondent (post-April 2022, DDSA 2020); self-represented parties
+    // are "Litigants in Person". No "STATE OF"/"COUNTY OF" lines, no "X County".
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Litigant in Person',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     // England uses Statement of Truth, not sworn affidavits

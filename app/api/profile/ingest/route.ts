@@ -121,6 +121,16 @@ const INGEST_TOOL = {
           description:
             'Whether the person uploading this document is the one these papers were served ON — i.e. they are the responding party. Judge from the document text AND how the user described it (in any language). "yes" only when that is clear (e.g. the user says they received/were served the papers, or the document is a petition and summons addressed to them as the party being served). Proof that the OTHER side was served is "no". A petition alone says nothing about who is uploading it — when you cannot tell, answer "unclear".',
         },
+        petitioner_name: {
+          type: 'string',
+          description:
+            "The petitioner's/plaintiff's full legal name as printed on the document, normalized to proper name casing (mike smith → Mike Smith), with compound and hyphenated surnames intact (smith son-wyatt → Smith Son-Wyatt). Include ONLY when the document clearly states it — omit otherwise. Never guess or infer.",
+        },
+        respondent_name: {
+          type: 'string',
+          description:
+            "The respondent's/defendant's full legal name as printed on the document, normalized to proper name casing, with compound and hyphenated surnames intact. Include ONLY when the document clearly states it — omit otherwise. Never guess or infer.",
+        },
         events: {
           type: 'array',
           description:
@@ -281,6 +291,8 @@ async function extractIntoProfile(
   let extracted: {
     document_kind?: string;
     served_on_user?: string;
+    petitioner_name?: string;
+    respondent_name?: string;
     events?: Array<{ label?: string; date?: string }>;
     facts?: Array<{ content?: string; category?: string }>;
   };
@@ -322,8 +334,19 @@ async function extractIntoProfile(
       sourceQuote: `From: ${kind}`,
       timestamp: new Date().toISOString(),
     }));
-  if (facts.length > 0) {
-    await mergeUserProfile(userId, {}, facts);
+  // Party names the model read off the caption (already model-normalized —
+  // no deterministic casing here). Merged through the standard path:
+  // mergeUserProfile → reconcileParties derives spouseName under the stored
+  // role, and affiantName is never written (caption fields are not identity
+  // fields), so a stored affiantName can never be overwritten by an ingest.
+  const partyFields: Record<string, unknown> = {};
+  const petitionerName = String(extracted.petitioner_name ?? '').trim().slice(0, 120);
+  const respondentName = String(extracted.respondent_name ?? '').trim().slice(0, 120);
+  if (petitionerName) partyFields.petitionerName = petitionerName;
+  if (respondentName) partyFields.respondentName = respondentName;
+
+  if (facts.length > 0 || Object.keys(partyFields).length > 0) {
+    await mergeUserProfile(userId, partyFields, facts);
   }
 
   logger.info('profile_document_ingested', {

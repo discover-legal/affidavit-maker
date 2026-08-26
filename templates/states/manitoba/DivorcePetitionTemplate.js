@@ -48,6 +48,23 @@ class ManitobaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     this.state = 'MB';
     this.stateName = 'Manitoba';
+    
+    // Canadian terminology (see templates/core/terminology.js):
+    // Court of King's Bench (Family Division) petition filed at a court centre; KB Rules keep Petitioner/Respondent.
+    // No "STATE OF"/"COUNTY OF" caption lines and no "X County" body
+    // phrasing — the caption's court-name line carries the venue.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Court location',
+      districtStyle: 'plain',
+      districtPlaceholder: '[LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.countryCode = 'CA';
     this.documentTitle = 'PETITION FOR DIVORCE';
 

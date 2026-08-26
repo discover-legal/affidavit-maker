@@ -20,6 +20,23 @@ class FCTAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;
     this.stateName = this.metadata.stateName;
     this.countryCode = 'NG';
+
+    // Nigerian terminology (see templates/core/terminology.js): the caption is the
+    // court-name line + suit number; parties are Petitioner/Respondent under the
+    // Matrimonial Causes Act 1970; High Courts sit in judicial divisions, not
+    // counties. No "STATE OF"/"COUNTY OF" caption lines, no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Territory',
+      districtTerm: 'Judicial division',
+      districtPlaceholder: '[JUDICIAL DIVISION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

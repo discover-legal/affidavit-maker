@@ -44,6 +44,23 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
     this.state = 'NIR';
     this.stateName = 'Northern Ireland';
     this.countryCode = 'UK';
+
+    // Northern Ireland terminology (see templates/core/terminology.js): the caption
+    // is the court-name line; parties remain Petitioner/Respondent (Matrimonial
+    // Causes (NI) Order 1978 — NI did not adopt the 2022 E&W reforms);
+    // self-represented parties are "Litigants in Person". No US caption furniture.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court location',
+      districtPlaceholder: '[COURT LOCATION]',
+      filerLabel: 'Petitioner',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Litigant in Person',
+    };
     this.documentTitle = 'PETITION FOR DIVORCE';
 
     try {

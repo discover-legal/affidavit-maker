@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const { prepareFactsForDisplay } = require('../utils/factNormalizer');
+const { venueHeaderLines } = require('../templates/core/terminology');
 
 /**
  * previewRenderer - small service to produce formatted output (string) and UI items from canonical facts
@@ -18,7 +19,9 @@ const previewRenderer = {
     const items = prepareFactsForDisplay(facts);
 
     // Simple formatting: numbered facts with paragraph breaks. Keep this function small and deterministic.
-    const header = `STATE OF ${affidavitData.state || '[STATE]'}\nCOUNTY OF ${affidavitData.county || '[COUNTY]'}\n\n`;
+    // venueHeaderLines is jurisdiction-aware: US keeps STATE OF / COUNTY OF;
+    // Canadian provinces get "PROVINCE OF X" and no county line.
+    const header = `${venueHeaderLines(affidavitData.state, affidavitData.county).join('\n')}\n\n`;
 
     const intro = `I, ${affidavitData.affiantName || '[NAME]'}, being first duly sworn, depose and state as follows:\n\n`;
 

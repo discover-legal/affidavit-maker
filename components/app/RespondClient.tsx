@@ -36,6 +36,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { getInitialLang, setLang, type Lang } from '@/lib/i18n';
+import { detectPerspective, isCanadianJurisdiction } from '@/lib/api/procedure';
+import { officialFormsLink } from '@/lib/officialForms';
 
 type Position = 'admit' | 'deny' | 'lack_knowledge';
 
@@ -72,14 +74,25 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.title': 'You were served — here’s what generally happens',
     'hero.intro':
       'Getting divorce papers is a lot. Generally, the next step is filing a written response — an “Answer” — with the court before a deadline. This page walks you through what that usually involves and helps you put your own responses on paper.',
+    'hero.eyebrowInfo': 'If you get served',
+    'hero.titleInfo': 'If you get served papers — here’s what generally happens',
+    'hero.introInfo':
+      'Your story so far reads as the person who filed (the petitioner). If you receive court papers served on you, the next step is generally filing a written response — an “Answer” — before a deadline. This page explains what that usually involves.',
     'hero.upl':
       'This page is general information about a court process, not legal advice. Your court decides what applies in your case.',
+
+    'confirm.title': 'Were you served with papers?',
+    'confirm.body':
+      'The response tools below are for someone who was served. If that happened to you in this case, confirm below and this page will switch to your response deadline and Answer tools.',
+    'confirm.button': 'I was served with papers',
 
     'advisor.title': 'Talk to a lawyer if you can',
     'advisor.body':
       'Being sued is one of the strongest moments to at least consult a lawyer — even a single session to review your situation can matter. Free and low-cost help exists:',
     'advisor.lawhelp': 'LawHelp.org',
     'advisor.uls': 'Utah Legal Services',
+    'advisor.localCa':
+      'Free or low-cost legal help may be available in your area — court staff can often point you to it.',
     'advisor.continue':
       'You can keep going here either way — this tool works whether or not you talk to someone first.',
 
@@ -99,7 +112,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'The response clock generally starts the day you receive the papers. Add the papers you were served to your story and we’ll work out the deadline for you.',
     'deadline.noDate.cta': 'Add a court paper',
     'deadline.noProc':
-      'We couldn’t load the deadline rules for your state right now. The response window is generally short — your court clerk can tell you the exact deadline where your case was filed.',
+      'We don’t have the deadline rules for your area here yet. The response window is generally short — your court clerk can tell you the exact deadline where your case was filed.',
 
     'role.title': 'Mark me as the respondent',
     'role.body':
@@ -139,12 +152,15 @@ const STRINGS: Record<Lang, Record<string, string>> = {
 
     'download.title': 'Download your Answer draft',
     'download.body':
+      'This builds a draft PDF from your choices above, with your case caption and a signature block. Check it against your court’s official Answer form, and review every line — the court clerk can tell you how and where to file.',
+    'download.bodyUt':
       'This builds a draft PDF from your choices above, with your case caption and a signature block. It uses Utah’s unsworn-declaration signature (no notary needed). Check it against your court’s official Answer form, and review every line — the court clerk can tell you how and where to file.',
     'download.button': 'Download my Answer draft (PDF)',
     'download.preparing': 'Preparing your Answer…',
     'download.error': 'The document couldn’t be downloaded. Please try again.',
     'download.unavailable':
-      'The Answer builder isn’t available for your state yet. Your court’s self-help center generally has an Answer form you can use instead.',
+      'The Answer builder isn’t available for your area yet. Your court’s self-help services generally have an Answer form you can use instead.',
+    'download.officialForms': 'Official forms for your courts:',
   },
   es: {
     'lang.en': 'English',
@@ -158,14 +174,25 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.title': 'Te notificaron — esto es lo que generalmente sigue',
     'hero.intro':
       'Recibir papeles de divorcio es difícil. Generalmente, el siguiente paso es presentar una respuesta por escrito — una “Contestación” (Answer) — ante el tribunal antes de una fecha límite. Esta página te explica lo que eso suele implicar y te ayuda a poner tus propias respuestas por escrito.',
+    'hero.eyebrowInfo': 'Si te llegan a notificar',
+    'hero.titleInfo': 'Si te notifican papeles — esto es lo que generalmente sigue',
+    'hero.introInfo':
+      'Tu historia hasta ahora se lee como la de la persona que presentó el caso (el peticionario). Si recibes papeles del tribunal notificados a ti, el siguiente paso generalmente es presentar una respuesta por escrito — una “Contestación” (Answer) — antes de una fecha límite. Esta página explica lo que eso suele implicar.',
     'hero.upl':
       'Esta página es información general sobre un proceso judicial, no asesoría legal. Tu tribunal decide qué aplica en tu caso.',
+
+    'confirm.title': '¿Te notificaron papeles?',
+    'confirm.body':
+      'Las herramientas de respuesta de abajo son para alguien que fue notificado. Si eso te pasó en este caso, confírmalo abajo y esta página cambiará a tu fecha límite de respuesta y a las herramientas de Contestación.',
+    'confirm.button': 'Me notificaron papeles',
 
     'advisor.title': 'Habla con un abogado si puedes',
     'advisor.body':
       'Ser demandado es uno de los momentos más importantes para al menos consultar a un abogado — incluso una sola sesión para revisar tu situación puede marcar la diferencia. Existe ayuda gratuita y de bajo costo:',
     'advisor.lawhelp': 'LawHelp.org',
     'advisor.uls': 'Utah Legal Services',
+    'advisor.localCa':
+      'Puede haber ayuda legal gratuita o de bajo costo en tu área — el personal del tribunal a menudo puede orientarte.',
     'advisor.continue':
       'Puedes continuar aquí de cualquier forma — esta herramienta funciona hables o no con alguien primero.',
 
@@ -185,7 +212,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'El plazo para responder generalmente empieza el día en que recibes los papeles. Agrega los papeles que te entregaron a tu historia y calcularemos la fecha límite por ti.',
     'deadline.noDate.cta': 'Agregar un documento del tribunal',
     'deadline.noProc':
-      'No pudimos cargar las reglas de plazos de tu estado en este momento. El plazo para responder generalmente es corto — el secretario del tribunal puede decirte la fecha exacta donde se presentó tu caso.',
+      'Aún no tenemos aquí las reglas de plazos de tu área. El plazo para responder generalmente es corto — el secretario del tribunal puede decirte la fecha exacta donde se presentó tu caso.',
 
     'role.title': 'Márcame como la parte demandada',
     'role.body':
@@ -225,12 +252,15 @@ const STRINGS: Record<Lang, Record<string, string>> = {
 
     'download.title': 'Descarga el borrador de tu Contestación',
     'download.body':
+      'Esto genera un borrador en PDF con tus decisiones de arriba, el encabezado de tu caso y un bloque de firma. Compáralo con el formulario oficial de Contestación de tu tribunal y revisa cada línea — el secretario del tribunal puede decirte cómo y dónde presentar.',
+    'download.bodyUt':
       'Esto genera un borrador en PDF con tus decisiones de arriba, el encabezado de tu caso y un bloque de firma. Usa la declaración no jurada de Utah (no necesita notario). Compáralo con el formulario oficial de Contestación de tu tribunal y revisa cada línea — el secretario del tribunal puede decirte cómo y dónde presentar.',
     'download.button': 'Descargar el borrador de mi Contestación (PDF)',
     'download.preparing': 'Preparando tu Contestación…',
     'download.error': 'No se pudo descargar el documento. Intenta de nuevo.',
     'download.unavailable':
-      'El generador de Contestaciones aún no está disponible para tu estado. El centro de autoayuda de tu tribunal generalmente tiene un formulario de Contestación que puedes usar.',
+      'El generador de Contestaciones aún no está disponible para tu área. Los servicios de autoayuda de tu tribunal generalmente tienen un formulario de Contestación que puedes usar.',
+    'download.officialForms': 'Formularios oficiales de tus tribunales:',
   },
 };
 
@@ -272,7 +302,14 @@ export default function RespondClient() {
   // Start in English so the first client render matches SSR; the saved or
   // browser preference applies in an effect right after hydration.
   const [lang, setLangState] = useState<Lang>('en');
-  const [stateCode, setStateCode] = useState('UT');
+  // null until the profile lookup resolves — jurisdiction-specific links
+  // (Utah Legal Services, LawHelp.org) must never flash for the wrong user.
+  const [stateCode, setStateCode] = useState<string | null>(null);
+  // Which side of the case the profile reads as. Petitioners get an
+  // informational page and must explicitly confirm they were served before
+  // any respondent tooling (deadline, role switch, Answer builder) appears.
+  const [perspective, setPerspective] = useState<'petitioner' | 'respondent' | null>(null);
+  const [confirmedServed, setConfirmedServed] = useState(false);
   const [deadline, setDeadline] = useState<Deadline>({ kind: 'loading' });
   const [roleStatus, setRoleStatus] = useState<RoleStatus>('idle');
   const [rows, setRows] = useState<PositionRow[]>(() => [newRow()]);
@@ -295,11 +332,13 @@ export default function RespondClient() {
     (async () => {
       let st = 'UT';
       let servedDate: Date | null = null;
+      let side: 'petitioner' | 'respondent' = 'petitioner';
       try {
         const res = await fetch('/api/profile');
         const json = await res.json();
         if (json?.success) {
           const p = (json.data?.profile ?? {}) as Record<string, unknown>;
+          side = detectPerspective(p);
           if (typeof p.state === 'string' && p.state.trim()) {
             st = p.state.trim().toUpperCase();
           }
@@ -320,10 +359,11 @@ export default function RespondClient() {
           }
         }
       } catch {
-        // No profile — fall back to Utah with no served date.
+        // No profile — informational mode with no served date.
       }
       if (cancelled) return;
       setStateCode(st);
+      setPerspective(side);
 
       if (!servedDate) {
         setDeadline({ kind: 'no_served_date' });
@@ -370,6 +410,7 @@ export default function RespondClient() {
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error('Save failed');
       setRoleStatus('saved');
+      setPerspective('respondent');
     } catch {
       setRoleStatus('error');
     }
@@ -409,6 +450,7 @@ export default function RespondClient() {
 
   // Blob-anchor download, mirroring ServeGuideClient's pattern.
   const downloadAnswer = useCallback(async () => {
+    const st = stateCode ?? 'UT';
     setDownloadStatus('downloading');
     try {
       const res = await fetch('/api/documents/support', {
@@ -416,7 +458,7 @@ export default function RespondClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kind: 'answer',
-          state: stateCode,
+          state: st,
           signatureStyle: 'unsworn',
           // `extra` is merged over the profile data server-side (extra wins).
           // If the route doesn't accept it yet, we get a 400/404 and show the
@@ -438,7 +480,7 @@ export default function RespondClient() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `answer-${stateCode}.pdf`;
+      a.download = `answer-${st}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -453,6 +495,14 @@ export default function RespondClient() {
 
   const deadlineUrgent =
     deadline.kind === 'ready' && deadline.daysLeft <= 7;
+
+  // Respondent tooling renders only when the profile reads as a respondent,
+  // or after the user explicitly confirms "I was served with papers" —
+  // never presented as fact to a petitioner-perspective profile.
+  const respondentMode = perspective === 'respondent' || confirmedServed;
+  const isUT = stateCode === 'UT';
+  const isCA = stateCode !== null && isCanadianJurisdiction(stateCode);
+  const officialForms = stateCode !== null ? officialFormsLink(stateCode) : null;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -496,15 +546,20 @@ export default function RespondClient() {
         </div>
       </div>
 
-      {/* Hero — what being served means, in plain language. */}
+      {/* Hero — served-framing ONLY once the profile (or the user) says so;
+          petitioner-perspective profiles get the informational variant. */}
       <header className="mb-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-          {tt(lang, 'hero.eyebrow')}
+          {tt(lang, respondentMode ? 'hero.eyebrow' : 'hero.eyebrowInfo')}
         </p>
         <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">
-          {tt(lang, 'hero.title')}
+          {tt(lang, respondentMode ? 'hero.title' : 'hero.titleInfo')}
         </h1>
-        <p className="mt-3 max-w-xl text-gray-600">{tt(lang, 'hero.intro')}</p>
+        {(respondentMode || perspective === 'petitioner') && (
+          <p className="mt-3 max-w-xl text-gray-600">
+            {tt(lang, respondentMode ? 'hero.intro' : 'hero.introInfo')}
+          </p>
+        )}
         <p className="mt-2 max-w-xl text-sm text-gray-500">{tt(lang, 'hero.upl')}</p>
       </header>
 
@@ -515,40 +570,79 @@ export default function RespondClient() {
           {tt(lang, 'advisor.title')}
         </h2>
         <p className="mt-2 text-sm text-amber-900">{tt(lang, 'advisor.body')}</p>
-        <ul className="mt-2 space-y-1 text-sm text-amber-900">
-          <li>
-            <a
-              href="https://www.lawhelp.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold underline underline-offset-2 hover:text-amber-700"
-            >
-              {tt(lang, 'advisor.lawhelp')}
-            </a>
-          </li>
-          <li>
-            <a
-              href="https://www.utahlegalservices.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold underline underline-offset-2 hover:text-amber-700"
-            >
-              {tt(lang, 'advisor.uls')}
-            </a>
-          </li>
-        </ul>
+        {stateCode !== null && (
+          <ul className="mt-2 space-y-1 text-sm text-amber-900">
+            {/* LawHelp.org is US-only; Utah Legal Services is UT-only. */}
+            {!isCA && (
+              <li>
+                <a
+                  href="https://www.lawhelp.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline underline-offset-2 hover:text-amber-700"
+                >
+                  {tt(lang, 'advisor.lawhelp')}
+                </a>
+              </li>
+            )}
+            {isUT && (
+              <li>
+                <a
+                  href="https://www.utahlegalservices.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline underline-offset-2 hover:text-amber-700"
+                >
+                  {tt(lang, 'advisor.uls')}
+                </a>
+              </li>
+            )}
+            {isCA && <li>{tt(lang, 'advisor.localCa')}</li>}
+            {!isUT && officialForms && (
+              <li>
+                <a
+                  href={officialForms.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline underline-offset-2 hover:text-amber-700"
+                >
+                  {officialForms.name}
+                </a>
+              </li>
+            )}
+          </ul>
+        )}
         <p className="mt-2 text-sm text-amber-900">{tt(lang, 'advisor.continue')}</p>
       </div>
 
-      {/* Deadline banner. */}
-      {deadline.kind === 'loading' && (
+      {/* Perspective guard — a petitioner-perspective profile must
+          explicitly confirm being served before any respondent tooling
+          (deadline, role switch, Answer builder) is offered. */}
+      {perspective === 'petitioner' && !confirmedServed && (
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="flex items-center gap-2 font-serif text-xl text-gray-900">
+            <UserCheck className="h-5 w-5 text-brand" aria-hidden="true" />
+            {tt(lang, 'confirm.title')}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-700">{tt(lang, 'confirm.body')}</p>
+          <button
+            onClick={() => setConfirmedServed(true)}
+            className="mt-3 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-on transition-colors hover:bg-brand-strong"
+          >
+            {tt(lang, 'confirm.button')}
+          </button>
+        </div>
+      )}
+
+      {/* Deadline banner — respondent mode only. */}
+      {respondentMode && deadline.kind === 'loading' && (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-400">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           {tt(lang, 'deadline.loading')}
         </div>
       )}
 
-      {deadline.kind === 'ready' && (
+      {respondentMode && deadline.kind === 'ready' && (
         <div
           className={`mb-6 rounded-xl border p-4 sm:p-5 ${
             deadlineUrgent ? 'border-red-300 bg-red-50' : 'border-brand-soft bg-brand-tint/50'
@@ -587,7 +681,7 @@ export default function RespondClient() {
         </div>
       )}
 
-      {deadline.kind === 'no_procedure' && (
+      {respondentMode && deadline.kind === 'no_procedure' && (
         <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-semibold text-gray-900">
             <CalendarClock className="h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
@@ -600,7 +694,7 @@ export default function RespondClient() {
         </div>
       )}
 
-      {deadline.kind === 'no_served_date' && (
+      {respondentMode && deadline.kind === 'no_served_date' && (
         <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-semibold text-gray-900">
             <CalendarClock className="h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
@@ -616,6 +710,9 @@ export default function RespondClient() {
         </div>
       )}
 
+      {/* Respondent tooling — only in respondent mode. */}
+      {respondentMode && (
+        <>
       {/* Mark me as the respondent. */}
       <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="flex items-center gap-2 font-serif text-xl text-gray-900">
@@ -784,11 +881,26 @@ export default function RespondClient() {
       {/* Download. */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="font-serif text-xl text-gray-900">{tt(lang, 'download.title')}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">{tt(lang, 'download.body')}</p>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+          {tt(lang, isUT ? 'download.bodyUt' : 'download.body')}
+        </p>
         {downloadStatus === 'unavailable' ? (
-          <p className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
-            {tt(lang, 'download.unavailable')}
-          </p>
+          <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+            <p>{tt(lang, 'download.unavailable')}</p>
+            {officialForms && (
+              <p className="mt-2">
+                {tt(lang, 'download.officialForms')}{' '}
+                <a
+                  href={officialForms.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-brand underline hover:text-brand-strong"
+                >
+                  {officialForms.name}
+                </a>
+              </p>
+            )}
+          </div>
         ) : (
           <div className="mt-4">
             <button
@@ -811,6 +923,8 @@ export default function RespondClient() {
           </div>
         )}
       </section>
+        </>
+      )}
     </main>
   );
 }

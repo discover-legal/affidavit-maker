@@ -1,11 +1,16 @@
 // templates/states/tamil_nadu/DivorceDecreeTemplate.js
 'use strict';
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 class TamilNaduDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
+  // Indian terminology (see templates/core/terminology.js): the caption is the
+  // court-name line (Family Court / District Court) + district; parties are
+  // Petitioner/Respondent (HMA 1955 / SMA 1954). No "STATE OF"/"COUNTY OF"
+  // caption lines and no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'IN_TN'; this.stateName = 'Tamil Nadu'; this.countryCode = 'IN';
+    this.state = 'IN_TN'; this.stateName = 'Tamil Nadu'; this.countryCode = 'IN'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'District', districtPlaceholder: '[DISTRICT]', filerLabel: 'Petitioner', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' };
     this.documentTitle = 'DECREE OF DIVORCE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'caseNumber', 'marriageDate'];
@@ -36,8 +41,25 @@ class TamilNaduDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     if (dd.hasMinorChildren === false || !dd.children?.length) return null;
     const items = [{ content: 'Custody ordered in the best interest of the child(ren):', type: 'finding' }];
     dd.children.forEach((c, i) => { const info = typeof c === 'string' ? c : `${c.name || '[NAME]'}, born ${this.formatDate(c.birthDate) || '[DOB]'}`; items.push({ content: `${i+1}. ${info}`, type: 'child_item' }); });
-    if ((dd.custodyType || 'joint') === 'joint') items.push({ content: 'IT IS ORDERED that both parties have joint custody.', type: 'order' });
-    else items.push({ content: `IT IS ORDERED that ${dd.primaryCustodian || dd.petitionerName || 'Petitioner'} has sole custody.`, type: 'order' });
+    // Safety rule: only positively recognized custody values render a joint or
+    // sole order; anything ambiguous renders neutral as-agreed language —
+    // NEVER a sole order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(dd);
+    const residenceName = resolvePrimaryResidenceName(dd);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
+      items.push({ content: 'IT IS ORDERED that both parties have joint custody.', type: 'order' });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      soleCustodianName = custody.kind === 'sole_petitioner' ? (dd.petitionerName || 'Petitioner')
+        : custody.kind === 'sole_respondent' ? (dd.respondentName || 'Respondent')
+          : (dd.primaryCustodian || dd.petitionerName || 'Petitioner');
+      items.push({ content: `IT IS ORDERED that ${soleCustodianName} has sole custody.`, type: 'order' });
+    } else {
+      items.push({ content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });
+    }
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({ content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`, type: 'order' });
+    }
     return { title: 'CUSTODY ORDER', items, type: 'custody' };
   }
   generateChildSupportSection(dd) {

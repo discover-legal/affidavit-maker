@@ -3,6 +3,7 @@
 // Complies with R.C. § 3105.01 et seq. (Ohio Divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Ohio Judgment Entry-Decree of Divorce Template
@@ -218,13 +219,25 @@ class OhioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     });
 
-    const custodyType = divorceData.custodyType || 'joint';
-    const primaryParent = divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff';
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    const primaryParent =
+      custody.kind === 'sole_petitioner'
+        ? (divorceData.petitionerName || 'Plaintiff')
+        : custody.kind === 'sole_respondent'
+          ? (divorceData.respondentName || 'Defendant')
+          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
 
-    if (custodyType === 'joint' || custodyType === 'shared') {
+    if (custody.kind === 'joint') {
       items.push({
         content: `IT IS ORDERED that the parties shall share parental rights and responsibilities pursuant to a Shared Parenting Plan as filed with and approved by this Court. (R.C. § 3109.04(D))`,
         type: 'order'
@@ -233,13 +246,31 @@ class OhioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `IT IS ORDERED that ${primaryParent} is designated the residential parent for school purposes.`,
         type: 'order'
       });
-    } else {
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      soleCustodianName = primaryParent;
       items.push({
         content: `IT IS ORDERED that ${primaryParent} is designated the sole residential parent and legal custodian of the minor child(ren). (R.C. § 3109.04(A)(1))`,
         type: 'order'
       });
       items.push({
         content: `IT IS ORDERED that ${otherParent} shall have parenting time with the minor child(ren) pursuant to the Standard Parenting Time Schedule or as otherwise agreed by the parties.`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }
@@ -453,7 +484,7 @@ ${divorceData.county ? `${divorceData.county.toUpperCase()} COUNTY, OHIO` : '[CO
 
     if (divorceData.hasMinorChildren === true) {
       warnings.push('Ohio requires a child support computation worksheet (R.C. § 3119.022) to be filed with the Decree, with support calculated pursuant to the Ohio Child Support Schedule (R.C. § 3119.02).');
-      if (divorceData.custodyType === 'joint' || divorceData.custodyType === 'shared') {
+      if (resolveCustodyArrangement(divorceData).kind === 'joint') {
         warnings.push('Ohio requires an approved Shared Parenting Plan to be filed with and incorporated into the Decree (R.C. § 3109.04(D)).');
       }
     }

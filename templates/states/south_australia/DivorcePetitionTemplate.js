@@ -3,9 +3,13 @@
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
 class SouthAustraliaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
+  // Australian terminology (see templates/core/terminology.js): divorce is
+  // federal (FCFCOA) — the caption is the court-name line + registry; parties
+  // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+  // "COUNTY OF" caption lines and no "X County" body phrasing.
   constructor() {
     super();
-    this.state = 'SA_AU'; this.stateName = 'South Australia'; this.countryCode = 'AU'; this.documentTitle = 'APPLICATION FOR DIVORCE';
+    this.state = 'SA_AU'; this.stateName = 'South Australia'; this.countryCode = 'AU'; this.terminology = { ...this.terminology, jurisdictionLabel: null, districtLabel: null, districtStyle: 'plain', jurisdictionTerm: 'State', districtTerm: 'Registry', districtPlaceholder: '[REGISTRY]', filerLabel: 'Applicant', responderLabel: 'Respondent', selfRepresentedLabel: 'Self-Represented' }; this.documentTitle = 'APPLICATION FOR DIVORCE';
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
     this.requiredFields = ['petitionerName', 'respondentName', 'state', 'county', 'marriageDate', 'groundsForDivorce'];
     this.residencyRequirements = { stateMonths: 12, countyDays: 0, description: 'Australian citizen, domiciled, or 12-month resident (s.39(3)).' };

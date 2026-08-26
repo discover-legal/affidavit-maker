@@ -30,6 +30,23 @@ class IrelandAffidavitTemplate extends BaseAffidavitTemplate {
     this.state = this.metadata.stateCode;       // "IRL"
     this.stateName = this.metadata.stateName;   // "Ireland"
     this.countryCode = 'IE';
+
+    // Irish terminology (see templates/core/terminology.js): the caption is the
+    // court-name line (Circuit Family Court); parties are Applicant/Respondent
+    // (Family Law (Divorce) Act 1996); venue is the circuit. No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Circuit',
+      districtPlaceholder: '[CIRCUIT]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.requiredFields = this.metadata.requiredFields;
 
     this.sections.perjuryStatement = false;

@@ -32,6 +32,10 @@ class BaseDocument {
     this.stateName = stateName  || null;
     this.documentType = 'document'; // overridden by subclass
     this.requiredFields = [];
+    // Jurisdiction-aware terminology. Defaults reproduce the historical US
+    // wording byte-for-byte; non-US templates opt in by merging overrides
+    // (see templates/core/terminology.js for the field reference).
+    this.terminology = { ...require('./terminology').DEFAULT_TERMS };
     this.formatting = {
       fontSize:   '12pt',
       fontFamily: 'Times New Roman',
@@ -43,15 +47,19 @@ class BaseDocument {
   // ─── Shared section generators ─────────────────────────────────────────────
 
   generateHeader() {
+    const label = this.terminology.jurisdictionLabel;
+    if (!label) return null;
     if (!this.stateName) return 'STATE / COUNTY';
     return this.state === 'TX'
       ? `THE STATE OF TEXAS`
-      : `STATE OF ${this.stateName.toUpperCase()}`;
+      : `${label} ${this.stateName.toUpperCase()}`;
   }
 
   generateVenue(county) {
-    const c = (county || '[COUNTY]').toUpperCase();
-    return `COUNTY OF ${c}`;
+    const t = this.terminology;
+    if (!t.districtLabel) return null;
+    const c = (county || t.districtPlaceholder).toUpperCase();
+    return `${t.districtLabel} ${c}`;
   }
 
   /**
@@ -71,10 +79,10 @@ class BaseDocument {
       `${caseLabel} ${caseNumber}`,
       '',
       `${petitioner.toUpperCase()}`,
-      `       Petitioner,`,
+      `       ${this.terminology.filerLabel},`,
       `v.`,
       `${respondent.toUpperCase()}`,
-      `       Respondent.`
+      `       ${this.terminology.responderLabel}.`
     ].join('\n');
 
     return { courtName, caseNumber, petitioner, respondent, formatted };

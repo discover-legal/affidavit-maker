@@ -3,6 +3,7 @@
 // Complies with ORS Chapter 107 (Dissolution of Marriage)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Oregon Judgment of Dissolution of Marriage Template
@@ -242,16 +243,51 @@ class OregonDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     });
 
-    const custodyType = divorceData.custodyType || 'sole';
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    // Historically this template defaulted to a sole order when no custody
+    // type was stored — exactly the unsafe fall-through this refactor removes.
+    // Absent data now renders the neutral as-agreed placeholder instead.
+    const custodyKind = custody.explicit ? custody.kind : 'unspecified';
+    let soleCustodianName = null;
 
-    if (custodyType === 'joint') {
+    if (custodyKind === 'joint') {
       items.push({
         content: `IT IS ORDERED that the parties shall share joint custody of the minor child(ren) pursuant to ORS §107.169, both parties having agreed to joint custody. ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall be the primary residential parent.`,
         type: 'order'
       });
-    } else {
+    } else if (custodyKind === 'sole_petitioner' || custodyKind === 'sole_respondent' || custodyKind === 'legacy_sole') {
+      const custodianName =
+        custodyKind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'Petitioner')
+          : custodyKind === 'sole_respondent'
+            ? (divorceData.respondentName || 'Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+      soleCustodianName = custodianName;
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have sole custody of the minor child(ren).`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole custody of the minor child(ren).`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custodyKind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
         type: 'order'
       });
     }
@@ -406,7 +442,11 @@ STATE OF OREGON`,
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       warnings.push('A parenting plan is required and must be filed with the judgment per ORS §107.102.');
       warnings.push('Child support must be calculated using the Oregon Child Support Guidelines (ORS §25.275).');
-      if (divorceData.custodyType === 'joint') {
+      // Matches the render gate: absent custodyType renders the neutral
+      // placeholder (never Oregon's historical sole default), so the joint
+      // warning fires only for an explicitly recognized joint arrangement.
+      const custody = resolveCustodyArrangement(divorceData);
+      if (custody.explicit && custody.kind === 'joint') {
         warnings.push('Joint custody in Oregon requires the agreement of both parents. (ORS §107.169)');
       }
     }

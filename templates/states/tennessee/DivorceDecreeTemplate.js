@@ -3,6 +3,7 @@
 // Complies with TCA Title 36 (Domestic Relations)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Tennessee Final Decree of Divorce Template
@@ -242,12 +243,56 @@ class TennesseeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     });
 
-    const primaryParent = divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff';
+    // Safety rule (see templates/core/parenting.js): this template historically
+    // designated the Primary Residential Parent unconditionally from
+    // primaryCustodian/petitioner. Only positively recognized custody values
+    // drive that designation now; anything ambiguous renders neutral as-agreed
+    // language with a placeholder — NEVER an unagreed designation.
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    const primaryParent =
+      custody.kind === 'sole_petitioner'
+        ? (divorceData.petitionerName || 'Plaintiff')
+        : custody.kind === 'sole_respondent'
+          ? (divorceData.respondentName || 'Defendant')
+          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
 
-    items.push({
-      content: `IT IS ORDERED that ${primaryParent} is designated as the Primary Residential Parent. The other parent is designated as the Alternate Residential Parent. (TCA 36-6-402)`,
-      type: 'order'
-    });
+    if (custody.kind === 'joint') {
+      if (custody.explicit) {
+        items.push({
+          content: 'IT IS ORDERED that the parties shall have joint custody of the minor child(ren), sharing decision-making authority as set forth in the permanent parenting plan. (TCA 36-6-101)',
+          type: 'order'
+        });
+      }
+      items.push({
+        content: `IT IS ORDERED that ${primaryParent} is designated as the Primary Residential Parent. The other parent is designated as the Alternate Residential Parent. (TCA 36-6-402)`,
+        type: 'order'
+      });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      soleCustodianName = primaryParent;
+      items.push({
+        content: `IT IS ORDERED that ${primaryParent} is designated as the Primary Residential Parent. The other parent is designated as the Alternate Residential Parent. (TCA 36-6-402)`,
+        type: 'order'
+      });
+    } else {
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to a
+      // one-sided designation.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch.
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
+        type: 'order'
+      });
+    }
 
     items.push({
       content: this.getVisitationLanguage(divorceData),

@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Victoria Divorce Order Template
@@ -19,6 +20,23 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.state = 'VIC';
     this.stateName = 'Victoria';
     this.countryCode = 'AU';
+
+    // Australian terminology (see templates/core/terminology.js): divorce is
+    // federal (FCFCOA) — the caption is the court-name line + registry; parties
+    // are Applicant/Respondent (Family Law Act 1975 (Cth)). No "STATE OF"/
+    // "COUNTY OF" caption lines and no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'State',
+      districtTerm: 'Registry',
+      districtPlaceholder: '[REGISTRY]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'DIVORCE ORDER';
 
     try { this.metadata = require('./metadata.json'); } catch (e) { this.metadata = null; }
@@ -34,7 +52,7 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     return `FEDERAL CIRCUIT AND FAMILY COURT OF AUSTRALIA (DIVISION 2) — ${city} REGISTRY`;
   }
 
-  generateHeader() { return 'STATE OF VICTORIA'; }
+  generateHeader() { return 'VICTORIA'; }
 
   generateVenue(county) {
     const location = (county || '[REGISTRY LOCATION]').toUpperCase();
@@ -91,13 +109,48 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       const childInfo = typeof child === 'string' ? child : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
-    const custodyType = divorceData.custodyType || 'joint';
-    if (custodyType === 'joint') {
+    // Safety rule (mirrors the base class): only positively recognized
+    // custody values render a joint or sole order. Legacy free text like
+    // "joint decision making" maps to the joint branch; anything ambiguous
+    // renders neutral as-agreed language with a placeholder — NEVER a sole
+    // order (see templates/core/parenting.js).
+    const custody = resolveCustodyArrangement(divorceData);
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    let soleCustodianName = null;
+    if (custody.kind === 'joint') {
       items.push({ content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared parental responsibility for the child(ren) under the Family Law Act 1975 (Cth).`, type: 'order' });
       items.push({ content: `IT IS ORDERED that the child(ren) shall live with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'} and spend time with ${divorceData.respondentName || 'Respondent'} as agreed or as set out in a parenting plan.`, type: 'order' });
+    } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
+      const custodianName =
+        custody.kind === 'sole_petitioner'
+          ? (divorceData.petitionerName || 'Applicant')
+          : custody.kind === 'sole_respondent'
+            ? (divorceData.respondentName || 'Respondent')
+            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+      const otherParentName =
+        custody.kind === 'sole_respondent'
+          ? (divorceData.petitionerName || 'Applicant')
+          : (divorceData.respondentName || 'Respondent');
+      soleCustodianName = custodianName;
+      items.push({ content: `IT IS ORDERED that ${custodianName} shall have sole parental responsibility for the child(ren).`, type: 'order' });
+      items.push({ content: `IT IS ORDERED that the child(ren) shall spend time with ${otherParentName} as agreed by the parties or as determined by the Court.`, type: 'order' });
     } else {
-      items.push({ content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'} shall have sole parental responsibility for the child(ren).`, type: 'order' });
-      items.push({ content: `IT IS ORDERED that the child(ren) shall spend time with ${divorceData.respondentName || 'Respondent'} as agreed by the parties or as determined by the Court.`, type: 'order' });
+      // Unrecognized/undecided arrangement — neutral order with an explicit
+      // placeholder for the parties' actual agreement. Never default to sole.
+      items.push({
+        content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the minor child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].',
+        type: 'order'
+      });
+    }
+
+    // Primary residence: ordered whenever the case data says where the
+    // child(ren) live, regardless of the custody branch. (The joint branch
+    // keeps its historical wording and fallbacks unchanged.)
+    if (custody.kind !== 'joint' && residenceName && residenceName !== soleCustodianName) {
+      items.push({
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}.`,
+        type: 'order'
+      });
     }
     items.push({ content: 'IT IS ORDERED that each party shall facilitate and encourage the child(ren)\'s relationship with the other party (Family Law Act 1975 (Cth), s.60CC).', type: 'order' });
     return { title: 'PARENTING ORDERS', items, type: 'custody' };

@@ -45,6 +45,23 @@ class NewZealandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'NZ';
     this.stateName = 'New Zealand';
     this.countryCode = 'NZ';
+
+    // New Zealand terminology (see templates/core/terminology.js): the caption is
+    // the court-name line (Family Court at X); parties are Applicant/Respondent
+    // (Family Proceedings Act 1980). No "STATE OF"/"COUNTY OF" caption lines and
+    // no "X County" body phrasing.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      districtLabel: null,
+      districtStyle: 'plain',
+      jurisdictionTerm: 'Jurisdiction',
+      districtTerm: 'Court district',
+      districtPlaceholder: '[COURT DISTRICT]',
+      filerLabel: 'Applicant',
+      responderLabel: 'Respondent',
+      selfRepresentedLabel: 'Self-Represented',
+    };
     this.documentTitle = 'APPLICATION FOR DISSOLUTION OF MARRIAGE';
 
     try {

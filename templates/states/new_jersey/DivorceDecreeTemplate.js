@@ -3,7 +3,8 @@
 // Complies with N.J.S.A. 2A:34-2 et seq. (New Jersey divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * New Jersey Judgment of Divorce Template
@@ -141,22 +142,22 @@ class NewJerseyDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following assets are equitably distributed to ${divorceData.petitionerName || 'Plaintiff'}:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following assets are equitably distributed to ${divorceData.respondentName || 'Defendant'}:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
@@ -225,7 +226,7 @@ class NewJerseyDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Plaintiff')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
     const nonResidentialParent = residentialParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
@@ -282,10 +283,11 @@ class NewJerseyDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const nonResidential = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `IT IS ORDERED that ${nonResidential}, as the parent of alternate residence, shall have parenting time with the minor child(ren) as set forth in the Parenting Plan incorporated herein, or as otherwise agreed by the parties in writing.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonResidential = resolveNonResidentialParentName(divorceData);
+    return `IT IS ORDERED that ${nonResidential || 'the parent of alternate residence'}${nonResidential ? ', as the parent of alternate residence,' : ''} shall have parenting time with the minor child(ren) as set forth in the Parenting Plan incorporated herein, or as otherwise agreed by the parties in writing.`;
   }
 
   /**

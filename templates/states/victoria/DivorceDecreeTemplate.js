@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Victoria Divorce Order Template
@@ -85,13 +86,13 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: 'The Court finds there is no property to be divided pursuant to section 79 of the Family Law Act 1975 (Cth).', type: 'finding' });
     } else {
       items.push({ content: 'The Court has considered the division of property pursuant to section 79 of the Family Law Act 1975 (Cth), having regard to the contributions of the parties and the factors in section 75(2).', type: 'finding' });
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is to vest in ${divorceData.petitionerName || 'Applicant'}:`, type: 'order' });
-        divorceData.petitionerProperty.forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
+        asList(divorceData.petitionerProperty).forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
       }
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is to vest in ${divorceData.respondentName || 'Respondent'}:`, type: 'order' });
-        divorceData.respondentProperty.forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
+        asList(divorceData.respondentProperty).forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
       }
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty) {
         items.push({ content: 'IT IS ORDERED that each party retains the property currently in that party\'s possession, subject to any further property settlement order under section 79 of the Family Law Act 1975 (Cth).', type: 'order' });
@@ -119,14 +120,14 @@ class VictoriaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     let soleCustodianName = null;
     if (custody.kind === 'joint') {
       items.push({ content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared parental responsibility for the child(ren) under the Family Law Act 1975 (Cth).`, type: 'order' });
-      items.push({ content: `IT IS ORDERED that the child(ren) shall live with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'} and spend time with ${divorceData.respondentName || 'Respondent'} as agreed or as set out in a parenting plan.`, type: 'order' });
+      items.push({ content: `IT IS ORDERED that the child(ren) shall live with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant'} and spend time with ${divorceData.respondentName || 'Respondent'} as agreed or as set out in a parenting plan.`, type: 'order' });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
       const custodianName =
         custody.kind === 'sole_petitioner'
           ? (divorceData.petitionerName || 'Applicant')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'Applicant')

@@ -355,6 +355,65 @@ describe('All Jurisdictions - Template System', () => {
       });
     });
 
+    // ── 4b. Exactly one court identification ──────────────────────────────
+    // The 2026-08 Utah QA run found the court line doubled: the
+    // generateHeader/generateVenue block rendered immediately above a case
+    // caption that also names the court. The caption is the single court
+    // identification (templates/core/captionDedupe.js) — assert every
+    // jurisdiction's petition and decree renders its court-line phrase
+    // exactly once in the full text.
+
+    describe('single court identification', () => {
+      const { normalizeCourtText } = require(path.join(
+        __dirname, '..', '..', 'templates', 'core', 'captionDedupe.js'
+      ));
+      const SAMPLE = {
+        petitionerName: 'Sam Matrix',
+        respondentName: 'Alex Matrix',
+        county: 'Testville',
+        caseNumber: 'FC-1234',
+        marriageDate: '2012-06-15',
+        separationDate: '2024-11-01',
+        divorceDate: '2026-08-01',
+        groundsForDivorce: 'separation',
+        hasMinorChildren: true,
+        children: [{ name: 'Jo Matrix', dob: '2015-04-02' }],
+      };
+
+      const countOccurrences = (haystack, needle) => {
+        if (!needle) return 0;
+        return haystack.split(needle).length - 1;
+      };
+
+      it.each(['DivorcePetitionTemplate.js', 'DivorceDecreeTemplate.js'])(
+        '%s renders its court-line phrase exactly once',
+        (file) => {
+          const Template = require(path.join(templateDir, file));
+          const instance = new Template();
+          const doc = instance.generateDocument({ ...SAMPLE, state: instance.state });
+          const caption = doc.sections.caseCaption || {};
+          // The caption's own court line: the first formatted line naming a
+          // court/tribunal, else the courtName field.
+          const captionCourtLine =
+            String(caption.formatted || '')
+              .split('\n')
+              .find((line) => /\b(COURT|TRIBUNAL)\b/i.test(line)) ||
+            caption.courtName ||
+            caption.courtHeaderLine;
+          const needle = normalizeCourtText(captionCourtLine);
+          expect(needle).toBeTruthy();
+          // Count in the region above the document title — a judgment
+          // block naming the court after the orders is legitimate; a second
+          // court identification above the title is the doubled-caption bug.
+          const fullText = doc.fullText;
+          const title = doc.sections.title;
+          const titleIdx = title ? fullText.indexOf(title) : -1;
+          const head = normalizeCourtText(titleIdx >= 0 ? fullText.slice(0, titleIdx) : fullText);
+          expect(countOccurrences(head, needle)).toBe(1);
+        }
+      );
+    });
+
     // ── 5. Orchestrator loading ───────────────────────────────────────────
 
     describe('orchestrator loading', () => {

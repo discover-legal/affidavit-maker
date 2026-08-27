@@ -34,6 +34,10 @@ class ACTDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'];
     if (divorceData.costsRequested || divorceData.requestCosts) reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((r, i) => items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }));
     if (divorceData.hasProperty !== false || divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0) || divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
       items.push({ number: null, content: 'NOTE: Property settlement, parenting, and maintenance orders are sought by a separate Initiating Application under the Federal Circuit and Family Court of Australia (Family Law) Rules 2021 (Cth); they cannot be included in this Application for Divorce.', type: 'relief_intro' });

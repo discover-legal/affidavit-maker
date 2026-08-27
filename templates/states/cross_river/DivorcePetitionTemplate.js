@@ -37,6 +37,10 @@ class CrossRiverDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) reliefItems.push('An order for maintenance of the Petitioner pursuant to section 70;');
     if (divorceData.propertyRelief) reliefItems.push('An order for settlement of property pursuant to section 72;');
     reliefItems.push('Such further or other orders as this Honourable Court may deem just.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((r, i) => { items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }); });
     return { title: 'RELIEF SOUGHT', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }

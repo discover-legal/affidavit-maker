@@ -59,6 +59,10 @@ class QueenslandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const reliefItems = ['A divorce order pursuant to section 48 of the Family Law Act 1975 (Cth);'];
     if (divorceData.costsRequested || divorceData.requestCosts) reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((relief, i) => { items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }); });
     const hasAncillaryClaims = divorceData.hasProperty !== false || divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0) || divorceData.spousalSupportRequested || divorceData.requestSpousalSupport;
     if (hasAncillaryClaims) {

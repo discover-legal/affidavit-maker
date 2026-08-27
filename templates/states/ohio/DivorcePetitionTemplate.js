@@ -218,6 +218,10 @@ class OhioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       });
     }
 
+    // Agreed child arrangements (custody enum, primary residence, agreed
+    // support) — pleaded via the base hooks, never silently dropped.
+    paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
+
     return {
       title: 'V. MINOR CHILDREN',
       items,
@@ -231,6 +235,13 @@ class OhioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {Object} Property section
    */
   generatePropertySection(divorceData) {
+    // An agreed division (or an explicit no-property case) pleads the
+    // parties' actual agreement via the base hooks instead of the
+    // generic boilerplate.
+    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+      return super.generatePropertySection(divorceData);
+    }
+
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 14;
 
@@ -288,6 +299,13 @@ class OhioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     reliefItems.push('Grant such other and further relief as the Court deems just and equitable.');
+
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);

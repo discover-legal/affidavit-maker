@@ -299,7 +299,7 @@ class NorthCarolinaDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Plaintiff')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Defendant')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
 
       if (custody.kind === 'joint') {
         items.push({
@@ -349,7 +349,7 @@ class NorthCarolinaDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Visitation language
    */
   getVisitationLanguage(divorceData) {
-    const primaryParent = divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff';
+    const primaryParent = resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff';
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');

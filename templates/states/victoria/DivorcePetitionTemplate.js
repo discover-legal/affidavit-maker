@@ -113,6 +113,13 @@ class VictoriaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
     reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + index) });
     });

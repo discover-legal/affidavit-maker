@@ -2,6 +2,7 @@
 'use strict';
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 class KarnatakaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   // Indian terminology (see templates/core/terminology.js): the caption is the
@@ -41,8 +42,8 @@ class KarnatakaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     if (divorceData.hasProperty === false) { items.push({ content: 'The Court finds there is no matrimonial property to be divided.', type: 'finding' }); }
     else {
       items.push({ content: 'The Court has considered the settlement of property between the parties.', type: 'finding' });
-      if (divorceData.petitionerProperty?.length > 0) { items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Petitioner'}:`, type: 'order' }); divorceData.petitionerProperty.forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
-      if (divorceData.respondentProperty?.length > 0) { items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'}:`, type: 'order' }); divorceData.respondentProperty.forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
+      if (asList(divorceData.petitionerProperty).length > 0) { items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Petitioner'}:`, type: 'order' }); asList(divorceData.petitionerProperty).forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
+      if (asList(divorceData.respondentProperty).length > 0) { items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'}:`, type: 'order' }); asList(divorceData.respondentProperty).forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty) items.push({ content: 'IT IS ORDERED that each party retains the property currently in their possession.', type: 'order' });
     }
     return { title: 'DIVISION OF PROPERTY', items, type: 'property' };
@@ -64,7 +65,7 @@ class KarnatakaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
       soleCustodianName = custody.kind === 'sole_petitioner' ? (divorceData.petitionerName || 'Petitioner')
         : custody.kind === 'sole_respondent' ? (divorceData.respondentName || 'Respondent')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       const otherParentName = custody.kind === 'sole_respondent'
         ? (divorceData.petitionerName || 'Petitioner')
         : (divorceData.respondentName || 'Respondent');

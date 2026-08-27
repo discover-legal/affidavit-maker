@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Missouri Judgment of Dissolution of Marriage Template
@@ -168,22 +169,22 @@ class MissouriDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following marital property is awarded to ${divorceData.petitionerName || 'Petitioner'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following marital property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
@@ -250,7 +251,7 @@ class MissouriDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that the parties shall have joint legal and joint physical custody of the minor child(ren). ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is designated as the residential parent for purposes of school enrollment.`,
+        content: `IT IS ORDERED that the parties shall have joint legal and joint physical custody of the minor child(ren). ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'} is designated as the residential parent for purposes of school enrollment.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -259,7 +260,7 @@ class MissouriDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} shall have sole legal and sole physical custody of the minor child(ren).`,

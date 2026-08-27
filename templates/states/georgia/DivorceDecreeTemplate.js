@@ -3,7 +3,8 @@
 // Complies with O.C.G.A. § 19-5-1 et seq. and Georgia Superior Court rules
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Georgia Final Judgment and Decree of Divorce Template
@@ -198,12 +199,12 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Plaintiff'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     } else {
@@ -213,12 +214,12 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Defendant'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
@@ -273,7 +274,7 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that the parties shall share joint legal custody of the minor child(ren). The child(ren) shall primarily reside with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff'} as the primary physical custodian.`,
+        content: `IT IS ORDERED that the parties shall share joint legal custody of the minor child(ren). The child(ren) shall primarily reside with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff'} as the primary physical custodian.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -282,7 +283,7 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Plaintiff')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Defendant')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} shall have sole legal and primary physical custody of the minor child(ren).`,
@@ -325,10 +326,11 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Visitation language
    */
   getVisitationLanguage(divorceData) {
-    const nonCustodian = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `IT IS ORDERED that ${nonCustodian} shall have reasonable visitation with the minor child(ren) at times mutually agreed upon by the parties, including but not limited to alternating holidays, spring break, and summer vacation.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonCustodian = resolveNonResidentialParentName(divorceData);
+    return `IT IS ORDERED that ${nonCustodian || 'the non-custodial parent'} shall have reasonable visitation with the minor child(ren) at times mutually agreed upon by the parties, including but not limited to alternating holidays, spring break, and summer vacation.`;
   }
 
   /**

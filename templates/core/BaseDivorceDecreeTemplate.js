@@ -13,7 +13,12 @@ const { randomUUID: uuidv4 } = require('node:crypto');
 const { normalizeCountyName } = require('./countyName');
 const { asList } = require('./dataShapes');
 const { DEFAULT_TERMS } = require('./terminology');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
+const {
+  resolveCustodyArrangement,
+  resolvePrimaryResidenceName,
+  resolveNonResidentialParentName,
+} = require('./parenting');
+const { captionNamesCourt, lineDuplicatesCaption } = require('./captionDedupe');
 
 /**
  * Title-case an all-caps document title ("FINAL DECREE OF DIVORCE" →
@@ -210,9 +215,30 @@ class BaseDivorceDecreeTemplate {
     // Generate all sections. generateHeader receives the divorce data so
     // jurisdiction templates can name the filer's actual court; base and
     // legacy overrides declare no parameters and simply ignore it.
-    const header = this.generateHeader(divorceData);
-    const venue = this.generateVenue(divorceData.county);
+    //
+    // Exactly ONE court identification: when the case caption names the
+    // court (it always does in the base and every known override), the
+    // generateHeader/generateVenue block is suppressed — that venue opener
+    // belongs to a jurat, not the top of a decree, and rendering both
+    // doubled the court line (templates/core/captionDedupe.js).
     const caseCaption = this.generateCaseCaption(divorceData);
+    const captionCarriesCourt = captionNamesCourt(caseCaption);
+    const headerCandidate = caseCaption.structured || captionCarriesCourt
+      ? null
+      : this.generateHeader(divorceData);
+    const venueCandidate = caseCaption.structured || captionCarriesCourt
+      ? null
+      : this.generateVenue(divorceData.county);
+    // Some captions phrase the court differently from caseCaption.courtName
+    // (e.g. "IN THE SUPERIOR COURT OF THE STATE OF ARIZONA" over a
+    // courtName of "Superior Court of Arizona in X County") — suppress a
+    // header/venue line the caption text already contains, too.
+    const header = caseCaption.structured
+      ? caseCaption.courtHeaderLine
+      : lineDuplicatesCaption(headerCandidate, caseCaption)
+        ? null
+        : headerCandidate;
+    const venue = lineDuplicatesCaption(venueCandidate, caseCaption) ? null : venueCandidate;
     const title = this.generateTitle();
     const appearances = this.generateAppearancesSection(divorceData);
     const jurisdiction = this.generateJurisdictionSection(divorceData);
@@ -555,12 +581,13 @@ class BaseDivorceDecreeTemplate {
         type: 'order'
       });
 
-      if (divorceData.petitionerDebts && divorceData.petitionerDebts.length > 0) {
+      const petitionerDebtsList = asList(divorceData.petitionerDebts);
+      if (petitionerDebtsList.length > 0) {
         items.push({
           content: `IT IS ORDERED that ${divorceData.petitionerName || this.terminology.filerLabel} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
-        divorceData.petitionerDebts.forEach(debt => {
+        petitionerDebtsList.forEach(debt => {
           items.push({
             content: `- ${debt}`,
             type: 'debt_item'
@@ -568,12 +595,13 @@ class BaseDivorceDecreeTemplate {
         });
       }
 
-      if (divorceData.respondentDebts && divorceData.respondentDebts.length > 0) {
+      const respondentDebtsList = asList(divorceData.respondentDebts);
+      if (respondentDebtsList.length > 0) {
         items.push({
           content: `IT IS ORDERED that ${divorceData.respondentName || this.terminology.responderLabel} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
-        divorceData.respondentDebts.forEach(debt => {
+        respondentDebtsList.forEach(debt => {
           items.push({
             content: `- ${debt}`,
             type: 'debt_item'
@@ -654,11 +682,18 @@ class BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || t.filerLabel)
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || t.responderLabel)
-            : (divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel);
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || t.filerLabel);
+      // Parent-time belongs to the NON-residential parent. For the explicit
+      // enums that is the other party by definition; for legacy 'sole' the
+      // custodian came from primaryCustodian, so derive the other parent
+      // from the residence role rather than assuming the respondent.
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || t.filerLabel)
-          : (divorceData.respondentName || t.responderLabel);
+          : custody.kind === 'sole_petitioner'
+            ? (divorceData.respondentName || t.responderLabel)
+            : (resolveNonResidentialParentName(divorceData) ||
+               divorceData.respondentName || t.responderLabel);
       soleCustodianName = custodianName;
 
       items.push({
@@ -684,7 +719,7 @@ class BaseDivorceDecreeTemplate {
     // branch keeps its historical filer fallback for byte-compatibility.
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${residenceName || divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel} shall have primary physical custody and the right to designate the primary residence of the child(ren).`,
+        content: `IT IS ORDERED that ${residenceName || divorceData.petitionerName || t.filerLabel} shall have primary physical custody and the right to designate the primary residence of the child(ren).`,
         type: 'order'
       });
     } else if (residenceName && residenceName !== soleCustodianName) {
@@ -903,8 +938,13 @@ class BaseDivorceDecreeTemplate {
   generateFullText(sections) {
     let text = '';
 
-    if (sections.header) text += sections.header + '\n';
-    if (sections.venue) text += sections.venue + '\n\n';
+    // With a structured caption, sections.header keeps the court line for
+    // the PDF layer's caption layout — skip it here when the caption's
+    // formatted text already carries it, so the court renders once.
+    const headerDupe = lineDuplicatesCaption(sections.header, sections.caseCaption);
+    const venueDupe = lineDuplicatesCaption(sections.venue, sections.caseCaption);
+    if (sections.header && !headerDupe) text += sections.header + '\n';
+    if (sections.venue && !venueDupe) text += sections.venue + '\n\n';
     if (sections.caseCaption?.formatted) text += sections.caseCaption.formatted + '\n\n';
     if (sections.title) text += sections.title + '\n\n';
 
@@ -988,8 +1028,8 @@ class BaseDivorceDecreeTemplate {
   </style>
 </head>
 <body>
-  ${sections.header ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
-  ${sections.venue ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
+  ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
+  ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}
   ${sections.title ? `<div class="title">${escapeHtml(sections.title)}</div>` : ''}
 

@@ -58,6 +58,10 @@ class KarnatakaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
     if (divorceData.spousalSupportRequested) reliefItems.push('Grant maintenance pendente lite under HMA s.24;');
     reliefItems.push('Pass any other order(s) as deemed fit and proper.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((r, i) => { items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }); });
     return { title: 'PRAYER', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }

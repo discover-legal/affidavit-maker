@@ -45,6 +45,7 @@ import {
   groupFacts,
   moneyLeftover,
   moneySegments,
+  userMonthlyIncome,
   localizeNextStep,
   storyProgress,
   supportKindVisible,
@@ -369,6 +370,9 @@ function MoneyBars({ profile, lang }: { profile: Record<string, unknown>; lang: 
   if (rows.length === 0) return null;
   const max = Math.max(...rows.map((r) => r.amount));
   const leftover = moneyLeftover(profile);
+  // When the income is only an ambiguous household scalar, the margin is
+  // the household's — say so instead of framing it as the user's own.
+  const householdMargin = userMonthlyIncome(profile)?.scope === 'household';
 
   return (
     // Not aria-hidden: unlike the timeline, the itemized legend carries
@@ -391,7 +395,9 @@ function MoneyBars({ profile, lang }: { profile: Record<string, unknown>; lang: 
           <span className="font-semibold text-gray-800">
             ${Math.abs(leftover).toLocaleString('en-US')}
           </span>{' '}
-          {leftover > 0 ? t(lang, 'money.leftOver') : t(lang, 'money.short')}
+          {leftover > 0
+            ? t(lang, householdMargin ? 'money.leftOverHousehold' : 'money.leftOver')
+            : t(lang, householdMargin ? 'money.shortHousehold' : 'money.short')}
         </p>
       )}
     </div>

@@ -15,6 +15,7 @@ const { randomUUID: uuidv4 } = require('node:crypto');
 const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
 const { asList } = require('./dataShapes');
+const { captionNamesCourt, lineDuplicatesCaption } = require('./captionDedupe');
 
 /**
  * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
@@ -259,10 +260,27 @@ class BaseDivorcePetitionTemplate {
     // to the verification jurat, not the top of a petition.
     const caseCaption = this.generateCaseCaption(divorceData);
     const filerBlock = this.generateFilerBlock(divorceData);
+    // Exactly ONE court identification: subclasses whose captions are not
+    // structured still name the court in the caption's formatted text, so
+    // the header/venue block would double the court line — suppress it
+    // whenever the caption carries the court (templates/core/captionDedupe.js).
+    const captionCarriesCourt = captionNamesCourt(caseCaption);
+    const headerCandidate = caseCaption.structured || captionCarriesCourt
+      ? null
+      : this.generateHeader();
+    const venueCandidate = caseCaption.structured || captionCarriesCourt
+      ? null
+      : this.generateVenue(divorceData.county);
+    // Some captions phrase the court differently from caseCaption.courtName
+    // (e.g. "IN THE SUPERIOR COURT OF THE STATE OF ARIZONA" over a
+    // courtName of "Superior Court of Arizona in X County") — suppress a
+    // header/venue line the caption text already contains, too.
     const header = caseCaption.structured
       ? caseCaption.courtHeaderLine
-      : this.generateHeader();
-    const venue = caseCaption.structured ? null : this.generateVenue(divorceData.county);
+      : lineDuplicatesCaption(headerCandidate, caseCaption)
+        ? null
+        : headerCandidate;
+    const venue = lineDuplicatesCaption(venueCandidate, caseCaption) ? null : venueCandidate;
     const title = this.generateTitle();
     const parties = this.generatePartiesSection(divorceData);
     divorceData._paragraphNum = parties.nextParagraphNumber;
@@ -731,34 +749,7 @@ class BaseDivorcePetitionTemplate {
       // Plead the arrangements the parties actually reached (custody enum,
       // primary residence, agreed child support). Unknown data keeps the
       // generic pleading language unchanged.
-      const custody = resolveCustodyArrangement(divorceData);
-      if (custody.explicit) {
-        const custodyPleading = this.getCustodyPleading(custody, divorceData);
-        if (custodyPleading) {
-          items.push({
-            number: paragraphNum++,
-            content: custodyPleading,
-            type: 'custody_request'
-          });
-        }
-      }
-
-      const residenceName = resolvePrimaryResidenceName(divorceData);
-      if (residenceName) {
-        items.push({
-          number: paragraphNum++,
-          content: this.getResidencePleading(residenceName, divorceData),
-          type: 'residence_request'
-        });
-      }
-
-      if (divorceData.childSupportAmount) {
-        items.push({
-          number: paragraphNum++,
-          content: this.getChildSupportPleading(divorceData),
-          type: 'child_support_request'
-        });
-      }
+      paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
     }
 
     return {
@@ -766,6 +757,57 @@ class BaseDivorcePetitionTemplate {
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Append the agreed-child-arrangement pleadings (custody enum, primary
+   * residence, agreed child support) to a children-section items array.
+   * The base children section calls this; jurisdiction overrides of
+   * generateChildrenSection call it before their final return so agreed
+   * relief is pleaded instead of silently dropped. Idempotent per item
+   * type: an override that already pushed a custody_request /
+   * residence_request / child_support_request item keeps its own wording.
+   *
+   * @param {Array} items - The section's items array (mutated)
+   * @param {number} paragraphNum - Next paragraph number
+   * @param {Object} divorceData - The divorce data
+   * @returns {number} The next paragraph number after the appended items
+   */
+  appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData) {
+    if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) {
+      return paragraphNum;
+    }
+    const hasType = (type) => items.some((item) => item && item.type === type);
+
+    const custody = resolveCustodyArrangement(divorceData);
+    if (custody.explicit && !hasType('custody_request')) {
+      const custodyPleading = this.getCustodyPleading(custody, divorceData);
+      if (custodyPleading) {
+        items.push({
+          number: paragraphNum++,
+          content: custodyPleading,
+          type: 'custody_request'
+        });
+      }
+    }
+
+    const residenceName = resolvePrimaryResidenceName(divorceData);
+    if (residenceName && !hasType('residence_request')) {
+      items.push({
+        number: paragraphNum++,
+        content: this.getResidencePleading(residenceName, divorceData),
+        type: 'residence_request'
+      });
+    }
+
+    if (divorceData.childSupportAmount && !hasType('child_support_request')) {
+      items.push({
+        number: paragraphNum++,
+        content: this.getChildSupportPleading(divorceData),
+        type: 'child_support_request'
+      });
+    }
+    return paragraphNum;
   }
 
   /**
@@ -789,7 +831,7 @@ class BaseDivorcePetitionTemplate {
       return `${t.filerLabel} requests that ${divorceData.respondentName || t.responderLabel} be awarded sole legal and physical custody of the minor child(ren).`;
     }
     if (custody.kind === 'legacy_sole') {
-      return `${t.filerLabel} requests that ${divorceData.primaryCustodian || divorceData.petitionerName || t.filerLabel} be awarded sole legal and physical custody of the minor child(ren).`;
+      return `${t.filerLabel} requests that ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || t.filerLabel} be awarded sole legal and physical custody of the minor child(ren).`;
     }
     return null;
   }
@@ -918,6 +960,59 @@ class BaseDivorcePetitionTemplate {
       `${t.filerLabel} requests that the Court approve the parties' agreement and divide the property accordingly.`
     );
     return pleadings;
+  }
+
+  /**
+   * Append the agreed corollary relief (agreed child-support amount,
+   * explicit spousal-support waiver, agreed property division) to a relief
+   * items string array. Jurisdiction overrides of generateReliefSection
+   * call this just before lettering their items so agreed relief — the
+   * waiver especially — is never silently omitted. Items are spliced in
+   * BEFORE the final element, keeping the customary "such other and
+   * further relief" prayer last. Skips anything the override already
+   * pleads (matched on the support amount / waiver phrasing / agreement
+   * approval keywords).
+   *
+   * @param {string[]} reliefItems - The relief item strings (mutated)
+   * @param {Object} divorceData - The divorce data
+   * @returns {string[]} The same array, for chaining
+   */
+  appendAgreedReliefItems(reliefItems, divorceData) {
+    const t = this.terminology;
+    const all = () => reliefItems.join(' ');
+    const additions = [];
+
+    const hasChildren =
+      divorceData.hasMinorChildren === true ||
+      (Array.isArray(divorceData.children) && divorceData.children.length > 0);
+    if (hasChildren && divorceData.childSupportAmount &&
+        !all().includes(`$${divorceData.childSupportAmount}`)) {
+      const payor = divorceData.childSupportObligor || divorceData.respondentName || t.responderLabel;
+      additions.push(
+        `Order that ${payor} pay child support of $${divorceData.childSupportAmount} per month, in accordance with the applicable child support guidelines;`
+      );
+    }
+
+    const supportWaived =
+      (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) &&
+      !divorceData.requestSpousalSupport;
+    if (supportWaived && !/waiv/i.test(all())) {
+      additions.push(
+        'Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;'
+      );
+    }
+
+    if (this.hasAgreedPropertyDivision(divorceData) && !/agreement regarding the division/i.test(all())) {
+      additions.push(
+        'Approve the parties\' agreement regarding the division of their property and debts and divide the property accordingly;'
+      );
+    }
+
+    if (additions.length > 0) {
+      const insertAt = Math.max(reliefItems.length - 1, 0);
+      reliefItems.splice(insertAt, 0, ...additions);
+    }
+    return reliefItems;
   }
 
   /**
@@ -1059,8 +1154,13 @@ class BaseDivorcePetitionTemplate {
   generateFullText(sections) {
     let text = '';
 
-    if (sections.header) text += sections.header + '\n';
-    if (sections.venue) text += sections.venue + '\n\n';
+    // With a structured caption, sections.header keeps the court line for
+    // the PDF layer's caption layout — skip it here when the caption's
+    // formatted text already carries it, so the court renders once.
+    const headerDupe = lineDuplicatesCaption(sections.header, sections.caseCaption);
+    const venueDupe = lineDuplicatesCaption(sections.venue, sections.caseCaption);
+    if (sections.header && !headerDupe) text += sections.header + '\n';
+    if (sections.venue && !venueDupe) text += sections.venue + '\n\n';
     if (sections.caseCaption?.formatted) text += sections.caseCaption.formatted + '\n\n';
     if (sections.title) text += sections.title + '\n\n';
 
@@ -1184,8 +1284,8 @@ class BaseDivorcePetitionTemplate {
   </style>
 </head>
 <body>
-  ${sections.header ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
-  ${sections.venue ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
+  ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
+  ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}
   ${sections.title ? `<div class="title">${escapeHtml(sections.title)}</div>` : ''}
 

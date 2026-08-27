@@ -223,6 +223,13 @@ class QuebecDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems.push('Such further and other relief as this Court deems just and appropriate / Tout autre redressement que le Tribunal jugera juste et approprié.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);
       items.push({

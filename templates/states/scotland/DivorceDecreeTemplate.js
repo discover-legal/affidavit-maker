@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 // The six sheriffdoms of Scotland (for the "SHERIFFDOM OF ... AT ..." heading, per Form G1 style)
 const SCOTTISH_SHERIFFDOMS = [
@@ -186,22 +187,22 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         });
       }
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({
           content: `THE COURT ORDERS that the following property is transferred to ${divorceData.petitionerName || 'the Pursuer'}:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({
           content: `THE COURT ORDERS that the following property is transferred to ${divorceData.respondentName || 'the Defender'}:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -256,7 +257,7 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'order'
       });
       items.push({
-        content: `THE COURT ORDERS that the child(ren) shall reside primarily with ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Pursuer'}.`,
+        content: `THE COURT ORDERS that the child(ren) shall reside primarily with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Pursuer'}.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -265,7 +266,7 @@ class ScotlandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'the Pursuer')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'the Defender')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Pursuer');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Pursuer');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'the Pursuer')

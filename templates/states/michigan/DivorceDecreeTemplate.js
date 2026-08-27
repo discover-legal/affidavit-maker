@@ -3,7 +3,8 @@
 // Complies with MCL § 552.6 et seq. (Michigan divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Michigan Judgment of Divorce Template
@@ -182,22 +183,22 @@ class MichiganDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Plaintiff'} as Plaintiff\'s sole and separate property:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Defendant'} as Defendant\'s sole and separate property:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
@@ -267,7 +268,7 @@ class MichiganDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Plaintiff')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
@@ -329,10 +330,11 @@ class MichiganDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const nonPrimary = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `IT IS ORDERED that ${nonPrimary} shall have parenting time with the minor child(ren) in accordance with the Parenting Time Order entered simultaneously herewith, or as otherwise agreed by the parties in writing and approved by the Court.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonPrimary = resolveNonResidentialParentName(divorceData);
+    return `IT IS ORDERED that ${nonPrimary || 'the non-custodial parent'} shall have parenting time with the minor child(ren) in accordance with the Parenting Time Order entered simultaneously herewith, or as otherwise agreed by the parties in writing and approved by the Court.`;
   }
 
   /**

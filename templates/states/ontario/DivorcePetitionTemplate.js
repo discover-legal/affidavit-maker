@@ -188,7 +188,7 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       return `The Applicant requests that ${divorceData.respondentName || 'the Respondent'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
     }
     if (custody.kind === 'legacy_sole') {
-      return `The Applicant requests that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
+      return `The Applicant requests that ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Applicant'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
     }
     return null;
   }
@@ -344,6 +344,13 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     reliefItems.push('Such further and other relief as this Court deems just and appropriate.');
+
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);

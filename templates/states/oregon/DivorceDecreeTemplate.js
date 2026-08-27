@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Oregon Judgment of Dissolution of Marriage Template
@@ -177,22 +178,22 @@ class OregonDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Petitioner'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's sole and separate property:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
@@ -258,7 +259,7 @@ class OregonDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (custodyKind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that the parties shall share joint custody of the minor child(ren) pursuant to ORS §107.169, both parties having agreed to joint custody. ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall be the primary residential parent.`,
+        content: `IT IS ORDERED that the parties shall share joint custody of the minor child(ren) pursuant to ORS §107.169, both parties having agreed to joint custody. ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'} shall be the primary residential parent.`,
         type: 'order'
       });
     } else if (custodyKind === 'sole_petitioner' || custodyKind === 'sole_respondent' || custodyKind === 'legacy_sole') {
@@ -267,7 +268,7 @@ class OregonDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custodyKind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} shall have sole custody of the minor child(ren).`,

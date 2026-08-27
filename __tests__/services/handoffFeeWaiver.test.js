@@ -247,7 +247,9 @@ describe('feeWaiverMotion', () => {
   test('two-part structure: motion then supporting statement, with statute cites', () => {
     const { sections } = feeWaiverMotion(sampleData);
     expect(sections.title).toBe('MOTION TO WAIVE FEES');
-    expect(sections.header).toBe('IN THE DISTRICT COURT OF SALT LAKE COUNTY, STATE OF UTAH');
+    expect(sections.header).toBe(
+      'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+    );
     expect(sections.caseCaption.formatted).toContain('Case No. 244900123');
     const text = textOf(feeWaiverMotion(sampleData));
     expect(text).toContain('78A-2-302');
@@ -307,8 +309,30 @@ describe('feeWaiverMotion', () => {
   test('FPG line absent when there is no income data', () => {
     const text = textOf(feeWaiverMotion({ petitionerName: 'Jane' }));
     expect(text).not.toContain('federal poverty guideline');
-    // Unknown totals render as blanks rather than $0
-    expect(text).toContain('TOTAL MONTHLY GROSS INCOME: ______________');
+    // Unknown totals render as a placeholder rather than $0 — a blank on a
+    // sworn form beats a wrong number.
+    expect(text).toContain('TOTAL MONTHLY GROSS INCOME: [MONTHLY INCOME]');
+    expect(text).toContain('fill this in before signing');
+  });
+
+  test('never swears the household total as the movant\'s income (person-tagged breakdown)', () => {
+    const text = textOf(
+      feeWaiverMotion({
+        petitionerName: 'Jane Q. Example',
+        monthlyIncome: 8600, // legacy household total
+        incomeBreakdown: [
+          { label: 'Jane wages', amount: 3400, person: 'petitioner' },
+          { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+        ],
+        children: [{ name: 'Emma Example', dob: '2015-04-02' }],
+      }),
+    );
+    expect(text).toContain('TOTAL MONTHLY GROSS INCOME: $3,400');
+    expect(text).not.toContain('$8,600');
+    expect(text).not.toContain('Spouse wages');
+    // FPG line computed from the movant's own income: 3400*12 = 40800 over
+    // 15650 + 5500 (household of 2) = 21150 → 193%
+    expect(text).toContain('approximately 193%');
   });
 
   test('unsworn declaration is the default signature style', () => {

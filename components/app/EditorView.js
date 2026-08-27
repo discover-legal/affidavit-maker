@@ -36,6 +36,20 @@ export const getDownloadReadiness = (document) => {
   return { ready: missing.length === 0, missing };
 };
 
+// Whether the editor is showing a divorce document. Must consider BOTH the
+// URL's ?type= (only present when creating new) and the loaded document's
+// documentType — a REOPENED divorce_package has no ?type= param, so relying
+// on the URL alone mistitles it "Edit Affidavit".
+export const isDivorceEditor = (documentTypeFromUrl, currentDocument) => {
+  const docType = currentDocument?.documentType;
+  return (
+    documentTypeFromUrl === 'divorce_package' ||
+    docType === 'divorce_package' ||
+    docType === 'divorce_petition' ||
+    docType === 'divorce_decree'
+  );
+};
+
 // Resizer component for adjusting pane widths
 const Resizer = ({ onResize, isResizing, setIsResizing, position = 'between-chat-preview', valueNow }) => {
   const resizeType = position === 'between-chat-preview' ? 'chat-preview' : 'preview-validation';
@@ -752,13 +766,13 @@ const EditorView = ({ isNew = false, onBack }) => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center min-w-0">
-              {isDivorcePackage || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree' ? (
+              {isDivorceEditor(documentTypeFromUrl, currentDocument) ? (
                 <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 mr-2 flex-shrink-0" />
               ) : (
                 <Gavel className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2 flex-shrink-0" />
               )}
               <h1 className="text-base sm:text-xl font-semibold truncate">
-                {isDivorcePackage || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree'
+                {isDivorceEditor(documentTypeFromUrl, currentDocument)
                   ? (isNew ? 'New Divorce Package' : 'Edit Divorce Package')
                   : (isNew ? 'New Affidavit' : 'Edit Affidavit')}
               </h1>

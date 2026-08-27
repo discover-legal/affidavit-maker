@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Texas Final Decree of Divorce Template
@@ -225,8 +226,8 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const petitionerName = divorceData.petitionerName || 'Petitioner';
     const respondentName = divorceData.respondentName || 'Respondent';
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-      divorceData.petitionerProperty.forEach(prop => {
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -246,8 +247,8 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-      divorceData.respondentProperty.forEach(prop => {
+    if (asList(divorceData.respondentProperty).length > 0) {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -318,7 +319,7 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
       // Primary residence
       items.push({
-        content: `IT IS ORDERED AND DECREED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have the exclusive right to designate the primary residence of the child(ren) within ${divorceData.residenceRestriction || divorceData.county || '[COUNTY]'} County, Texas, and contiguous counties.`,
+        content: `IT IS ORDERED AND DECREED that ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'} shall have the exclusive right to designate the primary residence of the child(ren) within ${divorceData.residenceRestriction || divorceData.county || '[COUNTY]'} County, Texas, and contiguous counties.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -327,7 +328,7 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'Petitioner')

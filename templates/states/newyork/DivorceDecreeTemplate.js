@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * New York Judgment of Divorce Template
@@ -241,8 +242,8 @@ class NewYorkDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-      divorceData.petitionerProperty.forEach(prop => {
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -258,8 +259,8 @@ class NewYorkDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-      divorceData.respondentProperty.forEach(prop => {
+    if (asList(divorceData.respondentProperty).length > 0) {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -329,7 +330,7 @@ class NewYorkDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Petitioner')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || plaintiff);
+          : (resolvePrimaryResidenceName(divorceData) || plaintiff);
 
     if (custody.kind === 'joint') {
       items.push({
@@ -385,7 +386,7 @@ class NewYorkDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const primaryParent = divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff';
+    const primaryParent = resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff';
     const nonCustodial = primaryParent === divorceData.petitionerName
       ? divorceData.respondentName
       : divorceData.petitionerName;

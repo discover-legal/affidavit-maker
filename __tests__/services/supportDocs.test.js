@@ -83,7 +83,10 @@ describe('utah support doc builders — shared shape', () => {
       utah.motionForDefaultPackage,
     ]) {
       const { sections } = build(sampleData);
-      expect(sections.header).toBe('IN THE DISTRICT COURT OF SALT LAKE COUNTY, STATE OF UTAH');
+      // Same court-line style as the petition/decree templates.
+      expect(sections.header).toBe(
+        'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+      );
       expect(sections.caseCaption.formatted).toContain('JANE Q. EXAMPLE');
       expect(sections.caseCaption.formatted).toContain('Petitioner');
       expect(sections.caseCaption.formatted).toContain('JOHN R. EXAMPLE');
@@ -308,7 +311,7 @@ describe('county normalization', () => {
       const doc = getSupportDoc('UT', kind)(data, {});
       const text = JSON.stringify(doc);
       expect(text).not.toMatch(/County County|COUNTY COUNTY/i);
-      expect(text).toMatch(/SALT LAKE COUNTY, STATE OF UTAH/);
+      expect(text).toMatch(/IN AND FOR SALT LAKE COUNTY/);
     }
     const handoff = getSupportDoc('UT', 'lawyer_handoff')(data, {});
     expect(JSON.stringify(handoff)).not.toMatch(/County County/i);
@@ -318,5 +321,103 @@ describe('county normalization', () => {
     expect(utah.normalizeCountyName('Salt Lake County')).toBe('Salt Lake');
     expect(utah.normalizeCountyName('Salt Lake')).toBe('Salt Lake');
     expect(utah.normalizeCountyName(undefined)).toBe(undefined);
+  });
+});
+
+// ─── live-QA regression: sworn income attribution + caption alignment ────────
+// A persona run stored the HOUSEHOLD total ($8,600) in monthlyIncome while
+// incomeBreakdown itemized $3,400 (petitioner) / $5,200 (respondent). The
+// Financial Declaration — a SWORN form — titled BOTH spouses' wages
+// "MONTHLY INCOME … TOTAL: $8,600" under HER declaration: a 2.5x
+// overstatement that could cost a real user her fee waiver. Support docs
+// also captioned the go-by ("KATIE") and a different court-line style than
+// the petition/decree ("KATHLEEN…", "…STATE OF UTAH, IN AND FOR …").
+describe('financialDeclaration — persona regression (sworn income attribution)', () => {
+  const personaData = {
+    petitionerName: "Katie O'Brien-Hatch", // go-by; full legal names below
+    respondentName: 'Daniel Hatch',
+    childSupportObligee: "Kathleen O'Brien-Hatch",
+    childSupportObligor: 'Daniel James Hatch',
+    childSupportPayor: 'respondent',
+    state: 'UT',
+    county: 'Salt Lake',
+    monthlyIncome: 8600, // legacy household total (3400 + 5200)
+    incomeBreakdown: [
+      {
+        label: "Katie O'Brien-Hatch wages as office manager at a dental office",
+        amount: 3400,
+        person: 'petitioner',
+      },
+      { label: 'Daniel Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+    ],
+    monthlyExpenses: 3100,
+    expenseBreakdown: [
+      { label: 'Mortgage', amount: 1450 },
+      { label: 'Groceries', amount: 700 },
+      { label: 'Utilities', amount: 300 },
+      { label: 'Gas and car insurance', amount: 400 },
+      { label: "Children's activities", amount: 250 },
+    ],
+  };
+
+  test('swears only the declarant\'s own income — never the household total', () => {
+    const structure = utah.financialDeclaration(personaData);
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: $3,400');
+    expect(text).not.toContain('$8,600');
+    // The spouse's income appears nowhere on the declarant's declaration
+    expect(text).not.toContain('Daniel Hatch wages as HVAC technician');
+    expect(text).not.toContain('$5,200');
+    // Her own itemized wages remain
+    expect(text).toContain('office manager at a dental office');
+    // The household-scalar detection is surfaced as a warning
+    expect(structure.metadata.warnings.join(' ')).toMatch(/household total/i);
+    // Expenses are unaffected
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $3,100');
+  });
+
+  test('caption matches the petition: full legal names + IN AND FOR court line', () => {
+    const { sections } = utah.financialDeclaration(personaData);
+    expect(sections.header).toBe(
+      'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+    );
+    expect(sections.caseCaption.formatted).toContain("KATHLEEN O'BRIEN-HATCH");
+    expect(sections.caseCaption.formatted).toContain('DANIEL JAMES HATCH');
+    expect(sections.caseCaption.formatted).not.toContain('KATIE');
+    expect(sections.introduction).toContain("I, Kathleen O'Brien-Hatch");
+    expect(sections.signatureBlock.name).toBe("Kathleen O'Brien-Hatch");
+  });
+
+  test('unknowable income → [MONTHLY INCOME] placeholder plus a validation warning', () => {
+    const structure = utah.financialDeclaration({
+      petitionerName: 'Jane Q. Example',
+      // scalar merely echoes the spouse's itemized income — not the declarant's
+      monthlyIncome: 5200,
+      incomeBreakdown: [
+        { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+      ],
+    });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: [MONTHLY INCOME]');
+    expect(text).not.toContain('TOTAL MONTHLY INCOME: $5,200');
+    expect(text).toContain('fill this in before signing');
+    expect(structure.metadata.warnings.length).toBeGreaterThan(0);
+    expect(structure.metadata.warnings.join(' ')).toMatch(/not on file/i);
+  });
+
+  test('no income data at all → placeholder, never $0 or a blank number', () => {
+    const structure = utah.financialDeclaration({ petitionerName: 'Jane Q. Example' });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: [MONTHLY INCOME]');
+    expect(text).not.toContain('TOTAL MONTHLY INCOME: $0');
+    expect(structure.metadata.warnings.join(' ')).toMatch(/placeholder/i);
+  });
+
+  test('an explicitly declared zero income is sworn as $0, not a placeholder', () => {
+    const text = textOf(
+      utah.financialDeclaration({ petitionerName: 'Jane Q. Example', monthlyIncome: 0 }),
+    );
+    expect(text).toContain('TOTAL MONTHLY INCOME: $0');
+    expect(text).not.toContain('[MONTHLY INCOME]');
   });
 });

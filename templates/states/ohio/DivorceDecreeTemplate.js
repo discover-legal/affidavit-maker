@@ -3,7 +3,8 @@
 // Complies with R.C. § 3105.01 et seq. (Ohio Divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Ohio Judgment Entry-Decree of Divorce Template
@@ -148,22 +149,22 @@ class OhioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following marital property is awarded to ${divorceData.petitionerName || 'Plaintiff'} as that party\'s sole property, free and clear of any claim of the other party:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following marital property is awarded to ${divorceData.respondentName || 'Defendant'} as that party\'s sole property, free and clear of any claim of the other party:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
@@ -232,7 +233,7 @@ class OhioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Plaintiff')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
@@ -288,10 +289,11 @@ class OhioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const nonResidential = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `IT IS ORDERED that ${nonResidential} shall have parenting time with the minor child(ren) at times and places mutually agreed upon by the parties, or in accordance with the Court's Standard Order of Parenting Time if the parties cannot agree.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonResidential = resolveNonResidentialParentName(divorceData);
+    return `IT IS ORDERED that ${nonResidential || 'the non-residential parent'} shall have parenting time with the minor child(ren) at times and places mutually agreed upon by the parties, or in accordance with the Court's Standard Order of Parenting Time if the parties cannot agree.`;
   }
 
   /**

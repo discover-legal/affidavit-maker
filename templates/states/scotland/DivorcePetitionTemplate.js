@@ -217,6 +217,13 @@ class ScotlandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     reliefItems.push('To find the Defender liable in the expenses of this action, or to make such order as to expenses as the Court considers just;');
     reliefItems.push('To grant such further or other orders as the Court considers just and appropriate.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const number = index + 1;
       items.push({

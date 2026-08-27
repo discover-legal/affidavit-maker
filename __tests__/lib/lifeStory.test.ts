@@ -152,6 +152,61 @@ describe('buildRecitals', () => {
   });
 });
 
+describe('own-vs-household income derivation', () => {
+  const { userMonthlyIncome } = require('@/components/app/lifeStory');
+  const flatten = (r: { segments: Array<{ text: string }> }) =>
+    r.segments.map((s) => s.text).join('');
+  const finances = (profile: Record<string, unknown>, lang?: 'en' | 'es') =>
+    buildRecitals(profile, lang).find((r) => r.id === 'finances');
+
+  const personaProfile = {
+    monthlyIncome: 8600, // both spouses' wages — NOT the user's money
+    monthlyExpenses: 3100,
+    incomeBreakdown: [
+      { label: 'My wages', amount: 3400, person: 'petitioner' },
+      { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+    ],
+  };
+
+  test('recital narrates the USER\'s own income from the person-tagged breakdown', () => {
+    const en = flatten(finances(personaProfile)!);
+    expect(en).toContain('You bring in about $3,400 a month');
+    expect(en).not.toContain('$8,600');
+    const es = flatten(finances(personaProfile, 'es')!);
+    expect(es).toContain('Ingresas unos $3,400 al mes');
+    expect(es).not.toContain('$8,600');
+  });
+
+  test('a lone ambiguous scalar is framed as the household\'s, never the user\'s', () => {
+    const en = flatten(finances({ monthlyIncome: 8600 })!);
+    expect(en).toContain('About $8,600 a month comes into your household');
+    const es = flatten(finances({ monthlyIncome: 8600 }, 'es')!);
+    expect(es).toContain('Entran unos $8,600 al mes en tu hogar');
+  });
+
+  test('contract fields: monthlyIncome is the user\'s own once spouseMonthlyIncome exists', () => {
+    expect(userMonthlyIncome({ monthlyIncome: 3400, spouseMonthlyIncome: 5200 }))
+      .toEqual({ amount: 3400, scope: 'own' });
+    expect(userMonthlyIncome({ monthlyIncome: 8600 }))
+      .toEqual({ amount: 8600, scope: 'household' });
+    expect(userMonthlyIncome({})).toBeNull();
+    const en = flatten(finances({ monthlyIncome: 3400, spouseMonthlyIncome: 5200 })!);
+    expect(en).toContain('You bring in about $3,400 a month');
+  });
+
+  test('person matching is role-aware for a respondent user', () => {
+    expect(
+      userMonthlyIncome({
+        role: 'respondent',
+        incomeBreakdown: [
+          { label: 'Wages', amount: 3400, person: 'petitioner' },
+          { label: 'Wages', amount: 5200, person: 'respondent' },
+        ],
+      }),
+    ).toEqual({ amount: 5200, scope: 'own' });
+  });
+});
+
 describe('fact chapters', () => {
   test('groups facts under human labels, preserving order', () => {
     const chapters = groupFacts([
@@ -234,6 +289,37 @@ describe('rich visuals helpers', () => {
     expect(moneyLeftover({ monthlyIncome: 5200, monthlyExpenses: 4100 })).toBe(1100);
     expect(moneyLeftover({ monthlyIncome: 4000, monthlyExpenses: 4500 })).toBe(-500);
     expect(moneyLeftover({ monthlyIncome: 5200 })).toBeNull();
+  });
+
+  test('moneyLeftover uses the USER\'s own income from a person-tagged breakdown', () => {
+    // Household scalar says $8,600, but only $3,400 of it is the user's.
+    expect(
+      moneyLeftover({
+        monthlyIncome: 8600,
+        monthlyExpenses: 3100,
+        incomeBreakdown: [
+          { label: 'My wages', amount: 3400, person: 'petitioner' },
+          { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+        ],
+      }),
+    ).toBe(300);
+  });
+
+  test('ledger distinguishes an explicit mutual waiver from mere absence', () => {
+    const waived = {
+      spousalSupportRequested: false,
+      spousalSupportWaived: true,
+    };
+    const row = (profile: Record<string, unknown>, lang?: 'en' | 'es') =>
+      buildLedger(profile, lang).find(
+        (i: { key: string }) => i.key === 'spousal_support',
+      ).value;
+    expect(row(waived)).toBe('Waived (mutual)');
+    expect(row(waived, 'es')).toBe('Renunciada (mutua)');
+    // mere absence stays "Not requested"
+    expect(row({ spousalSupportRequested: false })).toBe('Not requested');
+    expect(row({ spousalSupportRequested: false }, 'es')).toBe('No solicitada');
+    expect(row({})).toBeNull();
   });
 
   test('buildLedger humanizes values and leaves gaps null', () => {
@@ -376,6 +462,29 @@ describe('pro se helpers', () => {
     // already pursuing a waiver — no hint needed
     expect(feeWaiverHint({ monthlyIncome: 1800, indigencyRequested: true })).toBe(false);
     expect(feeWaiverHint({})).toBe(false);
+  });
+
+  test('feeWaiverHint keys on the USER\'s own income, not the household scalar', () => {
+    // Household $8,600 would never hint; the user's own $1,800 does.
+    expect(
+      feeWaiverHint({
+        monthlyIncome: 8600,
+        incomeBreakdown: [
+          { label: 'My wages', amount: 1800, person: 'petitioner' },
+          { label: 'Spouse wages', amount: 6800, person: 'respondent' },
+        ],
+      }),
+    ).toBe(true);
+    // Own income over the guideline: no hint even with a low household scalar.
+    expect(
+      feeWaiverHint({
+        monthlyIncome: 1800,
+        incomeBreakdown: [
+          { label: 'My wages', amount: 2500, person: 'petitioner' },
+          { label: 'Spouse wages', amount: 100, person: 'respondent' },
+        ],
+      }),
+    ).toBe(false);
   });
 
   test('waitingPeriodNote computes earliest-decree from a filed event', () => {

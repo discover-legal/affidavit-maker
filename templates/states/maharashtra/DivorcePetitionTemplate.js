@@ -82,6 +82,10 @@ class MaharashtraDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       reliefItems.push('Grant maintenance pendente lite and expenses of the proceedings under Section 24 of the HMA;');
     }
     reliefItems.push('Pass any other order(s) as this Hon\'ble Court may deem fit and proper.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((relief, index) => { items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + index) }); });
     return { title: 'PRAYER', items, nextParagraphNumber: divorceData._paragraphNum || 15 };
   }

@@ -3,7 +3,12 @@
 // Complies with Utah Code Title 81, Chapter 4 (formerly Title 30, Chapter 3) and Utah Rules of Civil Procedure
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const {
+  resolveCustodyArrangement,
+  resolvePrimaryResidenceName,
+  resolveNonResidentialParentName,
+} = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 const normalizeCounty = (county, fallback = '[COUNTY]') =>
   (county || fallback).replace(/\s+county$/i, '').trim();
@@ -231,8 +236,9 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-      divorceData.petitionerProperty.forEach(prop => {
+    const petitionerPropertyList = asList(divorceData.petitionerProperty);
+    if (petitionerPropertyList.length > 0) {
+      petitionerPropertyList.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -248,8 +254,9 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-      divorceData.respondentProperty.forEach(prop => {
+    const respondentPropertyList = asList(divorceData.respondentProperty);
+    if (respondentPropertyList.length > 0) {
+      respondentPropertyList.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -314,7 +321,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
 
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} is awarded primary physical custody of the minor child(ren).`,
+        content: `IT IS ORDERED that ${residenceName || divorceData.petitionerName || 'Petitioner'} is awarded primary physical custody of the minor child(ren).`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -323,7 +330,7 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (residenceName || divorceData.petitionerName || 'Petitioner');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} is awarded sole legal and physical custody of the minor child(ren).`,
@@ -378,10 +385,12 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parent-time language
    */
   getVisitationLanguage(divorceData) {
-    const nonCustodial = divorceData.primaryCustodian === divorceData.petitionerName
-      ? divorceData.respondentName
-      : divorceData.petitionerName;
-    const parent = nonCustodial || 'the non-custodial parent';
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname — so a stored go-by never flips the order to the wrong
+    // parent). When the data does not say who the children live with,
+    // neutral wording with no name.
+    const parent = resolveNonResidentialParentName(divorceData) || 'the non-custodial parent';
     const details = typeof divorceData.parentTimeDetails === 'string'
       ? divorceData.parentTimeDetails.trim()
       : '';
@@ -466,13 +475,18 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Alimony section
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
+    // spousalSupportRequested === false is the orchestrator's explicit
+    // "the parties waive alimony" signal (same semantics as the base class).
+    const waived =
+      divorceData.spousalSupportWaived ||
+      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
+    if (!divorceData.spousalSupportAwarded && !waived) {
       return null;
     }
 
     const items = [];
 
-    if (divorceData.spousalSupportWaived) {
+    if (waived && !divorceData.spousalSupportAwarded) {
       items.push({
         content: 'IT IS ORDERED that each party waives any claim to alimony from the other party, now and in the future.',
         type: 'order'

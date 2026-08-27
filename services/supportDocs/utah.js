@@ -16,6 +16,17 @@
 // "Subscribed and sworn to before me" block instead.
 
 const crypto = require('node:crypto');
+const { resolvePartyIncomes, INCOME_PLACEHOLDER } = require('./partyIncome');
+const { asList } = require('../../templates/core/dataShapes');
+
+/**
+ * Render a property/debt field as prose. Extraction stores these as ARRAYS
+ * (one complete asset/debt per element); legacy saves carry strings. Never
+ * String() an array directly — that comma-joins without spaces.
+ */
+function listText(value) {
+  return asList(value).join('; ');
+}
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -35,31 +46,72 @@ function normalizeCountyName(county) {
   return typeof county === 'string' ? county.replace(/\s+county$/i, '').trim() : county;
 }
 
+/** Final whitespace-separated token of a name, lowercased (surname check). */
+function lastNameToken(name) {
+  const parts = str(name).split(/\s+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1].toLowerCase() : '';
+}
+
+/**
+ * Party name for a caption/signature, preferring the FULL legal name over a
+ * go-by — the same name the petition and decree print. The main templates
+ * read `petitionerName`/`respondentName` from the saved document, where
+ * extraction stores the full legal name ("Kathleen O'Brien-Hatch");
+ * profile-sourced data can still carry the go-by ("Katie O'Brien-Hatch")
+ * there while the full legal names sit in the child-support obligation
+ * fields. Order:
+ *   1. an explicit full-legal-name field when present
+ *   2. the child-support obligee/obligor name when the payor role maps it to
+ *      this side AND it clearly names the same person (identical surname)
+ *      more fully — never a cross-person substitution
+ *   3. the caption name / first+last fields
+ */
+function resolveParty(data, side) {
+  const explicit = str(data[`${side}FullLegalName`]) || str(data[`${side}LegalName`]);
+  if (explicit) return explicit;
+  const base =
+    str(data[`${side}Name`]) ||
+    [str(data[`${side}FirstName`]), str(data[`${side}LastName`])].filter(Boolean).join(' ');
+  const payor = str(data.childSupportPayor).toLowerCase();
+  const obligorSide =
+    payor === 'petitioner' ? 'petitioner' : payor === 'respondent' ? 'respondent' : null;
+  if (obligorSide) {
+    const candidate = str(
+      side === obligorSide ? data.childSupportObligor : data.childSupportObligee,
+    );
+    if (
+      candidate &&
+      (!base ||
+        (lastNameToken(candidate) === lastNameToken(base) && candidate.length > base.length))
+    ) {
+      return candidate;
+    }
+  }
+  return base || '_________________________________';
+}
+
 function resolvePetitioner(data) {
-  return (
-    str(data.petitionerName) ||
-    [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
+  return resolveParty(data, 'petitioner');
 }
 
 function resolveRespondent(data) {
-  return (
-    str(data.respondentName) ||
-    [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
+  return resolveParty(data, 'respondent');
 }
 
 /**
  * Utah caption block:
- *   IN THE DISTRICT COURT OF [COUNTY] COUNTY, STATE OF UTAH
+ *   IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR [COUNTY] COUNTY
  *   [PETITIONER], Petitioner, v. [RESPONDENT], Respondent.
  *   Case No. ____ when unknown.
+ *
+ * The court line matches the petition/decree templates
+ * (templates/states/utah — getDefaultCourt: "District Court of the State of
+ * Utah, In and For [County] County"), so a case packet's supporting papers
+ * caption the same court the same way as its main documents.
  */
 function utahCaption(data, parties) {
   const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
-  const header = `IN THE DISTRICT COURT OF ${county} COUNTY, STATE OF UTAH`;
+  const header = `IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR ${county} COUNTY`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
   const petitioner = (parties?.petitioner ?? resolvePetitioner(data)).toUpperCase();
   const respondent = (parties?.respondent ?? resolveRespondent(data)).toUpperCase();
@@ -344,20 +396,47 @@ function certificateOfService(data = {}, opts = {}) {
 // ─── 3. Financial Declaration (Utah R. Civ. P. 26.1-shaped, simplified) ─────
 
 function financialDeclaration(data = {}, opts = {}) {
-  const petitioner = resolvePetitioner(data);
   const { header, caseCaption } = utahCaption(data);
 
-  const income = moneyTable(data.incomeBreakdown, data.monthlyIncome);
+  // A Financial Declaration is the DECLARANT's sworn statement of the
+  // declarant's OWN finances (Utah R. Civ. P. 26.1) — each spouse files
+  // their own. The declarant is the USER, on whichever caption side `role`
+  // puts them (missing role means petitioner — the extraction convention).
+  // Only income the data ties to the declarant may appear here: the
+  // spouse's tagged entries are excluded, and a legacy household total
+  // in `monthlyIncome` is never sworn as the declarant's income (that once
+  // overstated a declarant's income 2.5x on this sworn form).
+  const derived = resolvePartyIncomes(data);
+  const declarant =
+    derived.declarant === 'respondent' ? resolveRespondent(data) : resolvePetitioner(data);
+  const declarantRoleLabel = derived.declarant === 'respondent' ? 'Respondent' : 'Petitioner';
+  const own = derived[derived.declarant];
+  const income = moneyTable(own.items, own.amount);
+  const hasIncomeData = income.lines.length > 0 || own.amount !== null;
+  const incomeTotal = hasIncomeData
+    ? formatMoney(own.amount !== null && income.lines.length === 0 ? own.amount : income.total)
+    : INCOME_PLACEHOLDER;
+  const warnings = [...derived.warnings];
+  if (!hasIncomeData) {
+    warnings.push(
+      'Monthly income is not on file — the TOTAL MONTHLY INCOME line is a placeholder. ' +
+        'Enter your own gross monthly income before signing this sworn declaration.',
+    );
+  }
+
   const expenses = moneyTable(data.expenseBreakdown, data.monthlyExpenses);
   const employment =
     str(data.employment) || str(data.employer) || str(data.occupation) || BLANK_LINE;
 
-  // A sworn filing must never assert "$0" the declarant didn't state — when
-  // nothing is on file, leave the total blank for the filer to complete.
+  // A sworn filing must never assert an amount the declarant didn't state —
+  // when nothing is on file, render a placeholder for the filer to complete.
   const incomeContent = [
-    'MONTHLY INCOME (itemized):',
+    'MONTHLY INCOME (the declarant\'s own, itemized):',
     ...(income.lines.length ? income.lines : [`(no itemized income on file) ${BLANK_LINE}`]),
-    `TOTAL MONTHLY INCOME: ${income.hasData ? formatMoney(income.total) : `$${BLANK_SHORT}`}`,
+    `TOTAL MONTHLY INCOME: ${incomeTotal}`,
+    ...(hasIncomeData
+      ? []
+      : ['(your monthly income is not on file — fill this in before signing)']),
   ].join('\n');
 
   const expenseContent = [
@@ -366,8 +445,8 @@ function financialDeclaration(data = {}, opts = {}) {
     `TOTAL MONTHLY EXPENSES: ${expenses.hasData ? formatMoney(expenses.total) : `$${BLANK_SHORT}`}`,
   ].join('\n');
 
-  const petitionerDebts = str(data.petitionerDebts);
-  const respondentDebts = str(data.respondentDebts);
+  const petitionerDebts = listText(data.petitionerDebts);
+  const respondentDebts = listText(data.respondentDebts);
   const debtLines = [];
   if (petitionerDebts) debtLines.push(`Petitioner's debts: ${petitionerDebts}`);
   if (respondentDebts) debtLines.push(`Respondent's debts: ${respondentDebts}`);
@@ -389,25 +468,27 @@ function financialDeclaration(data = {}, opts = {}) {
     ],
   };
 
-  return baseStructure(
+  const structure = baseStructure(
     'financial_declaration',
     {
-      filerBlock: filerBlock(data, petitioner, 'Petitioner, Pro Se'),
+      filerBlock: filerBlock(data, declarant, `${declarantRoleLabel}, Pro Se`),
       header,
       caseCaption,
       title: 'FINANCIAL DECLARATION',
       introduction:
-        `I, ${petitioner}, submit this Financial Declaration (patterned on Utah Rule of ` +
+        `I, ${declarant}, submit this Financial Declaration (patterned on Utah Rule of ` +
         'Civil Procedure 26.1, simplified) and state as follows:',
       facts,
       conclusion:
         'The figures above are complete and accurate to the best of my knowledge. Attach pay ' +
         'stubs, tax returns, and other supporting documents as Utah Rule of Civil Procedure ' +
         '26.1 requires.',
-      ...signatureSections(petitioner, 'Declarant', opts),
+      ...signatureSections(declarant, 'Declarant', opts),
     },
     opts,
   );
+  if (warnings.length > 0) structure.metadata.warnings = warnings;
+  return structure;
 }
 
 // ─── 4. Motion for Default + supporting declaration ─────────────────────────
@@ -634,6 +715,9 @@ module.exports = {
   normalizeCountyName,
   utahCaption,
   filerBlock,
+  listText,
+  resolvePetitioner,
+  resolveRespondent,
   acceptanceOfService,
   certificateOfService,
   financialDeclaration,

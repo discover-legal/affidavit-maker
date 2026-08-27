@@ -3,7 +3,8 @@
 // Complies with Arizona Revised Statutes Title 25 and Arizona Rules of Family Law Procedure
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Arizona Decree of Dissolution Template
@@ -226,8 +227,8 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-      divorceData.petitionerProperty.forEach(prop => {
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -243,8 +244,8 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-      divorceData.respondentProperty.forEach(prop => {
+    if (asList(divorceData.respondentProperty).length > 0) {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -315,7 +316,7 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
 
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall be the primary residential parent.`,
+        content: `IT IS ORDERED that ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'} shall be the primary residential parent.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -324,7 +325,7 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} shall have Sole Legal Decision-Making authority regarding the minor child(ren).`,
@@ -368,9 +369,10 @@ class ArizonaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const nonCustodial = divorceData.primaryCustodian === divorceData.petitionerName
-      ? divorceData.respondentName
-      : divorceData.petitionerName;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonCustodial = resolveNonResidentialParentName(divorceData);
 
     return `IT IS ORDERED that ${nonCustodial || 'the non-primary residential parent'} shall have Parenting Time with the minor child(ren) as set forth in the attached Parenting Plan, or if none, reasonable parenting time.`;
   }

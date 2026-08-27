@@ -3,7 +3,8 @@
 // Complies with 750 ILCS 5 (Illinois Marriage and Dissolution of Marriage Act)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Illinois Judgment of Dissolution Template
@@ -221,8 +222,8 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-      divorceData.petitionerProperty.forEach(prop => {
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -238,8 +239,8 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-      divorceData.respondentProperty.forEach(prop => {
+    if (asList(divorceData.respondentProperty).length > 0) {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -310,7 +311,7 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
 
       items.push({
-        content: `${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'} shall have the majority of Parenting Time with the minor child(ren).`,
+        content: `${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'} shall have the majority of Parenting Time with the minor child(ren).`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -319,7 +320,7 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       soleCustodianName = custodianName;
       items.push({
         content: `${custodianName} shall have Sole Allocation of Significant Decision-Making Responsibilities regarding the minor child(ren).`,
@@ -369,9 +370,10 @@ class IllinoisDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const nonCustodial = divorceData.primaryCustodian === divorceData.petitionerName
-      ? divorceData.respondentName
-      : divorceData.petitionerName;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const nonCustodial = resolveNonResidentialParentName(divorceData);
 
     return `${nonCustodial || 'The non-majority parenting time parent'} shall have Parenting Time with the minor child(ren) as set forth in the Parenting Plan.`;
   }

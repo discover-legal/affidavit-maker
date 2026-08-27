@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Northwest Territories Divorce Order Template
@@ -142,22 +143,22 @@ class NorthwestTerritoriesDivorceDecreeTemplate extends BaseDivorceDecreeTemplat
         type: 'finding'
       });
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Applicant'} as that party's separate property:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's separate property:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -215,7 +216,7 @@ class NorthwestTerritoriesDivorceDecreeTemplate extends BaseDivorceDecreeTemplat
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -224,7 +225,7 @@ class NorthwestTerritoriesDivorceDecreeTemplate extends BaseDivorceDecreeTemplat
           ? (divorceData.petitionerName || 'Applicant')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'Applicant')

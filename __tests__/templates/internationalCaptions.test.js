@@ -75,6 +75,27 @@ function generate(dir, file) {
   return instance.generateDocument({ ...DATA, state: instance.state });
 }
 
+const { normalizeCourtText } = require(path.join(
+  __dirname, '..', '..', 'templates', 'core', 'captionDedupe.js'
+));
+
+// The caption's court line must appear exactly once above the document
+// title (the 2026-08 doubled-caption fix, templates/core/captionDedupe.js).
+function expectSingleCourtLine(doc) {
+  const caption = doc.sections.caseCaption || {};
+  const captionCourtLine =
+    String(caption.formatted || '')
+      .split('\n')
+      .find((line) => /\b(COURT|TRIBUNAL)\b/i.test(line)) ||
+    caption.courtName ||
+    caption.courtHeaderLine;
+  const needle = normalizeCourtText(captionCourtLine);
+  expect(needle).toBeTruthy();
+  const titleIdx = doc.sections.title ? doc.fullText.indexOf(doc.sections.title) : -1;
+  const head = normalizeCourtText(titleIdx >= 0 ? doc.fullText.slice(0, titleIdx) : doc.fullText);
+  expect(head.split(needle).length - 1).toBe(1);
+}
+
 function lintUSisms(text) {
   const problems = [];
   if (/\bSTATE OF\b/i.test(text)) problems.push('"STATE OF"');
@@ -110,6 +131,10 @@ describe.each(INTERNATIONAL)('$name divorce petition caption', ({ dir, filer, ba
       expect(doc.fullText).not.toMatch(new RegExp(`\\b${label}\\b`));
     }
   });
+
+  it('renders exactly one court identification', () => {
+    expectSingleCourtLine(doc);
+  });
 });
 
 describe.each(INTERNATIONAL)('$name divorce decree caption', ({ dir, filer, banned }) => {
@@ -130,6 +155,10 @@ describe.each(INTERNATIONAL)('$name divorce decree caption', ({ dir, filer, bann
     for (const label of banned) {
       expect(doc.fullText).not.toMatch(new RegExp(`\\b${label}\\b`));
     }
+  });
+
+  it('renders exactly one court identification', () => {
+    expectSingleCourtLine(doc);
   });
 });
 

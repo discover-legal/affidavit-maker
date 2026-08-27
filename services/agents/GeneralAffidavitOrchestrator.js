@@ -38,7 +38,9 @@ const {
   FIRST_NAME_DESCRIPTION,
   LAST_NAME_DESCRIPTION,
   FACT_CONTENT_DESCRIPTION,
+  SUPERSEDED_FACTS_DESCRIPTION,
 } = require('./extractionQuality');
+const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement');
 
 // ─── LLM tool definition ──────────────────────────────────────────────────────
 
@@ -77,6 +79,13 @@ const AFFIDAVIT_TOOL = {
         affiant_zip:        { type: 'string' },
         state:              { type: 'string', description: '2-letter state code for filing/venue' },
         county:             { type: 'string', description: 'County for venue block' },
+
+        // ── CORRECTIONS (any phase) ──
+        superseded_facts: {
+          type: 'array',
+          items: { type: 'string' },
+          description: SUPERSEDED_FACTS_DESCRIPTION
+        },
 
         // ── FACTS (any phase) ──
         extracted_facts: {
@@ -167,9 +176,12 @@ class GeneralAffidavitOrchestrator {
       throw new Error(`GeneralAffidavitOrchestrator: Failed to parse function arguments: ${e.message}`);
     }
 
-    const { response, phase_complete, extracted_facts, ...fieldUpdates } = extracted;
+    const { response, phase_complete, extracted_facts, superseded_facts, ...fieldUpdates } = extracted;
 
     const updatedData = this._applyFieldUpdates(affidavitData, fieldUpdates);
+
+    // Corrections retire superseded fact cards before this turn's facts merge.
+    this._applySupersededFacts(updatedData, superseded_facts);
 
     // Accumulate facts
     const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase, message);
@@ -234,6 +246,20 @@ class GeneralAffidavitOrchestrator {
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Same contract as the other orchestrators: retire matched fact cards
+   * locally and expose the statements as `retiredFactStatements` so the
+   * profile merge retires its stored copies. Rewritten/cleared every turn.
+   */
+  _applySupersededFacts(updatedData, supersededFacts) {
+    delete updatedData.retiredFactStatements;
+    const statements = sanitizeSupersededStatements(supersededFacts);
+    if (statements.length === 0) return;
+    const { kept, retired } = retireFacts(updatedData.facts, statements);
+    if (retired.length > 0) updatedData.facts = kept;
+    updatedData.retiredFactStatements = statements;
+  }
 
   _initState(data) {
     if (data.orchestratorState?.currentPhase && PHASES[data.orchestratorState.currentPhase]) {

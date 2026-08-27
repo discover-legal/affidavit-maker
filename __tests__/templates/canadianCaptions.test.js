@@ -131,15 +131,27 @@ describe('specific Canadian caption conventions', () => {
   });
 });
 
-describe('US control — terminology defaults leave US petitions untouched', () => {
+describe('US control — terminology defaults leave US petition wording untouched', () => {
   let doc;
   beforeAll(() => {
     doc = generate('texas');
   });
 
-  it('keeps the Texas venue opener and county phrasing', () => {
-    expect(doc.sections.header).toBe('THE STATE OF TEXAS');
-    expect(doc.sections.venue).toMatch(/^COUNTY OF /);
+  // DELIBERATE CHANGE (2026-08 caption-dedupe): the "THE STATE OF TEXAS /
+  // COUNTY OF X" venue opener above the caption is suppressed — the case
+  // caption is the single court identification at the top of a pleading
+  // (templates/core/captionDedupe.js). The venue recital still belongs to
+  // the verification jurat. This test previously locked
+  // sections.header === 'THE STATE OF TEXAS' byte-exact.
+  it('renders exactly one court identification (caption only, no venue opener)', () => {
+    expect(doc.sections.header).toBeNull();
+    expect(doc.sections.venue).toBeNull();
+    const courtLine = `IN THE ${doc.sections.caseCaption.courtName}`;
+    const count = doc.fullText.split(courtLine).length - 1;
+    expect(count).toBe(1);
+  });
+
+  it('keeps the Texas county body phrasing', () => {
     expect(doc.fullText).toContain('Petitioner, Sam Matrix, is a resident of Toronto County, Texas.');
   });
 

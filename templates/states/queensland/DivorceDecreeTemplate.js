@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 class QueenslandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   constructor() {
@@ -54,13 +55,13 @@ class QueenslandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: 'The Court finds there is no property to be divided pursuant to section 79 of the Family Law Act 1975 (Cth).', type: 'finding' });
     } else {
       items.push({ content: 'The Court has considered the division of property pursuant to section 79 of the Family Law Act 1975 (Cth).', type: 'finding' });
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is to vest in ${divorceData.petitionerName || 'Applicant'}:`, type: 'order' });
-        divorceData.petitionerProperty.forEach(prop => items.push({ content: `- ${prop}`, type: 'property_item' }));
+        asList(divorceData.petitionerProperty).forEach(prop => items.push({ content: `- ${prop}`, type: 'property_item' }));
       }
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is to vest in ${divorceData.respondentName || 'Respondent'}:`, type: 'order' });
-        divorceData.respondentProperty.forEach(prop => items.push({ content: `- ${prop}`, type: 'property_item' }));
+        asList(divorceData.respondentProperty).forEach(prop => items.push({ content: `- ${prop}`, type: 'property_item' }));
       }
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty) {
         items.push({ content: 'IT IS ORDERED that each party retains the property currently in that party\'s possession.', type: 'order' });
@@ -94,7 +95,7 @@ class QueenslandDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Applicant')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant');
       soleCustodianName = custodianName;
       items.push({ content: `IT IS ORDERED that ${custodianName} shall have sole parental responsibility.`, type: 'order' });
     } else {

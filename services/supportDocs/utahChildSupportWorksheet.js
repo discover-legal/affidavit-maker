@@ -23,7 +23,7 @@
 // orchestrating session wires the registry (kind key 'child_support_worksheet').
 
 const crypto = require('node:crypto');
-const { utahCaption, filerBlock } = require('./utah');
+const { utahCaption, filerBlock, resolvePetitioner, resolveRespondent } = require('./utah');
 
 const { calculateUtah, OFFICIAL_CALCULATOR_URL } = require('../childSupport');
 
@@ -36,23 +36,6 @@ const BLANK_MONEY = '$__________';
 function str(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
-
-function resolvePetitioner(data) {
-  return (
-    str(data.petitionerName) ||
-    [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
-}
-
-function resolveRespondent(data) {
-  return (
-    str(data.respondentName) ||
-    [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
-}
-
 
 function formatMoney(amount) {
   if (typeof amount !== 'number' || !Number.isFinite(amount)) return BLANK_MONEY;

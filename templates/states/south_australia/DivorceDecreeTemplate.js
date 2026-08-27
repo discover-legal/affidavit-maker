@@ -54,7 +54,7 @@ class SouthAustraliaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
       soleCustodianName = custody.kind === 'sole_petitioner' ? (divorceData.petitionerName || 'Applicant')
         : custody.kind === 'sole_respondent' ? (divorceData.respondentName || 'Respondent')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant');
       items.push({ content: `IT IS ORDERED that ${soleCustodianName} shall have sole parental responsibility.`, type: 'order' });
     } else {
       items.push({ content: 'IT IS ORDERED that the parties shall exercise parental responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });

@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 class RiversDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   constructor() {
@@ -56,13 +57,13 @@ class RiversDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({ content: 'The Court finds that no ancillary order regarding property is necessary in this matter.', type: 'finding' });
     } else {
       items.push({ content: 'The Court has considered the parties\' submissions regarding property and ancillary matters pursuant to sections 70-73 of the Matrimonial Causes Act, Cap M7 LFN 2004.', type: 'finding' });
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'the Petitioner'}:`, type: 'order' });
-        divorceData.petitionerProperty.forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
+        asList(divorceData.petitionerProperty).forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
       }
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({ content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'the Respondent'}:`, type: 'order' });
-        divorceData.respondentProperty.forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
+        asList(divorceData.respondentProperty).forEach(prop => { items.push({ content: `- ${prop}`, type: 'property_item' }); });
       }
       if (!divorceData.petitionerProperty && !divorceData.respondentProperty) {
         items.push({ content: 'IT IS ORDERED that each party retains the personal property currently in that party\'s possession, subject to any further ancillary order of this Court.', type: 'order' });
@@ -100,7 +101,7 @@ class RiversDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'the Petitioner')
           : custodyKind === 'sole_respondent'
             ? (divorceData.respondentName || 'the Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Petitioner');
       const otherParentName =
         custodyKind === 'sole_respondent'
           ? (divorceData.petitionerName || 'the Petitioner')

@@ -28,7 +28,8 @@ const { DEFAULT_LLM_MODEL } = require('../llmConfig');
 const { mergeFacts } = require('./FactOrganizer');
 const documentSelectionAgent = require('./DocumentSelectionAgent');
 const { mergeChildren, summarizeChildren } = require('../../utils/childrenMerge');
-const { EXTRACTION_QUALITY, FACT_CONTENT_DESCRIPTION } = require('./extractionQuality');
+const { EXTRACTION_QUALITY, FACT_CONTENT_DESCRIPTION, SUPERSEDED_FACTS_DESCRIPTION } = require('./extractionQuality');
+const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement');
 
 // ─── Phase → default fact category ───────────────────────────────────────────
 const DEFAULT_PHASE_CATEGORY = {
@@ -133,6 +134,18 @@ class BaseMatterOrchestrator {
     this.phaseOrder     = phaseOrder;
     this.fieldMap       = fieldMap      || {};
     this.tool           = buildTool ? buildTool() : this._defaultTool();
+
+    // Every matter tool gets the correction channel, even when its
+    // matter-specific buildTool predates it — corrections must be able to
+    // retire superseded fact cards in every interview.
+    const params = this.tool?.function?.parameters;
+    if (params?.properties && !params.properties.superseded_facts) {
+      params.properties.superseded_facts = {
+        type: 'array',
+        items: { type: 'string' },
+        description: SUPERSEDED_FACTS_DESCRIPTION
+      };
+    }
   }
 
   // ─── Main entry point ──────────────────────────────────────────────────────
@@ -182,9 +195,12 @@ class BaseMatterOrchestrator {
       throw new Error(`${this.matterTypeCode}Orchestrator: Failed to parse function arguments: ${e.message}`);
     }
 
-    const { response, phase_complete, extracted_facts, ...fieldUpdates } = extracted;
+    const { response, phase_complete, extracted_facts, superseded_facts, ...fieldUpdates } = extracted;
 
     const updatedData = this._applyFieldUpdates(matterData, fieldUpdates);
+
+    // Corrections retire superseded fact cards before this turn's facts merge.
+    this._applySupersededFacts(updatedData, superseded_facts);
 
     const newFacts = this._buildFacts(extracted_facts || [], state.currentPhase, message);
     if (newFacts.length > 0) {
@@ -342,6 +358,21 @@ class BaseMatterOrchestrator {
     return updated;
   }
 
+  /**
+   * Same contract as BaseDivorceOrchestrator._applySupersededFacts: retire
+   * matched fact cards locally and expose the statements as
+   * `retiredFactStatements` so the profile merge retires its stored copies.
+   * Rewritten (or cleared) every turn so stale retirements never re-apply.
+   */
+  _applySupersededFacts(updatedData, supersededFacts) {
+    delete updatedData.retiredFactStatements;
+    const statements = sanitizeSupersededStatements(supersededFacts);
+    if (statements.length === 0) return;
+    const { kept, retired } = retireFacts(updatedData.facts, statements);
+    if (retired.length > 0) updatedData.facts = kept;
+    updatedData.retiredFactStatements = statements;
+  }
+
   _buildFacts(extractedFacts, currentPhase, sourceMessage) {
     const defaultCategory = DEFAULT_PHASE_CATEGORY[currentPhase] || 'general';
     // Provenance: keep the user's own words so the review UI can show
@@ -399,6 +430,11 @@ class BaseMatterOrchestrator {
           properties: {
             response:        { type: 'string' },
             phase_complete:  { type: 'boolean' },
+            superseded_facts: {
+              type: 'array',
+              items: { type: 'string' },
+              description: SUPERSEDED_FACTS_DESCRIPTION
+            },
             extracted_facts: {
               type: 'array',
               items: {

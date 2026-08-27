@@ -278,6 +278,10 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       });
     }
 
+    // Agreed child arrangements (custody enum, primary residence, agreed
+    // support) — pleaded via the base hooks, never silently dropped.
+    paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
+
     return {
       title: 'CHILDREN',
       items,
@@ -321,6 +325,13 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     reliefItems.push('Grant such other relief as the Court deems just and proper.');
+
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index); // a, b, c format

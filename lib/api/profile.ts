@@ -16,10 +16,20 @@ import { logger } from '@/lib/logger';
  * new document.
  */
 
-// CommonJS util shared with the orchestrators (services/ tree).
+// CommonJS utils shared with the orchestrators (services/ tree).
 const { mergeChildren } = require('@/utils/childrenMerge') as {
   mergeChildren: (a: unknown[] | undefined, b: unknown[] | undefined) => Record<string, unknown>[];
 };
+const { retireFacts, sanitizeSupersededStatements, normalizeFactText } =
+  require('@/services/agents/factRetirement') as {
+    retireFacts: (
+      facts: unknown[] | undefined,
+      superseded: unknown,
+      cap?: number,
+    ) => { kept: ProfileFact[]; retired: ProfileFact[] };
+    sanitizeSupersededStatements: (superseded: unknown, cap?: number) => string[];
+    normalizeFactText: (text: unknown) => string;
+  };
 export type ProfileFact = {
   id?: string;
   content?: string;
@@ -53,7 +63,10 @@ export type UserProfile = {
 const GENERAL_FIELDS: readonly string[] = [
   'firstName', 'lastName', 'affiantName',
   'role', // which side of the case the user is on: 'petitioner' | 'respondent'
-  'monthlyIncome', 'monthlyExpenses', 'incomeBreakdown', 'expenseBreakdown',
+  // monthlyIncome is always the USER's own income; the spouse's lives in
+  // spouseMonthlyIncome (role-aware mapping in the orchestrators). Never a
+  // household total.
+  'monthlyIncome', 'spouseMonthlyIncome', 'monthlyExpenses', 'incomeBreakdown', 'expenseBreakdown',
   'assetsDescription', 'dependentsCount',
   'indigencyRequested',
 ];
@@ -100,6 +113,32 @@ function isEmptyValue(v: unknown): boolean {
 
 function normalizeFactContent(fact: ProfileFact): string {
   return String(fact?.content ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+const BREAKDOWN_FIELDS: readonly string[] = ['incomeBreakdown', 'expenseBreakdown'];
+
+/**
+ * Itemized money lists must never accumulate duplicates across merge turns
+ * (a live run stored the same wage twice per person, doubling per-person
+ * sums). Dedupe by normalized (person, label) key, keeping the LATEST
+ * entry — so a corrected amount for the same item replaces instead of
+ * duplicating. Pure plumbing: label wording is the model's job (the schema
+ * demands stable labels); this only collapses exact key collisions.
+ */
+function dedupeBreakdown(raw: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(raw)) return [];
+  const byKey = new Map<string, Record<string, unknown>>();
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const label = String(e.label ?? '').trim();
+    const amount = Number(e.amount);
+    if (!label || !Number.isFinite(amount)) continue;
+    const person = String(e.person ?? '').trim().toLowerCase();
+    const key = `${person}|${label.toLowerCase().replace(/\s+/g, ' ')}`;
+    byKey.set(key, e); // latest wins — corrections replace
+  }
+  return [...byKey.values()];
 }
 
 /** `role` is an enum, not free text: lowercase, keep only the two party roles, else drop. */
@@ -287,7 +326,15 @@ export async function mergeUserProfile(
   for (const field of PROFILE_FIELDS) {
     if (field === 'children') continue;
     const incoming = affidavitData[field];
-    if (!isEmptyValue(incoming)) profile[field] = incoming;
+    if (isEmptyValue(incoming)) continue;
+    // Itemized money lists: collapse duplicates (latest entry per
+    // person+label wins) so per-person sums never double-count.
+    profile[field] = BREAKDOWN_FIELDS.includes(field) ? dedupeBreakdown(incoming) : incoming;
+  }
+  // Stored rows that predate the dedupe may already hold duplicates —
+  // scrub them even on turns that did not touch the breakdowns.
+  for (const field of BREAKDOWN_FIELDS) {
+    if (Array.isArray(profile[field])) profile[field] = dedupeBreakdown(profile[field]);
   }
   sanitizeRole(profile);
   // A turn that named the spouse — canonically or via a caption field read
@@ -316,8 +363,19 @@ export async function mergeUserProfile(
         );
   if ((profile.children as unknown[]).length === 0) delete profile.children;
 
-  const seen = new Set(stored.facts.map(normalizeFactContent).filter(Boolean));
-  const mergedFacts = [...stored.facts];
+  // Corrections retire superseded stored facts. The orchestrators fold the
+  // model's superseded_facts into affidavitData as `retiredFactStatements`
+  // (rewritten each turn); matching here is the same exact/substring
+  // plumbing on normalized text the orchestrators use — conservative: an
+  // unmatched statement retires nothing, and removals are capped per turn.
+  const retiredStatements = sanitizeSupersededStatements(affidavitData.retiredFactStatements);
+  const { kept: survivingFacts } = retireFacts(stored.facts, retiredStatements);
+  const retiredKeys = retiredStatements.map(normalizeFactText);
+  const isRetired = (key: string): boolean =>
+    retiredKeys.some((r) => key === r || key.includes(r) || r.includes(key));
+
+  const seen = new Set(survivingFacts.map(normalizeFactContent).filter(Boolean));
+  const mergedFacts = [...survivingFacts];
   const candidates = [
     ...(Array.isArray(newFacts) ? newFacts : []),
     // Also sweep the conversation's full fact list — covers facts collected
@@ -328,6 +386,8 @@ export async function mergeUserProfile(
     if (!fact || typeof fact !== 'object') continue;
     const key = normalizeFactContent(fact);
     if (!key || seen.has(key)) continue;
+    // A retired statement must not re-enter through the conversation sweep.
+    if (retiredKeys.length > 0 && isRetired(key)) continue;
     seen.add(key);
     mergedFacts.push(fact);
   }

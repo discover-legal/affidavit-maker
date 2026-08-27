@@ -195,6 +195,13 @@ class NorthernIrelandDivorcePetitionTemplate extends BaseDivorcePetitionTemplate
     reliefItems.push('That the Respondent pay the costs of this suit;');
     reliefItems.push('Such further or other relief as the court considers just.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const number = index + 1;
       items.push({

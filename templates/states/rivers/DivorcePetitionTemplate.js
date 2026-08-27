@@ -77,6 +77,10 @@ class RiversDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       reliefItems.push('An order for settlement of property pursuant to section 72 of the Matrimonial Causes Act;');
     }
     reliefItems.push('Such further or other orders as this Honourable Court may deem just and expedient in the circumstances.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((relief, index) => {
       items.push({ number: null, content: relief, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + index) });
     });

@@ -155,6 +155,169 @@ describe('mergeUserProfile', () => {
   });
 });
 
+describe('mergeUserProfile fact retirement (retiredFactStatements)', () => {
+  const readRow = (facts: unknown[]) => ({
+    rows: [{ profile: {}, facts }],
+    rowCount: 1,
+  });
+  const savedFacts = () => {
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    return JSON.parse(params[2] as string) as Array<{ id?: string; content?: string }>;
+  };
+
+  test('retires the matched stored fact and blocks re-entry from the conversation sweep', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow([
+        { id: 'old', content: 'Daniel Hatch and I separated at the end of February 2026.' },
+        { id: 'keep', content: 'I married Daniel Hatch in Provo on February 14, 2012.' },
+      ]),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {
+        retiredFactStatements: ['Daniel Hatch and I separated at the end of February 2026.'],
+        // Conversation sweep still carries the stale card — it must not re-enter.
+        facts: [
+          { id: 'old', content: 'Daniel Hatch and I separated at the end of February 2026.' },
+          { id: 'new', content: 'Daniel Hatch moved out on March 1, 2026.' },
+        ],
+      },
+      [{ id: 'new', content: 'Daniel Hatch moved out on March 1, 2026.' }],
+    );
+
+    const facts = savedFacts();
+    expect(facts.map((f) => f.id).sort()).toEqual(['keep', 'new']);
+  });
+
+  test('unmatched retirement statements retire nothing', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow([{ id: 'a', content: 'I live in Salt Lake County, Utah.' }]),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      retiredFactStatements: ['a statement matching nothing that is stored'],
+    });
+
+    expect(savedFacts().map((f) => f.id)).toEqual(['a']);
+  });
+
+  test('respects the per-turn retirement cap', async () => {
+    const stored = Array.from({ length: 5 }, (_, i) => ({
+      id: String(i),
+      content: `This is recorded fact number ${i} about the marriage.`,
+    }));
+    queryMock.mockResolvedValueOnce(readRow(stored));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      retiredFactStatements: stored.map((f) => f.content), // 5 asked, ≤3 honored
+    });
+
+    expect(savedFacts()).toHaveLength(2);
+  });
+
+  test('retiredFactStatements itself is never stored on the profile', async () => {
+    queryMock.mockResolvedValueOnce(readRow([]));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    await mergeUserProfile(7, { retiredFactStatements: ['whatever statement here'] });
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.retiredFactStatements).toBeUndefined();
+  });
+});
+
+describe('mergeUserProfile breakdown dedupe', () => {
+  const readRow = (profile: Record<string, unknown>) => ({
+    rows: [{ profile, facts: [] }],
+    rowCount: 1,
+  });
+  const savedProfile = () => {
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('merging the same breakdown twice yields one entry per item', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      incomeBreakdown: [
+        { label: 'My wages', amount: 3400, person: 'petitioner' },
+        { label: 'My  Wages', amount: 3400, person: 'petitioner' }, // dupe (case/whitespace)
+        { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.incomeBreakdown).toHaveLength(2);
+    const petitioner = saved.incomeBreakdown.filter(
+      (e: { person?: string }) => e.person === 'petitioner',
+    );
+    expect(petitioner).toHaveLength(1);
+    expect(petitioner[0].amount).toBe(3400); // per-person sum reads 1×, not 2×
+  });
+
+  test('a corrected amount for the same (person, label) replaces rather than duplicates', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      incomeBreakdown: [
+        { label: 'My wages', amount: 3400, person: 'petitioner' },
+        { label: 'My wages', amount: 3600, person: 'petitioner' }, // correction — latest wins
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.incomeBreakdown).toEqual([
+      { label: 'My wages', amount: 3600, person: 'petitioner' },
+    ]);
+  });
+
+  test('scrubs pre-existing duplicate rows even on turns that do not touch the breakdown', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        expenseBreakdown: [
+          { label: 'Mortgage', amount: 1450 },
+          { label: 'Mortgage', amount: 1450 },
+          { label: 'Groceries', amount: 700 },
+        ],
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { marriageDate: '2012-02-14' });
+
+    const saved = savedProfile();
+    expect(saved.expenseBreakdown).toHaveLength(2);
+  });
+});
+
+describe('spouseMonthlyIncome is a durable general field', () => {
+  test('hydrates in general scope and never holds a household total by contract', () => {
+    const hydrated = hydrateAffidavitData(
+      { profile: { monthlyIncome: 3400, spouseMonthlyIncome: 5200 }, facts: [] },
+      {} as Record<string, unknown>,
+      'general',
+    );
+    expect(hydrated.monthlyIncome).toBe(3400);
+    expect(hydrated.spouseMonthlyIncome).toBe(5200);
+  });
+
+  test('mergeUserProfile stores spouseMonthlyIncome', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    await mergeUserProfile(7, { monthlyIncome: 3400, spouseMonthlyIncome: 5200 });
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const saved = JSON.parse(params[1] as string);
+    expect(saved.monthlyIncome).toBe(3400);
+    expect(saved.spouseMonthlyIncome).toBe(5200);
+  });
+});
+
 describe('mergeUserProfile replaceChildren', () => {
   test('replacement lets an explicit removal propagate to the profile', async () => {
     queryMock.mockResolvedValueOnce({

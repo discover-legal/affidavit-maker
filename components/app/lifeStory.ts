@@ -255,6 +255,85 @@ function money(v: unknown): string {
   return `$${Math.round(n).toLocaleString('en-US')}`;
 }
 
+/** The user's side of the caption — the same matching moneySegments uses. */
+function roleOf(profile: Record<string, unknown>): 'petitioner' | 'respondent' {
+  return isRespondent(profile) ? 'respondent' : 'petitioner';
+}
+
+/**
+ * Sum the entries of an itemized money list that belong to `role`.
+ * UNTAGGED entries count as the user's own side — the extraction contract
+ * (BaseDivorceOrchestrator) and the supporting-document builders
+ * (services/supportDocs/partyIncome.js) both attribute entries the
+ * interview left untagged to the declarant, because those phases collect
+ * the user's own financial declaration.
+ * Returns null when the list carries no attributable entries at all,
+ * so callers can tell "no itemization" apart from "itemized, $0 yours".
+ */
+function personTaggedSum(raw: unknown, role: string): number | null {
+  if (!Array.isArray(raw)) return null;
+  let tagged = false;
+  let sum = 0;
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as { amount?: unknown; person?: unknown };
+    const amount = Number(e.amount);
+    const person = str(e.person).toLowerCase();
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    tagged = true;
+    if (person === role || person === '') sum += amount;
+  }
+  return tagged ? Math.round(sum) : null;
+}
+
+/**
+ * `scope: 'own'` — the amount is the user's own money; `'household'` —
+ * an ambiguous combined figure that must never be presented as the user's.
+ */
+export type MoneyAmount = { amount: number; scope: 'own' | 'household' };
+
+/**
+ * The USER's own monthly income — never the spouse's, never a household
+ * total silently framed as the user's (they may be separating from the
+ * other earner). Derivation, most reliable first:
+ *  1. Person-tagged incomeBreakdown entries summed for the user's side
+ *     (the same person-matching the "(you)" labels use), plus untagged
+ *     entries — collected as the user's own declaration, matching the
+ *     extraction contract and supportDocs/partyIncome.js → own.
+ *  2. monthlyIncome when spouseMonthlyIncome is separately on record —
+ *     under the extraction contract monthlyIncome is then the user's
+ *     own → own.
+ *  3. A lone monthlyIncome scalar is ambiguous → household.
+ */
+export function userMonthlyIncome(
+  profile: Record<string, unknown>,
+): MoneyAmount | null {
+  const own = personTaggedSum(profile.incomeBreakdown, roleOf(profile));
+  if (own !== null && own > 0) return { amount: own, scope: 'own' };
+  const income = Number(profile.monthlyIncome);
+  if (!Number.isFinite(income) || income <= 0) return null;
+  const spouse = Number(profile.spouseMonthlyIncome);
+  if (Number.isFinite(spouse) && spouse > 0) {
+    return { amount: Math.round(income), scope: 'own' };
+  }
+  return { amount: Math.round(income), scope: 'household' };
+}
+
+/**
+ * The USER's own monthly expenses: person-tagged expenseBreakdown entries
+ * for the user's side when itemized that way, else the monthlyExpenses
+ * scalar (the interview asks for the user's own bills).
+ */
+export function userMonthlyExpenses(
+  profile: Record<string, unknown>,
+): MoneyAmount | null {
+  const own = personTaggedSum(profile.expenseBreakdown, roleOf(profile));
+  if (own !== null && own > 0) return { amount: own, scope: 'own' };
+  const expenses = Number(profile.monthlyExpenses);
+  if (!Number.isFinite(expenses) || expenses <= 0) return null;
+  return { amount: Math.round(expenses), scope: 'own' };
+}
+
 /**
  * Build the numbered recitals of the story. Identity, marriage, and home
  * always appear (with blanks when unknown) so the page invites completion;
@@ -342,17 +421,29 @@ export function buildRecitals(
     segments: homeSegments,
   });
 
-  // 4 — money (only once shared)
-  const income = money(profile.monthlyIncome);
-  const expenses = money(profile.monthlyExpenses);
+  // 4 — money (only once shared). Income is the USER's own when we can
+  // tell (person-tagged breakdown, or the contract fields); a lone
+  // household scalar is framed as the household's, never as the user's.
+  const ownIncome = userMonthlyIncome(profile);
+  const ownExpenses = userMonthlyExpenses(profile);
+  const income = money(ownIncome?.amount);
+  const expenses = money(ownExpenses?.amount);
   if (income || expenses) {
     const segments: Segment[] = [];
     if (income) {
-      segments.push(
-        text(es ? 'Entran unos ' : 'About '),
-        value(es ? `${income} al mes` : `${income} a month`),
-        text(es ? '' : ' comes in'),
-      );
+      const household = ownIncome?.scope === 'household';
+      if (household) {
+        segments.push(
+          text(es ? 'Entran unos ' : 'About '),
+          value(es ? `${income} al mes` : `${income} a month`),
+          text(es ? ' en tu hogar' : ' comes into your household'),
+        );
+      } else {
+        segments.push(
+          text(es ? 'Ingresas unos ' : 'You bring in about '),
+          value(es ? `${income} al mes` : `${income} a month`),
+        );
+      }
     }
     if (income && expenses) segments.push(text(es ? ', y ' : ', and '));
     if (expenses) {
@@ -676,13 +767,18 @@ export function waitingPeriodNote(
     : `${stateName} has a ${waitingDays}-day waiting period: a court can't finalize a divorce until ${waitingDays} days after filing.`;
 }
 
-/** Monthly margin: positive = left over, negative = short. Null until both known. */
+/**
+ * Monthly margin: positive = left over, negative = short. Null until both
+ * known. Uses the USER's own amounts (userMonthlyIncome/-Expenses); when
+ * the income is only a household scalar the margin is the household's —
+ * callers must check userMonthlyIncome(...).scope before framing it as
+ * the user's own money.
+ */
 export function moneyLeftover(profile: Record<string, unknown>): number | null {
-  const income = Number(profile.monthlyIncome);
-  const expenses = Number(profile.monthlyExpenses);
-  if (!Number.isFinite(income) || income <= 0) return null;
-  if (!Number.isFinite(expenses) || expenses <= 0) return null;
-  return Math.round(income - expenses);
+  const income = userMonthlyIncome(profile);
+  const expenses = userMonthlyExpenses(profile);
+  if (!income || !expenses) return null;
+  return Math.round(income.amount - expenses.amount);
 }
 
 export type MoneySegment = { label: string; amount: number };
@@ -739,7 +835,7 @@ export function moneySegments(
   if (!Array.isArray(raw)) return [];
   const es = lang === 'es';
   const spouse = profile ? spouseName(profile).split(' ')[0] : '';
-  const userRole = profile && isRespondent(profile) ? 'respondent' : 'petitioner';
+  const userRole = profile ? roleOf(profile) : 'petitioner';
   const youRe = es ? /\btus?\b|tú/i : /\byour?\b/i;
   const items: MoneySegment[] = [];
   for (const entry of raw) {
@@ -858,7 +954,11 @@ export function buildLedger(
   );
 
   let spousal: string | null = null;
-  if (profile.spousalSupportRequested === true) {
+  // An explicit mutual waiver is an agreement on the record — a different
+  // fact than support simply not having been requested.
+  if (profile.spousalSupportWaived === true) {
+    spousal = es ? 'Renunciada (mutua)' : 'Waived (mutual)';
+  } else if (profile.spousalSupportRequested === true) {
     const amount = Number(profile.supportAmount ?? profile.spousalSupportAmount);
     spousal =
       Number.isFinite(amount) && amount > 0
@@ -1024,8 +1124,12 @@ const FPG_2025_PER_PERSON = 5500;
 const FEE_WAIVER_PCT = 1.5;
 
 export function feeWaiverHint(profile: Record<string, unknown>): boolean {
-  const income = Number(profile.monthlyIncome);
-  if (!Number.isFinite(income) || income <= 0) return false;
+  // The USER's own income when derivable (person-tagged breakdown or the
+  // contract fields). A lone household scalar is used as-is: household
+  // income under the guideline implies the user's own is too, while a
+  // household figure over it simply doesn't trigger the hint.
+  const income = userMonthlyIncome(profile)?.amount ?? 0;
+  if (income <= 0) return false;
   if (profile.indigencyRequested === true) return false; // already pursuing it
   const dependents = Number(profile.dependentsCount);
   const children = Array.isArray(profile.children) ? profile.children.length : 0;

@@ -17,7 +17,8 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
-const { normalizeCountyName } = require('./utah');
+const { resolvePartyIncomes } = require('./partyIncome');
+const { normalizeCountyName, listText } = require('./utah');
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -160,9 +161,27 @@ function accountItems(data) {
 function financeLines(data) {
   const lines = [];
   const incomeItems = moneyLines(data.incomeBreakdown);
-  const incomeTotal = incomeItems.length ? totalOf(data.incomeBreakdown) : parseAmount(data.monthlyIncome);
-  if (incomeItems.length > 0 || incomeTotal > 0) {
-    lines.push(`Total monthly income: ${formatMoney(incomeTotal)}.`, ...incomeItems);
+  // Per-party derivation (services/supportDocs/partyIncome.js): a lawyer
+  // reading "Total monthly income" must know whose income it is — a legacy
+  // household scalar is never presented as one person's figure.
+  const derived = resolvePartyIncomes(data);
+  const p = derived.petitioner.amount;
+  const r = derived.respondent.amount;
+  if (p !== null && r !== null) {
+    lines.push(
+      `Monthly income — petitioner: ${formatMoney(p)}; respondent: ${formatMoney(r)}; ` +
+        `combined: ${formatMoney(p + r)}.`,
+      ...incomeItems,
+    );
+  } else if (r !== null) {
+    lines.push(
+      `Respondent's monthly income: ${formatMoney(r)} (petitioner's not on file).`,
+      ...incomeItems,
+    );
+  } else if (p !== null) {
+    lines.push(`Total monthly income: ${formatMoney(p)}.`, ...incomeItems);
+  } else if (incomeItems.length > 0) {
+    lines.push('Monthly income (itemized; person not identified):', ...incomeItems);
   }
   const expenseItems = moneyLines(data.expenseBreakdown);
   const expenseTotal = expenseItems.length
@@ -174,8 +193,9 @@ function financeLines(data) {
   if (str(data.assetsDescription)) lines.push(`Assets: ${str(data.assetsDescription)}.`);
   const debts = [];
   if (str(data.debtsDescription)) debts.push(str(data.debtsDescription));
-  if (str(data.petitionerDebts)) debts.push(`petitioner: ${str(data.petitionerDebts)}`);
-  if (str(data.respondentDebts)) debts.push(`respondent: ${str(data.respondentDebts)}`);
+  // listText: extraction stores debts as arrays; legacy saves as strings.
+  if (listText(data.petitionerDebts)) debts.push(`petitioner: ${listText(data.petitionerDebts)}`);
+  if (listText(data.respondentDebts)) debts.push(`respondent: ${listText(data.respondentDebts)}`);
   if (debts.length > 0) lines.push(`Debts: ${debts.join('; ')}.`);
   return lines;
 }
@@ -202,7 +222,7 @@ function questionItems(data) {
   }
   const hasProperty =
     str(data.assetsDescription) || str(data.propertyAgreement) || str(data.debtsDescription) ||
-    str(data.petitionerDebts) || str(data.respondentDebts);
+    listText(data.petitionerDebts) || listText(data.respondentDebts);
   if (hasProperty) {
     questions.push(
       'How are property and debts like ours usually divided, and is our division agreement (or my proposal) reasonable to ask for?',

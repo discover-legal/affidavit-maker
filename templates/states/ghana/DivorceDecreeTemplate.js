@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Ghana Divorce Decree Template
@@ -171,22 +172,22 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'finding'
       });
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Petitioner'}:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'}:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -239,7 +240,7 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     let soleCustodianName = null;
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} shall have joint custody of the child(ren), with the child(ren) primarily residing with ${divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner'}.`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} shall have joint custody of the child(ren), with the child(ren) primarily residing with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner'}.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -248,7 +249,7 @@ class GhanaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'Petitioner')

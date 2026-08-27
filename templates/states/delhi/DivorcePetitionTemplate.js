@@ -183,6 +183,13 @@ class DelhiDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems.push('Pass any other order(s) as this Hon\'ble Court may deem fit and proper in the facts and circumstances of the case.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);
       items.push({

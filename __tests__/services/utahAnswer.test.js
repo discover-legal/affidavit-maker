@@ -55,7 +55,9 @@ describe('answerToPetition — shape and caption', () => {
 
   test('caption keeps Petitioner v. Respondent with the Utah district-court header', () => {
     const { sections } = answerToPetition(sampleData);
-    expect(sections.header).toBe('IN THE DISTRICT COURT OF SALT LAKE COUNTY, STATE OF UTAH');
+    expect(sections.header).toBe(
+      'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+    );
     expect(sections.caseCaption.formatted).toContain('JANE Q. EXAMPLE');
     expect(sections.caseCaption.formatted).toContain('Petitioner');
     expect(sections.caseCaption.formatted).toContain('JOHN R. EXAMPLE');

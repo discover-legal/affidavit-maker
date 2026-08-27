@@ -6,6 +6,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Singapore Divorce Judgment Template
@@ -201,22 +202,22 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'finding'
       });
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.petitionerName || 'the Applicant'}:`,
           type: 'order'
         });
-        divorceData.petitionerProperty.forEach(prop => {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following matrimonial assets are awarded to ${divorceData.respondentName || 'the Respondent'}:`,
           type: 'order'
         });
-        divorceData.respondentProperty.forEach(prop => {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `- ${prop}`, type: 'property_item' });
         });
       }
@@ -274,7 +275,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant'} shall have care and control of the child(ren).`,
+        content: `IT IS ORDERED that ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Applicant'} shall have care and control of the child(ren).`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -283,7 +284,7 @@ class SingaporeDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'the Applicant')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'the Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Applicant');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Applicant');
       soleCustodianName = custodianName;
       items.push({
         content: `IT IS ORDERED that ${custodianName} shall have sole custody, care and control of the child(ren).`,

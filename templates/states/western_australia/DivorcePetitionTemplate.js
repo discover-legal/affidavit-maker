@@ -75,6 +75,10 @@ class WesternAustraliaDivorcePetitionTemplate extends BaseDivorcePetitionTemplat
       reliefItems.push('An order that the Respondent pay the Applicant\'s costs of this application;');
     }
     reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
+    // Agreed corollary relief (agreed support amount, spousal-support
+    // waiver, property agreement) — spliced before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
     reliefItems.forEach((r, i) => items.push({ number: null, content: r, type: 'relief_item', style: 'letter', letter: String.fromCharCode(97 + i) }));
     const hasAncillaryClaims =
       divorceData.hasProperty !== false ||

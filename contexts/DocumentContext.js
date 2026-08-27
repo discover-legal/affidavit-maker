@@ -76,6 +76,14 @@ export const createPersistedDocumentSnapshot = (document) => Object.fromEntries(
   )
 );
 
+// Reopening a saved divorce package always lands on the Petition tab. The
+// stored activeSubDocument is only "whichever tab happened to be open at the
+// last save" (often the Decree), which is a confusing landing spot.
+export const reopenSubDocumentOverride = (documentContent) =>
+  documentContent && documentContent.documentType === 'divorce_package'
+    ? { activeSubDocument: 'divorce_petition' }
+    : {};
+
 // Action types
 const ActionTypes = {
   SET_DOCUMENT_DATA: 'SET_DOCUMENT_DATA',
@@ -584,6 +592,7 @@ export const DocumentProvider = ({ children }) => {
         // Clear UI cache fields that shouldn't be restored from database
         const documentWithId = {
           ...documentContent,
+          ...reopenSubDocumentOverride(documentContent),
           documentId: data.document.id,
           conversationHistory: storedTranscript,
           ...(Number.isInteger(loadedRevision) ? { serverRevision: loadedRevision } : {}),

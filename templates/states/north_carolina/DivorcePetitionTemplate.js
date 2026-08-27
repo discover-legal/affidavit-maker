@@ -268,6 +268,10 @@ class NorthCarolinaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       });
     }
 
+    // Agreed child arrangements (custody enum, primary residence, agreed
+    // support) — pleaded via the base hooks, never silently dropped.
+    paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
+
     return {
       title: 'V. CHILDREN',
       items,
@@ -283,6 +287,13 @@ class NorthCarolinaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {Object} Property section
    */
   generatePropertySection(divorceData) {
+    // An agreed division (or an explicit no-property case) pleads the
+    // parties' actual agreement via the base hooks instead of the
+    // generic boilerplate.
+    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+      return super.generatePropertySection(divorceData);
+    }
+
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 14;
 
@@ -341,6 +352,13 @@ class NorthCarolinaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems.push('Tax the costs of this action to the Defendant;');
     reliefItems.push('Grant such other and further relief as the Court may deem just and proper.');
+
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index); // a, b, c...

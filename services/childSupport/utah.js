@@ -40,7 +40,7 @@
 // amount. This is information, not legal advice.
 
 const statutoryTable = require('./utahTable');
-const { totalOf } = require('../../utils/labeledAmounts');
+const { resolvePartyIncomes } = require('../supportDocs/partyIncome');
 
 const OFFICIAL_CALCULATOR_URL =
   'https://www.utcourts.gov/en/self-help/case-categories/family/child-support.html';
@@ -83,35 +83,13 @@ function round2(n) {
 
 // ─── input resolution ────────────────────────────────────────────────────────
 
-/** Sum of incomeBreakdown items attributed to one side. Untagged items belong
- *  to the petitioner (the breakdown is collected as the petitioner's own
- *  financial declaration; the interview tags the other parent's entries). */
-function breakdownIncome(data, side) {
-  const items = Array.isArray(data.incomeBreakdown) ? data.incomeBreakdown : [];
-  const mine = items.filter((it) => {
-    if (!it || typeof it !== 'object') return false;
-    const isRespondent = /respondent/.test(str(it.person).toLowerCase());
-    return side === 'respondent' ? isRespondent : !isRespondent;
-  });
-  return totalOf(mine);
-}
-
-function resolvePetitionerIncome(data) {
-  return (
-    parseAmount(data.petitionerMonthlyIncome) ||
-    parseAmount(data.monthlyIncome) ||
-    breakdownIncome(data, 'petitioner')
-  );
-}
-
-function resolveRespondentIncome(data) {
-  return (
-    parseAmount(data.respondentMonthlyIncome) ||
-    parseAmount(data.respondentIncome) ||
-    parseAmount(data.respondentGrossMonthlyIncome) ||
-    breakdownIncome(data, 'respondent')
-  );
-}
+// Per-party income derivation lives in services/supportDocs/partyIncome.js —
+// explicit per-person fields win, then the per-person sums of the
+// person-tagged incomeBreakdown, then the contract scalars (monthlyIncome =
+// the USER's own income, spouseMonthlyIncome = the spouse's). A legacy
+// household total stored in `monthlyIncome` is never attributed to one
+// parent (that once inflated a worksheet's "Petitioner's gross monthly
+// income" to the household total and flipped the shares).
 
 function birthYearOf(child) {
   const raw = str(child.dob) || str(child.dateOfBirth) || str(child.birthDate);
@@ -334,8 +312,10 @@ function calculateUtah(data = {}, opts = {}) {
   const notes = [ESTIMATE_DISCLAIMER];
 
   // § 81-6-204(10): income figures round to the nearest dollar.
-  const petitionerIncome = Math.round(resolvePetitionerIncome(data));
-  const respondentIncome = Math.round(resolveRespondentIncome(data));
+  const derivedIncomes = resolvePartyIncomes(data);
+  notes.push(...derivedIncomes.warnings);
+  const petitionerIncome = Math.round(derivedIncomes.petitioner.amount || 0);
+  const respondentIncome = Math.round(derivedIncomes.respondent.amount || 0);
   const { minors, excludedAdults, unknownDob } = resolveChildren(data);
   const joint = resolveJoint(data, petitionerIncome, respondentIncome);
   const obligorRoleSole = resolveObligorRole(data);

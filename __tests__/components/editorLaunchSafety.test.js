@@ -1,5 +1,5 @@
-import { createPersistedDocumentSnapshot } from '@/contexts/DocumentContext';
-import { getDownloadReadiness } from '@/components/app/EditorView';
+import { createPersistedDocumentSnapshot, reopenSubDocumentOverride } from '@/contexts/DocumentContext';
+import { getDownloadReadiness, isDivorceEditor } from '@/components/app/EditorView';
 
 jest.mock('@/lib/auth0-client', () => ({ useAuth0: jest.fn() }));
 jest.mock('@/contexts/TOSContext', () => ({ useTOS: jest.fn() }));
@@ -69,5 +69,33 @@ describe('editor launch safety', () => {
       petitionerName: 'Alex Example',
       facts: [{ text: 'The parties separated.' }],
     })).toEqual({ ready: false, missing: ['your name'] });
+  });
+});
+
+describe('reopening a saved divorce package', () => {
+  it('titles the editor as a divorce package without a ?type= URL param', () => {
+    // New document: type comes from the URL.
+    expect(isDivorceEditor('divorce_package', {})).toBe(true);
+    // REOPENED document: no ?type= (defaults to 'affidavit'), the loaded
+    // document's own documentType must win.
+    expect(isDivorceEditor('affidavit', { documentType: 'divorce_package' })).toBe(true);
+    expect(isDivorceEditor('affidavit', { documentType: 'divorce_petition' })).toBe(true);
+    expect(isDivorceEditor('affidavit', { documentType: 'divorce_decree' })).toBe(true);
+    // Plain affidavits stay affidavits.
+    expect(isDivorceEditor('affidavit', { documentType: 'general' })).toBe(false);
+    expect(isDivorceEditor('affidavit', {})).toBe(false);
+    expect(isDivorceEditor('affidavit', null)).toBe(false);
+  });
+
+  it('always lands a reopened divorce package on the Petition tab', () => {
+    // The saved row remembers whichever tab was open at the last save
+    // (often the Decree) — reopening must not land there.
+    expect(reopenSubDocumentOverride({
+      documentType: 'divorce_package',
+      activeSubDocument: 'divorce_decree',
+    })).toEqual({ activeSubDocument: 'divorce_petition' });
+    // Non-package documents are untouched.
+    expect(reopenSubDocumentOverride({ documentType: 'general' })).toEqual({});
+    expect(reopenSubDocumentOverride(null)).toEqual({});
   });
 });

@@ -186,6 +186,13 @@ class LagosDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems.push('Such further or other orders as this Honourable Court may deem just and expedient in the circumstances.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);
       items.push({

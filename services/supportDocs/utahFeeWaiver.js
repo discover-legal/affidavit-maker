@@ -44,7 +44,22 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
-const { UTAH_UNSWORN_DECLARATION, utahCaption, filerBlock } = require('./utah');
+const { resolvePartyIncomes, INCOME_PLACEHOLDER } = require('./partyIncome');
+const {
+  UTAH_UNSWORN_DECLARATION,
+  utahCaption,
+  filerBlock,
+  listText,
+  resolvePetitioner,
+  resolveRespondent,
+} = require('./utah');
+
+/** The movant is the USER, on whichever caption side `role` puts them. */
+function resolveMovant(data) {
+  return String(data.role || '').trim().toLowerCase() === 'respondent'
+    ? resolveRespondent(data)
+    : resolvePetitioner(data);
+}
 
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
@@ -62,23 +77,6 @@ const FEE_WAIVER_PCT = 1.5; // the app's eligibility HINT threshold (150%), not 
 function str(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
-
-function resolvePetitioner(data) {
-  return (
-    str(data.petitionerName) ||
-    [str(data.petitionerFirstName), str(data.petitionerLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
-}
-
-function resolveRespondent(data) {
-  return (
-    str(data.respondentName) ||
-    [str(data.respondentFirstName), str(data.respondentLastName)].filter(Boolean).join(' ') ||
-    '_________________________________'
-  );
-}
-
 
 function parseAmount(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -157,10 +155,25 @@ function signatureSections(name, title, opts = {}) {
  * statement the court reviews under Utah Code § 78A-2-304.
  */
 function feeWaiverMotion(data = {}, opts = {}) {
-  const movant = resolvePetitioner(data);
+  const movant = resolveMovant(data);
   const { header, caseCaption } = utahCaption(data);
 
-  const income = moneyTable(data.incomeBreakdown, data.monthlyIncome);
+  // The statement swears to the MOVANT's own finances — the whole point is
+  // the movant's inability to pay. Only income the data ties to the movant
+  // may appear (the spouse's tagged entries are excluded), and a legacy
+  // household total in `monthlyIncome` is never sworn as the movant's income:
+  // an inflated figure here could cost a real user the fee waiver.
+  const derived = resolvePartyIncomes(data);
+  const own = derived[derived.declarant]; // the movant's own caption side
+  const income = moneyTable(own.items, own.amount);
+  const hasIncomeData = income.lines.length > 0 || own.amount !== null;
+  const warnings = [...derived.warnings];
+  if (!hasIncomeData) {
+    warnings.push(
+      'Monthly income is not on file — the TOTAL MONTHLY GROSS INCOME line is a placeholder. ' +
+        'Enter your own gross monthly income before signing this sworn statement.',
+    );
+  }
   const expenses = moneyTable(data.expenseBreakdown, data.monthlyExpenses);
 
   const children = Array.isArray(data.children)
@@ -194,9 +207,16 @@ function feeWaiverMotion(data = {}, opts = {}) {
 
   push(
     [
-      'MONTHLY GROSS INCOME (itemized):',
+      'MONTHLY GROSS INCOME (the movant\'s own, itemized):',
       ...(income.lines.length ? income.lines : [`(no itemized income on file) ${BLANK_LINE}`]),
-      `TOTAL MONTHLY GROSS INCOME: ${income.total > 0 ? formatMoney(income.total) : BLANK_SHORT}`,
+      `TOTAL MONTHLY GROSS INCOME: ${
+        hasIncomeData
+          ? formatMoney(income.lines.length > 0 ? income.total : own.amount)
+          : INCOME_PLACEHOLDER
+      }`,
+      ...(hasIncomeData
+        ? []
+        : ['(your monthly income is not on file — fill this in before signing)']),
     ].join('\n'),
   );
 
@@ -234,7 +254,12 @@ function feeWaiverMotion(data = {}, opts = {}) {
 
   const debts = [];
   if (str(data.debtsDescription)) debts.push(str(data.debtsDescription));
-  if (str(data.petitionerDebts)) debts.push(str(data.petitionerDebts));
+  // The movant's own side's debts — this statement swears to "what I owe".
+  // listText: extraction stores debts as arrays; legacy saves as strings.
+  const ownDebts = listText(
+    derived.declarant === 'respondent' ? data.respondentDebts : data.petitionerDebts,
+  );
+  if (ownDebts) debts.push(ownDebts);
   push(`DEBTS (what I owe): ${debts.join('; ') || BLANK_LINE}`);
 
   // Neutral FPG information line — only when we actually have income data.
@@ -261,6 +286,7 @@ function feeWaiverMotion(data = {}, opts = {}) {
       kind: 'fee_waiver_motion',
       state: 'UT',
       signatureStyle: opts.signatureStyle === 'notary' ? 'notary' : 'unsworn',
+      ...(warnings.length > 0 ? { warnings } : {}),
     },
     sections: {
       filerBlock: filerBlock(data, movant, 'Movant, Pro Se'),

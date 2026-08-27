@@ -178,17 +178,28 @@ describe('BaseDivorceOrchestrator returning-user phase routing', () => {
 
 describe('property division capture', () => {
   test('maps property/debt assignments to the fields the decree reads, as line-item arrays', () => {
+    // Item splitting is the MODEL's job via the array schema — the code
+    // never splits on commas (a comma split once shattered "$62,000" into
+    // "$62" + "000"). Arrays pass through element-for-element.
     const orch = makeOrchestrator();
     const data = orch._applyFieldUpdates({}, {
-      petitioner_property: 'the family home, 2019 Honda Accord',
-      respondent_property: '401(k) account',
-      petitioner_debts: 'Chase credit card, medical bills',
-      respondent_debts: 'car loan',
+      petitioner_property: ['the family home', '2019 Honda Accord'],
+      respondent_property: ['Fidelity 401(k), approximately $62,000'],
+      petitioner_debts: ['Chase credit card', 'medical bills'],
+      respondent_debts: ['car loan'],
     });
     expect(data.petitionerProperty).toEqual(['the family home', '2019 Honda Accord']);
-    expect(data.respondentProperty).toEqual(['401(k) account']);
+    expect(data.respondentProperty).toEqual(['Fidelity 401(k), approximately $62,000']);
     expect(data.petitionerDebts).toEqual(['Chase credit card', 'medical bills']);
     expect(data.respondentDebts).toEqual(['car loan']);
+  });
+
+  test('a legacy string value becomes ONE element — never re-split on commas', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      respondent_property: 'Fidelity 401(k) worth about $62,000',
+    });
+    expect(data.respondentProperty).toEqual(['Fidelity 401(k) worth about $62,000']);
   });
 });
 

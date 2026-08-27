@@ -340,19 +340,59 @@ describe('calculateUtah — sole custody (§ 81-6-205)', () => {
     expect(result.monthlyObligation).toBe(602);
   });
 
-  test('income fallbacks: monthlyIncome + person-tagged incomeBreakdown', () => {
+  test('person-tagged incomeBreakdown wins over a legacy household scalar', () => {
+    // Legacy blobs stored the HOUSEHOLD total in monthlyIncome. It must never
+    // be attributed to one parent when itemized per-person data exists.
     const result = calc({
       petitionerMonthlyIncome: undefined,
       respondentMonthlyIncome: undefined,
-      monthlyIncome: '$2,400',
+      monthlyIncome: 4000, // household total (2400 + 1600)
       incomeBreakdown: [
-        { label: 'Wages', amount: 9999 }, // ignored: monthlyIncome wins for petitioner
+        { label: 'Wages', amount: 2400, person: 'petitioner' },
+        { label: 'Respondent wages', amount: 1600, person: 'respondent' },
+      ],
+    });
+    expect(result.petitionerIncome).toBe(2400);
+    expect(result.respondentIncome).toBe(1600);
+    expect(result.combinedMonthlyIncome).toBe(4000);
+    expect(result.monthlyObligation).toBe(255);
+    expect(result.notes.join(' ')).toMatch(/household total/i);
+  });
+
+  test('scalar monthlyIncome is the user\'s own income when no breakdown contradicts it', () => {
+    const result = calc({
+      petitionerMonthlyIncome: undefined,
+      monthlyIncome: '$2,400', // contract: the USER's own gross monthly income
+      respondentMonthlyIncome: 1600,
+    });
+    expect(result.petitionerIncome).toBe(2400);
+    expect(result.respondentIncome).toBe(1600);
+    expect(result.monthlyObligation).toBe(255);
+  });
+
+  test('untagged breakdown entries belong to the declarant (petitioner) side', () => {
+    const result = calc({
+      petitionerMonthlyIncome: undefined,
+      respondentMonthlyIncome: undefined,
+      incomeBreakdown: [
+        { label: 'Wages', amount: 2400 }, // collected as the declarant's own declaration
         { label: 'Respondent wages', amount: 1600, person: 'respondent' },
       ],
     });
     expect(result.petitionerIncome).toBe(2400);
     expect(result.respondentIncome).toBe(1600);
     expect(result.monthlyObligation).toBe(255);
+  });
+
+  test('a scalar matching the OTHER side\'s itemized income is never the petitioner\'s', () => {
+    const result = calc({
+      petitionerMonthlyIncome: undefined,
+      respondentMonthlyIncome: undefined,
+      monthlyIncome: 1600, // echoes the respondent's itemized income
+      incomeBreakdown: [{ label: 'Respondent wages', amount: 1600, person: 'respondent' }],
+    });
+    expect(result.insufficient).toBe(true);
+    expect(result.missing).toContain('petitioner gross monthly income');
   });
 
   test("'expanded' parent-time keeps the sole model and points to the official calculator", () => {
@@ -504,7 +544,9 @@ describe('childSupportWorksheet builder', () => {
     expect(structure.metadata.kind).toBe('child_support_worksheet');
     expect(structure.metadata.estimate).toBe(true);
     expect(structure.sections.title).toBe('CHILD SUPPORT WORKSHEET (ESTIMATE)');
-    expect(structure.sections.header).toContain('DISTRICT COURT OF SALT LAKE COUNTY');
+    expect(structure.sections.header).toBe(
+      'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+    );
     expect(structure.sections.caseCaption.formatted).toContain('JANE Q. EXAMPLE');
     expect(Array.isArray(structure.sections.facts.items)).toBe(true);
     structure.sections.facts.items.forEach((item, idx) => {
@@ -578,5 +620,88 @@ describe('childSupportWorksheet builder', () => {
     expect(text).toContain('/profile');
     expect(text).toContain('Fix my story');
     expect(text).toContain('Emma Example'); // listed even without a computed count
+  });
+});
+
+// ─── live-QA regression: legacy household scalar + person-tagged breakdown ───
+// A persona run stored the HOUSEHOLD total ($8,600) in monthlyIncome while
+// incomeBreakdown correctly itemized $3,400 (petitioner) / $5,200
+// (respondent). The worksheet printed "Petitioner's gross monthly income …
+// $8,600", inflated combined income to $13,800, flipped her share to 62%,
+// and estimated the wrong support amount. Exact stored data shape below.
+describe('childSupportWorksheet — persona regression (household scalar in monthlyIncome)', () => {
+  const personaData = {
+    petitionerName: "Katie O'Brien-Hatch", // go-by; full legal names below
+    respondentName: 'Daniel Hatch',
+    childSupportObligee: "Kathleen O'Brien-Hatch",
+    childSupportObligor: 'Daniel James Hatch',
+    childSupportPayor: 'respondent',
+    primaryCustodian: "Katie O'Brien-Hatch",
+    state: 'UT',
+    county: 'Salt Lake',
+    children: [
+      { name: 'Emma Rose Hatch', dob: '2014-08-03' },
+      { name: 'Lucas Daniel Hatch', dob: '2018-05-19' },
+    ],
+    monthlyIncome: 8600, // legacy household total (3400 + 5200)
+    incomeBreakdown: [
+      {
+        label: "Katie O'Brien-Hatch wages as office manager at a dental office",
+        amount: 3400,
+        person: 'petitioner',
+      },
+      { label: 'Daniel Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+    ],
+    monthlyExpenses: 3100,
+  };
+
+  test('calculateUtah splits the income $3,400 / $5,200, never $8,600 to one parent', () => {
+    const result = calculateUtah(personaData);
+    expect(result.insufficient).toBeUndefined();
+    expect(result.petitionerIncome).toBe(3400);
+    expect(result.respondentIncome).toBe(5200);
+    expect(result.combinedMonthlyIncome).toBe(8600);
+    expect(result.petitionerShare).toBe(39.53);
+    expect(result.respondentShare).toBe(60.47);
+    expect(result.obligorRole).toBe('respondent');
+    // base @ $8,600 combined, 2 children; obligor income above the low table
+    const base = rowFor(statutoryTable.baseRows, 8600).byChildren[1];
+    expect(result.baseCombinedObligation).toBe(base);
+    expect(result.monthlyObligation).toBe(Math.round(base * (5200 / 8600)));
+    expect(result.notes.join(' ')).toMatch(/household total/i);
+  });
+
+  test('worksheet prints the per-person figures and flags the household scalar', () => {
+    const text = textOf(childSupportWorksheet(personaData));
+    expect(text).toMatch(/Petitioner's gross monthly income [.\s]+ \$3,400/);
+    expect(text).toMatch(/Respondent's gross monthly income [.\s]+ \$5,200/);
+    expect(text).toMatch(/Combined gross monthly income [.\s]+ \$8,600/);
+    expect(text).toContain('39.53%');
+    expect(text).toContain('60.47%');
+    // The blocker's wrong numbers must be gone
+    expect(text).not.toMatch(/Petitioner's gross monthly income [.\s]+ \$8,600/);
+    expect(text).not.toContain('$13,800');
+    expect(text).not.toContain('62.32%');
+    // Obligor named with the full legal name
+    expect(text).toMatch(/Paying parent \(obligor\) [.\s]+ Daniel James Hatch/);
+    expect(text).toMatch(/household total/i);
+  });
+
+  test('caption uses the petition\'s court-line style and the full legal names', () => {
+    const { sections } = childSupportWorksheet(personaData);
+    expect(sections.header).toBe(
+      'IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR SALT LAKE COUNTY',
+    );
+    expect(sections.caseCaption.formatted).toContain("KATHLEEN O'BRIEN-HATCH");
+    expect(sections.caseCaption.formatted).toContain('DANIEL JAMES HATCH');
+    expect(sections.caseCaption.formatted).not.toContain('KATIE');
+  });
+
+  test('income unknowable → blanks plus the missing list, never a guessed number', () => {
+    const { incomeBreakdown, monthlyIncome, ...rest } = personaData;
+    const text = textOf(childSupportWorksheet(rest));
+    expect(text).toContain('$__________');
+    expect(text).toContain('petitioner gross monthly income');
+    expect(text).toContain('respondent gross monthly income');
   });
 });

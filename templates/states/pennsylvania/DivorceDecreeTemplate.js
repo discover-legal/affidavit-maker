@@ -3,7 +3,8 @@
 // Complies with 23 Pa.C.S. § 3101 et seq. (Pennsylvania Divorce Code)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Pennsylvania Decree in Divorce Template
@@ -227,8 +228,8 @@ class PennsylvaniaDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'order'
       });
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
-        divorceData.petitionerProperty.forEach(prop => {
+      if (asList(divorceData.petitionerProperty).length > 0) {
+        asList(divorceData.petitionerProperty).forEach(prop => {
           items.push({ content: `• ${prop}`, type: 'property_item' });
         });
       } else {
@@ -243,8 +244,8 @@ class PennsylvaniaDecreeTemplate extends BaseDivorceDecreeTemplate {
         type: 'order'
       });
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
-        divorceData.respondentProperty.forEach(prop => {
+      if (asList(divorceData.respondentProperty).length > 0) {
+        asList(divorceData.respondentProperty).forEach(prop => {
           items.push({ content: `• ${prop}`, type: 'property_item' });
         });
       } else {
@@ -314,7 +315,7 @@ class PennsylvaniaDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Plaintiff')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
     const otherParent = primaryParent === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
@@ -367,10 +368,11 @@ class PennsylvaniaDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Visitation language
    */
   getVisitationLanguage(divorceData) {
-    const otherParent = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `IT IS ORDERED that ${otherParent} shall have partial physical custody and/or supervised physical custody at times as the parties may agree or as the Court may further order.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const otherParent = resolveNonResidentialParentName(divorceData);
+    return `IT IS ORDERED that ${otherParent || 'the parent without primary physical custody'} shall have partial physical custody and/or supervised physical custody at times as the parties may agree or as the Court may further order.`;
   }
 
   /**

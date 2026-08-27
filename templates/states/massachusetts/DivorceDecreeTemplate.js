@@ -3,7 +3,8 @@
 // Complies with M.G.L. c. 208 (Massachusetts divorce statutes)
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Massachusetts Judgment of Divorce Nisi Template
@@ -190,22 +191,22 @@ class MassachusettsDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `It is ORDERED that the following property is assigned to ${divorceData.petitionerName || 'Plaintiff'}:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `It is ORDERED that the following property is assigned to ${divorceData.respondentName || 'Defendant'}:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     }
@@ -274,7 +275,7 @@ class MassachusettsDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Plaintiff')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Defendant')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'Plaintiff');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff');
     const otherParent = physicalCustodian === divorceData.petitionerName
       ? (divorceData.respondentName || 'Defendant')
       : (divorceData.petitionerName || 'Plaintiff');
@@ -331,10 +332,11 @@ class MassachusettsDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    const otherParent = divorceData.primaryCustodian === divorceData.petitionerName
-      ? (divorceData.respondentName || 'Defendant')
-      : (divorceData.petitionerName || 'Plaintiff');
-    return `It is ORDERED that ${otherParent} shall have parenting time (visitation) with the minor child(ren) as follows: as agreed by the parties, or in accordance with the parenting plan filed herein.`;
+    // Parent-time belongs to the NON-residential parent, resolved from
+    // primaryResidence/primaryCustodian (role tokens, exact name, unique
+    // surname). Unknown residence renders neutral wording, never a guess.
+    const otherParent = resolveNonResidentialParentName(divorceData);
+    return `It is ORDERED that ${otherParent || 'the parent without primary physical custody'} shall have parenting time (visitation) with the minor child(ren) as follows: as agreed by the parties, or in accordance with the parenting plan filed herein.`;
   }
 
   /**

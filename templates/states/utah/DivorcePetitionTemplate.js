@@ -263,12 +263,20 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         type: 'children_info'
       });
 
-      // Utah custody request
-      items.push({
-        number: paragraphNum++,
-        content: 'Petitioner requests that the Court enter orders regarding custody, parent-time, and child support that are in the best interests of the minor child(ren).',
-        type: 'custody_request'
-      });
+      // Plead the arrangements the parties actually reached (custody enum,
+      // primary residence, agreed child support) via the base pleading
+      // hooks — agreed relief must never be silently omitted.
+      paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
+
+      // Utah custody request — the generic umbrella, kept only when no
+      // specific agreed custody arrangement was pleaded above.
+      if (!items.some((item) => item.type === 'custody_request')) {
+        items.push({
+          number: paragraphNum++,
+          content: 'Petitioner requests that the Court enter orders regarding custody, parent-time, and child support that are in the best interests of the minor child(ren).',
+          type: 'custody_request'
+        });
+      }
 
       // Utah mandatory divorce education
       items.push({
@@ -291,6 +299,13 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {Object} Property section
    */
   generatePropertySection(divorceData) {
+    // An agreed division (or an explicit no-property case) pleads the
+    // parties' actual agreement via the base hooks instead of the generic
+    // equitable-division boilerplate.
+    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+      return super.generatePropertySection(divorceData);
+    }
+
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 14;
 
@@ -348,6 +363,10 @@ class UtahDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     reliefItems.push('Award such other and further relief as the Court deems just and equitable.');
+
+    // Agreed corollary relief (agreed support amount, alimony waiver,
+    // property agreement) — spliced in before the final general prayer.
+    this.appendAgreedReliefItems(reliefItems, divorceData);
 
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index); // a, b, c format

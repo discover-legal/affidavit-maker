@@ -9,7 +9,9 @@ const {
   FIRST_NAME_DESCRIPTION,
   LAST_NAME_DESCRIPTION,
   FACT_CONTENT_DESCRIPTION,
+  SUPERSEDED_FACTS_DESCRIPTION,
 } = require('./agents/extractionQuality');
+const { retireFacts, sanitizeSupersededStatements } = require('./agents/factRetirement');
 
 // Legal categories for LLM function calling
 const LEGAL_CATEGORIES = {
@@ -621,6 +623,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
               type: "string",
               description: "Defendant/Respondent name if mentioned. Use null if not mentioned."
             },
+            superseded_facts: {
+              type: "array",
+              items: { type: "string" },
+              description: SUPERSEDED_FACTS_DESCRIPTION
+            },
             extracted_facts: {
               type: "array",
               description: "ONLY NEW legal facts not in the existing facts list",
@@ -798,7 +805,7 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             // Property & Debts
             real_estate: {
               type: "string",
-              description: "Description of real estate owned (address, estimated value). Use null if not mentioned."
+              description: "Description of real estate owned (address, estimated value), in neutral third-person court language using the parties' names or roles — never \"my\"/\"me\"/\"I\". Keep values intact (\"approximately $62,000\" stays with its asset). Use null if not mentioned."
             },
             vehicles: {
               type: "string",
@@ -822,11 +829,11 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             },
             debts_description: {
               type: "string",
-              description: "Description of debts (mortgage, loans, credit cards). Use null if not mentioned."
+              description: "Description of debts (mortgage, loans, credit cards), in neutral third-person court language using the parties' names or roles — \"to be refinanced into the petitioner's name\", never \"my\"/\"me\"/\"I\". Keep each debt's amount intact. Use null if not mentioned."
             },
             property_division_preference: {
               type: "string",
-              description: "How petitioner wants to divide property. Use null if not mentioned."
+              description: "How petitioner wants to divide property, in neutral third-person court language using the parties' names or roles — never \"my\"/\"me\"/\"I\". Use null if not mentioned."
             },
             // Spousal Support
             requesting_spousal_support: {
@@ -855,6 +862,12 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
             court_name: {
               type: "string",
               description: "Name of the court. Use null if not mentioned."
+            },
+            // Corrections (any phase)
+            superseded_facts: {
+              type: "array",
+              items: { type: "string" },
+              description: SUPERSEDED_FACTS_DESCRIPTION
             },
             // Additional facts (same structure as affidavit)
             extracted_facts: {
@@ -1097,12 +1110,27 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
       hasNewData = true;
     }
 
+    // Corrections retire superseded fact cards (LLM decides WHAT was
+    // corrected via superseded_facts; retireFacts is array plumbing only).
+    // retiredFactStatements is rewritten/cleared each call so stale
+    // retirements never re-apply; the profile merge reads it downstream.
+    delete newData.retiredFactStatements;
+    const supersededStatements = sanitizeSupersededStatements(args.superseded_facts);
+    if (supersededStatements.length > 0) {
+      const { kept, retired } = retireFacts(currentData.facts, supersededStatements);
+      if (retired.length > 0) {
+        newData.facts = kept;
+        hasNewData = true;
+      }
+      newData.retiredFactStatements = supersededStatements;
+    }
+
     // Extract facts - preserve full fact objects with metadata (category, subcategory, etc.)
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
     let processedFacts = []; // Declare outside if block so we can return it
 
     if (extractedFacts.length > 0) {
-      const existingFacts = currentData.facts || [];
+      const existingFacts = newData.facts || currentData.facts || [];
       // Provenance: the user's verbatim words (shown as "You said: …" in the
       // review UI) — fact.content stays the cleaned, court-usable statement.
       const sourceQuote = typeof sourceMessage === 'string'
@@ -1370,12 +1398,25 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
       hasNewData = true;
     }
 
+    // Corrections retire superseded fact cards (same plumbing as the
+    // affidavit path — see processToolCall).
+    delete newData.retiredFactStatements;
+    const supersededStatements = sanitizeSupersededStatements(args.superseded_facts);
+    if (supersededStatements.length > 0) {
+      const { kept, retired } = retireFacts(currentData.facts, supersededStatements);
+      if (retired.length > 0) {
+        newData.facts = kept;
+        hasNewData = true;
+      }
+      newData.retiredFactStatements = supersededStatements;
+    }
+
     // Extract additional facts (same as affidavit)
     const extractedFacts = Array.isArray(args.extracted_facts) ? args.extracted_facts : [];
     let processedFacts = [];
 
     if (extractedFacts.length > 0) {
-      const existingFacts = currentData.facts || [];
+      const existingFacts = newData.facts || currentData.facts || [];
       // Provenance: the user's verbatim words (shown as "You said: …" in the
       // review UI) — fact.content stays the cleaned, court-usable statement.
       const sourceQuote = typeof sourceMessage === 'string'

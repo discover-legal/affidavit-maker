@@ -166,7 +166,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         });
       }
 
-      if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+      if (asList(divorceData.petitionerProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.petitionerName || 'Applicant'} as that party's exclusive property:`,
           type: 'order'
@@ -176,7 +176,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         });
       }
 
-      if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+      if (asList(divorceData.respondentProperty).length > 0) {
         items.push({
           content: `IT IS ORDERED that the following property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's exclusive property:`,
           type: 'order'
@@ -245,7 +245,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
           ? (divorceData.petitionerName || 'Applicant')
           : custody.kind === 'sole_respondent'
             ? (divorceData.respondentName || 'Respondent')
-            : (divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant');
+            : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant');
       const otherParentName =
         custody.kind === 'sole_respondent'
           ? (divorceData.petitionerName || 'Applicant')
@@ -274,7 +274,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     // branch keeps its historical Applicant fallback for compatibility.
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName || divorceData.primaryCustodian || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
+        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName || resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
         type: 'order'
       });
     } else if (residenceName && residenceName !== soleCustodianName) {

@@ -52,7 +52,7 @@ class TamilNaduDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
       soleCustodianName = custody.kind === 'sole_petitioner' ? (dd.petitionerName || 'Petitioner')
         : custody.kind === 'sole_respondent' ? (dd.respondentName || 'Respondent')
-          : (dd.primaryCustodian || dd.petitionerName || 'Petitioner');
+          : (resolvePrimaryResidenceName(dd) || dd.petitionerName || 'Petitioner');
       items.push({ content: `IT IS ORDERED that ${soleCustodianName} has sole custody.`, type: 'order' });
     } else {
       items.push({ content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });

@@ -187,6 +187,13 @@ class NewSouthWalesDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems[reliefItems.length - 1] = reliefItems[reliefItems.length - 1].replace(/;$/, '.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const letter = String.fromCharCode(97 + index);
       items.push({

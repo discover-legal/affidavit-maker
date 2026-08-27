@@ -117,6 +117,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'money.perMonth': '/mo',
     'money.leftOver': 'left over each month',
     'money.short': 'short each month',
+    'money.leftOverHousehold': 'left over in your household each month',
+    'money.shortHousehold': 'short in your household each month',
 
     'timeline.today': 'Today',
 
@@ -276,6 +278,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'money.perMonth': '/mes',
     'money.leftOver': 'sobran cada mes',
     'money.short': 'faltan cada mes',
+    'money.leftOverHousehold': 'sobran en tu hogar cada mes',
+    'money.shortHousehold': 'faltan en tu hogar cada mes',
 
     'timeline.today': 'Hoy',
 

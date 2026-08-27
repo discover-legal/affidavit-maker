@@ -211,6 +211,13 @@ class HongKongDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     reliefItems.push('Such further or other relief as this Honourable Court deems just and expedient.');
 
+    // Agreed corollary relief (agreed support amount, spousal-support
+
+    // waiver, property agreement) — spliced before the final general prayer.
+
+    this.appendAgreedReliefItems(reliefItems, divorceData);
+
+
     reliefItems.forEach((relief, index) => {
       const number = index + 1;
       items.push({

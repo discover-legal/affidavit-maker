@@ -29,7 +29,11 @@ const {
   FIRST_NAME_DESCRIPTION,
   LAST_NAME_DESCRIPTION,
   FACT_CONTENT_DESCRIPTION,
+  PROPERTY_ITEM_DESCRIPTION,
+  DEBT_ITEM_DESCRIPTION,
+  SUPERSEDED_FACTS_DESCRIPTION,
 } = require('./extractionQuality');
+const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement');
 
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
@@ -124,10 +128,10 @@ function buildPhaseTool(stateCode) {
           },
           has_property: { type: 'boolean', description: 'true if the parties accumulated community/marital property during the marriage, false if none' },
           has_debts:    { type: 'boolean', description: 'true if the parties accumulated community/marital debts during the marriage, false if none' },
-          petitioner_property: { type: 'string', description: "Assets the petitioner keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the petitioner." },
-          respondent_property: { type: 'string', description: "Assets the respondent keeps, as a comma-separated description, in the user's words. Extract ONLY assets the user explicitly assigned to the respondent." },
-          petitioner_debts: { type: 'string', description: "Debts the petitioner takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the petitioner." },
-          respondent_debts: { type: 'string', description: "Debts the respondent takes responsibility for, as a comma-separated description, in the user's words. Extract ONLY debts the user explicitly assigned to the respondent." },
+          petitioner_property: { type: 'array', items: { type: 'string' }, description: `Assets the petitioner keeps. Extract ONLY assets the user explicitly assigned to the petitioner. ${PROPERTY_ITEM_DESCRIPTION}` },
+          respondent_property: { type: 'array', items: { type: 'string' }, description: `Assets the respondent keeps. Extract ONLY assets the user explicitly assigned to the respondent. ${PROPERTY_ITEM_DESCRIPTION}` },
+          petitioner_debts: { type: 'array', items: { type: 'string' }, description: `Debts the petitioner takes responsibility for. Extract ONLY debts the user explicitly assigned to the petitioner. ${DEBT_ITEM_DESCRIPTION}` },
+          respondent_debts: { type: 'array', items: { type: 'string' }, description: `Debts the respondent takes responsibility for. Extract ONLY debts the user explicitly assigned to the respondent. ${DEBT_ITEM_DESCRIPTION}` },
 
           // ── SPOUSAL SUPPORT ──
           spousal_support_confirmed: { type: 'boolean' },
@@ -147,11 +151,13 @@ function buildPhaseTool(stateCode) {
           // ── INDIGENCY / FEE WAIVER (all states) ──
           indigency_confirmed: { type: 'boolean' },
           indigency_requested: { type: 'boolean' },
-          monthly_income:      { type: 'number' },
-          monthly_expenses:    { type: 'number' },
+          monthly_income:      { type: 'number', description: "The USER'S OWN total monthly income in dollars — one person's income only, NEVER a combined or household total. When the user reports both incomes, put each in petitioner_monthly_income / respondent_monthly_income instead." },
+          monthly_expenses:    { type: 'number', description: "The user's own total monthly expenses in dollars." },
+          petitioner_monthly_income: { type: 'number', description: "The PETITIONER's own gross monthly income in dollars (the filing party per this interview's role convention) — one person's income only, never a combined total." },
+          respondent_monthly_income: { type: 'number', description: "The RESPONDENT's own gross monthly income in dollars (the responding spouse per this interview's role convention) — one person's income only, never a combined total." },
           income_breakdown: {
             type: 'array',
-            description: 'Itemized monthly income mentioned in THIS message. Entries MERGE into the already-collected list by label — never re-send prior items. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
+            description: 'Itemized monthly income mentioned in THIS message. Entries MERGE into the already-collected list by label — never re-send prior items, and emit each income source ONCE per interview under a STABLE label: when correcting or restating an item, re-use the EXACT label already recorded so it updates in place — re-describing the same income under new wording ("My wages" after "Katie O\'Brien-Hatch wages as office manager") creates a duplicate that double-counts. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
             items: {
               type: 'object',
               properties: {
@@ -164,7 +170,7 @@ function buildPhaseTool(stateCode) {
           },
           expense_breakdown: {
             type: 'array',
-            description: 'Itemized monthly expenses mentioned in THIS message. Entries MERGE by label — never re-send prior items. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
+            description: 'Itemized monthly expenses mentioned in THIS message. Entries MERGE by label — never re-send prior items, and re-use the EXACT label already recorded when correcting an item so it updates in place instead of duplicating. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
             items: {
               type: 'object',
               properties: {
@@ -184,8 +190,13 @@ function buildPhaseTool(stateCode) {
             enum: ['not_military', 'military', 'unknown'],
             description: 'MACHINE-READ code: "not in the military" → not_military; "on active duty" / "serving" → military; "I don\'t know" → unknown.'
           },
-          military_search_date:       { type: 'string' },
+          military_search_date:       { type: 'string', description: 'Calendar date the DMDC/SCRA search was (or will be) run, when the user gives one.' },
           military_search_method:     { type: 'string' },
+          military_search_planned: {
+            type: 'string',
+            enum: ['before_filing', 'date_scheduled', 'already_completed'],
+            description: 'How the user has committed to the DMDC/SCRA search. A non-date commitment like "I\'ll look at it before I file" → before_filing, and that answer fully SATISFIES the DMDC search question — record it and move on; never keep demanding a calendar date. A specific date (also record military_search_date) → date_scheduled; a search already run → already_completed.'
+          },
 
           // ── RECONCILIATION (Ghana — MCA s.2(3)) ──
           reconciliation_acknowledged: { type: 'boolean', description: 'true = user acknowledges mandatory reconciliation requirement' },
@@ -208,6 +219,13 @@ function buildPhaseTool(stateCode) {
 
           // ── REVIEW ──
           user_confirmed_review: { type: 'boolean' },
+
+          // ── CORRECTIONS (any phase) ──
+          superseded_facts: {
+            type: 'array',
+            items: { type: 'string' },
+            description: SUPERSEDED_FACTS_DESCRIPTION
+          },
 
           // ── FACTS (any phase) ──
           extracted_facts: {
@@ -281,6 +299,10 @@ const FIELD_MAP = {
   respondent_military_status:  'respondentMilitaryStatus',
   military_search_date:        'militarySearchDate',
   military_search_method:      'militarySearchMethod',
+  military_search_planned:     'dmdcSearchPlanned',
+  // petitioner_monthly_income / respondent_monthly_income are deliberately
+  // NOT here: they map role-aware in _applyFieldUpdates (the USER's own
+  // income → monthlyIncome, the spouse's → spouseMonthlyIncome).
   user_confirmed_review:       'userConfirmedReview',
   reconciliation_acknowledged: 'reconciliationAcknowledged',
   marriage_type:               'marriageType',
@@ -323,6 +345,15 @@ CONVERSATION RULES (you MUST follow these strictly):
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
 // The AI disclaimer appears only at REVIEW completion (see REVIEW_COMPLETION).
+
+// MILITARY phase: the DMDC/SCRA search is a soft gate. A live persona run
+// showed the interview repeating "What date will you run the DMDC search?"
+// verbatim and refusing to proceed on "I'll look at it before I file".
+const MILITARY_SOFT_GATE = `
+DMDC SEARCH — SOFT GATE: The DMDC/SCRA search date is NOT a hard requirement for this interview.
+- A commitment WITHOUT a calendar date ("I'll look at it before I file", "I'll check it later") fully satisfies the DMDC question: record military_search_planned: 'before_filing', acknowledge it, and complete the phase when the other military fields are collected. Do NOT ask again for a date.
+- If the user gives a date, record military_search_date (and military_search_planned: 'date_scheduled'); if they already ran the search, record military_search_planned: 'already_completed'.
+- Never repeat a question word-for-word. If you genuinely must revisit a topic, rephrase and briefly say why.`;
 
 const REVIEW_COMPLETION = `
 COMPLETION INSTRUCTIONS: When the user confirms all information is correct and you set user_confirmed_review: true, your response MUST:
@@ -397,9 +428,13 @@ class BaseDivorceOrchestrator {
       throw new Error(`${this.stateCode}DivorceOrchestrator: Failed to parse function arguments: ${e.message}`);
     }
 
-    const { response, phase_complete, extracted_facts, ...fieldUpdates } = extracted;
+    const { response, phase_complete, extracted_facts, superseded_facts, ...fieldUpdates } = extracted;
 
     const updatedData = this._applyFieldUpdates(divorceData, fieldUpdates);
+
+    // Corrections retire the superseded fact cards BEFORE this turn's facts
+    // merge, so a corrected fact never sits beside its replacement.
+    this._applySupersededFacts(updatedData, superseded_facts);
 
     const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase, message);
     if (newFacts.length > 0) {
@@ -456,6 +491,13 @@ class BaseDivorceOrchestrator {
       if (nextPhase && this.phases[nextPhase]) {
         parts.push(`WHEN PHASE IS COMPLETE: Transition to "${this.phases[nextPhase].displayName}" and immediately ask the first relevant question about that topic.`);
       }
+    }
+
+    // Military phase: DMDC search is a soft gate — a "before I file"
+    // commitment satisfies it (state prompt files say the date is required;
+    // this central rule overrides them without touching ~60 prompt files).
+    if (state.currentPhase === 'MILITARY') {
+      parts.push(MILITARY_SOFT_GATE);
     }
 
     // Review phase: CTA + AI disclaimer
@@ -594,22 +636,68 @@ class BaseDivorceOrchestrator {
           snakeKey === 'petitioner_property' || snakeKey === 'respondent_property' ||
           snakeKey === 'petitioner_debts' || snakeKey === 'respondent_debts'
         ) {
-          // The tool collects these as a comma-separated description, but
-          // BaseDivorceDecreeTemplate iterates each of them (.forEach) to
-          // print one line item per asset/debt — store them as arrays.
-          updated[camelKey] = String(fields[snakeKey])
-            .split(',')
-            .map((item) => item.trim())
+          // The tool collects these as arrays — one complete asset/debt per
+          // element, values intact ("Fidelity 401(k), approximately $62,000"
+          // is ONE item). Splitting is the MODEL's job via the schema; this
+          // is pure array plumbing: entries append to the collected list,
+          // deduped by normalized text. A legacy string value passes through
+          // as a single-element array — NEVER re-split on commas (a comma
+          // split once shattered "$62,000" into "$62" + "000").
+          const incoming = (Array.isArray(fields[snakeKey]) ? fields[snakeKey] : [fields[snakeKey]])
+            .map((item) => String(item).trim())
             .filter(Boolean);
+          const existing = Array.isArray(divorceData[camelKey])
+            ? divorceData[camelKey]
+            : (divorceData[camelKey] ? [String(divorceData[camelKey])] : []);
+          const seen = new Set(existing.map((item) => String(item).trim().toLowerCase()));
+          const merged = [...existing];
+          for (const item of incoming) {
+            const key = item.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push(item);
+          }
+          updated[camelKey] = merged;
         } else {
           updated[camelKey] = fields[snakeKey];
         }
       }
     }
 
-    // Itemized money is the source of truth for the totals once present.
+    // Role-aware income mapping (mirrors how affiantName resolves the USER's
+    // own side): monthlyIncome is always the USER's own income and
+    // spouseMonthlyIncome the spouse's — NEVER a household total. Which
+    // schema role is "the user" follows the interview's role convention:
+    // missing role means petitioner.
+    const userRole = String(updated.role || '').toLowerCase() === 'respondent'
+      ? 'respondent'
+      : 'petitioner';
+    const spouseRole = userRole === 'respondent' ? 'petitioner' : 'respondent';
+    const roleIncome = {
+      petitioner: fields.petitioner_monthly_income,
+      respondent: fields.respondent_monthly_income,
+    };
+    if (typeof roleIncome[userRole] === 'number') {
+      updated.monthlyIncome = roleIncome[userRole];
+    }
+    if (typeof roleIncome[spouseRole] === 'number') {
+      updated.spouseMonthlyIncome = roleIncome[spouseRole];
+    }
+
+    // Itemized money is the source of truth for the totals once present —
+    // but only the USER's own person-tagged entries feed monthlyIncome
+    // (summing every entry once stored a $17,200 household total as the
+    // petitioner's income). Untagged entries count as the user's own: the
+    // fee-waiver phases ask about the user's income. Enum-tag filtering is
+    // plumbing, not language work.
     if (Array.isArray(updated.incomeBreakdown) && updated.incomeBreakdown.length > 0) {
-      updated.monthlyIncome = totalOf(updated.incomeBreakdown);
+      const personOf = (entry) => String(entry?.person || '').trim().toLowerCase();
+      const own = updated.incomeBreakdown.filter(
+        (entry) => personOf(entry) === userRole || personOf(entry) === ''
+      );
+      const spouse = updated.incomeBreakdown.filter((entry) => personOf(entry) === spouseRole);
+      if (own.length > 0) updated.monthlyIncome = totalOf(own);
+      if (spouse.length > 0) updated.spouseMonthlyIncome = totalOf(spouse);
     }
     if (Array.isArray(updated.expenseBreakdown) && updated.expenseBreakdown.length > 0) {
       updated.monthlyExpenses = totalOf(updated.expenseBreakdown);
@@ -750,6 +838,24 @@ class BaseDivorceOrchestrator {
     return updated;
   }
 
+  /**
+   * The model reported statements this turn corrected (superseded_facts).
+   * Retire the matching fact cards from the document and expose the
+   * statements on affidavitData as `retiredFactStatements`, so the profile
+   * merge (lib/api/profile.ts) can retire its stored copies too — the chat
+   * route passes affidavitData through unchanged. The field is rewritten
+   * every turn (and cleared when the turn reported nothing) so stale
+   * retirements never re-apply to facts recorded later.
+   */
+  _applySupersededFacts(updatedData, supersededFacts) {
+    delete updatedData.retiredFactStatements;
+    const statements = sanitizeSupersededStatements(supersededFacts);
+    if (statements.length === 0) return;
+    const { kept, retired } = retireFacts(updatedData.facts, statements);
+    if (retired.length > 0) updatedData.facts = kept;
+    updatedData.retiredFactStatements = statements;
+  }
+
   _buildFacts(extractedFacts, _fieldUpdates, currentPhase, sourceMessage) {
     const defaultCategory = PHASE_CATEGORY[currentPhase] || 'general';
     // Provenance: keep the user's own words so the review UI can show
@@ -824,9 +930,11 @@ class BaseDivorceOrchestrator {
       case 'INDIGENCY':
         return data.indigencyRequested === false || data.indigencyConfirmed === true;
       case 'MILITARY':
+        // A non-date commitment (dmdcSearchPlanned, e.g. 'before_filing')
+        // satisfies the DMDC item — the search date is not a hard gate.
         return Boolean(
           (data.respondentMilitaryStatus &&
-            (data.militarySearchDate || data.militaryStatusConfirmed === true)) ||
+            (data.militarySearchDate || data.dmdcSearchPlanned || data.militaryStatusConfirmed === true)) ||
           this._factsSatisfyMilitaryCheck(data.facts)
         );
       default:

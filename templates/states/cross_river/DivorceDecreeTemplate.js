@@ -50,7 +50,7 @@ class CrossRiverDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     } else if (custodyKind === 'sole_petitioner' || custodyKind === 'sole_respondent' || custodyKind === 'legacy_sole') {
       soleCustodianName = custodyKind === 'sole_petitioner' ? (divorceData.petitionerName || 'the Petitioner')
         : custodyKind === 'sole_respondent' ? (divorceData.respondentName || 'the Respondent')
-          : (divorceData.primaryCustodian || divorceData.petitionerName || 'the Petitioner');
+          : (resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Petitioner');
       items.push({ content: `IT IS ORDERED that ${soleCustodianName} shall have custody of the child(ren) pursuant to MCA s.71.`, type: 'order' });
     } else {
       items.push({ content: 'IT IS ORDERED that the parties shall exercise legal custody and decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement].', type: 'order' });

@@ -9,7 +9,8 @@
 const BaseAffidavitTemplate = require('./BaseAffidavitTemplate');
 const BaseDivorcePetitionTemplate = require('./BaseDivorcePetitionTemplate');
 const BaseDivorceDecreeTemplate = require('./BaseDivorceDecreeTemplate');
-const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName, resolveNonResidentialParentName } = require('./parenting');
+const { asList } = require('./dataShapes');
 
 /**
  * Create an Indian state affidavit template class.
@@ -220,8 +221,8 @@ function createIndiaDivorceDecreeTemplate(config) {
       if (dd.hasProperty === false) items.push({ content: 'No matrimonial property to be divided.', type: 'finding' });
       else {
         items.push({ content: 'The Court has considered the settlement of property.', type: 'finding' });
-        if (dd.petitionerProperty?.length > 0) { items.push({ content: `Property awarded to ${dd.petitionerName || 'Petitioner'}:`, type: 'order' }); dd.petitionerProperty.forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
-        if (dd.respondentProperty?.length > 0) { items.push({ content: `Property awarded to ${dd.respondentName || 'Respondent'}:`, type: 'order' }); dd.respondentProperty.forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
+        if (asList(dd.petitionerProperty).length > 0) { items.push({ content: `Property awarded to ${dd.petitionerName || 'Petitioner'}:`, type: 'order' }); asList(dd.petitionerProperty).forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
+        if (asList(dd.respondentProperty).length > 0) { items.push({ content: `Property awarded to ${dd.respondentName || 'Respondent'}:`, type: 'order' }); asList(dd.respondentProperty).forEach(p => items.push({ content: `- ${p}`, type: 'property_item' })); }
         if (!dd.petitionerProperty && !dd.respondentProperty) items.push({ content: 'Each party retains property in their possession.', type: 'order' });
       }
       return { title: 'DIVISION OF PROPERTY', items, type: 'property' };
@@ -246,10 +247,12 @@ function createIndiaDivorceDecreeTemplate(config) {
       } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
         soleCustodianName = custody.kind === 'sole_petitioner' ? (dd.petitionerName || 'Petitioner')
           : custody.kind === 'sole_respondent' ? (dd.respondentName || 'Respondent')
-            : (dd.primaryCustodian || dd.petitionerName || 'Petitioner');
+            : (residenceName || dd.petitionerName || 'Petitioner');
         const otherParentName = custody.kind === 'sole_respondent'
           ? (dd.petitionerName || 'Petitioner')
-          : (dd.respondentName || 'Respondent');
+          : custody.kind === 'sole_petitioner'
+            ? (dd.respondentName || 'Respondent')
+            : (resolveNonResidentialParentName(dd) || dd.respondentName || 'Respondent');
         items.push({ content: `IT IS ORDERED that ${soleCustodianName} has sole custody.`, type: 'order' });
         items.push({ content: `${otherParentName} shall have visitation rights.`, type: 'order' });
       } else {

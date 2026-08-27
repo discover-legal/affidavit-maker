@@ -73,10 +73,77 @@ function resolveCustodyArrangement(divorceData) {
   return { kind: 'unspecified', raw, explicit: true };
 }
 
+/** Normalize a name for comparison: trim, collapse whitespace, lowercase. */
+function normalizeName(value) {
+  return String(value == null ? '' : value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * Map a stored who-the-children-live-with value onto a caption party.
+ *
+ * Extraction sometimes stores the user's *preferred* name ("Katie
+ * O'Brien-Hatch") in primaryResidence/primaryCustodian while the caption
+ * carries the full legal name ("Kathleen O'Brien-Hatch"). Order paragraphs
+ * must use the caption name, so this matcher resolves a stored value to a
+ * party role by, in order:
+ *   1. role tokens ('petitioner' / 'applicant' / 'filer' / 'respondent');
+ *   2. exact (case/whitespace-insensitive) match with a caption name;
+ *   3. unique surname match — the value's last name token equals exactly
+ *      one party's last name token (both parties sharing a surname is
+ *      ambiguous and resolves to null).
+ * Anything else is null: never guess a party from an ambiguous value.
+ *
+ * @param {string} value - The stored residence/custodian value
+ * @param {Object} divorceData - The saved case data (caption names)
+ * @returns {'petitioner'|'respondent'|null}
+ */
+function matchPartyRole(value, divorceData) {
+  const v = normalizeName(value);
+  if (!v) return null;
+
+  if (v === 'petitioner' || v === 'applicant' || v === 'filer') return 'petitioner';
+  if (v === 'respondent') return 'respondent';
+
+  const petitioner = normalizeName(divorceData && divorceData.petitionerName);
+  const respondent = normalizeName(divorceData && divorceData.respondentName);
+
+  if (petitioner && v === petitioner) return 'petitioner';
+  if (respondent && v === respondent) return 'respondent';
+
+  const surname = (s) => {
+    const parts = s.split(' ');
+    return parts.length > 1 ? parts[parts.length - 1] : null;
+  };
+  const vSurname = surname(v);
+  if (vSurname) {
+    const matchesPetitioner = Boolean(petitioner) && surname(petitioner) === vSurname;
+    const matchesRespondent = Boolean(respondent) && surname(respondent) === vSurname;
+    if (matchesPetitioner && !matchesRespondent) return 'petitioner';
+    if (matchesRespondent && !matchesPetitioner) return 'respondent';
+  }
+  return null;
+}
+
+/**
+ * Which caption party the children primarily reside with, from
+ * primaryResidence / primaryCustodian (see matchPartyRole).
+ *
+ * @param {Object} divorceData - The saved case data
+ * @returns {'petitioner'|'respondent'|null} null when unknown/ambiguous
+ */
+function resolveResidenceRole(divorceData) {
+  const raw = (divorceData && (divorceData.primaryResidence || divorceData.primaryCustodian)) || null;
+  if (raw == null) return null;
+  return matchPartyRole(raw, divorceData);
+}
+
 /**
  * Resolve the name of the person the children primarily reside with, from
  * primaryResidence / primaryCustodian. Accepts either a party name or a
- * party-role token ('petitioner' / 'applicant' / 'respondent').
+ * party-role token ('petitioner' / 'applicant' / 'respondent'). When the
+ * stored value matches a caption party (exactly or by unique surname — a
+ * stored go-by like "Katie O'Brien-Hatch"), the caption's full legal name
+ * is returned so order paragraphs stay consistent.
  *
  * @param {Object} divorceData - The saved case data
  * @returns {string|null} A display name, or null when no residence data exists
@@ -87,17 +154,50 @@ function resolvePrimaryResidenceName(divorceData) {
   const value = String(raw).trim();
   if (!value) return null;
 
-  const role = value.toLowerCase();
-  if (role === 'petitioner' || role === 'applicant' || role === 'filer') {
+  const role = matchPartyRole(value, divorceData);
+  if (role === 'petitioner') {
     return (divorceData.petitionerName && String(divorceData.petitionerName).trim()) || null;
   }
   if (role === 'respondent') {
     return (divorceData.respondentName && String(divorceData.respondentName).trim()) || null;
   }
+  // Role tokens that failed to resolve must not leak as literal text.
+  const token = value.toLowerCase();
+  if (token === 'petitioner' || token === 'applicant' || token === 'filer' || token === 'respondent') {
+    return null;
+  }
   return value;
+}
+
+/**
+ * Name of the parent who does NOT have the children's primary residence —
+ * the parent a parent-time / visitation order belongs to. Derived from the
+ * residence role (the OTHER party gets parent-time), falling back to an
+ * explicit sole-custody enum. Returns null when the data does not say who
+ * the children live with — callers must render neutral wording, never
+ * guess a name.
+ *
+ * @param {Object} divorceData - The saved case data
+ * @returns {string|null}
+ */
+function resolveNonResidentialParentName(divorceData) {
+  const partyName = (key) =>
+    (divorceData && divorceData[key] && String(divorceData[key]).trim()) || null;
+
+  const role = resolveResidenceRole(divorceData);
+  if (role === 'petitioner') return partyName('respondentName');
+  if (role === 'respondent') return partyName('petitionerName');
+
+  const custody = resolveCustodyArrangement(divorceData);
+  if (custody.kind === 'sole_petitioner') return partyName('respondentName');
+  if (custody.kind === 'sole_respondent') return partyName('petitionerName');
+  return null;
 }
 
 module.exports = {
   resolveCustodyArrangement,
   resolvePrimaryResidenceName,
+  resolveResidenceRole,
+  resolveNonResidentialParentName,
+  matchPartyRole,
 };

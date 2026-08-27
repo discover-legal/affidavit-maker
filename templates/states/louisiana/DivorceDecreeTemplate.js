@@ -4,6 +4,7 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Louisiana Judgment of Divorce Template
@@ -190,22 +191,22 @@ class LouisianaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    if (divorceData.petitionerProperty && divorceData.petitionerProperty.length > 0) {
+    if (asList(divorceData.petitionerProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following community property is awarded to ${divorceData.petitionerName || 'Petitioner'} as that party's share of the community:`,
         type: 'order'
       });
-      divorceData.petitionerProperty.forEach(prop => {
+      asList(divorceData.petitionerProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
 
-    if (divorceData.respondentProperty && divorceData.respondentProperty.length > 0) {
+    if (asList(divorceData.respondentProperty).length > 0) {
       items.push({
         content: `IT IS ORDERED that the following community property is awarded to ${divorceData.respondentName || 'Respondent'} as that party's share of the community:`,
         type: 'order'
       });
-      divorceData.respondentProperty.forEach(prop => {
+      asList(divorceData.respondentProperty).forEach(prop => {
         items.push({ content: `- ${prop}`, type: 'property_item' });
       });
     }
@@ -269,7 +270,7 @@ class LouisianaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         ? (divorceData.petitionerName || 'Petitioner')
         : custody.kind === 'sole_respondent'
           ? (divorceData.respondentName || 'Respondent')
-          : (divorceData.domiciliaryParent || divorceData.primaryCustodian || divorceData.petitionerName || 'Petitioner');
+          : (divorceData.domiciliaryParent || resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Petitioner');
     const nonDomiciliaryParent = divorceData.nonDomiciliaryParent || divorceData.respondentName || 'Respondent';
 
     if (custody.kind === 'joint') {

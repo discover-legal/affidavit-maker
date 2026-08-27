@@ -132,6 +132,20 @@ export async function proxy(request: NextRequest) {
   const e2eBypass =
     process.env.NODE_ENV !== 'production' && process.env.E2E_AUTH_BYPASS === '1';
 
+  // Kill switch: MAINTENANCE_MODE=true pauses the whole site behind a
+  // static 503 page (owner testing / incident response), flipped purely by
+  // env var — no code deploy to pause or resume. /api/health stays live so
+  // the platform's health checks don't fail the deploy and roll it back.
+  if (process.env.MAINTENANCE_MODE === 'true' && pathname !== '/api/health') {
+    return new NextResponse(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>discover.legal — back soon</title><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"></head><body style="margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0"><div style="text-align:center;padding:2rem"><div style="font-size:2rem;font-weight:700;margin-bottom:.5rem">discover<span style="color:#f59e0b">.</span>legal</div><p style="color:#94a3b8;max-width:28rem">We&rsquo;re briefly paused for testing and polish. Back very soon &mdash; nothing of yours is lost.</p></div></body></html>`,
+      {
+        status: 503,
+        headers: { 'content-type': 'text/html; charset=utf-8', 'retry-after': '3600' },
+      },
+    );
+  }
+
   // Block scanner noise + CVE header.
   for (const header of BLOCKED_HEADERS) {
     if (request.headers.get(header) !== null) {

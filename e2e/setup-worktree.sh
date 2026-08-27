@@ -9,7 +9,11 @@ W="${1:-/tmp/e2e-app}"
 
 git worktree remove --force "$W" 2>/dev/null || true
 git worktree add "$W" HEAD
-ln -sfn "$REPO_ROOT/node_modules" "$W/node_modules"
+# Hardlink copy, NOT a symlink: turbopack refuses a node_modules symlink
+# that points outside its project root ("points out of the filesystem
+# root"), which broke the CI e2e job. cp -al is near-free (hardlinks).
+rm -rf "$W/node_modules"
+cp -al "$REPO_ROOT/node_modules" "$W/node_modules"
 mkdir -p "$W/e2e" /tmp/e2e-docs
 cp "$REPO_ROOT/e2e/fakeLLM.js" "$W/e2e/fakeLLM.js"
 cp "$REPO_ROOT/e2e/drive.mjs" "$W/e2e/drive.mjs"

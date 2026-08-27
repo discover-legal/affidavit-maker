@@ -19,6 +19,33 @@
 
 const BASE = process.env.BASE || 'http://localhost:3100';
 
+// CI/e2e-rig only: with SWEEP_DB_URL set, the sweep clears the DB-backed
+// rate-limiter bucket directly instead of waiting out the 100-requests/15min
+// window (the sweep alone needs 110 renders). Never set against production.
+import { createRequire } from 'module';
+const require_ = createRequire(import.meta.url);
+async function resetPreviewLimiter() {
+  const dbUrl = process.env.SWEEP_DB_URL;
+  if (!dbUrl) return false;
+  try {
+    const { Client } = require_('../node_modules/pg');
+    const client = new Client({ connectionString: dbUrl });
+    await client.connect();
+    // api_rate_limits is FORCE-RLS'd (migration 018); a plain DELETE as the
+    // app user silently matches zero rows. Set the same system-bypass GUC
+    // the app's withRLSBypass uses, in the same transaction as the DELETE.
+    await client.query('BEGIN');
+    await client.query("SELECT set_config('app.bypass_rls', 'true', true)");
+    const res = await client.query("DELETE FROM api_rate_limits WHERE bucket = 'documents-preview'");
+    await client.query('COMMIT');
+    await client.end();
+    return res.rowCount > 0;
+  } catch (err) {
+    console.error('limiter reset failed (falling back to pacing):', err.message);
+    return false;
+  }
+}
+
 const US = new Set([
   'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
   'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM',
@@ -78,6 +105,7 @@ async function main() {
           body: JSON.stringify({ affidavitData: { ...CANNED, state: code } }),
         });
         if (res.status !== 429) break;
+        if (await resetPreviewLimiter()) continue;
         await new Promise((r) => setTimeout(r, 60000));
       }
       if (res.status !== 200) problems.push(`status ${res.status}`);

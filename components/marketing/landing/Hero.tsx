@@ -31,7 +31,7 @@ export default function Hero() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 shadow-sm mb-6 ml-0 sm:ml-2">
               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               <span className="text-xs font-medium text-slate-700">
-                AI-powered &middot; English &amp; Espa&ntilde;ol &middot; {COVERAGE_COUNT} states
+                AI-powered &middot; English &amp; Espa&ntilde;ol &middot; {COVERAGE_COUNT} jurisdictions
               </span>
             </div>
 

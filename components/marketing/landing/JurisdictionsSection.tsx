@@ -64,7 +64,7 @@ export default function JurisdictionsSection() {
               </div>
               <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between text-sm">
                 <span className="text-slate-400">Deepest guidance</span>
-                <span className="font-semibold">Utah &middot; {COVERAGE_COUNT} states total</span>
+                <span className="font-semibold">Utah &middot; {COVERAGE_COUNT} jurisdictions total</span>
               </div>
             </div>
           </div>

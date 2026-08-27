@@ -15,6 +15,8 @@ cp "$REPO_ROOT/e2e/fakeLLM.js" "$W/e2e/fakeLLM.js"
 cp "$REPO_ROOT/e2e/drive.mjs" "$W/e2e/drive.mjs"
 cp "$REPO_ROOT/e2e/drive-real.mjs" "$W/e2e/drive-real.mjs" 2>/dev/null || true
 cp "$REPO_ROOT/e2e/drive-real-matrix.mjs" "$W/e2e/drive-real-matrix.mjs" 2>/dev/null || true
+cp "$REPO_ROOT/e2e/drive-real-messy.mjs" "$W/e2e/drive-real-messy.mjs" 2>/dev/null || true
+cp "$REPO_ROOT/e2e/sweep-jurisdictions.mjs" "$W/e2e/sweep-jurisdictions.mjs" 2>/dev/null || true
 
 python3 - "$W" <<'EOF'
 import sys

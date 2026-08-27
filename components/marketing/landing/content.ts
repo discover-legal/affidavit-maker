@@ -1,6 +1,6 @@
 // Landing-page content. Pure data — every section component renders from
 // here, so copy changes never touch layout code. Keep claims honest:
-// drafts, not legal advice; seven launch jurisdictions; free to use.
+// drafts, not legal advice; honest jurisdiction counts; free to use.
 
 import {
   BookOpen,
@@ -20,7 +20,10 @@ import {
 } from 'lucide-react';
 
 export const LAUNCH_JURISDICTIONS = ['AZ', 'CA', 'FL', 'IL', 'NY', 'TX', 'UT'] as const;
-export const COVERAGE_COUNT = String(LAUNCH_JURISDICTIONS.length);
+// Total active jurisdictions (50 US states + DC, 13 Canadian, 46
+// international). Matches the template registry with ENABLE_INTERNATIONAL
+// on in production — update if the registry or the flag changes.
+export const COVERAGE_COUNT = '110';
 
 export type Offering = {
   key: string;

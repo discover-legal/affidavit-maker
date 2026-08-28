@@ -14,8 +14,8 @@
 const { randomUUID: uuidv4 } = require('node:crypto');
 const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
-const { asList } = require('./dataShapes');
-const { captionNamesCourt, lineDuplicatesCaption } = require('./captionDedupe');
+const { asList, propertyAgreementProse } = require('./dataShapes');
+const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
 
 /**
  * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
@@ -281,6 +281,13 @@ class BaseDivorcePetitionTemplate {
         ? null
         : headerCandidate;
     const venue = lineDuplicatesCaption(venueCandidate, caseCaption) ? null : venueCandidate;
+    // With a structured caption, sections.header carries the court line —
+    // strip it from the caption's formatted text so consumers that render
+    // header AND formatted (on-screen preview, docx) show the court once
+    // (templates/core/captionDedupe.js).
+    const caption = caseCaption.structured && header
+      ? stripCourtLineFromFormatted(caseCaption, header)
+      : caseCaption;
     const title = this.generateTitle();
     const parties = this.generatePartiesSection(divorceData);
     divorceData._paragraphNum = parties.nextParagraphNumber;
@@ -313,7 +320,7 @@ class BaseDivorcePetitionTemplate {
         filerBlock,
         header,
         venue,
-        caseCaption,
+        caseCaption: caption,
         title,
         parties,
         jurisdiction,
@@ -327,12 +334,12 @@ class BaseDivorcePetitionTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption, title, parties, jurisdiction,
+        header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption, title, parties, jurisdiction,
+        header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
@@ -597,6 +604,40 @@ class BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Where the parties were married, as "City, State".
+   *
+   * The extraction layer derives marriageLocation from marriageCity +
+   * marriageStateName — but when only the city was extracted, the
+   * paragraph read "married … in Provo." with no state (live Utah QA,
+   * 2026-08). Consult the state fields, and when the marriage state is
+   * unknown fall back to this document's own jurisdiction name (the user
+   * is filing where they married far more often than not, and the
+   * paragraph is theirs to correct); a truly unknown place stays blank.
+   *
+   * @param {Object} divorceData - The divorce data
+   * @returns {string} Formatted place, or '' when unknown
+   */
+  formatMarriagePlace(divorceData) {
+    const clean = (v) => (typeof v === 'string' ? v.trim() : '');
+    const location = clean(divorceData.marriageLocation) || clean(divorceData.marriagePlace);
+    const city = clean(divorceData.marriageCity);
+    const stateName =
+      clean(divorceData.marriageStateName) ||
+      // marriageState only when it's a full name, never a bare code
+      (clean(divorceData.marriageState).length > 2 ? clean(divorceData.marriageState) : '');
+
+    // A location that already says more than the bare city wins as-is
+    // (e.g. "Provo, Utah" or "Paris, France").
+    if (location && (!city || location.toLowerCase() !== city.toLowerCase())) {
+      return location;
+    }
+    const effectiveCity = city || location;
+    if (!effectiveCity) return stateName;
+    const state = stateName || this.stateName || '';
+    return state ? `${effectiveCity}, ${state}` : effectiveCity;
+  }
+
+  /**
    * Generate marriage information section
    *
    * @param {Object} divorceData - The divorce data
@@ -606,9 +647,10 @@ class BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 5;
 
+    const marriagePlace = this.formatMarriagePlace(divorceData);
     items.push({
       number: paragraphNum++,
-      content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}.`,
+      content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${marriagePlace ? ` in ${marriagePlace}` : ''}.`,
       type: 'marriage_info'
     });
 
@@ -940,8 +982,12 @@ class BaseDivorcePetitionTemplate {
     const pleadings = [];
 
     let intro = 'The parties have reached an agreement regarding the division of their community/marital property.';
-    if (typeof divorceData.propertyAgreement === 'string' && divorceData.propertyAgreement.trim()) {
-      intro += ` ${divorceData.propertyAgreement.trim()}`;
+    // Only append when the value is an actual description — a status token
+    // like "agreed" would concatenate raw into the sentence
+    // (templates/core/dataShapes.js propertyAgreementProse).
+    const agreementProse = propertyAgreementProse(divorceData.propertyAgreement);
+    if (agreementProse) {
+      intro += ` ${agreementProse}`;
     }
     pleadings.push(intro);
 

@@ -157,7 +157,7 @@ function buildPhaseTool(stateCode) {
           respondent_monthly_income: { type: 'number', description: "The RESPONDENT's own gross monthly income in dollars (the responding spouse per this interview's role convention) — one person's income only, never a combined total." },
           income_breakdown: {
             type: 'array',
-            description: 'Itemized monthly income mentioned in THIS message. Entries MERGE into the already-collected list by label — never re-send prior items, and emit each income source ONCE per interview under a STABLE label: when correcting or restating an item, re-use the EXACT label already recorded so it updates in place — re-describing the same income under new wording ("My wages" after "Katie O\'Brien-Hatch wages as office manager") creates a duplicate that double-counts. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
+            description: 'Itemized monthly income. REPLACE-PER-PERSON: the entries you send for a person REPLACE everything previously recorded for that person, so whenever you mention ANY income for a person this turn you MUST emit the COMPLETE list of income items for that person — restate the existing items EXACTLY as summarized in ALREADY COLLECTED (same label, same amount) plus the new or corrected ones. Persons you do not mention are untouched; omit the field entirely when this message has no income information. label examples: "Your wages", "Child support received"; person: petitioner | respondent | joint | other.',
             items: {
               type: 'object',
               properties: {
@@ -170,7 +170,7 @@ function buildPhaseTool(stateCode) {
           },
           expense_breakdown: {
             type: 'array',
-            description: 'Itemized monthly expenses mentioned in THIS message. Entries MERGE by label — never re-send prior items, and re-use the EXACT label already recorded when correcting an item so it updates in place instead of duplicating. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
+            description: 'Itemized monthly expenses. REPLACE semantics: the list you send REPLACES the previously recorded expense list, so whenever this message mentions ANY expense you MUST emit the user\'s COMPLETE current expense list — restate the existing items EXACTLY as summarized in ALREADY COLLECTED (same label, same amount) plus the new or corrected ones. Omit the field entirely when this message has no expense information. label examples: "Housing", "Utilities", "Food", "Childcare", "Transportation", "Medical", "Debt payments".',
             items: {
               type: 'object',
               properties: {
@@ -341,6 +341,7 @@ CONVERSATION RULES (you MUST follow these strictly):
 5. Extract ONLY information the user explicitly stated. Never guess, infer, or fill in a value the user did not provide — if something is unclear or missing, ask about it instead. (Correcting an obvious typo or normalizing casing is NOT guessing.)
 6. If the user indicates a contested issue (custody, property, support) or a safety risk, acknowledge once that advice from a lawyer is recommended for that issue, then continue helping.
 7. Respond in the same language the user writes in. Extract field VALUES with the user's meaning but in clean form — obvious typos corrected and names in proper name case — with field names and dates in the structured formats requested.
+8. When the user's message does NOT answer your pending question, first acknowledge and record what they DID share — that information is never wasted. Do NOT tack the pending question onto every reply: re-ask it AT MOST once every other turn, and vary the phrasing each time (never repeat a question word-for-word). On the in-between turns, simply acknowledge their information and let the conversation continue — you can return to the open question later, including at the end of the phase.
 `;
 
 // No first-message disclaimer — the app UI already disclaims elsewhere.
@@ -607,6 +608,25 @@ class BaseDivorceOrchestrator {
     if (d.respondentMilitaryStatus) {
       items.push(`Respondent military status: ${d.respondentMilitaryStatus}`);
     }
+    // Itemized money already recorded — shown so the model can restate a
+    // person's COMPLETE list consistently (income_breakdown/expense_breakdown
+    // REPLACE what is stored for any person the turn mentions).
+    if (Array.isArray(d.incomeBreakdown) && d.incomeBreakdown.length > 0) {
+      const lines = d.incomeBreakdown
+        .filter((e) => e && typeof e === 'object' && e.label)
+        .map((e) => `- [${e.person || 'unspecified'}] ${e.label}: $${e.amount}/month`);
+      if (lines.length > 0) {
+        items.push(`Income items recorded (when you emit income_breakdown for a person, restate that person's COMPLETE list using these EXACT labels and amounts, changing only what the user corrected):\n${lines.join('\n')}`);
+      }
+    }
+    if (Array.isArray(d.expenseBreakdown) && d.expenseBreakdown.length > 0) {
+      const lines = d.expenseBreakdown
+        .filter((e) => e && typeof e === 'object' && e.label)
+        .map((e) => `- ${e.label}: $${e.amount}/month`);
+      if (lines.length > 0) {
+        items.push(`Expense items recorded (when you emit expense_breakdown, restate the COMPLETE list using these EXACT labels and amounts, changing only what the user corrected):\n${lines.join('\n')}`);
+      }
+    }
     if (d.facts?.length) {
       const priorFacts = d.facts
         .map((fact) => typeof fact === 'string' ? fact : fact?.content)
@@ -758,10 +778,15 @@ class BaseDivorceOrchestrator {
     // Map the boolean intent flag to the decree gate field.
     // spousalSupportRequested=true  → spousalSupportAwarded=true
     // spousalSupportRequested=false → spousalSupportWaived=true
+    // Set both sides of the pair: these now persist to the durable profile,
+    // and a stale opposite flag hydrated from an earlier document would make
+    // the decree templates print the waiver branch over an awarded one.
     if (updated.spousalSupportRequested === true) {
       updated.spousalSupportAwarded = true;
+      updated.spousalSupportWaived = false;
     } else if (updated.spousalSupportRequested === false) {
       updated.spousalSupportWaived = true;
+      updated.spousalSupportAwarded = false;
     }
     // BaseDivorcePetitionTemplate gates the alimony relief item on
     // requestSpousalSupport — without this alias a user who asked for

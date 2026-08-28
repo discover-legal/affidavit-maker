@@ -90,6 +90,32 @@ function resolveParty(data, side) {
   return base || '_________________________________';
 }
 
+/**
+ * Upgrade a free-text person name (e.g. `primaryCustodian`, which the
+ * extraction layer records in the user's own words — often a go-by like
+ * "Katie O'Brien-Hatch") to the FULL legal name the captions print, when
+ * the name clearly refers to one of the parties: matching surname AND
+ * matching first initial against exactly one side. Anything ambiguous
+ * (both parties match, or neither) is returned unchanged — never a
+ * cross-person substitution.
+ */
+function upgradeToLegalName(data, name) {
+  const raw = str(name);
+  if (!raw) return raw;
+  const surname = lastNameToken(raw);
+  const firstInitial = raw.charAt(0).toLowerCase();
+  if (!surname) return raw;
+  const matches = [];
+  for (const side of ['petitioner', 'respondent']) {
+    const legal = resolveParty(data, side);
+    if (!legal || legal.startsWith('_')) continue;
+    if (lastNameToken(legal) === surname && legal.charAt(0).toLowerCase() === firstInitial) {
+      matches.push(legal);
+    }
+  }
+  return matches.length === 1 ? matches[0] : raw;
+}
+
 function resolvePetitioner(data) {
   return resolveParty(data, 'petitioner');
 }
@@ -395,6 +421,30 @@ function certificateOfService(data = {}, opts = {}) {
 
 // ─── 3. Financial Declaration (Utah R. Civ. P. 26.1-shaped, simplified) ─────
 
+/**
+ * Employment description from the declarant's own itemized income labels.
+ *
+ * Extraction stores no dedicated occupation/employer field, but the income
+ * labels carry the job in the user's words ("Kathleen O'Brien-Hatch wages
+ * as office manager at a dental office") — without this the Financial
+ * Declaration's Employment line rendered blank despite the job being on
+ * file (live Utah QA, 2026-08). Only labels that actually describe a job
+ * ("wages/salary as/from …") are used, with the scaffolding trimmed; a
+ * bare category label like "Wages" says nothing about employment, and on
+ * a sworn form a blank beats noise.
+ */
+function employmentFromIncomeItems(items) {
+  if (!Array.isArray(items)) return '';
+  const descriptions = [];
+  for (const item of items) {
+    const label = str(item && item.label);
+    if (!label) continue;
+    const m = label.match(/(?:wages|income|salary|earnings|employment|job)\s+(?:as|from|at|with)\s+(.+)$/i);
+    if (m) descriptions.push(m[1].trim());
+  }
+  return descriptions.join('; ');
+}
+
 function financialDeclaration(data = {}, opts = {}) {
   const { header, caseCaption } = utahCaption(data);
 
@@ -426,7 +476,8 @@ function financialDeclaration(data = {}, opts = {}) {
 
   const expenses = moneyTable(data.expenseBreakdown, data.monthlyExpenses);
   const employment =
-    str(data.employment) || str(data.employer) || str(data.occupation) || BLANK_LINE;
+    str(data.employment) || str(data.employer) || str(data.occupation) ||
+    employmentFromIncomeItems(own.items) || BLANK_LINE;
 
   // A sworn filing must never assert an amount the declarant didn't state —
   // when nothing is on file, render a placeholder for the filer to complete.
@@ -718,6 +769,7 @@ module.exports = {
   listText,
   resolvePetitioner,
   resolveRespondent,
+  upgradeToLegalName,
   acceptanceOfService,
   certificateOfService,
   financialDeclaration,

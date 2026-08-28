@@ -18,7 +18,7 @@ const {
   resolvePrimaryResidenceName,
   resolveNonResidentialParentName,
 } = require('./parenting');
-const { captionNamesCourt, lineDuplicatesCaption } = require('./captionDedupe');
+const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
 
 /**
  * Title-case an all-caps document title ("FINAL DECREE OF DIVORCE" →
@@ -239,6 +239,13 @@ class BaseDivorceDecreeTemplate {
         ? null
         : headerCandidate;
     const venue = lineDuplicatesCaption(venueCandidate, caseCaption) ? null : venueCandidate;
+    // With a structured caption, sections.header carries the court line —
+    // strip it from the caption's formatted text so consumers that render
+    // header AND formatted (on-screen preview, docx) show the court once
+    // (templates/core/captionDedupe.js).
+    const caption = caseCaption.structured && header
+      ? stripCourtLineFromFormatted(caseCaption, header)
+      : caseCaption;
     const title = this.generateTitle();
     const appearances = this.generateAppearancesSection(divorceData);
     const jurisdiction = this.generateJurisdictionSection(divorceData);
@@ -267,7 +274,7 @@ class BaseDivorceDecreeTemplate {
       sections: {
         header,
         venue,
-        caseCaption,
+        caseCaption: caption,
         title,
         appearances,
         jurisdiction,
@@ -284,13 +291,13 @@ class BaseDivorceDecreeTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption, title, appearances, jurisdiction,
+        header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption, title, appearances, jurisdiction,
+        header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock

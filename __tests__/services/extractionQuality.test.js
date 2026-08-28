@@ -482,10 +482,12 @@ describe('role-aware income mapping', () => {
     expect(data.spouseMonthlyIncome).toBeUndefined();
   });
 
-  test('breakdown schema demands stable labels so items never duplicate', () => {
-    expect(props.income_breakdown.description).toMatch(/STABLE label/);
-    expect(props.income_breakdown.description).toMatch(/re-use the EXACT label/i);
-    expect(props.expense_breakdown.description).toMatch(/re-use the EXACT label/i);
+  test('breakdown schema demands the complete per-person list (replace semantics) so items never duplicate', () => {
+    expect(props.income_breakdown.description).toMatch(/REPLACE-PER-PERSON/);
+    expect(props.income_breakdown.description).toMatch(/COMPLETE list of income items/);
+    expect(props.income_breakdown.description).toMatch(/EXACTLY as summarized/i);
+    expect(props.expense_breakdown.description).toMatch(/COMPLETE current expense list/);
+    expect(props.expense_breakdown.description).toMatch(/REPLACES/);
   });
 });
 

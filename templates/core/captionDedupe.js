@@ -55,8 +55,52 @@ function lineDuplicatesCaption(line, caseCaption) {
   return Boolean(normalized) && normalizeCourtText(caseCaption.formatted).includes(normalized);
 }
 
+/**
+ * With a structured caption, sections.header carries the court line (the
+ * PDF layer renders header + two-column caption). The caption's `formatted`
+ * text is what every OTHER consumer renders alongside sections.header —
+ * the on-screen preview and the docx path both print header AND formatted,
+ * so a formatted text that also opens with the court line doubles the
+ * court identification (live Utah QA, 2026-08: petition preview only).
+ *
+ * Returns a copy of the caption whose formatted text no longer opens with
+ * the court line the header already renders. The leading block (lines up
+ * to the first blank line) is dropped only when it duplicates the header;
+ * anything else is left untouched.
+ *
+ * @param {Object} caseCaption - { formatted, ... }
+ * @param {string} headerLine - the court line sections.header will render
+ * @returns {Object} caseCaption (same object when nothing to strip)
+ */
+function stripCourtLineFromFormatted(caseCaption, headerLine) {
+  if (!caseCaption || !caseCaption.formatted || !headerLine) return caseCaption;
+  const headerNorm = normalizeCourtText(headerLine);
+  if (!headerNorm) return caseCaption;
+
+  const lines = String(caseCaption.formatted).split('\n');
+  let start = 0;
+  while (start < lines.length && lines[start].trim() === '') start++;
+  let end = start;
+  while (end < lines.length && lines[end].trim() !== '') end++;
+  if (end === start) return caseCaption;
+
+  const blockNorm = normalizeCourtText(lines.slice(start, end).join(' '));
+  const duplicates =
+    Boolean(blockNorm) &&
+    (headerNorm === blockNorm ||
+      headerNorm.includes(blockNorm) ||
+      blockNorm.includes(headerNorm));
+  if (!duplicates) return caseCaption;
+
+  // Drop the court block plus the blank lines that followed it.
+  while (end < lines.length && lines[end].trim() === '') end++;
+  const formatted = lines.slice(end).join('\n');
+  return { ...caseCaption, formatted };
+}
+
 module.exports = {
   normalizeCourtText,
   captionNamesCourt,
   lineDuplicatesCaption,
+  stripCourtLineFromFormatted,
 };

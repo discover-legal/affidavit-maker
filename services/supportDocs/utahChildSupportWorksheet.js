@@ -23,7 +23,7 @@
 // orchestrating session wires the registry (kind key 'child_support_worksheet').
 
 const crypto = require('node:crypto');
-const { utahCaption, filerBlock, resolvePetitioner, resolveRespondent } = require('./utah');
+const { utahCaption, filerBlock, resolvePetitioner, resolveRespondent, upgradeToLegalName } = require('./utah');
 
 const { calculateUtah, OFFICIAL_CALCULATOR_URL } = require('../childSupport');
 
@@ -140,7 +140,9 @@ function childSupportWorksheet(data = {}, opts = {}) {
     content:
       `Parents: ${petitioner} (Petitioner) and ${respondent} (Respondent).` +
       (str(data.primaryCustodian)
-        ? ` The children live most of the time with: ${str(data.primaryCustodian)}.`
+        // primaryCustodian is stored in the user's own words (often a
+        // go-by) — print the same full legal name the captions use.
+        ? ` The children live most of the time with: ${upgradeToLegalName(data, data.primaryCustodian)}.`
         : ''),
     type: 'fact',
   });

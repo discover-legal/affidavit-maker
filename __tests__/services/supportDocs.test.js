@@ -421,3 +421,91 @@ describe('financialDeclaration — persona regression (sworn income attribution)
     expect(text).not.toContain('[MONTHLY INCOME]');
   });
 });
+
+// ─── live-QA regression (katie2 replay, 2026-08): names + employment ─────────
+// The Child Support Worksheet printed the go-by ("The children live most of
+// the time with: Katie O'Brien-Hatch") while every caption used the full
+// legal name; the Financial Declaration's Employment line rendered blank
+// despite "office manager at a dental office" sitting in the income labels.
+describe('supportDocs — persona regression (go-by upgrade + employment)', () => {
+  const personaData = {
+    petitionerName: "Katie O'Brien-Hatch", // go-by; legal names in obligation fields
+    respondentName: 'Daniel Hatch',
+    childSupportObligee: "Kathleen O'Brien-Hatch",
+    childSupportObligor: 'Daniel James Hatch',
+    childSupportPayor: 'respondent',
+    primaryCustodian: "Katie O'Brien-Hatch",
+    state: 'UT',
+    county: 'Salt Lake',
+    children: [
+      { name: 'Emma Rose Hatch', dob: '2014-08-03' },
+      { name: 'Lucas Daniel Hatch', dob: '2018-05-19' },
+    ],
+    incomeBreakdown: [
+      {
+        label: "Katie O'Brien-Hatch wages as office manager at a dental office",
+        amount: 3400,
+        person: 'petitioner',
+      },
+      { label: 'Daniel Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+    ],
+  };
+
+  test('child support worksheet names the custodian by full legal name, not the go-by', () => {
+    const builder = getSupportDoc('UT', 'child_support_worksheet');
+    const structure = builder(personaData, {});
+    const first = structure.sections.facts.items[0].content;
+    expect(first).toContain(
+      "The children live most of the time with: Kathleen O'Brien-Hatch.",
+    );
+    expect(first).not.toContain("with: Katie O'Brien-Hatch");
+  });
+
+  test('upgradeToLegalName never substitutes across people or on ambiguity', () => {
+    // Different surname/initial: untouched.
+    expect(utah.upgradeToLegalName(personaData, 'Daniel Hatch')).toBe('Daniel James Hatch');
+    expect(utah.upgradeToLegalName(personaData, 'Somebody Else')).toBe('Somebody Else');
+    // Both parties sharing surname + initial → ambiguous → unchanged.
+    const shared = {
+      petitionerName: 'Dana Hatch',
+      respondentName: 'Daniel Hatch',
+      petitionerFullLegalName: 'Dana Marie Hatch',
+      respondentFullLegalName: 'Daniel James Hatch',
+    };
+    expect(utah.upgradeToLegalName(shared, 'D. Hatch')).toBe('D. Hatch');
+    expect(utah.upgradeToLegalName(personaData, '')).toBe('');
+  });
+
+  test("financial declaration derives Employment from the declarant's own income label", () => {
+    const { sections } = utah.financialDeclaration(personaData);
+    const employmentLine = sections.facts.items[0].content;
+    expect(employmentLine).toBe(
+      'Employment (employer and job): office manager at a dental office.',
+    );
+    // Never the spouse's job on the declarant's declaration
+    expect(employmentLine).not.toContain('HVAC');
+  });
+
+  test('an explicit occupation field still wins over derived labels', () => {
+    const { sections } = utah.financialDeclaration({
+      ...personaData,
+      occupation: 'dental office manager (Smile Dental, SLC)',
+    });
+    expect(sections.facts.items[0].content).toBe(
+      'Employment (employer and job): dental office manager (Smile Dental, SLC).',
+    );
+  });
+
+  test('bare category labels ("Wages") never masquerade as employment — blank instead', () => {
+    const { sections } = utah.financialDeclaration({
+      petitionerName: 'Jane Q. Example',
+      incomeBreakdown: [
+        { label: 'Wages', amount: 3200, person: 'petitioner' },
+        { label: 'Side business', amount: 800, person: 'petitioner' },
+      ],
+    });
+    expect(sections.facts.items[0].content).toMatch(
+      /^Employment \(employer and job\): _+\.$/,
+    );
+  });
+});

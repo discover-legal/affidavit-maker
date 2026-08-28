@@ -547,7 +547,12 @@ class DivorceDocumentGenerator {
     const county = data.county || '__________';
     const marriageDate = data.marriageDate || '__________';
     const marriageCity = data.marriageCity || '__________';
-    const marriageStateName = data.marriageStateName || '__________';
+    // When the marriage city is known but its state was never extracted,
+    // fall back to the filing jurisdiction's name rather than a blank —
+    // "Provo, __________" on a petition whose own state is Utah (live
+    // Utah QA, 2026-08). Blank only when the place is truly unknown.
+    const marriageStateName =
+      data.marriageStateName || (data.marriageCity ? cfg.name : '__________');
     const separationDate = data.separationDate || '__________';
 
     const facts = {
@@ -1047,6 +1052,12 @@ class DivorceDocumentGenerator {
                       state === 'IL' ? 'Parental Responsibilities Agreement' :
                       'Parenting Plan';
     const custodyArrangement = data.custodyArrangement || 'joint custody with equal parenting time';
+    // The stored parent-time schedule (same field the decree renders —
+    // templates/states/*/DivorceDecreeTemplate getVisitationLanguage). The
+    // "schedule to be agreed upon" boilerplate is the fallback only.
+    const parentTimeDetails =
+      (typeof data.parentTimeDetails === 'string' && data.parentTimeDetails.trim()) ||
+      (typeof data.custodyDetails === 'string' && data.custodyDetails.trim()) || '';
 
     const children = this._hasChildren(data)
       ? data.children.map((c, i) => `${i + 1}. ${c.name || 'Child'}${c.dob ? ` (DOB: ${c.dob})` : c.age ? ` (Age: ${c.age})` : ''}`)
@@ -1064,7 +1075,9 @@ class DivorceDocumentGenerator {
         },
         {
           number: 3,
-          content: `RESIDENTIAL SCHEDULE: The children shall reside with each parent according to a schedule to be agreed upon by the parties or as ordered by the Court.`
+          content: parentTimeDetails
+            ? `RESIDENTIAL SCHEDULE: ${parentTimeDetails.replace(/[.\s]+$/, '')}. Except as set out above, the children shall reside with each parent as the parties agree or as ordered by the Court.`
+            : `RESIDENTIAL SCHEDULE: The children shall reside with each parent according to a schedule to be agreed upon by the parties or as ordered by the Court.`
         },
         {
           number: 4,
@@ -1422,7 +1435,12 @@ class DivorceDocumentGenerator {
     const county = data.county || '__________';
     const marriageDate = data.marriageDate || '__________';
     const marriageCity = data.marriageCity || '__________';
-    const marriageStateName = data.marriageStateName || '__________';
+    // When the marriage city is known but its state was never extracted,
+    // fall back to the filing jurisdiction's name rather than a blank —
+    // "Provo, __________" on a petition whose own state is Utah (live
+    // Utah QA, 2026-08). Blank only when the place is truly unknown.
+    const marriageStateName =
+      data.marriageStateName || (data.marriageCity ? cfg.name : '__________');
     const separationDate = data.separationDate || '__________';
 
     const facts = {

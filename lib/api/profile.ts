@@ -20,6 +20,13 @@ import { logger } from '@/lib/logger';
 const { mergeChildren } = require('@/utils/childrenMerge') as {
   mergeChildren: (a: unknown[] | undefined, b: unknown[] | undefined) => Record<string, unknown>[];
 };
+const { mergeLabeledAmounts, totalOf } = require('@/utils/labeledAmounts') as {
+  mergeLabeledAmounts: (
+    existing: unknown[] | undefined,
+    incoming: unknown[] | undefined,
+  ) => Array<Record<string, unknown>>;
+  totalOf: (items: unknown) => number;
+};
 const { retireFacts, sanitizeSupersededStatements, normalizeFactText } =
   require('@/services/agents/factRetirement') as {
     retireFacts: (
@@ -83,6 +90,11 @@ const FAMILY_FIELDS: readonly string[] = [
   'childSupportObligor', 'childSupportObligee',
   'groundsForDivorce', 'spousalSupportRequested', 'supportAmount', 'supportDuration',
   'spousalSupportAmount', 'spousalSupportDuration',
+  // Template gate fields for the decree/petition spousal-support sections.
+  // spousalSupportWaived was missing here, so an agreed alimony waiver never
+  // survived into the profile (live katie2 replay). Its siblings, which the
+  // templates read alongside it, had the same gap.
+  'spousalSupportWaived', 'spousalSupportAwarded', 'requestSpousalSupport',
   'hasProperty', 'hasDebts', 'propertyAgreement',
   'serviceMethod',
   'hasProtectiveOrder', 'respondentAddress', 'respondentMilitaryStatus',
@@ -327,16 +339,40 @@ export async function mergeUserProfile(
     if (field === 'children') continue;
     const incoming = affidavitData[field];
     if (isEmptyValue(incoming)) continue;
-    // Itemized money lists: collapse duplicates (latest entry per
-    // person+label wins) so per-person sums never double-count.
-    profile[field] = BREAKDOWN_FIELDS.includes(field) ? dedupeBreakdown(incoming) : incoming;
+    // Itemized money lists: replace-per-person (utils/labeledAmounts) — the
+    // incoming turn's entries for a person supersede everything stored for
+    // that person, so label-variant duplicates ("Katie … wages" then
+    // "Kathleen … wages") can never accumulate. Same semantics as the
+    // orchestrator's doc-level accumulation — the two layers must agree.
+    profile[field] = BREAKDOWN_FIELDS.includes(field)
+      ? mergeLabeledAmounts(stored.profile[field] as unknown[] | undefined, incoming as unknown[])
+      : incoming;
   }
-  // Stored rows that predate the dedupe may already hold duplicates —
-  // scrub them even on turns that did not touch the breakdowns.
+  // Stored rows that predate the dedupe may already hold exact-key
+  // duplicates — scrub them even on turns that did not touch the breakdowns.
   for (const field of BREAKDOWN_FIELDS) {
     if (Array.isArray(profile[field])) profile[field] = dedupeBreakdown(profile[field]);
   }
   sanitizeRole(profile);
+  // Recompute the role-aware money totals from the merged itemizations so
+  // the stored scalars can never disagree with the stored breakdowns
+  // (mirrors the orchestrator: monthlyIncome = the USER's own entries only,
+  // untagged entries count as the user's own; NEVER a household total).
+  const totalsRole = strv(profile.role) === 'respondent' ? 'respondent' : 'petitioner';
+  const totalsSpouseRole = totalsRole === 'respondent' ? 'petitioner' : 'respondent';
+  const incomeItems = profile.incomeBreakdown;
+  if (Array.isArray(incomeItems) && incomeItems.length > 0) {
+    const personOf = (entry: unknown): string =>
+      String((entry as Record<string, unknown> | null)?.person ?? '').trim().toLowerCase();
+    const own = incomeItems.filter((e) => personOf(e) === totalsRole || personOf(e) === '');
+    const spouse = incomeItems.filter((e) => personOf(e) === totalsSpouseRole);
+    if (own.length > 0) profile.monthlyIncome = totalOf(own);
+    if (spouse.length > 0) profile.spouseMonthlyIncome = totalOf(spouse);
+  }
+  const expenseItems = profile.expenseBreakdown;
+  if (Array.isArray(expenseItems) && expenseItems.length > 0) {
+    profile.monthlyExpenses = totalOf(expenseItems);
+  }
   // A turn that named the spouse — canonically or via a caption field read
   // under the post-merge role — outranks the stored spouseName.
   const mergedRole = strv(profile.role) === 'respondent' ? 'respondent' : 'petitioner';

@@ -590,3 +590,144 @@ describe('appendKeyEvents', () => {
     expect(saved.keyEvents[1]).toEqual({ label: 'Hearing', date: '2026-06-01', source: 'Notice' });
   });
 });
+
+describe('mergeUserProfile breakdown replace-per-person', () => {
+  const readRow = (profile: Record<string, unknown>) => ({
+    rows: [{ profile, facts: [] }],
+    rowCount: 1,
+  });
+  const savedProfile = () => {
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('the katie2 label-variant restatement REPLACES the person\'s stored entry — one 3,400 entry, not two', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        incomeBreakdown: [
+          { label: "Katie O'Brien-Hatch wages as office manager at dental office", amount: 3400, person: 'petitioner' },
+          { label: 'Daniel Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+        ],
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      incomeBreakdown: [
+        { label: "Kathleen O'Brien-Hatch wages as office manager at a dental office", amount: 3400, person: 'petitioner' },
+      ],
+    });
+
+    const saved = savedProfile();
+    const petitioner = saved.incomeBreakdown.filter(
+      (e: { person?: string }) => e.person === 'petitioner',
+    );
+    expect(petitioner).toHaveLength(1);
+    expect(petitioner[0].amount).toBe(3400);
+    // The respondent was not mentioned this turn — entry untouched.
+    const respondent = saved.incomeBreakdown.filter(
+      (e: { person?: string }) => e.person === 'respondent',
+    );
+    expect(respondent).toHaveLength(1);
+    // Role-aware totals recomputed from the merged breakdown.
+    expect(saved.monthlyIncome).toBe(3400);
+    expect(saved.spouseMonthlyIncome).toBe(5200);
+  });
+
+  test('recomputed totals override a stale doubled scalar from the document', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      monthlyIncome: 6800, // the corrupted doc scalar (2× the real wage)
+      spouseMonthlyIncome: 10400,
+      incomeBreakdown: [
+        { label: 'My wages', amount: 3400, person: 'petitioner' },
+        { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.monthlyIncome).toBe(3400);
+    expect(saved.spouseMonthlyIncome).toBe(5200);
+  });
+
+  test('a respondent-role user\'s own total comes from respondent entries', async () => {
+    queryMock.mockResolvedValueOnce(readRow({ role: 'respondent' }));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      incomeBreakdown: [
+        { label: 'My wages', amount: 5200, person: 'respondent' },
+        { label: 'Spouse wages', amount: 3400, person: 'petitioner' },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.monthlyIncome).toBe(5200);
+    expect(saved.spouseMonthlyIncome).toBe(3400);
+  });
+
+  test('expense mirror: incoming list replaces and monthlyExpenses is recomputed', async () => {
+    queryMock.mockResolvedValueOnce(
+      readRow({
+        expenseBreakdown: [
+          { label: 'Rent', amount: 1200 },
+          { label: 'Groceries', amount: 650 },
+        ],
+        monthlyExpenses: 1850,
+      }),
+    );
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      expenseBreakdown: [
+        { label: 'Mortgage', amount: 1450 },
+        { label: 'Groceries', amount: 700 },
+        { label: 'Utilities', amount: 300 },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.expenseBreakdown.map((e: { label: string }) => e.label)).toEqual([
+      'Mortgage',
+      'Groceries',
+      'Utilities',
+    ]);
+    expect(saved.monthlyExpenses).toBe(2450);
+  });
+});
+
+describe('spousal support waiver persistence (katie2 gap)', () => {
+  test('spousalSupportWaived and its sibling gate fields persist through mergeUserProfile', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      spousalSupportRequested: false,
+      spousalSupportWaived: true,
+      spousalSupportAwarded: false,
+      requestSpousalSupport: false,
+    });
+
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const saved = JSON.parse(params[1] as string);
+    expect(saved.spousalSupportWaived).toBe(true);
+    expect(saved.spousalSupportRequested).toBe(false);
+    expect(saved.spousalSupportAwarded).toBe(false);
+    expect(saved.requestSpousalSupport).toBe(false);
+  });
+
+  test('spousalSupportWaived hydrates in family scope but not general scope', () => {
+    const stored: UserProfile = {
+      profile: { spousalSupportWaived: true, spousalSupportAwarded: false, requestSpousalSupport: false },
+      facts: [],
+    };
+    const family = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'family');
+    expect(family.spousalSupportWaived).toBe(true);
+    expect(family.requestSpousalSupport).toBe(false);
+
+    const general = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'general');
+    expect(general.spousalSupportWaived).toBeUndefined();
+  });
+});

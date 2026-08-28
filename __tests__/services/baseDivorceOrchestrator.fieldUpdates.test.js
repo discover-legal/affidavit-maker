@@ -331,3 +331,121 @@ describe('affiant derivation', () => {
     expect(kept.affiantName).toBe('Someone Else');
   });
 });
+
+describe('income/expense breakdown replace-per-person accumulation', () => {
+  test('same person restated under a label variant REPLACES, never appends (katie2 replay)', () => {
+    const orch = makeOrchestrator();
+    let data = orch._applyFieldUpdates({}, {
+      income_breakdown: [
+        { label: "Katie O'Brien-Hatch wages as office manager at dental office", amount: 3400, person: 'petitioner' },
+        { label: 'Daniel Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+      ],
+    });
+    // A later turn restates both incomes under the parties' full legal names.
+    data = orch._applyFieldUpdates(data, {
+      income_breakdown: [
+        { label: "Kathleen O'Brien-Hatch wages as office manager at a dental office", amount: 3400, person: 'petitioner' },
+        { label: 'Daniel James Hatch wages as HVAC technician', amount: 5200, person: 'respondent' },
+      ],
+    });
+    expect(data.incomeBreakdown).toHaveLength(2);
+    expect(data.incomeBreakdown.filter((e) => e.person === 'petitioner')).toHaveLength(1);
+    // Totals recomputed from the replaced list — not doubled.
+    expect(data.monthlyIncome).toBe(3400);
+    expect(data.spouseMonthlyIncome).toBe(5200);
+  });
+
+  test('a turn touching only one person leaves the other person\'s entries and total intact', () => {
+    const orch = makeOrchestrator();
+    let data = orch._applyFieldUpdates({}, {
+      income_breakdown: [
+        { label: 'My wages', amount: 3400, person: 'petitioner' },
+        { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+      ],
+    });
+    data = orch._applyFieldUpdates(data, {
+      income_breakdown: [{ label: 'My wages', amount: 3600, person: 'petitioner' }],
+    });
+    expect(data.incomeBreakdown).toHaveLength(2);
+    expect(data.monthlyIncome).toBe(3600);
+    expect(data.spouseMonthlyIncome).toBe(5200);
+  });
+
+  test('expense mirror: restating the complete expense list replaces it and recomputes monthlyExpenses', () => {
+    const orch = makeOrchestrator();
+    let data = orch._applyFieldUpdates({}, {
+      expense_breakdown: [
+        { label: 'Mortgage', amount: 1450 },
+        { label: 'Groceries', amount: 700 },
+      ],
+    });
+    data = orch._applyFieldUpdates(data, {
+      expense_breakdown: [
+        { label: 'Mortgage', amount: 1450 },
+        { label: 'Groceries', amount: 700 },
+        { label: 'Utilities', amount: 300 },
+      ],
+    });
+    expect(data.expenseBreakdown).toHaveLength(3);
+    expect(data.monthlyExpenses).toBe(2450);
+  });
+
+  test('schema tells the model to emit the COMPLETE per-person list', () => {
+    const orch = makeOrchestrator();
+    const props = orch.tool.function.parameters.properties;
+    expect(props.income_breakdown.description).toContain('COMPLETE list');
+    expect(props.income_breakdown.description).toContain('REPLACE');
+    expect(props.expense_breakdown.description).toContain('COMPLETE current expense list');
+  });
+});
+
+describe('_summarizeCollected lists recorded money items', () => {
+  test('income and expense entries appear with person, label, and amount', () => {
+    const orch = makeOrchestrator();
+    const summary = orch._summarizeCollected({
+      incomeBreakdown: [
+        { label: 'My wages', amount: 3400, person: 'petitioner' },
+        { label: 'Spouse wages', amount: 5200, person: 'respondent' },
+      ],
+      expenseBreakdown: [{ label: 'Mortgage', amount: 1450 }],
+    });
+    expect(summary).toContain('Income items recorded');
+    expect(summary).toContain('[petitioner] My wages: $3400/month');
+    expect(summary).toContain('[respondent] Spouse wages: $5200/month');
+    expect(summary).toContain('Expense items recorded');
+    expect(summary).toContain('- Mortgage: $1450/month');
+    expect(summary).toContain("COMPLETE list");
+  });
+});
+
+describe('spousal support waiver derivation stays mutually consistent', () => {
+  test('declining support sets waived and clears awarded (and vice versa)', () => {
+    const orch = makeOrchestrator();
+    const waived = orch._applyFieldUpdates(
+      { spousalSupportAwarded: true }, // stale hydrated flag from an earlier document
+      { spousal_support_requested: false },
+    );
+    expect(waived.spousalSupportWaived).toBe(true);
+    expect(waived.spousalSupportAwarded).toBe(false);
+
+    const awarded = orch._applyFieldUpdates(
+      { spousalSupportWaived: true },
+      { spousal_support_requested: true },
+    );
+    expect(awarded.spousalSupportAwarded).toBe(true);
+    expect(awarded.spousalSupportWaived).toBe(false);
+  });
+});
+
+describe('pending-question pacing guidance', () => {
+  test('system prompt caps re-asking to at most every other turn with varied phrasing', () => {
+    const orch = makeOrchestrator();
+    const prompt = orch._buildSystemPrompt(
+      { currentPhase: 'INTAKE', completedPhases: [] },
+      {},
+    );
+    expect(prompt).toContain('AT MOST once every other turn');
+    expect(prompt).toContain('vary the phrasing');
+    expect(prompt).toContain('never repeat a question word-for-word');
+  });
+});

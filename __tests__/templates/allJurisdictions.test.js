@@ -385,22 +385,37 @@ describe('All Jurisdictions - Template System', () => {
         return haystack.split(needle).length - 1;
       };
 
+      // htmlContent escapes text (&#39;, &amp;, …) — decode before
+      // normalizing so "KING&#39;S BENCH" matches "KING'S BENCH".
+      const unescapeHtml = (html) =>
+        String(html)
+          .replace(/&#39;/g, "'")
+          .replace(/&quot;/g, '"')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&');
+
+      // The caption's own court line: the first formatted line naming a
+      // court/tribunal, else the explicit court fields.
+      const captionCourtNeedle = (doc) => {
+        const caption = doc.sections.caseCaption || {};
+        const line =
+          String(caption.formatted || '')
+            .split('\n')
+            .find((l) => /\b(COURT|TRIBUNAL)\b/i.test(l)) ||
+          caption.courtHeaderLine ||
+          caption.courtName ||
+          doc.sections.header;
+        return normalizeCourtText(line);
+      };
+
       it.each(['DivorcePetitionTemplate.js', 'DivorceDecreeTemplate.js'])(
         '%s renders its court-line phrase exactly once',
         (file) => {
           const Template = require(path.join(templateDir, file));
           const instance = new Template();
           const doc = instance.generateDocument({ ...SAMPLE, state: instance.state });
-          const caption = doc.sections.caseCaption || {};
-          // The caption's own court line: the first formatted line naming a
-          // court/tribunal, else the courtName field.
-          const captionCourtLine =
-            String(caption.formatted || '')
-              .split('\n')
-              .find((line) => /\b(COURT|TRIBUNAL)\b/i.test(line)) ||
-            caption.courtName ||
-            caption.courtHeaderLine;
-          const needle = normalizeCourtText(captionCourtLine);
+          const needle = captionCourtNeedle(doc);
           expect(needle).toBeTruthy();
           // Count in the region above the document title — a judgment
           // block naming the court after the orders is legitimate; a second
@@ -410,8 +425,36 @@ describe('All Jurisdictions - Template System', () => {
           const titleIdx = title ? fullText.indexOf(title) : -1;
           const head = normalizeCourtText(titleIdx >= 0 ? fullText.slice(0, titleIdx) : fullText);
           expect(countOccurrences(head, needle)).toBe(1);
+
+          // htmlContent too — the on-screen preview and docx paths render
+          // sections.header AND caseCaption.formatted, which doubled the
+          // court line on every petition until the structured caption's
+          // formatted text stopped carrying it (live Utah QA, 2026-08).
+          const html = unescapeHtml(doc.htmlContent);
+          expect(typeof html).toBe('string');
+          const htmlTitleIdx = title ? html.indexOf(title) : -1;
+          const htmlHead = normalizeCourtText(
+            htmlTitleIdx >= 0 ? html.slice(0, htmlTitleIdx) : html
+          );
+          expect(countOccurrences(htmlHead, needle)).toBe(1);
         }
       );
+
+      it('petition header + caption together identify the court exactly once (preview contract)', () => {
+        // The SPA preview (components/app/DocumentPreview.js) renders
+        // sections.header and sections.caseCaption.formatted as separate
+        // blocks — together they must carry ONE court identification.
+        const Template = require(path.join(templateDir, 'DivorcePetitionTemplate.js'));
+        const instance = new Template();
+        const doc = instance.generateDocument({ ...SAMPLE, state: instance.state });
+        const caption = doc.sections.caseCaption || {};
+        const needle = captionCourtNeedle(doc);
+        expect(needle).toBeTruthy();
+        const combined = normalizeCourtText(
+          `${doc.sections.header || ''}\n${doc.sections.venue || ''}\n${caption.formatted || ''}`
+        );
+        expect(countOccurrences(combined, needle)).toBe(1);
+      });
     });
 
     // ── 5. Orchestrator loading ───────────────────────────────────────────

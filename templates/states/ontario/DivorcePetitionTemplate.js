@@ -5,7 +5,7 @@
 'use strict';
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
-const { asList } = require('../../core/dataShapes');
+const { asList, propertyAgreementProse } = require('../../core/dataShapes');
 
 /**
  * Ontario Divorce Application Template
@@ -278,8 +278,11 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const pleadings = [];
 
     let intro = 'The parties have reached an agreement resolving the division of their property and any equalization of net family property under the Family Law Act, RSO 1990, c. F.3.';
-    if (typeof divorceData.propertyAgreement === 'string' && divorceData.propertyAgreement.trim()) {
-      intro += ` ${divorceData.propertyAgreement.trim()}`;
+    // Only append an actual description — never a raw status token like
+    // "agreed" (templates/core/dataShapes.js propertyAgreementProse).
+    const agreementProse = propertyAgreementProse(divorceData.propertyAgreement);
+    if (agreementProse) {
+      intro += ` ${agreementProse}`;
     }
     pleadings.push(intro);
 

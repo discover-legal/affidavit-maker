@@ -2,7 +2,184 @@
 // services/ResilientOpenAIService.js 
 
 const winston = require('winston');
-const { DEFAULT_LLM_MODEL, normalizeChatParams } = require('./llmConfig');
+const {
+  DEFAULT_LLM_MODEL,
+  normalizeChatParams,
+  isResponsesOnlyModel,
+} = require('./llmConfig');
+
+// ---------------------------------------------------------------------------
+// Responses API adapter (Luna-family models: gpt-5.6-*)
+//
+// Luna only supports function tools via POST /v1/responses. The wrapper below
+// converts a Chat Completions-shaped request into a Responses-shaped request,
+// invokes it, and converts the Responses envelope back to Chat Completions so
+// every caller (BaseDivorceOrchestrator, affidavitService, ingest, fix-my-
+// story, ...) keeps reading choices[0].message.tool_calls[0].function.arguments
+// with no changes.
+//
+// Shapes verified by live probe against gpt-5.6-luna on 2026-08-28:
+//   request:  { model, input:[{role, content:[{type:'input_text', text}]}],
+//               tools:[{type:'function', name, description, parameters}],
+//               tool_choice:{type:'function', name},
+//               max_output_tokens }
+//   response: { output:[{type:'function_call', id, call_id, name, arguments}],
+//               output_text?: string, usage:{input_tokens, output_tokens, ...} }
+// ---------------------------------------------------------------------------
+
+function _contentToText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .map(part => (typeof part === 'string' ? part : part?.text || ''))
+      .join('');
+  }
+  return '';
+}
+
+function _messageRoleForResponses(role) {
+  // The Responses API uses 'developer' where Chat Completions uses 'system'.
+  // Tool result messages are folded into 'user' text (Luna extraction turns
+  // do not currently round-trip tool results — no orchestrator relies on it).
+  if (role === 'system') return 'developer';
+  if (role === 'tool' || role === 'function') return 'user';
+  return role; // user / assistant / developer pass through
+}
+
+function chatToResponsesRequest(chatParams) {
+  const messages = Array.isArray(chatParams.messages) ? chatParams.messages : [];
+  const input = messages.map(m => {
+    const role = _messageRoleForResponses(m.role);
+    // Content-part type is role-dependent: user/developer send 'input_text',
+    // assistant sends 'output_text' (the Responses API rejects input_text on
+    // assistant messages — real error: "Invalid value: 'input_text'. Supported
+    // values are: 'output_text' and 'refusal'"). Chat-Completions tool/function
+    // role messages fold into 'user' text, so use input_text for those.
+    const partType = role === 'assistant' ? 'output_text' : 'input_text';
+    return {
+      role,
+      content: [{ type: partType, text: _contentToText(m.content) }],
+    };
+  });
+
+  const req = { model: chatParams.model, input };
+
+  // Chat Completions tools:      [{type:'function', function:{name, description, parameters}}]
+  // Responses tools (flat):      [{type:'function', name, description, parameters}]
+  if (Array.isArray(chatParams.tools) && chatParams.tools.length > 0) {
+    req.tools = chatParams.tools.map(t => {
+      if (t && t.type === 'function' && t.function) {
+        const f = t.function;
+        return {
+          type: 'function',
+          name: f.name,
+          description: f.description,
+          parameters: f.parameters,
+        };
+      }
+      // Already Responses-shaped or a non-function tool — pass through.
+      return t;
+    });
+  }
+
+  // Chat Completions tool_choice: {type:'function', function:{name}} | 'auto' | 'none' | 'required'
+  // Responses tool_choice:        {type:'function', name}            | 'auto' | 'none' | 'required'
+  if (chatParams.tool_choice !== undefined) {
+    const tc = chatParams.tool_choice;
+    if (tc && typeof tc === 'object' && tc.type === 'function' && tc.function?.name) {
+      req.tool_choice = { type: 'function', name: tc.function.name };
+    } else {
+      req.tool_choice = tc;
+    }
+  }
+
+  if (chatParams.parallel_tool_calls !== undefined) {
+    req.parallel_tool_calls = chatParams.parallel_tool_calls;
+  }
+
+  // Token budget: Chat uses max_tokens / max_completion_tokens; Responses uses
+  // max_output_tokens. Prefer max_completion_tokens (already normalized), then
+  // max_tokens.
+  const budget = chatParams.max_output_tokens
+    ?? chatParams.max_completion_tokens
+    ?? chatParams.max_tokens;
+  if (budget !== undefined) req.max_output_tokens = budget;
+
+  if (chatParams.user !== undefined) req.user = chatParams.user;
+  if (chatParams.metadata !== undefined) req.metadata = chatParams.metadata;
+
+  // NOTE: Responses (Luna) rejects sampling params for reasoning models the
+  // same way Chat Completions does; normalizeChatParams already stripped them.
+
+  return req;
+}
+
+function responsesToChatCompletion(resp, model) {
+  const output = Array.isArray(resp?.output) ? resp.output : [];
+
+  const toolCalls = output
+    .filter(item => item && item.type === 'function_call')
+    .map((item, idx) => ({
+      id: item.call_id || item.id || `call_${idx}`,
+      type: 'function',
+      function: {
+        name: item.name,
+        // Responses returns `arguments` already as a JSON string, matching
+        // Chat Completions' shape. Guard against non-string just in case.
+        arguments:
+          typeof item.arguments === 'string'
+            ? item.arguments
+            : JSON.stringify(item.arguments ?? {}),
+      },
+    }));
+
+  // Text output: prefer resp.output_text if present, else concatenate any
+  // 'message'/'output_text' content parts from the output array.
+  let content = null;
+  if (typeof resp?.output_text === 'string' && resp.output_text.length > 0) {
+    content = resp.output_text;
+  } else {
+    const texts = [];
+    for (const item of output) {
+      if (!item) continue;
+      if (item.type === 'output_text' && typeof item.text === 'string') {
+        texts.push(item.text);
+      } else if (item.type === 'message' && Array.isArray(item.content)) {
+        for (const part of item.content) {
+          if (part?.type === 'output_text' && typeof part.text === 'string') {
+            texts.push(part.text);
+          }
+        }
+      }
+    }
+    if (texts.length > 0) content = texts.join('');
+  }
+
+  const message = { role: 'assistant', content };
+  if (toolCalls.length > 0) message.tool_calls = toolCalls;
+
+  const finish_reason = toolCalls.length > 0 ? 'tool_calls' : (resp?.status === 'incomplete' ? 'length' : 'stop');
+
+  const usage = resp?.usage
+    ? {
+        prompt_tokens: resp.usage.input_tokens ?? 0,
+        completion_tokens: resp.usage.output_tokens ?? 0,
+        total_tokens:
+          resp.usage.total_tokens
+          ?? ((resp.usage.input_tokens ?? 0) + (resp.usage.output_tokens ?? 0)),
+      }
+    : { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+  return {
+    id: resp?.id,
+    object: 'chat.completion',
+    model: resp?.model || model,
+    choices: [{ index: 0, message, finish_reason }],
+    usage,
+    // Preserve raw Responses envelope for anything that wants it.
+    _responsesRaw: resp,
+  };
+}
 
 // Configure logger if not already available.
 // Console always; file transport is best-effort. In containerized/read-only
@@ -338,8 +515,26 @@ class ResilientOpenAIService {
           stream: cleanOptions.stream,
           filteredParams: Object.keys(cleanOptions)
         });
-        
-        const response = await this.openai.chat.completions.create(cleanOptions);
+
+        let response;
+        if (isResponsesOnlyModel(cleanOptions.model)) {
+          // Luna-family: convert to Responses API, invoke, convert back.
+          const responsesReq = chatToResponsesRequest(cleanOptions);
+          logger.debug('Routing via Responses API (Luna):', {
+            model: responsesReq.model,
+            hasTools: Array.isArray(responsesReq.tools),
+            toolChoice: responsesReq.tool_choice,
+          });
+          if (!this.openai || !this.openai.responses || typeof this.openai.responses.create !== 'function') {
+            throw new Error(
+              'OpenAI client does not expose .responses.create — upgrade the openai SDK to use Luna-family models.'
+            );
+          }
+          const raw = await this.openai.responses.create(responsesReq);
+          response = responsesToChatCompletion(raw, cleanOptions.model);
+        } else {
+          response = await this.openai.chat.completions.create(cleanOptions);
+        }
         
         // Cache successful response (only non-streaming)
         if (!options.stream) {
@@ -526,4 +721,11 @@ class ResilientOpenAIService {
   }
 }
 
-module.exports = { ResilientOpenAIService, CircuitBreaker, RetryPolicy };
+module.exports = {
+  ResilientOpenAIService,
+  CircuitBreaker,
+  RetryPolicy,
+  // Exported for tests; not part of the public runtime surface.
+  chatToResponsesRequest,
+  responsesToChatCompletion,
+};

@@ -20,6 +20,23 @@ function isReasoningModel(model) {
   return /^gpt-5/i.test(model || '');
 }
 
+/**
+ * Luna-family models (gpt-5.6-*) are cheap Anthropic-tier reasoning models on
+ * OpenAI that ONLY expose function-tool calling via the Responses API
+ * (`POST /v1/responses`). Chat Completions with `tools` + `tool_choice`
+ * returns:
+ *   "Function tools with reasoning_effort are not supported for gpt-5.6-luna
+ *    in /v1/chat/completions."
+ *
+ * The shared LLM client (services/ResilientOpenAIService.js) uses this
+ * predicate to transparently route Luna requests through the Responses API
+ * and shape the response back into the Chat Completions envelope every caller
+ * already expects (`choices[0].message.tool_calls[0].function.arguments`).
+ */
+function isResponsesOnlyModel(model) {
+  return /^gpt-5\.6/i.test(model || '');
+}
+
 const SAMPLING_PARAMS = ['temperature', 'top_p', 'presence_penalty', 'frequency_penalty'];
 
 /**
@@ -48,4 +65,9 @@ function normalizeChatParams(params) {
   return out;
 }
 
-module.exports = { DEFAULT_LLM_MODEL, isReasoningModel, normalizeChatParams };
+module.exports = {
+  DEFAULT_LLM_MODEL,
+  isReasoningModel,
+  isResponsesOnlyModel,
+  normalizeChatParams,
+};

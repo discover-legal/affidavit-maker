@@ -4,6 +4,7 @@
 // Complies with Servicemembers Civil Relief Act (SCRA), 50 U.S.C. § 3931
 
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
+const { captionUpper } = require('../../core/nameCase');
 
 /**
  * Valid values for the militaryStatus field
@@ -106,8 +107,9 @@ class TexasMilitaryStatusAffidavitTemplate extends BaseAffidavitTemplate {
     const caseNumber = data.caseNumber || '[CAUSE NUMBER]';
     caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
 
-    const petitioner = (data.affiantName || data.petitioner || '[PETITIONER NAME]').toUpperCase();
-    const respondent = (data.respondentName || data.respondent || '[RESPONDENT NAME]').toUpperCase();
+    // captionUpper preserves McPherson/DiCaprio style internal capitals.
+    const petitioner = captionUpper(data.affiantName || data.petitioner || '[PETITIONER NAME]');
+    const respondent = captionUpper(data.respondentName || data.respondent || '[RESPONDENT NAME]');
 
     caption += `${petitioner}\n`;
     caption += `Petitioner,\n\n`;

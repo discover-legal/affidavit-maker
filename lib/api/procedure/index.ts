@@ -9,6 +9,7 @@
  * never legal advice and never a prediction about a specific case.
  */
 import { UT_PROCEDURE } from './ut';
+import { ON_PROCEDURE } from './on';
 
 export type StateProcedure = {
   stateCode: string;
@@ -31,6 +32,7 @@ export type StateProcedure = {
 
 const REGISTRY: Record<string, StateProcedure> = {
   UT: UT_PROCEDURE,
+  ON: ON_PROCEDURE,
 };
 
 export function getProcedure(state: string): StateProcedure | null {

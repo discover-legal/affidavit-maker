@@ -96,8 +96,19 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     caption += `IN THE ${courtName}\n\n`;
 
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
-    caption += `${caseLabel} ${caseNumber}\n\n`;
+    // Draft decrees are commonly assembled before the case number is on
+    // hand — render a visible fill-in blank plus a drafter note rather
+    // than the `[CASE NUMBER]` sentinel token that the generate route's
+    // PLACEHOLDER_DENYLIST would (correctly) refuse. Mirrors the ON v8-D
+    // pattern.
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    caption += `${caseLabel} ${caseNumber}\n`;
+    if (!hasCaseNumber) {
+      caption += '(Draft — insert case number before filing)\n';
+    }
+    caption += '\n';
 
     const petitioner = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
@@ -254,9 +265,15 @@ class GeorgiaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     });
 
     divorceData.children.forEach((child, index) => {
+      // Child NAME stays as `[CHILD NAME]` — a decree with an unnamed
+      // child is genuinely defective and must trip the denylist. Birth
+      // date is often unknown at draft time; render a visible blank
+      // instead of a `[BIRTH DATE]` sentinel that would 422 the decree.
+      const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+      const dobDisplay = childDob || '__________________';
       const childInfo = typeof child === 'string'
         ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+        : `${child.name || '[CHILD NAME]'}, born ${dobDisplay}`;
       items.push({
         content: `${index + 1}. ${childInfo}`,
         type: 'child_item'

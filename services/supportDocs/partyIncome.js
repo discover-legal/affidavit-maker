@@ -95,7 +95,28 @@ function approxEquals(a, b) {
  *   warnings: string[],
  * }}
  */
-function resolvePartyIncomes(data = {}) {
+/**
+ * Some callers reach the support-doc builders with a wrapped payload of the
+ * shape `{ affidavitData: { monthlyIncome, monthlyExpenses, ... } }` (the
+ * editor blob served as-is instead of the flattened document content). The
+ * builders' data contract is FLAT — every derivation below reads
+ * `data.<field>` — so treat a nested `affidavitData` object as a defensive
+ * fallback: top-level fields still WIN when present, but a nested value is
+ * used when the top-level is absent, so an `affidavitData.monthlyExpenses`
+ * that the caller passed does not silently render as $0.
+ *
+ * This unwrap is intentionally shallow (no deep merge) — the acceptance-run
+ * payload we have to accommodate is the one-layer wrap.
+ */
+function unwrapAffidavitData(data) {
+  if (!data || typeof data !== 'object') return {};
+  const nested = data.affidavitData;
+  if (!nested || typeof nested !== 'object' || Array.isArray(nested)) return data;
+  return { ...nested, ...data };
+}
+
+function resolvePartyIncomes(rawData = {}) {
+  const data = unwrapAffidavitData(rawData);
   // Which caption side the USER (the declarant in these builders) sits on —
   // mirrors the extraction contract's role-aware mapping: `monthlyIncome` is
   // the USER's own income even when the user is the respondent, and untagged
@@ -199,4 +220,65 @@ function resolvePartyIncomes(data = {}) {
   };
 }
 
-module.exports = { resolvePartyIncomes, INCOME_PLACEHOLDER };
+/**
+ * `parseAmount` above rejects zero, because income of 0 usually means "unknown"
+ * on a sworn form. Expenses are different — a user CAN legitimately have $0 of
+ * a given expense, and the scalar `monthlyExpenses` can be an explicit 0. This
+ * variant preserves 0 (and negative, though callers coerce) and is used only
+ * by `resolveDeclarantExpenses`.
+ */
+function parseExpenseAmount(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const n = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+/**
+ * Per-declarant expense derivation, mirroring how income resolves above.
+ *
+ * DATA CONTRACT:
+ *   monthlyExpenses    = the declarant's own total monthly expenses (scalar).
+ *   expenseBreakdown   = itemized entries { label, amount, person? }.
+ *                        Untagged entries were collected as the declarant's
+ *                        own declaration; person-tagged entries carry a
+ *                        caption side ('petitioner' | 'respondent').
+ *
+ * Resolution:
+ *   1. If `expenseBreakdown` has any entries the declarant may swear to (own
+ *      side tags + untagged), those itemize.
+ *   2. Otherwise the scalar `monthlyExpenses` — if present, including an
+ *      explicit 0 — renders as a single line so the total is not silently
+ *      dropped just because no breakdown was extracted.
+ *   3. Neither on file → callers render a placeholder + warning.
+ *
+ * Returns { items, scalarAmount, hasBreakdown, hasScalar, hasData }.
+ */
+function resolveDeclarantExpenses(rawData = {}, declarantSide = 'petitioner') {
+  const data = unwrapAffidavitData(rawData);
+  const raw = Array.isArray(data.expenseBreakdown) ? data.expenseBreakdown : [];
+  const items = raw.filter((entry) => {
+    if (!entry || typeof entry !== 'object') return false;
+    if (!str(entry.label) && entry.amount === undefined) return false;
+    const person = str(entry.person).toLowerCase();
+    if (!person) return true; // untagged → declarant's own
+    if (person.includes('respondent')) return declarantSide === 'respondent';
+    if (person.includes('petitioner')) return declarantSide === 'petitioner';
+    return false;
+  });
+  const hasScalar = hasValue(data.monthlyExpenses);
+  const scalarAmount = hasScalar ? parseExpenseAmount(data.monthlyExpenses) : 0;
+  const hasBreakdown = items.length > 0;
+  return {
+    items,
+    scalarAmount,
+    hasBreakdown,
+    hasScalar,
+    hasData: hasBreakdown || hasScalar,
+  };
+}
+
+module.exports = { resolvePartyIncomes, resolveDeclarantExpenses, INCOME_PLACEHOLDER };

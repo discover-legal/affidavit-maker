@@ -3,6 +3,24 @@
 // Complies with O.C.G.A. § 19-5-1 et seq. (Divorce) and Georgia Superior Court rules
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { resolveGroundsForDivorce } = require('./groundsResolver');
+
+// Leading soft-hedge words that make an already-hedged suspected-location
+// phrase read as a double hedge ("may be in Possibly Alabama..."). The
+// alternative-service clause itself already contains the "cannot swear"
+// caveat, so a location that starts with any of these adds nothing but
+// noise. Mirror of the TX pattern (templates/states/texas/DivorcePetitionTemplate.js).
+const LEADING_HEDGE_PATTERN =
+  /^\s*(?:possibly|maybe|perhaps|probably|apparently|allegedly|reportedly|supposedly)[,;:\s]+/i;
+
+function stripLeadingHedge(text) {
+  if (typeof text !== 'string') return '';
+  let out = text;
+  while (LEADING_HEDGE_PATTERN.test(out)) {
+    out = out.replace(LEADING_HEDGE_PATTERN, '');
+  }
+  return out.trim();
+}
 
 /**
  * Georgia Complaint for Divorce Template
@@ -114,8 +132,20 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     caption += `IN THE ${courtName}\n\n`;
 
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
-    caption += `${caseLabel} ${caseNumber}\n\n`;
+    // Georgia complaints are commonly assembled before the clerk has
+    // assigned a Civil Action File No. — render a visible fill-in blank
+    // plus a drafter note rather than the `[CASE NUMBER]` sentinel token
+    // that the generate route's PLACEHOLDER_DENYLIST would (correctly)
+    // refuse. Mirrors the ON v8-D pattern (see
+    // templates/states/ontario/DivorceDecreeTemplate.js#generateCaseCaption).
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    caption += `${caseLabel} ${caseNumber}\n`;
+    if (!hasCaseNumber) {
+      caption += '(Draft — insert case number before filing)\n';
+    }
+    caption += '\n';
 
     const petitioner = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
@@ -133,6 +163,47 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       respondent: divorceData.respondentName,
       formatted: caption
     };
+  }
+
+  /**
+   * Georgia override for the respondent residence clause.
+   *
+   * v19 replay: Amara's profile carried respondentAddressUnknown=true and
+   * respondentSuspectedLocation="Alabama near Mobile", but the base clause
+   * dropped the suspected-location caveat. Mirror the TX v7 override
+   * (templates/states/texas/DivorcePetitionTemplate.js#getRespondentResidenceClause):
+   * consume the sworn-truth fields first, refuse to render any hedged
+   * free-text address, and append the non-sworn suspected location as a
+   * bracketed follow-up sentence — never as an assertion of residence.
+   *
+   * @param {Object} divorceData
+   * @returns {string} Sentence fragment that follows "Respondent, <name>,"
+   */
+  getRespondentResidenceClause(divorceData) {
+    const t = this.terminology;
+    const raw =
+      typeof divorceData.respondentAddress === 'string'
+        ? divorceData.respondentAddress.trim()
+        : '';
+    const suspected = stripLeadingHedge(
+      typeof divorceData.respondentSuspectedLocation === 'string'
+        ? divorceData.respondentSuspectedLocation
+        : ''
+    );
+    const altService = `resides at an address unknown to ${t.filerLabel}; ${t.filerLabel} will request alternative service under the applicable rules`;
+    const suspectedNote = suspected
+      ? ` (${t.filerLabel} has heard, but cannot swear, that Respondent may be in ${suspected})`
+      : '';
+
+    if (divorceData.respondentAddressUnknown === true || !raw) {
+      return altService + suspectedNote;
+    }
+    const hedgePattern =
+      /\b(possibly|maybe|perhaps|probably|somewhere|not\s+sure|unsure|i\s+think|i\s+don'?t\s+know|no\s+known|no\s+current\s+address|unknown|whereabouts\s+unknown|address\s+unknown|could\s+be|might\s+be)\b/i;
+    if (hedgePattern.test(raw)) {
+      return altService + suspectedNote;
+    }
+    return `is a resident of ${raw}`;
   }
 
   /**
@@ -162,7 +233,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 8;
 
-    const groundsText = this.getGroundsText(divorceData.groundsForDivorce);
+    const groundsText = this.getGroundsText(resolveGroundsForDivorce(divorceData));
 
     items.push({
       number: paragraphNum++,
@@ -205,7 +276,13 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       case 'incurable_mental_illness':
         return 'Defendant suffers from an incurable mental illness, as established by the testimony of two (2) physicians. (O.C.G.A. § 19-5-3(11))';
       case 'fraud_duress':
+      case 'force_menace_duress_fraud':
         return 'The marriage was obtained by force, menace, duress, or fraud. (O.C.G.A. § 19-5-3(4))';
+      case 'pregnancy_by_another':
+        return 'At the time of the marriage, the wife was pregnant by a man other than Defendant, unknown to Defendant. (O.C.G.A. § 19-5-3(5))';
+      case 'intermarriage_prohibited_kinship':
+      case 'prohibited_kinship':
+        return 'The parties are related within the prohibited degrees of kinship, rendering the purported marriage void. (O.C.G.A. § 19-5-3(1))';
       case 'impotency':
         return 'Defendant was impotent at the time of the marriage. (O.C.G.A. § 19-5-3(3))';
       case 'mental_incapacity_at_marriage':
@@ -239,9 +316,17 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
       if (divorceData.children && divorceData.children.length > 0) {
         divorceData.children.forEach((child, index) => {
+          // Child NAME stays as `[CHILD NAME]` — a petition with an unnamed
+          // child is genuinely defective and must trip the denylist. Birth
+          // date, by contrast, is frequently unknown at draft time (adoption
+          // records pending, out-of-state certificate not on hand); render a
+          // visible fill-in blank instead of a `[BIRTH DATE]` sentinel that
+          // would 422 the whole petition. Mirrors the ON v8-D pattern.
+          const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+          const dobDisplay = childDob || '__________________';
           const childInfo = typeof child === 'string'
             ? child
-            : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+            : `${child.name || '[CHILD NAME]'}, born ${dobDisplay}`;
           items.push({
             number: paragraphNum++,
             content: `Child ${index + 1}: ${childInfo}`,
@@ -261,11 +346,146 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // support) — pleaded via the base hooks, never silently dropped.
     paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
 
+    // UCCJEA / home-state declaration (O.C.G.A. § 19-9-40 et seq.) —
+    // mandatory in every Georgia pleading that touches custody. Renders
+    // only when minor children are present. Mirrors the v17-C NY pattern
+    // (templates/states/newyork/DivorcePetitionTemplate.js).
+    if (this.hasChildrenUnder18(divorceData)) {
+      const uccjea = this.generateUccjeaItems(divorceData, paragraphNum);
+      items.push({
+        number: null,
+        content: 'UCCJEA HOME-STATE DECLARATION (O.C.G.A. § 19-9-40 et seq.)',
+        type: 'uccjea_header',
+      });
+      items.push(...uccjea.items);
+      paragraphNum = uccjea.nextParagraphNumber;
+    }
+
     return {
       title: 'V. MINOR CHILDREN',
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Whether the case actually has minor children (under 18) — the trigger
+   * for a UCCJEA / home-state declaration under O.C.G.A. § 19-9-40 et seq.
+   * Mirror of the NY implementation.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  hasChildrenUnder18(divorceData) {
+    const d = divorceData || {};
+    if (d.hasMinorChildren === false) return false;
+    const childArr = Array.isArray(d.children) ? d.children : [];
+    if (d.hasMinorChildren === true || (typeof d.numberOfChildren === 'number' && d.numberOfChildren > 0)) {
+      const dobs = childArr
+        .map((c) => (typeof c === 'object' && c ? (c.birthDate ?? c.dob ?? c.dateOfBirth) : null))
+        .filter(Boolean)
+        .map((s) => Date.parse(s))
+        .filter((t) => !Number.isNaN(t));
+      if (dobs.length === 0) return true;
+      const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      return dobs.some((t) => (now - t) < eighteenYearsMs);
+    }
+    if (childArr.length === 0) return false;
+    const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let anyRenderable = false;
+    for (const c of childArr) {
+      if (typeof c !== 'object' || !c) continue;
+      const raw = c.birthDate ?? c.dob ?? c.dateOfBirth;
+      const t = raw ? Date.parse(raw) : NaN;
+      if (!Number.isNaN(t)) {
+        anyRenderable = true;
+        if ((now - t) < eighteenYearsMs) return true;
+      }
+    }
+    return !anyRenderable;
+  }
+
+  /**
+   * UCCJEA / home-state declaration items for the children section.
+   * Rendered whenever the case has children under 18. Georgia has adopted
+   * the Uniform Child Custody Jurisdiction and Enforcement Act as
+   * O.C.G.A. § 19-9-40 et seq.; every pleading touching custody must state
+   * the child's home state, current and prior 5-year residences, and
+   * disclose any pending custody actions elsewhere. See O.C.G.A. § 19-9-67.
+   *
+   * @param {Object} divorceData
+   * @param {number} paragraphNum
+   * @returns {{items: Array, nextParagraphNumber: number}}
+   */
+  generateUccjeaItems(divorceData, paragraphNum) {
+    const items = [];
+    const homeState = divorceData.childHomeState || 'Georgia';
+    items.push({
+      number: paragraphNum++,
+      content: `Pursuant to the Uniform Child Custody Jurisdiction and Enforcement Act (O.C.G.A. § 19-9-40 et seq.), Plaintiff states that ${homeState} is the home state of the minor child(ren) named above, the child(ren) having lived in ${homeState} with a parent for at least six consecutive months immediately preceding the commencement of this action (or since birth for any child under six months of age).`,
+      type: 'uccjea_home_state',
+    });
+
+    const childArr = Array.isArray(divorceData.children) ? divorceData.children : [];
+    const minors = childArr.filter((c) => {
+      if (typeof c !== 'object' || !c) return typeof c === 'string';
+      const raw = c.birthDate ?? c.dob ?? c.dateOfBirth;
+      const t = raw ? Date.parse(raw) : NaN;
+      if (Number.isNaN(t)) return true;
+      const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+      return (Date.now() - t) < eighteenYearsMs;
+    });
+
+    minors.forEach((child, i) => {
+      const name = typeof child === 'string' ? child : (child.name || `[CHILD ${i + 1} NAME]`);
+      const dob = typeof child === 'object'
+        ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth)
+        : null;
+      const currentAddress = (typeof child === 'object' && (child.currentAddress || child.address))
+        || divorceData.petitionerAddress
+        || '[CURRENT ADDRESS]';
+      items.push({
+        number: paragraphNum++,
+        content: `Child: ${name}${dob ? `, born ${dob}` : ''}. Present address: ${currentAddress}.`,
+        type: 'uccjea_child_address',
+      });
+
+      const priorAddresses = (typeof child === 'object' && Array.isArray(child.priorAddresses))
+        ? child.priorAddresses
+        : [];
+      if (priorAddresses.length > 0) {
+        items.push({
+          number: paragraphNum++,
+          content: `Addresses within the last five (5) years for ${name}: ${priorAddresses.join('; ')}.`,
+          type: 'uccjea_prior_addresses',
+        });
+      } else {
+        items.push({
+          number: paragraphNum++,
+          content: `Addresses within the last five (5) years for ${name}: same as present address, except as follows: __________________________________________ (list any prior residences and the persons with whom the child lived).`,
+          type: 'uccjea_prior_addresses',
+        });
+      }
+    });
+
+    const pendingActions = divorceData.pendingCustodyActions;
+    if (Array.isArray(pendingActions) && pendingActions.length > 0) {
+      items.push({
+        number: paragraphNum++,
+        content: `Plaintiff has participated, or has information concerning, the following custody proceeding(s) involving the minor child(ren): ${pendingActions.join('; ')}.`,
+        type: 'uccjea_other_actions',
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: 'Plaintiff has not participated as a party, witness, or in any other capacity in any other litigation or custody proceeding, in any jurisdiction, concerning custody of or visitation with any child subject to this action, and knows of no such pending proceeding in any court, and knows of no other person not a party to this action who has physical custody or claims to have custody or visitation rights with respect to the child(ren).',
+        type: 'uccjea_other_actions',
+      });
+    }
+
+    return { items, nextParagraphNumber: paragraphNum };
   }
 
   /**

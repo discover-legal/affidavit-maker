@@ -3,6 +3,7 @@
 // Complies with New York Domestic Relations Law and CPLR
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { resolveGroundsForDivorce } = require('./groundsResolver');
 
 /**
  * New York Summons with Notice and Verified Complaint for Divorce
@@ -233,29 +234,194 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     switch (grounds) {
       case 'irretrievable_breakdown':
       case 'no_fault':
-        return 'The relationship between husband and wife has broken down irretrievably for a period of at least six months. (Domestic Relations Law § 170(7))';
+      case 'irreconcilable_differences':
+        return 'The relationship between husband and wife has broken down irretrievably for a period of at least six months, within the meaning of Domestic Relations Law § 170(7).';
 
+      case 'cruel_treatment':
       case 'cruel_inhuman_treatment':
-        return 'The Defendant\'s conduct so endangers the physical or mental well being of the Plaintiff as renders it unsafe or improper for the Plaintiff to cohabit with the Defendant. (Domestic Relations Law § 170(1))';
+      case 'cruelty':
+        return 'The Defendant\'s conduct so endangers the physical or mental well being of the Plaintiff as renders it unsafe or improper for the Plaintiff to cohabit with the Defendant, within the meaning of Domestic Relations Law § 170(1) (cruel and inhuman treatment).';
 
       case 'abandonment':
-        return 'The Defendant has abandoned the Plaintiff for a period of one or more years. (Domestic Relations Law § 170(2))';
+        return 'The Defendant has abandoned the Plaintiff for a period of one or more years, within the meaning of Domestic Relations Law § 170(2).';
 
       case 'imprisonment':
-        return 'The Defendant has been confined in prison for a period of three or more consecutive years after the marriage. (Domestic Relations Law § 170(3))';
+      case 'confinement':
+        return 'The Defendant has been confined in prison for a period of three or more consecutive years after the marriage, within the meaning of Domestic Relations Law § 170(3).';
 
       case 'adultery':
-        return 'The Defendant has committed adultery. (Domestic Relations Law § 170(4))';
+        return 'The Defendant has committed adultery, within the meaning of Domestic Relations Law § 170(4).';
 
       case 'separation_judgment':
-        return 'The husband and wife have lived apart pursuant to a decree or judgment of separation for a period of six or more months. (Domestic Relations Law § 170(5), as amended by Chapter 673, Laws of 2025)';
+        return 'The husband and wife have lived apart pursuant to a decree or judgment of separation for a period of one or more years, within the meaning of Domestic Relations Law § 170(5).';
 
       case 'separation_agreement':
-        return 'The husband and wife have lived separate and apart pursuant to a written agreement of separation for a period of six or more months. (Domestic Relations Law § 170(6), as amended by Chapter 673, Laws of 2025)';
+        return 'The husband and wife have lived separate and apart pursuant to a written agreement of separation for a period of one or more years, within the meaning of Domestic Relations Law § 170(6).';
 
       default:
-        return 'The relationship between husband and wife has broken down irretrievably for a period of at least six months. (Domestic Relations Law § 170(7))';
+        return 'The relationship between husband and wife has broken down irretrievably for a period of at least six months, within the meaning of Domestic Relations Law § 170(7).';
     }
+  }
+
+  /**
+   * Override the base grounds section so a sub-ground captured only in
+   * `facts[]` (category:'grounds', or an evidence fact whose subcategory
+   * names the ground) is still pleaded with the correct DRL §170 pinpoint
+   * citation. Without this override the base template reads
+   * `divorceData.groundsForDivorce || 'irreconcilable_differences'` and
+   * every fault-based petition emerges as no-fault §170(7) boilerplate.
+   * See ./groundsResolver.js.
+   *
+   * @param {Object} divorceData
+   * @returns {Object} Grounds section
+   */
+  generateGroundsSection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 8;
+
+    const grounds = resolveGroundsForDivorce(divorceData);
+    const groundsText = this.getGroundsText(grounds, divorceData);
+
+    items.push({
+      number: paragraphNum++,
+      content: groundsText,
+      type: 'grounds',
+    });
+
+    return {
+      title: 'IV. GROUNDS FOR DIVORCE',
+      items,
+      nextParagraphNumber: paragraphNum,
+    };
+  }
+
+  /**
+   * Whether the case actually has minor children (under 18) — the trigger
+   * for a UCCJEA / home-state declaration. NY separately tracks children
+   * under 21 for support purposes (see generateChildrenSection), but the
+   * UCCJEA home-state rules apply only to minors under 18.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  hasChildrenUnder18(divorceData) {
+    const d = divorceData || {};
+    if (d.hasMinorChildren === false) return false;
+    const childArr = Array.isArray(d.children) ? d.children : [];
+    // If the case data explicitly says numberOfChildren > 0 or
+    // hasMinorChildren === true, treat that as authoritative.
+    if (d.hasMinorChildren === true || (typeof d.numberOfChildren === 'number' && d.numberOfChildren > 0)) {
+      // Still try to filter by dob when available; otherwise trust the flag.
+      const dobs = childArr
+        .map((c) => (typeof c === 'object' && c ? (c.birthDate ?? c.dob ?? c.dateOfBirth) : null))
+        .filter(Boolean)
+        .map((s) => Date.parse(s))
+        .filter((t) => !Number.isNaN(t));
+      if (dobs.length === 0) return true;
+      const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      return dobs.some((t) => (now - t) < eighteenYearsMs);
+    }
+    if (childArr.length === 0) return false;
+    // Only children[] array present — treat any child under 18 as minor.
+    const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let anyRenderable = false;
+    for (const c of childArr) {
+      if (typeof c !== 'object' || !c) continue;
+      const raw = c.birthDate ?? c.dob ?? c.dateOfBirth;
+      const t = raw ? Date.parse(raw) : NaN;
+      if (!Number.isNaN(t)) {
+        anyRenderable = true;
+        if ((now - t) < eighteenYearsMs) return true;
+      }
+    }
+    // No dobs on file — assume the array names minors (the interviewer
+    // asked "children under 21", and NY treats any listed child as a
+    // support-eligible child of the marriage until proven adult). This
+    // is safer than dropping the UCCJEA declaration on ambiguous data.
+    return !anyRenderable;
+  }
+
+  /**
+   * UCCJEA / home-state declaration items for the children section.
+   * Rendered whenever the case has children under 18. NY has adopted the
+   * Uniform Child Custody Jurisdiction and Enforcement Act as DRL §75-a
+   * et seq.; every pleading touching custody must state the child's home
+   * state, current and prior 5-year residences, and disclose any pending
+   * custody actions elsewhere. See DRL §76-h.
+   *
+   * @param {Object} divorceData
+   * @param {number} paragraphNum
+   * @returns {{items: Array, nextParagraphNumber: number}}
+   */
+  generateUccjeaItems(divorceData, paragraphNum) {
+    const items = [];
+    const homeState = divorceData.childHomeState || 'New York';
+    items.push({
+      number: paragraphNum++,
+      content: `Pursuant to the Uniform Child Custody Jurisdiction and Enforcement Act (Domestic Relations Law § 75-a et seq.), Plaintiff states that ${homeState} is the home state of the minor child(ren) named above, the child(ren) having lived in ${homeState} with a parent for at least six consecutive months immediately preceding the commencement of this action (or since birth for any child under six months of age).`,
+      type: 'uccjea_home_state',
+    });
+
+    const childArr = Array.isArray(divorceData.children) ? divorceData.children : [];
+    const minors = childArr.filter((c) => {
+      if (typeof c !== 'object' || !c) return typeof c === 'string';
+      const raw = c.birthDate ?? c.dob ?? c.dateOfBirth;
+      const t = raw ? Date.parse(raw) : NaN;
+      if (Number.isNaN(t)) return true; // unknown dob — treat as minor
+      const eighteenYearsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+      return (Date.now() - t) < eighteenYearsMs;
+    });
+
+    minors.forEach((child, i) => {
+      const name = typeof child === 'string' ? child : (child.name || `[CHILD ${i + 1} NAME]`);
+      const dob = typeof child === 'object'
+        ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth)
+        : null;
+      const currentAddress = (typeof child === 'object' && (child.currentAddress || child.address))
+        || divorceData.petitionerAddress
+        || '[CURRENT ADDRESS]';
+      items.push({
+        number: paragraphNum++,
+        content: `Child: ${name}${dob ? `, born ${dob}` : ''}. Present address: ${currentAddress}.`,
+        type: 'uccjea_child_address',
+      });
+
+      const priorAddresses = (typeof child === 'object' && Array.isArray(child.priorAddresses))
+        ? child.priorAddresses
+        : [];
+      if (priorAddresses.length > 0) {
+        items.push({
+          number: paragraphNum++,
+          content: `Addresses within the last five (5) years for ${name}: ${priorAddresses.join('; ')}.`,
+          type: 'uccjea_prior_addresses',
+        });
+      } else {
+        items.push({
+          number: paragraphNum++,
+          content: `Addresses within the last five (5) years for ${name}: same as present address, except as follows: __________________________________________ (list any prior residences and the persons with whom the child lived).`,
+          type: 'uccjea_prior_addresses',
+        });
+      }
+    });
+
+    const pendingActions = divorceData.pendingCustodyActions;
+    if (Array.isArray(pendingActions) && pendingActions.length > 0) {
+      items.push({
+        number: paragraphNum++,
+        content: `Plaintiff has participated, or has information concerning, the following custody proceeding(s) involving the minor child(ren): ${pendingActions.join('; ')}.`,
+        type: 'uccjea_other_actions',
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: 'Plaintiff has not participated as a party, witness, or in any other capacity in any other litigation or custody proceeding, in any jurisdiction, concerning custody of or visitation with any child subject to this action, and knows of no such pending proceeding in any court, and knows of no other person not a party to this action who has physical custody or claims to have custody or visitation rights with respect to the child(ren).',
+        type: 'uccjea_other_actions',
+      });
+    }
+
+    return { items, nextParagraphNumber: paragraphNum };
   }
 
   /**
@@ -316,6 +482,20 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Agreed child arrangements (custody enum, primary residence, agreed
     // support) — pleaded via the base hooks, never silently dropped.
     paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
+
+    // UCCJEA / home-state declaration (DRL §75-a et seq.) — mandatory in
+    // every NY pleading that touches custody. Renders only when minor
+    // children are present.
+    if (this.hasChildrenUnder18(divorceData)) {
+      const uccjea = this.generateUccjeaItems(divorceData, paragraphNum);
+      items.push({
+        number: null,
+        content: 'UCCJEA HOME-STATE DECLARATION (Domestic Relations Law § 75-a et seq.)',
+        type: 'uccjea_header',
+      });
+      items.push(...uccjea.items);
+      paragraphNum = uccjea.nextParagraphNumber;
+    }
 
     return {
       title: 'CHILDREN',

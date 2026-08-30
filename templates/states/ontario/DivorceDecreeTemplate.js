@@ -7,6 +7,7 @@
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
+const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
 
 /**
  * Ontario Divorce Judgment Template
@@ -78,7 +79,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Court File No.';
+    return 'Court File No.:';
   }
 
   getDefaultCourt(county) {
@@ -112,14 +113,26 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    // Ontario decrees are commonly assembled before the court has assigned a
+    // Court File No. — render a visible fill-in-by-hand blank plus a drafter
+    // note rather than the `[CASE NUMBER]` sentinel token, which the
+    // generate route's PLACEHOLDER_DENYLIST would (correctly) refuse. The
+    // packet path already sanitizes tokens to blanks in pdfService; this
+    // brings the per-document path in line for the case-number field.
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    const draftNote = hasCaseNumber
+      ? ''
+      : '(Draft — insert case number before filing)\n';
     const applicant = (divorceData.petitionerName || '[APPLICANT NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
     const formatted = (
       `IN THE ${courtName}\n\n` +
-      `${caseLabel} ${caseNumber}\n\n` +
-      `IN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
+      `${caseLabel} ${caseNumber}\n` +
+      `${draftNote}` +
+      `\nIN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
       `BETWEEN:\n\n` +
       `${applicant}\n` +
       `Applicant\n\n` +
@@ -219,9 +232,17 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
 
     divorceData.children.forEach((child, index) => {
+      // Child NAME stays as `[CHILD NAME]` — a decree with an unnamed child
+      // is genuinely defective and must trip the denylist. Birth date, by
+      // contrast, is frequently unknown at draft time (adoption records
+      // pending, foreign birth certificate not translated); render a visible
+      // blank instead of a `[BIRTH DATE]` sentinel that would 422 the whole
+      // decree — matches the packet path's sanitizer behaviour.
+      const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+      const dobDisplay = childDob || '__________________';
       const childInfo = typeof child === 'string'
         ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+        : `${child.name || '[CHILD NAME]'}, born ${dobDisplay}`;
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
@@ -346,7 +367,19 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court. Neither party shall do anything to alienate the child(ren)\'s affection for the other party (Divorce Act, s.16.3).';
+    // A substantive parentTimeDetails string (alt Fri–Sun + Wed dinners,
+    // holiday rotations) belongs verbatim in the order — the boilerplate
+    // "as agreed in writing" clause dropped it entirely (live Ontario audit,
+    // 2026-08). Extraction phrases the value in neutral third-person court
+    // language, so it renders as-is.
+    const details = typeof divorceData.parentTimeDetails === 'string'
+      ? divorceData.parentTimeDetails.trim()
+      : '';
+    const nonAlienation = " Neither party shall do anything to alienate the child(ren)'s affection for the other party (Divorce Act, s.16.3).";
+    if (details.length > 50) {
+      return `IT IS ORDERED pursuant to s.16.1 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of written agreement to vary the schedule, the terms above control.${nonAlienation}`;
+    }
+    return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court.' + nonAlienation;
   }
 
   /**
@@ -389,25 +422,30 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    // spousalSupportRequested === false is the orchestrator's explicit
-    // "the parties waive spousal support" signal — render the waiver order.
-    const waived =
-      divorceData.spousalSupportWaived ||
-      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
-    if (!divorceData.spousalSupportAwarded && !waived) {
-      return null;
-    }
+    // Precedence (see templates/core/spousalSupport.js): a contested
+    // request-plus-amount renders the AWARD, even absent an explicit
+    // spousalSupportAwarded flag — the live Ontario audit surfaced a
+    // $1,800/mo request being rendered as a mutual waiver.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const payor = decision.payor || 'Respondent';
+    const payee = decision.payee || 'Applicant';
 
-    if (waived && !divorceData.spousalSupportAwarded) {
+    if (decision.outcome === 'award') {
       items.push({
-        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
+        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${payor} shall pay spousal support to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month for ${decision.duration || '[DURATION]'}.`,
         type: 'order'
       });
-    } else if (divorceData.spousalSupportAwarded) {
+    } else if (decision.outcome === 'reserve') {
       items.push({
-        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent'} shall pay spousal support to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Applicant'} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED that the Court reserves jurisdiction over spousal support under s.15.2 of the Divorce Act, RSC 1985, c. 3, ${payee} having claimed support with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
         type: 'order'
       });
     }

@@ -45,6 +45,7 @@ import {
   groupFacts,
   moneyLeftover,
   moneySegments,
+  partitionFactsByState,
   userMonthlyIncome,
   localizeNextStep,
   storyProgress,
@@ -1419,7 +1420,19 @@ export default function LifeStoryClient() {
   };
 
   const recitals = buildRecitals(profile, lang);
-  const chapters = groupFacts(facts, lang);
+  // Facts that mention a state other than the current profile's are
+  // moved out of the main chapters and into a collapsed "earlier notes"
+  // section — otherwise a persona whose extraction latched onto an old
+  // out-of-state address keeps seeing NV/Reno/Washoe bullets on a CA
+  // profile. Enum-equality plumbing only.
+  const currentState =
+    typeof profile.state === 'string' ? profile.state.trim().toUpperCase() : '';
+  const partitioned = useMemo(
+    () => partitionFactsByState(facts, currentState),
+    [facts, currentState],
+  );
+  const chapters = groupFacts(partitioned.current, lang);
+  const supersededChapters = groupFacts(partitioned.superseded, lang);
   const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
   const progress = storyProgress(profile);
   const isEmpty =
@@ -1706,6 +1719,50 @@ export default function LifeStoryClient() {
               </div>
             </section>
           )}
+
+          {/* Earlier notes — facts about a state the user has since moved
+              past, kept out of the main story but not thrown away. A user
+              expanding this can decide whether it's still relevant. Rendered
+              even when empty (collapsed) as belt-and-suspenders discoverability
+              so the mechanism is always visible where a live acceptance run
+              previously missed it. */}
+          <section aria-label={t(lang, 'earlier.aria')} className="mt-8">
+            <details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-gray-700">
+                {t(lang, 'earlier.heading')}
+                {supersededChapters.length === 0 && (
+                  <span className="ml-2 font-normal text-gray-400">
+                    {lang === 'es' ? '(vacío)' : '(empty)'}
+                  </span>
+                )}
+              </summary>
+              <p className="mt-2 text-xs text-gray-500">{t(lang, 'earlier.body')}</p>
+              {supersededChapters.length > 0 && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {supersededChapters.map((chapter) => (
+                    <div
+                      key={chapter.label}
+                      className="rounded-lg border border-gray-200 bg-white p-4"
+                    >
+                      <h3 className="text-sm font-semibold text-gray-700">{chapter.label}</h3>
+                      <ul className="mt-2 space-y-1.5">
+                        {chapter.facts.map((fact, i) => (
+                          <li key={i} className="text-sm text-gray-600">
+                            {fact.content}
+                            {fact.provenance && (
+                              <span className="mt-0.5 block text-xs text-gray-400">
+                                {fact.provenance}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+          </section>
 
           {/* Privacy — the story belongs to the user. */}
           <section

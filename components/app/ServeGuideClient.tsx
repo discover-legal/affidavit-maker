@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { getInitialLang, setLang, type Lang } from '@/lib/i18n';
+import { detectPerspective } from '@/lib/api/procedure';
 import { officialFormsLink } from '@/lib/officialForms';
 
 type ServiceMethod = {
@@ -70,6 +71,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.title': 'Serving the papers',
     'hero.intro':
       'After you file, {name} must officially receive a copy of your papers — the court calls this “service of process.” Nothing in your case moves forward until it happens.',
+    'hero.eyebrowResp': 'If you are filing back',
+    'hero.titleResp': 'Serving papers on the other side',
+    'hero.introResp':
+      'You were served, so the applicant already completed service on you — nothing on this page needs to happen for their case to move. If you want to serve papers of your own on {name} (for example, a counter-claim or your own response), the court still calls that step “service of process.” This page walks through how it generally works.',
     'hero.upl':
       'This page is general information about how service usually works, not legal advice. Your court decides what applies in your case.',
     'hero.otherParty': 'the other party',
@@ -89,6 +94,24 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'unavailable.general.clerk':
       'Your court clerk or self-help services can tell you exactly how service works where you filed.',
     'unavailable.forms': 'Official forms for your courts:',
+
+    'publication.title': 'Service by publication is a court-approved last resort',
+    'publication.body':
+      'Courts generally allow service by publication only after you have shown, in a sworn statement, that you tried in good faith to find and personally serve the other party and could not. When it is allowed, the court usually orders a legal notice to run in a designated newspaper for several consecutive weeks; the publisher issues an affidavit of publication that you file with the court.',
+    'publication.timeline':
+      'This adds weeks — often a month or more — to your timeline before the case can move forward, and courts are strict about the wording, placement, and proof.',
+    'publication.rules':
+      'The exact rules (when publication is allowed, in which paper, for how long, and what the notice must say) are set by your jurisdiction — read them on your court’s own site before you start:',
+
+    'international.title': 'Serving a spouse who lives outside the country',
+    'international.body':
+      'When the other party lives in another country, service generally goes through the Hague Service Convention: a formal request to that country’s designated Central Authority, which arranges service under its own law and returns a certificate of service you file with the court.',
+    'international.timeline':
+      'This process commonly takes several months. Start it as soon as you know an address abroad — the court cannot move forward without proof of service.',
+    'international.state':
+      'The U.S. State Department publishes country-by-country instructions and the Central Authority contacts. Search for “Hague Service Convention” on travel.state.gov.',
+    'international.nonSignatory':
+      'If the country isn’t a Hague signatory, your court may have to authorize an alternative method (letters rogatory, or another method it directs). This is a good moment to talk to a lawyer.',
 
     'forms.acceptance': 'Download an Acceptance of Service draft',
     'forms.certificate': 'Download a Certificate of Service draft',
@@ -121,6 +144,10 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'hero.title': 'Entregar los papeles',
     'hero.intro':
       'Después de presentar tu caso, {name} debe recibir oficialmente una copia de tus papeles — el tribunal lo llama “notificación” (service of process). Nada en tu caso avanza hasta que esto suceda.',
+    'hero.eyebrowResp': 'Si vas a presentar tu propia solicitud',
+    'hero.titleResp': 'Notificar papeles a la otra parte',
+    'hero.introResp':
+      'A ti ya te notificaron, así que la otra parte completó la notificación contigo — nada en esta página necesita ocurrir para que su caso avance. Si tú quieres notificar tus propios papeles a {name} (por ejemplo, una contrademanda o tu propia respuesta), el tribunal todavía llama a ese paso “notificación” (service of process). Esta página explica cómo suele funcionar.',
     'hero.upl':
       'Esta página es información general sobre cómo suele funcionar la notificación, no asesoría legal. Tu tribunal decide qué aplica en tu caso.',
     'hero.otherParty': 'la otra parte',
@@ -140,6 +167,24 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'unavailable.general.clerk':
       'El secretario del tribunal o los servicios de autoayuda pueden decirte exactamente cómo funciona la notificación donde presentaste tu caso.',
     'unavailable.forms': 'Formularios oficiales de tus tribunales:',
+
+    'publication.title': 'La notificación por publicación es un último recurso aprobado por el tribunal',
+    'publication.body':
+      'Los tribunales generalmente permiten la notificación por publicación solo después de que hayas demostrado, en una declaración jurada, que trataste de buena fe de localizar y notificar personalmente a la otra parte y no pudiste. Cuando se permite, el tribunal generalmente ordena que un aviso legal se publique en un periódico designado durante varias semanas consecutivas; el editor emite una constancia de publicación que presentas ante el tribunal.',
+    'publication.timeline':
+      'Esto añade semanas — a menudo un mes o más — a tu cronología antes de que el caso pueda avanzar, y los tribunales son estrictos con la redacción, la ubicación y la prueba.',
+    'publication.rules':
+      'Las reglas exactas (cuándo se permite la publicación, en qué periódico, por cuánto tiempo y qué debe decir el aviso) las fija tu jurisdicción — léelas en el sitio de tu tribunal antes de empezar:',
+
+    'international.title': 'Notificar a un cónyuge que vive fuera del país',
+    'international.body':
+      'Cuando la otra parte vive en otro país, la notificación generalmente se hace mediante el Convenio de La Haya sobre notificaciones: una solicitud formal a la Autoridad Central designada de ese país, que gestiona la notificación conforme a su propia ley y devuelve un certificado de notificación que presentas ante el tribunal.',
+    'international.timeline':
+      'Este proceso suele tomar varios meses. Empiézalo tan pronto como sepas una dirección en el extranjero — el tribunal no puede avanzar sin prueba de notificación.',
+    'international.state':
+      'El Departamento de Estado de EE. UU. publica instrucciones país por país y los contactos de las Autoridades Centrales. Busca “Hague Service Convention” en travel.state.gov.',
+    'international.nonSignatory':
+      'Si el país no es signatario del Convenio de La Haya, es posible que tu tribunal deba autorizar un método alternativo (cartas rogatorias u otro método que indique). Este es un buen momento para hablar con un abogado.',
 
     'forms.acceptance': 'Descargar un borrador de Aceptación de Notificación',
     'forms.certificate': 'Descargar un borrador de Certificado de Notificación',
@@ -228,6 +273,14 @@ export default function ServeGuideClient() {
   // null until the profile lookup resolves (it decides the state code).
   const [stateCode, setStateCode] = useState<string | null>(null);
   const [respondentFirst, setRespondentFirst] = useState('');
+  // Method + international signal drive the specialization of the
+  // "instructions aren't written yet" fallback so publication and
+  // Hague-Service cases stop landing in generic sheriff-bullets.
+  const [serviceMethod, setServiceMethod] = useState('');
+  const [isInternational, setIsInternational] = useState(false);
+  // The user's side of the case. When they were served, this page's
+  // "you file, then serve" framing is misleading — service on THEM is done.
+  const [perspective, setPerspective] = useState<'petitioner' | 'respondent'>('petitioner');
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [procedure, setProcedure] = useState<StateProcedure | null>(null);
   const [supportKinds, setSupportKinds] = useState<SupportKind[]>([]);
@@ -253,6 +306,7 @@ export default function ServeGuideClient() {
     (async () => {
       let st = 'UT';
       let respondent = '';
+      let side: 'petitioner' | 'respondent' = 'petitioner';
       const urlState = new URLSearchParams(window.location.search).get('state');
       const urlOverride = /^[A-Za-z]{2}$/.test(urlState ?? '') ? urlState!.toUpperCase() : null;
       try {
@@ -260,20 +314,49 @@ export default function ServeGuideClient() {
         const json = await res.json();
         if (json?.success) {
           const p = (json.data?.profile ?? {}) as Record<string, unknown>;
+          side = detectPerspective(p);
           if (typeof p.state === 'string' && p.state.trim()) {
             st = p.state.trim().toUpperCase();
           }
-          const rawName =
-            (typeof p.respondentFirstName === 'string' && p.respondentFirstName.trim()) ||
-            (typeof p.respondentName === 'string' && p.respondentName.trim()) ||
-            '';
-          respondent = rawName.split(/\s+/)[0] ?? '';
+          // "The other side" is role-relative: for a respondent, it's the
+          // petitioner (the applicant who already served them).
+          const rawName = side === 'respondent'
+            ? (typeof p.petitionerFirstName === 'string' && p.petitionerFirstName.trim()) ||
+              (typeof p.petitionerName === 'string' && p.petitionerName.trim()) ||
+              ''
+            : (typeof p.respondentFirstName === 'string' && p.respondentFirstName.trim()) ||
+              (typeof p.respondentName === 'string' && p.respondentName.trim()) ||
+              '';
+          respondent = String(rawName).split(/\s+/)[0] ?? '';
+          if (typeof p.serviceMethod === 'string') {
+            setServiceMethod(p.serviceMethod.trim().toLowerCase());
+          }
+          // International signal from the recorded respondent address —
+          // treat anything whose country field is present and is neither
+          // US nor CA as "abroad" (both nations share ground rules; every
+          // other jurisdiction goes through Hague-Service or equivalent).
+          const addr = (p.respondentAddress ?? p.respondentAddressDetails) as
+            | Record<string, unknown>
+            | undefined;
+          const country =
+            typeof addr?.country === 'string'
+              ? addr.country.trim().toUpperCase()
+              : typeof p.respondentCountry === 'string'
+                ? (p.respondentCountry as string).trim().toUpperCase()
+                : '';
+          if (
+            country &&
+            !['US', 'USA', 'CA', 'CAN', 'CANADA', 'UNITED STATES'].includes(country)
+          ) {
+            setIsInternational(true);
+          }
         }
       } catch {
         // No profile — fall back to Utah and generic copy.
       }
       if (cancelled) return;
       setRespondentFirst(respondent);
+      setPerspective(side);
       setStateCode(urlOverride ?? st);
     })();
     return () => {
@@ -413,16 +496,21 @@ export default function ServeGuideClient() {
         </div>
       </div>
 
-      {/* Hero — why this step exists, in plain language. */}
+      {/* Hero — role-aware framing. A respondent-perspective profile already
+          had service completed on them; presenting "you must serve your
+          spouse" would be wrong. Their variant reframes the page as an
+          optional counter-claim-serving guide. */}
       <header className="mb-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-          {tt(lang, 'hero.eyebrow')}
+          {tt(lang, perspective === 'respondent' ? 'hero.eyebrowResp' : 'hero.eyebrow')}
         </p>
         <h1 className="font-serif text-4xl text-gray-900 sm:text-5xl">
-          {tt(lang, 'hero.title')}
+          {tt(lang, perspective === 'respondent' ? 'hero.titleResp' : 'hero.title')}
         </h1>
         <p className="mt-3 max-w-xl text-gray-600">
-          {tt(lang, 'hero.intro', { name: otherParty })}
+          {tt(lang, perspective === 'respondent' ? 'hero.introResp' : 'hero.intro', {
+            name: otherParty,
+          })}
         </p>
         <p className="mt-2 max-w-xl text-sm text-gray-500">{tt(lang, 'hero.upl')}</p>
       </header>
@@ -483,6 +571,69 @@ export default function ServeGuideClient() {
                 {officialFormsLink(stateCode)!.name}
               </a>
             </p>
+          )}
+
+          {/* Publication is a distinct legal path — a last-resort motion,
+              a newspaper run, a longer timeline. Recite that honestly
+              when the profile records it as the intended method so
+              publication users don't just see generic sheriff bullets. */}
+          {/publi/.test(serviceMethod) && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="font-semibold text-amber-900">
+                {tt(lang, 'publication.title')}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-amber-900">
+                {tt(lang, 'publication.body')}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-amber-900">
+                {tt(lang, 'publication.timeline')}
+              </p>
+              {stateCode && officialFormsLink(stateCode) && (
+                <p className="mt-2 text-sm text-amber-900">
+                  {tt(lang, 'publication.rules')}{' '}
+                  <a
+                    href={officialFormsLink(stateCode)!.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline hover:text-amber-700"
+                  >
+                    {officialFormsLink(stateCode)!.name}
+                  </a>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Spouse abroad → Hague Service Convention. Multi-month
+              timeline, Central Authority routing, State Department
+              country pages. General information; never a substitute
+              for country-specific procedure. */}
+          {isInternational && (
+            <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <h3 className="font-semibold text-blue-900">
+                {tt(lang, 'international.title')}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-blue-900">
+                {tt(lang, 'international.body')}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-blue-900">
+                {tt(lang, 'international.timeline')}
+              </p>
+              <p className="mt-1.5 text-sm text-blue-900">
+                {tt(lang, 'international.state')}{' '}
+                <a
+                  href="https://travel.state.gov/content/travel/en/legal/Judicial-Assistance-Country-Information.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline hover:text-blue-700"
+                >
+                  travel.state.gov
+                </a>
+              </p>
+              <p className="mt-1.5 text-sm text-blue-900">
+                {tt(lang, 'international.nonSignatory')}
+              </p>
+            </div>
           )}
         </div>
       )}

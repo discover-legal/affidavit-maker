@@ -9,6 +9,11 @@ const {
   resolveNonResidentialParentName,
 } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
+const {
+  resolveGroundsForDivorce,
+  decreeGroundPhrase,
+  findingGroundClause,
+} = require('./groundsResolver');
 
 const normalizeCounty = (county, fallback = '[COUNTY]') =>
   (county || fallback).replace(/\s+county$/i, '').trim();
@@ -197,9 +202,13 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    */
   generateJurisdictionSection(divorceData) {
     const county = normalizeCounty(divorceData.county);
+    // v9-A follow-up: previously hardcoded "irreconcilable differences";
+    // now reflects the actual ground pled (see groundsResolver.js).
+    const groundKey = resolveGroundsForDivorce(divorceData);
+    const marriageDate = this.formatDate(divorceData.marriageDate) || '__________________';
     return {
       title: 'FINDINGS OF FACT AND CONCLUSIONS OF LAW',
-      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${county} County, Utah, for at least ninety (90) days immediately prior to the filing of this action, satisfying the requirements of Utah Code § 81-4-402.\n\n3. At least thirty (30) days have elapsed since the date the petition was filed, satisfying the waiting period requirements of Utah Code § 81-4-402.\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and have irreconcilable differences which have caused the irremediable breakdown of the marriage.`,
+      text: `1. The Court has jurisdiction over this matter and the parties.\n\n2. Petitioner has been an actual and bona fide resident of ${county} County, Utah, for at least ninety (90) days immediately prior to the filing of this action, satisfying the requirements of Utah Code § 81-4-402.\n\n3. At least thirty (30) days have elapsed since the date the petition was filed, satisfying the waiting period requirements of Utah Code § 81-4-402.\n\n4. The parties were married on ${marriageDate}. ${findingGroundClause(groundKey)}`,
       type: 'jurisdiction'
     };
   }
@@ -210,9 +219,12 @@ class UtahDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object} Dissolution section
    */
   generateDissolutionSection(divorceData) {
+    // v9-A follow-up: previously hardcoded "irreconcilable differences";
+    // now reflects the actual ground pled (see groundsResolver.js).
+    const groundKey = resolveGroundsForDivorce(divorceData);
     return {
       title: 'DECREE OF DIVORCE',
-      text: `IT IS HEREBY ORDERED, ADJUDGED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are hereby divorced, and the bonds of matrimony heretofore existing between them are dissolved on the grounds of irreconcilable differences.`,
+      text: `IT IS HEREBY ORDERED, ADJUDGED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are hereby divorced, and the bonds of matrimony heretofore existing between them are dissolved on the grounds of ${decreeGroundPhrase(groundKey)}.`,
       type: 'dissolution'
     };
   }

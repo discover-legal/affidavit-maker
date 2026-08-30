@@ -71,6 +71,12 @@ describe('BaseDivorceOrchestrator._applyFieldUpdates', () => {
     expect(data.hasProperty).toBe(false);
     expect(data.hasDebts).toBe(false);
   });
+
+  test('service_date lands on serviceDate — the /respond Answer-deadline banner reads it', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, { service_date: '2024-06-24' });
+    expect(data.serviceDate).toBe('2024-06-24');
+  });
 });
 
 describe('BaseDivorceOrchestrator._summarizeCollected', () => {
@@ -123,9 +129,19 @@ describe('BaseDivorceOrchestrator._summarizeCollected', () => {
 });
 
 describe('BaseDivorceOrchestrator returning-user phase routing', () => {
+  // Realistic returning-user data always has a name captured — the
+  // name-first gate refuses to mark any non-INTAKE phase satisfied while
+  // affiantName / firstName / petitionerFirstName are all missing. These
+  // tests exercise the OTHER phase-satisfied logic, so we seed a name.
+  const nameSeed = () => ({
+    affiantName: 'Alison Rae McPherson',
+    petitionerFirstName: 'Alison',
+  });
+
   test('skips sections already answered in My Story', () => {
     const orch = makePhaseOrchestrator();
     const next = orch._getNextPhase('RESIDENCY', {
+      ...nameSeed(),
       grounds: 'Irreconcilable differences',
       marriageDate: '2018-09-15',
       marriageCity: 'Salt Lake City',
@@ -143,21 +159,25 @@ describe('BaseDivorceOrchestrator returning-user phase routing', () => {
   test('does not skip a section that still needs a real answer', () => {
     const orch = makePhaseOrchestrator();
     expect(orch._getNextPhase('RESIDENCY', {
+      ...nameSeed(),
       marriageDate: '2018-09-15',
       marriageCity: 'Salt Lake City',
     })).toBe('GROUNDS');
-    expect(orch._getNextPhase('GROUNDS', { hasMinorChildren: true })).toBe('CHILDREN');
+    expect(orch._getNextPhase('GROUNDS', { ...nameSeed(), hasMinorChildren: true })).toBe('CHILDREN');
   });
 
   test('recognizes an older profile with an explicit no-minor-children fact', () => {
     const orch = makePhaseOrchestrator();
     expect(orch._getNextPhase('GROUNDS', {
+      ...nameSeed(),
       facts: [{ content: 'Morgan Avery and I have no children together who are under 18.' }],
     })).toBe('PROPERTY');
     expect(orch._getNextPhase('GROUNDS', {
+      ...nameSeed(),
       facts: [{ content: 'Morgan Avery and I have two minor children.' }],
     })).toBe('CHILDREN');
     expect(orch._getNextPhase('GROUNDS', {
+      ...nameSeed(),
       facts: [{ content: 'I have no children from a previous relationship, but we have a child together.' }],
     })).toBe('CHILDREN');
   });
@@ -165,12 +185,14 @@ describe('BaseDivorceOrchestrator returning-user phase routing', () => {
   test('recognizes a completed military check stored as older narrative facts', () => {
     const orch = makePhaseOrchestrator();
     expect(orch._getNextPhase('INDIGENCY', {
+      ...nameSeed(),
       facts: [
         { content: 'Morgan Avery is not in the military.' },
         { content: 'I checked the DMDC on July 13, 2026, and it showed no active-duty status.' },
       ],
     })).toBe('REVIEW');
     expect(orch._getNextPhase('INDIGENCY', {
+      ...nameSeed(),
       facts: [{ content: 'Morgan Avery is not in the military.' }],
     })).toBe('MILITARY');
   });
@@ -434,6 +456,177 @@ describe('spousal support waiver derivation stays mutually consistent', () => {
     );
     expect(awarded.spousalSupportAwarded).toBe(true);
     expect(awarded.spousalSupportWaived).toBe(false);
+  });
+});
+
+describe('role derivation from served-on-user / who-filed signals', () => {
+  test('served_on_user=yes flips role to respondent and sends affiantName to the user side', () => {
+    // Ontario Marcus replay: "I got served, my wife filed" — the model
+    // still fills the schema's Petitioner slot with the SPOUSE's name and
+    // the Respondent slot with the user's; without role derivation the
+    // affiantName would default to the wife.
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      served_on_user: 'yes',
+      petitioner_first_name: 'Éloïse Marie',
+      petitioner_last_name: 'Whitfield-Nuñez',
+      respondent_first_name: 'Marcus David',
+      respondent_last_name: 'Whitfield-Nuñez',
+    });
+    expect(data.role).toBe('respondent');
+    expect(data.petitionerName).toBe('Éloïse Marie Whitfield-Nuñez');
+    expect(data.respondentName).toBe('Marcus David Whitfield-Nuñez');
+    expect(data.affiantName).toBe('Marcus David Whitfield-Nuñez');
+  });
+
+  test('who_filed=my_spouse sets role=respondent independently of served_on_user', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      who_filed: 'my_spouse',
+      petitioner_first_name: 'Éloïse',
+      petitioner_last_name: 'Whitfield',
+      respondent_first_name: 'Marcus',
+      respondent_last_name: 'Whitfield',
+    });
+    expect(data.role).toBe('respondent');
+    expect(data.affiantName).toBe('Marcus Whitfield');
+  });
+
+  test('who_filed=me sets role=petitioner', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      who_filed: 'me',
+      petitioner_first_name: 'Jordan',
+      petitioner_last_name: 'Example',
+    });
+    expect(data.role).toBe('petitioner');
+    expect(data.affiantName).toBe('Jordan Example');
+  });
+
+  test('role-flip correction: a stored affiantName that matches the spouse caption is replaced with the user\'s own side once role becomes respondent', () => {
+    // A prior turn (before we captured role) defaulted affiantName to the
+    // petitioner side, which under the true role is the SPOUSE.
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      {
+        affiantName: 'Éloïse Marie Whitfield-Nuñez',
+        petitionerName: 'Éloïse Marie Whitfield-Nuñez',
+        petitionerFirstName: 'Éloïse Marie',
+        petitionerLastName: 'Whitfield-Nuñez',
+        respondentName: 'Marcus David Whitfield-Nuñez',
+        respondentFirstName: 'Marcus David',
+        respondentLastName: 'Whitfield-Nuñez',
+      },
+      { served_on_user: 'yes' },
+    );
+    expect(data.role).toBe('respondent');
+    expect(data.affiantName).toBe('Marcus David Whitfield-Nuñez');
+  });
+
+  test('an affiantName that matches neither caption (a user override) is preserved', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates(
+      {
+        affiantName: 'Marcus D. W-N',
+        petitionerName: 'Éloïse Whitfield',
+        respondentName: 'Marcus Whitfield',
+        role: 'respondent',
+      },
+      {},
+    );
+    expect(data.affiantName).toBe('Marcus D. W-N');
+  });
+
+  test('the schema exposes who_filed and served_on_user as machine-read enums', () => {
+    const orch = makeOrchestrator();
+    const props = orch.tool.function.parameters.properties;
+    expect(props.who_filed.enum).toEqual(['me', 'my_spouse', 'unknown']);
+    expect(props.served_on_user.enum).toEqual(['yes', 'no', 'unknown']);
+  });
+
+  test('respondent-role user\'s income mapping mirrors the affiant mapping (petitioner_monthly_income → spouseMonthlyIncome)', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, {
+      served_on_user: 'yes',
+      petitioner_monthly_income: 11833,
+      respondent_monthly_income: 7375,
+    });
+    expect(data.role).toBe('respondent');
+    // Under respondent role the USER's income is the respondent side.
+    expect(data.monthlyIncome).toBe(7375);
+    expect(data.spouseMonthlyIncome).toBe(11833);
+  });
+});
+
+describe('schema-level enforcement of sparse-but-needed fields (v9-D fix)', () => {
+  test('respondent_address_unknown is required so the LLM emits it every turn', () => {
+    const orch = makeOrchestrator();
+    const params = orch.tool.function.parameters;
+    expect(params.required).toContain('respondent_address_unknown');
+    // Description must document the default-false semantics that make
+    // required emission safe on turns unrelated to whereabouts.
+    expect(params.properties.respondent_address_unknown.description)
+      .toMatch(/DEFAULT false/);
+  });
+
+  test('number_of_children is a first-class integer field with count guidance', () => {
+    const orch = makeOrchestrator();
+    const noc = orch.tool.function.parameters.properties.number_of_children;
+    expect(noc).toBeDefined();
+    expect(noc.type).toBe('integer');
+    expect(noc.minimum).toBe(0);
+    // The description must teach the model to COUNT children, not sum ages.
+    expect(noc.description.toLowerCase()).toContain('count');
+    expect(noc.description).toContain('24 and 21');
+    expect(noc.description).toContain('→ 2');
+    // Tavita (FL, no kids) replay: the description must instruct the model to
+    // ALWAYS pair has_minor_children:false with number_of_children:0 on the
+    // same turn — otherwise the story page renders profile.numberOfChildren
+    // as null after the user already said "no kids".
+    expect(noc.description).toContain('"no children" → 0');
+    expect(noc.description).toMatch(/MANDATORY when has_minor_children is false/);
+    expect(noc.description).toContain('Tavita');
+  });
+
+  test('grounds field has no enum (multi-jurisdiction) and forbids "other"/"unknown" placeholders', () => {
+    const orch = makeOrchestrator();
+    const grounds = orch.tool.function.parameters.properties.grounds;
+    // NO enum: shared base orchestrator serves ~110 jurisdictions each with
+    // its own statutory vocabulary (CA irreconcilable_differences, ON
+    // breakdown_of_marriage, TX insupportability/cruelty/…, etc.). A closed
+    // TX-only enum would silently reject every other jurisdiction's ground.
+    expect(grounds.enum).toBeUndefined();
+    // Description must forbid placeholders and list jurisdictional examples.
+    expect(grounds.description).toMatch(/OMIT this field/i);
+    // v22-A: the schema now enumerates every forbidden sentinel by name so
+    // the model cannot substitute a novel placeholder ("unclear", "n/a", …).
+    expect(grounds.description).toMatch(/"other"/);
+    expect(grounds.description).toMatch(/"unknown"/);
+    expect(grounds.description).toMatch(/"unclear"/);
+    expect(grounds.description).toMatch(/"none"/);
+    expect(grounds.description).toMatch(/"n\/a"/);
+    expect(grounds.description).toMatch(/"not_sure"/);
+    expect(grounds.description).toMatch(/insupportability/);
+    expect(grounds.description).toMatch(/irreconcilable_differences/);
+    expect(grounds.description).toMatch(/breakdown_of_marriage/);
+    expect(grounds.description).toMatch(/cruelty/);
+    // NY DRL §170 vocabulary — the coverage sweep found the extractor was
+    // never taught "irretrievable_breakdown" as a valid slug, so no-fault
+    // NY pleadings had to be canonicalised from adjacent slugs.
+    expect(grounds.description).toMatch(/irretrievable_breakdown/);
+  });
+
+  test('respondent_suspected_location description carries the hedge-strip rule', () => {
+    const orch = makeOrchestrator();
+    const rsl = orch.tool.function.parameters.properties.respondent_suspected_location;
+    expect(rsl.description).toContain('rule 19');
+    expect(rsl.description.toLowerCase()).toContain('possibly');
+  });
+
+  test('number_of_children snake→camel maps via FIELD_MAP into numberOfChildren', () => {
+    const orch = makeOrchestrator();
+    const data = orch._applyFieldUpdates({}, { number_of_children: 2 });
+    expect(data.numberOfChildren).toBe(2);
   });
 });
 

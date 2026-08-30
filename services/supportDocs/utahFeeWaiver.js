@@ -44,7 +44,7 @@
 
 const crypto = require('node:crypto');
 const { totalOf } = require('../../utils/labeledAmounts');
-const { resolvePartyIncomes, INCOME_PLACEHOLDER } = require('./partyIncome');
+const { resolvePartyIncomes, resolveDeclarantExpenses, INCOME_PLACEHOLDER } = require('./partyIncome');
 const {
   UTAH_UNSWORN_DECLARATION,
   utahCaption,
@@ -174,7 +174,19 @@ function feeWaiverMotion(data = {}, opts = {}) {
         'Enter your own gross monthly income before signing this sworn statement.',
     );
   }
-  const expenses = moneyTable(data.expenseBreakdown, data.monthlyExpenses);
+  const expensesDerived = resolveDeclarantExpenses(data, derived.declarant);
+  // The movant swears to their own expenses. Prefer the itemized breakdown
+  // when present; otherwise fall back to the scalar `monthlyExpenses` so the
+  // total is not silently dropped when the extractor only stored a scalar.
+  const expenses = expensesDerived.hasBreakdown
+    ? moneyTable(expensesDerived.items, undefined)
+    : { lines: [], total: expensesDerived.scalarAmount };
+  if (!expensesDerived.hasData) {
+    warnings.push(
+      'Monthly expenses are not on file — the TOTAL MONTHLY EXPENSES line is a placeholder. ' +
+        'Enter your monthly expenses before signing this sworn statement.',
+    );
+  }
 
   const children = Array.isArray(data.children)
     ? data.children.filter((c) => c && typeof c === 'object')
@@ -223,8 +235,14 @@ function feeWaiverMotion(data = {}, opts = {}) {
   push(
     [
       'MONTHLY EXPENSES (itemized):',
-      ...(expenses.lines.length ? expenses.lines : [`(no itemized expenses on file) ${BLANK_LINE}`]),
-      `TOTAL MONTHLY EXPENSES: ${expenses.total > 0 ? formatMoney(expenses.total) : BLANK_SHORT}`,
+      ...(expensesDerived.hasBreakdown
+        ? expenses.lines
+        : expensesDerived.hasScalar
+        ? [`Monthly expenses: ${formatMoney(expensesDerived.scalarAmount)}`]
+        : [`(no itemized expenses on file) ${BLANK_LINE}`]),
+      `TOTAL MONTHLY EXPENSES: ${
+        expensesDerived.hasData ? formatMoney(expenses.total) : BLANK_SHORT
+      }`,
     ].join('\n'),
   );
 

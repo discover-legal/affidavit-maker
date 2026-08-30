@@ -16,6 +16,7 @@ const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
 const { asList, propertyAgreementProse } = require('./dataShapes');
 const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
+const { isRenderableDate, formatDate: sharedFormatDate } = require('./dateUtils');
 
 /**
  * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
@@ -537,9 +538,17 @@ class BaseDivorcePetitionTemplate {
       type: 'party_identification'
     });
 
+    // Respondent residence. The extraction layer sometimes stores free
+    // text like "Unknown; possibly Louisiana with brother, no address" —
+    // dumping that into a "resident of …" clause is a defective pleading
+    // (live Texas audit, 2026-08). When the address is missing or
+    // signals "unknown/no address", plead residence-unknown and note that
+    // alternative service will be requested; otherwise use the stored
+    // address as-is.
+    const respondentResidenceClause = this.getRespondentResidenceClause(divorceData);
     items.push({
       number: paragraphNum++,
-      content: `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, is ${divorceData.respondentAddress ? `a resident of ${divorceData.respondentAddress}` : `a resident of this ${t.jurisdictionTerm.toLowerCase()}`}.`,
+      content: `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${respondentResidenceClause}.`,
       type: 'party_identification'
     });
 
@@ -548,6 +557,36 @@ class BaseDivorcePetitionTemplate {
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Honest residence clause for the Respondent. Values like "Unknown;
+   * possibly in Louisiana with his brother, no address available"
+   * (a real live-Texas extraction, 2026-08) must NOT dump into a
+   * "resident of …" clause. Rules:
+   *   - No address on file → residence unknown; alternative-service note.
+   *   - Address contains "unknown" or "no address" (case-insensitive) →
+   *     same residence-unknown clause; the free-text detail is preserved
+   *     as a follow-up sentence so the record still reflects what is
+   *     known ("possibly in Louisiana with his brother").
+   *   - Otherwise render "is a resident of <address>" as before.
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Sentence fragment that follows "Respondent, <name>,"
+   */
+  getRespondentResidenceClause(divorceData) {
+    const t = this.terminology;
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
+    if (!raw) {
+      return `is a resident of this ${t.jurisdictionTerm.toLowerCase()}, or if not, resides at an address unknown to ${t.filerLabel}, in which case ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    if (unknownPattern.test(raw)) {
+      return `resides at an address unknown to ${t.filerLabel} (${raw}); ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    return `is a resident of ${raw}`;
   }
 
   /**
@@ -648,16 +687,42 @@ class BaseDivorcePetitionTemplate {
     let paragraphNum = divorceData._paragraphNum || 5;
 
     const marriagePlace = this.formatMarriagePlace(divorceData);
-    items.push({
-      number: paragraphNum++,
-      content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${marriagePlace ? ` in ${marriagePlace}` : ''}.`,
-      type: 'marriage_info'
-    });
+    const marriagePlaceSuffix = marriagePlace ? ` in ${marriagePlace}` : '';
+    const marriageDateFormatted = this.formatDate(divorceData.marriageDate);
+    if (marriageDateFormatted) {
+      items.push({
+        number: paragraphNum++,
+        content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${marriageDateFormatted}${marriagePlaceSuffix}.`,
+        type: 'marriage_info'
+      });
+    } else {
+      // Visible fill-in blank + Draft note (mirrors v11-B CA pattern) when
+      // the interviewee never gave a renderable date shape ("married a
+      // while ago"). Avoids the [DATE OF MARRIAGE] denylist sentinel that
+      // would 422 the generate route AND avoids emitting freeform text as
+      // if it were sworn.
+      items.push({
+        number: paragraphNum++,
+        content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on __________________${marriagePlaceSuffix}.\n(Draft — insert exact date of marriage before filing)`,
+        type: 'marriage_info'
+      });
+    }
 
-    if (divorceData.separationDate) {
+    // Only emit the separation clause when the underlying value looks
+    // like a date shape. A freeform "a few months ago" earlier reached
+    // formatDate, which returned it raw and interpolated it into the
+    // pleading (v12-B); now formatDate returns null and we render the
+    // blank-plus-note pattern instead of "separated on or about null".
+    if (isRenderableDate(divorceData.separationDate)) {
       items.push({
         number: paragraphNum++,
         content: `The parties separated on or about ${this.formatDate(divorceData.separationDate)}.`,
+        type: 'marriage_info'
+      });
+    } else if (divorceData.separationDate) {
+      items.push({
+        number: paragraphNum++,
+        content: `The parties separated on or about __________________.\n(Draft — insert exact date of separation before filing)`,
         type: 'marriage_info'
       });
     }
@@ -676,12 +741,12 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Formatted date
    */
   formatDate(dateStr) {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr;
-
-    const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
-    return date.toLocaleDateString('en-US', options);
+    // Delegates to the shared helper. Returns null on empty / non-date
+    // shapes / NaN — earlier this returned the raw input string, which
+    // let freeform narratives ("a few months ago") reach the pleading
+    // verbatim. Callers must guard the null with a visible-blank +
+    // Draft-note branch or a denylist sentinel; never interpolate null.
+    return sharedFormatDate(dateStr);
   }
 
   /**
@@ -1028,9 +1093,7 @@ class BaseDivorcePetitionTemplate {
     const all = () => reliefItems.join(' ');
     const additions = [];
 
-    const hasChildren =
-      divorceData.hasMinorChildren === true ||
-      (Array.isArray(divorceData.children) && divorceData.children.length > 0);
+    const hasChildren = this.hasMinorChildrenForRelief(divorceData);
     if (hasChildren && divorceData.childSupportAmount &&
         !all().includes(`$${divorceData.childSupportAmount}`)) {
       const payor = divorceData.childSupportObligor || divorceData.respondentName || t.responderLabel;
@@ -1062,6 +1125,23 @@ class BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Whether the case has MINOR children on file — the trigger for
+   * custody/child-support prayer items and agreed-child-arrangement
+   * relief. hasMinorChildren === false overrides any children[] entries
+   * (they are then treated as adult children of the marriage, named
+   * elsewhere but never as minors — live audits, 2026-08).
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  hasMinorChildrenForRelief(divorceData) {
+    const d = divorceData || {};
+    if (d.hasMinorChildren === false) return false;
+    if (d.hasMinorChildren === true) return true;
+    return Array.isArray(d.children) && d.children.length > 0;
+  }
+
+  /**
    * Generate relief requested section
    *
    * @param {Object} divorceData - The divorce data
@@ -1085,8 +1165,13 @@ class BaseDivorcePetitionTemplate {
       'Allocate responsibility for debts in an equitable manner;'
     ];
 
-    // Add child-related relief if applicable
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+    // Add child-related relief only when the case has minor children on
+    // file. hasMinorChildren === false suppresses custody/support prayer
+    // items even when the children[] array holds ADULT children (live
+    // Texas + California audits, 2026-08 — the prayer asked the court to
+    // "determine custody" in cases where the parties have no minor
+    // children).
+    if (this.hasMinorChildrenForRelief(divorceData)) {
       reliefItems.push('Determine custody and parenting time/visitation arrangements for the minor child(ren);');
       reliefItems.push('Order appropriate parenting time/visitation for the non-custodial parent;');
       if (divorceData.childSupportAmount) {

@@ -40,8 +40,11 @@ import { officialFormsLink } from '@/lib/officialForms';
 import { isCanadianJurisdiction } from '@/lib/api/procedure';
 import {
   childBirthDate,
+  computeAge,
   formatFriendlyDate,
   formatResidencyDuration,
+  hasMinorsOnRecord,
+  noMinorsOnRecord,
   parseKnownDate,
   type ProfileChild,
 } from '@/components/app/lifeStory';
@@ -83,6 +86,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Plan your route and arrive early. Courthouse security lines take time, and arriving late can mean your case gets passed over.',
     'before.childcare':
       'Arrange childcare for the day. Children generally can’t come into the courtroom.',
+    'before.adultChildren':
+      'Your children on record ({names}) are adults and generally aren’t subject to custody or child-support orders in a divorce — so a parent-education course usually doesn’t apply.',
     'before.datesTitle': 'Your dates',
     'before.datesSub':
       'From your own story and court papers — for quick reference on the day:',
@@ -189,6 +194,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Planea tu ruta y llega temprano. Las filas de seguridad del tribunal toman tiempo, y llegar tarde puede hacer que pasen tu caso por alto.',
     'before.childcare':
       'Organiza el cuidado de tus hijos ese día. Los niños generalmente no pueden entrar a la sala del tribunal.',
+    'before.adultChildren':
+      'Los hijos que tienes en el registro ({names}) son adultos y generalmente no están sujetos a órdenes de custodia o de manutención en un divorcio — por eso un curso de educación para padres normalmente no aplica.',
     'before.datesTitle': 'Tus fechas',
     'before.datesSub':
       'De tu propia historia y tus documentos del tribunal — para consulta rápida ese día:',
@@ -432,11 +439,20 @@ export function buildPracticeQuestions(
       : null,
   });
 
-  // 5 — children names and birth dates
+  // 5 — children names and birth dates. Minors and adult children are
+  // legally distinct: prove-up questions about "minor children" only
+  // reach the ones under 18. When every child on record is an adult, the
+  // answer says so honestly instead of listing adults under a "minor
+  // children" heading.
   const children = profileChildren(profile);
+  const minorChildren = children.filter((c) => {
+    const age = computeAge(c);
+    return age === null || age < 18;
+  });
+  const everyChildAdult = children.length > 0 && minorChildren.length === 0;
   let childrenAnswer: string | null = null;
-  if (children.length > 0) {
-    childrenAnswer = children
+  if (minorChildren.length > 0) {
+    childrenAnswer = minorChildren
       .map((c) => {
         const dob = formatFriendlyDate(childBirthDate(c), lang);
         return dob
@@ -444,6 +460,10 @@ export function buildPracticeQuestions(
           : str(c.name);
       })
       .join('; ');
+  } else if (everyChildAdult) {
+    childrenAnswer = es
+      ? 'Tus hijos en el registro son adultos y no están sujetos a órdenes de custodia.'
+      : 'Your children on record are adults and are not subject to custody orders.';
   } else if (profile.hasMinorChildren === false) {
     childrenAnswer = es
       ? 'Nos dijiste que no tienes hijos menores de edad.'
@@ -624,11 +644,26 @@ export default function HearingPrepClient() {
     [questions.length],
   );
 
+  // Minors gate: children.length > 0 alone is wrong — adult children
+  // don't trigger parent-education or custody-adjacent language. Split
+  // the list explicitly so we can name only the minors in the checklist,
+  // and offer a distinct adult-only line where relevant.
+  const minorChildren = children.filter((c) => {
+    const age = computeAge(c);
+    return age === null || age < 18;
+  });
+  const anyMinors = hasMinorsOnRecord(profile);
+  const allChildrenAreAdults =
+    children.length > 0 && noMinorsOnRecord(profile);
+  const minorNames = minorChildren.map((c) => str(c.name)).filter(Boolean).join(', ');
+
   const checklist: string[] = [];
-  if (children.length > 0) {
+  if (anyMinors && minorNames) {
     checklist.push(
-      tt(lang, isUT ? 'before.coursesUt' : 'before.courses', { names: childNames, stateName }),
+      tt(lang, isUT ? 'before.coursesUt' : 'before.courses', { names: minorNames, stateName }),
     );
+  } else if (allChildrenAreAdults) {
+    checklist.push(tt(lang, 'before.adultChildren', { names: childNames }));
   }
   checklist.push(
     tt(lang, isUT ? 'before.financialsUt' : 'before.financials', {

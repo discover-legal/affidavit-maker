@@ -95,6 +95,37 @@ describe('buildPracticeQuestions', () => {
     );
   });
 
+  it('does not treat adult children as minors', () => {
+    const adultKidsProfile = {
+      // California persona Alison — Ethan + Sofía are both adults.
+      children: [
+        { name: 'Ethan Rivera', dob: '1998-04-12' },
+        { name: 'Sofía Rivera', dob: '2001-09-30' },
+      ],
+    };
+    const answer = buildPracticeQuestions(adultKidsProfile).find(
+      (q) => q.id === 'children',
+    )!.answer;
+    expect(answer).toBe(
+      'Your children on record are adults and are not subject to custody orders.',
+    );
+    expect(answer).not.toMatch(/born/);
+  });
+
+  it('lists only minors when the child list is mixed', () => {
+    const mixedProfile = {
+      children: [
+        { name: 'Ada Adult', dob: '1998-04-12' },
+        { name: 'Min Minor', dob: '2015-06-20' },
+      ],
+    };
+    const answer = buildPracticeQuestions(mixedProfile).find(
+      (q) => q.id === 'children',
+    )!.answer;
+    expect(answer).toContain('Min Minor');
+    expect(answer).not.toContain('Ada Adult');
+  });
+
   it('phrases the waiting-period question generically without a known period', () => {
     const waiting = buildPracticeQuestions({}, 'en', null).find((q) => q.id === 'waiting')!;
     expect(waiting.question).toBe(

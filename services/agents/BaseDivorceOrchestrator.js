@@ -39,7 +39,16 @@ const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement'
 // One flexible tool covers all phases across all states.
 // Phase-specific system prompts tell the LLM which subset of fields to fill.
 
-function buildPhaseTool(stateCode) {
+function buildPhaseTool(stateCode, { nameMissing = false } = {}) {
+  // When the user's own full legal name is still missing, the `response`
+  // description carries a HARD constraint. Prompt-and-schema signal (not a
+  // deterministic string check) — the model still decides the wording, but
+  // the schema-level demand markedly raises the odds Luna/GPT obey it,
+  // because tool-parameter descriptions are the surface these models attend
+  // to most reliably.
+  const responseDescription = nameMissing
+    ? 'Your conversational response to the user. Warm, professional, concise. HARD REQUIREMENT for THIS turn: the user\'s own full legal name is NOT yet captured, so this response MUST end with a direct request for the user\'s own full legal name (e.g. "What is your full legal name?"). Do NOT ask any other question this turn. Briefly acknowledge whatever else the user just said in one short sentence, then ask for their full legal name. This overrides the current phase\'s COLLECT list.'
+    : 'Your conversational response to the user. Warm, professional, concise.';
   return {
     type: 'function',
     function: {
@@ -47,12 +56,26 @@ function buildPhaseTool(stateCode) {
       description: `Extract information collected during this ${stateCode} divorce interview phase and provide a conversational response to the user.`,
       parameters: {
         type: 'object',
-        required: ['response', 'phase_complete'],
+        // respondent_address_unknown is required so the LLM is forced to emit
+        // it every turn (default false) rather than sparsely omitting it when
+        // the user narrates hedged whereabouts — Mari v9-D replay: the model
+        // skipped the field despite NEVER-OMIT prose, and the TX petition
+        // template read a nullish flag and dropped the alt-service caveat.
+        // Schema-level required is the enforcement that prose alone was not.
+        // v14-C: promote respondent_suspected_location to required alongside
+        // respondent_address_unknown. Same lesson as the v9-D flag promotion:
+        // schema-level required is the only enforcement Luna reliably obeys
+        // — prose-only "NEVER OMIT" rules keep getting sparsely omitted, and
+        // the downstream TX alt-service caveat ("Petitioner has heard, but
+        // cannot swear") depends on this field. Description tells the model
+        // to emit "" when the topic is not in question this turn (safe
+        // default; never overwrites a real value in profile-merge).
+        required: ['response', 'phase_complete', 'respondent_address_unknown', 'respondent_suspected_location'],
         properties: {
           // ── Response shown to the user ──
           response: {
             type: 'string',
-            description: 'Your conversational response to the user. Warm, professional, concise.'
+            description: responseDescription,
           },
           phase_complete: {
             type: 'boolean',
@@ -60,10 +83,20 @@ function buildPhaseTool(stateCode) {
           },
 
           // ── INTAKE ──
-          petitioner_first_name: { type: 'string', description: `Filing party: ${FIRST_NAME_DESCRIPTION}` },
-          petitioner_last_name:  { type: 'string', description: `Filing party: ${LAST_NAME_DESCRIPTION}` },
-          respondent_first_name: { type: 'string', description: `Responding spouse: ${FIRST_NAME_DESCRIPTION} Extract it from ANY mention of the spouse (e.g. "was married … to Ellis Jane Smith Son-Wyatt"), even when this phase did not ask for it.` },
-          respondent_last_name:  { type: 'string', description: `Responding spouse: ${LAST_NAME_DESCRIPTION}` },
+          petitioner_first_name: { type: 'string', description: `Filing party: ${FIRST_NAME_DESCRIPTION} Which HUMAN is the petitioner is a ROLE question — the one who FILED, regardless of whether the user speaking is that person. If the user says their spouse filed the case, the SPOUSE'S name goes here.` },
+          petitioner_last_name:  { type: 'string', description: `Filing party (the one who FILED): ${LAST_NAME_DESCRIPTION}` },
+          respondent_first_name: { type: 'string', description: `Responding party (the one who was SERVED / did NOT file): ${FIRST_NAME_DESCRIPTION} Extract it from ANY mention of the non-filing spouse, even when this phase did not ask for it. If the user says they themselves were served with divorce papers, the USER'S name goes here. NICKNAME GUARD: when the user gives ONLY a nickname, a quoted name, or a "known as X" / "goes by X" / "we all call him X" phrasing for the respondent (e.g. "his name is Slick", "she goes by Junebug", "everyone calls him \\"Doc\\""), do NOT populate this field with the nickname — leave it empty this turn and use the response to ask for the respondent\'s FULL LEGAL NAME (e.g. "What is Slick\'s full legal name?"). A nickname in a sworn petition is a defect; the field must hold a legal name.` },
+          respondent_last_name:  { type: 'string', description: `Responding party: ${LAST_NAME_DESCRIPTION} Same NICKNAME GUARD as respondent_first_name — never populate from a nickname or "known as" phrasing; ask for the full legal name instead.` },
+          who_filed: {
+            type: 'string',
+            enum: ['me', 'my_spouse', 'unknown'],
+            description: 'MACHINE-READ role signal: who filed the divorce case. Extract as SOON as the user makes it clear (e.g. "I filed", "my wife filed", "she started this", "I got served"). "me" → the user is the petitioner. "my_spouse" → the user is the respondent; the spouse who filed is the petitioner. Set once and only re-emit if the user corrects it. Independent of the *_first_name / *_last_name fields, which name the parties by their court role, not by who is speaking.'
+          },
+          served_on_user: {
+            type: 'string',
+            enum: ['yes', 'no', 'unknown'],
+            description: 'MACHINE-READ role signal: was the USER personally served with the divorce papers? "yes" (the user received the papers) implies who_filed = my_spouse and the USER is the respondent. Extract from phrasings like "I was served last week" / "the process server handed it to me". Do NOT set this when the user is describing serving papers ON their spouse.'
+          },
 
           // ── RESIDENCY ──
           state:                 { type: 'string', description: '2-letter state code' },
@@ -79,19 +112,29 @@ function buildPhaseTool(stateCode) {
           marriage_city:   { type: 'string' },
           marriage_state:  { type: 'string' },
           separation_date: { type: 'string' },
-          grounds:         { type: 'string', description: 'Grounds for divorce / dissolution' },
+          grounds: {
+            type: 'string',
+            // CLOSED-SET enum with NO "other" sentinel. Mari v9-D showed the
+            // model defaulting to a placeholder "other" whenever grounds were
+            // unclear, which the downstream resolver could not map onto a real
+            // ground. Remove the escape hatch: if the user has not stated
+            // grounds, OMIT this field — the v9-A resolver falls back to facts
+            // inference (and, for TX, insupportability as the statutory default
+            // when nothing else applies).
+            description: 'MACHINE-READ code for the ground for divorce, as a snake_case slug matching the target jurisdiction\'s statutory vocabulary. If the user has not stated grounds — OR you are unsure which jurisdictional slug applies — OMIT this field entirely. NEVER emit any of these forbidden placeholder strings: "other", "unknown", "unclear", "none", "n/a", "na", "not_sure". They are NOT statutory grounds; they poison the profile and force the merge layer to overwrite you from the companion promoter. When in doubt, OMIT — the profile then stays absent and a downstream promoter fills the slug from the grounds fact. The v9-A resolver falls back to facts inference and jurisdiction-appropriate defaults. Examples of valid codes: insupportability (TX §6.001 no-fault); irreconcilable_differences (CA Fam. Code §2310); irretrievable_breakdown (NY DRL §170(7) no-fault, six months); breakdown_of_marriage (ON Divorce Act s.8, one-year separation); cruelty (TX §6.002 / ON s.8(2)(b)(i)); cruel_treatment (NY DRL §170(1) / GA §19-5-3(10) / Utah §30-3-1(3)(g)); adultery (TX §6.003 / ON s.8(2)(b)(ii) / NY DRL §170(4)); felony (TX §6.004); abandonment (TX §6.005 / NY DRL §170(2)); imprisonment (NY DRL §170(3), three consecutive years); living_apart (TX §6.006 / CA "separate for statutory period"); separation_agreement (NY DRL §170(6)); separation_judgment (NY DRL §170(5)); mental_confinement (TX §6.007). Emit whichever slug the jurisdiction and the user\'s stated ground call for; the resolver and template map from there.',
+          },
 
           // ── CHILDREN ──
           children_confirmed: { type: 'boolean', description: 'true = section complete (no minor children or data collected)' },
           children: {
             type: 'array',
-            description: 'Children mentioned in THIS message only. Entries are MERGED into the already-collected list by name — previously recorded children are never removed by this field, so do not re-send them. To correct a child, re-send that child with the same name and the corrected details.',
+            description: 'Children mentioned in THIS message only. Entries are MERGED into the already-collected list by name (or dob when unnamed) — previously recorded children are never removed by this field, so DO NOT re-send children already in ALREADY COLLECTED. To correct a child, re-send that child with the same name and the corrected details. ONE ENTRY PER DISTINCT CHILD — "kids are 24 and 21" is TWO entries ([{age:24},{age:21}]), NOT 25 (age concatenation is a bug); "we have three kids ages 7, 9, and 12" is THREE entries; the array LENGTH is the count of children, never a sum or concatenation of ages. Always attach a name so merge dedup works across turns: if the user did not name the child, synthesize a stable placeholder ("Child 1", "Child 2", …) — nameless age-only entries cannot be matched on the next turn and will duplicate.',
             items: {
               type: 'object',
               properties: {
-                name: { type: 'string' },
-                dob:  { type: 'string' },
-                age:  { type: 'number' }
+                name: { type: 'string', description: 'Child\'s given name (or "Child 1"/"Child 2" placeholder when the user has not named the child). Required for stable dedup across turns.' },
+                dob:  { type: 'string', description: 'Date of birth in ISO YYYY-MM-DD when the user gives a birth date. Never derive from age.' },
+                age:  { type: 'number', description: 'Age in whole years — ONE child\'s age, never a joined multi-digit string of several children\'s ages ("24 and 21" → two entries with age 24 and age 21, NEVER a single entry with age 2421 or 25).' }
               }
             }
           },
@@ -99,6 +142,18 @@ function buildPhaseTool(stateCode) {
             type: 'array',
             description: 'Names of previously recorded children to remove, ONLY when the user says a recorded child should not be on the record.',
             items: { type: 'string' }
+          },
+          number_of_children: {
+            type: 'integer',
+            minimum: 0,
+            // Live Mari v9-B replay: after the model recorded the children
+            // once, it stopped re-emitting children[] on later turns (correctly
+            // — the "don't re-send" rule). The template then had no way to
+            // read the count because it depended on children.length. First-
+            // class number_of_children detaches the count from list
+            // repetition and lets the model volunteer the count even when it
+            // omits individual children rows.
+            description: 'Count of children of THIS marriage as a whole integer (>= 0). Emit whenever the user states or enumerates children: "kids are 24 and 21" → 2; "we have three kids ages 7, 9, and 12" → 3; "no children" → 0. MANDATORY when has_minor_children is false: any turn where the user says there are no children of the marriage ("no kids", "no children", "we don\'t have kids", "childless") REQUIRES BOTH has_minor_children: false AND number_of_children: 0 on that same turn — recording only the boolean is a bug (Tavita FL replay: numberOfChildren stayed null in the story page). Emit alongside the children[] array whenever you record specific children, and re-emit this count on any later turn where the count is discussed even if you do not re-send the children[] rows. Never sum or concatenate ages ("24 and 21" is 2, not 45 and not 2421).',
           },
           custody_arrangement: {
             type: 'string',
@@ -133,6 +188,42 @@ function buildPhaseTool(stateCode) {
           petitioner_debts: { type: 'array', items: { type: 'string' }, description: `Debts the petitioner takes responsibility for. Extract ONLY debts the user explicitly assigned to the petitioner. ${DEBT_ITEM_DESCRIPTION}` },
           respondent_debts: { type: 'array', items: { type: 'string' }, description: `Debts the respondent takes responsibility for. Extract ONLY debts the user explicitly assigned to the respondent. ${DEBT_ITEM_DESCRIPTION}` },
 
+          // ── EQUALIZATION PAYMENT (property, not debt) ──
+          equalization_amount: {
+            type: 'number',
+            description: 'Dollar figure of a cash equalization payment one spouse pays the other to equalize the property division. Emit this dedicated field — NEVER list the equalization payment as an entry in petitioner_debts or respondent_debts (a live California decree once buried $80,000 under ALLOCATION OF DEBTS this way). The decree renders equalization as its own ordered clause under DIVISION OF PROPERTY when this field is set.'
+          },
+          equalization_schedule: {
+            type: 'string',
+            description: 'Human-readable payment schedule for the equalization payment, in the user\'s words with typos cleaned (e.g. "in equal monthly installments of $2,222.22 over 36 months beginning October 1, 2026"). Free-form — the decree renders this fragment verbatim after "payable ". Omit if the user has not stated a schedule.'
+          },
+          equalization_payor: {
+            type: 'string',
+            enum: ['petitioner', 'respondent'],
+            description: 'MACHINE-READ role of the party who PAYS the equalization sum. Map natural phrasings ("I owe him $80k to equalize" → the user\'s own role; "the petitioner shall pay the respondent" → petitioner).'
+          },
+          equalization_payee: {
+            type: 'string',
+            enum: ['petitioner', 'respondent'],
+            description: 'MACHINE-READ role of the party who RECEIVES the equalization sum. Always the opposite side of equalization_payor — emit whichever the user names; the other is derived if omitted.'
+          },
+
+          // ── PRENUPTIAL / PREMARITAL AGREEMENT ──
+          prenup_signed: {
+            type: 'boolean',
+            description: 'true when the user mentions the parties signed a prenuptial/premarital agreement before the marriage. Extract from ANY mention ("we signed a prenup in 2001", "there is a premarital agreement", "the prenup says…") — the decree adds a WHEREAS-style recital when this is true.'
+          },
+          prenup_signed_year: {
+            type: 'number',
+            minimum: 1900,
+            maximum: 2100,
+            description: 'Calendar year the prenuptial agreement was signed, when the user states it ("we signed a prenup in 2001" → 2001). Optional; omit if the user has not stated a year.'
+          },
+          prenup_governs_after_divorce: {
+            type: 'boolean',
+            description: 'true when the user states the prenuptial agreement continues to govern the characterization or disposition of property after the divorce (e.g. "the prenup still applies", "we\'re dividing property per the prenup"). Signals the decree to add the "continues to govern" recital.'
+          },
+
           // ── SPOUSAL SUPPORT ──
           spousal_support_confirmed: { type: 'boolean' },
           spousal_support_requested: { type: 'boolean' },
@@ -146,7 +237,13 @@ function buildPhaseTool(stateCode) {
             enum: ['waiver', 'formal', 'publication', 'undecided'],
             description: 'MACHINE-READ code for how the respondent will be served — document selection branches on this exact value. Map natural phrasings: "spouse will sign the waiver/acknowledgment" / "they\'ll accept the papers" / "acknowledged service" → waiver; "process server" / "sheriff" / "personal service" / "someone will hand-deliver" → formal; "I can\'t find my spouse" / "substituted service" / "service by publication" → publication; not yet decided → undecided. Put the user\'s exact wording in a fact, not here.'
           },
-          respondent_address: { type: 'string' },
+          service_date: {
+            type: 'string',
+            description: 'MACHINE-READ ISO date (YYYY-MM-DD) — when the user describes when they were served (or when their spouse was served) with the divorce papers, emit service_date as an ISO date. NEVER OMIT THIS FIELD when the user narrates a service event: any served-date phrase — "served May 12", "she filed on the 3rd", "the process server showed up last Tuesday", "I got served yesterday", "papers arrived June 24" — REQUIRES service_date this turn, even when the user did not name a year. Recording only a free-text fact ("she served me May 12") is a bug: rule 18 year-inference and the /respond deadline banner both branch on the STRUCTURED field. Apply rule 18 year-inference against today\'s date and any file-number signal to fill in the year; if no signal exists, use the CURRENT calendar year and record a fact noting the assumption. Year inference is LOAD-BEARING: the /respond deadline banner reads this field directly, and a wrong-year date tells a real respondent their deadline passed a year ago when it has not. When the user gives a partial date (month + day, no year), INFER the year from surrounding context — the case-filing year visible in a file number ("FS-25-…" implies 2025, "FS-24-…" implies 2024), other dates already discussed in this or an earlier turn (the spouse\'s filing date, the separation date, prior court dates), or an explicit "recent past" description ("last week", "a few days ago") measured against today\'s date. NEVER silently default to the separation-date year, the marriage-date year, or any single stored year without a real signal. If the year truly cannot be inferred with confidence, emit the date using the CURRENT calendar year AND record a fact noting the year was assumed so the user can correct it. Examples: "process server handed it to me at my house on june 24" with an earlier "case number FS-25-…" → service_date "2025-06-24" (the FS-25- file number is the year signal); "I served him last Tuesday" with today = 2026-08-28 → the corresponding Tuesday in 2026. Marcus persona failure (Ontario acceptance v6): spouse filed 2025-06-17 with file number FS-25-…; user typed "june 24"; the correct service_date is 2025-06-24, NOT 2024-06-24 — defaulting to the separation-date year (2024) is the exact bug this rule exists to prevent. Never emit a partial or fuzzy date ("last month", "sometime in June") here; leave those in a fact instead.'
+          },
+          respondent_address: { type: 'string', description: 'Respondent\'s current residence, sworn as verbatim text in the petition ("is a resident of <this>"). Only populate when the user gives a real address (street, or a firm city/state statement) they can swear to. If the user hedges ("possibly", "maybe", "I think", "not sure", "I don\'t know", "somewhere in X"), leave this EMPTY and set respondent_address_unknown: true + respondent_suspected_location instead — see rule 17 in DATA QUALITY RULES.' },
+          respondent_address_unknown: { type: 'boolean', description: 'MACHINE-READ flag: REQUIRED every turn (schema-level), DEFAULT false. Emit true when the user does NOT know the respondent\'s current residence with sworn certainty (e.g., "I don\'t know where he is", "no current address", "haven\'t seen him in months", "he moved out X months ago and I have no address for him", "possibly in <place>") — any turn describing hedged whereabouts REQUIRES respondent_address_unknown: true THIS SAME TURN. Emit false otherwise (including turns that do not discuss the respondent\'s whereabouts at all — false is the safe default). The TX petition template renders the alternative-service clause instead of a "is a resident of ..." sentence when this is true — an unset flag emits an EMPTY residence clause and drops the alt-service caveat entirely. NEVER OMIT this field; the STRUCTURED field is what the template reads, not the fact log. Recording only a fact is a bug. See rule 17 in DATA QUALITY RULES; the Mari v8b failure was exactly this omission.' },
+          respondent_suspected_location: { type: 'string', description: 'NON-SWORN, hedge-stripped guess at where the respondent might be. Emit "" (empty string) when the respondent\'s whereabouts are not in question this turn or the user named no place; emit the verbatim place — with leading hedges stripped — whenever the user hedged a location for the respondent ("possibly in Louisiana or Mississippi" → "Louisiana or Mississippi"; "maybe with his brother in Ohio" → "Ohio, possibly with his brother"). Strip leading hedge words ("possibly", "maybe", "perhaps", "somewhere in", "I think", "it might be", "around", "probably", "could be", "not sure", "I don\'t know") before emitting per rule 19; the field name already conveys uncertainty so double-hedging in the value is wrong. Templates keep this OUT of the sworn residence clause. NEVER OMIT this field when the user names ANY place for the respondent — always emit it alongside respondent_address_unknown: true whenever a hedged place is named.' },
 
           // ── INDIGENCY / FEE WAIVER (all states) ──
           indigency_confirmed: { type: 'boolean' },
@@ -228,6 +325,17 @@ function buildPhaseTool(stateCode) {
           },
 
           // ── FACTS (any phase) ──
+          // Schema-typed companion values (numeric_value, place_value) let the
+          // model surface a fact's machine-readable payload alongside the
+          // sworn-prose content string, so downstream promotion can route the
+          // quantity or place into the structured scalar the templates read
+          // without ever string-parsing the content. v11-B mirror of v11-A's
+          // subcategory-based boolean promotion: Mari's "respondent possibly in
+          // Louisiana or Mississippi" was emitted only as prose + subcategory,
+          // and Alison's "two adults" only as prose — the structured
+          // respondentSuspectedLocation and numberOfChildren stayed null. The
+          // fields are optional; the model populates them when the fact
+          // actually carries a number or a place.
           extracted_facts: {
             type: 'array',
             items: {
@@ -235,7 +343,19 @@ function buildPhaseTool(stateCode) {
               properties: {
                 content:     { type: 'string', description: FACT_CONTENT_DESCRIPTION },
                 category:    { type: 'string' },
-                subcategory: { type: 'string' }
+                subcategory: { type: 'string' },
+                numeric_value: {
+                  type: ['number', 'null'],
+                  description: 'When the fact carries a numeric quantity the templates might need (child count, income, expense, days/months of residency, dollar amounts), ALSO populate this field with that number. Use the raw number — no units, no currency symbol. For CHILDREN facts (any subcategory: children / adult_children / minor_children), ALWAYS emit numeric_value = the count of children the fact references — adult-only facts count adult children ("two adult kids" → 2), minor-only facts count minor children, general/unspecified facts count the total. Even when the fact prose spells the number in words, emit the digit here ("we have three kids" → 3). Omitting numeric_value on a children fact is a bug (Alison CA replay: an adult_children fact carried the prose "two adult children" but no numeric_value, and numberOfChildren stayed null in the story page). When the fact has no numeric quantity, omit the field (or set null).'
+                },
+                place_value: {
+                  type: ['string', 'null'],
+                  description: 'When the fact names a place (city, state/province, region, or a hedged "possibly in X or Y" location for the respondent), ALSO populate this field with just the place name(s) — hedge words stripped ("possibly in Louisiana or Mississippi" → "Louisiana or Mississippi"), no leading articles, no surrounding sentence. When the fact does not name a place, omit the field (or set null).'
+                },
+                grounds_value: {
+                  type: ['string', 'null'],
+                  description: 'When a fact narrates the grounds for divorce, emit the canonical snake_case grounds slug matching the target jurisdiction (e.g. irretrievable_breakdown for NY §170(7), cruel_treatment for GA §19-5-3(10), cruelty for TX §6.002, irreconcilable_differences for CA Fam. Code §2310, insupportability for TX §6.001 no-fault, breakdown_of_marriage for ON Divorce Act s.8, adultery for TX §6.003 / NY §170(4), abandonment for TX §6.005 / NY §170(2)). Only populate when the fact category or subcategory is grounds AND the user explicitly narrated the ground. Return null if uncertain — NEVER invent a slug the user did not narrate.'
+                }
               },
               required: ['content', 'category']
             }
@@ -266,6 +386,7 @@ const FIELD_MAP = {
   grounds:                     'groundsForDivorce',
   children_confirmed:          'childrenConfirmed',
   children:                    'children',
+  number_of_children:          'numberOfChildren',
   custody_arrangement:         'custodyArrangement',
   primary_custodian:           'primaryCustodian',
   parent_time_plan:            'parentTimePlan',
@@ -280,13 +401,25 @@ const FIELD_MAP = {
   respondent_property:         'respondentProperty',
   petitioner_debts:            'petitionerDebts',
   respondent_debts:            'respondentDebts',
+  equalization_amount:         'equalizationAmount',
+  equalization_schedule:       'equalizationSchedule',
+  // equalization_payor / equalization_payee are NOT here — they map role-aware
+  // in _applyFieldUpdates (resolved to the actual party name so the decree
+  // reads "Alison Rae McPherson shall pay Devin McPherson" rather than
+  // "petitioner shall pay respondent").
+  prenup_signed:               'prenupSigned',
+  prenup_signed_year:          'prenupSignedYear',
+  prenup_governs_after_divorce: 'prenupGovernsAfterDivorce',
   spousal_support_confirmed:   'spousalSupportConfirmed',
   spousal_support_requested:   'spousalSupportRequested',
   support_amount:              'supportAmount',
   support_duration:            'supportDuration',
   support_basis:               'supportBasis',
   service_method:              'serviceMethod',
+  service_date:                'serviceDate',
   respondent_address:          'respondentAddress',
+  respondent_address_unknown:  'respondentAddressUnknown',
+  respondent_suspected_location: 'respondentSuspectedLocation',
   indigency_confirmed:         'indigencyConfirmed',
   indigency_requested:         'indigencyRequested',
   monthly_income:              'monthlyIncome',
@@ -314,6 +447,119 @@ const FIELD_MAP = {
 };
 
 
+// ─── Property/debt same-turn dedup ────────────────────────────────────────────
+// Even with REPLACE-PER-PERSON, within ONE incoming list the model may still
+// restate the same asset under a slightly different label ("$18k dog-grooming
+// business" and "the mobile dog-grooming business worth $18k"). Templates
+// render each element verbatim, so a same-turn restatement would double the
+// item in the decree. Pure plumbing — no fuzzy matching: strip whitespace,
+// punctuation, dollar amounts, and a small closed set of articles/qualifiers
+// ("the", "a", "worth", "approximately", ...), then compare. Two entries whose
+// normalized cores collide (equal, or one contained in the other) collapse to
+// the LONGER original wording (the longer string almost always carries the
+// larger set of identifying details — address, creditor, refi disposition).
+// Never merges across parties: this function only sees a single party's list.
+const PROPERTY_ITEM_STOPWORDS = new Set([
+  'the', 'a', 'an', 'my', 'our', 'their', 'his', 'her', 'your',
+  'and', 'or', 'of', 'in', 'on', 'at', 'for', 'to', 'with',
+  'worth', 'valued', 'value', 'approximately', 'approx', 'about', 'around',
+  // "the marital home at 1418 Willow Glen" vs "the house at 1418 Willow Glen
+  // assigned to the petitioner" — descriptor-only tokens that never carry
+  // identity get dropped so the identifying tokens (address, account number)
+  // decide the collision. Live CA acceptance run, 2026-08.
+  'marital', 'family', 'primary', 'former', 'main', 'joint', 'community',
+  'total', 'currently', 'shall', 'be', 'is',
+]);
+
+// Same-meaning synonyms collapse to one token so a "house at 1418…" and a
+// "home at 1418…" collide on identity. Kept small and closed — this is not a
+// thesaurus; only the pairs a live decree run actually produced go here.
+const PROPERTY_ITEM_SYNONYMS = new Map([
+  ['house', 'home'],
+  ['residence', 'home'],
+  ['dwelling', 'home'],
+  ['property', 'home'],   // "the property at 1418 Willow Glen" ≈ "the home at 1418 Willow Glen"
+  ['auto', 'vehicle'],
+  ['car', 'vehicle'],
+  ['truck', 'vehicle'],
+  ['suv', 'vehicle'],
+]);
+
+function _propertyItemCore(raw) {
+  return String(raw)
+    .toLowerCase()
+    // Strip currency amounts ($6,400 / $18k / $22,000.50 / 45,000 dollars).
+    .replace(/\$\s*\d[\d,]*(?:\.\d+)?\s*[km]?\b/g, ' ')
+    .replace(/\b\d[\d,]*(?:\.\d+)?\s*(?:dollars?|usd|cad)\b/g, ' ')
+    // Punctuation → space (hyphens too, so "dog-grooming" ≈ "dog grooming").
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter((t) => t && !PROPERTY_ITEM_STOPWORDS.has(t))
+    .map((t) => PROPERTY_ITEM_SYNONYMS.get(t) || t)
+    .join(' ');
+}
+
+// Token-set containment: every meaningful token of the shorter (by token
+// count) core appears in the longer. Catches "the house at 1418 Willow Glen
+// … assigned to the petitioner" ≈ "the marital home at 1418 Willow Glen …
+// valued at approximately $1,200,000 with $340,000 mortgage assigned to the
+// petitioner" — substring alone missed this because the shorter phrase's
+// tokens are interleaved. Requires at least 3 shared meaningful tokens so a
+// two-word restatement never eats an unrelated item.
+function _isTokenSubset(shorter, longer) {
+  const sTokens = shorter.split(' ').filter(Boolean);
+  const lTokens = new Set(longer.split(' ').filter(Boolean));
+  if (sTokens.length < 3) return false;
+  return sTokens.every((t) => lTokens.has(t));
+}
+
+function dedupePropertyItems(items) {
+  if (!Array.isArray(items) || items.length < 2) return items.slice();
+  // Preserve original order; when a collision is detected, keep the longer
+  // wording (or the earlier one on tie) and drop the shorter/later.
+  const kept = [];
+  const cores = [];
+  for (const item of items) {
+    const core = _propertyItemCore(item);
+    if (!core) { // an entry whose meaningful tokens were all stripped is noise
+      kept.push(item);
+      cores.push(core);
+      continue;
+    }
+    let collision = -1;
+    for (let j = 0; j < kept.length; j++) {
+      const other = cores[j];
+      if (!other) continue;
+      if (core === other || core.includes(other) || other.includes(core)) {
+        collision = j;
+        break;
+      }
+      // Token-set containment: catches the CA acceptance case where the
+      // model restated the same asset with the identifying tokens in a
+      // different order ("house … assigned to the petitioner" vs "marital
+      // home … valued at … mortgage assigned to the petitioner").
+      const shorter = core.length <= other.length ? core : other;
+      const longer  = core.length <= other.length ? other : core;
+      if (_isTokenSubset(shorter, longer)) {
+        collision = j;
+        break;
+      }
+    }
+    if (collision === -1) {
+      kept.push(item);
+      cores.push(core);
+    } else if (item.length > kept[collision].length) {
+      kept[collision] = item;
+      cores[collision] = core;
+    }
+    // else: shorter/equal — drop the incoming duplicate.
+  }
+  return kept;
+}
+
 // ─── Phase → fact category ────────────────────────────────────────────────────
 const PHASE_CATEGORY = {
   INTAKE:          'general',
@@ -331,6 +577,24 @@ const PHASE_CATEGORY = {
 
 // ─── Orchestrator behavior rules ──────────────────────────────────────────────
 // Injected into every system prompt to enforce consistent UX across all states.
+
+// Injected only when the user's own full legal name is not yet in captured
+// data. A live Texas persona ("Mari") ran 14 turns without ever being asked
+// for her name because the interview waited for it to fall out of natural
+// conversation; the generator then rendered the petition with literal
+// `[PETITIONER NAME]` in the PDF. Turn-1 rule + phase-advance gate below.
+const NAME_FIRST_RULE = `
+TURN 1 RULE — USER'S OWN NAME IS MISSING: The user's own full legal name is not yet in ALREADY COLLECTED. Your VERY NEXT question MUST be exactly: "What is your full legal name?" — regardless of what the current phase's COLLECT list says. Do NOT extract other facts in preference to the name. Do NOT skip this question because the user shared other information. Do NOT accept vague answers ("me", "the petitioner", "just call me by my first name") without a follow-up asking for the full first + last name. Do NOT set phase_complete: true until the user's own full legal name is captured.
+`;
+
+// RESPONDENT_NAME_RULE — TX Mari acceptance v7: user said "his name is Slick"
+// and the orchestrator silently accepted "Slick" as the respondent's legal
+// name. A nickname in a sworn petition is a defect. This rule fires ALWAYS
+// (the check is qualitative — is the given name a nickname? — and belongs
+// to the model, not to a regex).
+const RESPONDENT_NAME_RULE = `
+RESPONDENT NAME — NICKNAME GUARD: When the user gives a nickname, a quoted name, or a "known as X" / "goes by X" / "we all call him X" phrasing for the respondent (or the opposing spouse) — e.g. "his name is Slick", "she goes by Junebug", "everyone calls him \\"Doc\\"" — DO NOT persist the nickname as the respondent's legal name in respondent_first_name / respondent_last_name. Instead, this turn's response MUST ask directly for the respondent's full legal name (e.g. "What is Slick's full legal name?"). Record the nickname in a fact for provenance. Do NOT advance to the next phase (do NOT set phase_complete: true) while the respondent's known identifier is only a nickname. A single-word first name the user typed as a nickname counts too — if in doubt, ask.
+`;
 
 const ORCHESTRATOR_BEHAVIOR = `
 CONVERSATION RULES (you MUST follow these strictly):
@@ -355,6 +619,28 @@ DMDC SEARCH — SOFT GATE: The DMDC/SCRA search date is NOT a hard requirement f
 - A commitment WITHOUT a calendar date ("I'll look at it before I file", "I'll check it later") fully satisfies the DMDC question: record military_search_planned: 'before_filing', acknowledge it, and complete the phase when the other military fields are collected. Do NOT ask again for a date.
 - If the user gives a date, record military_search_date (and military_search_planned: 'date_scheduled'); if they already ran the search, record military_search_planned: 'already_completed'.
 - Never repeat a question word-for-word. If you genuinely must revisit a topic, rephrase and briefly say why.`;
+
+// INDIGENCY (fee-waiver) phase: also a SOFT gate. A live California
+// persona ("Alison") replayed the same "do you want the court to waive
+// your filing fees?" question across turns because "I'll come back to
+// this" / "skip for now" / "just generate the docs" never landed as an
+// answer. A clear defer/skip fully satisfies the phase — the user can
+// return to fee waiver later on /profile.
+const INDIGENCY_SOFT_GATE = `
+FILING-FEE WAIVER — SOFT GATE: The fee-waiver phase is OPTIONAL. Complete it as soon as the user's intent is clear, in any of these directions:
+- YES, wants a waiver: collect monthly_income, monthly_expenses, assets_description, dependents_count, and set indigency_requested: true + indigency_confirmed: true.
+- NO, will pay the filing fee: set indigency_requested: false + indigency_confirmed: true and move on. Do NOT then ask financial questions.
+- SKIP / DEFER — any of "skip this", "come back to it", "I'll decide later", "just generate the documents", "not sure yet", "move on": treat as SATISFIED. Set indigency_confirmed: true (leave indigency_requested undecided), acknowledge that they can revisit the fee waiver on their profile page, and advance to the next phase. Do NOT re-ask the fee-waiver question after that.
+- Never repeat a question word-for-word. If a required financial detail is still missing on a YES answer, rephrase and briefly say why it's needed.`;
+
+// Shared name-missing check — the "user's own name" is present when any of
+// affiantName / firstName / petitionerFirstName is set. The orchestrator's
+// _applyFieldUpdates already back-derives affiantName from the correct side
+// once role is known, so this one predicate suffices for both roles.
+function _userNameMissing(data) {
+  if (!data || typeof data !== 'object') return true;
+  return !data.affiantName && !data.firstName && !data.petitionerFirstName;
+}
 
 const REVIEW_COMPLETION = `
 COMPLETION INSTRUCTIONS: When the user confirms all information is correct and you set user_confirmed_review: true, your response MUST:
@@ -411,9 +697,17 @@ class BaseDivorceOrchestrator {
       { role: 'user', content: userPrompt }
     ];
 
+    // Rebuild the phase tool per turn so the `response` field description can
+    // carry a HARD name-required signal at the schema layer while the user's
+    // own name is missing. Static this.tool would embed the rule permanently
+    // and cache-poison later turns.
+    const tool = _userNameMissing(divorceData)
+      ? buildPhaseTool(this.stateCode, { nameMissing: true })
+      : this.tool;
+
     const completion = await openAIService.chat(messages, {
       model:       DEFAULT_LLM_MODEL,
-      tools:       [this.tool],
+      tools:       [tool],
       tool_choice: { type: 'function', function: { name: 'process_phase_data' } },
       temperature: 0.3,
       max_tokens:  1500
@@ -438,13 +732,42 @@ class BaseDivorceOrchestrator {
     this._applySupersededFacts(updatedData, superseded_facts);
 
     const newFacts = this._buildFacts(extracted_facts || [], fieldUpdates, state.currentPhase, message);
+    // v12-B: post-turn companion promoter. Luna via Responses API sparsely
+    // omits schema-typed place_value / numeric_value companions even when the
+    // narrative content in the fact clearly carries a place or a count. Run
+    // ONE focused, cheap LLM call to backfill just those companions from the
+    // fact prose — LLM-first, no regex. Fail-open so the existing v11-A
+    // boolean promotion in lib/api/profile.ts still fires on the raw facts.
+    if (newFacts.length > 0) {
+      try {
+        await this._promoteFactCompanions(newFacts, openAIService);
+      } catch (err) {
+        logger.warn(`${this.stateCode}DivorceOrchestrator: companion promoter failed, continuing`, {
+          error: err && err.message,
+        });
+      }
+    }
     if (newFacts.length > 0) {
       // Upsert only — never re-sort. A wholesale organizeFacts() here would
       // silently undo the user's manual fact ordering on every chat turn.
       updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
-    if (phase_complete) {
+    // Phase-advance gate: no phase past INTAKE is satisfied while the user's
+    // own name is missing. This is plumbing — even if the LLM sets
+    // phase_complete: true, we refuse to advance until any of
+    // affiantName / firstName / petitionerFirstName is present in captured
+    // data (task blocker: TX Mari, 14 turns without a name, then a petition
+    // rendered with literal [PETITIONER NAME]).
+    let resolvedPhaseComplete = phase_complete;
+    if (resolvedPhaseComplete && _userNameMissing(updatedData)) {
+      resolvedPhaseComplete = false;
+      logger.info(`${this.stateCode}DivorceOrchestrator: blocked phase_complete — user name missing`, {
+        phase: state.currentPhase,
+      });
+    }
+
+    if (resolvedPhaseComplete) {
       state.completedPhases = [...(state.completedPhases || []), state.currentPhase];
       state.phaseHistory    = [
         ...(state.phaseHistory || []),
@@ -472,14 +795,51 @@ class BaseDivorceOrchestrator {
    * Build the enhanced system prompt with behavioral rules and phase context.
    */
   _buildSystemPrompt(state, divorceData) {
-    const parts = [this.phases[state.currentPhase].prompt];
+    const parts = [];
+
+    // TODAY anchor — load-bearing for rule 18 year-inference.
+    // Without an explicit "today", the model falls back to whatever its
+    // pretraining thinks the year is (typically stale) and silently defaults
+    // partial dates ("served May 12") to the previous year. Marcus v14
+    // regression: today is 2026 but the LLM inferred 2025-05-12. Every
+    // interview turn now stamps TODAY at the very top of the system prompt so
+    // "the CURRENT calendar year" in the rule and schema descriptions
+    // resolves against a real signal, not the model's memory of a training cutoff.
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const currentYear = todayISO.slice(0, 4);
+    parts.push(
+      `TODAY: ${todayISO} (current year: ${currentYear}).\n` +
+      `When the user narrates a partial date (month + day, no year) — "served May 12", "he filed on the 3rd", "papers arrived June 24" — infer the year per rule 18 against THIS date. NEVER default to a prior year, the separation-date year, or the marriage-date year without an explicit year signal. If no signal exists, use ${currentYear} and record a fact noting the assumption.`,
+    );
+
+    // Front-load the turn-1 name rule BEFORE the phase prompt when name is
+    // missing, so the rule owns the top of the developer message on Luna
+    // (where system→developer and long phase COLLECT lists downstream would
+    // otherwise bury it). A live TX Mari run — persona that never volunteers
+    // her name — regressed here when the rule sat below the phase prompt.
+    if (_userNameMissing(divorceData)) {
+      parts.push(NAME_FIRST_RULE);
+    }
+
+    parts.push(this.phases[state.currentPhase].prompt);
 
     // Core behavior rules (one question at a time, auto-transition)
     parts.push(ORCHESTRATOR_BEHAVIOR);
 
+    // Repeat the name rule AFTER the phase prompt too — belt + suspenders,
+    // because Luna sometimes weighs later-in-context instructions more
+    // heavily than earlier ones (recency effect on long developer messages).
+    if (_userNameMissing(divorceData)) {
+      parts.push(NAME_FIRST_RULE);
+    }
+
     // Extraction-quality rules (full names, casing, typo cleanup,
     // extract-everything, never re-ask, duration conversion)
     parts.push(EXTRACTION_QUALITY);
+
+    // Respondent-name nickname guard — always injected. Live TX Mari
+    // acceptance v7 accepted "Slick" as the respondent's legal name.
+    parts.push(RESPONDENT_NAME_RULE);
 
     // Progress indicator
     const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
@@ -499,6 +859,12 @@ class BaseDivorceOrchestrator {
     // this central rule overrides them without touching ~60 prompt files).
     if (state.currentPhase === 'MILITARY') {
       parts.push(MILITARY_SOFT_GATE);
+    }
+
+    // INDIGENCY phase: also a soft gate — a defer/skip reply must not
+    // trap the interview in a fee-waiver loop.
+    if (state.currentPhase === 'INDIGENCY') {
+      parts.push(INDIGENCY_SOFT_GATE);
     }
 
     // Review phase: CTA + AI disclaimer
@@ -540,10 +906,19 @@ class BaseDivorceOrchestrator {
     const collected = this._summarizeCollected(divorceData);
     const currentIdx = this.phaseOrder.indexOf(state.currentPhase);
     const completedCount = state.completedPhases?.length || 0;
+    // When the user's own name is missing, the developer/system message
+    // already carries the turn-1 rule; the user prompt gets a matching
+    // REQUIRED-NEXT-QUESTION line so the closest-to-message layer also
+    // demands it. Third signal (schema + system + user) is what carried the
+    // TX Mari fix over models that hedge on any single one.
+    const requiredNext = _userNameMissing(divorceData)
+      ? '\nREQUIRED NEXT QUESTION: The user\'s own full legal name is not yet captured. Your reply this turn MUST end with a direct request for the USER\'S OWN full legal name. Do not ask anything else this turn.'
+      : '';
     return [
       `CURRENT PHASE: ${state.currentPhase} (${this.phases[state.currentPhase]?.displayName || state.currentPhase})`,
       `PROGRESS: Phase ${currentIdx + 1} of ${this.phaseOrder.length} | ${completedCount} completed`,
       collected ? `\nALREADY COLLECTED (do NOT ask for any of this again — acknowledge it and ask only for what is missing):\n${collected}` : '',
+      requiredNext,
       `\nUSER MESSAGE: ${message}`
     ].filter(Boolean).join('\n');
   }
@@ -619,6 +994,29 @@ class BaseDivorceOrchestrator {
         items.push(`Income items recorded (when you emit income_breakdown for a person, restate that person's COMPLETE list using these EXACT labels and amounts, changing only what the user corrected):\n${lines.join('\n')}`);
       }
     }
+    // Property/debt lists per party — same REPLACE-PER-PERSON contract as
+    // income: whenever the model emits one of these fields, it must restate
+    // the party's COMPLETE list, so we show the current stored items with
+    // an explicit instruction to reuse them EXACTLY. Without this summary,
+    // a later turn that only mentions a NEW asset would REPLACE the party's
+    // full list down to that single item, silently dropping everything the
+    // interview had already collected.
+    const listBlock = (label, list) => {
+      const items = Array.isArray(list)
+        ? list.map((e) => (typeof e === 'string' ? e.trim() : '')).filter(Boolean)
+        : [];
+      if (items.length === 0) return null;
+      const lines = items.map((e) => `- ${e}`).join('\n');
+      return `${label} recorded (when you emit this list, restate every one of these items EXACTLY as written plus any new ones — a duplicated restatement doubles the estate; a dropped one silently removes the asset from the decree):\n${lines}`;
+    };
+    const petPropBlock = listBlock('Petitioner property', d.petitionerProperty);
+    if (petPropBlock) items.push(petPropBlock);
+    const respPropBlock = listBlock('Respondent property', d.respondentProperty);
+    if (respPropBlock) items.push(respPropBlock);
+    const petDebtBlock = listBlock('Petitioner debts', d.petitionerDebts);
+    if (petDebtBlock) items.push(petDebtBlock);
+    const respDebtBlock = listBlock('Respondent debts', d.respondentDebts);
+    if (respDebtBlock) items.push(respDebtBlock);
     if (Array.isArray(d.expenseBreakdown) && d.expenseBreakdown.length > 0) {
       const lines = d.expenseBreakdown
         .filter((e) => e && typeof e === 'object' && e.label)
@@ -644,6 +1042,27 @@ class BaseDivorceOrchestrator {
   _applyFieldUpdates(divorceData, fields) {
     const updated = { ...divorceData };
 
+    // Role signals (who_filed / served_on_user) resolve BEFORE the caption
+    // fields land, because they decide which side of the caption is "the
+    // user" and therefore where affiantName / firstName / lastName point.
+    // The interview's historical assumption ("user == petitioner") once
+    // wrote the SPOUSE's name into affiantName when the user was actually
+    // the respondent (Ontario Marcus, served-on-user replay).
+    const roleFromServed = (() => {
+      const s = typeof fields.served_on_user === 'string'
+        ? fields.served_on_user.toLowerCase() : '';
+      return s === 'yes' ? 'respondent' : '';
+    })();
+    const roleFromFiled = (() => {
+      const w = typeof fields.who_filed === 'string'
+        ? fields.who_filed.toLowerCase() : '';
+      if (w === 'me') return 'petitioner';
+      if (w === 'my_spouse') return 'respondent';
+      return '';
+    })();
+    const derivedRole = roleFromServed || roleFromFiled;
+    if (derivedRole) updated.role = derivedRole;
+
     for (const [snakeKey, camelKey] of Object.entries(FIELD_MAP)) {
       if (fields[snakeKey] !== undefined && fields[snakeKey] !== null && fields[snakeKey] !== '') {
         // Structured lists accumulate across turns — the LLM usually emits
@@ -656,28 +1075,29 @@ class BaseDivorceOrchestrator {
           snakeKey === 'petitioner_property' || snakeKey === 'respondent_property' ||
           snakeKey === 'petitioner_debts' || snakeKey === 'respondent_debts'
         ) {
-          // The tool collects these as arrays — one complete asset/debt per
-          // element, values intact ("Fidelity 401(k), approximately $62,000"
-          // is ONE item). Splitting is the MODEL's job via the schema; this
-          // is pure array plumbing: entries append to the collected list,
-          // deduped by normalized text. A legacy string value passes through
-          // as a single-element array — NEVER re-split on commas (a comma
-          // split once shattered "$62,000" into "$62" + "000").
-          const incoming = (Array.isArray(fields[snakeKey]) ? fields[snakeKey] : [fields[snakeKey]])
-            .map((item) => String(item).trim())
-            .filter(Boolean);
-          const existing = Array.isArray(divorceData[camelKey])
-            ? divorceData[camelKey]
-            : (divorceData[camelKey] ? [String(divorceData[camelKey])] : []);
-          const seen = new Set(existing.map((item) => String(item).trim().toLowerCase()));
-          const merged = [...existing];
-          for (const item of incoming) {
-            const key = item.toLowerCase();
-            if (seen.has(key)) continue;
-            seen.add(key);
-            merged.push(item);
-          }
-          updated[camelKey] = merged;
+          // REPLACE-PER-PERSON (mirrors income_breakdown): the model is
+          // instructed to restate this party's COMPLETE list every time it
+          // touches this field, so the incoming list REPLACES what was
+          // stored for this party — label-variant duplicates ("the mobile
+          // dog-grooming business" vs "the dog-grooming business worth
+          // $18k") can never accumulate across turns. Persons the turn does
+          // not mention (the other side's fields) are untouched.
+          //
+          // A legacy string value passes through as a single-element array —
+          // NEVER re-split on commas (a comma split once shattered
+          // "$62,000" into "$62" + "000").
+          //
+          // Same-turn dedup: within one incoming list the model may still
+          // restate the same asset under two label variants. Collapse via
+          // dedupePropertyItems() (whitespace/punctuation/stopword/currency
+          // stripping — pure plumbing, no fuzzy match), keeping the longer
+          // wording so no detail is lost.
+          const incoming = dedupePropertyItems(
+            (Array.isArray(fields[snakeKey]) ? fields[snakeKey] : [fields[snakeKey]])
+              .map((item) => String(item).trim())
+              .filter(Boolean)
+          );
+          updated[camelKey] = incoming;
         } else {
           updated[camelKey] = fields[snakeKey];
         }
@@ -747,13 +1167,25 @@ class BaseDivorceOrchestrator {
     // lifeStory.fullName(): missing role means petitioner). The requirements
     // checker, document titles, and PDF filenames all read affiantName
     // (live E2E showed "Name provided" unchecked mid-interview without it).
+    //
+    // ROLE-FLIP CORRECTION: if affiantName was set earlier — before role
+    // was known — it may point at the SPOUSE's caption side (the historical
+    // "user == petitioner" default). Once role is known, if affiantName
+    // still matches the spouse's caption verbatim AND the user's own side
+    // has a real name to promote, replace it. Never overwrite an affiantName
+    // that doesn't match either caption (a user's explicit edit).
+    const userIsRespondent = String(updated.role || '').toLowerCase() === 'respondent';
+    const userOwnName = userIsRespondent ? updated.respondentName : updated.petitionerName;
+    const spouseCaptionName = userIsRespondent ? updated.petitionerName : updated.respondentName;
     if (!updated.affiantName) {
-      const userOwnName = String(updated.role || '').toLowerCase() === 'respondent'
-        ? updated.respondentName
-        : updated.petitionerName;
-      if (userOwnName) {
-        updated.affiantName = userOwnName;
-      }
+      if (userOwnName) updated.affiantName = userOwnName;
+    } else if (
+      userOwnName &&
+      spouseCaptionName &&
+      updated.affiantName === spouseCaptionName &&
+      updated.affiantName !== userOwnName
+    ) {
+      updated.affiantName = userOwnName;
     }
 
     // Derive marriageLocation from marriageCity + marriageStateName for template compatibility.
@@ -844,6 +1276,31 @@ class BaseDivorceOrchestrator {
       }
     }
 
+    // Equalization payor/payee: the schema emits a role code (petitioner |
+    // respondent) so the model does not have to spell the name; the decree
+    // prints these verbatim ("Alison Rae McPherson shall pay Devin
+    // McPherson"), so resolve to the actual name. If only one side is set,
+    // derive the opposite. Never fills both sides from a single name (a
+    // self-payment reads broken); only role↔name is auto-derived.
+    if (fields.equalization_payor || fields.equalization_payee) {
+      const eqPayor = String(fields.equalization_payor || '').trim().toLowerCase();
+      const eqPayee = String(fields.equalization_payee || '').trim().toLowerCase();
+      if (eqPayor === 'petitioner' || eqPayor === 'respondent') {
+        updated.equalizationPayor = roleToName(eqPayor);
+      }
+      if (eqPayee === 'petitioner' || eqPayee === 'respondent') {
+        updated.equalizationPayee = roleToName(eqPayee);
+      }
+      // Derive the opposite side when only one was emitted.
+      if (updated.equalizationPayor && !updated.equalizationPayee) {
+        const opp = (eqPayor === 'petitioner') ? 'respondent' : 'petitioner';
+        updated.equalizationPayee = roleToName(opp);
+      } else if (updated.equalizationPayee && !updated.equalizationPayor) {
+        const opp = (eqPayee === 'petitioner') ? 'respondent' : 'petitioner';
+        updated.equalizationPayor = roleToName(opp);
+      }
+    }
+
     // Derive the former-name-restoration gate the templates read.
     // The petition relief items and the decree's RESTORATION OF NAME section
     // both gate on divorceData.requestNameChange && divorceData.previousName;
@@ -888,17 +1345,290 @@ class BaseDivorceOrchestrator {
     const sourceQuote = typeof sourceMessage === 'string'
       ? sourceMessage.trim().slice(0, 280)
       : '';
-    return extractedFacts.map(f => ({
-      id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      content:     f.content,
-      category:    f.category || defaultCategory,
-      subcategory: f.subcategory || '',
-      type:        'fact',
-      confidence:  0.9,
-      severity:    'success',
-      sourceQuote,
-      timestamp:   new Date().toISOString()
+    return extractedFacts.map(f => {
+      const fact = {
+        id:          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        content:     f.content,
+        category:    f.category || defaultCategory,
+        subcategory: f.subcategory || '',
+        type:        'fact',
+        confidence:  0.9,
+        severity:    'success',
+        sourceQuote,
+        timestamp:   new Date().toISOString()
+      };
+      // Preserve schema-typed companions (v11-B): the profile-merge promotion
+      // (lib/api/profile.ts) reads these to fill respondentSuspectedLocation
+      // and numberOfChildren without string-parsing the content prose.
+      if (typeof f.numeric_value === 'number' && Number.isFinite(f.numeric_value)) {
+        fact.numericValue = f.numeric_value;
+      }
+      if (typeof f.place_value === 'string' && f.place_value.trim()) {
+        fact.placeValue = f.place_value.trim();
+      }
+      if (typeof f.grounds_value === 'string' && f.grounds_value.trim()) {
+        fact.groundsValue = f.grounds_value.trim();
+      }
+      return fact;
+    });
+  }
+
+  /**
+   * v12-B: post-turn companion-value promoter.
+   *
+   * Luna via the Responses API records rich narrative facts
+   * ("Respondent Ray may be somewhere in Louisiana or Mississippi",
+   * "we have two adult children") but sparsely omits the schema-typed
+   * companions (place_value, numeric_value) even with prompt+schema
+   * instructions. Downstream promotion in lib/api/profile.ts routes the
+   * *typed* companion (not the fact prose) into structured profile fields
+   * — so a missing companion is why respondentSuspectedLocation /
+   * numberOfChildren silently stay null.
+   *
+   * This backstop:
+   *   1. Scans new facts for ones missing a companion that WOULD promote
+   *      (whereabouts → place, children → count). Skips work when none.
+   *   2. Batches those facts into ONE cheap gpt-5-nano chat-completions
+   *      call with a tight extraction tool.
+   *   3. Merges the returned place_value / numeric_value back onto the
+   *      fact objects IN PLACE, before mergeFacts.
+   *
+   * LLM-first (no regex over content) and fail-open (a thrown error is
+   * caught by the caller — the raw facts still flow through).
+   */
+  async _promoteFactCompanions(facts, openAIService) {
+    if (!Array.isArray(facts) || facts.length === 0) return;
+    if (!openAIService || typeof openAIService.chat !== 'function') return;
+
+    // Which facts need which companion. A fact can need both.
+    // Mari v14 replay: the primary LLM tagged the whereabouts fact with
+    // subcategory variants ("whereabouts", "respondent_address_unknown",
+    // "residence_unknown") — strict === 'respondent_whereabouts' let those
+    // through unpromoted. Match any whereabouts-ish tag on either the
+    // subcategory OR the category (both are model-classified metadata
+    // strings, not content prose — this is still a shape check, not regex
+    // over language).
+    const isWhereaboutsTag = (f) => {
+      const sub = String(f?.subcategory || '').trim().toLowerCase();
+      const cat = String(f?.category || '').trim().toLowerCase();
+      if (sub.includes('whereabout') || cat.includes('whereabout')) return true;
+      if (sub === 'respondent_address_unknown') return true;
+      if (sub === 'residence_unknown' || sub === 'respondent_location') return true;
+      return false;
+    };
+    const needsPlace = (f) => {
+      if (!isWhereaboutsTag(f)) return false;
+      return typeof f.placeValue !== 'string' || !f.placeValue.trim();
+    };
+    const needsNumeric = (f) => {
+      const cat = String(f?.category || '').trim().toLowerCase();
+      const sub = String(f?.subcategory || '').trim().toLowerCase();
+      // Match the merge-layer isChildrenCountFact widening: Tavita (FL) had
+      // a fact tagged category=parental subcategory=children_of_marriage
+      // that the strict list missed — the promoter now sees any plural
+      // "children" subcategory tag (children_of_marriage, adult_children,
+      // no_children, …) so it can extract a count. "child_support" /
+      // "child_care" (singular) never match.
+      const childrenTag =
+        cat === 'children' ||
+        sub === 'children' ||
+        sub === 'adult_children' ||
+        sub === 'minor_children' ||
+        sub.includes('children');
+      if (!childrenTag) return false;
+      return !(typeof f.numericValue === 'number' && Number.isFinite(f.numericValue));
+    };
+    // v21-A: grounds slug companion. David (NY, "irretrievable breakdown")
+    // and Amara (GA, "documented cruelty") both narrated grounds and the
+    // petition rendered the correct statute via facts inference — but
+    // profile.groundsForDivorce silently stayed null because Luna never
+    // emitted the structured slug. Same shape-check pattern as place/numeric:
+    // model-classified metadata (category/subcategory) picks the target;
+    // the promoter model extracts the canonical slug.
+    const isGroundsTag = (f) => {
+      const cat = String(f?.category || '').trim().toLowerCase();
+      const sub = String(f?.subcategory || '').trim().toLowerCase();
+      return cat === 'grounds' || sub === 'grounds' || sub.includes('grounds');
+    };
+    const needsGrounds = (f) => {
+      if (!isGroundsTag(f)) return false;
+      return typeof f.groundsValue !== 'string' || !f.groundsValue.trim();
+    };
+
+    const targets = [];
+    facts.forEach((f, i) => {
+      if (!f || typeof f !== 'object') return;
+      const wantPlace = needsPlace(f);
+      const wantNumeric = needsNumeric(f);
+      const wantGrounds = needsGrounds(f);
+      if (!wantPlace && !wantNumeric && !wantGrounds) return;
+      targets.push({ index: i, wantPlace, wantNumeric, wantGrounds, fact: f });
+    });
+    if (targets.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log('[promoter] no facts need companions (skipped)');
+      return;
+    }
+
+    // Batch payload — the model sees only what's necessary to decide. We
+    // include sourceQuote as well as content: the fact content is a cleaned
+    // court-usable sentence that may lose the hedged geography, but the
+    // sourceQuote preserves the user's verbatim wording where the place
+    // originally appeared.
+    const items = targets.map((t) => ({
+      id: t.index,
+      content: String(t.fact.content || ''),
+      sourceQuote: String(t.fact.sourceQuote || ''),
+      category: String(t.fact.category || ''),
+      subcategory: String(t.fact.subcategory || ''),
+      want: [
+        t.wantPlace ? 'place_value' : null,
+        t.wantNumeric ? 'numeric_value' : null,
+        t.wantGrounds ? 'grounds_value' : null,
+      ].filter(Boolean),
     }));
+
+    // eslint-disable-next-line no-console
+    console.log(`[promoter] calling gpt-5-nano with ${items.length} facts needing companions`, items.map((i) => ({ id: i.id, want: i.want, sub: i.subcategory })));
+
+    const systemPrompt =
+      'You are a data-extraction assistant. Given a list of narrative fact ' +
+      'entries from a divorce interview, extract structured companion values ' +
+      'for each item. For every input item, emit exactly one result object ' +
+      'in the results array, keyed by the input id, populating whichever of ' +
+      'these companions the item\'s "want" array asks for:\n' +
+      '  • place_value: the place name(s) mentioned anywhere in either the ' +
+      'fact content OR the sourceQuote (the user\'s verbatim words), ' +
+      'hedge-stripped (drop leading "possibly", "maybe", "I think", ' +
+      '"somewhere in", "could be", "not sure", "I don\'t know"). Keep ' +
+      'disjunctions intact ("Louisiana or Mississippi"). Return "" (empty ' +
+      'string) if no place is mentioned in either field.\n' +
+      '  • numeric_value: the numeric quantity of children mentioned ' +
+      '(convert spelled numbers: "two" → 2, "three" → 3). Return null if ' +
+      'no count is stated.\n' +
+      '  • grounds_value: the canonical snake_case grounds slug the user ' +
+      'narrated as the reason for divorce, matching the target jurisdiction\'s ' +
+      'statutory vocabulary. Examples: irretrievable_breakdown (NY §170(7) ' +
+      'no-fault), cruel_treatment (NY §170(1) / GA §19-5-3(10) / Utah ' +
+      '§30-3-1(3)(g)), cruelty (TX §6.002 / ON s.8(2)(b)(i)), ' +
+      'irreconcilable_differences (CA Fam. Code §2310), insupportability ' +
+      '(TX §6.001), breakdown_of_marriage (ON Divorce Act s.8), adultery ' +
+      '(TX §6.003 / NY §170(4)), abandonment (TX §6.005 / NY §170(2)), ' +
+      'living_apart (TX §6.006), separation_agreement (NY §170(6)), ' +
+      'felony (TX §6.004), imprisonment (NY §170(3)). Return null if ' +
+      'the user did not narrate grounds, or if the ground is unclear.\n' +
+      'Never invent values not present in the fact content or sourceQuote.';
+
+    // v14-C: switch from function-tool to json_schema response_format.
+    // gpt-5-nano is a reasoning model and its function-tool arguments are
+    // unreliable under prompt pressure — observed live: an empty tool_calls
+    // array while the model burned its completion budget on hidden reasoning.
+    // json_schema-shaped content is the most reliable structured-output
+    // channel for reasoning models: the entire completion IS the JSON, so
+    // reasoning-token budget doesn\'t compete with argument emission.
+    const responseSchema = {
+      name: 'companion_extraction',
+      strict: true,
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['results'],
+        properties: {
+          results: {
+            type: 'array',
+            description: 'One entry per input item, keyed by the input id.',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['id', 'place_value', 'numeric_value', 'grounds_value'],
+              properties: {
+                id: { type: 'integer', description: 'The id from the input item.' },
+                place_value: { type: ['string', 'null'], description: 'Hedge-stripped place name(s) from the fact content or sourceQuote, "" or null when none.' },
+                numeric_value: { type: ['number', 'null'], description: 'Numeric count from the fact content, or null.' },
+                grounds_value: { type: ['string', 'null'], description: 'Canonical snake_case grounds slug the user narrated, or null when the fact is not about grounds or the ground is unclear.' },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const userPrompt = JSON.stringify({ items });
+
+    let completion;
+    try {
+      completion = await openAIService.chat(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        {
+          model: 'gpt-5-nano',
+          response_format: { type: 'json_schema', json_schema: responseSchema },
+          temperature: 0,
+          // Reasoning models spend hidden tokens before emitting content —
+          // 3000 leaves headroom after typical reasoning burn.
+          max_tokens: 3000,
+        },
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log(`[promoter] LLM call threw ${err && err.message} (fail-open)`);
+      return;
+    }
+
+    const choice = completion?.choices?.[0];
+    const contentStr = choice?.message?.content;
+    // eslint-disable-next-line no-console
+    console.log(`[promoter] response finish_reason=${choice?.finish_reason} contentLen=${contentStr ? contentStr.length : 0}`);
+    if (!contentStr || typeof contentStr !== 'string') return;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(contentStr);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log(`[promoter] JSON parse failed: ${err && err.message} content=${contentStr.slice(0, 200)}`);
+      return;
+    }
+    const results = Array.isArray(parsed?.results) ? parsed.results : [];
+    // eslint-disable-next-line no-console
+    console.log(`[promoter] parsed ${results.length} result rows`);
+    for (const r of results) {
+      if (!r || typeof r !== 'object') continue;
+      const idx = typeof r.id === 'number' ? r.id : Number(r.id);
+      if (!Number.isInteger(idx)) continue;
+      const fact = facts[idx];
+      if (!fact || typeof fact !== 'object') continue;
+
+      if (
+        typeof r.place_value === 'string' &&
+        r.place_value.trim() &&
+        (typeof fact.placeValue !== 'string' || !fact.placeValue.trim())
+      ) {
+        fact.placeValue = r.place_value.trim();
+        // eslint-disable-next-line no-console
+        console.log(`[promoter] mutated fact ${fact.id} placeValue=${fact.placeValue}`);
+      }
+      if (
+        typeof r.numeric_value === 'number' &&
+        Number.isFinite(r.numeric_value) &&
+        !(typeof fact.numericValue === 'number' && Number.isFinite(fact.numericValue))
+      ) {
+        fact.numericValue = r.numeric_value;
+        // eslint-disable-next-line no-console
+        console.log(`[promoter] mutated fact ${fact.id} numericValue=${fact.numericValue}`);
+      }
+      if (
+        typeof r.grounds_value === 'string' &&
+        r.grounds_value.trim() &&
+        (typeof fact.groundsValue !== 'string' || !fact.groundsValue.trim())
+      ) {
+        fact.groundsValue = r.grounds_value.trim();
+        // eslint-disable-next-line no-console
+        console.log(`[promoter] mutated fact ${fact.id} groundsValue=${fact.groundsValue}`);
+      }
+    }
   }
 
   _getNextPhase(currentPhase, divorceData) {
@@ -928,6 +1658,10 @@ class BaseDivorceOrchestrator {
 
   _phaseAlreadySatisfied(phase, data) {
     const has = (value) => value !== undefined && value !== null && value !== '';
+    // No phase past INTAKE is satisfied while the user's own name is missing.
+    // This deterministically blocks the returning-user skip path from jumping
+    // over the intake questions when the name hasn't been captured yet.
+    if (phase !== 'INTAKE' && _userNameMissing(data)) return false;
     switch (phase) {
       case 'INTAKE':
         return Boolean(

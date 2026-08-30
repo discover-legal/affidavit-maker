@@ -290,14 +290,16 @@ describe('registry (services/supportDocs)', () => {
   test('getSupportDoc resolves builders case-insensitively and returns null otherwise', () => {
     expect(getSupportDoc('UT', 'financial_declaration')).toBe(utah.financialDeclaration);
     expect(getSupportDoc('ut', 'default_package')).toBe(utah.motionForDefaultPackage);
-    expect(getSupportDoc('TX', 'financial_declaration')).toBeNull();
+    expect(getSupportDoc('TX', 'nonexistent_kind')).toBeNull();
     expect(getSupportDoc('UT', 'nonexistent_kind')).toBeNull();
     expect(getSupportDoc(undefined, 'financial_declaration')).toBeNull();
   });
 
-  test('unsupported states still get the state-agnostic kinds only', () => {
-    const kinds = list('TX').map((k) => k.key);
-    expect(kinds).toEqual(['lawyer_handoff']);
+  test('list(TX) exposes the wired-up TX kinds plus the state-agnostic kinds', () => {
+    const kinds = list('TX').map((k) => k.key).sort();
+    expect(kinds).toEqual(
+      ['answer', 'financial_declaration', 'indigency_affidavit', 'lawyer_handoff', 'statement_of_inability'].sort(),
+    );
   });
 });
 
@@ -507,5 +509,390 @@ describe('supportDocs — persona regression (go-by upgrade + employment)', () =
     expect(sections.facts.items[0].content).toMatch(
       /^Employment \(employer and job\): _+\.$/,
     );
+  });
+});
+
+// ─── Texas support docs — Rule 145 + financial info statement ────────────────
+const texas = require('../../services/supportDocs/texas');
+
+describe('texas support doc builders — shape', () => {
+  const builders = {
+    statement_of_inability: texas.statementOfInability,
+    financial_declaration: texas.financialInformationStatement,
+  };
+  const baseData = {
+    petitionerName: 'Mari Elena Delgado',
+    respondentName: 'Rafael Delgado',
+    state: 'TX',
+    county: 'Travis',
+    caseNumber: 'D-1-FM-26-000123',
+    monthlyIncome: 2100,
+    monthlyExpenses: 2400,
+    dependentsCount: 0,
+  };
+
+  test.each(Object.entries(builders))(
+    '%s returns a pdfService-renderable affidavit structure',
+    (kind, build) => {
+      const structure = build(baseData);
+      expect(structure.state).toBe('TX');
+      expect(structure.documentType).toBe('affidavit');
+      expect(structure.metadata.kind).toBe(kind);
+      expect(structure.sections).toBeDefined();
+      expect(typeof structure.sections.title).toBe('string');
+      expect(Array.isArray(structure.sections.facts.items)).toBe(true);
+      expect(structure.sections.facts.items.length).toBeGreaterThan(0);
+      structure.sections.facts.items.forEach((item, idx) => {
+        expect(item.number).toBe(idx + 1);
+        expect(typeof item.content).toBe('string');
+        expect(item.content.length).toBeGreaterThan(0);
+      });
+    },
+  );
+
+  test('court filings carry the TX district-court caption + full legal names', () => {
+    for (const build of Object.values(builders)) {
+      const { sections } = build(baseData);
+      expect(sections.header).toBe('IN THE DISTRICT COURT OF TRAVIS COUNTY, TEXAS');
+      expect(sections.caseCaption.formatted).toContain('MARI ELENA DELGADO');
+      expect(sections.caseCaption.formatted).toContain('RAFAEL DELGADO');
+      expect(sections.caseCaption.formatted).toContain('CAUSE NO. D-1-FM-26-000123');
+      expect(sections.caseCaption.formatted).toContain('IN THE MATTER OF');
+      expect(sections.caseCaption.formatted).toContain('THE MARRIAGE OF');
+    }
+  });
+
+  test('county trailing "County" is normalized before caption interpolation', () => {
+    const { sections } = texas.statementOfInability({ ...baseData, county: 'Travis County' });
+    expect(sections.header).toBe('IN THE DISTRICT COURT OF TRAVIS COUNTY, TEXAS');
+    expect(sections.header).not.toMatch(/COUNTY COUNTY/);
+  });
+
+  test('unsworn declaration (Tex. Civ. Prac. & Rem. Code § 132.001) is the default', () => {
+    const { sections } = texas.statementOfInability(baseData);
+    expect(sections.perjuryStatement).toMatch(/under penalty of perjury/);
+    expect(sections.perjuryStatement).toMatch(/§ 132\.001/);
+    expect(sections.notaryBlock).toBeNull();
+  });
+
+  test('notary variant renders the subscribed-and-sworn block instead', () => {
+    const { sections } = texas.statementOfInability(baseData, { signatureStyle: 'notary' });
+    expect(sections.notaryBlock).toContain('Subscribed and sworn to before me');
+    expect(sections.notaryBlock).toContain('STATE OF TEXAS');
+    expect(sections.perjuryStatement).toBeNull();
+  });
+});
+
+describe('texas statement of inability — Rule 145 form fields (Mari)', () => {
+  const mari = {
+    petitionerName: 'Mari Elena Delgado',
+    respondentName: 'Rafael Delgado',
+    state: 'TX',
+    county: 'Travis',
+    caseNumber: 'D-1-FM-26-000123',
+    monthlyIncome: 2100,
+    monthlyExpenses: 2400,
+    dependentsCount: 0,
+    expenseBreakdown: [
+      { label: 'Rent', amount: 1100 },
+      { label: 'Utilities', amount: 250 },
+      { label: 'Groceries', amount: 500 },
+      { label: 'Transportation', amount: 250 },
+      { label: 'Medical', amount: 300 },
+    ],
+    incomeBreakdown: [
+      { label: 'Mari Elena Delgado wages as home health aide', amount: 2100, person: 'petitioner' },
+    ],
+    assetsDescription: '2011 Toyota Corolla; checking account $220',
+    publicBenefits: 'SNAP (approx. $180/mo)',
+  };
+
+  test('title uses the Rule 145 SCOTX-adopted heading', () => {
+    const { sections } = texas.statementOfInability(mari);
+    expect(sections.title).toBe(
+      'STATEMENT OF INABILITY TO AFFORD PAYMENT OF COURT COSTS OR AN APPEAL BOND',
+    );
+  });
+
+  test('recites Rule 145 (Tex. R. Civ. P. 145) as the requested relief', () => {
+    const text = textOf(texas.statementOfInability(mari));
+    expect(text).toMatch(/Tex\. R\. Civ\. P\. 145/);
+    expect(text).toContain('waive their payment');
+  });
+
+  test("swears the declarant's monthly income + expenses + dependents from Mari's data", () => {
+    const structure = texas.statementOfInability(mari);
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: $2,100');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).toContain('financially dependent on me (including myself): 0');
+    // Itemized rows carry through
+    expect(text).toContain('Mari Elena Delgado wages as home health aide');
+    expect(text).toContain('Rent');
+    expect(text).toContain('$1,100');
+    // Public benefits recited when on file
+    expect(text).toContain('SNAP (approx. $180/mo)');
+  });
+
+  test('missing income → [MONTHLY INCOME] placeholder plus a warning (blank beats wrong number)', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      respondentName: 'Rafael Delgado',
+      state: 'TX',
+      county: 'Travis',
+      monthlyExpenses: 2400,
+      dependentsCount: 0,
+    });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: [MONTHLY INCOME]');
+    expect(text).not.toContain('TOTAL MONTHLY INCOME: $0');
+    expect(structure.metadata.warnings.length).toBeGreaterThan(0);
+    expect(structure.metadata.warnings.join(' ')).toMatch(/not on file/i);
+  });
+
+  test('missing dependents count renders a placeholder + warning, never asserts 0', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+    });
+    const text = textOf(structure);
+    expect(text).toContain('financially dependent on me (including myself): [NUMBER]');
+    expect(structure.metadata.warnings.join(' ')).toMatch(/dependents/i);
+  });
+
+  test('signatureBlock carries the declarant full legal name, titled Declarant', () => {
+    const { sections } = texas.statementOfInability(mari);
+    expect(sections.signatureBlock.name).toBe('Mari Elena Delgado');
+    expect(sections.signatureBlock.title).toBe('Declarant');
+  });
+});
+
+describe('texas statement of inability — expense rendering (breakdown vs scalar vs missing)', () => {
+  const marisBase = {
+    petitionerName: 'Mari Elena Delgado',
+    respondentName: 'Rafael Delgado',
+    state: 'TX',
+    county: 'Travis',
+    caseNumber: 'D-1-FM-26-000123',
+    monthlyIncome: 2100,
+    dependentsCount: 0,
+  };
+
+  test('scalar monthlyExpenses only (no breakdown) renders one line + real total', () => {
+    // Regression: extraction sometimes stores only the scalar `monthlyExpenses`
+    // — the Rule 145 form used to swallow it as "(no itemized expenses on file)"
+    // with TOTAL MONTHLY EXPENSES: $0. It must instead render the scalar.
+    const structure = texas.statementOfInability({
+      ...marisBase,
+      monthlyExpenses: 2400,
+    });
+    const text = textOf(structure);
+    expect(text).toContain('Monthly expenses: $2,400');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('(no itemized expenses on file)');
+    expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
+    // No expense warning when the scalar IS on file.
+    const warnings = structure.metadata.warnings || [];
+    expect(warnings.join(' ')).not.toMatch(/expenses are not on file/i);
+  });
+
+  test('expenseBreakdown wins over the scalar and itemizes each row', () => {
+    const structure = texas.statementOfInability({
+      ...marisBase,
+      monthlyExpenses: 9999, // stale scalar — the itemized rows should win
+      expenseBreakdown: [
+        { label: 'Rent', amount: 1100 },
+        { label: 'Utilities', amount: 250 },
+        { label: 'Groceries', amount: 500 },
+        { label: 'Transportation', amount: 250 },
+        { label: 'Medical', amount: 300 },
+      ],
+    });
+    const text = textOf(structure);
+    expect(text).toContain('Rent');
+    expect(text).toContain('Utilities');
+    expect(text).toContain('Groceries');
+    expect(text).toContain('$1,100');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('Monthly expenses: $2,400'); // that line is scalar-only
+    expect(text).not.toContain('$9,999');
+  });
+
+  test('missing both breakdown and scalar → placeholder + warning (blank beats wrong number)', () => {
+    const structure = texas.statementOfInability({ ...marisBase });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: [MONTHLY EXPENSES]');
+    expect(text).toContain('(no itemized expenses on file)');
+    expect((structure.metadata.warnings || []).join(' ')).toMatch(/expenses are not on file/i);
+  });
+
+  test("expenseBreakdown tagged to the SPOUSE never leaks onto the declarant's sworn form", () => {
+    // Mirror partyIncome.js's side attribution: person-tagged entries only
+    // count for the side they name; untagged entries are the declarant's own.
+    const structure = texas.statementOfInability({
+      ...marisBase,
+      expenseBreakdown: [
+        { label: 'Rent', amount: 1100, person: 'petitioner' },
+        { label: 'Spouse gym membership', amount: 200, person: 'respondent' },
+        { label: 'Utilities', amount: 250 }, // untagged → declarant's own
+      ],
+    });
+    const text = textOf(structure);
+    expect(text).toContain('Rent');
+    expect(text).toContain('Utilities');
+    expect(text).not.toContain('Spouse gym membership');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $1,350');
+  });
+});
+
+// ─── Utah fee-waiver — same expense-scalar fallback pattern ─────────────────
+const utahFeeWaiver = require('../../services/supportDocs/utahFeeWaiver');
+
+describe('utah fee-waiver motion — expense rendering (breakdown vs scalar vs missing)', () => {
+  const base = {
+    petitionerName: 'Jane Q. Example',
+    respondentName: 'John Q. Example',
+    state: 'UT',
+    county: 'Salt Lake',
+    caseNumber: '244900000',
+    monthlyIncome: 2100,
+  };
+
+  test('scalar monthlyExpenses only renders as one line + real total', () => {
+    const structure = utahFeeWaiver.feeWaiverMotion({ ...base, monthlyExpenses: 2400 });
+    const text = textOf(structure);
+    expect(text).toContain('Monthly expenses: $2,400');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('(no itemized expenses on file)');
+  });
+
+  test('expenseBreakdown itemizes and wins over scalar', () => {
+    const structure = utahFeeWaiver.feeWaiverMotion({
+      ...base,
+      monthlyExpenses: 9999,
+      expenseBreakdown: [
+        { label: 'Rent', amount: 1100 },
+        { label: 'Utilities', amount: 250 },
+      ],
+    });
+    const text = textOf(structure);
+    expect(text).toContain('Rent');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $1,350');
+    expect(text).not.toContain('Monthly expenses: $1,350');
+    expect(text).not.toContain('$9,999');
+  });
+
+  test('missing both → placeholder + warning', () => {
+    const structure = utahFeeWaiver.feeWaiverMotion({ ...base });
+    const text = textOf(structure);
+    expect(text).toContain('(no itemized expenses on file)');
+    expect((structure.metadata.warnings || []).join(' ')).toMatch(/expenses are not on file/i);
+  });
+});
+
+describe("texas Petitioner's Financial Information Statement", () => {
+  test('labels the doc honestly — NOT "Financial Declaration under Rule 26.1"', () => {
+    const structure = texas.financialInformationStatement({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+    });
+    expect(structure.sections.title).toBe(
+      "PETITIONER'S FINANCIAL INFORMATION STATEMENT",
+    );
+    const text = textOf(structure);
+    expect(text).not.toMatch(/Rule 26\.1/);
+    // Truthful disclaimer: TX has no single statewide financial declaration form
+    expect(structure.sections.conclusion).toMatch(/does not publish a single statewide/i);
+    // References Rule 194 initial disclosures rather than pretending to BE them
+    expect(structure.sections.conclusion).toMatch(/194/);
+  });
+
+  test('empty income + expenses → placeholders and warnings, never asserted $0', () => {
+    const structure = texas.financialInformationStatement({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+    });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY INCOME: [MONTHLY INCOME]');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: [MONTHLY EXPENSES]');
+    expect(structure.metadata.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── Bug 1 acceptance-shape payloads (TX Mari, acceptance v6) ──────────────
+// The Rule 145 Statement of Inability + Financial Information Statement kept
+// rendering "Monthly expenses: $0    TOTAL MONTHLY EXPENSES: $0" even when
+// the caller explicitly passed monthlyExpenses: 2400. These lock in the two
+// payload shapes the acceptance run actually hands the builders:
+//   1. a FLAT payload — `{state:"TX", monthlyIncome:2100, monthlyExpenses:2400}`
+//   2. a WRAPPED payload — `{affidavitData: {state:"TX", monthlyExpenses:2400}}`
+// Both must render $2,400; the scalar-fallback fix must not swallow either.
+
+describe('BUG 1 — TX acceptance payload: monthlyExpenses scalar reaches the sworn form', () => {
+  const marisAcceptancePayload = {
+    petitionerName: 'Mari Elena Delgado',
+    respondentName: 'Rafael Delgado',
+    state: 'TX',
+    county: 'Travis',
+    caseNumber: 'D-1-FM-26-000123',
+    monthlyIncome: 2100,
+    monthlyExpenses: 2400,
+    dependentsCount: 0,
+  };
+
+  test('Rule 145 Statement of Inability shows TOTAL MONTHLY EXPENSES: $2,400 (flat payload)', () => {
+    const structure = texas.statementOfInability(marisAcceptancePayload);
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
+    expect(text).not.toContain('Monthly expenses: $0');
+  });
+
+  test('Financial Information Statement shows TOTAL MONTHLY EXPENSES: $2,400 (flat payload)', () => {
+    const structure = texas.financialInformationStatement(marisAcceptancePayload);
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
+    expect(text).not.toContain('Monthly expenses: $0');
+  });
+
+  test('Rule 145 Statement of Inability shows $2,400 when caller wraps payload as { affidavitData }', () => {
+    // The acceptance run also invokes the builder with the request body as-is
+    // — `{ affidavitData: {...} }` rather than the flattened editor blob. The
+    // builders must unwrap the nested object rather than swallowing every
+    // field as "not on file" and rendering $0.
+    const structure = texas.statementOfInability({ affidavitData: marisAcceptancePayload });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
+  });
+
+  test('Financial Information Statement shows $2,400 with wrapped { affidavitData } payload', () => {
+    const structure = texas.financialInformationStatement({ affidavitData: marisAcceptancePayload });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+  });
+
+  test('utahFeeWaiver mirrors the fix: wrapped { affidavitData } renders $2,400 not $0', () => {
+    const utahBase = {
+      petitionerName: 'Jane Q. Example',
+      respondentName: 'John Q. Example',
+      state: 'UT',
+      county: 'Salt Lake',
+      caseNumber: '244900000',
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+    };
+    const structure = utahFeeWaiver.feeWaiverMotion({ affidavitData: utahBase });
+    const text = textOf(structure);
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: $2,400');
+    expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
   });
 });

@@ -155,6 +155,19 @@ describe('mergeUserProfile', () => {
   });
 });
 
+describe('mergeUserProfile — numberOfChildren round-trip (v9-D fix)', () => {
+  test('a stated child count survives the merge as a durable family field', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { numberOfChildren: 2 });
+
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.numberOfChildren).toBe(2);
+  });
+});
+
 describe('mergeUserProfile fact retirement (retiredFactStatements)', () => {
   const readRow = (facts: unknown[]) => ({
     rows: [{ profile: {}, facts }],
@@ -493,6 +506,33 @@ describe('party reconciliation (spouseName + role + captions)', () => {
     expect(savedProfile().spouseName).toBe('Taylor Lautner');
   });
 
+  test('respondent-role merge round-trip stores affiantName=user, spouseName=filer, and mirrored captions', async () => {
+    // The orchestrator, on our fixed path, sends affiantName as the USER's
+    // own side (respondent) alongside role='respondent'. Profile merge must
+    // preserve that instead of clobbering affiantName from the petitioner
+    // caption. Ontario Marcus replay end-to-end.
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      role: 'respondent',
+      affiantName: 'Marcus David Whitfield-Nuñez',
+      petitionerName: 'Éloïse Marie Whitfield-Nuñez',
+      petitionerFirstName: 'Éloïse Marie',
+      petitionerLastName: 'Whitfield-Nuñez',
+      respondentName: 'Marcus David Whitfield-Nuñez',
+      respondentFirstName: 'Marcus David',
+      respondentLastName: 'Whitfield-Nuñez',
+    });
+
+    const saved = savedProfile();
+    expect(saved.role).toBe('respondent');
+    expect(saved.affiantName).toBe('Marcus David Whitfield-Nuñez');
+    expect(saved.spouseName).toBe('Éloïse Marie Whitfield-Nuñez');
+    expect(saved.petitionerName).toBe('Éloïse Marie Whitfield-Nuñez');
+    expect(saved.respondentName).toBe('Marcus David Whitfield-Nuñez');
+  });
+
   test('an explicit blank spouseName clears the spouse and their caption side', async () => {
     const { updateUserProfile } = require('@/lib/api/profile');
     queryMock.mockResolvedValueOnce(
@@ -698,6 +738,95 @@ describe('mergeUserProfile breakdown replace-per-person', () => {
   });
 });
 
+describe('mergeUserProfile property/debt replace-per-person', () => {
+  const readRow = (profile: Record<string, unknown>) => ({
+    rows: [{ profile, facts: [] }],
+    rowCount: 1,
+  });
+  const savedProfile = () => {
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('the incoming petitioner list REPLACES the stored petitioner list, respondent list untouched', () => {
+    // Fire-and-forget style keeps the test terse; behaviour verified by the
+    // final `savedProfile()` read below.
+    return (async () => {
+      queryMock.mockResolvedValueOnce(readRow({
+        petitionerProperty: ['old stale item that the correction supersedes'],
+        respondentProperty: ['2021 Toyota Tacoma'],
+      }));
+      queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await mergeUserProfile(7, {
+        petitionerProperty: [
+          '2019 Honda Odyssey',
+          'the marital home at 1487 E Sycamore Way',
+          'Fidelity 401(k), approximately $62,000',
+        ],
+      });
+
+      const saved = savedProfile();
+      expect(saved.petitionerProperty).toEqual([
+        '2019 Honda Odyssey',
+        'the marital home at 1487 E Sycamore Way',
+        'Fidelity 401(k), approximately $62,000',
+      ]);
+      expect(saved.respondentProperty).toEqual(['2021 Toyota Tacoma']);
+    })();
+  });
+
+  test('same-turn label-variant restatements collapse (Sudsy Snouts) — 3 stored, not 6', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      petitionerProperty: [
+        '$18k dog-grooming business',
+        'the mobile dog-grooming business worth $18k',
+        '2021 Toyota Tacoma',
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.petitionerProperty).toEqual([
+      'the mobile dog-grooming business worth $18k',
+      '2021 Toyota Tacoma',
+    ]);
+  });
+
+  test('separate-property marker persists through merge (Mari\'s $45k inherited CD)', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      petitionerProperty: [
+        'Separate property: $45,000 certificate of deposit inherited from Aunt Rita in 2018, held in Mari\'s sole name',
+        'the marital home at 1487 E Sycamore Way',
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.petitionerProperty[0]).toMatch(/^Separate property: /);
+    expect(saved.petitionerProperty[0]).toMatch(/inherited from Aunt Rita/);
+    expect(saved.petitionerProperty).toHaveLength(2);
+  });
+
+  test('negative-equity phrasing survives merge intact', async () => {
+    queryMock.mockResolvedValueOnce(readRow({}));
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      respondentProperty: [
+        'the marital home at 87 Ridgemount Crescent, currently underwater by approximately $22,000',
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.respondentProperty[0]).toMatch(/underwater by approximately \$22,000/);
+  });
+});
+
 describe('spousal support waiver persistence (katie2 gap)', () => {
   test('spousalSupportWaived and its sibling gate fields persist through mergeUserProfile', async () => {
     queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
@@ -718,6 +847,44 @@ describe('spousal support waiver persistence (katie2 gap)', () => {
     expect(saved.requestSpousalSupport).toBe(false);
   });
 
+  test('respondent whereabouts-unknown fields persist through mergeUserProfile and hydrate in family scope only (Mari v8b)', async () => {
+    // The TX petition template branches on these STRUCTURED fields to
+    // render the alt-service caveat instead of an empty "is a resident of ."
+    // clause. v8b replay: Mari's profile.json had NEITHER field even though
+    // the interview captured a hedged whereabouts fact — the durable side
+    // must survive a DB round-trip once the model does emit them.
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(42, {
+      respondentAddressUnknown: true,
+      respondentSuspectedLocation: 'Louisiana or Mississippi',
+    });
+
+    const params = queryMock.mock.calls[1][1] as unknown[];
+    const saved = JSON.parse(params[1] as string);
+    expect(saved.respondentAddressUnknown).toBe(true);
+    expect(saved.respondentSuspectedLocation).toBe('Louisiana or Mississippi');
+
+    // Family scope hydration re-seeds a new session so the caveat keeps
+    // rendering across documents; general scope must NOT contaminate a
+    // small-claims or name-change interview with a divorce whereabouts flag.
+    const stored: UserProfile = {
+      profile: {
+        respondentAddressUnknown: true,
+        respondentSuspectedLocation: 'Louisiana or Mississippi',
+      },
+      facts: [],
+    };
+    const family = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'family');
+    expect(family.respondentAddressUnknown).toBe(true);
+    expect(family.respondentSuspectedLocation).toBe('Louisiana or Mississippi');
+
+    const general = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'general');
+    expect(general.respondentAddressUnknown).toBeUndefined();
+    expect(general.respondentSuspectedLocation).toBeUndefined();
+  });
+
   test('spousalSupportWaived hydrates in family scope but not general scope', () => {
     const stored: UserProfile = {
       profile: { spousalSupportWaived: true, spousalSupportAwarded: false, requestSpousalSupport: false },
@@ -729,5 +896,862 @@ describe('spousal support waiver persistence (katie2 gap)', () => {
 
     const general = hydrateAffidavitData(stored, {} as Record<string, unknown>, 'general');
     expect(general.spousalSupportWaived).toBeUndefined();
+  });
+});
+
+// v10-B backstop: promote a schema-typed "respondent_whereabouts" fact
+// subcategory to the structured respondentAddressUnknown flag when Luna
+// records the fact but skips the boolean. Pure shape check on fact metadata —
+// no language parsing of the content string.
+describe('mergeUserProfile — respondent whereabouts fact promotion', () => {
+  test('promotes subcategory=respondent_whereabouts to respondentAddressUnknown=true', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {
+        facts: [
+          {
+            id: 'f1',
+            content: 'The user has not seen the respondent in months.',
+            category: 'service',
+            subcategory: 'respondent_whereabouts',
+          },
+        ],
+      },
+    );
+
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.respondentAddressUnknown).toBe(true);
+  });
+
+  test('promotes when the whereabouts fact arrives via the newFacts arg', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {},
+      [
+        {
+          id: 'f1',
+          content: 'possibly in Louisiana',
+          category: 'service',
+          subcategory: 'respondent_whereabouts',
+        },
+      ],
+    );
+
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.respondentAddressUnknown).toBe(true);
+  });
+
+  test('does NOT overwrite an explicit respondentAddressUnknown=false the LLM emitted this turn', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {
+        respondentAddressUnknown: false,
+        facts: [
+          { id: 'f1', content: 'anything', category: 'service', subcategory: 'respondent_whereabouts' },
+        ],
+      },
+    );
+
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const savedProfile = JSON.parse(params[1] as string);
+    // Structured field is authoritative when present — the promotion is a
+    // backstop for the missing-flag case, not an override of an explicit
+    // emission.
+    expect(savedProfile.respondentAddressUnknown).toBe(false);
+  });
+
+  test('no fact of that subcategory → respondentAddressUnknown stays unset', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {
+        facts: [
+          { id: 'f1', content: 'unrelated', category: 'marriage', subcategory: 'ceremony' },
+        ],
+      },
+    );
+
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    const savedProfile = JSON.parse(params[1] as string);
+    expect(savedProfile.respondentAddressUnknown).toBeUndefined();
+  });
+});
+
+// v11-B: schema-typed fact companions promoted into structured scalars.
+// Pure shape check on fact metadata (subcategory + place_value / numeric_value)
+// — no language parsing of the content prose.
+describe('mergeUserProfile — schema-typed fact companion promotion', () => {
+  const readEmpty = () => ({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+  const savedProfile = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('subcategory=respondent_whereabouts + place_value promotes respondentSuspectedLocation', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'The respondent is possibly in Louisiana or Mississippi.',
+          category: 'service',
+          subcategory: 'respondent_whereabouts',
+          place_value: 'Louisiana or Mississippi',
+        },
+      ],
+    });
+
+    expect(savedProfile().respondentSuspectedLocation).toBe('Louisiana or Mississippi');
+  });
+
+  test('accepts the stored placeValue camelCase shape too (fact came via _buildFacts)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {},
+      [
+        {
+          id: 'f1',
+          content: 'The respondent is possibly in Louisiana or Mississippi.',
+          category: 'service',
+          subcategory: 'respondent_whereabouts',
+          placeValue: 'Louisiana or Mississippi',
+        } as never,
+      ],
+    );
+
+    expect(savedProfile().respondentSuspectedLocation).toBe('Louisiana or Mississippi');
+  });
+
+  test('category=children + numeric_value=2 promotes numberOfChildren', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'The parties have two adult children.',
+          category: 'children',
+          numeric_value: 2,
+        },
+      ],
+    });
+
+    expect(savedProfile().numberOfChildren).toBe(2);
+  });
+
+  test('an explicit structured value wins over promotion (structured field authoritative when present)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      respondentSuspectedLocation: 'Ohio',
+      numberOfChildren: 3,
+      facts: [
+        {
+          id: 'f1',
+          content: 'possibly Louisiana',
+          category: 'service',
+          subcategory: 'respondent_whereabouts',
+          place_value: 'Louisiana',
+        },
+        {
+          id: 'f2',
+          content: 'two kids',
+          category: 'children',
+          numeric_value: 2,
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.respondentSuspectedLocation).toBe('Ohio');
+    expect(saved.numberOfChildren).toBe(3);
+  });
+
+  test('category=grounds + grounds_value=cruel_treatment promotes groundsForDivorce (v21-A)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'Amara has experienced documented cruelty at the hands of her spouse.',
+          category: 'grounds',
+          subcategory: 'grounds',
+          grounds_value: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  test('accepts the stored groundsValue camelCase shape too (fact came via _buildFacts)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(
+      7,
+      {},
+      [
+        {
+          id: 'f1',
+          content: 'David narrates an irretrievable breakdown of the marriage.',
+          category: 'grounds',
+          groundsValue: 'irretrievable_breakdown',
+        } as never,
+      ],
+    );
+
+    expect(savedProfile().groundsForDivorce).toBe('irretrievable_breakdown');
+  });
+
+  test('explicit groundsForDivorce wins over grounds fact promotion', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      groundsForDivorce: 'adultery',
+      facts: [
+        {
+          id: 'f1',
+          content: 'cruelty narrated',
+          category: 'grounds',
+          grounds_value: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('adultery');
+  });
+
+  test('forbidden sentinel "other" is overwritten by promoted grounds_value (v22-A, Amara)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      groundsForDivorce: 'other',
+      facts: [
+        {
+          id: 'f1',
+          content: 'Amara has experienced documented cruelty at the hands of her spouse.',
+          category: 'grounds',
+          grounds_value: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  test('forbidden sentinel "unknown" is overwritten by promoted grounds_value (v22-A)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      groundsForDivorce: 'unknown',
+      facts: [
+        {
+          id: 'f1',
+          content: 'David narrates an irretrievable breakdown of the marriage.',
+          category: 'grounds',
+          grounds_value: 'irretrievable_breakdown',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('irretrievable_breakdown');
+  });
+
+  test('forbidden sentinel with NO grounds fact clears the field to absent (v22-A)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { groundsForDivorce: 'n/a' });
+
+    expect(savedProfile().groundsForDivorce).toBeUndefined();
+  });
+
+  test('mixed-case sentinel ("Other") is also normalized (v22-A)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      groundsForDivorce: 'Other',
+      facts: [
+        {
+          id: 'f1',
+          content: 'cruelty narrated',
+          category: 'grounds',
+          grounds_value: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  test('no companion value on the fact → no promotion (leaves the scalar unset)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'not seen him in months',
+          category: 'service',
+          subcategory: 'respondent_whereabouts',
+          // no place_value
+        },
+        {
+          id: 'f2',
+          content: 'we have some kids',
+          category: 'children',
+          // no numeric_value
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.respondentSuspectedLocation).toBeUndefined();
+    expect(saved.numberOfChildren).toBeUndefined();
+  });
+});
+
+// Tavita (FL, no kids) backstop: has_minor_children:false without a paired
+// number_of_children left profile.numberOfChildren null on the story page.
+describe('mergeUserProfile — "no children" backstop', () => {
+  const readEmpty = () => ({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+  const savedProfile = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[1] as string);
+  };
+
+  test('hasMinorChildren=false + no numberOfChildren + no children[] → numberOfChildren=0', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { hasMinorChildren: false });
+
+    expect(savedProfile().numberOfChildren).toBe(0);
+  });
+
+  test('explicit numberOfChildren wins — backstop never overrides', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { hasMinorChildren: false, numberOfChildren: 2 });
+
+    expect(savedProfile().numberOfChildren).toBe(2);
+  });
+
+  test('hasMinorChildren=true does NOT trigger the backstop', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { hasMinorChildren: true });
+
+    expect(savedProfile().numberOfChildren).toBeUndefined();
+  });
+
+  test('hasMinorChildren unset (turn did not touch it) does NOT trigger the backstop', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { marriageDate: '2010-05-01' });
+
+    expect(savedProfile().numberOfChildren).toBeUndefined();
+  });
+
+  // Alison (CA, 2 adult children) replay: LLM tagged the fact with
+  // subcategory=adult_children and carried numeric_value=2, but the strict
+  // v11-B match (=== 'children') let it through unpromoted. Backstop also
+  // fires on hasMinorChildren=false, but a 2-adult-children case must
+  // promote to 2, never fall back to the 0 backstop.
+  test('hasMinorChildren=false + adult_children fact numeric_value=2 → numberOfChildren=2', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      hasMinorChildren: false,
+      facts: [
+        {
+          id: 'f1',
+          content: 'The parties have two adult children together.',
+          category: 'children',
+          subcategory: 'adult_children',
+          numeric_value: 2,
+        },
+      ],
+    });
+
+    expect(savedProfile().numberOfChildren).toBe(2);
+  });
+
+  // Same shape but the profile's stored hasMinorChildren is explicit null
+  // (an older merge cleared it) rather than false, and the incoming turn
+  // does not touch children. The backstop must still fire so the story
+  // page never renders "null children".
+  test('stored hasMinorChildren=null + no children data → numberOfChildren=0', async () => {
+    queryMock.mockResolvedValueOnce({
+      rows: [{ profile: { hasMinorChildren: null }, facts: [] }],
+      rowCount: 1,
+    });
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, { marriageDate: '2010-05-01' });
+
+    expect(savedProfile().numberOfChildren).toBe(0);
+  });
+
+  // An adult-children fact without numeric_value must NOT trigger the
+  // zero-backstop — the promoter will populate numeric_value on a later
+  // pass and the count should stick then.
+  test('adult_children fact without numeric_value suppresses the zero-backstop', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      hasMinorChildren: false,
+      facts: [
+        {
+          id: 'f1',
+          content: 'The parties have adult children.',
+          category: 'children',
+          subcategory: 'adult_children',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBeUndefined();
+  });
+
+  test('children[] present suppresses the backstop (an adult-child list must not become 0)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      hasMinorChildren: false,
+      children: [{ name: 'Adult Child', age: 24 }],
+    });
+
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBeUndefined();
+    expect(saved.children).toHaveLength(1);
+  });
+
+  // v22-B: widened isChildrenCountFact matches Tavita's parental /
+  // children_of_marriage tagging. Without an openAIService the merge-time
+  // rescue LLM silently skips, so numberOfChildren stays undefined for a
+  // fact-only signal — but the widened tag match is exercised (no crash).
+  test('parental/children_of_marriage fact is recognized as a children-count fact', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'Marco Rossi and I have no children from this marriage.',
+          category: 'parental',
+          subcategory: 'children_of_marriage',
+        },
+      ],
+    });
+
+    // No LLM mocked → rescue skipped, backstop suppressed (fact matches),
+    // stays undefined. The point of the test is that the widened tag match
+    // does not throw and the flow completes.
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBeUndefined();
+  });
+});
+
+// v22-B: merge-time rescue LLM call for numberOfChildren. Mirrors the
+// existing respondentSuspectedLocation rescue pattern (fail-open, LLM-first).
+describe('mergeUserProfile — numberOfChildren rescue LLM', () => {
+  const readEmpty = () => ({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+  const savedProfile = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[1] as string);
+  };
+  afterEach(() => {
+    delete (global as unknown as { openAIService?: unknown }).openAIService;
+  });
+
+  // Alison-shape: adult_children fact, NO numeric_value on the fact, NO
+  // structured numberOfChildren. The rescue LLM reads the fact prose /
+  // sourceQuote and returns count=2.
+  test('Alison-shape adult_children fact WITHOUT numeric_value → rescue promotes to 2', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async (
+      _msgs: unknown,
+      options: { response_format?: { json_schema?: { name?: string } } },
+    ) => {
+      if (options?.response_format?.json_schema?.name === 'children_count_extraction') {
+        return {
+          choices: [{ message: { content: JSON.stringify({ count: 2 }) } }],
+        };
+      }
+      throw new Error('unexpected rescue call');
+    });
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      hasMinorChildren: false,
+      facts: [
+        {
+          id: 'f1',
+          content: 'The parties have two children of the marriage, ages 24 and 21; both children are adults.',
+          sourceQuote: 'we have 2 adult kids, 24 and 21',
+          category: 'children',
+          subcategory: 'adult_children',
+        },
+      ],
+    });
+
+    expect(chat).toHaveBeenCalledTimes(1);
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBe(2);
+  });
+
+  // Tavita-shape: parental/children_of_marriage fact, "no children" prose,
+  // no hasMinorChildren emitted. Rescue extracts count=0 AND fills
+  // hasMinorChildren=false.
+  test('Tavita-shape "no children" fact → rescue promotes to 0 and fills hasMinorChildren=false', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ count: 0 }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'Marco Rossi and I have no children from this marriage.',
+          sourceQuote: 'no children — none from this marriage',
+          category: 'parental',
+          subcategory: 'children_of_marriage',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBe(0);
+    expect(saved.hasMinorChildren).toBe(false);
+  });
+
+  // Rescue returns -1 when the text does not name a count — profile stays
+  // absent, downstream backstops still get a chance.
+  test('rescue returns -1 → numberOfChildren stays absent', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ count: -1 }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'We had a long conversation about the kids.',
+          category: 'children',
+          subcategory: 'children',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBeUndefined();
+  });
+
+  // Explicit numberOfChildren always wins — rescue never fires.
+  test('explicit numberOfChildren wins — rescue never invoked', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn();
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      numberOfChildren: 3,
+      facts: [
+        {
+          id: 'f1',
+          content: 'The parties have three children.',
+          category: 'children',
+          subcategory: 'children',
+        },
+      ],
+    });
+
+    expect(chat).not.toHaveBeenCalled();
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBe(3);
+  });
+
+  // Rescue LLM throws → fail-open (no crash, numberOfChildren stays absent).
+  test('rescue LLM throws → fails open', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => { throw new Error('llm down'); });
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await expect(
+      mergeUserProfile(7, {
+        facts: [
+          {
+            id: 'f1',
+            content: 'The parties have two children.',
+            category: 'children',
+            subcategory: 'adult_children',
+          },
+        ],
+      }),
+    ).resolves.not.toThrow();
+
+    const saved = savedProfile();
+    expect(saved.numberOfChildren).toBeUndefined();
+  });
+});
+
+// v22-C: merge-time rescue LLM call for groundsForDivorce. Mirrors the
+// respondentSuspectedLocation and numberOfChildren rescues (fail-open,
+// LLM-first, jurisdiction-aware). Amara (GA) and Mari (TX) replays: a
+// grounds fact clearly exists but the primary schema call and the v20-B
+// companion promoter both left grounds_value empty.
+describe('mergeUserProfile — groundsForDivorce rescue LLM', () => {
+  const readEmpty = () => ({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+  const savedProfile = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[1] as string);
+  };
+  afterEach(() => {
+    delete (global as unknown as { openAIService?: unknown }).openAIService;
+  });
+
+  // Mari-shape: state=TX, sentinel "other" stored plus a cruelty grounds fact
+  // with no grounds_value. Rescue should map to cruel_treatment (or the
+  // jurisdiction's equivalent).
+  test('Mari-shape TX "cruelty" grounds fact → rescue promotes to canonical slug', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async (
+      _msgs: unknown,
+      options: { response_format?: { json_schema?: { name?: string } } },
+    ) => {
+      if (options?.response_format?.json_schema?.name === 'grounds_extraction') {
+        return {
+          choices: [{ message: { content: JSON.stringify({ grounds_slug: 'cruel_treatment' }) } }],
+        };
+      }
+      throw new Error('unexpected rescue call');
+    });
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'TX',
+      groundsForDivorce: 'other',
+      facts: [
+        {
+          id: 'f1',
+          content: 'grounds — cruelty. he hurt me physically',
+          sourceQuote: 'he hurt me physically, over years',
+          category: 'grounds',
+          subcategory: 'grounds',
+        },
+      ],
+    });
+
+    expect(chat).toHaveBeenCalledTimes(1);
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  // Amara-shape: state=GA, groundsForDivorce null, "documented cruelty" fact.
+  test('Amara-shape GA "documented cruelty" fact → rescue promotes to cruel_treatment', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ grounds_slug: 'cruel_treatment' }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'GA',
+      facts: [
+        {
+          id: 'f1',
+          content: 'Documented cruelty by the respondent — years of abuse.',
+          sourceQuote: 'documented cruelty',
+          category: 'grounds',
+          subcategory: 'grounds',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  // Explicit valid slug wins — rescue never fires.
+  test('explicit valid groundsForDivorce wins — rescue never invoked', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn();
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'NY',
+      groundsForDivorce: 'adultery',
+      facts: [
+        {
+          id: 'f1',
+          content: 'Grounds narrative — long story.',
+          category: 'grounds',
+          subcategory: 'grounds',
+        },
+      ],
+    });
+
+    expect(chat).not.toHaveBeenCalled();
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBe('adultery');
+  });
+
+  // No grounds fact at all → rescue skipped (nothing to extract from).
+  test('no grounds fact → rescue skipped', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn();
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'CA',
+      facts: [
+        {
+          id: 'f1',
+          content: 'We were married in Sacramento.',
+          category: 'marriage',
+          subcategory: 'ceremony',
+        },
+      ],
+    });
+
+    expect(chat).not.toHaveBeenCalled();
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBeUndefined();
+  });
+
+  // Rescue returns "" (no substance) → grounds stays absent.
+  test('rescue returns empty slug → groundsForDivorce stays absent', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ grounds_slug: '' }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'GA',
+      facts: [
+        {
+          id: 'f1',
+          content: 'We talked at length about the case.',
+          category: 'grounds',
+          subcategory: 'grounds',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBeUndefined();
+  });
+
+  // Rescue LLM throws → fail-open.
+  test('rescue LLM throws → fails open', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => { throw new Error('llm down'); });
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await expect(
+      mergeUserProfile(7, {
+        state: 'TX',
+        facts: [
+          {
+            id: 'f1',
+            content: 'grounds — cruelty. he hurt me physically',
+            category: 'grounds',
+            subcategory: 'grounds',
+          },
+        ],
+      }),
+    ).resolves.not.toThrow();
+
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBeUndefined();
+  });
+
+  // Rescue returning a sentinel slug is refused — never re-poison the field.
+  test('rescue returns sentinel slug → groundsForDivorce stays absent', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ grounds_slug: 'unknown' }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'GA',
+      facts: [
+        {
+          id: 'f1',
+          content: 'grounds — the situation.',
+          category: 'grounds',
+          subcategory: 'grounds',
+        },
+      ],
+    });
+
+    const saved = savedProfile();
+    expect(saved.groundsForDivorce).toBeUndefined();
   });
 });

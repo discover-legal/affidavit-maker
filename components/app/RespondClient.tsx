@@ -107,6 +107,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'That’s {inState} days after the day you were served ({outOfState} days if you were served outside the state).',
     'deadline.warning':
       'If nothing is filed by the deadline, a default judgment can generally be entered — meaning the court may decide the case without hearing your side. If your deadline is close or has passed, contact the court clerk or a lawyer right away; courts can sometimes still accept a late response.',
+    'deadline.staleAssumed':
+      'The deadline shown assumes the served date was {date} — if that\'s wrong, please correct it in your story.',
     'deadline.noDate.title': 'We don’t have your served date yet',
     'deadline.noDate.body':
       'The response clock generally starts the day you receive the papers. Add the papers you were served to your story and we’ll work out the deadline for you.',
@@ -207,6 +209,8 @@ const STRINGS: Record<Lang, Record<string, string>> = {
       'Son {inState} días después del día en que te notificaron ({outOfState} días si te notificaron fuera del estado).',
     'deadline.warning':
       'Si no se presenta nada antes de la fecha límite, generalmente se puede dictar una sentencia en rebeldía — es decir, el tribunal puede decidir el caso sin escuchar tu versión. Si tu fecha límite está cerca o ya pasó, contacta al secretario del tribunal o a un abogado de inmediato; a veces los tribunales aún aceptan una respuesta tardía.',
+    'deadline.staleAssumed':
+      'La fecha límite mostrada asume que te notificaron el {date} — si eso no es correcto, corrígelo en tu historia.',
     'deadline.noDate.title': 'Aún no tenemos tu fecha de notificación',
     'deadline.noDate.body':
       'El plazo para responder generalmente empieza el día en que recibes los papeles. Agrega los papeles que te entregaron a tu historia y calcularemos la fecha límite por ti.',
@@ -357,6 +361,15 @@ export default function RespondClient() {
               break;
             }
           }
+          // Fallback: the divorce interview captures the served date as a
+          // structured field (profile.serviceDate) when the user narrates it
+          // in chat ("process server handed it to me on june 24"). The banner
+          // must not read "we don't have your served date yet" when the fact
+          // is already in the profile — the keyEvents pipeline only runs on
+          // ingested court papers, not on chat extractions.
+          if (!servedDate && typeof p.serviceDate === 'string' && p.serviceDate.trim()) {
+            servedDate = parseEventDate(p.serviceDate.trim());
+          }
         }
       } catch {
         // No profile — informational mode with no served date.
@@ -495,6 +508,15 @@ export default function RespondClient() {
 
   const deadlineUrgent =
     deadline.kind === 'ready' && deadline.daysLeft <= 7;
+  // Safety rail against a silently wrong-year served date (Marcus persona,
+  // Ontario acceptance v6): user said "june 24", model defaulted to the
+  // separation-date year (2024) instead of the case year (2025), banner
+  // then read "deadline passed a year ago" for someone whose deadline is
+  // actually weeks out. When the computed deadline sits more than 6 months
+  // in the past, we suspect the served date is inferred and unconfirmed —
+  // never present "deadline has passed" flatly; ask the user to correct it.
+  const deadlineStale =
+    deadline.kind === 'ready' && deadline.daysLeft < -183;
 
   // Respondent tooling renders only when the profile reads as a respondent,
   // or after the user explicitly confirms "I was served with papers" —
@@ -663,12 +685,16 @@ export default function RespondClient() {
             <p>{tt(lang, 'deadline.served', { date: formatDate(deadline.servedDate, lang) })}</p>
             <p className="mt-1 font-semibold">
               {tt(lang, 'deadline.due', { date: formatDate(deadline.dueDate, lang) })}
-              {' — '}
-              {deadline.daysLeft < 0
-                ? tt(lang, 'deadline.past')
-                : deadline.daysLeft === 1
-                  ? tt(lang, 'deadline.daysLeft1')
-                  : tt(lang, 'deadline.daysLeft', { n: deadline.daysLeft })}
+              {!deadlineStale && (
+                <>
+                  {' — '}
+                  {deadline.daysLeft < 0
+                    ? tt(lang, 'deadline.past')
+                    : deadline.daysLeft === 1
+                      ? tt(lang, 'deadline.daysLeft1')
+                      : tt(lang, 'deadline.daysLeft', { n: deadline.daysLeft })}
+                </>
+              )}
             </p>
             <p className="mt-1">
               {tt(lang, 'deadline.explain', {
@@ -676,7 +702,19 @@ export default function RespondClient() {
                 outOfState: deadline.outOfState,
               })}
             </p>
-            {deadlineUrgent && <p className="mt-2">{tt(lang, 'deadline.warning')}</p>}
+            {deadlineStale && (
+              <p
+                className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900"
+                data-testid="deadline-stale-warning"
+              >
+                {tt(lang, 'deadline.staleAssumed', {
+                  date: formatDate(deadline.servedDate, lang),
+                })}
+              </p>
+            )}
+            {deadlineUrgent && !deadlineStale && (
+              <p className="mt-2">{tt(lang, 'deadline.warning')}</p>
+            )}
           </div>
         </div>
       )}

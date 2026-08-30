@@ -3,6 +3,25 @@
 // Complies with Texas Family Code and Texas Rules of Civil Procedure
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { resolveGroundsForDivorce } = require('./groundsResolver');
+
+// Leading soft-hedge words that make an already-hedged suspected-location
+// phrase read as a double hedge ("may be in Possibly Louisiana..."). The
+// alternative-service clause itself already contains the "cannot swear"
+// caveat, so a location that starts with any of these adds nothing but
+// noise.
+const LEADING_HEDGE_PATTERN =
+  /^\s*(?:possibly|maybe|perhaps|probably|apparently|allegedly|reportedly|supposedly)[,;:\s]+/i;
+
+function stripLeadingHedge(text) {
+  if (typeof text !== 'string') return '';
+  let out = text;
+  // Strip repeatedly — "Possibly, maybe Louisiana" -> "Louisiana".
+  while (LEADING_HEDGE_PATTERN.test(out)) {
+    out = out.replace(LEADING_HEDGE_PATTERN, '');
+  }
+  return out.trim();
+}
 
 /**
  * Texas Divorce Petition Template
@@ -178,6 +197,62 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Texas override for the respondent residence clause.
+   *
+   * The base class handles a well-formed address and detects a narrow set of
+   * "unknown"/"no address" phrases; a live Texas persona (Mari, acceptance v6)
+   * still slipped through with `respondentAddress = "No current address known;
+   * possibly in Louisiana with his brother"` — the sworn petition then read
+   * "Respondent, [NAME], is a resident of No current address known; possibly
+   * in Louisiana with his brother." Mari specifically said she "won't swear
+   * to" the Louisiana guess.
+   *
+   * Fix (LLM-first): the extraction layer now stores the guess as
+   * `respondentAddressUnknown: true` + `respondentSuspectedLocation` and
+   * leaves `respondentAddress` empty. This override reads those sworn-truth
+   * fields FIRST and refuses to render any address free text that carries a
+   * hedge ("possibly", "maybe", "unknown", "I think", "not sure", "somewhere",
+   * "no current address"), so an old saved document that predates the
+   * extraction fix still can't emit a hedged residence clause. In every
+   * whereabouts-unknown case, the petition pleads the alternative-service
+   * clause and — when a NON-sworn suspected location is on file — appends it
+   * as a bracketed follow-up sentence, never as an assertion of residence.
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Sentence fragment that follows "Respondent, <name>,"
+   */
+  getRespondentResidenceClause(divorceData) {
+    const t = this.terminology;
+    const raw =
+      typeof divorceData.respondentAddress === 'string'
+        ? divorceData.respondentAddress.trim()
+        : '';
+    const suspected = stripLeadingHedge(
+      typeof divorceData.respondentSuspectedLocation === 'string'
+        ? divorceData.respondentSuspectedLocation
+        : ''
+    );
+    const altService = `resides at an address unknown to ${t.filerLabel}; ${t.filerLabel} will request alternative service under the applicable rules`;
+    const suspectedNote = suspected
+      ? ` (${t.filerLabel} has heard, but cannot swear, that Respondent may be in ${suspected})`
+      : '';
+
+    if (divorceData.respondentAddressUnknown === true || !raw) {
+      return altService + suspectedNote;
+    }
+    // Any hedge in the free-text address disqualifies it from a sworn
+    // "resident of ..." sentence. The list below intentionally covers the
+    // phrasings that appeared in the Mari acceptance run plus common
+    // neighbours ("I think", "not sure", "somewhere in", "could be").
+    const hedgePattern =
+      /\b(possibly|maybe|perhaps|probably|somewhere|not\s+sure|unsure|i\s+think|i\s+don'?t\s+know|no\s+known|no\s+current\s+address|unknown|whereabouts\s+unknown|address\s+unknown|could\s+be|might\s+be)\b/i;
+    if (hedgePattern.test(raw)) {
+      return altService + suspectedNote;
+    }
+    return `is a resident of ${raw}`;
+  }
+
+  /**
    * Generate Texas jurisdiction statement
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
@@ -193,6 +268,36 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   getVenueReason(divorceData) {
     return `Petitioner is a resident of this county`;
+  }
+
+  /**
+   * Override the base grounds section so a fault ground captured only in
+   * `facts[]` (category: 'grounds') is still pleaded correctly. Without
+   * this override the base template reads `divorceData.groundsForDivorce
+   * || 'irreconcilable_differences'` — a cruelty petition would then
+   * emerge as §6.001 insupportability boilerplate. See groundsResolver.js.
+   *
+   * @param {Object} divorceData
+   * @returns {Object} Grounds section
+   */
+  generateGroundsSection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 8;
+
+    const grounds = resolveGroundsForDivorce(divorceData);
+    const groundsText = this.getGroundsText(grounds, divorceData);
+
+    items.push({
+      number: paragraphNum++,
+      content: groundsText,
+      type: 'grounds'
+    });
+
+    return {
+      title: 'IV. GROUNDS FOR DIVORCE',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
   }
 
   /**
@@ -216,6 +321,8 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         return 'Respondent committed adultery.';
 
       case 'conviction':
+      case 'felony':
+      case 'felony_conviction':
         return `Respondent has been convicted of a felony during the marriage, has been imprisoned for at least one year in the Texas Department of Criminal Justice, a federal penitentiary, or the penitentiary of another state, and has not been pardoned.`;
 
       case 'abandonment':
@@ -371,8 +478,9 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Property division
     reliefItems.push('Division of the community estate in a manner that the Court deems just and right, with due regard for the rights of each party;');
 
-    // Children
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+    // Children — omit conservatorship / support prayer items when
+    // hasMinorChildren === false (live Texas audit, 2026-08).
+    if (this.hasMinorChildrenForRelief(divorceData)) {
       reliefItems.push('Appointment of conservators and determination of the rights and duties of each conservator;');
       reliefItems.push('Determination of periods of possession and access to the child(ren);');
       reliefItems.push('Child support as provided by law;');

@@ -234,6 +234,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const packetTypes = listPacketDocumentTypes(
       doc.document_type ?? (content.documentType as string | undefined),
+      // Role-aware: a respondent's divorce_package expands to just the
+      // decree draft, not the petition (which is the other side's filing).
+      content.role as string | undefined,
     );
 
     const documentStructures: unknown[] = [];
@@ -439,7 +442,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         : undefined,
       'document',
     );
-    const safeFilename = `filing-packet-${baseName}.pdf`;
+    const safeFilename = `case-packet-${baseName}.pdf`;
 
     logger.info('document_packet_generated', {
       userId: user.id,

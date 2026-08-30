@@ -100,13 +100,22 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    // Action Number is often unknown at draft time — render a visible
+    // fill-in blank plus a Draft note rather than a `[CASE NUMBER]`
+    // sentinel that the generate-route denylist catches as 422 (mirrors
+    // the ON v8-D Divorce Order pattern).
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    const caseDraftNote = hasCaseNumber
+      ? ''
+      : '\n(Draft — insert case number before filing)';
     const plaintiff = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
     const defendant = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
 
     const formatted = (
       `IN THE ${courtName}\n\n` +
-      `${caseLabel} ${caseNumber}\n\n` +
+      `${caseLabel} ${caseNumber}${caseDraftNote}\n\n` +
       `IN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
       `BETWEEN:\n\n` +
       `${plaintiff}\n` +
@@ -199,9 +208,18 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
 
     divorceData.children.forEach((child, index) => {
-      const childInfo = typeof child === 'string'
-        ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+      // Child NAME stays as `[CHILD NAME]` (denylist catches it). Birth date
+      // renders as a visible fill-in blank + Draft note rather than the
+      // `[BIRTH DATE]` sentinel (mirrors ON v8-D / GA v18-C).
+      let childInfo;
+      if (typeof child === 'string') {
+        childInfo = child;
+      } else {
+        const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+        const dobDisplay = childDob || '__________________';
+        const draftNote = childDob ? '' : '\n(Draft — insert exact date of birth before filing)';
+        childInfo = `${child.name || '[CHILD NAME]'}, born ${dobDisplay}${draftNote}`;
+      }
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 

@@ -3,6 +3,27 @@
 // Complies with California Family Code and California Rules of Court
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { captionUpper } = require('../../core/nameCase');
+
+/**
+ * Shape-check for a date value. A date has deterministic syntax; freeform
+ * narratives like "a few months ago", "unknown", or "sometime in 2024" must
+ * NOT be rendered literally into the pleading (v11 CA replay, 2026-08 —
+ * "The parties separated on or about a few months ago"). Accepts:
+ *   - ISO YYYY-MM-DD (with optional T-time suffix)
+ *   - Slash-separated M/D/YYYY or MM/DD/YYYY
+ *   - "Month DD, YYYY" (long-form)
+ * Anything else falls through to the visible-blank + Draft-note branch.
+ */
+function isRenderableDate(v) {
+  if (typeof v !== 'string') return false;
+  const s = v.trim();
+  if (!s) return false;
+  if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(s)) return true;
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) return true;
+  if (/^[A-Za-z]+\s+\d{1,2},?\s+\d{4}$/.test(s)) return true;
+  return false;
+}
 
 /**
  * California Petition for Dissolution of Marriage Template (FL-100)
@@ -36,14 +57,22 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       this.metadata = null;
     }
 
-    // California-specific required fields
+    // California-specific required fields.
+    // marriageDate and separationDate are legally required for a filed
+    // FL-100, but drafts routinely originate before the interviewee can
+    // pin down an exact date ("separated a few months ago"). The template
+    // renders a visible fill-in blank + Draft note for those fields
+    // (see generateMarriageInformationSection) rather than emitting a
+    // `[DATE OF SEPARATION]` sentinel that the generate route's
+    // PLACEHOLDER_DENYLIST would (correctly) refuse. Keeping them out of
+    // requiredFields lets the draft render; the visible blank plus the
+    // Draft note keeps the drafter on the hook to fill it in before
+    // filing. (v10 replay, 2026-08.)
     this.requiredFields = [
       'petitionerName',
       'respondentName',
       'state',
-      'county',
-      'marriageDate',
-      'separationDate' // California requires date of separation
+      'county'
     ];
 
     // California residency requirements
@@ -77,6 +106,78 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   getCaseNumberLabel() {
     return 'Case Number:';
+  }
+
+  /**
+   * California case caption. Overridden so party names route through
+   * captionUpper (which preserves McPherson/DiCaprio/van der Berg internal
+   * capitals — the base's plain `.toUpperCase()` corrupted "McPherson" to
+   * "MCPHERSON" in the live California acceptance run, 2026-08). Missing
+   * data renders as fill-in-by-hand blanks — never `[TOKENS]` — because a
+   * filed document is completed by hand, not by placeholder.
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Case caption
+   */
+  generateCaseCaption(divorceData) {
+    const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '______________________ COURT').toUpperCase();
+    const caseLabel = this.getCaseNumberLabel();
+    const caseNumber = divorceData.caseNumber || '____________________';
+
+    const petitioner = divorceData.petitionerName
+      ? captionUpper(divorceData.petitionerName)
+      : '_________________________________';
+    const respondent = divorceData.respondentName
+      ? captionUpper(divorceData.respondentName)
+      : '_________________________________';
+
+    const t = this.terminology;
+    let caption = '';
+    caption += `IN THE ${courtName}\n\n`;
+    caption += `${caseLabel} ${caseNumber}\n\n`;
+    caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
+    caption += `${petitioner}, ${t.filerLabel}\n\n`;
+    caption += `AND\n\n`;
+    caption += `${respondent}, ${t.responderLabel}`;
+
+    const partyLeft = divorceData.petitionerName
+      ? `${petitioner},`
+      : '_________________________________,';
+    const partyRight = divorceData.respondentName
+      ? `${respondent},`
+      : '_________________________________,';
+    const structured = {
+      left: [
+        'IN THE MATTER OF THE MARRIAGE OF:',
+        '',
+        partyLeft,
+        `          ${t.filerLabel},`,
+        '',
+        'and',
+        '',
+        partyRight,
+        `          ${t.responderLabel}.`,
+      ],
+      right: [
+        `${caseLabel} ${caseNumber}`,
+        '',
+        'Judge _______________',
+      ],
+    };
+    const courtHeaderLine =
+      divorceData.court || this.getDefaultCourt(divorceData.county)
+        ? `IN THE ${courtName}`
+        : 'IN THE ______________________ COURT';
+
+    return {
+      courtName,
+      courtHeaderLine,
+      caseNumber: divorceData.caseNumber,
+      petitioner: divorceData.petitionerName,
+      respondent: divorceData.respondentName,
+      formatted: caption,
+      structured,
+    };
   }
 
   /**
@@ -133,18 +234,47 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 5;
 
-    items.push({
-      number: paragraphNum++,
-      content: `Petitioner and Respondent were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : ''}.`,
-      type: 'marriage_info'
-    });
+    // Render a visible fill-in-by-hand blank plus a drafter note when the
+    // marriage date is missing rather than a `[DATE OF MARRIAGE]` sentinel
+    // token (which the generate route's PLACEHOLDER_DENYLIST refuses).
+    // Same pattern as the Ontario decree's case-number handling (v8-D).
+    const marriageDateFormatted = isRenderableDate(divorceData.marriageDate)
+      ? this.formatDate(divorceData.marriageDate)
+      : null;
+    const marriageLocationSuffix = divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : '';
+    if (marriageDateFormatted) {
+      items.push({
+        number: paragraphNum++,
+        content: `Petitioner and Respondent were married on ${marriageDateFormatted}${marriageLocationSuffix}.`,
+        type: 'marriage_info'
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: `Petitioner and Respondent were married on __________________${marriageLocationSuffix}.\n(Draft — insert exact date of marriage before filing)`,
+        type: 'marriage_info'
+      });
+    }
 
-    // California requires date of separation
-    items.push({
-      number: paragraphNum++,
-      content: `The parties separated on or about ${this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]'}.`,
-      type: 'marriage_info'
-    });
+    // California requires date of separation. Same visible-blank + Draft
+    // note pattern when the interviewee never gave an exact date
+    // ("separated a few months ago" — v10 CA replay, 2026-08).
+    const separationDateFormatted = isRenderableDate(divorceData.separationDate)
+      ? this.formatDate(divorceData.separationDate)
+      : null;
+    if (separationDateFormatted) {
+      items.push({
+        number: paragraphNum++,
+        content: `The parties separated on or about ${separationDateFormatted}.`,
+        type: 'marriage_info'
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: `The parties separated on or about __________________.\n(Draft — insert exact date of separation before filing)`,
+        type: 'marriage_info'
+      });
+    }
 
     items.push({
       number: paragraphNum++,
@@ -191,41 +321,172 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 9;
 
-    if (divorceData.hasMinorChildren === false || !divorceData.children || divorceData.children.length === 0) {
-      items.push({
-        number: paragraphNum++,
-        content: `No children were born or adopted of this marriage, and none are expected.`,
-        type: 'children_info'
-      });
+    const d = divorceData || {};
+    const rawChildArr = Array.isArray(d.children) ? d.children : [];
+
+    // Dedupe defence: when the extractor emits nameless, dob-less
+    // age-only entries ({age: 24}, {age: 21}, ...), the childrenMerge
+    // identity check has nothing to match on and the same two kids
+    // accumulate turn after turn up to MAX_CHILDREN=25 (Alison v8-B
+    // replay, 2026-08: PDF read "There are 25 adult children of the
+    // marriage" for a family with 2 kids ages 24 and 21). Collapse
+    // fully anonymous duplicates by age here so the pleading count
+    // never quotes the merge cap.
+    const childArr = (() => {
+      const seenAges = new Set();
+      const kept = [];
+      for (const c of rawChildArr) {
+        if (!c || typeof c !== 'object') { kept.push(c); continue; }
+        const hasName = typeof c.name === 'string' && c.name.trim() !== '';
+        const dob = c.birthDate ?? c.dob ?? c.dateOfBirth;
+        const hasDob = typeof dob === 'string' && dob.trim() !== '';
+        if (hasName || hasDob) { kept.push(c); continue; }
+        const ageKey = (c.age === undefined || c.age === null) ? '' : String(c.age);
+        const key = `__anon__:${ageKey}`;
+        if (seenAges.has(key)) continue;
+        seenAges.add(key);
+        kept.push(c);
+      }
+      return kept;
+    })();
+
+    // Resolve child count: explicit numberOfChildren wins; else infer from
+    // the deduped children[] array. Guards against the Alison-class replay
+    // where extraction captured numberOfChildren=2 with hasMinorChildren=false
+    // but never populated children[] — the old branching collapsed that
+    // into a flat "no children were born" denial (CA replay, 2026-08).
+    let numChildren = 0;
+    const rawNum = d.numberOfChildren;
+    if (typeof rawNum === 'number' && Number.isFinite(rawNum)) {
+      numChildren = rawNum;
+    } else if (typeof rawNum === 'string' && /^\d+$/.test(rawNum.trim())) {
+      numChildren = parseInt(rawNum.trim(), 10);
     } else {
+      numChildren = childArr.length;
+    }
+
+    // If hasMinorChildren is unset but we have DOBs, infer from ages so we
+    // never plead adult children as minors (or vice versa).
+    let hasMinors = d.hasMinorChildren;
+    if ((hasMinors === undefined || hasMinors === null) && childArr.length > 0) {
+      const now = Date.now();
+      const eighteenYearsMs = 18 * 365.25 * 24 * 3600 * 1000;
+      const dobs = childArr
+        .map((c) => (typeof c === 'object' && c
+          ? (c.birthDate ?? c.dob ?? c.dateOfBirth)
+          : null))
+        .filter(Boolean)
+        .map((s) => Date.parse(s))
+        .filter((t) => !Number.isNaN(t));
+      if (dobs.length > 0) {
+        hasMinors = dobs.some((t) => (now - t) < eighteenYearsMs);
+      }
+    }
+
+    if (hasMinors === true || (hasMinors === undefined && childArr.length > 0)) {
+      // Minor-children path (or unknown-status with children on file).
       items.push({
         number: paragraphNum++,
         content: `The minor children of this marriage are as listed. A completed Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act (UCCJEA) (Form FL-105) is attached.`,
         type: 'children_info'
       });
-
-      if (divorceData.children && Array.isArray(divorceData.children)) {
-        divorceData.children.forEach(child => {
-          const name = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-          const birthDate = typeof child === 'object' && child.birthDate ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : '[BIRTH DATE]';
-          items.push({
-            number: paragraphNum++,
-            content: `${name}, born ${birthDate}`,
-            type: 'child_detail'
-          });
+      childArr.forEach((child) => {
+        const name = typeof child === 'string' ? child : (child && child.name) || '[CHILD NAME]';
+        const rawDob = typeof child === 'object' && child
+          ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
+          : null;
+        const birthDate = rawDob ? this.formatDate(rawDob) : null;
+        items.push({
+          number: paragraphNum++,
+          content: birthDate ? `${name}, born ${birthDate}` : `${name}`,
+          type: 'child_detail'
         });
+      });
+    } else if (hasMinors === false && numChildren > 0) {
+      // Adult-only path — plead as adults with a specific count. Names when
+      // known, count-only when not (Alison-class replay).
+      const names = childArr
+        .map((c) => (typeof c === 'string' ? c : (c && c.name) || null))
+        .filter(Boolean);
+      const noun = numChildren === 1 ? 'child' : 'children';
+      const verb = numChildren === 1 ? 'is' : 'are';
+      let sentence = `There ${verb} ${numChildren} adult ${noun} of the marriage`;
+      if (names.length > 0) {
+        const list = names.length === 1
+          ? names[0]
+          : names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+        sentence += ` (${list})`;
       }
+      sentence += `; no orders regarding custody, visitation, or child support are requested.`;
+      items.push({
+        number: paragraphNum++,
+        content: sentence,
+        type: 'children_info'
+      });
+    } else if (hasMinors === false && this.factsMentionAdultChildren(d.facts)) {
+      // Narrative-only adult-children path: extractor knows the parties
+      // have adult children (hasMinorChildren=false) but never populated
+      // a count or a child array. Better to plead the fact without a
+      // number than to falsely deny children were born of the marriage
+      // (Alison-class replay w/ pre-v10-A extraction, 2026-08).
+      items.push({
+        number: paragraphNum++,
+        content: `There are adult children of the marriage; no orders regarding custody, visitation, or child support are requested.`,
+        type: 'children_info'
+      });
+    } else {
+      // True no-children case.
+      items.push({
+        number: paragraphNum++,
+        content: `No children were born or adopted of this marriage, and none are expected.`,
+        type: 'children_info'
+      });
     }
 
     // Agreed child arrangements (custody enum, primary residence, agreed
     // support) — pleaded via the base hooks, never silently dropped.
     paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
 
+    // Section header must be honest about the section's content: when the
+    // parties have no minor children of the marriage, don't head the
+    // section "MINOR CHILDREN" (live California acceptance run, 2026-08,
+    // headed a purely-adult-children disclosure as "V. MINOR CHILDREN").
+    // California FL-100 has no fixed § label here — "CHILDREN OF THE
+    // MARRIAGE" mirrors the Family Code § 2337(b) phrasing used in
+    // form-level disclosures. Keep "MINOR CHILDREN" only when the section
+    // actually pleads minor children.
+    const title = this.hasMinorChildrenForRelief(divorceData)
+      ? 'V. MINOR CHILDREN'
+      : 'V. CHILDREN OF THE MARRIAGE';
+
     return {
-      title: 'V. MINOR CHILDREN',
+      title,
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Scan facts[] for a narrative mention of adult children. Used as a
+   * last-resort fallback in generateChildrenSection when the extractor
+   * set hasMinorChildren=false but never populated a count or array —
+   * we would otherwise falsely plead "no children were born or adopted".
+   * @param {Array<Object|string>} facts
+   * @returns {boolean}
+   */
+  factsMentionAdultChildren(facts) {
+    if (!Array.isArray(facts)) return false;
+    const re = /\badult\s+child(?:ren)?\b/i;
+    for (const f of facts) {
+      if (!f) continue;
+      const text = typeof f === 'string'
+        ? f
+        : (typeof f.content === 'string' ? f.content
+          : typeof f.text === 'string' ? f.text
+            : '');
+      if (text && re.test(text)) return true;
+    }
+    return false;
   }
 
   /**
@@ -291,8 +552,10 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     reliefItems.push('Divide the community property equally between the parties (Family Code § 2550);');
     reliefItems.push('Confirm each party\'s separate property to that party;');
 
-    // Add child-related relief if applicable
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+    // Add child-related relief only when the case has MINOR children —
+    // hasMinorChildren === false suppresses these items even when adult
+    // children are named in children[] (live California audit, 2026-08).
+    if (this.hasMinorChildrenForRelief(divorceData)) {
       reliefItems.push('Determine custody and visitation of the minor child(ren) in their best interests;');
       reliefItems.push('Order child support per the California Statewide Uniform Guideline (Family Code § 4050-4076);');
     }
@@ -364,9 +627,17 @@ ${name}
       errors.push('County is required for California dissolution petitions');
     }
 
-    // California requires date of separation
+    // California requires date of separation for a filed petition, but
+    // drafts routinely originate before the interviewee can pin down an
+    // exact date. Demote to a warning; the template renders a visible
+    // fill-in blank + Draft note in that case (see
+    // generateMarriageInformationSection). (v10 CA replay, 2026-08.)
     if (!divorceData.separationDate) {
-      errors.push('Date of separation is required for California dissolution petitions');
+      warnings.push('Date of separation is required before filing a California dissolution petition; the draft renders a fill-in blank until you supply the exact date.');
+    }
+
+    if (!divorceData.marriageDate) {
+      warnings.push('Date of marriage is required before filing a California dissolution petition; the draft renders a fill-in blank until you supply the exact date.');
     }
 
     // Warning about 6-month waiting period

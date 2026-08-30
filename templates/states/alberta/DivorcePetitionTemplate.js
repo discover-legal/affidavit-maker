@@ -5,6 +5,7 @@
 'use strict';
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
+const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 
 /**
  * Alberta Divorce Template — Statement of Claim for Divorce
@@ -163,6 +164,221 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getVenueReason(divorceData) {
     const district = divorceData.county || '[JUDICIAL DISTRICT]';
     return `the Plaintiff or Defendant resides in the Judicial Centre of ${district}`;
+  }
+
+  /**
+   * Alberta children section — Statement of Claim for Divorce, Court of King's
+   * Bench of Alberta (Alberta Rules of Court, Alta Reg 124/2010).
+   *
+   * Divorce Act, s.16 requires the court to consider only the best interests
+   * of the child in making a parenting order. Post-Bill C-78 (2021), the
+   * Divorce Act uses "decision-making responsibility" (s.16.1) and "parenting
+   * time" (s.16) — never "custody"/"access" — in a divorce proceeding.
+   *
+   * This override mirrors the Alberta Divorce Judgment template's children
+   * handling: it plays through even when children[] is empty but the parties
+   * have minor children (extraction gap), listing each child with a name/DOB
+   * placeholder rather than flatly denying the existence of the children.
+   *
+   * Data-shape rules:
+   *  - hasMinorChildren === true → plead minor children exist; enumerate the
+   *    children[] array (with [CHILD NAME]/[BIRTH DATE] placeholders when
+   *    missing) and pad up to numberOfChildren when set.
+   *  - children[] non-empty and hasMinorChildren !== false → same as above.
+   *  - hasMinorChildren === false and any adult-child signal
+   *    (numberOfChildren > 0 or children[] entries) → plead adult children
+   *    of the marriage; no parenting/support relief.
+   *  - Otherwise → "There are no children of the marriage."
+   */
+  generateChildrenSection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 9;
+
+    const rawChildren = Array.isArray(divorceData.children) ? divorceData.children : [];
+    const numberOfChildren = Number.isFinite(divorceData.numberOfChildren)
+      ? divorceData.numberOfChildren
+      : null;
+    const hasMinorFlag = divorceData.hasMinorChildren;
+
+    const hasMinorChildren = hasMinorFlag === true
+      || (hasMinorFlag !== false && rawChildren.length > 0);
+
+    if (hasMinorChildren) {
+      items.push({
+        number: paragraphNum++,
+        content: 'There are minor children of the marriage. The Plaintiff pleads the following in respect of the child(ren), and requests parenting and support orders in the best interests of the child(ren) pursuant to section 16 of the Divorce Act, RSC 1985, c. 3 (2nd Supp.):',
+        type: 'children_info'
+      });
+
+      const listed = rawChildren.length > 0
+        ? rawChildren
+        : Array.from({ length: Math.max(numberOfChildren || 0, 1) }, () => ({}));
+
+      listed.forEach((child, index) => {
+        // Child NAME stays as `[CHILD NAME]` — an unnamed child is genuinely
+        // defective and must trip the denylist. Birth date, by contrast, is
+        // frequently unknown at draft time; render a visible fill-in blank
+        // instead of a `[BIRTH DATE]` sentinel that would 422 the whole
+        // petition (mirrors the ON v8-D / GA v18-C pattern). Append a Draft
+        // note so the drafter knows to fill in the DOB before filing.
+        let childInfo;
+        if (typeof child === 'string') {
+          childInfo = child;
+        } else {
+          const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+          const dobDisplay = childDob || '__________________';
+          const draftNote = childDob ? '' : '\n(Draft — insert exact date of birth before filing)';
+          childInfo = `${child.name || '[CHILD NAME]'}, born ${dobDisplay}${draftNote}`;
+        }
+        items.push({
+          number: paragraphNum++,
+          content: `Child ${index + 1}: ${childInfo}`,
+          type: 'child_detail'
+        });
+      });
+
+      items.push({
+        number: paragraphNum++,
+        content: 'No other children were born to or adopted by the Plaintiff and the Defendant during the marriage, and none are expected.',
+        type: 'children_info'
+      });
+
+      // Current parenting arrangement — Divorce Act s.16.1 (decision-making
+      // responsibility) and s.16 (parenting time), never "custody"/"access".
+      // resolveCustodyArrangement / resolvePrimaryResidenceName come from
+      // templates/core/parenting.js and only recognize explicit signals; an
+      // undecided case falls through to neutral placeholder language.
+      const custody = resolveCustodyArrangement(divorceData);
+      const residenceName = resolvePrimaryResidenceName(divorceData);
+
+      if (custody.kind === 'joint') {
+        items.push({
+          number: paragraphNum++,
+          content: `The Plaintiff and the Defendant currently share decision-making responsibility for the child(ren), and the Plaintiff requests a parenting order to that effect pursuant to section 16.1 of the Divorce Act.`,
+          type: 'custody_request'
+        });
+      } else if (custody.kind === 'sole_petitioner') {
+        items.push({
+          number: paragraphNum++,
+          content: `The Plaintiff currently has decision-making responsibility for the child(ren) and requests a parenting order granting sole decision-making responsibility pursuant to section 16.1 of the Divorce Act.`,
+          type: 'custody_request'
+        });
+      } else if (custody.kind === 'sole_respondent') {
+        items.push({
+          number: paragraphNum++,
+          content: `The ${divorceData.respondentName || 'Defendant'} currently has decision-making responsibility for the child(ren), and the Plaintiff requests a parenting order confirming that arrangement pursuant to section 16.1 of the Divorce Act.`,
+          type: 'custody_request'
+        });
+      } else if (custody.kind === 'legacy_sole') {
+        const sole = resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Plaintiff';
+        items.push({
+          number: paragraphNum++,
+          content: `${sole} currently has decision-making responsibility for the child(ren), and the Plaintiff requests a parenting order to that effect pursuant to section 16.1 of the Divorce Act.`,
+          type: 'custody_request'
+        });
+      } else {
+        items.push({
+          number: paragraphNum++,
+          content: 'The parties will exercise decision-making responsibility for the child(ren) as agreed or as ordered by the Court pursuant to section 16.1 of the Divorce Act.',
+          type: 'custody_request'
+        });
+      }
+
+      if (residenceName) {
+        items.push({
+          number: paragraphNum++,
+          content: `The child(ren) primarily reside with ${residenceName}, who has the majority of parenting time within the meaning of section 16 of the Divorce Act.`,
+          type: 'residence_request'
+        });
+      } else {
+        items.push({
+          number: paragraphNum++,
+          content: 'The parties will exercise parenting time with the child(ren) as agreed or as set out in a parenting schedule filed with this Court (Divorce Act, s.16).',
+          type: 'residence_request'
+        });
+      }
+
+      if (divorceData.childSupportAmount) {
+        const payor = divorceData.childSupportObligor || divorceData.respondentName || 'the Defendant';
+        const payee = divorceData.childSupportObligee || divorceData.petitionerName || 'the Plaintiff';
+        items.push({
+          number: paragraphNum++,
+          content: `The parties have agreed that ${payor} shall pay child support to ${payee} in the amount of $${divorceData.childSupportAmount} per month, consistent with section 15.1 of the Divorce Act and the Federal Child Support Guidelines, SOR/97-175.`,
+          type: 'child_support_request'
+        });
+      }
+    } else if (hasMinorFlag === false
+        && (rawChildren.length > 0 || (numberOfChildren && numberOfChildren > 0))) {
+      // Adult children of the marriage — no parenting/support relief.
+      const count = rawChildren.length || numberOfChildren;
+      items.push({
+        number: paragraphNum++,
+        content: `There are ${count} adult child(ren) of the marriage. No orders regarding decision-making responsibility, parenting time, or child support are requested.`,
+        type: 'children_info'
+      });
+      rawChildren.forEach((child, index) => {
+        if (!child || typeof child !== 'object') return;
+        if (!child.name) return;
+        const childInfo = child.birthDate || child.dob || child.dateOfBirth
+          ? `${child.name}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth)}`
+          : child.name;
+        items.push({
+          number: paragraphNum++,
+          content: `Adult child ${index + 1}: ${childInfo}`,
+          type: 'child_detail'
+        });
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: 'There are no children of the marriage.',
+        type: 'children_info'
+      });
+    }
+
+    return {
+      title: 'V. CHILDREN',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
+
+  /**
+   * Alberta custody pleading — Divorce Act 2021 terminology (s.16.1
+   * decision-making responsibility). Never "custody"/"access".
+   */
+  getCustodyPleading(custody, divorceData) {
+    if (custody.kind === 'joint') {
+      return 'The parties have agreed to share decision-making responsibility for the child(ren), and the Plaintiff requests a parenting order to that effect pursuant to section 16.1 of the Divorce Act.';
+    }
+    if (custody.kind === 'sole_petitioner') {
+      return 'The Plaintiff requests sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.';
+    }
+    if (custody.kind === 'sole_respondent') {
+      return `The Plaintiff requests that ${divorceData.respondentName || 'the Defendant'} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
+    }
+    if (custody.kind === 'legacy_sole') {
+      const name = resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'the Plaintiff';
+      return `The Plaintiff requests that ${name} have sole decision-making responsibility for the child(ren) pursuant to section 16.1 of the Divorce Act.`;
+    }
+    return null;
+  }
+
+  /**
+   * Alberta residence pleading — Divorce Act s.16 "parenting time".
+   */
+  getResidencePleading(residenceName) {
+    return `The Plaintiff requests that the child(ren) primarily reside with ${residenceName}, who shall have the majority of parenting time within the meaning of section 16 of the Divorce Act.`;
+  }
+
+  /**
+   * Alberta child-support pleading — Federal Child Support Guidelines,
+   * SOR/97-175 (Divorce Act, s.15.1).
+   */
+  getChildSupportPleading(divorceData) {
+    const payor = divorceData.childSupportObligor || divorceData.respondentName || 'the Defendant';
+    const payee = divorceData.childSupportObligee || divorceData.petitionerName || 'the Plaintiff';
+    return `The parties have agreed that ${payor} shall pay child support to ${payee} in the amount of $${divorceData.childSupportAmount} per month, consistent with the Federal Child Support Guidelines, SOR/97-175.`;
   }
 
   getGroundsText(groundsForDivorce) {

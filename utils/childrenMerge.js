@@ -28,6 +28,12 @@ function isEmptyValue(v) {
   return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 }
 
+function ageOf(child) {
+  if (!child || typeof child !== 'object') return null;
+  const n = Number(child.age);
+  return Number.isFinite(n) ? n : null;
+}
+
 function findMatchIndex(list, child) {
   const name = normalizeName(child.name);
   if (name) {
@@ -47,6 +53,18 @@ function findMatchIndex(list, child) {
   const dob = birthDateOf(child);
   if (dob) {
     return list.findIndex((c) => birthDateOf(c) === dob);
+  }
+  // Anonymous entry (no name, no dob): fall back to age identity so an LLM
+  // re-emitting the same age-only child across turns does not stack copies
+  // up to MAX_CHILDREN. Only match against other fully anonymous entries —
+  // a named child of the same age is a distinct person.
+  if (!name && !dob) {
+    const age = ageOf(child);
+    if (age !== null) {
+      return list.findIndex(
+        (c) => !normalizeName(c && c.name) && !birthDateOf(c) && ageOf(c) === age,
+      );
+    }
   }
   return -1;
 }
@@ -108,7 +126,22 @@ function mergeChildren(existing, incoming) {
       const child = { ...rawChild };
       const idx = findMatchIndex(base, child);
       if (idx === -1) {
-        if (base.length < MAX_CHILDREN) base.push(child);
+        if (base.length < MAX_CHILDREN) {
+          base.push(child);
+        } else {
+          // Silent drops hid a real bug (anonymous same-age entries stacking
+          // to the cap because findMatchIndex could not dedupe them). Keep
+          // the cap as a safety net but make overflow visible.
+          try {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[childrenMerge] MAX_CHILDREN=${MAX_CHILDREN} reached; dropping incoming child`,
+              { droppedName: child && child.name, droppedDob: birthDateOf(child) },
+            );
+          } catch (_) {
+            /* console may be unavailable in some runtimes */
+          }
+        }
         continue;
       }
       for (const [key, value] of Object.entries(child)) {

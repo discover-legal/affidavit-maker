@@ -184,9 +184,10 @@ class NorthCarolinaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 8;
 
-    const separationDate = divorceData.separationDate
-      ? this.formatDate(divorceData.separationDate)
-      : '[DATE OF SEPARATION]';
+    // formatDate returns null on freeform text ("a few months ago") — fall
+    // back to the denylist sentinel so the generate route surfaces a
+    // 422 rather than emitting the narrative verbatim (v12-B base fix).
+    const separationDate = this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]';
 
     items.push({
       number: paragraphNum++,
@@ -209,9 +210,10 @@ class NorthCarolinaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Grounds text
    */
   getGroundsText(grounds, divorceData) {
-    const separationDate = divorceData.separationDate
-      ? this.formatDate(divorceData.separationDate)
-      : '[DATE OF SEPARATION]';
+    // formatDate returns null on freeform text ("a few months ago") — fall
+    // back to the denylist sentinel so the generate route surfaces a
+    // 422 rather than emitting the narrative verbatim (v12-B base fix).
+    const separationDate = this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]';
 
     if (grounds === 'incurable_insanity') {
       return 'The parties have lived separate and apart for five (5) years, such separation having been caused by the incurable insanity of the Defendant, pursuant to N.C.G.S. § 50-5.';

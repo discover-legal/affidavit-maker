@@ -290,6 +290,105 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Florida-specific property section: when the parties signed a
+   * prenuptial (or premarital) agreement, plead it as controlling and
+   * ask the court to incorporate it into the final Judgment of
+   * Dissolution. Bug 1 (Tavita, FL, 2026-08-29): the base template's
+   * generic "divide marital property in a just and right manner" pleading
+   * dropped Tavita's explicit statement that her 2018 prenup governs.
+   *
+   * We DETECT the prenup two ways so no upstream extractor change is
+   * required:
+   *   1. `divorceData.prenupSigned === true` (canonical flag from
+   *      BaseDivorceOrchestrator's structured extraction — see
+   *      services/agents/BaseDivorceOrchestrator.js prenup_signed).
+   *   2. `divorceData.facts` array contains a fact whose SUBCATEGORY
+   *      mentions a prenup. Subcategory is model-assigned, so we're
+   *      trusting the LLM's classification rather than regex-scanning
+   *      raw free text (LLM-first policy).
+   *
+   * The prenup pleading is inserted as the FIRST paragraph of the
+   * property section (before the base section's generic pleadings) so
+   * the incorporation request is prominent and the section header still
+   * reflects "PROPERTY AND DEBTS".
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Property section
+   */
+  generatePropertySection(divorceData) {
+    const base = super.generatePropertySection(divorceData);
+
+    const prenupYear = this._detectPrenupYear(divorceData);
+    const hasPrenup = divorceData.prenupSigned === true || this._factsMentionPrenup(divorceData);
+    if (!hasPrenup) return base;
+
+    let paragraphNum = divorceData._paragraphNum || 12;
+    const dateClause = prenupYear ? ` dated ${prenupYear}` : '';
+    const prenupParas = [
+      {
+        number: paragraphNum++,
+        content:
+          `The parties entered into a valid prenuptial agreement${dateClause}, ` +
+          'which governs the disposition of property and debts.',
+        type: 'prenup_recital'
+      },
+      {
+        number: paragraphNum++,
+        content:
+          'Petitioner requests that the property provisions of said prenuptial agreement ' +
+          'be incorporated into the final Judgment of Dissolution.',
+        type: 'prenup_incorporation_request'
+      }
+    ];
+
+    // Renumber the base items so paragraph numbers stay sequential after
+    // the two inserted prenup paragraphs.
+    const rebasedBaseItems = (base.items || []).map((item) => {
+      if (typeof item.number !== 'number') return item;
+      return { ...item, number: paragraphNum++ };
+    });
+
+    return {
+      title: base.title,
+      items: [...prenupParas, ...rebasedBaseItems],
+      nextParagraphNumber: paragraphNum
+    };
+  }
+
+  /**
+   * Read the prenup year from the canonical flag if present, otherwise
+   * scan the facts array for a 4-digit year adjacent to a prenup mention.
+   * @param {Object} divorceData
+   * @returns {number|string|null}
+   */
+  _detectPrenupYear(divorceData) {
+    return divorceData.prenupSignedYear || null;
+  }
+
+  /**
+   * True when any fact's LLM-assigned subcategory names a prenup / premarital
+   * / prenuptial agreement. Subcategory is a model-produced label, so the
+   * match is against a small set of expected classifier outputs (LLM-first
+   * policy — see MEMORY.md, LLM-first-not-regex).
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  _factsMentionPrenup(divorceData) {
+    const facts = Array.isArray(divorceData.facts) ? divorceData.facts : [];
+    const HITS = new Set(['prenup', 'prenuptial', 'prenuptial_agreement', 'premarital_agreement']);
+    for (const fact of facts) {
+      if (!fact || typeof fact !== 'object') continue;
+      const sub = String(fact.subcategory || fact.subCategory || '').toLowerCase().trim();
+      if (!sub) continue;
+      if (HITS.has(sub)) return true;
+      if (sub.includes('prenup') || sub.includes('premarital') || sub.includes('prenuptial')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Generate Florida relief section
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Relief section

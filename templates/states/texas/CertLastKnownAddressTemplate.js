@@ -3,6 +3,7 @@
 // Complies with Tex. R. Civ. P. 3a (effective 2021) and Tex. Fam. Code § 102.009
 
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
+const { captionUpper } = require('../../core/nameCase');
 
 /**
  * Texas Certificate of Last Known Address Template
@@ -97,8 +98,9 @@ class TexasCertLastKnownAddressTemplate extends BaseAffidavitTemplate {
     const caseNumber = data.caseNumber || '[CAUSE NUMBER]';
     caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
 
-    const petitioner = (data.affiantName || data.petitioner || '[PETITIONER NAME]').toUpperCase();
-    const respondent = (data.respondentName || data.respondent || '[RESPONDENT NAME]').toUpperCase();
+    // captionUpper preserves McPherson/DiCaprio style internal capitals.
+    const petitioner = captionUpper(data.affiantName || data.petitioner || '[PETITIONER NAME]');
+    const respondent = captionUpper(data.respondentName || data.respondent || '[RESPONDENT NAME]');
 
     caption += `${petitioner}\n`;
     caption += `Petitioner,\n\n`;

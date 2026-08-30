@@ -1755,3 +1755,122 @@ describe('mergeUserProfile — groundsForDivorce rescue LLM', () => {
     expect(saved.groundsForDivorce).toBeUndefined();
   });
 });
+
+// v23: Luna occasionally tags a grounds narration with a non-'grounds'
+// category (Amara GA replay: {category:'evidence', subcategory:'cruel_treatment'}
+// — the model classified the ground by putting the statutory slug on the
+// subcategory instead). The isGroundsFact predicate must still recognize
+// those so the companion-value promotion and the rescue LLM can fill
+// profile.groundsForDivorce.
+describe('mergeUserProfile — statutory-ground subcategory (v23)', () => {
+  const readEmpty = () => ({ rows: [{ profile: {}, facts: [] }], rowCount: 1 });
+  const savedProfile = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[1] as string);
+  };
+  const savedFacts = () => {
+    const [, params] = queryMock.mock.calls[1] as [string, unknown[]];
+    return JSON.parse(params[2] as string);
+  };
+
+  test('category=evidence + subcategory=cruel_treatment + grounds_value → groundsForDivorce=cruel_treatment', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'Malachi physically abused Amara throughout the marriage.',
+          category: 'evidence',
+          subcategory: 'cruel_treatment',
+          grounds_value: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  test('category=evidence + subcategory=cruel_treatment (no companion) → rescue LLM fires and fills grounds', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const chat = jest.fn(async () => ({
+      choices: [{ message: { content: JSON.stringify({ grounds_slug: 'cruel_treatment' }) } }],
+    }));
+    (global as unknown as { openAIService: unknown }).openAIService = { chat };
+
+    await mergeUserProfile(7, {
+      state: 'GA',
+      facts: [
+        {
+          id: 'f1',
+          content: 'Malachi physically abused Amara throughout the marriage.',
+          sourceQuote: 'he hit me',
+          category: 'evidence',
+          subcategory: 'cruel_treatment',
+        },
+      ],
+    });
+
+    expect(chat).toHaveBeenCalled();
+    expect(savedProfile().groundsForDivorce).toBe('cruel_treatment');
+  });
+
+  test('evidence-category fact IS persisted end-to-end (no category filter drops it)', async () => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: 'Malachi physically abused Amara throughout the marriage.',
+          category: 'evidence',
+          subcategory: 'cruel_treatment',
+        },
+        {
+          id: 'f2',
+          content: 'Second cruelty incident on 2024-06-14.',
+          category: 'evidence',
+          subcategory: 'cruel_treatment',
+        },
+      ],
+    });
+
+    const facts = savedFacts();
+    expect(facts).toHaveLength(2);
+    expect(facts.map((f: { category: string }) => f.category)).toEqual(['evidence', 'evidence']);
+  });
+
+  test.each([
+    ['adultery'],
+    ['abandonment'],
+    ['desertion'],
+    ['insupportability'],
+    ['irretrievable_breakdown'],
+    ['irreconcilable_differences'],
+    ['felony'],
+    ['imprisonment'],
+    ['breakdown_of_marriage'],
+    ['separation_agreement'],
+  ])('subcategory=%s (any category) still matches isGroundsFact and promotes', async (sub) => {
+    queryMock.mockResolvedValueOnce(readEmpty());
+    queryMock.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await mergeUserProfile(7, {
+      facts: [
+        {
+          id: 'f1',
+          content: `narrated ${sub}`,
+          category: 'fault',
+          subcategory: sub,
+          grounds_value: sub,
+        },
+      ],
+    });
+
+    expect(savedProfile().groundsForDivorce).toBe(sub);
+  });
+});

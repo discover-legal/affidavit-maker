@@ -160,6 +160,34 @@ const FORBIDDEN_GROUNDS_SENTINELS: ReadonlySet<string> = new Set([
   'other', 'unknown', 'unclear', 'none', 'n/a', 'na', 'not_sure',
 ]);
 
+/**
+ * Canonical statutory-ground name tokens. When Luna tags a grounds narration
+ * with a non-'grounds' category (v23 Amara replay: `category:'evidence',
+ * subcategory:'cruel_treatment'`) the isGroundsFact predicate must still
+ * recognize it — the model already classified it by putting the statutory
+ * slug on the subcategory. Kept as a small closed list of the tokens the
+ * downstream jurisdiction resolvers understand; matched via `sub.includes`
+ * so `cruel_treatment_documented`, `respondent_adultery`, etc. still qualify.
+ */
+const STATUTORY_GROUND_TOKENS: readonly string[] = [
+  'cruel_treatment',
+  'cruelty',
+  'adultery',
+  'abandonment',
+  'desertion',
+  'insupportability',
+  'irretrievable_breakdown',
+  'irreconcilable_differences',
+  'felony',
+  'conviction',
+  'imprisonment',
+  'mental_incapacity',
+  'mental_confinement',
+  'separation_agreement',
+  'separation_judgment',
+  'breakdown_of_marriage',
+];
+
 function isEmptyValue(v: unknown): boolean {
   return (
     v === undefined ||
@@ -853,7 +881,15 @@ export async function mergeUserProfile(
   const isGroundsFact = (f: unknown): boolean => {
     const cat = factCat(f);
     const sub = factSub(f);
-    return cat === 'grounds' || sub === 'grounds' || sub.includes('grounds');
+    if (cat === 'grounds' || sub === 'grounds' || sub.includes('grounds')) return true;
+    // v23: statutory-ground-name subcategories. Luna occasionally tags a
+    // grounds narration with category='evidence' (or 'fault', 'reason', …)
+    // and puts the statutory slug on the subcategory instead — the Amara
+    // (GA, cruel treatment) v23 replay emitted
+    // {category:'evidence', subcategory:'cruel_treatment', …}. Match those
+    // by the model-classified statutory token on the subcategory. Still a
+    // shape check on schema-typed metadata; no content-prose parsing.
+    return STATUTORY_GROUND_TOKENS.some((tok) => sub.includes(tok));
   };
   const factGrounds = (f: unknown): string => {
     const r = f as Record<string, unknown> | null;

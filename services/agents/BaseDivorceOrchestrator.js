@@ -35,6 +35,30 @@ const {
 } = require('./extractionQuality');
 const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement');
 
+// v23: canonical statutory-ground name tokens. Mirrors STATUTORY_GROUND_TOKENS
+// in lib/api/profile.ts. Used by the companion promoter's isGroundsTag so a
+// fact tagged with, e.g., {category:'evidence', subcategory:'cruel_treatment'}
+// still qualifies as a grounds fact and gets its grounds_value companion
+// backfilled — Amara (GA, cruel treatment) v23 replay.
+const STATUTORY_GROUND_TOKENS = [
+  'cruel_treatment',
+  'cruelty',
+  'adultery',
+  'abandonment',
+  'desertion',
+  'insupportability',
+  'irretrievable_breakdown',
+  'irreconcilable_differences',
+  'felony',
+  'conviction',
+  'imprisonment',
+  'mental_incapacity',
+  'mental_confinement',
+  'separation_agreement',
+  'separation_judgment',
+  'breakdown_of_marriage',
+];
+
 // ─── Shared tool definition ───────────────────────────────────────────────────
 // One flexible tool covers all phases across all states.
 // Phase-specific system prompts tell the LLM which subset of fields to fill.
@@ -1473,7 +1497,14 @@ class BaseDivorceOrchestrator {
     const isGroundsTag = (f) => {
       const cat = String(f?.category || '').trim().toLowerCase();
       const sub = String(f?.subcategory || '').trim().toLowerCase();
-      return cat === 'grounds' || sub === 'grounds' || sub.includes('grounds');
+      if (cat === 'grounds' || sub === 'grounds' || sub.includes('grounds')) return true;
+      // v23: statutory-ground-name subcategory. Amara (GA, cruel treatment)
+      // replay emitted {category:'evidence', subcategory:'cruel_treatment'} —
+      // the model classified the ground by putting the statutory slug on the
+      // subcategory, not by using the 'grounds' category. Match those so the
+      // companion promoter still fills grounds_value from the fact prose.
+      // Shape check on schema-typed metadata; no content-prose parsing.
+      return STATUTORY_GROUND_TOKENS.some((tok) => sub.includes(tok));
     };
     const needsGrounds = (f) => {
       if (!isGroundsTag(f)) return false;

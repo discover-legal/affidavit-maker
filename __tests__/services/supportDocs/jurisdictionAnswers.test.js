@@ -123,9 +123,19 @@ describe.each(JURISDICTIONS)('$file — Answer builder', (j) => {
     expect(structure.sections.title.length).toBeGreaterThan(0);
     expect(Array.isArray(structure.sections.facts.items)).toBe(true);
     expect(structure.sections.facts.items.length).toBeGreaterThan(0);
-    structure.sections.facts.items.forEach((item, idx) => {
-      expect(item.number).toBe(idx + 1);
+    // Round-2 fix (Marcus, ON, 2026-08): section_header / form10_header /
+    // form10_claim_subheader items are OUT of the numbered flow — they carry
+    // no `number`. Content strings are still required on every item.
+    structure.sections.facts.items.forEach((item) => {
       expect(typeof item.content).toBe('string');
+    });
+    const numbered = structure.sections.facts.items.filter(
+      (i) => i.type !== 'section_header' &&
+             i.type !== 'form10_header' &&
+             i.type !== 'form10_claim_subheader',
+    );
+    numbered.forEach((item, idx) => {
+      expect(item.number).toBe(idx + 1);
     });
   });
 

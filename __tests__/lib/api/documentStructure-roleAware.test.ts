@@ -32,17 +32,14 @@ import {
 describe('BUG 3 — role-aware routing for divorce_package', () => {
   describe('listPacketDocumentTypes', () => {
     test("petitioner (or no role) expands divorce_package to ['divorce_petition', 'divorce_decree']", () => {
-      expect(listPacketDocumentTypes('divorce_package')).toEqual([
-        'divorce_petition',
-        'divorce_decree',
-      ]);
+      // Sarah AB round-2: initiating packet ships the petition alone; the
+      // proposed Divorce Judgment is a post-hearing / on-consent document.
+      expect(listPacketDocumentTypes('divorce_package')).toEqual(['divorce_petition']);
       expect(listPacketDocumentTypes('divorce_package', 'petitioner')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
       expect(listPacketDocumentTypes('divorce_package', undefined)).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
     });
 
@@ -137,7 +134,6 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
     test("'applicant' role is treated as petitioner-side (Divorce Act term)", () => {
       expect(listPacketDocumentTypes('divorce_package', 'applicant')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
       expect(resolveGenerationDocumentType('divorce_package', undefined, 'applicant')).toBe(
         'divorce_petition',
@@ -151,18 +147,15 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
     test("'applicant' is case-insensitive and whitespace-tolerant", () => {
       expect(listPacketDocumentTypes('divorce_package', 'Applicant')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
       expect(listPacketDocumentTypes('divorce_package', '  APPLICANT  ')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
     });
 
     test("'plaintiff' (older U.S. nomenclature) also maps to petitioner-side", () => {
       expect(listPacketDocumentTypes('divorce_package', 'plaintiff')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
     });
 
@@ -209,10 +202,9 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
     // These loops document that invariant: introducing a per-province
     // override in future must not silently change what the applicant packet
     // contains.
-    test.each(provinces)('%s applicant → [divorce_petition, divorce_decree]', () => {
+    test.each(provinces)('%s applicant → [divorce_petition] only', () => {
       expect(listPacketDocumentTypes('divorce_package', 'applicant')).toEqual([
         'divorce_petition',
-        'divorce_decree',
       ]);
     });
 

@@ -23,6 +23,47 @@ function stripLeadingHedge(text) {
   return out.trim();
 }
 
+// Attorney round-2 (2026-08): cruelty petitions were rendering bare
+// statutory language even when the transcript contained a documented
+// substrate (ER records, police reports). Locate the first fact whose
+// subcategory names a cruelty/abuse ground OR whose content mentions
+// documentary support, and return a description we can splice into the
+// pleaded ground. Explicit grounds-category facts are preferred over
+// evidence-tagged facts. Never touch the shared groundsResolver — this
+// runs only after cruelty has already resolved.
+const CRUELTY_SUBCAT_PATTERN =
+  /(cruelty|cruel[_\s]treatment|physical[_\s]abuse|domestic[_\s]violence|family[_\s]violence)/i;
+const CRUELTY_KEYWORD_PATTERN =
+  /\b(hospital|er\b|emergency[_\s-]?room|police|documented|documentation|witness(es|ed)?|medical\s+records|police\s+report(s)?|photograph(s|ed)?|photos)\b/i;
+
+function normalizeSubstrateDescription(raw) {
+  if (typeof raw !== 'string') return '';
+  return raw.trim().replace(/\s+/g, ' ').replace(/[.;,\s]+$/, '');
+}
+
+function findCrueltySubstrate(divorceData) {
+  const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
+  let fallback = null;
+  for (const fact of facts) {
+    if (!fact || typeof fact !== 'object') continue;
+    const category = String(fact.category || '').toLowerCase();
+    const subcat = String(fact.subcategory || '');
+    const content = String(fact.content || fact.text || fact.value || '');
+    const sourceQuote = String(fact.sourceQuote || '');
+    const searchBlob = `${subcat} ${content} ${sourceQuote}`;
+    const subcatHit = CRUELTY_SUBCAT_PATTERN.test(subcat);
+    const keywordHit = CRUELTY_KEYWORD_PATTERN.test(searchBlob);
+    if (!subcatHit && !keywordHit) continue;
+    const desc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    if (!desc) continue;
+    if (category === 'grounds' || category === 'ground' || subcatHit) {
+      return desc; // grounds-category (or subcat-cruelty) fact wins immediately
+    }
+    if (!fallback) fallback = desc;
+  }
+  return fallback;
+}
+
 /**
  * Texas Divorce Petition Template
  *
@@ -329,6 +370,30 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       type: 'grounds'
     });
 
+    // Attorney round-2 (2026-08): a cruelty petition pleaded under
+    // TFC §6.002 should surface the family-violence procedural options
+    // the client may not know she has: (a) TFC §6.504 authorises a
+    // protective order in a suit for dissolution; (b) TFC §6.501
+    // authorises temporary restraining orders in a suit for
+    // dissolution, and Harris County (plus every other Texas county
+    // with local rules) issues standing family-law orders on the day of
+    // filing that already carry many of these protections.
+    if (grounds === 'cruelty') {
+      items.push({
+        number: null,
+        content:
+          '(Draft — Family-violence procedural options in a Texas divorce: ' +
+          'Petitioner may apply for a protective order in this suit for ' +
+          'dissolution under Texas Family Code §6.504, and for a temporary ' +
+          'restraining order under Texas Family Code §6.501. Many Texas ' +
+          'counties (including Harris County) issue standing family-law ' +
+          'orders on the day the petition is filed that already carry many ' +
+          'of these protections; confirm the local standing order for the ' +
+          'court in which this petition is filed.)',
+        type: 'grounds_draft_note',
+      });
+    }
+
     // v23-A safety subitem (attorney review, 2026-08): when a fault
     // ground (cruelty, adultery, felony conviction, abandonment,
     // confinement, living-apart) is pleaded as the primary ground under
@@ -374,8 +439,13 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       case 'no_fault':
         return 'The marriage of Petitioner and Respondent has become insupportable because of discord or conflict of personalities that destroys the legitimate ends of the marital relationship and prevents any reasonable expectation of reconciliation.';
 
-      case 'cruelty':
-        return 'Respondent was guilty of cruel treatment toward Petitioner of such a nature as to render further living together insupportable.';
+      case 'cruelty': {
+        const base =
+          'Respondent was guilty of cruel treatment toward Petitioner of such a nature as to render further living together insupportable.';
+        const substrate = findCrueltySubstrate(divorceData || {});
+        if (!substrate) return base;
+        return `${base} Petitioner further pleads that the cruel treatment includes ${substrate}, documentation of which Petitioner will produce.`;
+      }
 
       case 'adultery':
         return 'Respondent committed adultery.';
@@ -475,7 +545,18 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // An agreed division (or an explicit no-property case) pleads the
     // parties' actual agreement via the base hooks instead of the
     // generic boilerplate.
-    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+    // Delegate to super for any confirmed no-property or agreed-division
+    // case. `noPropertyConfirmed === true` is treated as an affirmative
+    // no-property finding even when `hasProperty` was never explicitly
+    // set to false — otherwise the "There exists community property..."
+    // presumption below fabricates a community estate against a filer
+    // who told the intake there was none (Mari's TX petition, live
+    // audit 2026-08).
+    if (
+      divorceData.hasProperty === false ||
+      divorceData.noPropertyConfirmed === true ||
+      this.hasAgreedPropertyDivision(divorceData)
+    ) {
       return super.generatePropertySection(divorceData);
     }
 

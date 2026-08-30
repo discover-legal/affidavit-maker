@@ -562,6 +562,8 @@ class BaseDivorcePetitionTemplate {
     if (this.isAltServiceCase(divorceData)) {
       const note = this.getAltServiceNote(divorceData);
       if (note) respondentContent += `\n(Draft — ${note})`;
+    } else if (this.isMissingAddressCase(divorceData)) {
+      respondentContent += `\n(Draft — insert ${t.responderLabel}'s current address before filing, or affirm the address is unknown for alternative-service treatment)`;
     }
     items.push({
       number: paragraphNum++,
@@ -596,14 +598,34 @@ class BaseDivorcePetitionTemplate {
     const raw = typeof divorceData.respondentAddress === 'string'
       ? divorceData.respondentAddress.trim()
       : '';
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
     const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
-    if (!raw) {
-      return `is a resident of this ${t.jurisdictionTerm.toLowerCase()}, or if not, resides at an address unknown to ${t.filerLabel}, in which case ${t.filerLabel} will request alternative service under the applicable rules`;
+    // Sworn-truth flag: petitioner has affirmed the whereabouts are unknown.
+    if (divorceData.respondentAddressUnknown === true) {
+      const suspectedNote = suspected
+        ? ` (${t.filerLabel} has heard, but cannot swear, that ${t.responderLabel} may be in ${suspected})`
+        : '';
+      return `resides at an address unknown to ${t.filerLabel}${suspectedNote}; ${t.filerLabel} will request alternative service under the applicable rules`;
     }
-    if (unknownPattern.test(raw)) {
+    // Well-formed, non-hedged address — plead residence as given.
+    if (raw && !unknownPattern.test(raw)) {
+      return `is a resident of ${raw}`;
+    }
+    // Raw carries an "unknown/no address" hedge — treat as alt-service.
+    if (raw && unknownPattern.test(raw)) {
       return `resides at an address unknown to ${t.filerLabel} (${raw}); ${t.filerLabel} will request alternative service under the applicable rules`;
     }
-    return `is a resident of ${raw}`;
+    // Empty raw + suspected location — alt-service with bracketed caveat.
+    if (!raw && suspected) {
+      return `resides at an address unknown to ${t.filerLabel} (${t.filerLabel} has heard, but cannot swear, that ${t.responderLabel} may be in ${suspected}); ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    // SAFETY GATE (attorney review, 2026-08): silence-derived missing
+    // address. Refuse to fabricate a "resides here / or unknown" hedge —
+    // emit a visible fill-in blank; generatePartiesSection appends a
+    // Draft note asking the filer to confirm or mark unknown before filing.
+    return 'resides at __________________________________________';
   }
 
   /**
@@ -618,12 +640,42 @@ class BaseDivorcePetitionTemplate {
    * @returns {boolean}
    */
   isAltServiceCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return true;
     const raw = typeof divorceData.respondentAddress === 'string'
       ? divorceData.respondentAddress.trim()
       : '';
-    if (!raw) return true;
-    const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
-    return unknownPattern.test(raw);
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
+    if (raw) {
+      const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
+      return unknownPattern.test(raw);
+    }
+    // Empty raw only counts as alt-service when we have a suspected
+    // location the petitioner can't swear to. Silence alone is treated
+    // as a missing-address Draft note by generatePartiesSection, not as
+    // a sworn "resides at an address unknown" allegation.
+    return Boolean(suspected);
+  }
+
+  /**
+   * Whether the data payload has no address information at all — no
+   * sworn-truth flag, no raw address, no suspected location. Distinct
+   * from isAltServiceCase: this triggers a "fill in the address before
+   * filing" Draft note rather than pleading alternative service.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  isMissingAddressCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return false;
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
+    return !raw && !suspected;
   }
 
   /**
@@ -1034,15 +1086,23 @@ class BaseDivorcePetitionTemplate {
     // together with a corroborating signal (`noPropertyConfirmed === true`
     // OR a described `propertyAgreement`). Otherwise emit a visible
     // Draft-note blank so the self-rep filer must confirm before filing.
+    // Nil finding fires on either:
+    //   (a) hasProperty === false + a corroborating signal
+    //       (noPropertyConfirmed === true OR a described propertyAgreement),
+    //   (b) noPropertyConfirmed === true on its own — an affirmative
+    //       user-confirmed "no property" from the intake that shouldn't
+    //       fall through into the boilerplate community-property allegation
+    //       even when hasProperty was never explicitly set to false
+    //       (Mari's TX petition, live audit 2026-08).
     const nilPropertyConfirmed =
-      divorceData.hasProperty === false &&
-      (divorceData.noPropertyConfirmed === true ||
+      divorceData.noPropertyConfirmed === true ||
+      (divorceData.hasProperty === false &&
         (typeof divorceData.propertyAgreement === 'string' &&
           divorceData.propertyAgreement.trim() !== ''));
     if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
-        content: 'There is no community or marital property to be divided.',
+        content: 'The parties own no community or marital property to be divided.',
         type: 'property_info'
       });
     } else if (divorceData.hasProperty === false) {
@@ -1062,7 +1122,7 @@ class BaseDivorcePetitionTemplate {
           type: 'property_agreement'
         });
       }
-    } else {
+    } else if (divorceData.hasProperty === true) {
       items.push({
         number: paragraphNum++,
         content: 'The parties have accumulated community/marital property during the marriage, including but not limited to real property, personal property, and financial accounts.',
@@ -1073,6 +1133,17 @@ class BaseDivorcePetitionTemplate {
         number: paragraphNum++,
         content: `${this.terminology.filerLabel} requests that the Court divide the community/marital property in a just and right manner.`,
         type: 'property_request'
+      });
+    } else {
+      // SAFETY GATE: neither an affirmative "we have property" flag nor a
+      // confirmed no-property finding — refuse to fabricate a
+      // community-property allegation. Emit a Draft-note blank so the
+      // self-rep filer must confirm whether marital property exists
+      // before filing.
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing.)',
+        type: 'property_draft_note'
       });
     }
 

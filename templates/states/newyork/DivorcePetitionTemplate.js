@@ -151,6 +151,52 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Draft note pointing to the NY Uncontested Divorce (UD) packet.
+   * Analogous to the CA FL-100 draft note (attorney round-2, 2026-08-30).
+   */
+  getOfficialFormNote() {
+    return '(Draft — New York Uncontested Divorce Packet forms (UD-1 through UD-13) ' +
+      'are available at https://ww2.nycourts.gov/divorce/forms.shtml. This Verified ' +
+      'Complaint corresponds to UD-2; transcribe or attach it when assembling the ' +
+      'packet for filing.)';
+  }
+
+  /**
+   * Prepend the UD-packet draft note to Section I so every rendering path
+   * surfaces it above the numbered pleading paragraphs.
+   */
+  generatePartiesSection(divorceData) {
+    const base = super.generatePartiesSection(divorceData);
+    const note = this.getOfficialFormNote();
+    if (note) {
+      base.items.unshift({
+        number: null,
+        content: note,
+        type: 'official_form_note',
+      });
+    }
+    return base;
+  }
+
+  /**
+   * 22 NYCRR 202.16(e) no-prior-action disclosure. Every NY matrimonial
+   * complaint must state whether a prior action for divorce, separation,
+   * or annulment has been brought. Attorney round-2 (2026-08-30) flagged
+   * the omission. When priorMatrimonialActions is populated, list them;
+   * otherwise emit the standard denial.
+   */
+  getNoPriorActionDisclosure(divorceData) {
+    const d = divorceData || {};
+    const prior = Array.isArray(d.priorMatrimonialActions)
+      ? d.priorMatrimonialActions.filter(Boolean)
+      : [];
+    if (prior.length > 0) {
+      return `Plaintiff has previously brought the following action(s) for divorce, separation, or annulment: ${prior.join('; ')}. (22 NYCRR 202.16(e).)`;
+    }
+    return 'No prior action for divorce, separation, or annulment has been brought by either party against the other. (22 NYCRR 202.16(e).)';
+  }
+
+  /**
    * Get default court for New York county
    * @param {string} county - County name
    * @returns {string} Court name
@@ -307,6 +353,7 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // stronger showing whenever the underlying fact is present.
     const marriedInNy = divorceData.marriedInNy === true ||
       /new\s*york/i.test(String(divorceData.marriageStateName || '')) ||
+      String(divorceData.marriageStateName || '').trim().toUpperCase() === 'NY' ||
       String(divorceData.marriageState || '').trim().toUpperCase() === 'NY' ||
       /new\s*york/i.test(String(divorceData.marriageLocation || ''));
     const livedAsSpousesInNy = divorceData.livedAsSpousesInNy === true ||
@@ -392,6 +439,14 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       number: paragraphNum++,
       content: groundsText,
       type: 'grounds',
+    });
+
+    // No-prior-action disclosure (22 NYCRR 202.16(e)) — attorney
+    // round-2 (2026-08-30) flagged the omission.
+    items.push({
+      number: paragraphNum++,
+      content: this.getNoPriorActionDisclosure(divorceData),
+      type: 'no_prior_action',
     });
 
     // Uncontested-posture recital — attorney review flagged that the
@@ -575,7 +630,18 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         const rawDob = typeof child === 'object' && child
           ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
           : null;
-        const dobStr = rawDob ? this.formatDate(rawDob) : null;
+        let dobStr = rawDob ? this.formatDate(rawDob) : null;
+        // Year-only fallback (attorney round-2, NY, 2026-08-30): the
+        // transcript may only carry the child's birth year ("Emma born
+        // in 2020"). formatDate rejects a bare year, so we surface the
+        // year plainly rather than emitting "born __________________".
+        if (!dobStr && typeof child === 'object' && child) {
+          const yr = child.birthYear
+            ?? (typeof rawDob === 'string' && /^\d{4}$/.test(rawDob.trim()) ? rawDob.trim() : null);
+          if (yr && /^\d{4}$/.test(String(yr).trim())) {
+            dobStr = String(yr).trim();
+          }
+        }
         const address = (typeof child === 'object' && child
           && (child.currentAddress || child.address || child.residence)) || null;
         const dobPhrase = dobStr ? `born ${dobStr}` : 'born __________________';
@@ -783,6 +849,16 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     if (divorceData.requestNameChange && divorceData.previousName) {
       reliefItems.push(`Authorizing Plaintiff to resume use of the prior surname: ${divorceData.previousName};`);
+    }
+
+    // Uncontested-posture prayer: incorporate the Settlement Agreement
+    // but do NOT merge it into the Judgment of Divorce (NY convention
+    // when the parties resolve all ancillary issues by stipulation).
+    // Attorney round-2 (NY, 2026-08-30) flagged the omission.
+    if (this.hasUncontestedPosture(divorceData)) {
+      reliefItems.push(
+        "Incorporating, but not merging, the parties' Settlement Agreement into the Judgment of Divorce;",
+      );
     }
 
     reliefItems.push('Granting such other and further relief as to this Court seems just and proper.');

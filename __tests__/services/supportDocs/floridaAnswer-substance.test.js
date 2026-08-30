@@ -62,9 +62,15 @@ function textOf(structure) {
 describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', () => {
   test('includes an unmistakable general-denial paragraph', () => {
     const structure = flAnswer(baseFacts);
-    const denials = structure.sections.facts.items.filter((i) => i.type === 'general_denial');
+    const items = structure.sections.facts.items;
+    // Round-2 attorney fix: heading and body are now distinct items so the
+    // heading doesn't consume a numbered paragraph slot.
+    const header = items.find(
+      (i) => i.type === 'section_header' && /GENERAL DENIAL/.test(i.content),
+    );
+    expect(header).toBeDefined();
+    const denials = items.filter((i) => i.type === 'general_denial');
     expect(denials.length).toBe(1);
-    expect(denials[0].content).toMatch(/GENERAL DENIAL/);
     expect(denials[0].content).toMatch(/Respondent denies each and every allegation/);
   });
 
@@ -107,14 +113,25 @@ describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', ()
     const prenup = defenses.find((d) => /PRENUPTIAL AGREEMENT/.test(d.content));
     expect(prenup).toBeDefined();
     expect(prenup.content).toMatch(/dated 2018/);
-    expect(prenup.content).toMatch(/governs the disposition of property/);
+    // FL-specific prenup defense (round-2 override) uses
+    // "governs property division"; the generic base template uses
+    // "governs the disposition of property". Either wording is fine — the
+    // substantive requirement is that the agreement's governance of property
+    // is asserted.
+    expect(prenup.content).toMatch(/governs (?:the disposition of )?propert/i);
     expect(prenup.content).toMatch(/barred/);
     // And the section header item is present so the block is unmistakable.
+    // Round-2 fix: 'AFFIRMATIVE DEFENSES' now sits in a distinct
+    // section_header item ahead of the affirmative_defenses_intro body.
+    const header = structure.sections.facts.items.find(
+      (i) => i.type === 'section_header' && /AFFIRMATIVE DEFENSES/.test(i.content),
+    );
+    expect(header).toBeDefined();
     const intro = structure.sections.facts.items.find(
       (i) => i.type === 'affirmative_defenses_intro',
     );
     expect(intro).toBeDefined();
-    expect(intro.content).toMatch(/AFFIRMATIVE DEFENSES/);
+    expect(intro.content).toMatch(/affirmative defenses are pleaded/);
   });
 
   test('does NOT auto-render the prenup defense when the fact is absent', () => {
@@ -172,9 +189,15 @@ describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', ()
     expect(sections.perjuryStatement).toMatch(/§\s*92\.525/);
   });
 
-  test('items number consecutively from 1 without gaps', () => {
+  test('numbered items number consecutively from 1 without gaps', () => {
     const structure = flAnswer({ ...baseFacts, prenupSigned: true, prenupYear: '2018' });
-    structure.sections.facts.items.forEach((item, idx) => {
+    // Round-2 fix: section_header items are OUT of the numbered flow — they
+    // carry no `number`. Filter them out first, then assert consecutive
+    // 1..N numbering on the remaining content items.
+    const numbered = structure.sections.facts.items.filter(
+      (i) => i.type !== 'section_header',
+    );
+    numbered.forEach((item, idx) => {
       expect(item.number).toBe(idx + 1);
     });
   });
@@ -199,6 +222,18 @@ describe.each(OTHER_JURISDICTIONS)(
       const general = structure.sections.facts.items.filter((i) => i.type === 'general_denial');
       expect(general.length).toBe(1);
       expect(general[0].content).toMatch(new RegExp(`${filerLabel} denies each and every`));
+      // Round-2 fix: heading lives in a distinct section_header (base
+      // scaffold) OR form10_header (Ontario's Form 10 supplies its own
+      // PART A / B / C headings instead of the generic GENERAL DENIAL
+      // banner) item. Either shape signals the pleading is properly split.
+      const items = structure.sections.facts.items;
+      const genericHeader = items.find(
+        (i) => i.type === 'section_header' && /GENERAL DENIAL/.test(i.content),
+      );
+      const form10Header = items.find(
+        (i) => i.type === 'form10_header' && /PART A/.test(i.content),
+      );
+      expect(Boolean(genericHeader) || Boolean(form10Header)).toBe(true);
       const positions = structure.sections.facts.items.filter((i) => i.type === 'answer_position');
       expect(positions.length).toBeGreaterThanOrEqual(8);
     });

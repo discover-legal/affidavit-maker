@@ -54,6 +54,40 @@ const answerToPetition = createAnswerBuilder({
       `IN AND FOR ${county.toUpperCase()} COUNTY, FLORIDA`
     );
   },
+  /**
+   * FL-specific prenup affirmative defense (attorney round-2, Tavita,
+   * 2026-08-30). Cites Fla. Stat. § 61.079 (Florida Uniform Premarital
+   * Agreement Act) as the governing enforcement statute and § 61.075 as
+   * the equitable-distribution frame the prenup displaces. Also
+   * expressly denies the "marital" characterization of assets identified
+   * in the Petition, which round-2 flagged as lumped in Answer ¶8.
+   */
+  prenupDefense(data, { year, dateFragment }) {
+    void year;
+    return (
+      'PRENUPTIAL AGREEMENT. Respondent affirmatively pleads a prenuptial ' +
+      `agreement${dateFragment} executed with independent counsel on both sides, which ` +
+      'governs property division and precludes alimony. Respondent will seek ' +
+      'enforcement of the prenuptial agreement pursuant to Fla. Stat. § 61.079 ' +
+      '(Florida Uniform Premarital Agreement Act) and § 61.075 (equitable ' +
+      'distribution). Respondent specifically denies that the assets and debts ' +
+      'identified in the Petition are marital to the extent the prenuptial ' +
+      'agreement characterizes them as separate property, and any claim ' +
+      'inconsistent with the prenuptial agreement is barred.'
+    );
+  },
+  answerWherefore(data, parties) {
+    void data;
+    void parties;
+    return (
+      'WHEREFORE, Respondent respectfully requests that the Court: (a) dismiss or ' +
+      "deny the relief sought in the Petition for Dissolution of Marriage to the extent " +
+      "inconsistent with the parties' prenuptial agreement; (b) enforce the parties' " +
+      'prenuptial agreement pursuant to Fla. Stat. §§ 61.079 and 61.075; (c) preserve ' +
+      'all affirmative defenses and rights not expressly waived; and (d) grant such ' +
+      'other and further relief as the Court deems just and proper.'
+    );
+  },
   residencyClause(data) {
     const { county } = fromData(data);
     return (

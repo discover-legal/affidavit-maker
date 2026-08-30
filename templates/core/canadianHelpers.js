@@ -49,11 +49,18 @@ function addDays(ts, days) {
 }
 
 function formatLongDate(ts) {
+  // timeZone: 'UTC' fixes the day-drift bug (Sarah AB round-2): an ISO
+  // date-only string like "2026-02-27" parses as UTC midnight; a local
+  // toLocaleDateString west of UTC then renders "February 26". The base
+  // dateUtils.formatDate already formats in UTC, so anchoring here as well
+  // means the marriage-info paragraph and the grounds paragraph both name
+  // the same day.
   try {
     return new Date(ts).toLocaleDateString('en-CA', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'UTC',
     });
   } catch (_e) {
     return new Date(ts).toISOString().slice(0, 10);
@@ -113,14 +120,20 @@ function oneYearSeparationPleading(divorceData, opts = {}) {
       gate,
     };
   }
+  // Refactor (Sarah AB round-2): pure future-tense operative plea — no
+  // "have been separated since" lead-in that reads as though it were
+  // asserting the current-tense one-year ground (self-defeating when
+  // paired with a "not yet met" draft note). We render EITHER the future-
+  // tense plea (below) OR the traditional current-tense assertion
+  // (above), never both.
   return {
     text:
-      `The spouses have been separated since ${gate.separationDate} and will have been living ` +
-      `separate and apart for at least one year by ${gate.oneYearMarkDate}, as required by ` +
-      `${statuteCite}, by the time the Court considers the granting of a Divorce Order. ` +
-      '(Draft — the one-year separation requirement is not yet met; consider filing on ' +
-      'cruelty (s.8(2)(b)(ii)) or adultery (s.8(2)(b)(i)) grounds instead, or wait until ' +
-      `${gate.oneYearMarkDate}.)`,
+      `The spouses will have been living separate and apart for at least one year by ` +
+      `${gate.oneYearMarkDate}, within the meaning of ${statuteCite}, by the time the Court ` +
+      'considers the granting of a Divorce Order.\n' +
+      `(Draft — do not file until ${gate.oneYearMarkDate}; alternative fault grounds are ` +
+      'pleadable now: cruelty (Divorce Act s.8(2)(b)(ii)), adultery (Divorce Act ' +
+      's.8(2)(b)(i)).)',
     gate,
   };
 }
@@ -216,12 +229,81 @@ function normalizeCanadianDivorceData(input) {
   return out;
 }
 
+/**
+ * Extract the four-digit year from a value the base date helpers won't
+ * accept as renderable ("2011", 2011, "born 2011"). Returns null when no
+ * bare-year signal is present. Sarah AB round-2: interview captured
+ * "Layla 2011, Zayn 2014" and children DOBs landed as year-only strings;
+ * the base formatDate returns null for those, so the AB template used to
+ * emit a blank + "insert exact date of birth" note. When the drafter has
+ * given the year, we render it as "in <year>" and skip the blank.
+ */
+function yearOnlyOf(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const m = s.match(/(?:^|\D)(19\d{2}|20\d{2})(?:\D|$)/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Whether the profile carries any signal that supports a Federal Child
+ * Support Guidelines s.19 income-imputation request. Explicit position
+ * text, a self-employment flag, or an income-underreporting flag each
+ * count. The Alberta template uses this as the trigger for the s.19
+ * factual/relief paragraphs.
+ */
+function shouldPleadIncomeImputation(d) {
+  if (!d || typeof d !== 'object') return false;
+  if (incomeImputationPosition(d)) return true;
+  const boolish = (v) => v === true || v === 'true' || v === 1 || v === '1';
+  return (
+    boolish(d.respondentSelfEmployed) ||
+    boolish(d.respondent_self_employed) ||
+    boolish(d.selfEmployedPayor) ||
+    boolish(d.incomeUnderreporting) ||
+    boolish(d.income_underreporting) ||
+    boolish(d.childSupportImputationRequested) ||
+    boolish(d.child_support_imputation_requested)
+  );
+}
+
+/**
+ * Collect free-text factual detail supporting an income-imputation
+ * pleading. Any string values found under the known keys are returned;
+ * the template renders each as a sworn factual paragraph.
+ */
+function incomeImputationFacts(d) {
+  if (!d || typeof d !== 'object') return [];
+  const keys = [
+    'incomeUnderreportingDetail',
+    'income_underreporting_detail',
+    'respondentIncomeDetail',
+    'respondent_income_detail',
+    'imputationBasis',
+    'imputation_basis',
+    'payorIncomeVariability',
+    'payor_income_variability',
+  ];
+  const out = [];
+  for (const k of keys) {
+    const v = d[k];
+    if (typeof v === 'string' && v.trim()) out.push(v.trim());
+  }
+  const pos = incomeImputationPosition(d);
+  if (pos && !out.includes(pos)) out.push(pos);
+  return out;
+}
+
 module.exports = {
   evaluateOneYearSeparation,
   oneYearSeparationPleading,
   custodyDisputePosition,
   incomeImputationPosition,
+  shouldPleadIncomeImputation,
+  incomeImputationFacts,
   normalizeCanadianDivorceData,
   formatLongDate,
   parseDate,
+  yearOnlyOf,
 };

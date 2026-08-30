@@ -546,6 +546,30 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * `apn`. Returns an empty array when the profile has no such items —
    * the section then falls back to the generic FL-160 catch-all.
    */
+  /**
+   * Does the case data carry a positive 50/50 (equal) community-property
+   * division? Detected via the `standardPropertyDivision` /
+   * `equalPropertyDivision` profile flag or a fact whose text mentions
+   * an even / equal / 50-50 split. Attorney round-2 (CA Alison,
+   * 2026-08-30) flagged that an agreed even split was being buried
+   * under the "will agree…" hedge.
+   */
+  hasStandardPropertyDivision(divorceData) {
+    const d = divorceData || {};
+    if (d.standardPropertyDivision === true) return true;
+    if (d.equalPropertyDivision === true) return true;
+    const facts = Array.isArray(d.facts) ? d.facts : [];
+    const re = /\b(50\s*[\-/]\s*50|standard\s+(?:50\/50|even|equal)\s+split|equal(?:ly)?\s+(?:divide|division|split)|even\s+split)\b/i;
+    for (const f of facts) {
+      if (!f) continue;
+      const text = typeof f === 'string' ? f
+        : (typeof f.content === 'string' ? f.content
+          : typeof f.text === 'string' ? f.text : '');
+      if (text && re.test(text)) return true;
+    }
+    return false;
+  }
+
   collectRealEstateItems(divorceData) {
     const d = divorceData || {};
     const sources = []
@@ -639,11 +663,25 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 14;
 
-    items.push({
-      number: paragraphNum++,
-      content: `Petitioner and Respondent will agree to a division of community property and debts, or alternatively, Petitioner requests the Court to determine rights to community and quasi-community assets and debts.`,
-      type: 'property_info'
-    });
+    // Positive 50/50 agreement (attorney round-2, CA Alison,
+    // 2026-08-30): when the profile carries standardPropertyDivision=true
+    // or a fact mentioning an equal/50-50 split, plead affirmatively
+    // under Fam. Code § 2550 instead of the "will agree… or
+    // alternatively" hedge.
+    if (this.hasStandardPropertyDivision(divorceData)) {
+      items.push({
+        number: paragraphNum++,
+        content:
+          'Petitioner requests an equal (50/50) division of the community and quasi-community property and debts of the parties pursuant to Family Code § 2550.',
+        type: 'property_request',
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: `Petitioner and Respondent will agree to a division of community property and debts, or alternatively, Petitioner requests the Court to determine rights to community and quasi-community assets and debts.`,
+        type: 'property_info'
+      });
+    }
 
     // Itemize real property from the profile when the case data carries
     // it. Attorney review (2026-08) flagged that the Poway home stored on

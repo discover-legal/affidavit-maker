@@ -570,18 +570,60 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 }
 
+/**
+ * "Wants X" scrubber (attorney round-2, Marcus, ON, 2026-08-30). The
+ * contested-issue recital used to inline the raw profile string, which meant
+ * an "IT IS ORDERED" clause could read as "The Respondent wants more
+ * mid-week parenting time; the specific schedule remains to be proposed" —
+ * a wish, not an order. Rewrite any leading "the X wants Y" phrasing into a
+ * neutral "seeks Y" preamble and cut the "remains to be proposed" clause
+ * (which is not something a court orders). Preserves the underlying
+ * substance so the decree still records what the party is asking for.
+ */
+function neutralizePartyWish(text) {
+  if (typeof text !== 'string') return '';
+  let out = text.trim();
+  out = out.replace(
+    /\bthe\s+(applicant|respondent|petitioner)\s+wants\s+/i,
+    'the $1 seeks ',
+  );
+  out = out.replace(/\bwants\b/gi, 'seeks');
+  out = out.replace(
+    /;?\s*the\s+specific\s+(?:schedule|arrangement|amount)\s+remains\s+to\s+be\s+(?:proposed|determined|filed|set)\.?\s*$/i,
+    '',
+  );
+  return out.trim();
+}
+
 function appendContestedIssuesOntarioDecree(doc, data) {
   const custody = custodyDisputePosition(data);
   const imputation = incomeImputationPosition(data);
   if (!custody && !imputation) return;
   const items = [];
   if (custody) {
+    // Attribute the position to whichever party actually holds it — the
+    // template used to hard-code "Applicant's contested parenting-time
+    // position", which lied when the respondent is the disputing party
+    // (Marcus, ON). Fall back to a neutral "a party's" phrasing rather
+    // than mis-attributing.
+    const role = String(data.role || '').trim().toLowerCase();
+    const attributedParty =
+      role === 'respondent'
+        ? "the Respondent's"
+        : role === 'applicant' || role === 'petitioner'
+          ? "the Applicant's"
+          : "a party's";
+    const cleaned = neutralizePartyWish(custody);
     items.push({
+      // PREAMBLE / RECITAL — a court finding under s.16(2), not an
+      // operative "IT IS ORDERED" clause. The decree's operative parenting
+      // order still lives in generateChildCustodySection().
       content:
-        `The Court has considered the Applicant's contested parenting-time position: ${custody}. ` +
-        `The Court makes a parenting order under section 16.5 of the Divorce Act on the basis ` +
-        `of changed circumstances in the best interests of the child(ren) (Divorce Act, s.16(2)).`,
-      type: 'contested_issue',
+        `The Court has considered ${attributedParty} contested parenting-time ` +
+        `position: ${cleaned}. The Court makes a parenting order under section ` +
+        `16.5 of the Divorce Act on the basis of changed circumstances in the ` +
+        `best interests of the child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue_preamble',
     });
   }
   if (imputation) {
@@ -589,7 +631,7 @@ function appendContestedIssuesOntarioDecree(doc, data) {
       content:
         `IT IS ORDERED, pursuant to section 19 of the Federal Child Support Guidelines, ` +
         `SOR/97-175, that income is imputed to the child-support payor on the following basis: ` +
-        `${imputation}.`,
+        `${neutralizePartyWish(imputation)}.`,
       type: 'contested_issue',
     });
   }

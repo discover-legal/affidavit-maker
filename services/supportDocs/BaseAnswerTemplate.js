@@ -51,6 +51,59 @@ const crypto = require('node:crypto');
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
 
+// Two-letter jurisdiction codes for Canadian provinces / territories. When the
+// answer is being built for one of these, the US-idiom filter rewrites tokens
+// that would read wrong in a Canadian court file (alimony → spousal support,
+// attorney's fees → costs, Case No. → Court File No., v. → AND BETWEEN, etc.).
+const CANADIAN_STATES = new Set(['ON', 'AB', 'BC', 'QC', 'MB', 'SK', 'NS', 'NB', 'PE', 'NL', 'YT', 'NT', 'NU']);
+
+function isCanadianState(state) {
+  return CANADIAN_STATES.has(String(state || '').trim().toUpperCase());
+}
+
+/**
+ * Rewrite US-legal-vernacular tokens to Canadian equivalents. Applied to every
+ * emitted string in the final structure when the builder's configured state is
+ * Canadian. Strict token filter, word-boundary regex.
+ *
+ *   alimony              → spousal support
+ *   attorney's fees      → costs
+ *   attorneys' fees      → costs
+ *   attorney fees        → costs
+ *   Case No.             → Court File No.
+ *   ' v. ' (in caption)  → ' AND BETWEEN '
+ */
+function canadianize(text) {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  return text
+    .replace(/\bspousal support or alimony\b/gi, 'spousal support')
+    .replace(/\balimony\b/gi, 'spousal support')
+    .replace(/\battorney(?:'s|s'|s)?\s+fees\s+and\s+costs\b/gi, 'costs')
+    .replace(/\battorney(?:'s|s'|s)?\s+fees\b/gi, 'costs')
+    .replace(/\battorney\s+fees\b/gi, 'costs')
+    .replace(/\bCase No\./g, 'Court File No.')
+    .replace(/(\n|^)\s*v\.\s*(\n|$)/g, '$1AND$2')
+    .replace(/(\S)\s+v\.\s+(\S)/g, '$1 AND BETWEEN $2');
+}
+
+/** Recursively canadianize every human-facing string in the given structure. */
+function canadianizeStructure(node) {
+  if (node == null) return node;
+  if (typeof node === 'string') return canadianize(node);
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i += 1) node[i] = canadianizeStructure(node[i]);
+    return node;
+  }
+  if (typeof node === 'object') {
+    for (const key of Object.keys(node)) {
+      if (key === 'id' || key === 'state' || key === 'documentType' || key === 'kind' || key === 'type' || key === 'scaffoldKey' || key === 'timestamp') continue;
+      node[key] = canadianizeStructure(node[key]);
+    }
+    return node;
+  }
+  return node;
+}
+
 // ─── generic helpers ────────────────────────────────────────────────────────
 
 function str(value) {
@@ -318,15 +371,24 @@ function scaffoldResponseLine(filerLabel, topic) {
 function buildAffirmativeDefenses(data, config) {
   const defenses = [];
 
-  // Prenup — Fla. R. Civ. P. 1.140(b)/(h): unpleaded, waived.
+  // Prenup — Fla. R. Civ. P. 1.140(b)/(h): unpleaded, waived. Jurisdictions
+  // can override the boilerplate via config.prenupDefense(data, meta) — for
+  // example, FL's config cites §§ 61.079 / 61.075 explicitly (attorney
+  // round-2, Tavita, 2026-08-30).
   if (data.prenupSigned === true) {
-    const year = str(data.prenupYear) || str(data.prenupDate);
+    const year =
+      str(data.prenupYear) || str(data.prenupDate) || str(data.prenupSignedYear);
     const dateFragment = year ? ` dated ${year}` : ` dated ${BLANK_SHORT}`;
+    const override =
+      typeof config.prenupDefense === 'function'
+        ? config.prenupDefense(data, { year, dateFragment })
+        : '';
     defenses.push(
-      `PRENUPTIAL AGREEMENT. The parties entered into a valid prenuptial agreement${dateFragment}, ` +
-        'which governs the disposition of property and debts between the parties. Any claim ' +
-        'inconsistent with the prenuptial agreement is barred, and the agreement is pleaded ' +
-        'as an affirmative defense and, where applicable, as a bar to relief.',
+      str(override) ||
+        `PRENUPTIAL AGREEMENT. The parties entered into a valid prenuptial agreement${dateFragment}, ` +
+          'which governs the disposition of property and debts between the parties. Any claim ' +
+          'inconsistent with the prenuptial agreement is barred, and the agreement is pleaded ' +
+          'as an affirmative defense and, where applicable, as a bar to relief.',
     );
   }
 
@@ -518,14 +580,21 @@ function createAnswerBuilder(config) {
 
     const items = [];
     let number = 1;
+    const pushHeader = (content) => {
+      // Attorney round-2 (Marcus, ON): section headings live in their own
+      // `section_header` items with NO number so the numbered paragraph flow
+      // no longer reads as "1. GENERAL DENIAL / 2. Except..." interleaved.
+      items.push({ content, type: 'section_header' });
+    };
 
     // ── (1) General denial — anchor the pleading so unclassified allegations
     //         are NOT deemed admitted (Fla. R. Civ. P. 1.110(e) and the
     //         equivalent rules in every other supported jurisdiction).
+    pushHeader('GENERAL DENIAL');
     items.push({
       number: number++,
       content:
-        `GENERAL DENIAL. Except as expressly admitted below, ${filerLabel} denies each and ` +
+        `Except as expressly admitted below, ${filerLabel} denies each and ` +
         `every allegation of the ${petitionTerm}.`,
       type: 'general_denial',
     });
@@ -585,10 +654,11 @@ function createAnswerBuilder(config) {
     // ── (3) Affirmative defenses ──
     const defenses = buildAffirmativeDefenses(data, config);
     if (defenses.length > 0) {
+      pushHeader('AFFIRMATIVE DEFENSES');
       items.push({
         number: number++,
         content:
-          'AFFIRMATIVE DEFENSES. The following affirmative defenses are pleaded and, to the ' +
+          'The following affirmative defenses are pleaded and, to the ' +
           'extent required by the applicable rules of procedure, are raised now to avoid waiver:',
         type: 'affirmative_defenses_intro',
       });
@@ -605,6 +675,7 @@ function createAnswerBuilder(config) {
     //         a counterclaim alongside — otherwise the counterclaim itself
     //         supplies the affirmative relief).
     if (!includeCounterclaim) {
+      pushHeader('COUNTER-PETITION OFFER');
       items.push({
         number: number++,
         content: buildCounterPetitionOffer(config, filerLabel, opposingLabel),
@@ -621,12 +692,27 @@ function createAnswerBuilder(config) {
       });
     }
 
+    // ── (5b) Optional WHEREFORE closing — jurisdictions supply
+    //         config.answerWherefore(data, parties). Attorney round-2 (Tavita,
+    //         FL): FL Answer must carry a WHEREFORE preserving defenses.
+    if (typeof config.answerWherefore === 'function') {
+      const wherefore = str(config.answerWherefore(data, parties));
+      if (wherefore) {
+        items.push({
+          number: number++,
+          content: wherefore,
+          type: 'answer_wherefore',
+        });
+      }
+    }
+
     // ── (6) Counterclaim (only when the user turned it on) ──
     if (includeCounterclaim) {
+      pushHeader(counterTitle);
       items.push({
         number: number++,
         content:
-          `${counterTitle}\n\nFor a counterclaim against ${opposingLabel}, ` +
+          `For a counterclaim against ${opposingLabel}, ` +
           `${parties.petitioner}, ${filerLabel} alleges:`,
         type: 'counterclaim_intro',
       });
@@ -723,7 +809,7 @@ function createAnswerBuilder(config) {
       opts,
     );
 
-    return baseStructure(
+    const structure = baseStructure(
       {
         filerBlock: filerBlock(data, parties.respondent, signatureRoleLine),
         header,
@@ -736,6 +822,11 @@ function createAnswerBuilder(config) {
       },
       opts,
     );
+
+    // Canadian jurisdictions: rewrite US-idiom tokens leaking from the shared
+    // scaffold and the default caption. Round-2 attorney review (Marcus, ON).
+    if (isCanadianState(state)) canadianizeStructure(structure);
+    return structure;
   }
 
   return build;
@@ -743,6 +834,9 @@ function createAnswerBuilder(config) {
 
 module.exports = {
   createAnswerBuilder,
+  isCanadianState,
+  canadianize,
+  canadianizeStructure,
   // exported for jurisdiction files that want to reuse the same primitives
   BLANK_SHORT,
   BLANK_LINE,

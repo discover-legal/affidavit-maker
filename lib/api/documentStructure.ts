@@ -216,7 +216,15 @@ const PACKAGE_SUB_DOCUMENTS_BY_ROLE: Readonly<
   Record<'petitioner' | 'respondent', Readonly<Record<string, readonly GenerationDocumentType[]>>>
 > = {
   petitioner: {
-    divorce_package: ['divorce_petition', 'divorce_decree'],
+    // Sarah AB round-2 (mirroring Marcus ON respondent fix): a proposed
+    // Divorce Judgment / Decree is a post-hearing or on-consent document;
+    // it does not belong in an initiating packet next to the Statement of
+    // Claim / Petition, which is what the petitioner files to open the
+    // action. The eventual Judgment view is available on its own tab (or
+    // as a separate finalization packet); the initiating packet ships the
+    // petition alone. Coordinate with v25-B (respondent packet) — both
+    // roles now drop the decree from divorce_package.
+    divorce_package: ['divorce_petition'],
   },
   respondent: {
     // Bug 1 (Tavita, FL): respondents need the Answer/Response to file
@@ -341,12 +349,20 @@ export function buildDocumentStructure(
   state: string,
   data: AffidavitData,
 ): unknown {
+  const role = (data as Record<string, unknown>).role as string | undefined;
   const resolvedType = resolveGenerationDocumentType(
     data.documentType,
     data.activeSubDocument,
-    (data as Record<string, unknown>).role as string | undefined,
+    role,
   );
-  return buildDocumentStructureForType(templateManager, state, data, resolvedType);
+  // Respondent + decree — even standalone, outside a packet expansion —
+  // must render with the REFERENCE — NOT FOR FILING banner. A respondent
+  // does not file the Final Judgment/Decree; the court signs it. Attorney
+  // round-2 (FL Tavita, 2026-08-30) flagged the marker missing when the
+  // decree was generated on its own.
+  return buildDocumentStructureForType(templateManager, state, data, resolvedType, {
+    renderContext: packetRenderContextFor(role, resolvedType),
+  });
 }
 
 /**

@@ -22,6 +22,86 @@ function stripLeadingHedge(text) {
   return out.trim();
 }
 
+// Attorney round-2 (2026-08): mirror of the TX helper — surface the
+// factual substrate for a cruelty ground when the profile carries it.
+// Never mutate the shared groundsResolver; this runs only after
+// cruel_treatment has already resolved.
+const CRUELTY_SUBCAT_PATTERN =
+  /(cruelty|cruel[_\s]treatment|physical[_\s]abuse|domestic[_\s]violence|family[_\s]violence)/i;
+const CRUELTY_KEYWORD_PATTERN =
+  /\b(hospital|er\b|emergency[_\s-]?room|police|documented|documentation|witness(es|ed)?|medical\s+records|police\s+report(s)?|photograph(s|ed)?|photos)\b/i;
+
+function normalizeSubstrateDescription(raw) {
+  if (typeof raw !== 'string') return '';
+  return raw.trim().replace(/\s+/g, ' ').replace(/[.;,\s]+$/, '');
+}
+
+function findCrueltySubstrate(divorceData) {
+  const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
+  let fallback = null;
+  for (const fact of facts) {
+    if (!fact || typeof fact !== 'object') continue;
+    const category = String(fact.category || '').toLowerCase();
+    const subcat = String(fact.subcategory || '');
+    const content = String(fact.content || fact.text || fact.value || '');
+    const sourceQuote = String(fact.sourceQuote || '');
+    const searchBlob = `${subcat} ${content} ${sourceQuote}`;
+    const subcatHit = CRUELTY_SUBCAT_PATTERN.test(subcat);
+    const keywordHit = CRUELTY_KEYWORD_PATTERN.test(searchBlob);
+    if (!subcatHit && !keywordHit) continue;
+    const desc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    if (!desc) continue;
+    if (category === 'grounds' || category === 'ground' || subcatHit) {
+      return desc;
+    }
+    if (!fallback) fallback = desc;
+  }
+  return fallback;
+}
+
+// Attorney round-2 (2026-08): Amara prayer said "legal and physical
+// custody of the minor child(ren) in their best interests" when the
+// transcript was unambiguous: sole legal + sole physical, supervised
+// visitation only. Trigger on the structured `custodyPreference`
+// enum or on facts whose subcategory/content names a sole-custody +
+// supervised-visitation request. Detection is intentionally narrow —
+// generic "best interests" language stays the default whenever the
+// profile hasn't stated a specific ask.
+const SOLE_CUSTODY_PATTERN =
+  /\b(sole\s+legal(\s+and\s+(sole\s+)?physical)?|sole\s+physical|sole\s+custody|full\s+custody|primary\s+sole)\b/i;
+const SUPERVISED_VISIT_PATTERN =
+  /\b(supervised\s+(visit(s|ation|ing)?|parenting[_\s-]?time|contact|access)|visitation\s+supervised|no[-\s]visitation|no\s+visits?)\b/i;
+
+function detectSoleCustodyRequest(divorceData) {
+  const d = divorceData || {};
+  if (typeof d.custodyPreference === 'string') {
+    const cp = d.custodyPreference.toLowerCase().trim();
+    if (cp === 'sole_legal_sole_physical' || cp === 'sole') {
+      return {
+        sole: true,
+        supervised: d.visitationPreference === 'supervised'
+          || d.supervisedVisitation === true
+          || SUPERVISED_VISIT_PATTERN.test(String(d.visitationPreference || '')),
+      };
+    }
+  }
+  const facts = Array.isArray(d.facts) ? d.facts : [];
+  let sole = false;
+  let supervised = false;
+  for (const fact of facts) {
+    if (!fact || typeof fact !== 'object') continue;
+    const blob = [
+      fact.subcategory || '',
+      fact.content || fact.text || fact.value || '',
+      fact.sourceQuote || '',
+    ].join(' ');
+    if (SOLE_CUSTODY_PATTERN.test(blob)) sole = true;
+    if (SUPERVISED_VISIT_PATTERN.test(blob)) supervised = true;
+    if (sole && supervised) break;
+  }
+  return { sole, supervised };
+}
+
 /**
  * Georgia Complaint for Divorce Template
  *
@@ -256,7 +336,17 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Venue reason
    */
   getVenueReason(divorceData) {
-    return `Defendant resides in ${divorceData.county || '[COUNTY]'} County, Georgia, or, in the alternative, Plaintiff resides in this county`;
+    const county = divorceData.county || '[COUNTY]';
+    // Nonresident-defendant venue: when the petitioner has affirmed the
+    // Defendant's whereabouts are unknown (or that Defendant has left
+    // Georgia — Amara v-round-2 audit, 2026-08 — Defendant moved to
+    // Alabama), the "Defendant resides in [county] County, Georgia"
+    // clause is a fabrication. Plead the O.C.G.A. § 19-5-2
+    // Plaintiff-residency venue basis instead.
+    if (divorceData.respondentAddressUnknown === true) {
+      return `Defendant is a nonresident of Georgia; venue is proper in ${county} County under O.C.G.A. § 19-5-2 because Plaintiff is a bona fide resident of ${county} County`;
+    }
+    return `Defendant resides in ${county} County, Georgia, or, in the alternative, Plaintiff resides in this county`;
   }
 
   /**
@@ -268,13 +358,35 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 8;
 
-    const groundsText = this.getGroundsText(resolveGroundsForDivorce(divorceData));
+    const grounds = resolveGroundsForDivorce(divorceData);
+    const groundsText = this.getGroundsText(grounds, divorceData);
 
     items.push({
       number: paragraphNum++,
       content: groundsText,
       type: 'grounds'
     });
+
+    // Attorney round-2 (2026-08): a cruelty petition should surface
+    // Georgia's family-violence procedural options — the client may not
+    // know about the Family Violence Protection Act TPO (O.C.G.A.
+    // §19-13-1 et seq.) or the presumption against awarding custody to
+    // a family-violence perpetrator (O.C.G.A. §19-9-3(a)(4)).
+    if (grounds === 'cruel_treatment' || grounds === 'cruelty') {
+      items.push({
+        number: null,
+        content:
+          '(Draft — Family-violence procedural options in Georgia: ' +
+          'Plaintiff may petition for a temporary protective order under ' +
+          'the Family Violence Protection Act, O.C.G.A. §19-13-1 et seq., ' +
+          'either in this action or as a separate proceeding. In any ' +
+          'custody determination, the court must consider evidence of ' +
+          'family violence under O.C.G.A. §19-9-3(a)(4), and there is a ' +
+          'presumption against awarding sole or joint custody to a parent ' +
+          'who has committed family violence.)',
+        type: 'grounds_draft_note',
+      });
+    }
 
     return {
       title: 'IV. GROUNDS FOR DIVORCE',
@@ -288,7 +400,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @param {string} grounds - Grounds code
    * @returns {string} Grounds text
    */
-  getGroundsText(grounds) {
+  getGroundsText(grounds, divorceData) {
     switch (grounds) {
       case 'irretrievably_broken':
       case 'irreconcilable_differences':
@@ -300,8 +412,13 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       case 'desertion':
         return 'Defendant has wilfully and continuously deserted Plaintiff for a term of one (1) year. (O.C.G.A. § 19-5-3(7))';
       case 'cruel_treatment':
-      case 'cruelty':
-        return 'Defendant has engaged in cruel treatment toward Plaintiff, consisting of the willful infliction of pain, bodily or mental, upon Plaintiff, such as reasonably justifies apprehension of danger to life, limb, or health. (O.C.G.A. § 19-5-3(10))';
+      case 'cruelty': {
+        const base =
+          'Defendant has engaged in cruel treatment toward Plaintiff, consisting of the willful infliction of pain, bodily or mental, upon Plaintiff, such as reasonably justifies apprehension of danger to life, limb, or health. (O.C.G.A. § 19-5-3(10))';
+        const substrate = findCrueltySubstrate(divorceData || {});
+        if (!substrate) return base;
+        return `${base} Plaintiff further pleads that the cruel treatment includes ${substrate}, documentation of which Plaintiff will produce.`;
+      }
       case 'habitual_intoxication':
         return 'Defendant is guilty of habitual intoxication. (O.C.G.A. § 19-5-3(9))';
       case 'habitual_drug_use':
@@ -579,8 +696,23 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     ];
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Award legal and physical custody of the minor child(ren) in their best interests;');
-      reliefItems.push('Establish a parenting time schedule;');
+      // Attorney round-2 (2026-08): mirror the profile's actual ask when
+      // the client has stated one. A generic "best interests" prayer over
+      // an unambiguous sole-legal + sole-physical + supervised-visitation
+      // request understates the relief sought.
+      const soleReq = detectSoleCustodyRequest(divorceData);
+      const plaintiffName = divorceData.petitionerName || 'Plaintiff';
+      if (soleReq.sole) {
+        reliefItems.push(`Award ${plaintiffName} sole legal custody and sole physical custody of the minor child(ren);`);
+        if (soleReq.supervised) {
+          reliefItems.push('Order that Defendant\'s visitation with the minor child(ren), if any, be supervised;');
+        } else {
+          reliefItems.push('Establish a parenting time schedule that serves the best interests of the child(ren);');
+        }
+      } else {
+        reliefItems.push('Award legal and physical custody of the minor child(ren) in their best interests;');
+        reliefItems.push('Establish a parenting time schedule;');
+      }
       reliefItems.push('Order child support in accordance with O.C.G.A. § 19-6-15 guidelines;');
     }
 

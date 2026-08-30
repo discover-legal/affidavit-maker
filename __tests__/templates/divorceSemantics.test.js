@@ -362,7 +362,12 @@ describe('US base petition pleads the agreed relief', () => {
       hasMinorChildren: true,
       children: [{ name: 'Riley Quinn', dob: '2015-04-02' }],
     }).fullText;
-    expect(genericText).toContain('divide the community/marital property in a just and right manner');
+    // Attorney round-2 (2026-08): a bare petition without an affirmative
+    // hasProperty flag no longer emits the community-property allegation
+    // — it emits a Draft-note blank so the filer must confirm before
+    // filing (see __tests__/templates/no-fabricated-property.test.js).
+    expect(genericText).not.toContain('divide the community/marital property in a just and right manner');
+    expect(genericText).toMatch(/\(Draft — confirm whether you and your spouse have any marital\/community property/);
     expect(genericText).toContain('Order child support in accordance with state guidelines;');
     expect(genericText).not.toContain('The parties have agreed');
   });

@@ -10,8 +10,12 @@ const {
   oneYearSeparationPleading,
   custodyDisputePosition,
   incomeImputationPosition,
+  shouldPleadIncomeImputation,
+  incomeImputationFacts,
   normalizeCanadianDivorceData,
+  yearOnlyOf,
 } = require('../../core/canadianHelpers');
+const { asList } = require('../../core/dataShapes');
 
 /**
  * Alberta Divorce Template — Statement of Claim for Divorce
@@ -231,10 +235,25 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         if (typeof child === 'string') {
           childInfo = child;
         } else {
-          const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
-          const dobDisplay = childDob || '__________________';
-          const draftNote = childDob ? '' : '\n(Draft — insert exact date of birth before filing)';
-          childInfo = `${child.name || '[CHILD NAME]'}, born ${dobDisplay}${draftNote}`;
+          const rawDob = child.birthDate ?? child.dob ?? child.dateOfBirth;
+          const childDob = this.formatDate(rawDob);
+          const yearOnly = childDob ? null : yearOnlyOf(rawDob);
+          let dobDisplay;
+          let draftNote;
+          if (childDob) {
+            dobDisplay = `born ${childDob}`;
+            draftNote = '';
+          } else if (yearOnly) {
+            // Sarah AB round-2: profile carried year-only DOBs (Layla 2011,
+            // Zayn 2014). Render the year rather than a bare blank and
+            // still ask the drafter to add the exact day/month.
+            dobDisplay = `born in ${yearOnly}`;
+            draftNote = '\n(Draft — insert exact date of birth before filing)';
+          } else {
+            dobDisplay = 'born __________________';
+            draftNote = '\n(Draft — insert exact date of birth before filing)';
+          }
+          childInfo = `${child.name || '[CHILD NAME]'}, ${dobDisplay}${draftNote}`;
         }
         items.push({
           number: paragraphNum++,
@@ -450,6 +469,16 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
       reliefItems.push('A parenting order specifying parenting time and decision-making responsibility pursuant to section 16.1 of the Divorce Act;');
       reliefItems.push('A child support order pursuant to section 15.1 of the Divorce Act and the Federal Child Support Guidelines, SOR/97-175;');
+      // Sarah AB round-2 substantive #1: when the profile carries an
+      // imputation signal (self-employed payor, income under-reporting,
+      // or an explicit imputation position), plead s.19 imputation +
+      // s.21 disclosure relief. The generic FCSG line does not raise
+      // imputation on its own.
+      if (shouldPleadIncomeImputation(divorceData)) {
+        reliefItems.push(
+          'An order imputing income to the Defendant under s.19 of the Federal Child Support Guidelines, SOR/97-175, and fixing child support based on imputed annual income; and an order for financial disclosure pursuant to s.21 of the Federal Child Support Guidelines;'
+        );
+      }
     }
 
     if (divorceData.spousalSupportRequested || divorceData.requestSpousalSupport) {
@@ -495,6 +524,123 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * perjury in Canada is an offence under Criminal Code, RSC 1985, c. C-46, s.131.
    * Correct party label is "Plaintiff" (Alberta civil action terminology).
    */
+  /**
+   * Alberta property section — the base template uses US "community or
+   * marital property" idiom. Alberta has no community-property regime;
+   * property is governed by the Family Property Act, RSA 2000, c. F-4.7,
+   * and the correct term is "family property". Sarah AB round-2 flagged
+   * the "community" word.
+   */
+  generatePropertySection(divorceData) {
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 12;
+
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
+      items.push({
+        number: paragraphNum++,
+        content: 'There is no family property to be divided under the Family Property Act, RSA 2000, c. F-4.7.',
+        type: 'property_info'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any family property to divide under the Family Property Act, RSA 2000, c. F-4.7, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
+      });
+    } else if (this.hasAgreedPropertyDivision(divorceData)) {
+      for (const content of this.getPropertyAgreementPleadings(divorceData)) {
+        items.push({
+          number: paragraphNum++,
+          content,
+          type: 'property_agreement'
+        });
+      }
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties have accumulated family property during the marriage, including but not limited to real property, personal property, and financial accounts, subject to distribution under the Family Property Act, RSA 2000, c. F-4.7.',
+        type: 'property_info'
+      });
+      items.push({
+        number: paragraphNum++,
+        content: 'The Plaintiff requests that the Court distribute the family property in an equitable manner pursuant to the Family Property Act, RSA 2000, c. F-4.7.',
+        type: 'property_request'
+      });
+    }
+
+    if (divorceData.hasDebts !== false) {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties have accumulated family debt during the marriage. The Plaintiff requests that the Court allocate responsibility for family debt in an equitable manner.',
+        type: 'debt_info'
+      });
+    }
+
+    return {
+      title: 'VI. PROPERTY AND DEBTS',
+      items,
+      nextParagraphNumber: paragraphNum
+    };
+  }
+
+  /**
+   * Alberta property-agreement pleadings — override the base
+   * "community/marital" wording and only render when there is an
+   * AFFIRMATIVE propertyAgreement (a description string or an explicit
+   * confirmation flag). Bare itemized property lists are NOT an
+   * "agreement" — an LLM that lists what each party owns must not
+   * silently promote that into a fabricated agreement (Sarah AB round-2,
+   * relief (f)).
+   */
+  getPropertyAgreementPleadings(divorceData) {
+    const pleadings = [];
+    const agreementText = typeof divorceData.propertyAgreement === 'string'
+      ? divorceData.propertyAgreement.trim()
+      : '';
+    let intro = 'The parties have reached an agreement regarding the division of their family property.';
+    if (agreementText) intro += ` ${agreementText}`;
+    pleadings.push(intro);
+
+    if (asList(divorceData.petitionerProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.petitionerName || 'the Plaintiff'} is to receive: ${asList(divorceData.petitionerProperty).join('; ')}.`
+      );
+    }
+    if (asList(divorceData.respondentProperty).length > 0) {
+      pleadings.push(
+        `Under the parties' agreement, ${divorceData.respondentName || 'the Defendant'} is to receive: ${asList(divorceData.respondentProperty).join('; ')}.`
+      );
+    }
+    pleadings.push(
+      "The Plaintiff requests that the Court approve the parties' agreement and divide the family property accordingly, pursuant to the Family Property Act, RSA 2000, c. F-4.7."
+    );
+    return pleadings;
+  }
+
+  /**
+   * Alberta gate for "the parties agreed to divide property" — must be
+   * an AFFIRMATIVE, described agreement. A bare itemized list without a
+   * user-confirmed agreement is not enough. This stops the base
+   * appendAgreedReliefItems from splicing "Approve the parties'
+   * agreement regarding the division of their property and debts…" into
+   * the relief clause when no such agreement exists (Sarah AB round-2,
+   * relief (f)).
+   */
+  hasAgreedPropertyDivision(divorceData) {
+    if (!divorceData) return false;
+    const desc = typeof divorceData.propertyAgreement === 'string'
+      ? divorceData.propertyAgreement.trim()
+      : '';
+    if (desc) return true;
+    if (divorceData.propertyAgreementConfirmed === true) return true;
+    return false;
+  }
+
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
     return `I, ${name}, Plaintiff, make oath and say (or solemnly affirm) that the facts stated in this Statement of Claim are true, to the best of my knowledge, information, and belief.`;
@@ -503,8 +649,8 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
 function appendContestedIssuesAlberta(doc, data) {
   const custody = custodyDisputePosition(data);
-  const imputation = incomeImputationPosition(data);
-  if (!custody && !imputation) return;
+  const wantImputation = shouldPleadIncomeImputation(data);
+  if (!custody && !wantImputation) return;
   const items = [];
   if (custody) {
     items.push({
@@ -516,12 +662,26 @@ function appendContestedIssuesAlberta(doc, data) {
       type: 'contested_issue',
     });
   }
-  if (imputation) {
+  if (wantImputation) {
+    // Sarah AB round-2 substantive #1: every fact the profile gives about
+    // the payor's income (self-employment, variability, under-reporting)
+    // becomes its own sworn factual paragraph, so the record supports the
+    // s.19 imputation prayer.
+    const facts = incomeImputationFacts(data);
+    for (const fact of facts) {
+      items.push({
+        content:
+          `The Plaintiff pleads the following in support of a request that income be imputed ` +
+          `to the Defendant under s.19 of the Federal Child Support Guidelines, SOR/97-175: ${fact}.`,
+        type: 'contested_issue',
+      });
+    }
     items.push({
       content:
-        `The Plaintiff asks the Court to impute income to the child-support payor pursuant to ` +
-        `section 19 of the Federal Child Support Guidelines, SOR/97-175, on the following ` +
-        `basis: ${imputation}.`,
+        'The Plaintiff asks the Court to impute income to the Defendant pursuant to section 19 ' +
+        'of the Federal Child Support Guidelines, SOR/97-175, and to fix child support based on ' +
+        'the imputed annual income, together with an order for financial disclosure pursuant to ' +
+        'section 21 of the Federal Child Support Guidelines.',
       type: 'contested_issue',
     });
   }

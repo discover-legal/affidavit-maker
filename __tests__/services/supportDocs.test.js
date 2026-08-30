@@ -1175,13 +1175,17 @@ describe('Alt-service Draft notes — jurisdiction-specific procedural guidance'
   test('CA: CCP § 415.50 + § 413.30 diligence declaration note appears when alt-service is pleaded', () => {
     const CaliforniaDivorcePetitionTemplate = require('../../templates/states/california/DivorcePetitionTemplate');
     const tpl = new CaliforniaDivorcePetitionTemplate();
-    // Base isAltServiceCase() triggers on empty respondentAddress since CA
-    // does not override the residence clause.
+    // Attorney round-2 (2026-08): base isAltServiceCase() no longer fires
+    // on a merely empty respondentAddress — that's the fabrication guard
+    // from __tests__/templates/no-fabricated-residency.test.js. The filer
+    // must affirm the whereabouts are unknown for the alt-service note
+    // to fire.
     const content = respondentItemContent(tpl, {
       petitionerName: 'Poway Test',
       respondentName: 'Emma Missing',
       state: 'CA',
       county: 'San Diego',
+      respondentAddressUnknown: true,
     });
     expect(content).toMatch(/\(Draft — Alternative service in California/);
     expect(content).toMatch(/CCP § 415\.50/);
@@ -1206,6 +1210,7 @@ describe('Alt-service Draft notes — jurisdiction-specific procedural guidance'
       respondentName: 'Ray Missing',
       state: 'NY',
       county: 'Kings',
+      respondentAddressUnknown: true,
     });
     expect(content).toMatch(/\(Draft — Alternative service in New York/);
     expect(content).toMatch(/CPLR § 308\(5\)/);
@@ -1220,6 +1225,7 @@ describe('Alt-service Draft notes — jurisdiction-specific procedural guidance'
       respondentName: 'Ray Missing',
       state: 'ON',
       county: 'Toronto',
+      respondentAddressUnknown: true,
     });
     expect(content).toMatch(/\(Draft — Alternative service in Ontario/);
     expect(content).toMatch(/Family Law Rule 6\(20\)/);

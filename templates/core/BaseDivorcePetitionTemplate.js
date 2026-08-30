@@ -259,6 +259,11 @@ class BaseDivorcePetitionTemplate {
     // With a structured caption, the page opens with the filer block and the
     // court-name line; the old STATE OF X / COUNTY OF Y venue opener belongs
     // to the verification jurat, not the top of a petition.
+    // Top-of-document prep-tool disclaimer (attorney-review requirement,
+    // 2026-08). This is a DRAFT organized by an AI intake tool; every
+    // paragraph must be reviewed by the filer before filing, and any
+    // "(Draft — ...)" blank in the body requires confirmation.
+    const draftBanner = 'DRAFT — This document was prepared with an AI intake tool to help organize your facts. Review every paragraph before filing. Blanks marked with "(Draft — ...)" require your confirmation. This is not legal advice.';
     const caseCaption = this.generateCaseCaption(divorceData);
     const filerBlock = this.generateFilerBlock(divorceData);
     // Exactly ONE court identification: subclasses whose captions are not
@@ -318,6 +323,7 @@ class BaseDivorcePetitionTemplate {
         documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
       },
       sections: {
+        draftBanner,
         filerBlock,
         header,
         venue,
@@ -335,12 +341,12 @@ class BaseDivorcePetitionTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption: caption, title, parties, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption: caption, title, parties, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
@@ -546,9 +552,20 @@ class BaseDivorcePetitionTemplate {
     // alternative service will be requested; otherwise use the stored
     // address as-is.
     const respondentResidenceClause = this.getRespondentResidenceClause(divorceData);
+    let respondentContent = `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${respondentResidenceClause}.`;
+    // When the residence clause pleaded alternative service, append the
+    // jurisdiction-specific Draft note explaining the procedural next step
+    // (e.g., TX TRCP 106/109 due-diligence affidavit; GA §9-11-4(f)(1)(A)
+    // motion + limited-relief warning). Templates that don't override
+    // getAltServiceNote() get no note; those that do get their statute-
+    // specific reminder.
+    if (this.isAltServiceCase(divorceData)) {
+      const note = this.getAltServiceNote(divorceData);
+      if (note) respondentContent += `\n(Draft — ${note})`;
+    }
     items.push({
       number: paragraphNum++,
-      content: `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${respondentResidenceClause}.`,
+      content: respondentContent,
       type: 'party_identification'
     });
 
@@ -587,6 +604,41 @@ class BaseDivorcePetitionTemplate {
       return `resides at an address unknown to ${t.filerLabel} (${raw}); ${t.filerLabel} will request alternative service under the applicable rules`;
     }
     return `is a resident of ${raw}`;
+  }
+
+  /**
+   * Whether this data payload will render an alternative-service residence
+   * clause (i.e., the "resides at an address unknown … will request
+   * alternative service" branch, not the classic "is a resident of ..."
+   * sentence). Mirrors the base getRespondentResidenceClause() logic; state
+   * templates that add hedge detection (TX, GA) override this so the Draft
+   * note appears on the same triggers that produce the alt-service clause.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  isAltServiceCase(divorceData) {
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    if (!raw) return true;
+    const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
+    return unknownPattern.test(raw);
+  }
+
+  /**
+   * Jurisdiction-specific "next steps" note appended to the respondent's
+   * residence paragraph when isAltServiceCase() is true. State templates
+   * override this to point users at the applicable statute/rule and its
+   * due-diligence requirement (e.g., TX TRCP 106/109, GA §9-11-4(f)(1)(A),
+   * CA CCP §415.50, NY CPLR §308(5), ON FLR 6(20)). Returning null (the
+   * base default) suppresses the note.
+   *
+   * @param {Object} divorceData
+   * @returns {?string}
+   */
+  getAltServiceNote(_divorceData) {
+    return null;
   }
 
   /**
@@ -975,11 +1027,30 @@ class BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 12;
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): "there is no property to be
+    // divided" is a dispositive nil-finding that waives a party's claim to
+    // marital property. It may render ONLY when the profile carries an
+    // AFFIRMATIVE, user-confirmed statement — `hasProperty === false`
+    // together with a corroborating signal (`noPropertyConfirmed === true`
+    // OR a described `propertyAgreement`). Otherwise emit a visible
+    // Draft-note blank so the self-rep filer must confirm before filing.
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
         content: 'There is no community or marital property to be divided.',
         type: 'property_info'
+      });
+    } else if (divorceData.hasProperty === false) {
+      // Silence-derived "no property" — refuse to fabricate. Draft note.
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else if (this.hasAgreedPropertyDivision(divorceData)) {
       // The parties described an agreed division — plead it instead of the
@@ -1102,9 +1173,18 @@ class BaseDivorcePetitionTemplate {
       );
     }
 
+    // SAFETY GATE (attorney review, 2026-08): a spousal-support waiver
+    // relinquishes a legal right — plead it ONLY on an affirmative,
+    // user-confirmed waiver (`spousalSupportWaived === true` OR the newer
+    // `spousalSupportAgreed === true`). A bare `spousalSupportRequested
+    // === false` (an LLM default when the topic was never discussed) is
+    // NOT sufficient — that is the fabrication the Marcus/Sarah audits
+    // caught.
     const supportWaived =
-      (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) &&
-      !divorceData.requestSpousalSupport;
+      (divorceData.spousalSupportWaived === true ||
+        divorceData.spousalSupportAgreed === true) &&
+      !divorceData.requestSpousalSupport &&
+      !divorceData.spousalSupportRequested;
     if (supportWaived && !/waiv/i.test(all())) {
       additions.push(
         'Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;'
@@ -1186,8 +1266,19 @@ class BaseDivorcePetitionTemplate {
     // when the data explicitly says support is not sought.
     if (divorceData.requestSpousalSupport || divorceData.spousalSupportRequested) {
       reliefItems.push(`Award spousal maintenance/alimony to ${t.filerLabel};`);
-    } else if (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) {
+    } else if (
+      // SAFETY GATE (attorney review, 2026-08): a spousal-support waiver
+      // relinquishes a legal right. Emit ONLY on an affirmative,
+      // user-confirmed waiver. A bare `spousalSupportRequested === false`
+      // (LLM default when the topic was never discussed) is not enough.
+      divorceData.spousalSupportWaived === true ||
+      divorceData.spousalSupportAgreed === true
+    ) {
       reliefItems.push('Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;');
+    } else if (divorceData.spousalSupportRequested === false) {
+      // Silence-derived: leave the ask open with a Draft note the filer
+      // must confirm — never a fabricated release.
+      reliefItems.push('________________________________________ (Draft — confirm whether you have agreed on spousal support before filing; silence on this line may be treated as no agreement.);');
     }
 
     // Add name change if requested
@@ -1284,6 +1375,12 @@ class BaseDivorcePetitionTemplate {
    */
   generateFullText(sections) {
     let text = '';
+
+    // Prep-tool disclaimer sits above every other section so the filer
+    // (and any downstream reviewer) sees it before reading the pleading.
+    if (sections.draftBanner) {
+      text += sections.draftBanner + '\n\n';
+    }
 
     // With a structured caption, sections.header keeps the court line for
     // the PDF layer's caption layout — skip it here when the caption's
@@ -1415,6 +1512,7 @@ class BaseDivorcePetitionTemplate {
   </style>
 </head>
 <body>
+  ${sections.draftBanner ? `<div class="draft-banner" style="border:1px solid #b45309;background:#fff7ed;padding:10px 14px;margin:0 0 20px 0;font-size:10pt;line-height:1.4;color:#7c2d12;"><strong>DRAFT</strong> — ${escapeHtml(sections.draftBanner.replace(/^DRAFT — /, ''))}</div>` : ''}
   ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
   ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}

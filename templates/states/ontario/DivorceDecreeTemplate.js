@@ -8,6 +8,11 @@ const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate'
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
 const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
+const {
+  custodyDisputePosition,
+  incomeImputationPosition,
+  normalizeCanadianDivorceData,
+} = require('../../core/canadianHelpers');
 
 /**
  * Ontario Divorce Judgment Template
@@ -161,10 +166,24 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generatePropertyDivisionSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): mirror the base — a nil
+    // equalization finding waives NFP claims and may render ONLY on an
+    // affirmative user-confirmed statement (`hasProperty === false` PLUS
+    // `noPropertyConfirmed === true` or a described propertyAgreement).
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no net family property to be equalized under the Family Law Act, RSO 1990, c. F.3.',
         type: 'finding'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have net family property to equalize under the Family Law Act, RSO 1990, c. F.3, or a written agreement, before filing. Silence on this line may be treated as no equalization owing, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else {
       items.push({
@@ -290,17 +309,28 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     }
 
-    // Primary residence: ordered whenever the case data says where the
-    // child(ren) live, regardless of the decision-making branch. The shared
-    // branch keeps its historical Applicant fallback for compatibility.
-    if (custody.kind === 'joint') {
-      items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName || resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
-        type: 'order'
-      });
-    } else if (residenceName && residenceName !== soleCustodianName) {
+    // Primary residence: ALWAYS derived from the explicit
+    // primaryResidence / primaryCustodian fact (resolvePrimaryResidenceName),
+    // never auto-derived from the custody-kind enum. The Marcus/Priya audit
+    // (2026-08) surfaced the ON decree naming Marcus (respondent) as primary
+    // parent whenever custody.kind resolved to 'sole_respondent' — even
+    // though the transcript said the children lived mostly with Priya
+    // (applicant). If the parties' own arrangement conflicts with the sole-
+    // custody enum, the arrangement wins and no primary residence line is
+    // rendered without it: a placeholder is truthful; a wrong parent's name
+    // is not.
+    if (residenceName) {
       items.push({
         content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}, who shall have primary parenting time.`,
+        type: 'order'
+      });
+    } else if (custody.kind === 'joint') {
+      items.push({
+        content:
+          'IT IS ORDERED that the parties shall determine the child(ren)\'s primary residence ' +
+          'by agreement, or, failing agreement, in accordance with a parenting schedule filed ' +
+          'with this Court: [PRIMARY RESIDENCE — set out the parent with whom the child(ren) ' +
+          'primarily reside].',
         type: 'order'
       });
     }
@@ -503,6 +533,72 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    */
   getCertificateNote() {
     return 'A Certificate of Divorce may be obtained from the court office after the effective date of this Order, upon application by either party (Divorce Act, s.12(7)).';
+  }
+
+  /**
+   * Ontario dissolution section — Canadian "IT IS ORDERED" phrasing.
+   * The base class emits "IT IS ORDERED AND DECREED that … is dissolved,
+   * and the parties are divorced" — a US ("decree") formulation. Ontario
+   * grants a Divorce Order under Divorce Act s.8, not a "decree", and the
+   * order-granting language is bare "IT IS ORDERED".
+   */
+  generateDissolutionSection(divorceData) {
+    const applicant = divorceData.petitionerName || '_________________________________';
+    const respondent = divorceData.respondentName || '_________________________________';
+    return {
+      title: 'DIVORCE GRANTED',
+      text:
+        `IT IS ORDERED that the marriage between ${applicant} and ${respondent} is dissolved ` +
+        'pursuant to section 8 of the Divorce Act, RSC 1985, c. 3, and that a Divorce Order shall ' +
+        'issue, taking effect on the 31st day after it is made (Divorce Act, s.12(1)).',
+      type: 'dissolution'
+    };
+  }
+
+  /**
+   * generateDocument override: alias-normalize the incoming case data so
+   * Court File No., marriage year, separation date, and children DOBs stored
+   * under legacy field names reach the template's rendering methods; then
+   * splice a "CONTESTED ISSUES" section carrying the party's custody-dispute
+   * and/or Federal Child Support Guidelines s.19 imputation positions.
+   */
+  generateDocument(divorceData = {}) {
+    const data = normalizeCanadianDivorceData(divorceData);
+    const doc = super.generateDocument(data);
+    appendContestedIssuesOntarioDecree(doc, data);
+    return doc;
+  }
+}
+
+function appendContestedIssuesOntarioDecree(doc, data) {
+  const custody = custodyDisputePosition(data);
+  const imputation = incomeImputationPosition(data);
+  if (!custody && !imputation) return;
+  const items = [];
+  if (custody) {
+    items.push({
+      content:
+        `The Court has considered the Applicant's contested parenting-time position: ${custody}. ` +
+        `The Court makes a parenting order under section 16.5 of the Divorce Act on the basis ` +
+        `of changed circumstances in the best interests of the child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue',
+    });
+  }
+  if (imputation) {
+    items.push({
+      content:
+        `IT IS ORDERED, pursuant to section 19 of the Federal Child Support Guidelines, ` +
+        `SOR/97-175, that income is imputed to the child-support payor on the following basis: ` +
+        `${imputation}.`,
+      type: 'contested_issue',
+    });
+  }
+  doc.sections = doc.sections || {};
+  doc.sections.contestedIssues = { title: 'CONTESTED ISSUES', items };
+  if (typeof doc.fullText === 'string') {
+    let block = 'CONTESTED ISSUES\n\n';
+    for (const item of items) block += `${item.content}\n\n`;
+    doc.fullText += `\n${block}`;
   }
 }
 

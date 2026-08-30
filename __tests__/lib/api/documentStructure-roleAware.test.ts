@@ -48,18 +48,21 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
 
     test("respondent's divorce_package DROPS the petition — expands to ['divorce_response', 'divorce_decree']", () => {
       const packet = listPacketDocumentTypes('divorce_package', 'respondent');
-      expect(packet).toEqual(['divorce_response', 'divorce_decree']);
+      // Marcus (ON, 2026-08) follow-up: a proposed Divorce Order does not
+      // belong in a respondent's initiating packet — it is a post-hearing
+      // / on-consent document. The respondent packet ships the Answer
+      // alone; the decree is delivered later, in a finalization packet.
+      expect(packet).toEqual(['divorce_response']);
       expect(packet).not.toContain('divorce_petition');
+      expect(packet).not.toContain('divorce_decree');
     });
 
     test('respondent role is case-insensitive and whitespace-tolerant', () => {
       expect(listPacketDocumentTypes('divorce_package', 'Respondent')).toEqual([
         'divorce_response',
-        'divorce_decree',
       ]);
       expect(listPacketDocumentTypes('divorce_package', '  RESPONDENT  ')).toEqual([
         'divorce_response',
-        'divorce_decree',
       ]);
     });
 
@@ -166,7 +169,6 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
     test("'defendant' (older U.S. nomenclature) maps to respondent-side", () => {
       expect(listPacketDocumentTypes('divorce_package', 'defendant')).toEqual([
         'divorce_response',
-        'divorce_decree',
       ]);
     });
 
@@ -214,10 +216,12 @@ describe('BUG 3 — role-aware routing for divorce_package', () => {
       ]);
     });
 
-    test.each(provinces)('%s respondent → [divorce_response, divorce_decree]', () => {
+    test.each(provinces)('%s respondent → [divorce_response] only', () => {
+      // Marcus (ON, 2026-08): the proposed Divorce Order is not part of
+      // the respondent's initial pleading — it is a post-hearing / on-
+      // consent document. The respondent packet ships the Answer alone.
       expect(listPacketDocumentTypes('divorce_package', 'respondent')).toEqual([
         'divorce_response',
-        'divorce_decree',
       ]);
     });
 

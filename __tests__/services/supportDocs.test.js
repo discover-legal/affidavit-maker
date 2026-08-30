@@ -896,3 +896,333 @@ describe('BUG 1 — TX acceptance payload: monthlyExpenses scalar reaches the sw
     expect(text).not.toContain('TOTAL MONTHLY EXPENSES: $0');
   });
 });
+
+// ─── TX Rule 145 — attorney-review polish gaps (Mari, acceptance v6) ────────
+// Attorney review said ACCEPTABLE leaning NEEDS-FIX on Mari's Rule 145 form:
+//   1. Qualification check missing — $4,800 in / $2,400 out is a $2,400
+//      surplus, and Rule 145 waivers are for public-benefits recipients or
+//      people who lack funds for basic necessities. Warn before signing.
+//   2. Itemization empty — Rule 145 requires categories (rent, utilities,
+//      food, transport, insurance, medical, childcare, debts).
+//   3. Missing mandatory fields — attorney representation, household spouse
+//      income (Rule 145 context), legal-aid representation (TRCP 145(e)).
+//   4. Dependents blank when the transcript established none — auto-fill
+//      from numberOfChildren + 1 for self.
+//   5. Documentation reminder missing (paystubs, benefit letters).
+
+describe('TX Rule 145 — attorney-review polish (surplus, scaffold, mandatory fields)', () => {
+  const mariSurplus = {
+    petitionerName: 'Mari Elena Delgado',
+    respondentName: 'Rafael Delgado',
+    state: 'TX',
+    county: 'Travis',
+    caseNumber: 'D-1-FM-26-000123',
+    monthlyIncome: 4800,
+    monthlyExpenses: 2400,
+    dependentsCount: 1,
+  };
+
+  test('surplus > $500 with no public benefits triggers a Rule 145(f) qualification Draft note', () => {
+    const structure = texas.statementOfInability(mariSurplus);
+    const text = textOf(structure);
+    expect(text).toMatch(/Draft — Rule 145 waivers are typically granted/);
+    expect(text).toMatch(/\$4,800 in/);
+    expect(text).toMatch(/\$2,400 out/);
+    expect(text).toMatch(/\$2,400 surplus/);
+    expect(text).toMatch(/TRCP 145\(f\)/);
+    const warnings = (structure.metadata.warnings || []).join(' ');
+    expect(warnings).toMatch(/qualification check/i);
+    expect(warnings).toMatch(/\$2,400/);
+  });
+
+  test('public benefits on file suppress the surplus warning (Rule 145 explicitly covers benefits recipients)', () => {
+    const structure = texas.statementOfInability({
+      ...mariSurplus,
+      publicBenefits: 'SNAP $180/mo',
+    });
+    const text = textOf(structure);
+    expect(text).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+    const warnings = (structure.metadata.warnings || []).join(' ');
+    expect(warnings).not.toMatch(/qualification check/i);
+  });
+
+  test('no surplus (income <= expenses) — no qualification warning', () => {
+    const structure = texas.statementOfInability({
+      ...mariSurplus,
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+    });
+    const text = textOf(structure);
+    expect(text).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+  });
+
+  test('missing income OR expenses never triggers the qualification warning (blank beats a wrong verdict)', () => {
+    const noIncome = texas.statementOfInability({
+      ...mariSurplus,
+      monthlyIncome: undefined,
+    });
+    expect(textOf(noIncome)).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+    const noExpenses = texas.statementOfInability({
+      ...mariSurplus,
+      monthlyExpenses: undefined,
+    });
+    expect(textOf(noExpenses)).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+  });
+
+  test('itemization scaffold: no expenseBreakdown renders each Rule 145 expense category', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+    });
+    const text = textOf(structure);
+    // Every Rule 145 expense category appears as a labeled blank
+    expect(text).toMatch(/Rent \/ mortgage/);
+    expect(text).toMatch(/Utilities \(electric/);
+    expect(text).toMatch(/Food \/ groceries/);
+    expect(text).toMatch(/Transportation/);
+    expect(text).toMatch(/Health insurance \/ medical/);
+    expect(text).toMatch(/Child care/);
+    expect(text).toMatch(/Debt payments/);
+    // The scaffold coexists with the "not on file" marker + placeholder total
+    expect(text).toContain('(no itemized expenses on file)');
+    expect(text).toContain('TOTAL MONTHLY EXPENSES: [MONTHLY EXPENSES]');
+  });
+
+  test('itemization scaffold: no incomeBreakdown renders each Rule 145 income category', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/Wages \/ salary/);
+    expect(text).toMatch(/Self-employment \/ gig \/ tips/);
+    expect(text).toMatch(/Public benefits \(SNAP/);
+    expect(text).toMatch(/Other income/);
+    expect(text).toContain('TOTAL MONTHLY INCOME: [MONTHLY INCOME]');
+  });
+
+  test('mandatory field: attorney representation defaults to "self-represented (pro se)"', () => {
+    const structure = texas.statementOfInability(mariSurplus);
+    const text = textOf(structure);
+    expect(text).toMatch(/Attorney representation: I am self-represented \(pro se\)/);
+  });
+
+  test('mandatory field: attorney representation carries a supplied attorney name', () => {
+    const structure = texas.statementOfInability({
+      ...mariSurplus,
+      attorneyRepresentation: 'Jane Roe, Esq., State Bar No. 24000000',
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/represented by Jane Roe, Esq\., State Bar No\. 24000000/);
+  });
+
+  test('mandatory field: household spouse income is printed (blank line when unknown)', () => {
+    const structure = texas.statementOfInability(mariSurplus);
+    const text = textOf(structure);
+    expect(text).toMatch(/Household spouse's gross monthly income \(Rafael Delgado\)/);
+  });
+
+  test('mandatory field: legal-aid representation line references TRCP 145(e)', () => {
+    const structure = texas.statementOfInability(mariSurplus);
+    const text = textOf(structure);
+    expect(text).toMatch(/Legal-aid or pro-bono representation/);
+    expect(text).toMatch(/TRCP 145\(e\)/);
+  });
+
+  test('mandatory field: legal-aid provider on file surfaces on the sworn form', () => {
+    const structure = texas.statementOfInability({
+      ...mariSurplus,
+      legalAidRepresentation: 'Texas RioGrande Legal Aid — eligibility confirmed 2026-08-15',
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/Texas RioGrande Legal Aid — eligibility confirmed 2026-08-15/);
+  });
+
+  test('dependents auto-fill: numberOfChildren:2 with no dependentsCount → 3 (myself + 2 minor children)', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+      numberOfChildren: 2,
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/financially dependent on me \(including myself\): 3 \(myself \+ 2 minor children\)/);
+    const warnings = (structure.metadata.warnings || []).join(' ');
+    expect(warnings).not.toMatch(/dependents/i);
+  });
+
+  test("dependents auto-fill: numberOfChildren:0 → 1 (myself alone) — Mari's transcript said no minor children", () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+      monthlyIncome: 2100,
+      monthlyExpenses: 2400,
+      numberOfChildren: 0,
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/financially dependent on me \(including myself\): 1 \(myself\)\./);
+  });
+
+  test('explicit dependentsCount still wins over numberOfChildren auto-fill', () => {
+    const structure = texas.statementOfInability({
+      petitionerName: 'Mari Elena Delgado',
+      state: 'TX',
+      county: 'Travis',
+      dependentsCount: 4,
+      numberOfChildren: 2,
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/financially dependent on me \(including myself\): 4\./);
+  });
+
+  test('documentation reminder Draft note is appended to the relief request', () => {
+    const structure = texas.statementOfInability(mariSurplus);
+    const text = textOf(structure);
+    expect(text).toMatch(/Draft — Attach documentation supporting the figures above/);
+    expect(text).toMatch(/paystubs/);
+    expect(text).toMatch(/benefit letters/);
+    expect(text).toMatch(/bank statement/);
+    expect(text).toMatch(/TRCP 145\(e\)/);
+  });
+
+  test('wrapped { affidavitData } payload still reaches the new mandatory fields', () => {
+    const structure = texas.statementOfInability({
+      affidavitData: {
+        petitionerName: 'Mari Elena Delgado',
+        respondentName: 'Rafael Delgado',
+        state: 'TX',
+        county: 'Travis',
+        monthlyIncome: 4800,
+        monthlyExpenses: 2400,
+        numberOfChildren: 0,
+        attorneyRepresentation: 'Jane Roe, Esq.',
+      },
+    });
+    const text = textOf(structure);
+    expect(text).toMatch(/Draft — Rule 145 waivers are typically granted/);
+    expect(text).toMatch(/represented by Jane Roe, Esq\./);
+    expect(text).toMatch(/financially dependent on me \(including myself\): 1 \(myself\)/);
+  });
+});
+
+// ─── Alt-service jurisdictional Draft notes (TX, GA, CA, NY, ON) ────────────
+// Attorney review flagged the templates' "will request alternative service
+// under the applicable rules" clause as too vague. Each state now appends a
+// jurisdiction-specific Draft note pointing at the statute/rule + its
+// due-diligence / limited-relief requirements.
+
+describe('Alt-service Draft notes — jurisdiction-specific procedural guidance', () => {
+  const partiesFor = (respondentAddressUnknown = true) => ({
+    petitionerName: 'Amara Test',
+    respondentName: 'Ray Missing',
+    state: 'XX',
+    county: 'Test County',
+    marriageDate: '2015-06-01',
+    groundsForDivorce: 'irreconcilable_differences',
+    respondentAddressUnknown,
+  });
+
+  function respondentItemContent(tpl, data) {
+    const section = tpl.generatePartiesSection(data);
+    // Find the respondent's identification paragraph by content (CA prepends
+    // an unnumbered "official form" note, so index-based lookup would grab
+    // the wrong item on that jurisdiction). NY and GA use Defendant.
+    const respondentItem = section.items.find(
+      (i) => typeof i.content === 'string' && /^(Respondent|Defendant),/.test(i.content),
+    );
+    if (!respondentItem) {
+      throw new Error(`No respondent item found in parties section: ${JSON.stringify(section.items, null, 2)}`);
+    }
+    return respondentItem.content;
+  }
+
+  test('TX: TRCP 106 substituted service + TRCP 109 publication note appears when alt-service is pleaded', () => {
+    const TexasDivorcePetitionTemplate = require('../../templates/states/texas/DivorcePetitionTemplate');
+    const tpl = new TexasDivorcePetitionTemplate();
+    const content = respondentItemContent(tpl, partiesFor(true));
+    expect(content).toMatch(/\(Draft — Alternative service in Texas requires a court order\./);
+    expect(content).toMatch(/TRCP 106/);
+    expect(content).toMatch(/TRCP 109/);
+    expect(content).toMatch(/due-diligence affidavit/);
+    // Firm address suppresses the note.
+    const firmContent = respondentItemContent(
+      tpl,
+      { ...partiesFor(false), respondentAddress: '4321 Elm Street, Baton Rouge, Louisiana' }
+    );
+    expect(firmContent).not.toMatch(/\(Draft — Alternative service in Texas/);
+  });
+
+  test('GA: § 9-11-4(f)(1)(A) + § 19-9-64 long-arm caveat appears when alt-service is pleaded', () => {
+    const GeorgiaDivorcePetitionTemplate = require('../../templates/states/georgia/DivorcePetitionTemplate');
+    const tpl = new GeorgiaDivorcePetitionTemplate();
+    const content = respondentItemContent(tpl, partiesFor(true));
+    expect(content).toMatch(/\(Draft — Alternative service in Georgia/);
+    expect(content).toMatch(/O\.C\.G\.A\. § 9-11-4\(f\)\(1\)\(A\)/);
+    expect(content).toMatch(/§ 19-9-64/);
+    expect(content).toMatch(/personal money judgment/);
+    const firmContent = respondentItemContent(
+      tpl,
+      { ...partiesFor(false), respondentAddress: '123 Peachtree St, Atlanta, GA 30303' }
+    );
+    expect(firmContent).not.toMatch(/\(Draft — Alternative service/);
+  });
+
+  test('CA: CCP § 415.50 + § 413.30 diligence declaration note appears when alt-service is pleaded', () => {
+    const CaliforniaDivorcePetitionTemplate = require('../../templates/states/california/DivorcePetitionTemplate');
+    const tpl = new CaliforniaDivorcePetitionTemplate();
+    // Base isAltServiceCase() triggers on empty respondentAddress since CA
+    // does not override the residence clause.
+    const content = respondentItemContent(tpl, {
+      petitionerName: 'Poway Test',
+      respondentName: 'Emma Missing',
+      state: 'CA',
+      county: 'San Diego',
+    });
+    expect(content).toMatch(/\(Draft — Alternative service in California/);
+    expect(content).toMatch(/CCP § 415\.50/);
+    expect(content).toMatch(/CCP § 413\.30/);
+    expect(content).toMatch(/reasonable diligence/);
+    // Firm address suppresses the note.
+    const firm = respondentItemContent(tpl, {
+      petitionerName: 'Poway Test',
+      respondentName: 'Emma Firm',
+      state: 'CA',
+      county: 'San Diego',
+      respondentAddress: '100 Pacific Coast Hwy, San Diego, CA 92101',
+    });
+    expect(firm).not.toMatch(/\(Draft — Alternative service in California/);
+  });
+
+  test('NY: CPLR § 308(5) court-order note appears when alt-service is pleaded', () => {
+    const NewYorkDivorcePetitionTemplate = require('../../templates/states/newyork/DivorcePetitionTemplate');
+    const tpl = new NewYorkDivorcePetitionTemplate();
+    const content = respondentItemContent(tpl, {
+      petitionerName: 'Nia Test',
+      respondentName: 'Ray Missing',
+      state: 'NY',
+      county: 'Kings',
+    });
+    expect(content).toMatch(/\(Draft — Alternative service in New York/);
+    expect(content).toMatch(/CPLR § 308\(5\)/);
+    expect(content).toMatch(/due-diligence affidavit/);
+  });
+
+  test('ON: Family Law Rule 6(20) substituted-service note appears when alt-service is pleaded', () => {
+    const OntarioDivorcePetitionTemplate = require('../../templates/states/ontario/DivorcePetitionTemplate');
+    const tpl = new OntarioDivorcePetitionTemplate();
+    const content = respondentItemContent(tpl, {
+      petitionerName: 'Alex Test',
+      respondentName: 'Ray Missing',
+      state: 'ON',
+      county: 'Toronto',
+    });
+    expect(content).toMatch(/\(Draft — Alternative service in Ontario/);
+    expect(content).toMatch(/Family Law Rule 6\(20\)/);
+    expect(content).toMatch(/reasonable efforts/);
+  });
+});

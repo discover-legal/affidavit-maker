@@ -225,7 +225,14 @@ const PACKAGE_SUB_DOCUMENTS_BY_ROLE: Readonly<
     // builder (see buildDocumentStructureForType); jurisdictions without an
     // `answer` builder degrade with a truthful per-sub-doc 400 in
     // buildDocumentStructureForType rather than silently rendering nothing.
-    divorce_package: ['divorce_response', 'divorce_decree'],
+    //
+    // Marcus (ON, 2026-08) follow-up: bundling a proposed Divorce Order
+    // with an Answer is procedurally incoherent — a proposed final order
+    // is a post-hearing / on-consent document, not part of the respondent's
+    // initial pleading. Ship the respondent packet with the Answer alone;
+    // the decree belongs in a separate on-consent / finalization packet
+    // when the parties reach that stage.
+    divorce_package: ['divorce_response'],
   },
 };
 
@@ -343,6 +350,62 @@ export function buildDocumentStructure(
 }
 
 /**
+ * Options for buildDocumentStructureForType.
+ *
+ * `renderContext: 'reference'` marks the produced structure as informational
+ * only — used for the decree draft in a respondent packet, because the
+ * eventual Final Judgment/Decree is the order the court signs at the end of
+ * the case, not a document a respondent files as part of their responsive
+ * pleadings. The banner is prepended to the header and mirrored into
+ * metadata.renderContext so downstream renderers (packet route, PDF service)
+ * can decorate the file name if desired.
+ */
+export interface BuildDocumentStructureOptions {
+  renderContext?: 'filing' | 'reference';
+}
+
+/**
+ * For a role-aware packet, return the render context each concrete document
+ * should be built with. A respondent's decree entry is a REFERENCE — the
+ * court signs the decree, and a respondent's responsive packet should not
+ * hand the clerk a decree to file. Petitioner-side and other combinations
+ * default to 'filing'.
+ */
+export function packetRenderContextFor(
+  role: string | null | undefined,
+  resolvedType: GenerationDocumentType,
+): 'filing' | 'reference' {
+  if (normalizeRole(role) === 'respondent' && resolvedType === 'divorce_decree') {
+    return 'reference';
+  }
+  return 'filing';
+}
+
+const REFERENCE_BANNER =
+  'REFERENCE — NOT FOR FILING. This document shows what the eventual Final ' +
+  'Judgment/Decree of Dissolution will look like when the court signs it at ' +
+  'the end of the case. A respondent does NOT file the decree as part of a ' +
+  'responsive packet; the court prepares and enters it. Use this draft only ' +
+  'to see what terms the eventual order would need to cover.';
+
+function markStructureAsReference(structure: unknown): unknown {
+  if (!structure || typeof structure !== 'object') return structure;
+  const s = structure as Record<string, unknown>;
+  const sections = (s.sections && typeof s.sections === 'object')
+    ? { ...(s.sections as Record<string, unknown>) }
+    : {};
+  const existingHeader = typeof sections.header === 'string' ? sections.header : '';
+  sections.header = existingHeader
+    ? `${REFERENCE_BANNER}\n\n${existingHeader}`
+    : REFERENCE_BANNER;
+  const metadata = (s.metadata && typeof s.metadata === 'object')
+    ? { ...(s.metadata as Record<string, unknown>) }
+    : {};
+  metadata.renderContext = 'reference';
+  return { ...s, sections, metadata, renderContext: 'reference' };
+}
+
+/**
  * Build the structure for one already-resolved concrete type. Used directly by
  * the packet route, which expands a package to several concrete types and
  * builds each in turn.
@@ -352,9 +415,13 @@ export function buildDocumentStructureForType(
   state: string,
   data: AffidavitData,
   resolvedType: GenerationDocumentType,
+  opts: BuildDocumentStructureOptions = {},
 ): unknown {
+  const wrap = (built: unknown): unknown =>
+    opts.renderContext === 'reference' ? markStructureAsReference(built) : built;
+
   if (resolvedType === 'affidavit') {
-    return templateManager.generateAffidavit(state, data);
+    return wrap(templateManager.generateAffidavit(state, data));
   }
 
   const divorceData = mapDivorceDataFields(data);
@@ -378,7 +445,7 @@ export function buildDocumentStructureForType(
         `No divorce response (Answer) template is available for ${state} yet — coverage gap`,
       );
     }
-    return builder(divorceData as Record<string, unknown>, { signatureStyle: 'unsworn' });
+    return wrap(builder(divorceData as Record<string, unknown>, { signatureStyle: 'unsworn' }));
   }
 
   if (!templateManager.hasDocumentType?.(state, resolvedType)) {
@@ -394,5 +461,5 @@ export function buildDocumentStructureForType(
   if (!generate) {
     throw new ValidationError('Divorce document generation is unavailable for this jurisdiction');
   }
-  return generate.call(templateManager, state, divorceData);
+  return wrap(generate.call(templateManager, state, divorceData));
 }

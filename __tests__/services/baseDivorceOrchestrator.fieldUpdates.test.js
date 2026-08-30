@@ -441,21 +441,35 @@ describe('_summarizeCollected lists recorded money items', () => {
 });
 
 describe('spousal support waiver derivation stays mutually consistent', () => {
-  test('declining support sets waived and clears awarded (and vice versa)', () => {
+  test('requesting support sets awarded and clears any stale waived flag', () => {
     const orch = makeOrchestrator();
-    const waived = orch._applyFieldUpdates(
-      { spousalSupportAwarded: true }, // stale hydrated flag from an earlier document
-      { spousal_support_requested: false },
-    );
-    expect(waived.spousalSupportWaived).toBe(true);
-    expect(waived.spousalSupportAwarded).toBe(false);
-
     const awarded = orch._applyFieldUpdates(
       { spousalSupportWaived: true },
       { spousal_support_requested: true },
     );
     expect(awarded.spousalSupportAwarded).toBe(true);
     expect(awarded.spousalSupportWaived).toBe(false);
+  });
+
+  test('declining support only clears awarded — never auto-derives waived (v23-A safety fix)', () => {
+    // Silence-on-the-topic (spousal_support_requested: false) is NOT an
+    // affirmative waiver. The template layer requires an explicit
+    // spousalSupportWaived===true (or spousalSupportAgreed===true) before
+    // rendering the waiver clause. Otherwise the template renders a
+    // "(Draft — confirm agreement before filing)" prompt.
+    const orch = makeOrchestrator();
+    const declined = orch._applyFieldUpdates(
+      { spousalSupportAwarded: true }, // stale hydrated flag from an earlier document
+      { spousal_support_requested: false },
+    );
+    expect(declined.spousalSupportAwarded).toBe(false);
+    expect(declined.spousalSupportWaived).toBeUndefined();
+  });
+
+  test('explicit spousal_support_waived does set the flag', () => {
+    const orch = makeOrchestrator();
+    const waived = orch._applyFieldUpdates({}, { spousal_support_waived: true });
+    expect(waived.spousalSupportWaived).toBe(true);
   });
 });
 

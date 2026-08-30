@@ -29,6 +29,38 @@ const { captionUpper } = require('../../templates/core/nameCase');
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
 
+// TRCP 145 requires the declarant to itemize income and expenses by
+// category. When no breakdown is on file, the sworn statement scaffolds
+// each required category as a labeled blank the filer completes by hand.
+const INCOME_SCAFFOLD_CATEGORIES = [
+  'Wages / salary (paystubs)',
+  'Self-employment / gig / tips',
+  'Public benefits (SNAP, TANF, SSI, WIC, etc.)',
+  'Child support / spousal maintenance received',
+  'Other income',
+];
+const EXPENSE_SCAFFOLD_CATEGORIES = [
+  'Rent / mortgage',
+  'Utilities (electric, gas, water, phone/internet)',
+  'Food / groceries',
+  'Transportation (car payment, gas, insurance, transit)',
+  'Health insurance / medical / prescriptions',
+  'Child care',
+  'Debt payments (credit cards, loans)',
+  'Clothing / household necessities',
+  'Other necessary expenses',
+];
+
+/**
+ * Render a category label with dot-leader alignment and a trailing blank,
+ * matching the moneyTable() row format used for real itemized entries so
+ * the two blocks visually align in the final PDF.
+ */
+function scaffoldRow(label) {
+  const dots = '.'.repeat(Math.max(3, 44 - label.length));
+  return `${label} ${dots} $${BLANK_SHORT}`;
+}
+
 const TEXAS_UNSWORN_DECLARATION =
   'I declare under penalty of perjury that the foregoing is true and correct ' +
   '(Tex. Civ. Prac. & Rem. Code § 132.001).';
@@ -94,11 +126,27 @@ function renderExpenseBlock(data, declarantSide) {
     bodyLines = [`Monthly expenses: ${formatMoney(derived.scalarAmount)}`];
     totalText = formatMoney(derived.scalarAmount);
   } else {
-    bodyLines = [`(no itemized expenses on file) ${BLANK_LINE}`];
+    // Rule 145 requires itemized categories. When nothing is on file, keep
+    // the "(no itemized expenses on file)" marker AND scaffold each required
+    // category as a labeled blank so the filer completes the form by hand
+    // instead of signing a bare placeholder.
+    bodyLines = [
+      `(no itemized expenses on file) ${BLANK_LINE}`,
+      ...EXPENSE_SCAFFOLD_CATEGORIES.map(scaffoldRow),
+    ];
     totalText = '[MONTHLY EXPENSES]';
+  }
+  // Expose the numeric total so callers can compute a Rule 145 qualification
+  // check (income minus expenses); null when nothing is on file.
+  let totalAmount = null;
+  if (derived.hasBreakdown) {
+    totalAmount = moneyTable(derived.items, undefined).total;
+  } else if (derived.hasScalar) {
+    totalAmount = derived.scalarAmount;
   }
   return {
     hasData: derived.hasData,
+    totalAmount,
     content: [
       'MONTHLY EXPENSES (itemized):',
       ...bodyLines,
@@ -261,11 +309,20 @@ function employmentFromIncomeItems(items) {
 
 function statementOfInability(data = {}, opts = {}) {
   const { header, caseCaption } = texasCaption(data);
+  // Unwrap { affidavitData: {...} } for the fields we read directly (the
+  // income/expense helpers already unwrap internally, but the new mandatory
+  // fields — spouse income, attorney representation, numberOfChildren —
+  // need the same treatment so the wrapped acceptance payload reaches them).
+  const unwrapped =
+    data && typeof data.affidavitData === 'object' && data.affidavitData !== null
+      ? { ...data.affidavitData, ...data }
+      : data || {};
   const derived = resolvePartyIncomes(data);
   const declarant =
     derived.declarant === 'respondent' ? resolveRespondent(data) : resolvePetitioner(data);
   const declarantRoleLabel = derived.declarant === 'respondent' ? 'Respondent' : 'Petitioner';
   const own = derived[derived.declarant];
+  const spouseOwn = derived[derived.declarant === 'respondent' ? 'petitioner' : 'respondent'];
   const income = moneyTable(own.items, own.amount);
   const hasIncomeData = income.lines.length > 0 || own.amount !== null;
   const incomeTotal = hasIncomeData
@@ -294,15 +351,31 @@ function statementOfInability(data = {}, opts = {}) {
     employmentFromIncomeItems(own.items) ||
     BLANK_LINE;
 
+  // Auto-fill dependents from the profile's numberOfChildren (+1 for the
+  // declarant), but only when no explicit count was supplied. A caller that
+  // supplies dependentsCount: 0 still gets "0" — the auto-fill is a
+  // last-resort default, not an override.
   const dependentsRaw = data.dependentsCount ?? data.dependents;
   let dependentsLine;
   if (dependentsRaw === undefined || dependentsRaw === null || str(dependentsRaw) === '') {
-    dependentsLine =
-      'Number of persons financially dependent on me (including myself): [NUMBER].';
-    warnings.push(
-      'Dependents count is not on file — the dependents line is a placeholder. ' +
-        'Fill it in before signing this sworn statement.',
-    );
+    const kidsRaw =
+      unwrapped.numberOfChildren ??
+      unwrapped.numChildren ??
+      unwrapped.numberOfMinorChildren;
+    const kids = Number(kidsRaw);
+    if (Number.isFinite(kids) && kids >= 0) {
+      const total = kids + 1;
+      dependentsLine =
+        `Number of persons financially dependent on me (including myself): ${total} ` +
+        `(myself${kids > 0 ? ` + ${kids} minor ${kids === 1 ? 'child' : 'children'}` : ''}).`;
+    } else {
+      dependentsLine =
+        'Number of persons financially dependent on me (including myself): [NUMBER].';
+      warnings.push(
+        'Dependents count is not on file — the dependents line is a placeholder. ' +
+          'Fill it in before signing this sworn statement.',
+      );
+    }
   } else {
     const n = Number(dependentsRaw);
     dependentsLine = Number.isFinite(n)
@@ -326,9 +399,40 @@ function statementOfInability(data = {}, opts = {}) {
     ? `DEBTS:\n${debtLines.join('\n')}`
     : `DEBTS: ${BLANK_LINE}.`;
 
+  // Rule 145(f) household context: spouse income + representation status.
+  const spouseName =
+    derived.declarant === 'respondent' ? resolvePetitioner(data) : resolveRespondent(data);
+  const spouseIncomeLine = (() => {
+    if (spouseOwn && spouseOwn.amount !== null && spouseOwn.amount !== undefined) {
+      return `Household spouse's gross monthly income (${spouseName}): ${formatMoney(spouseOwn.amount)}.`;
+    }
+    return `Household spouse's gross monthly income (${spouseName}): ${BLANK_SHORT} (leave blank if unknown or not applicable).`;
+  })();
+
+  const attorneyRepRaw =
+    str(unwrapped.attorneyRepresentation) ||
+    str(unwrapped.attorneyName) ||
+    str(unwrapped.attorneyOfRecord);
+  const attorneyRepLine = attorneyRepRaw
+    ? `Attorney representation: represented by ${attorneyRepRaw}.`
+    : `Attorney representation: I am self-represented (pro se). If represented, write attorney's name: ${BLANK_LINE}.`;
+
+  const legalAidRaw =
+    str(unwrapped.legalAidRepresentation) ||
+    str(unwrapped.legalAidProvider) ||
+    (unwrapped.receivesLegalAid === true ? 'yes' : '');
+  const legalAidLine = legalAidRaw
+    ? `Legal-aid or pro-bono representation: ${legalAidRaw}. (Tex. R. Civ. P. 145(e): a legal-aid provider's determination of financial eligibility is evidence of inability to pay.)`
+    : `Legal-aid or pro-bono representation: none / ${BLANK_LINE}. (If you are represented by a legal-aid provider that determined you financially eligible, TRCP 145(e) makes that determination evidence supporting this Statement — attach the provider's letter.)`;
+
   const incomeContent = [
     "MONTHLY INCOME (the declarant's own, itemized):",
-    ...(income.lines.length ? income.lines : [`(no itemized income on file) ${BLANK_LINE}`]),
+    ...(income.lines.length
+      ? income.lines
+      : [
+          `(no itemized income on file) ${BLANK_LINE}`,
+          ...INCOME_SCAFFOLD_CATEGORIES.map(scaffoldRow),
+        ]),
     `TOTAL MONTHLY INCOME: ${incomeTotal}`,
     ...(hasIncomeData
       ? []
@@ -336,6 +440,45 @@ function statementOfInability(data = {}, opts = {}) {
   ].join('\n');
 
   const expenseContent = expenseBlock.content;
+
+  // Rule 145 qualification check. TRCP 145(f) lets a party contest the
+  // declarant's inability to pay; the court may set a hearing. When the
+  // numbers show a monthly surplus > $500 AND the declarant is not on
+  // public benefits, warn the filer to review qualification before signing.
+  // The check runs only when BOTH figures are on file — a blank never
+  // triggers a "you don't qualify" warning.
+  let qualificationDraftNote = '';
+  if (hasIncomeData && expenseBlock.hasData && expenseBlock.totalAmount !== null) {
+    const monthlyIncomeAmount =
+      own.amount !== null && income.lines.length === 0 ? own.amount : income.total;
+    const monthlyExpensesAmount = expenseBlock.totalAmount;
+    const surplus = monthlyIncomeAmount - monthlyExpensesAmount;
+    if (surplus > 500 && !benefits) {
+      qualificationDraftNote =
+        `(Draft — Rule 145 waivers are typically granted when a person receives ` +
+        `public benefits or lacks funds for basic necessities. Based on the ` +
+        `income/expense figures on file (${formatMoney(monthlyIncomeAmount)} in, ` +
+        `${formatMoney(monthlyExpensesAmount)} out, ${formatMoney(surplus)} surplus), ` +
+        `review whether you qualify before filing. The court may set a hearing ` +
+        `under TRCP 145(f) to contest inability to pay.)`;
+      warnings.push(
+        `Qualification check: monthly surplus of ${formatMoney(surplus)} suggests ` +
+          'the declarant may not qualify for a Rule 145 waiver absent public benefits. ' +
+          'Review before filing.',
+      );
+    }
+  }
+
+  const documentationDraftNote =
+    '(Draft — Attach documentation supporting the figures above where available: ' +
+    'the most recent one or two paystubs (or a signed statement of self-employment ' +
+    'income), benefit letters (SNAP, TANF, SSI, Medicaid, WIC, public housing), ' +
+    'the past month\'s bank statement(s), and a copy of any legal-aid financial ' +
+    'eligibility determination (TRCP 145(e)).)';
+
+  const introduction = qualificationDraftNote
+    ? `I, ${declarant}, declare the following under penalty of perjury:\n\n${qualificationDraftNote}`
+    : `I, ${declarant}, declare the following under penalty of perjury:`;
 
   const facts = {
     items: [
@@ -347,17 +490,21 @@ function statementOfInability(data = {}, opts = {}) {
         type: 'fact',
       },
       { number: 2, content: `Employment (employer and job): ${employment}.`, type: 'fact' },
-      { number: 3, content: incomeContent, type: 'fact' },
-      { number: 4, content: expenseContent, type: 'fact' },
-      { number: 5, content: dependentsLine, type: 'fact' },
-      { number: 6, content: benefitsLine, type: 'fact' },
-      { number: 7, content: `ASSETS (property, vehicles, bank accounts): ${assetsText}.`, type: 'fact' },
-      { number: 8, content: debtContent, type: 'fact' },
+      { number: 3, content: attorneyRepLine, type: 'fact' },
+      { number: 4, content: incomeContent, type: 'fact' },
+      { number: 5, content: expenseContent, type: 'fact' },
+      { number: 6, content: spouseIncomeLine, type: 'fact' },
+      { number: 7, content: dependentsLine, type: 'fact' },
+      { number: 8, content: benefitsLine, type: 'fact' },
+      { number: 9, content: legalAidLine, type: 'fact' },
+      { number: 10, content: `ASSETS (property, vehicles, bank accounts): ${assetsText}.`, type: 'fact' },
+      { number: 11, content: debtContent, type: 'fact' },
       {
-        number: 9,
+        number: 12,
         content:
           `I, ${declarant}, respectfully ask this Court to declare me unable to afford the fees ` +
-          'and costs of court and to waive their payment, pursuant to Tex. R. Civ. P. 145.',
+          'and costs of court and to waive their payment, pursuant to Tex. R. Civ. P. 145.\n\n' +
+          documentationDraftNote,
         type: 'fact',
       },
     ],
@@ -370,7 +517,7 @@ function statementOfInability(data = {}, opts = {}) {
       header,
       caseCaption,
       title: 'STATEMENT OF INABILITY TO AFFORD PAYMENT OF COURT COSTS OR AN APPEAL BOND',
-      introduction: `I, ${declarant}, declare the following under penalty of perjury:`,
+      introduction,
       facts,
       conclusion: null,
       ...signatureSections(declarant, 'Declarant', opts),

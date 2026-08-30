@@ -64,6 +64,12 @@ const ONTARIO_CASE = {
   serviceMethod: 'waiver',
   isUncontested: true,
   spousalSupportRequested: false,
+  // Post-2026-08 safety rule: a spousal-support waiver renders ONLY on
+  // an affirmative, user-confirmed waiver flag — bare
+  // `spousalSupportRequested === false` is no longer sufficient. The
+  // audited Ontario fixture is an UNCONTESTED case in which the parties
+  // affirmatively agreed to waive support, so set the confirmation.
+  spousalSupportWaived: true,
   childSupportAmount: '800',
   childSupportObligor: 'Jordan Quinn',
   childSupportObligee: 'Avery Quinn',
@@ -267,7 +273,7 @@ describe('decree spousal support', () => {
   });
 
   it('no spousal data at all still renders no spousal section', () => {
-    const doc = baseDecree({ spousalSupportRequested: undefined });
+    const doc = baseDecree({ spousalSupportRequested: undefined, spousalSupportWaived: undefined });
     expect(doc.sections.spousalSupport).toBeNull();
   });
 });

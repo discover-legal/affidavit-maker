@@ -223,6 +223,11 @@ class BaseDivorceDecreeTemplate {
     // generateHeader/generateVenue block is suppressed — that venue opener
     // belongs to a jurat, not the top of a decree, and rendering both
     // doubled the court line (templates/core/captionDedupe.js).
+    // Top-of-document prep-tool disclaimer (attorney-review requirement,
+    // 2026-08). This is a DRAFT organized by an AI intake tool; every
+    // paragraph must be reviewed by the filer before filing, and any
+    // "(Draft — ...)" blank in the body requires confirmation.
+    const draftBanner = 'DRAFT — This document was prepared with an AI intake tool to help organize your facts. Review every paragraph before filing. Blanks marked with "(Draft — ...)" require your confirmation. This is not legal advice.';
     const caseCaption = this.generateCaseCaption(divorceData);
     const captionCarriesCourt = captionNamesCourt(caseCaption);
     const headerCandidate = caseCaption.structured || captionCarriesCourt
@@ -274,6 +279,7 @@ class BaseDivorceDecreeTemplate {
         documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
       },
       sections: {
+        draftBanner,
         header,
         venue,
         caseCaption: caption,
@@ -293,13 +299,13 @@ class BaseDivorceDecreeTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption: caption, title, appearances, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption: caption, title, appearances, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock
@@ -519,10 +525,28 @@ class BaseDivorceDecreeTemplate {
   generatePropertyDivisionSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): "the Court finds there is
+    // no ... property" is a DISPOSITIVE nil-finding that extinguishes
+    // property claims. Emit ONLY on an affirmative user-confirmed
+    // statement — `hasProperty === false` together with a corroborating
+    // signal (`noPropertyConfirmed === true` OR a described
+    // `propertyAgreement`). Otherwise leave a visible blank + Draft
+    // note; a self-rep filer who never discussed property with the
+    // intake tool must NOT get a decree that silently waives it.
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no community or marital property to be divided.',
         type: 'finding'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else {
       items.push({
@@ -584,10 +608,25 @@ class BaseDivorceDecreeTemplate {
   generateDebtAllocationSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasDebts === false) {
+    // SAFETY GATE (attorney review, 2026-08): "no community debts" is a
+    // dispositive nil-finding — a debt not allocated in a final decree
+    // may become the exclusive obligation of the party who signed for
+    // it, WITHOUT the indemnity protection the debt-allocation clause
+    // provides. Emit ONLY on an affirmative user-confirmed statement.
+    const nilDebtsConfirmed =
+      divorceData.hasDebts === false &&
+      (divorceData.noDebtsConfirmed === true ||
+        (typeof divorceData.debtAgreement === 'string' &&
+          divorceData.debtAgreement.trim() !== ''));
+    if (nilDebtsConfirmed) {
       items.push({
         content: 'The Court finds there are no community debts to be allocated.',
         type: 'finding'
+      });
+    } else if (divorceData.hasDebts === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community debts to allocate, or a written agreement dividing them, before filing. Silence on this line may leave you solely responsible for any unallocated debt.)',
+        type: 'debts_draft_note'
       });
     } else {
       items.push({
@@ -999,6 +1038,11 @@ class BaseDivorceDecreeTemplate {
   generateFullText(sections) {
     let text = '';
 
+    // Prep-tool disclaimer above every other section.
+    if (sections.draftBanner) {
+      text += sections.draftBanner + '\n\n';
+    }
+
     // With a structured caption, sections.header keeps the court line for
     // the PDF layer's caption layout — skip it here when the caption's
     // formatted text already carries it, so the court renders once.
@@ -1089,6 +1133,7 @@ class BaseDivorceDecreeTemplate {
   </style>
 </head>
 <body>
+  ${sections.draftBanner ? `<div class="draft-banner" style="border:1px solid #b45309;background:#fff7ed;padding:10px 14px;margin:0 0 20px 0;font-size:10pt;line-height:1.4;color:#7c2d12;"><strong>DRAFT</strong> — ${escapeHtml(sections.draftBanner.replace(/^DRAFT — /, ''))}</div>` : ''}
   ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
   ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}

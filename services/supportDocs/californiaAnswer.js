@@ -31,6 +31,17 @@ const answerToPetition = createAnswerBuilder({
   // there is no separate counterclaim. We keep the interior heading to
   // signal the affirmative-relief section but do not call it a counterclaim.
   counterTitle: 'AFFIRMATIVE RELIEF REQUESTED BY RESPONDENT',
+  // California does not file a separate counter-petition — affirmative
+  // relief is requested inside the Response itself on Judicial Council form
+  // FL-120. The "offer" language points the user to the FL-120 relief boxes.
+  counterPetitionForm: 'Judicial Council form FL-120 (Response — Marriage/Domestic Partnership)',
+  counterPetitionExamples: [
+    'restoration of a former name (Cal. Fam. Code § 2081)',
+    "attorney's fees and costs (Cal. Fam. Code § 2030)",
+    'spousal support (Cal. Fam. Code § 4320)',
+    'a specific division of community property and debts (Cal. Fam. Code § 2550)',
+    'declaration enforcing a premarital agreement (Cal. Fam. Code § 1615)',
+  ],
   noFaultGroundsRecital:
     'Irreconcilable differences have caused the irremediable breakdown of the marriage. ' +
     '(Cal. Fam. Code §§ 2310(a), 2311.)',

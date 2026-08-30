@@ -207,6 +207,41 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Match the GA residence-clause triggers so the Draft alt-service note
+   * appears on every branch that pleads alternative service.
+   */
+  isAltServiceCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return true;
+    const raw =
+      typeof divorceData.respondentAddress === 'string'
+        ? divorceData.respondentAddress.trim()
+        : '';
+    if (!raw) return true;
+    const hedgePattern =
+      /\b(possibly|maybe|perhaps|probably|somewhere|not\s+sure|unsure|i\s+think|i\s+don'?t\s+know|no\s+known|no\s+current\s+address|unknown|whereabouts\s+unknown|address\s+unknown|could\s+be|might\s+be)\b/i;
+    return hedgePattern.test(raw);
+  }
+
+  /**
+   * Georgia alt-service Draft note: O.C.G.A. § 9-11-4(f)(1)(A) motion +
+   * due-diligence affidavit. Service by publication is limited relief — no
+   * personal money judgment against the absent spouse, and no child support
+   * unless the long-arm requirements of O.C.G.A. § 19-9-64 are separately
+   * satisfied.
+   */
+  getAltServiceNote(_divorceData) {
+    return (
+      'Alternative service in Georgia requires a court order under ' +
+      'O.C.G.A. § 9-11-4(f)(1)(A), supported by a due-diligence affidavit ' +
+      'describing the search for Respondent. Service by publication is ' +
+      'limited relief: it will not support a personal money judgment ' +
+      'against Respondent, and it will not support child support against ' +
+      'an absent spouse unless the long-arm requirements of O.C.G.A. ' +
+      '§ 19-9-64 are independently satisfied.'
+    );
+  }
+
+  /**
    * Get Georgia jurisdiction statement
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement

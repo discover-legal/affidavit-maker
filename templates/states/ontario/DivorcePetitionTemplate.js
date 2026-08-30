@@ -6,6 +6,12 @@
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 const { asList, propertyAgreementProse } = require('../../core/dataShapes');
+const {
+  oneYearSeparationPleading,
+  custodyDisputePosition,
+  incomeImputationPosition,
+  normalizeCanadianDivorceData,
+} = require('../../core/canadianHelpers');
 
 /**
  * Ontario Divorce Application Template
@@ -163,6 +169,23 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Ontario alt-service Draft note. Family Law Rule 6(20) authorizes an
+   * order for substituted service on motion, supported by evidence that
+   * reasonable efforts to serve Respondent have failed. Rule 6(21) allows
+   * an order dispensing with service in narrow circumstances.
+   */
+  getAltServiceNote(_divorceData) {
+    return (
+      'Alternative service in Ontario requires a court order for ' +
+      'substituted service under Family Law Rule 6(20) (O. Reg. 114/99), ' +
+      'supported by an affidavit setting out the reasonable efforts made ' +
+      'to locate and serve Respondent. Where service cannot be effected ' +
+      'by any means, a Rule 6(21) order dispensing with service may be ' +
+      'sought.'
+    );
+  }
+
+  /**
    * Ontario venue reason — Applicant or Respondent resides in this court location.
    */
   getVenueReason(divorceData) {
@@ -225,11 +248,25 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 12;
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): mirror the base — a nil
+    // NFP finding waives an equalization claim and may render ONLY on
+    // an affirmative user-confirmed statement.
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
         content: 'There is no net family property to be equalized under the Family Law Act, RSO 1990, c. F.3.',
         type: 'property_info'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have net family property to equalize under the Family Law Act, RSO 1990, c. F.3, or a written agreement, before filing. Silence on this line may be treated as no equalization owing, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else if (this.hasAgreedPropertyDivision(divorceData)) {
       for (const content of this.getPropertyAgreementPleadings(divorceData)) {
@@ -393,7 +430,7 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    *   (b)(i) adultery [s.8(2)(b)(i)]
    *   (b)(ii) physical or mental cruelty [s.8(2)(b)(ii)]
    */
-  getGroundsText(groundsForDivorce) {
+  getGroundsText(groundsForDivorce, divorceData) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Respondent has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';
@@ -401,8 +438,77 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (g.includes('cruelty') || g.includes('violence')) {
       return 'The Respondent has treated the Applicant with physical or mental cruelty of such a kind as to render intolerable the continued cohabitation of the spouses, within the meaning of paragraph 8(2)(b)(ii) of the Divorce Act.';
     }
-    // Default: 1-year separation
-    return 'The spouses have lived separate and apart for at least one year immediately preceding the determination of the divorce application, within the meaning of paragraph 8(2)(a) of the Divorce Act.';
+    // Default: 1-year separation — gated by the s.8(2)(a) helper. If the
+    // parties will not have been separated for a year by the time the Court
+    // considers the order, emit prospective language + a drafter warning
+    // pointing to the fault-ground alternatives instead of falsely asserting
+    // the year is met.
+    return oneYearSeparationPleading(divorceData || this._currentDivorceData || {}, {
+      statuteCite: 'paragraph 8(2)(a) of the Divorce Act',
+    }).text;
+  }
+
+  /**
+   * generateDocument override: (1) alias-normalize the incoming case data so
+   * Court File No., marriage year, separation date, and children DOBs stored
+   * under legacy field names reach the template's rendering methods; (2)
+   * stash the normalized data so `getGroundsText` (called from the base
+   * class without the divorceData argument) can gate the s.8(2)(a) ground
+   * against the real separation date; (3) append a contested-issues section
+   * when the profile carries a custody dispute position or an income
+   * imputation position.
+   */
+  generateDocument(divorceData = {}) {
+    const data = normalizeCanadianDivorceData(divorceData);
+    this._currentDivorceData = data;
+    try {
+      const doc = super.generateDocument(data);
+      appendContestedIssuesOntario(doc, data);
+      return doc;
+    } finally {
+      this._currentDivorceData = null;
+    }
+  }
+}
+
+/**
+ * Splice a "VIII. CONTESTED ISSUES" section into a generated Ontario
+ * Application when the profile carries custody-dispute or income-imputation
+ * positions, with the correct statutory hooks (Divorce Act s.16.5 changed
+ * circumstances; Federal Child Support Guidelines s.19 income imputation).
+ * Runs after the base builder so it does not disturb paragraph numbering
+ * inside the base sections.
+ */
+function appendContestedIssuesOntario(doc, data) {
+  const custody = custodyDisputePosition(data);
+  const imputation = incomeImputationPosition(data);
+  if (!custody && !imputation) return;
+  const items = [];
+  if (custody) {
+    items.push({
+      content:
+        `The Applicant disputes the current parenting-time arrangement and pleads the following ` +
+        `position: ${custody}. The Applicant requests a variation of parenting time pursuant to ` +
+        `section 16.5 of the Divorce Act on the basis of changed circumstances in the best ` +
+        `interests of the child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue',
+    });
+  }
+  if (imputation) {
+    items.push({
+      content:
+        `The Applicant asks the Court to impute income to the child-support payor pursuant to ` +
+        `section 19 of the Federal Child Support Guidelines, SOR/97-175, on the following ` +
+        `basis: ${imputation}.`,
+      type: 'contested_issue',
+    });
+  }
+  doc.sections = doc.sections || {};
+  doc.sections.contestedIssues = { title: 'VIII. CONTESTED ISSUES', items };
+  if (typeof doc.fullText === 'string') {
+    let block = 'VIII. CONTESTED ISSUES\n\n';
+    for (const item of items) block += `${item.content}\n\n`;
+    doc.fullText += `\n${block}`;
   }
 }
 

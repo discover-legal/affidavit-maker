@@ -25,6 +25,14 @@ const answerToPetition = createAnswerBuilder({
   answerTitle: 'ANSWER TO COMPLAINT FOR DIVORCE',
   answerWithCounterTitle: 'ANSWER AND COUNTERCLAIM FOR DIVORCE',
   counterTitle: 'COUNTERCLAIM FOR DIVORCE',
+  counterPetitionForm: 'O.C.G.A. § 9-11-13 (counterclaim, filed with the Answer)',
+  counterPetitionExamples: [
+    'restoration of a former name (O.C.G.A. § 19-5-16)',
+    "attorney's fees and expenses of litigation (O.C.G.A. § 19-6-2)",
+    'equitable division of marital property',
+    'alimony (O.C.G.A. § 19-6-1)',
+    'a permanent parenting plan (O.C.G.A. § 19-9-1)',
+  ],
   noFaultGroundsRecital:
     'The marriage between the parties is irretrievably broken. ' +
     '(O.C.G.A. § 19-5-3(13).)',

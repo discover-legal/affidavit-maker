@@ -111,7 +111,25 @@ function buildPhaseTool(stateCode, { nameMissing = false } = {}) {
           marriage_duration: { type: 'string', description: 'Length of the marriage when the user states a duration instead of (or before) a date, normalized with the unit spelled out and typos fixed (e.g. "married 2928 days" → "2928 days (approximately 8 years)"; "35 yeRs" → "35 years"). Still ask for the marriage date itself.' },
           marriage_city:   { type: 'string' },
           marriage_state:  { type: 'string' },
-          separation_date: { type: 'string' },
+          separation_date: {
+            type: 'string',
+            // s.8(2)(a) grounds gate (Canadian Divorce Act): the one-year
+            // separation ground is only pleadable when the parties will
+            // have been separated for at least a year by the time the
+            // court makes the divorce order. When you extract a separation
+            // date, INTERNALLY compute months since separation from today:
+            //   * If it is < 12 months, DO NOT emit `breakdown_of_marriage`
+            //     (Canada) or any other one-year-separation ground on the
+            //     `grounds` field — the template will fall back to
+            //     prospective language plus a drafter warning, or the
+            //     user must supply cruelty / adultery.
+            //   * If it is ≥ 12 months, the one-year ground is fine.
+            // Applies to Canadian jurisdictions (Divorce Act, s.8(2)(a));
+            // US no-fault grounds do not have a fixed one-year separation
+            // period and are unaffected.
+            description:
+              'Date the spouses began living separate and apart, ISO YYYY-MM-DD when known. GROUNDS GATE (Canada, Divorce Act s.8(2)(a)): compute months-since-separation against today\'s date; if less than 12 months, DO NOT emit `breakdown_of_marriage` (or any other one-year-separation ground) on the `grounds` field — the ground is not yet pleadable. Either omit `grounds` (the template pleads prospective language plus a drafter warning) or use the fault grounds the user stated (cruelty, adultery). US jurisdictions are unaffected.',
+          },
           grounds: {
             type: 'string',
             // CLOSED-SET enum with NO "other" sentinel. Mari v9-D showed the
@@ -412,6 +430,9 @@ const FIELD_MAP = {
   prenup_governs_after_divorce: 'prenupGovernsAfterDivorce',
   spousal_support_confirmed:   'spousalSupportConfirmed',
   spousal_support_requested:   'spousalSupportRequested',
+  spousal_support_waived:      'spousalSupportWaived',
+  spousal_support_agreed:      'spousalSupportAgreed',
+  spousal_support_awarded:     'spousalSupportAwarded',
   support_amount:              'supportAmount',
   support_duration:            'supportDuration',
   support_basis:               'supportBasis',
@@ -1207,18 +1228,22 @@ class BaseDivorceOrchestrator {
     if (updated.supportDuration !== undefined) {
       updated.spousalSupportDuration = updated.supportDuration;
     }
-    // Map the boolean intent flag to the decree gate field.
-    // spousalSupportRequested=true  → spousalSupportAwarded=true
-    // spousalSupportRequested=false → spousalSupportWaived=true
-    // Set both sides of the pair: these now persist to the durable profile,
-    // and a stale opposite flag hydrated from an earlier document would make
-    // the decree templates print the waiver branch over an awarded one.
+    // Map spousalSupportRequested→spousalSupportAwarded when TRUE.
+    // Do NOT auto-derive spousalSupportWaived from a false/absent request
+    // (v23-A safety fix): silence on the topic is not an affirmative waiver,
+    // and the template layer requires an explicit spousalSupportWaived===true
+    // OR spousalSupportAgreed===true before rendering the waiver clause.
+    // A false spousalSupportRequested simply clears the awarded flag.
     if (updated.spousalSupportRequested === true) {
       updated.spousalSupportAwarded = true;
       updated.spousalSupportWaived = false;
     } else if (updated.spousalSupportRequested === false) {
-      updated.spousalSupportWaived = true;
       updated.spousalSupportAwarded = false;
+      // spousalSupportWaived is NOT set — the user must affirmatively agree
+      // to waive support (via spousal_support_waived: true or an agreed
+      // settlement fact) before any decree waives it. Otherwise the
+      // template renders a "(Draft — confirm agreement before filing)"
+      // Draft note per v23-A.
     }
     // BaseDivorcePetitionTemplate gates the alimony relief item on
     // requestSpousalSupport — without this alias a user who asked for

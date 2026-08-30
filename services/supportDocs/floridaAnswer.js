@@ -36,6 +36,14 @@ const answerToPetition = createAnswerBuilder({
   answerWithCounterTitle:
     'ANSWER TO PETITION FOR DISSOLUTION OF MARRIAGE AND COUNTERPETITION',
   counterTitle: 'COUNTERPETITION FOR DISSOLUTION OF MARRIAGE',
+  counterPetitionForm: 'Fla. Fam. L.R.P. Form 12.903(b)',
+  counterPetitionExamples: [
+    'restoration of a former name (Fla. Stat. § 68.07)',
+    "attorney's fees, suit money, and costs (Fla. Stat. § 61.16)",
+    'declaration enforcing a prenuptial or postnuptial agreement',
+    'equitable distribution of specific assets or debts (Fla. Stat. § 61.075)',
+    'alimony (Fla. Stat. § 61.08) or a specific parenting plan (Fla. Stat. § 61.13)',
+  ],
   noFaultGroundsRecital:
     'The marriage between the parties is irretrievably broken. ' +
     '(Fla. Stat. § 61.052(1)(a).)',

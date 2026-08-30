@@ -37,9 +37,18 @@ function resolveSpousalSupportDecision(divorceData) {
   const requested =
     d.requestSpousalSupport === true ||
     d.spousalSupportRequested === true;
+  // SAFETY GATE (attorney review, 2026-08): a spousal-support waiver is a
+  // dispositive release of a legal right. It may render ONLY when the
+  // profile carries an AFFIRMATIVE, user-confirmed waiver — either an
+  // explicit `spousalSupportWaived === true` set by the orchestrator from a
+  // recorded user statement, OR the newer `spousalSupportAgreed === true`
+  // confirmation flag. A bare `spousalSupportRequested === false` (which
+  // an LLM turn may emit as a default when the topic was never discussed)
+  // MUST NOT trigger a waiver — that is exactly the fabrication the
+  // Marcus/Sarah packet audits caught.
   const waivedFlag =
     d.spousalSupportWaived === true ||
-    (d.spousalSupportRequested === false && !requested);
+    d.spousalSupportAgreed === true;
   const awarded =
     d.spousalSupportAwarded === true ||
     (requested && (d.spousalSupportAmount != null && String(d.spousalSupportAmount).trim() !== ''));

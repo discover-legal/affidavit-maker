@@ -253,6 +253,42 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Match the TX residence-clause triggers exactly so the Draft alt-service
+   * note appears on every branch that pleads alternative service — the
+   * sworn-truth flag, an empty address, and any hedged free-text address.
+   */
+  isAltServiceCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return true;
+    const raw =
+      typeof divorceData.respondentAddress === 'string'
+        ? divorceData.respondentAddress.trim()
+        : '';
+    if (!raw) return true;
+    const hedgePattern =
+      /\b(possibly|maybe|perhaps|probably|somewhere|not\s+sure|unsure|i\s+think|i\s+don'?t\s+know|no\s+known|no\s+current\s+address|unknown|whereabouts\s+unknown|address\s+unknown|could\s+be|might\s+be)\b/i;
+    return hedgePattern.test(raw);
+  }
+
+  /**
+   * Texas alt-service Draft note: TRCP 106 (substituted service) or TRCP 109
+   * (service by publication) require a due-diligence affidavit describing
+   * the search for Respondent.
+   */
+  getAltServiceNote(_divorceData) {
+    return (
+      'Alternative service in Texas requires a court order. Move under ' +
+      'TRCP 106 for substituted service (leaving with someone at Respondent\'s ' +
+      'usual place of abode, or by other means the court deems reasonably ' +
+      'effective — including social media) after filing a sworn ' +
+      'due-diligence affidavit describing the search for Respondent, or ' +
+      'under TRCP 109 for citation by publication when even TRCP 106 methods ' +
+      'are unavailable. A citation-by-publication case appoints an attorney ' +
+      'ad litem for the absent party (TRCP 244) and cannot support a ' +
+      'personal money judgment.'
+    );
+  }
+
+  /**
    * Generate Texas jurisdiction statement
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
@@ -292,6 +328,30 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       content: groundsText,
       type: 'grounds'
     });
+
+    // v23-A safety subitem (attorney review, 2026-08): when a fault
+    // ground (cruelty, adultery, felony conviction, abandonment,
+    // confinement, living-apart) is pleaded as the primary ground under
+    // Texas Family Code §6.002 et seq., ALWAYS plead §6.001
+    // insupportability in the alternative. If the fault ground fails at
+    // proof, the alternative no-fault plea preserves the divorce. Skip
+    // when the parties have expressly opted out (`skipInsupportabilityAlt
+    // === true`) or when the primary ground is already no-fault.
+    const faultGrounds = new Set([
+      'cruelty', 'adultery',
+      'conviction', 'felony', 'felony_conviction',
+      'abandonment', 'confinement', 'living_apart'
+    ]);
+    if (
+      faultGrounds.has(grounds) &&
+      divorceData.skipInsupportabilityAlt !== true
+    ) {
+      items.push({
+        number: paragraphNum++,
+        content: 'In the alternative, and without waiving the foregoing fault ground, Petitioner pleads under Texas Family Code §6.001 that the marriage has become insupportable because of discord or conflict of personalities between Petitioner and Respondent that destroys the legitimate ends of the marital relationship and prevents any reasonable expectation of reconciliation.',
+        type: 'grounds_alternative'
+      });
+    }
 
     return {
       title: 'IV. GROUNDS FOR DIVORCE',

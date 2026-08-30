@@ -29,6 +29,14 @@ const answerToPetition = createAnswerBuilder({
   answerWithCounterTitle:
     "RESPONDENT'S ORIGINAL ANSWER AND COUNTERPETITION FOR DIVORCE",
   counterTitle: 'COUNTERPETITION FOR DIVORCE',
+  counterPetitionForm: 'Tex. R. Civ. P. 97 (counterpetition, filed with the Answer)',
+  counterPetitionExamples: [
+    'change of name (Tex. Fam. Code § 6.706)',
+    "attorney's fees and costs (Tex. Fam. Code § 106.002)",
+    'a just and right division of the community estate (Tex. Fam. Code § 7.001)',
+    'spousal maintenance (Tex. Fam. Code § 8.051)',
+    'conservatorship and possession of children (Tex. Fam. Code § 153.002)',
+  ],
   noFaultGroundsRecital:
     'The marriage has become insupportable because of discord or conflict of ' +
     'personalities between Petitioner and Respondent that destroys the legitimate ' +

@@ -57,6 +57,18 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.petitionerLabel = 'Plaintiff';
     this.respondentLabel = 'Defendant';
 
+    // Body paragraphs, signature block, and filer block route through
+    // this.terminology (defaults to Petitioner/Respondent). NY divorce
+    // captions AND body use Plaintiff/Defendant throughout — leaving the
+    // terminology defaults produced "Petitioner"-labeled parties in the
+    // body while the caption said "Plaintiff", a clerk-bounce risk flagged
+    // in the 2026-08 attorney review.
+    this.terminology = {
+      ...this.terminology,
+      filerLabel: 'Plaintiff',
+      responderLabel: 'Defendant',
+    };
+
     // New York-specific required fields
     this.requiredFields = [
       'petitionerName', // Called Plaintiff in NY
@@ -196,32 +208,126 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
-   * Generate New York jurisdiction statement
+   * Compute months of continuous NY residence when the case data carries
+   * enough to derive it. Attempts, in order:
+   *   1. divorceData.residencyStateMonths — trust an explicit count
+   *   2. divorceData.residencySinceDate / stateResidencySince / nyResidenceStartDate —
+   *      months between that date and now
+   * Returns an integer month count or null when the data does not support it.
+   */
+  getResidencyMonths(divorceData) {
+    const raw = divorceData && divorceData.residencyStateMonths;
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) {
+      return Math.floor(raw);
+    }
+    if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) {
+      return parseInt(raw.trim(), 10);
+    }
+    const dateStr = (divorceData && (
+      divorceData.residencySinceDate ||
+      divorceData.stateResidencySince ||
+      divorceData.nyResidenceStartDate
+    )) || null;
+    if (typeof dateStr === 'string' && dateStr.trim()) {
+      const t = Date.parse(dateStr.trim());
+      if (!Number.isNaN(t)) {
+        const days = (Date.now() - t) / (24 * 60 * 60 * 1000);
+        const months = Math.floor(days / 30.4375);
+        if (months >= 0) return months;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * NY DRL § 230 residency clause. The old default emitted the bare
+   * conclusion "The parties meet the residency requirements set forth in
+   * Domestic Relations Law § 230." — a legal conclusion the clerk cannot
+   * verify. Every § 230 sub-basis requires FACTS: continuous months of
+   * residence AND the qualifying reason (married in NY / resided as
+   * spouses in NY / grounds arose in NY / etc.). This method pleads the
+   * sub-basis with those facts whenever the case data supplies them, and
+   * otherwise renders a visible fill-in blank plus a Draft note that
+   * names the § 230 options — never a bare conclusion.
+   *
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
    */
+  /**
+   * New York alt-service Draft note. CPLR § 308(5) authorizes service
+   * "in such manner as the court, upon motion without notice, directs"
+   * when the methods in § 308(1)–(4) prove impracticable — a showing of
+   * due diligence is required.
+   */
+  getAltServiceNote(_divorceData) {
+    return (
+      'Alternative service in New York requires a court order under ' +
+      'CPLR § 308(5), granted on an ex parte motion after a showing that ' +
+      'service under CPLR § 308(1)–(4) is impracticable. Support the ' +
+      'motion with a due-diligence affidavit describing the search for ' +
+      'Defendant. Matrimonial actions have additional service rules — see ' +
+      'DRL § 232 and 22 NYCRR 202.16 — that may govern the order the ' +
+      'court directs.'
+    );
+  }
+
   getJurisdictionStatement(divorceData) {
     const plaintiff = divorceData.petitionerName || 'Plaintiff';
+    const months = this.getResidencyMonths(divorceData);
+    const monthsPhrase = (m, floor) => {
+      if (typeof m === 'number' && m >= floor) {
+        return `for a continuous period of ${m} months (at least ${floor === 12 ? 'one year' : `${floor} months`}) immediately preceding the commencement of this action`;
+      }
+      return `for a continuous period of at least ${floor === 12 ? 'one year' : `${floor} months`} immediately preceding the commencement of this action`;
+    };
 
     // Determine which residency basis applies.
     // Values match what nyDivorce orchestrator collects (DRL § 230 bases).
-    if (divorceData.residencyBasis === '2yr_residence' || divorceData.residencyBasis === 'two_years') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least two years immediately preceding the commencement of this action. (Domestic Relations Law § 230(5))`;
+    if (divorceData.residencyBasis === '2yr_residence' || divorceData.residencyBasis === 'two_years' || divorceData.residencyBasis === 'two_years_domiciled') {
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 24)}. (Domestic Relations Law § 230(5))`;
     }
     if (divorceData.residencyBasis === 'married_in_ny_1yr' || divorceData.residencyBasis === 'one_year_married_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties were married in New York. (Domestic Relations Law § 230(2))`;
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties were married in New York. (Domestic Relations Law § 230(2))`;
     }
     if (divorceData.residencyBasis === 'last_lived_together_1yr' || divorceData.residencyBasis === 'one_year_lived_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the parties last lived together as husband and wife in New York. (Domestic Relations Law § 230(3))`;
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties resided as spouses in New York. (Domestic Relations Law § 230(3))`;
     }
     if (divorceData.residencyBasis === 'grounds_arose_1yr' || divorceData.residencyBasis === 'one_year_cause_in_ny') {
-      return `${plaintiff} has resided in the State of New York for a continuous period of at least one year immediately preceding the commencement of this action, and the cause of action arose in New York. (Domestic Relations Law § 230(4))`;
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the cause of action arose in New York. (Domestic Relations Law § 230(4))`;
     }
     if (divorceData.residencyBasis === 'both_residents') {
       return `Both parties are residents of the State of New York when this action is commenced. (Domestic Relations Law § 230(1))`;
     }
-    // Default
-    return `The parties meet the residency requirements set forth in Domestic Relations Law § 230.`;
+
+    // Fact-driven fallback: derive a sub-basis from ancillary flags when
+    // no explicit residencyBasis was set. Prefer the most-specific
+    // one-year basis (§ 230(2) married in NY, then § 230(3) resided as
+    // spouses in NY) over the two-year residence-only § 230(5) — the
+    // one-year sub-basis pleads the qualifying reason and is the
+    // stronger showing whenever the underlying fact is present.
+    const marriedInNy = divorceData.marriedInNy === true ||
+      /new\s*york/i.test(String(divorceData.marriageStateName || '')) ||
+      String(divorceData.marriageState || '').trim().toUpperCase() === 'NY' ||
+      /new\s*york/i.test(String(divorceData.marriageLocation || ''));
+    const livedAsSpousesInNy = divorceData.livedAsSpousesInNy === true ||
+      divorceData.livedAsMarriedInNy === true;
+    if (typeof months === 'number' && months >= 12 && marriedInNy) {
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties were married in New York. (Domestic Relations Law § 230(2))`;
+    }
+    if (typeof months === 'number' && months >= 12 && livedAsSpousesInNy) {
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties resided as spouses in New York. (Domestic Relations Law § 230(3))`;
+    }
+    if (typeof months === 'number' && months >= 24) {
+      return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 24)}. (Domestic Relations Law § 230(5))`;
+    }
+
+    // No usable basis on file — render a visible blank + Draft note that
+    // names the § 230 options rather than the bare conclusion the reviewer
+    // flagged as clerk-bounce risk.
+    const monthsLine = typeof months === 'number'
+      ? `${plaintiff} has resided in the State of New York for a continuous period of ${months} months immediately preceding the commencement of this action`
+      : `${plaintiff} has resided in the State of New York for a continuous period of __________ months immediately preceding the commencement of this action`;
+    return `${monthsLine}, and (choose one) __ the parties were married in New York (DRL § 230(2)); __ the parties resided as spouses in New York (DRL § 230(3)); __ the cause of action arose in New York (DRL § 230(4)); or __ Plaintiff has been a resident for at least two years (DRL § 230(5)).\n(Draft — select and complete the applicable § 230 sub-basis before filing.)`;
   }
 
   /**
@@ -287,6 +393,19 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       content: groundsText,
       type: 'grounds',
     });
+
+    // Uncontested-posture recital — attorney review flagged that the
+    // profile's mediated CSSA agreement + maintenance waiver never
+    // surfaced in the complaint. When the profile carries a Settlement
+    // Agreement / mediated support / support waiver, append a recital
+    // reciting the agreement's coverage. See getUncontestedRecital.
+    if (this.hasUncontestedPosture(divorceData)) {
+      items.push({
+        number: paragraphNum++,
+        content: this.getUncontestedRecital(divorceData),
+        type: 'uncontested_recital',
+      });
+    }
 
     return {
       title: 'IV. GROUNDS FOR DIVORCE',
@@ -441,28 +560,44 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         type: 'children_info'
       });
     } else {
-      items.push({
-        number: paragraphNum++,
-        content: 'The following are the children of the marriage under the age of 21 years:',
-        type: 'children_info'
-      });
-
-      divorceData.children.forEach((child, index) => {
-        const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-        const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
-        const residence = typeof child === 'object' ? child.residence : null;
-
-        let childInfo = birthDate ? `${childName}, born ${birthDate}` : childName;
-        if (residence) {
-          childInfo += `, residing with ${residence}`;
-        }
-
+      // Combine the child(ren) into well-formed clauses. The old shape
+      // opened a header paragraph and then numbered each child on its
+      // own line — for a one-child family with no DOB that produced
+      // "8. The following are the children ... 9. Emma." (attorney
+      // review, 2026-08). Each entry now names DOB + residence in a
+      // single sentence, with visible fill-in blanks when a value is
+      // missing so the drafter finishes them by hand before filing.
+      const childrenArr = divorceData.children;
+      const formatChildClause = (child) => {
+        const name = typeof child === 'string'
+          ? child
+          : (child && child.name) || '__________________';
+        const rawDob = typeof child === 'object' && child
+          ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
+          : null;
+        const dobStr = rawDob ? this.formatDate(rawDob) : null;
+        const address = (typeof child === 'object' && child
+          && (child.currentAddress || child.address || child.residence)) || null;
+        const dobPhrase = dobStr ? `born ${dobStr}` : 'born __________________';
+        const residencePhrase = address
+          ? `residing at ${address}`
+          : `residing at __________________`;
+        return `${name}, ${dobPhrase}, ${residencePhrase}`;
+      };
+      if (childrenArr.length === 1) {
         items.push({
           number: paragraphNum++,
-          content: childInfo,
-          type: 'child_detail'
+          content: `The child of the marriage under the age of 21 years is ${formatChildClause(childrenArr[0])}.`,
+          type: 'children_info',
         });
-      });
+      } else {
+        const listed = childrenArr.map(formatChildClause).join('; ');
+        items.push({
+          number: paragraphNum++,
+          content: `The children of the marriage under the age of 21 years are: ${listed}.`,
+          type: 'children_info',
+        });
+      }
 
       // Custody request
       items.push({
@@ -503,6 +638,119 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       nextParagraphNumber: paragraphNum
     };
   }
+
+  /**
+   * NY is an equitable-distribution state (DRL § 236-B) — never
+   * "community property" (LA/CA/TX). The base template pleads
+   * "community/marital property"; override to plead marital property only.
+   * @param {Object} divorceData - Divorce data
+   * @returns {Object} Property section
+   */
+  generatePropertySection(divorceData) {
+    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+      // Fall through to the base agreed/no-property paths, then scrub the
+      // "community/marital" phrasing so NY reads as marital-only.
+      const section = super.generatePropertySection(divorceData);
+      section.items = section.items.map((item) => ({
+        ...item,
+        content: typeof item.content === 'string'
+          ? item.content
+            .replace(/community or marital property/gi, 'marital property')
+            .replace(/marital or community property/gi, 'marital property')
+            .replace(/community\/marital property/gi, 'marital property')
+            .replace(/marital\/community property/gi, 'marital property')
+            .replace(/community\s+and\s+marital\s+property/gi, 'marital property')
+            .replace(/marital\s+and\s+community\s+property/gi, 'marital property')
+            // Any remaining bare "community property" mention: NY is
+            // equitable-distribution only, so scrub it.
+            .replace(/community property/gi, 'marital property')
+          : item.content,
+      }));
+      return section;
+    }
+
+    const items = [];
+    let paragraphNum = divorceData._paragraphNum || 14;
+    const t = this.terminology;
+
+    items.push({
+      number: paragraphNum++,
+      content: 'The parties have acquired marital property during the marriage, including but not limited to real property, personal property, and financial accounts, subject to equitable distribution pursuant to Domestic Relations Law § 236-B.',
+      type: 'property_info',
+    });
+
+    items.push({
+      number: paragraphNum++,
+      content: `${t.filerLabel} requests that the Court equitably distribute the marital property of the parties pursuant to Domestic Relations Law § 236-B.`,
+      type: 'property_request',
+    });
+
+    if (divorceData.hasDebts !== false) {
+      items.push({
+        number: paragraphNum++,
+        content: `The parties have accumulated debts during the marriage. ${t.filerLabel} requests that the Court allocate responsibility for such debts equitably.`,
+        type: 'debt_info',
+      });
+    }
+
+    return {
+      title: 'VI. MARITAL PROPERTY',
+      items,
+      nextParagraphNumber: paragraphNum,
+    };
+  }
+
+  /**
+   * Whether the case carries an uncontested / settled posture the
+   * pleading should recite. Attorney review (2026-08) flagged that a
+   * mediated CSSA agreement + maintenance waiver captured in the profile
+   * never surfaced in the complaint. When present, the grounds section
+   * appends a preamble reciting the Settlement Agreement and the agreed
+   * items (custody, parenting time, CSSA child support, equitable
+   * distribution, and any mutual maintenance waiver).
+   * @param {Object} divorceData
+   */
+  hasUncontestedPosture(divorceData) {
+    const d = divorceData || {};
+    return Boolean(
+      d.settlementAgreementDate ||
+      d.settlementAgreement ||
+      d.mediatedChildSupport === true ||
+      d.spousalSupportWaived === true ||
+      (d.spousalSupportRequested === false && this.hasAgreedPropertyDivision(d))
+    );
+  }
+
+  /**
+   * Recite the parties' Settlement Agreement (mediated CSSA amount and/or
+   * mutual maintenance waiver) as an uncontested-posture paragraph. Called
+   * from the grounds section so the recital sits with the substantive
+   * pleadings rather than as a stray note.
+   */
+  getUncontestedRecital(divorceData) {
+    const d = divorceData || {};
+    const rawDate = d.settlementAgreementDate;
+    const dateStr = rawDate && this.formatDate(rawDate);
+    const dateClause = dateStr ? ` dated ${dateStr}` : ' dated __________________';
+    const covered = [];
+    if (d.hasMinorChildren === true || (Array.isArray(d.children) && d.children.length > 0)) {
+      covered.push('custody', 'parenting time');
+    }
+    if (d.mediatedChildSupport === true || d.childSupportAmount) {
+      covered.push('child support (calculated pursuant to the Child Support Standards Act)');
+    }
+    covered.push('equitable distribution');
+    const list = covered.join(', ');
+    let text = `The parties have entered a Settlement Agreement${dateClause}, which addresses ${list}.`;
+    if (d.spousalSupportWaived === true || d.spousalSupportRequested === false) {
+      text += ' The Agreement includes a mutual waiver of spousal maintenance.';
+    }
+    return text;
+  }
+
+  // (The uncontested-posture recital is appended inline within
+  // generateGroundsSection above; see hasUncontestedPosture and
+  // getUncontestedRecital below.)
 
   /**
    * Generate New York relief section

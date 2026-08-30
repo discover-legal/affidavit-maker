@@ -109,12 +109,32 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Pull a last-name token from a full name for the CA "In re Marriage of"
+   * caption. Real cases carry titles/suffixes/multi-word surnames — this
+   * grabs the final space-delimited token as a best-effort surname; when
+   * only one token is present, the whole name is used. Case is preserved
+   * (captionUpper is applied by the caller for the display line).
+   */
+  captionSurname(fullName) {
+    if (typeof fullName !== 'string') return '';
+    const clean = fullName.trim().replace(/,.*$/, '').trim();
+    if (!clean) return '';
+    const parts = clean.split(/\s+/);
+    return parts[parts.length - 1];
+  }
+
+  /**
    * California case caption. Overridden so party names route through
    * captionUpper (which preserves McPherson/DiCaprio/van der Berg internal
    * capitals — the base's plain `.toUpperCase()` corrupted "McPherson" to
    * "MCPHERSON" in the live California acceptance run, 2026-08). Missing
    * data renders as fill-in-by-hand blanks — never `[TOKENS]` — because a
    * filed document is completed by hand, not by placeholder.
+   *
+   * Caption line uses "In re Marriage of <Petitioner surname> and
+   * <Respondent surname>" — the California convention (Family Code and
+   * Rules of Court), not the WA/OR "IN THE MATTER OF THE MARRIAGE OF"
+   * form the pre-review draft carried (attorney review, 2026-08).
    *
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Case caption
@@ -131,11 +151,17 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       ? captionUpper(divorceData.respondentName)
       : '_________________________________';
 
+    const petSurname = this.captionSurname(divorceData.petitionerName);
+    const respSurname = this.captionSurname(divorceData.respondentName);
+    const inReSurnamesLine = petSurname && respSurname
+      ? `IN RE MARRIAGE OF ${captionUpper(petSurname)} AND ${captionUpper(respSurname)}`
+      : 'IN RE MARRIAGE OF __________________ AND __________________';
+
     const t = this.terminology;
     let caption = '';
     caption += `IN THE ${courtName}\n\n`;
     caption += `${caseLabel} ${caseNumber}\n\n`;
-    caption += `IN THE MATTER OF THE MARRIAGE OF:\n\n`;
+    caption += `${inReSurnamesLine}\n\n`;
     caption += `${petitioner}, ${t.filerLabel}\n\n`;
     caption += `AND\n\n`;
     caption += `${respondent}, ${t.responderLabel}`;
@@ -148,7 +174,7 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       : '_________________________________,';
     const structured = {
       left: [
-        'IN THE MATTER OF THE MARRIAGE OF:',
+        inReSurnamesLine,
         '',
         partyLeft,
         `          ${t.filerLabel},`,
@@ -207,6 +233,24 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * California alt-service Draft note. CCP § 415.50 (service by
+   * publication) and CCP § 413.30 (any other manner the court deems
+   * reasonably calculated to give actual notice) both require a court
+   * order supported by a declaration of reasonable diligence describing
+   * the search for Respondent.
+   */
+  getAltServiceNote(_divorceData) {
+    return (
+      'Alternative service in California requires a court order. Move ' +
+      'under CCP § 415.50 for service by publication, or under CCP ' +
+      '§ 413.30 for another manner the court deems reasonably calculated ' +
+      'to give actual notice, in each case supported by a declaration of ' +
+      'reasonable diligence describing the search for Respondent (see ' +
+      'Judicial Council forms FL-980 / FL-982).'
+    );
+  }
+
+  /**
    * Get California jurisdiction statement
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
@@ -241,7 +285,12 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const marriageDateFormatted = isRenderableDate(divorceData.marriageDate)
       ? this.formatDate(divorceData.marriageDate)
       : null;
-    const marriageLocationSuffix = divorceData.marriageLocation ? ` in ${divorceData.marriageLocation}` : '';
+    // Use the base's formatMarriagePlace so marriageCity + marriageStateName
+    // (e.g. "Oakland, California") surface here. Attorney review (2026-08)
+    // flagged that the CA draft was leaving the place blank even when
+    // marriageCity was present in the profile.
+    const marriagePlace = this.formatMarriagePlace(divorceData);
+    const marriageLocationSuffix = marriagePlace ? ` in ${marriagePlace}` : '';
     if (marriageDateFormatted) {
       items.push({
         number: paragraphNum++,
@@ -276,11 +325,11 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       });
     }
 
-    items.push({
-      number: paragraphNum++,
-      content: `The marriage has become irretrievably broken due to irreconcilable differences. (Family Code § 2310(a))`,
-      type: 'marriage_info'
-    });
+    // Grounds (§ 2310(a)) are pleaded once, in generateGroundsSection.
+    // The pre-review draft repeated the "irreconcilable differences"
+    // clause here AND in Section IV — attorney review (2026-08) called
+    // out the redundant grounds paragraphs; the marriage-info section
+    // now stays limited to marriage/separation facts.
 
     return {
       title: 'III. MARRIAGE INFORMATION',
@@ -490,6 +539,91 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Real-estate parcels the profile captured, formatted as pleading
+   * sentences. Accepts realEstateItems (preferred) or propertyItems
+   * arrays; each entry may be a string ("Poway home") or an object with
+   * `description`, `address`, `city`, `county`, `parcelNumber`, or
+   * `apn`. Returns an empty array when the profile has no such items —
+   * the section then falls back to the generic FL-160 catch-all.
+   */
+  collectRealEstateItems(divorceData) {
+    const d = divorceData || {};
+    const sources = []
+      .concat(Array.isArray(d.realEstateItems) ? d.realEstateItems : [])
+      .concat(Array.isArray(d.propertyItems) ? d.propertyItems : []);
+    const out = [];
+    for (const raw of sources) {
+      if (!raw) continue;
+      if (typeof raw === 'string') {
+        const desc = raw.trim();
+        if (desc) out.push(`The parties own the real property described as ${desc}, which is community property subject to division.`);
+        continue;
+      }
+      if (typeof raw !== 'object') continue;
+      const description = (raw.description || raw.name || '').toString().trim();
+      const address = (raw.address || raw.streetAddress || '').toString().trim();
+      const city = (raw.city || '').toString().trim();
+      const county = (raw.county || '').toString().trim();
+      const apn = (raw.parcelNumber || raw.apn || '').toString().trim();
+
+      // Prefer a real street address when present; otherwise use the
+      // description (e.g. "Poway home"). Add county context and APN when
+      // available.
+      const primary = address
+        ? `commonly known as ${address}${city ? `, ${city}` : ''}, California`
+        : (description ? description : 'certain real property');
+      // Normalize "San Diego" or "San Diego County" → "San Diego County".
+      const countyNormalized = county
+        ? (/\bcounty$/i.test(county) ? county : `${county} County`)
+        : '';
+      const countyPhrase = countyNormalized ? `${countyNormalized}, California` : '';
+      const parts = [];
+      parts.push(`The parties own the real property ${primary}`);
+      if (countyPhrase && !(county && new RegExp(county.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(primary))) {
+        parts.push(`located in ${countyPhrase}`);
+      }
+      if (apn) parts.push(`(APN ${apn})`);
+      let sentence = parts.join(', ').replace(/,\s+\(/g, ' (') + ', which is community property subject to division.';
+      out.push(sentence);
+    }
+    return out;
+  }
+
+  /**
+   * Prepend a Draft note pointing the drafter at the Judicial Council
+   * form (FL-100). The divorce-metadata.json for CA declares FL-100 as
+   * the required official petition form; our draft is narrative
+   * organization of the user's facts — filing happens on the FL-100.
+   * The note lives as an unnumbered item at the top of Section I so
+   * every rendering path (fullText, HTML, PDF) surfaces it above the
+   * pleading paragraphs.
+   */
+  generatePartiesSection(divorceData) {
+    const base = super.generatePartiesSection(divorceData);
+    const formNote = this.getOfficialFormNote();
+    if (formNote) {
+      base.items.unshift({
+        number: null,
+        content: formNote,
+        type: 'official_form_note',
+      });
+    }
+    return base;
+  }
+
+  /**
+   * Draft note text pointing to the California Judicial Council petition
+   * form (FL-100). Reads the form number from divorce-metadata.json when
+   * present, so a future metadata bump lifts this text automatically.
+   */
+  getOfficialFormNote() {
+    const md = this.metadata || {};
+    const petitionForm = (md.officialForms && md.officialForms.petition) || null;
+    const formNumber = (petitionForm && petitionForm.formNumber) || 'FL-100';
+    return `(Draft — Official California Judicial Council form ${formNumber} (Petition—Marriage/Domestic Partnership) is available at https://courts.ca.gov/forms-rules/court-forms. This narrative petition organizes your facts; you may transcribe the substance into ${formNumber} for filing.)`;
+  }
+
+  /**
    * Generate California property section (community property state)
    * @param {Object} divorceData - Divorce data
    * @returns {Object} Property section
@@ -511,11 +645,33 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       type: 'property_info'
     });
 
-    items.push({
-      number: paragraphNum++,
-      content: `There exists community property owned by the parties, the nature and extent of which will be proven at trial or set forth in a Property Declaration (Form FL-160).`,
-      type: 'property_info'
-    });
+    // Itemize real property from the profile when the case data carries
+    // it. Attorney review (2026-08) flagged that the Poway home stored on
+    // the profile as a realEstateItem was being dropped in favor of the
+    // generic "will be proven at trial" line. When we have concrete
+    // parcels, name them; only fall back to the FL-160 catch-all
+    // otherwise.
+    const realEstate = this.collectRealEstateItems(divorceData);
+    if (realEstate.length > 0) {
+      for (const parcel of realEstate) {
+        items.push({
+          number: paragraphNum++,
+          content: parcel,
+          type: 'property_item',
+        });
+      }
+      items.push({
+        number: paragraphNum++,
+        content: `Additional community and quasi-community assets and debts of the parties will be set forth in a Property Declaration (Form FL-160).`,
+        type: 'property_info',
+      });
+    } else {
+      items.push({
+        number: paragraphNum++,
+        content: `There exists community property owned by the parties, the nature and extent of which will be proven at trial or set forth in a Property Declaration (Form FL-160).`,
+        type: 'property_info'
+      });
+    }
 
     if (divorceData.hasSeparateProperty !== false) {
       items.push({

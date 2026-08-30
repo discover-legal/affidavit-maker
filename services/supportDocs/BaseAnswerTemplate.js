@@ -10,14 +10,39 @@
 // is pinned to 'affidavit' so detectDocumentType() never mis-routes into
 // the petition/decree paths.
 //
-// This base is a NEW, shared implementation — utahAnswer.js keeps its own
-// specialized wording (unsworn declaration under Utah Code 78B-18a) and is
-// left untouched by design.
+// Substantive structure of an Answer (per Fla. Fam. L.R.P. 12.110 / Fla. R.
+// Civ. P. 1.110(c), NY CPLR 3018, Tex. R. Civ. P. 92, and the equivalent
+// rules in the other supported jurisdictions):
 //
-// UPL line: builders TRANSCRIBE the user's own decisions. They never
-// auto-admit or auto-deny an unclassified paragraph, and they never
-// synthesize requests for relief. Positions and requests always come
-// verbatim (sanitized) from explicit user input.
+//   1. GENERAL DENIAL — everything not expressly admitted is denied. Without
+//      this, every unanswered allegation is deemed admitted (Fla. R. Civ. P.
+//      1.110(e)).
+//   2. PER-PARAGRAPH RESPONSES — admit / deny / without knowledge, one per
+//      numbered petition paragraph. When the user has already classified
+//      paragraphs via `data.answerPositions`, we render those groupings.
+//      Otherwise we emit a scaffold covering the standard divorce-petition
+//      paragraphs (jurisdiction, residency, marriage, breakdown, children,
+//      property, debts, alimony, attorney fees), each with "ADMITS / DENIES
+//      / WITHOUT KNOWLEDGE (mark one)" for the user to complete against the
+//      served petition. Substantively necessary because at Answer-drafting
+//      time we do NOT have the served petition's text.
+//   3. AFFIRMATIVE DEFENSES — auto-seeded from profile facts (currently
+//      `prenupSigned` → prenup enforcement defense; extensible by
+//      jurisdiction). Fla. R. Civ. P. 1.140(b)/(h) waives affirmative
+//      defenses not raised in the responsive pleading.
+//   4. COUNTER-PETITION OFFER — an informational item pointing the user to
+//      the counter-petition form (Fla. Fam. L.R.P. Form 12.903(b) in FL,
+//      etc.) so they can preserve affirmative relief without filing a bare
+//      Answer that waives it.
+//   5. USER REQUESTS — anything the user explicitly asked for, transcribed.
+//   6. COUNTERCLAIM — full pleading (only when `includeCounterclaim`).
+//   7. CERTIFICATE OF SERVICE + VERIFICATION.
+//
+// UPL line: builders TRANSCRIBE the user's own decisions. The scaffold is a
+// fill-in with the classifications explicit ("ADMITS / DENIES / WITHOUT
+// KNOWLEDGE — mark one"); we never auto-admit or auto-deny an unclassified
+// paragraph, and we never synthesize requests for relief. Positions and
+// requests always come verbatim (sanitized) from explicit user input.
 
 'use strict';
 
@@ -144,6 +169,14 @@ function sanitizeRequests(raw) {
     .slice(0, 20);
 }
 
+function sanitizeStrings(raw, cap = 20, maxLen = 800) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r) => str(r).replace(/\s+/g, ' ').slice(0, maxLen))
+    .filter(Boolean)
+    .slice(0, cap);
+}
+
 /**
  * Pro se filer contact block for the top-left of page one. Values render
  * when the case data has them; blanks otherwise.
@@ -204,12 +237,146 @@ function defaultSignatureSections(config, name, title, opts = {}) {
   }
 
   const unsworn = (config.verification && config.verification.unsworn) || GENERIC_UNSWORN;
+  // Canadian jurisdictions (ON, AB) pass locationLabel: '(city and province)'
+  // so the sign-block line does not say "state/province" in a country where
+  // the concept is only "province". Default keeps the historical
+  // US-and-Canada omnibus phrasing for jurisdictions that have not opted in.
+  const locationLabel =
+    (config.verification && config.verification.locationLabel) || '(city and state/province)';
   return {
     perjuryStatement:
-      `${unsworn}\n\nSigned on ${BLANK_SHORT} (date) at ${BLANK_LINE} (city and state/province).`,
+      `${unsworn}\n\nSigned on ${BLANK_SHORT} (date) at ${BLANK_LINE} ${locationLabel}.`,
     signatureBlock,
     notaryBlock: null,
   };
+}
+
+// ─── Standard divorce-petition scaffold ──────────────────────────────────────
+//
+// Topics covering the paragraphs a typical U.S. or Canadian divorce petition
+// pleads. Each entry gets a numbered response item; the paragraph number the
+// scaffold references is the ordinal in this list, which the user aligns with
+// the actual served petition when filing. Jurisdictions can override the list
+// via config.scaffoldParagraphs.
+const STANDARD_DIVORCE_SCAFFOLD = Object.freeze([
+  Object.freeze({
+    key: 'jurisdiction',
+    topic: "the court's jurisdiction over the parties and this action",
+  }),
+  Object.freeze({
+    key: 'residency',
+    topic: 'the residency and venue allegations',
+  }),
+  Object.freeze({
+    key: 'marriage',
+    topic: 'the date and place of the marriage',
+  }),
+  Object.freeze({
+    key: 'separation',
+    topic: 'the date of separation',
+  }),
+  Object.freeze({
+    key: 'breakdown',
+    topic: 'the ground stated for the divorce (irretrievable breakdown or the equivalent)',
+  }),
+  Object.freeze({
+    key: 'children',
+    topic: 'the allegations concerning any minor children of the marriage',
+  }),
+  Object.freeze({
+    key: 'property',
+    topic: 'the allegations concerning marital assets and property division',
+  }),
+  Object.freeze({
+    key: 'debts',
+    topic: 'the allegations concerning marital debts and liabilities',
+  }),
+  Object.freeze({
+    key: 'alimony',
+    topic: 'the allegations concerning spousal support or alimony',
+  }),
+  Object.freeze({
+    key: 'fees',
+    topic: "the allegations concerning attorney's fees and costs",
+  }),
+]);
+
+function scaffoldResponseLine(filerLabel, topic) {
+  return (
+    `Regarding ${topic}: ${filerLabel} ADMITS / DENIES / IS WITHOUT KNOWLEDGE OR ` +
+    `INFORMATION SUFFICIENT TO FORM A BELIEF AND THEREFORE DENIES (mark one). ` +
+    `Petition paragraph number(s): ${BLANK_SHORT}. Explanation, if any: ${BLANK_LINE}.`
+  );
+}
+
+// ─── Affirmative defenses ────────────────────────────────────────────────────
+//
+// Auto-seeds from profile facts. The registry pattern is deliberately open —
+// jurisdictions can pass extra defenses via config.affirmativeDefenses(data),
+// and the user can pass verbatim strings via data.affirmativeDefenses.
+
+function buildAffirmativeDefenses(data, config) {
+  const defenses = [];
+
+  // Prenup — Fla. R. Civ. P. 1.140(b)/(h): unpleaded, waived.
+  if (data.prenupSigned === true) {
+    const year = str(data.prenupYear) || str(data.prenupDate);
+    const dateFragment = year ? ` dated ${year}` : ` dated ${BLANK_SHORT}`;
+    defenses.push(
+      `PRENUPTIAL AGREEMENT. The parties entered into a valid prenuptial agreement${dateFragment}, ` +
+        'which governs the disposition of property and debts between the parties. Any claim ' +
+        'inconsistent with the prenuptial agreement is barred, and the agreement is pleaded ' +
+        'as an affirmative defense and, where applicable, as a bar to relief.',
+    );
+  }
+
+  // Postnup — same waiver rule.
+  if (data.postnupSigned === true) {
+    const year = str(data.postnupYear) || str(data.postnupDate);
+    const dateFragment = year ? ` dated ${year}` : ` dated ${BLANK_SHORT}`;
+    defenses.push(
+      `POSTNUPTIAL AGREEMENT. The parties entered into a valid postnuptial agreement${dateFragment}, ` +
+        'which governs the disposition of property and debts between the parties. Any claim ' +
+        'inconsistent with the postnuptial agreement is barred.',
+    );
+  }
+
+  // User-supplied verbatim defenses (sanitized, capped).
+  for (const line of sanitizeStrings(data.affirmativeDefenses)) {
+    defenses.push(ensurePeriod(line));
+  }
+
+  // Jurisdiction-supplied extras.
+  if (typeof config.affirmativeDefenses === 'function') {
+    for (const line of sanitizeStrings(config.affirmativeDefenses(data) || [])) {
+      defenses.push(ensurePeriod(line));
+    }
+  }
+
+  return defenses;
+}
+
+// ─── Counter-petition offer ──────────────────────────────────────────────────
+//
+// Informational paragraph pointing the user to the counter-petition form when
+// they may want affirmative relief but did NOT set includeCounterclaim. The
+// jurisdiction supplies the form citation via config.counterPetitionForm.
+
+function buildCounterPetitionOffer(config, filerLabel, opposingLabel) {
+  const form = str(config.counterPetitionForm);
+  const examples = Array.isArray(config.counterPetitionExamples)
+    ? config.counterPetitionExamples.filter(Boolean).join(', ')
+    : '';
+  const suffix = form ? ` (see ${form})` : '';
+  const relief = examples
+    ? ` Common examples of affirmative relief include: ${examples}.`
+    : '';
+  return (
+    `NOTE — COUNTER-PETITION AVAILABLE. ${filerLabel} reserves the right to file a ` +
+    `Counter-Petition${suffix} seeking affirmative relief in addition to responding to ` +
+    `${opposingLabel}'s pleading. A bare Answer without a Counter-Petition may waive ` +
+    `affirmative relief.${relief}`
+  );
 }
 
 /**
@@ -237,6 +404,21 @@ function defaultSignatureSections(config, name, title, opts = {}) {
  *   certificateOfService(data, parties)
  *                        default: certificate-of-service line
  *   noteFooter(data)     optional extra text appended after conclusion
+ *   scaffoldParagraphs   default STANDARD_DIVORCE_SCAFFOLD — override to
+ *                        include (e.g.) jurisdiction-specific waiver
+ *                        allegations
+ *   includeStandardScaffold
+ *                        default true — set false only if the jurisdiction's
+ *                        practice is a bare general denial (Texas practice
+ *                        historically works that way but even there the
+ *                        scaffold is useful once the user has the petition)
+ *   affirmativeDefenses(data)
+ *                        optional function returning extra defenses to append
+ *   counterPetitionForm  citation for the counter-petition form (e.g.
+ *                        'Fla. Fam. L.R.P. Form 12.903(b)')
+ *   counterPetitionExamples
+ *                        array of example affirmative-relief items to list
+ *                        in the counter-petition offer
  */
 function createAnswerBuilder(config) {
   if (!config || !config.state) {
@@ -250,6 +432,8 @@ function createAnswerBuilder(config) {
     answerTitle = 'ANSWER',
     answerWithCounterTitle = 'ANSWER AND COUNTERCLAIM',
     counterTitle = 'COUNTERCLAIM FOR DIVORCE',
+    scaffoldParagraphs = STANDARD_DIVORCE_SCAFFOLD,
+    includeStandardScaffold = true,
   } = config;
 
   const filerBlock = config.filerBlock || defaultFilerBlock;
@@ -335,36 +519,60 @@ function createAnswerBuilder(config) {
     const items = [];
     let number = 1;
 
-    // ── Positions on the petition's numbered paragraphs ──
+    // ── (1) General denial — anchor the pleading so unclassified allegations
+    //         are NOT deemed admitted (Fla. R. Civ. P. 1.110(e) and the
+    //         equivalent rules in every other supported jurisdiction).
+    items.push({
+      number: number++,
+      content:
+        `GENERAL DENIAL. Except as expressly admitted below, ${filerLabel} denies each and ` +
+        `every allegation of the ${petitionTerm}.`,
+      type: 'general_denial',
+    });
+
+    // ── (2) Per-paragraph responses ──
     const groups = groupPositions(data.answerPositions);
     const hasPositions =
       groups.admit.length > 0 || groups.deny.length > 0 || groups.lack_knowledge.length > 0;
 
-    if (groups.admit.length > 0) {
-      items.push({
-        number: number++,
-        content: `${filerLabel} ADMITS the allegations in ${paragraphList(groups.admit)}.`,
-        type: 'answer_position',
-      });
-    }
-    if (groups.deny.length > 0) {
-      items.push({
-        number: number++,
-        content: `${filerLabel} DENIES the allegations in ${paragraphList(groups.deny)}.`,
-        type: 'answer_position',
-      });
-    }
-    if (groups.lack_knowledge.length > 0) {
-      items.push({
-        number: number++,
-        content:
-          `${filerLabel} LACKS KNOWLEDGE OR INFORMATION sufficient to form a belief as to the ` +
-          `truth of the allegations in ${paragraphList(groups.lack_knowledge)}, and therefore ` +
-          'denies them.',
-        type: 'answer_position',
-      });
-    }
-    if (!hasPositions) {
+    if (hasPositions) {
+      if (groups.admit.length > 0) {
+        items.push({
+          number: number++,
+          content: `${filerLabel} ADMITS the allegations in ${paragraphList(groups.admit)}.`,
+          type: 'answer_position',
+        });
+      }
+      if (groups.deny.length > 0) {
+        items.push({
+          number: number++,
+          content: `${filerLabel} DENIES the allegations in ${paragraphList(groups.deny)}.`,
+          type: 'answer_position',
+        });
+      }
+      if (groups.lack_knowledge.length > 0) {
+        items.push({
+          number: number++,
+          content:
+            `${filerLabel} LACKS KNOWLEDGE OR INFORMATION sufficient to form a belief as to the ` +
+            `truth of the allegations in ${paragraphList(groups.lack_knowledge)}, and therefore ` +
+            'denies them.',
+          type: 'answer_position',
+        });
+      }
+    } else if (includeStandardScaffold) {
+      // Emit the standard divorce-petition scaffold. This is the substantive
+      // pleading structure a respondent needs when the petition text was not
+      // ingested into the tool at Answer-drafting time.
+      for (const paragraph of scaffoldParagraphs) {
+        items.push({
+          number: number++,
+          content: scaffoldResponseLine(filerLabel, paragraph.topic),
+          type: 'answer_position',
+          scaffoldKey: paragraph.key,
+        });
+      }
+    } else {
       items.push({
         number: number++,
         content:
@@ -374,7 +582,37 @@ function createAnswerBuilder(config) {
       });
     }
 
-    // ── User's own requests to the court (transcribed, never synthesized) ──
+    // ── (3) Affirmative defenses ──
+    const defenses = buildAffirmativeDefenses(data, config);
+    if (defenses.length > 0) {
+      items.push({
+        number: number++,
+        content:
+          'AFFIRMATIVE DEFENSES. The following affirmative defenses are pleaded and, to the ' +
+          'extent required by the applicable rules of procedure, are raised now to avoid waiver:',
+        type: 'affirmative_defenses_intro',
+      });
+      for (const line of defenses) {
+        items.push({
+          number: number++,
+          content: line,
+          type: 'affirmative_defense',
+        });
+      }
+    }
+
+    // ── (4) Counter-petition offer (only when the user did NOT elect to file
+    //         a counterclaim alongside — otherwise the counterclaim itself
+    //         supplies the affirmative relief).
+    if (!includeCounterclaim) {
+      items.push({
+        number: number++,
+        content: buildCounterPetitionOffer(config, filerLabel, opposingLabel),
+        type: 'counter_petition_offer',
+      });
+    }
+
+    // ── (5) User's own requests to the court (transcribed, never synthesized) ──
     for (const request of requests) {
       items.push({
         number: number++,
@@ -383,7 +621,7 @@ function createAnswerBuilder(config) {
       });
     }
 
-    // ── Counterclaim (only when the user turned it on) ──
+    // ── (6) Counterclaim (only when the user turned it on) ──
     if (includeCounterclaim) {
       items.push({
         number: number++,
@@ -515,4 +753,5 @@ module.exports = {
   defaultFilerBlock,
   defaultSignatureSections,
   GENERIC_UNSWORN,
+  STANDARD_DIVORCE_SCAFFOLD,
 };

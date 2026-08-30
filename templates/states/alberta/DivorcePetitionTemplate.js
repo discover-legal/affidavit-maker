@@ -6,6 +6,12 @@
 
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
+const {
+  oneYearSeparationPleading,
+  custodyDisputePosition,
+  incomeImputationPosition,
+  normalizeCanadianDivorceData,
+} = require('../../core/canadianHelpers');
 
 /**
  * Alberta Divorce Template — Statement of Claim for Divorce
@@ -381,7 +387,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     return `The parties have agreed that ${payor} shall pay child support to ${payee} in the amount of $${divorceData.childSupportAmount} per month, consistent with the Federal Child Support Guidelines, SOR/97-175.`;
   }
 
-  getGroundsText(groundsForDivorce) {
+  getGroundsText(groundsForDivorce, divorceData) {
     const g = (groundsForDivorce || 'separation').toLowerCase();
     if (g.includes('adultery')) {
       return 'The Defendant has committed adultery within the meaning of paragraph 8(2)(b)(i) of the Divorce Act.';
@@ -389,7 +395,32 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (g.includes('cruelty') || g.includes('violence')) {
       return 'The Defendant has treated the Plaintiff with physical or mental cruelty of such a kind as to render intolerable the continued cohabitation of the spouses, within the meaning of paragraph 8(2)(b)(ii) of the Divorce Act.';
     }
-    return 'The spouses have lived separate and apart for at least one year immediately preceding the determination of the divorce action, within the meaning of paragraph 8(2)(a) of the Divorce Act.';
+    // Default: 1-year separation — gated by the s.8(2)(a) helper. If the
+    // parties will not have been separated for a year by the time judgment
+    // is granted, switch to prospective language and warn the drafter about
+    // fault-ground alternatives (Divorce Act, s.8(2)(b)).
+    return oneYearSeparationPleading(divorceData || this._currentDivorceData || {}, {
+      statuteCite: 'paragraph 8(2)(a) of the Divorce Act',
+    }).text;
+  }
+
+  /**
+   * generateDocument override: alias-normalize incoming data (Action No.,
+   * marriage year, separation date, children DOBs stored under legacy
+   * names), stash for grounds-gate access, and splice a contested-issues
+   * section when the profile carries a parenting dispute or a s.19 income
+   * imputation request.
+   */
+  generateDocument(divorceData = {}) {
+    const data = normalizeCanadianDivorceData(divorceData);
+    this._currentDivorceData = data;
+    try {
+      const doc = super.generateDocument(data);
+      appendContestedIssuesAlberta(doc, data);
+      return doc;
+    } finally {
+      this._currentDivorceData = null;
+    }
   }
 
   /**
@@ -467,6 +498,39 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
     return `I, ${name}, Plaintiff, make oath and say (or solemnly affirm) that the facts stated in this Statement of Claim are true, to the best of my knowledge, information, and belief.`;
+  }
+}
+
+function appendContestedIssuesAlberta(doc, data) {
+  const custody = custodyDisputePosition(data);
+  const imputation = incomeImputationPosition(data);
+  if (!custody && !imputation) return;
+  const items = [];
+  if (custody) {
+    items.push({
+      content:
+        `The Plaintiff disputes the current parenting-time arrangement and pleads the following ` +
+        `position: ${custody}. The Plaintiff requests a parenting order pursuant to section 16.5 ` +
+        `of the Divorce Act on the basis of changed circumstances in the best interests of the ` +
+        `child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue',
+    });
+  }
+  if (imputation) {
+    items.push({
+      content:
+        `The Plaintiff asks the Court to impute income to the child-support payor pursuant to ` +
+        `section 19 of the Federal Child Support Guidelines, SOR/97-175, on the following ` +
+        `basis: ${imputation}.`,
+      type: 'contested_issue',
+    });
+  }
+  doc.sections = doc.sections || {};
+  doc.sections.contestedIssues = { title: 'VIII. CONTESTED ISSUES', items };
+  if (typeof doc.fullText === 'string') {
+    let block = 'VIII. CONTESTED ISSUES\n\n';
+    for (const item of items) block += `${item.content}\n\n`;
+    doc.fullText += `\n${block}`;
   }
 }
 

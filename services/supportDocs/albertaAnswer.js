@@ -24,6 +24,14 @@ const answerToPetition = createAnswerBuilder({
   answerTitle: 'STATEMENT OF DEFENCE',
   answerWithCounterTitle: 'STATEMENT OF DEFENCE AND COUNTERCLAIM',
   counterTitle: 'COUNTERCLAIM FOR DIVORCE',
+  counterPetitionForm: 'Alberta Rules of Court, Rule 3.56 (Counterclaim, filed with the Defence)',
+  counterPetitionExamples: [
+    'resumption of a former surname',
+    'costs (Alberta Rules of Court, Part 10)',
+    'a division of matrimonial property (Family Property Act, RSA 2000, c. F-4.7)',
+    'spousal support (Divorce Act, s. 15.2; Family Law Act, SA 2003, c. F-4.5)',
+    'child support and a parenting order (Divorce Act, ss. 15.1, 16)',
+  ],
   noFaultGroundsRecital:
     'The Plaintiff and Defendant have lived separate and apart for at least one year ' +
     'immediately preceding the determination of the divorce proceeding. ' +

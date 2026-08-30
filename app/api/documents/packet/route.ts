@@ -16,6 +16,7 @@ import { paymentsEnabled } from '@/lib/api/stripe';
 import {
   buildDocumentStructureForType,
   listPacketDocumentTypes,
+  packetRenderContextFor,
   type AffidavitData,
   type TemplateManager,
 } from '@/lib/api/documentStructure';
@@ -253,6 +254,17 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
               stateCode,
               { ...content, state: stateCode, documentType: packetType } as AffidavitData,
               packetType,
+              {
+                // Bug (Tavita, FL): a respondent-side packet must not put the
+                // Final Judgment of Dissolution in the "file this" pile; the
+                // court signs the decree. Mark it as REFERENCE — NOT FOR
+                // FILING so the packet still shows the eventual terms without
+                // implying the respondent files it.
+                renderContext: packetRenderContextFor(
+                  content.role as string | undefined,
+                  packetType,
+                ),
+              },
             ),
           );
         } catch (templateErr) {

@@ -27,6 +27,14 @@ const answerToPetition = createAnswerBuilder({
   answerTitle: 'VERIFIED ANSWER',
   answerWithCounterTitle: 'VERIFIED ANSWER AND COUNTERCLAIM FOR DIVORCE',
   counterTitle: 'COUNTERCLAIM FOR DIVORCE',
+  counterPetitionForm: 'NY CPLR § 3011 (counterclaim, pleaded within the Answer)',
+  counterPetitionExamples: [
+    'resumption of a pre-marriage surname (NY DRL § 240-a)',
+    "counsel fees and expenses (NY DRL § 237)",
+    'equitable distribution (NY DRL § 236(B)(5))',
+    'maintenance / spousal support (NY DRL § 236(B)(6))',
+    'declaration enforcing a prenuptial agreement (NY DRL § 236(B)(3))',
+  ],
   noFaultGroundsRecital:
     'The relationship between Plaintiff and Defendant has broken down irretrievably ' +
     'for a period of at least six months. (NY DRL § 170(7).)',

@@ -34,14 +34,38 @@ const TX_GROUND_KEYS = new Set([
   'irreconcilable_differences',
   'no_fault',
   'cruelty',
+  'cruel_treatment',       // GA/NY slug — canonicalize to cruelty at read time
   'adultery',
   'conviction',
+  'conviction_of_crime',   // GA slug alias
   'felony',
   'felony_conviction',
   'abandonment',
+  'wilful_desertion',      // GA slug alias
+  'desertion',
   'living_apart',
   'confinement',
+  'mental_confinement',    // NY slug alias
+  'irretrievable_breakdown', // NY slug — canonicalize to insupportability
+  'irretrievably_broken',   // FL/GA slug — canonicalize to insupportability
+  'breakdown_of_marriage',  // CA slug alias
 ]);
+
+// Cross-jurisdiction slug canonicalization — a rescue LLM may emit any
+// jurisdiction's slug and we normalize into TX vocabulary here.
+const TX_ALIAS_MAP = {
+  cruel_treatment: 'cruelty',
+  conviction_of_crime: 'conviction',
+  wilful_desertion: 'abandonment',
+  desertion: 'abandonment',
+  mental_confinement: 'confinement',
+  irretrievable_breakdown: 'insupportability',
+  irretrievably_broken: 'insupportability',
+  breakdown_of_marriage: 'insupportability',
+  irreconcilable_differences: 'insupportability',
+  no_fault: 'insupportability',
+  felony_conviction: 'conviction',
+};
 
 /**
  * Infer a Texas ground key from free-text fact content. Order matters:
@@ -107,9 +131,12 @@ function resolveGroundsForDivorce(divorceData) {
     : '';
 
   // Try each explicit key in priority order (alias first — the save path
-  // writes it as the sworn user pick).
+  // writes it as the sworn user pick). Canonicalize cross-jurisdiction
+  // slugs (rescue LLM may emit GA/NY/CA vocabulary) into TX vocabulary.
   for (const raw of [rawAlias, rawStructured]) {
-    if (raw && TX_GROUND_KEYS.has(raw)) return raw;
+    if (raw && TX_GROUND_KEYS.has(raw)) {
+      return TX_ALIAS_MAP[raw] || raw;
+    }
   }
 
   // Look through facts[] for anything the extractor tagged as grounds

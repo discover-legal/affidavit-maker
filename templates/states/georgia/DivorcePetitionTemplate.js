@@ -95,6 +95,28 @@ function sanitizeSubstrate(desc, divorceData) {
   s = s.replace(/\brespondent(s?)\b/g, 'defendant$1');
   s = s.replace(/\bPetitioner(s?)\b/g, 'Plaintiff$1');
   s = s.replace(/\bpetitioner(s?)\b/g, 'plaintiff$1');
+  // Amara GA round-7 (2026-08-30): after the first appearance, subsequent
+  // references to the parties by proper name read as evasive third-person
+  // narration in a fault pleading ("Malachi Okafor physically abused
+  // Amara Okafor"). Every party has already been identified in the
+  // caption and §I, so use the role labels — Plaintiff / Defendant —
+  // throughout the substrate. Full replacement (no first-mention
+  // preservation) is simpler and reads as the pleading a lawyer would
+  // draft. Case-preserving.
+  if (divorceData && typeof divorceData === 'object') {
+    const nameRoleMap = [
+      [divorceData.petitionerName, 'Plaintiff'],
+      [divorceData.plaintiffName, 'Plaintiff'],
+      [divorceData.respondentName, 'Defendant'],
+      [divorceData.defendantName, 'Defendant'],
+    ];
+    for (const [name, role] of nameRoleMap) {
+      if (typeof name !== 'string' || !name.trim()) continue;
+      const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Whole-word, preserving the possessive marker when present.
+      s = s.replace(new RegExp(`\\b${escaped}(?=\\b|['’])`, 'g'), role);
+    }
+  }
   s = s.trim().replace(/\s+/g, ' ').replace(/[,;:\s]+$/, '');
   if (!s) return '';
   if (!/[.!?]$/.test(s)) s += '.';
@@ -103,8 +125,19 @@ function sanitizeSubstrate(desc, divorceData) {
 }
 
 function findCrueltySubstrate(divorceData) {
+  // Amara GA round-7 (2026-08-30): return every distinct sanitized
+  // substrate joined into one paragraph, not the first match. Amara's
+  // profile carries two evidence facts — hospital records AND police
+  // reports — and dropping the second silently understated the
+  // corroborating record on a cruelty pleading. Preference order is
+  // unchanged (grounds / subcat matches ahead of keyword-only
+  // fallbacks); duplicates are dropped by exact sanitized text so a
+  // fact that appears in both a grounds row and an evidence row does
+  // not echo.
   const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
-  let fallback = null;
+  const primary = [];
+  const secondary = [];
+  const seen = new Set();
   for (const fact of facts) {
     if (!fact || typeof fact !== 'object') continue;
     const category = String(fact.category || '').toLowerCase();
@@ -120,12 +153,20 @@ function findCrueltySubstrate(divorceData) {
     if (!rawDesc) continue;
     const desc = sanitizeSubstrate(rawDesc, divorceData);
     if (!desc) continue;
+    if (seen.has(desc)) continue;
+    seen.add(desc);
     if (category === 'grounds' || category === 'ground' || subcatHit) {
-      return desc;
+      primary.push(desc);
+    } else {
+      secondary.push(desc);
     }
-    if (!fallback) fallback = desc;
   }
-  return fallback;
+  const ordered = primary.length > 0 ? primary : secondary;
+  if (ordered.length === 0) return null;
+  // Each entry is a period-terminated independent sentence; join with a
+  // single space so getGroundsText's "Specifically, X" splice reads as a
+  // grammatical run of sentences.
+  return ordered.join(' ');
 }
 
 // Attorney round-2 (2026-08): Amara prayer said "legal and physical

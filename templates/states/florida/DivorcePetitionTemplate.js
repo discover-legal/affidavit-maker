@@ -200,11 +200,16 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     caption += `and\n\n`;
     caption += `${respondent.toUpperCase()},\n`;
     caption += `     Respondent.\n`;
-    caption += `_________________________________/\n\n`;
+    caption += `_________________________________/`;
 
-    // Form number
-    caption += `${this.documentTitle}\n`;
-    caption += `Florida Supreme Court Approved Family Law Form ${this.getFormNumber(divorceData)}`;
+    // Round-7 attorney review (Tavita FL, 2026-08-30): the caption used to
+    // append `${this.documentTitle}\n Florida Supreme Court Approved Family
+    // Law Form ${formNumber}` — but the base template's buildDocument also
+    // renders `sections.title` from generateTitle() right after the caption,
+    // so the "PETITION FOR DISSOLUTION OF MARRIAGE" heading appeared twice
+    // (once as the closing line of the caption, once as the standalone
+    // title section). Strip the title from the caption; the form-number
+    // citation moves into generateTitle() below so we never lose it.
 
     return {
       courtName,
@@ -216,18 +221,94 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   /**
+   * Round-7 attorney review (Tavita FL, 2026-08-30): the title section now
+   * carries the Florida Supreme Court Approved Family Law Form number that
+   * previously lived at the end of the caption. Rendering the title once
+   * here (instead of duplicating it inside the caption) means the "PETITION
+   * FOR DISSOLUTION OF MARRIAGE" heading appears exactly one time.
+   *
+   * @returns {string} Title text with FL form citation
+   */
+  generateTitle(divorceData) {
+    // Base template invokes generateTitle() without args (see
+    // BaseDivorcePetitionTemplate.buildDocument), so we can't consult
+    // divorceData here for the form-selection branches. Emit the title
+    // with the base form citation — the specific form number for the
+    // matter type is set on the packet cover.
+    return this.documentTitle;
+  }
+
+  /**
    * Generate Florida jurisdiction statement
    * @param {Object} divorceData - Divorce data
    * @returns {string} Jurisdiction statement
    */
   getJurisdictionStatement(divorceData) {
-    const petitioner = divorceData.petitionerName || 'Petitioner';
-    const respondent = divorceData.respondentName || 'Respondent';
-
+    // Round-7 attorney review (Tavita FL, 2026-08-30): the body prose used
+    // the parties' proper names ("Marco Rossi has been a resident..."),
+    // but FL convention is to use the role label ("Petitioner", "Respondent")
+    // in body text; parties are named once in the caption's "In re: The
+    // Marriage of ..." block. Use role labels here; the caption still
+    // carries the parties' names.
     if (divorceData.bothResidents) {
-      return `${petitioner} and ${respondent} have both been residents of Florida for more than 6 months before the filing of this Petition for Dissolution of Marriage.`;
+      return 'Petitioner and Respondent have both been residents of Florida for more than 6 months before the filing of this Petition for Dissolution of Marriage.';
     }
-    return `${petitioner} has been a resident of the State of Florida for more than 6 months before the filing of this Petition for Dissolution of Marriage.`;
+    return 'Petitioner has been a resident of the State of Florida for more than 6 months before the filing of this Petition for Dissolution of Marriage.';
+  }
+
+  /**
+   * Round-7 attorney review (Tavita FL, 2026-08-30): the transcript said
+   * "3 months ago" and the orchestrator computed a specific separation
+   * date ("May 29, 2026"). A specific day pleaded under oath is a
+   * fabrication when the source was a relative expression — the filer
+   * cannot swear to that day. When the profile flags the separation date
+   * as approximate/derived from a relative expression, render the Draft
+   * blank so the filer must confirm the actual date before filing.
+   *
+   * Triggers:
+   *   1. divorceData.separationDateApproximate === true
+   *   2. divorceData.separationDateEstimated === true
+   *   3. a `separation` / `separation_duration` fact whose sourceQuote
+   *      contains a relative expression ("ago", "approximately", "about")
+   *
+   * @returns {boolean}
+   */
+  _isApproximateSeparationDate(divorceData) {
+    if (!divorceData) return false;
+    if (divorceData.separationDateApproximate === true) return true;
+    if (divorceData.separationDateEstimated === true) return true;
+    const facts = Array.isArray(divorceData.facts) ? divorceData.facts : [];
+    for (const f of facts) {
+      if (!f || typeof f !== 'object') continue;
+      const sub = String(f.subcategory || '').toLowerCase();
+      if (!/separation/.test(sub)) continue;
+      const src = String(f.sourceQuote || '').toLowerCase();
+      if (/\b(ago|approximately|about|around|roughly|sometime|months? ago|weeks? ago|years? ago)\b/.test(src)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Override marriage information section to guard against a fabricated
+   * separation date derived from a relative transcript expression
+   * ("3 months ago" → "May 29, 2026"). When the date is flagged
+   * approximate, render the Draft blank instead of the specific day.
+   */
+  generateMarriageInformationSection(divorceData) {
+    if (this._isApproximateSeparationDate(divorceData)) {
+      // Feed the base a shallow clone with separationDate wiped so it
+      // renders the Draft blank branch (see BaseDivorcePetitionTemplate's
+      // isRenderableDate guard).
+      const cloned = { ...divorceData, separationDate: '' };
+      // Preserve the base's "insert exact date of separation" Draft note
+      // by providing a truthy-but-non-renderable value so the else-if
+      // branch fires (rather than skipping the paragraph entirely).
+      cloned.separationDate = 'approximate — please confirm';
+      return super.generateMarriageInformationSection(cloned);
+    }
+    return super.generateMarriageInformationSection(divorceData);
   }
 
   /**
@@ -446,6 +527,20 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
     if (divorceData.requestNameChange && divorceData.previousName) {
       reliefItems.push(`Restore Petitioner's former name to: ${divorceData.previousName};`);
+    }
+
+    // Round-7 attorney review (Tavita FL, 2026-08-30): when the petition
+    // pleads a prenuptial agreement in ¶¶9-10, the prayer must expressly
+    // ask the court to enforce it — a generic "such other relief" prayer
+    // does not preserve the request. Emit the §61.079 enforcement item
+    // whenever the same prenup signal fires that we use for the property
+    // section's prenup recital.
+    const hasPrenup =
+      divorceData.prenupSigned === true || this._factsMentionPrenup(divorceData);
+    if (hasPrenup) {
+      reliefItems.push(
+        "Enforce the parties' prenuptial agreement under Florida Statutes § 61.079 (Florida Uniform Premarital Agreement Act) and incorporate its property and support provisions into the final Judgment of Dissolution;",
+      );
     }
 
     reliefItems.push('Grant such other relief as the Court deems just and proper.');

@@ -51,8 +51,10 @@ describe('Alberta s.19 imputation renders ONE intro + numbered supporting facts'
   test('each supporting fact still appears as its own numbered paragraph', () => {
     const doc = tpl.generateDocument(payload());
     const items = doc.sections.contestedIssues.items;
-    // 1 intro + 3 facts + 1 prayer = 5 items minimum
-    expect(items.length).toBeGreaterThanOrEqual(5);
+    // Round-7 (2026-08-30): the trailing "asks the Court to impute" prayer
+    // paragraph was dropped as duplicative of the RELIEF clause, so the
+    // block is 1 intro + 3 facts = 4 items minimum.
+    expect(items.length).toBeGreaterThanOrEqual(4);
     const joined = items.map((i) => i.content).join('\n');
     expect(joined).toMatch(/self-employed/i);
     expect(joined).toMatch(/60,000/);

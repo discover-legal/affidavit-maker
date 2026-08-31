@@ -514,8 +514,13 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         return 'The marriage of Petitioner and Respondent has become insupportable because of discord or conflict of personalities that destroys the legitimate ends of the marital relationship and prevents any reasonable expectation of reconciliation.';
 
       case 'cruelty': {
+        // Round-7 attorney review (Mari TX, 2026-08-30): the cruelty
+        // ground must carry its statutory pinpoint (Texas Family Code
+        // §6.002) on the ground itself, not only via the §6.001
+        // alternative that generateGroundsSection appends. The prior
+        // text omitted the cite, so a reader had to infer the ground.
         const base =
-          'Respondent was guilty of cruel treatment toward Petitioner of such a nature as to render further living together insupportable.';
+          'Respondent was guilty of cruel treatment toward Petitioner of such a nature as to render further living together insupportable. (Texas Family Code §6.002.)';
         const substrate = findCrueltySubstrate(divorceData || {});
         if (!substrate) return base;
         // Attorney round-3 (2026-08-30): substrate is now a sanitized,
@@ -704,8 +709,19 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Divorce
     reliefItems.push('Divorce and a dissolution of the marriage of Petitioner and Respondent;');
 
-    // Property division
-    reliefItems.push('Division of the community estate in a manner that the Court deems just and right, with due regard for the rights of each party;');
+    // Property division — Round-7 attorney review (Mari TX, 2026-08-30):
+    // when ¶9 (the property section) has pleaded that there is no
+    // community property to divide, the prayer must not still ask the
+    // court to divide a community estate. Mirror the property section's
+    // no-property triggers so ¶9 and the prayer stay consistent.
+    const noPropertyPleaded =
+      divorceData.hasProperty === false ||
+      divorceData.noPropertyConfirmed === true ||
+      (typeof this.factsIndicateNoProperty === 'function' &&
+        this.factsIndicateNoProperty(divorceData));
+    if (!noPropertyPleaded) {
+      reliefItems.push('Division of the community estate in a manner that the Court deems just and right, with due regard for the rights of each party;');
+    }
 
     // Children — omit conservatorship / support prayer items when
     // hasMinorChildren === false (live Texas audit, 2026-08).

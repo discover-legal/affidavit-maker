@@ -13,9 +13,13 @@
 
 const { createAnswerBuilder, BLANK_SHORT } = require('./BaseAnswerTemplate');
 
+// Round-7 attorney review (Tavita FL, 2026-08-30): the unsworn declaration
+// in Florida is authorized by Fla. Stat. § 92.525 (Verification of Documents);
+// Fla. Fam. L.R.P. 12.020 is a general form/definition rule and is not the
+// authority for an unsworn declaration. Cite § 92.525 alone.
 const FLORIDA_UNSWORN =
   'Under penalty of perjury, I declare that I have read the foregoing, and that ' +
-  'the facts stated in it are true. (Fla. Fam. L.R.P. 12.020; Fla. Stat. § 92.525.)';
+  'the facts stated in it are true. (Fla. Stat. § 92.525.)';
 
 function normalizeCountyName(county) {
   return typeof county === 'string' ? county.replace(/\s+county$/i, '').trim() : county;

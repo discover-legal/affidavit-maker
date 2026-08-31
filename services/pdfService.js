@@ -138,24 +138,41 @@ class PDFService {
       const pageHeight = pageOptions.size === 'A4' ? 841.89 : 792;
       this.EFFECTIVE_PAGE_HEIGHT = pageHeight - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
 
-      // Generate base PDF
+      // Generate base PDF.
+      //
+      // Sarah AB round-7 (2026-08-30): the historical two-pass model (pass 1
+      // counted pages on a dummy doc, pass 2 rendered footers "N of TOTAL"
+      // during content flow) drifted by one on real petitions — pass 1 saw
+      // 4 pages, pass 2 rendered only 3, and every footer read "of 4". Root
+      // cause is that pass 1's flow can trip a trailing addPageWithFooter →
+      // addPage that pass 2 does not, leaving an empty extra page in the
+      // count. Fix: single-pass build with footers deferred; after content
+      // is buffered we know the true page count from bufferedPageRange, then
+      // switchToPage each real page and stamp its footer. bufferPages:true
+      // (constructor) makes the pages addressable after render.
       const result = await new Promise((resolve, reject) => {
-        // PASS 1: Count total pages by rendering to a dummy document
-        const dummyDoc = new PDFDocument(pageOptions);
-        dummyDoc.pipe(require('stream').PassThrough()); // Pipe to nowhere
-        this.buildPDF(dummyDoc, document, false); // false = no footers
-        const totalPages = dummyDoc.bufferedPageRange().count;
-        dummyDoc.end();
-
-        // PASS 2: Render actual PDF with footers
         const doc = new PDFDocument(pageOptions);
         const stream = doc.pipe(require('fs').createWriteStream(filepath));
 
-        // Set up page numbering for pass 2
-        this.totalPages = totalPages;
-
         try {
-          this.buildPDF(doc, document, true); // true = add footers
+          // Content-only pass: buildPDF's inline footer paths short-circuit
+          // when shouldAddFooters is false, so page transitions still work
+          // (addPageWithFooter just calls addPage) without stamping.
+          this.buildPDF(doc, document, false);
+
+          // True total from the buffered pages, then stamp footers.
+          const range = doc.bufferedPageRange();
+          const totalPages = range.count;
+          this.totalPages = totalPages;
+          this.shouldAddFooters = true;
+          for (let i = 0; i < totalPages; i += 1) {
+            doc.switchToPage(range.start + i);
+            this.currentPage = i + 1;
+            this.addingFooter = false;
+            this.addFooter(doc);
+          }
+          this.shouldAddFooters = false;
+
           doc.end();
 
           stream.on('finish', () => {

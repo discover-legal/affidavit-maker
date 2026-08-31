@@ -29,7 +29,8 @@ const {
  *   - s.10: Duty of court — consider possibility of reconciliation, ensure reasonable
  *     arrangements for children
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
- *   - s.12(7): Certificate of divorce — issued by registrar after effective date
+ *   - s.12(6): Certificate of divorce — issued by registrar after effective date
+ *              (procedural: Family Law Rules, O. Reg. 114/99, r. 36(7))
  * - Family Law Act, RSO 1990, c. F.3 (property and spousal support)
  * - Family Law Rules, O. Reg. 114/99 (Form 25A — Divorce Order)
  *
@@ -170,11 +171,33 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     // equalization finding waives NFP claims and may render ONLY on an
     // affirmative user-confirmed statement (`hasProperty === false` PLUS
     // `noPropertyConfirmed === true` or a described propertyAgreement).
+    // Round-7 attorney (Marcus ON, 2026-08-30 v30b): the previous guard
+    // accepted ANY non-empty propertyAgreement string as evidence of a
+    // "described" agreement — but propertyAgreement is an enum
+    // ('agreed' | 'contested' | 'pending'). The status marker "pending"
+    // (or "contested") explicitly means the parties have NOT reached
+    // agreement, yet was passing the gate and rendering the "no NFP to be
+    // equalized" finding — a fabrication that waives the equalization claim.
+    // Only 'agreed', or a free-text description longer than the enum tokens,
+    // now counts as an actual described agreement.
+    const propAgreementRaw =
+      typeof divorceData.propertyAgreement === 'string'
+        ? divorceData.propertyAgreement.trim()
+        : '';
+    const propAgreementLc = propAgreementRaw.toLowerCase();
+    const propAgreementDescribed =
+      propAgreementLc === 'agreed' ||
+      (propAgreementRaw.length > 0 &&
+        propAgreementLc !== 'pending' &&
+        propAgreementLc !== 'contested' &&
+        propAgreementLc !== 'undecided' &&
+        propAgreementLc !== 'unknown' &&
+        propAgreementLc !== 'tbd' &&
+        propAgreementLc !== 'n/a' &&
+        propAgreementLc !== 'none');
     const nilPropertyConfirmed =
       divorceData.hasProperty === false &&
-      (divorceData.noPropertyConfirmed === true ||
-        (typeof divorceData.propertyAgreement === 'string' &&
-          divorceData.propertyAgreement.trim() !== ''));
+      (divorceData.noPropertyConfirmed === true || propAgreementDescribed);
     if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no net family property to be equalized under the Family Law Act, RSO 1990, c. F.3.',
@@ -359,15 +382,25 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       ? 'Upon reading the Application, the Affidavit for Divorce (Form 36), and the material filed, and being satisfied that the Court has jurisdiction and that the requirements of the Divorce Act and the Family Law Rules have been met:\n\n'
       : 'Upon reading the Application and hearing the parties:\n\n';
 
+    // Round-7 attorney (Marcus ON, 2026-08-30 v30b): the previous default
+    // recited "appeared self-represented" whenever petitionerRepresentation
+    // was not affirmatively 'lawyer'/'attorney' — but a missing field is
+    // NOT evidence of self-representation, and swearing to a fact the user
+    // never affirmed is fabrication. Render an explicit blank + Draft note
+    // when the representation status is unknown.
     const selfRepPhrase = this.terminology.selfRepresentedLabel.toLowerCase();
+    const petRep = typeof divorceData.petitionerRepresentation === 'string'
+      ? divorceData.petitionerRepresentation.trim().toLowerCase()
+      : '';
+    const petRepClause =
+      petRep === 'lawyer' || petRep === 'attorney'
+        ? 'appeared by and through a lawyer of record'
+        : petRep === 'self' || petRep === 'self-represented' || petRep === 'self_represented' || petRep === 'pro_se' || petRep === 'pro se'
+          ? `appeared ${selfRepPhrase}`
+          : '__________________________ (Draft — confirm representation of the Applicant before filing: appeared by lawyer of record, appeared self-represented, or did not appear)';
     text +=
       `${this.terminology.filerLabel}, ${divorceData.petitionerName || '_________________________________'}, ` +
-      `${
-        divorceData.petitionerRepresentation === 'lawyer' ||
-        divorceData.petitionerRepresentation === 'attorney'
-          ? 'appeared by and through a lawyer of record'
-          : `appeared ${selfRepPhrase}`
-      }.\n\n`;
+      `${petRepClause}.\n\n`;
     text +=
       `${this.terminology.responderLabel}, ${divorceData.respondentName || '_________________________________'}, ` +
       `${this.getRespondentAppearanceText(divorceData)}.`;
@@ -588,10 +621,10 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Ontario uses "Certificate of Divorce" issued by the court registrar
-   * after the effective date (Divorce Act, s.12(7)).
+   * after the effective date (Divorce Act, s.12(6); Family Law Rules, r. 36(7)).
    */
   getCertificateNote() {
-    return 'A Certificate of Divorce may be obtained from the court office after the effective date of this Order, upon application by either party (Divorce Act, s.12(7)).';
+    return 'A Certificate of Divorce may be obtained from the court office after the effective date of this Order, upon application by either party (Divorce Act, s.12(6); Family Law Rules, r. 36(7)).';
   }
 
   /**

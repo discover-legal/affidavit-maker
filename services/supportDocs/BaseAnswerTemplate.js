@@ -118,6 +118,21 @@ function canadianize(text) {
     .replace(/\battorney(?:'s|s'|s)?\s+fees\b/gi, 'costs')
     .replace(/\battorney\s+fees\b/gi, 'costs')
     .replace(/\bCase No\./g, 'Court File No.')
+    // Round-7 attorney (Marcus ON, 2026-08-30): Ontario Family Law Act
+    // vocabulary — the FLA uses "family property" (s.4) and treats
+    // spousal-owed debts as "family debts" for the net-family-property
+    // calculation; US "marital assets"/"marital debts" is a foreign idiom
+    // in an Ontario Form 10.
+    .replace(/\bmarital assets and property division\b/gi, 'family property (Family Law Act, RSO 1990, c. F.3)')
+    .replace(/\bmarital debts and liabilities\b/gi, 'family debts and liabilities')
+    .replace(/\bmarital assets\b/gi, 'family property')
+    .replace(/\bmarital debts\b/gi, 'family debts')
+    .replace(/\bmarital property\b/gi, 'family property')
+    // "Counter-Petition" is a US usage; Ontario Form 10 carries the
+    // respondent's affirmative relief inside the Answer itself, as the
+    // Respondent's Claim (Answer with Claim).
+    .replace(/\bCounter-?Petition\b/g, 'Answer with Claim')
+    .replace(/\bcounter-?petition\b/g, 'answer with claim')
     .replace(/(\n|^)\s*v\.\s*(\n|$)/g, '$1AND$2')
     .replace(/(\S)\s+v\.\s+(\S)/g, '$1 AND BETWEEN $2');
 }
@@ -326,12 +341,16 @@ function defaultSignatureSections(config, name, title, opts = {}) {
   }
 
   const unsworn = (config.verification && config.verification.unsworn) || GENERIC_UNSWORN;
-  // Canadian jurisdictions (ON, AB) pass locationLabel: '(city and province)'
-  // so the sign-block line does not say "state/province" in a country where
-  // the concept is only "province". Default keeps the historical
-  // US-and-Canada omnibus phrasing for jurisdictions that have not opted in.
+  // Round-7 attorney review (Tavita FL, 2026-08-30): the default omnibus
+  // "(city and state/province)" was a Canadian idiom leaking into US
+  // pleadings — a Florida Answer read "at ______ (city and state/province)"
+  // where "province" has no meaning. Pick the locale phrase from the
+  // jurisdiction: US → "(city and state)", Canadian → "(city and province)".
+  // A jurisdiction can still override via config.verification.locationLabel.
+  const explicitLocationLabel = config.verification && config.verification.locationLabel;
   const locationLabel =
-    (config.verification && config.verification.locationLabel) || '(city and state/province)';
+    explicitLocationLabel ||
+    (isCanadianState(config.state) ? '(city and province)' : '(city and state)');
   return {
     perjuryStatement:
       `${unsworn}\n\nSigned on ${BLANK_SHORT} (date) at ${BLANK_LINE} ${locationLabel}.`,

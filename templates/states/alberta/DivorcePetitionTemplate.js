@@ -737,14 +737,14 @@ function appendContestedIssuesAlberta(doc, data) {
         });
       }
     }
-    items.push({
-      content:
-        'The Plaintiff asks the Court to impute income to the Defendant pursuant to section 19 ' +
-        'of the Federal Child Support Guidelines, SOR/97-175, and to fix child support based on ' +
-        'the imputed annual income, together with an order for financial disclosure pursuant to ' +
-        'section 21 of the Federal Child Support Guidelines.',
-      type: 'contested_issue',
-    });
+    // Sarah AB round-7 (2026-08-30): removed a trailing "The Plaintiff asks
+    // the Court to impute income pursuant to section 19… section 21…"
+    // wrap-up paragraph. It read as a second intro across ¶15/¶19 in the
+    // rendered petition even after round-6 grouped the facts under one
+    // intro, and its content fully duplicates the RELIEF prayer clause
+    // (see items (f) in getReliefClauses — s.19 imputation AND s.21
+    // financial disclosure). One intro paragraph, one relief prayer, no
+    // sworn-body restatement of the ask.
   }
   doc.sections = doc.sections || {};
   // Renumber items so they render as sworn numbered factual paragraphs in

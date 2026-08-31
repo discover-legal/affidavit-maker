@@ -70,6 +70,10 @@ const ONTARIO_CASE = {
   // audited Ontario fixture is an UNCONTESTED case in which the parties
   // affirmatively agreed to waive support, so set the confirmation.
   spousalSupportWaived: true,
+  // Round-7 (Marcus ON, 2026-08-30 v30b): the ON decree no longer defaults
+  // an unspecified petitionerRepresentation to "self-represented"; the
+  // audited Ontario fixture is an uncontested self-rep filing, so state it.
+  petitionerRepresentation: 'self',
   childSupportAmount: '800',
   childSupportObligor: 'Jordan Quinn',
   childSupportObligee: 'Avery Quinn',

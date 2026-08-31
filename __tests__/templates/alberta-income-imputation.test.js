@@ -38,7 +38,10 @@ describe('Alberta s.19 income-imputation pleading (Sarah AB round-2)', () => {
     // Contested-issues section renders factual paragraph.
     expect(doc.sections.contestedIssues).toBeTruthy();
     const contested = doc.sections.contestedIssues.items.map((i) => i.content).join('\n');
-    expect(contested).toMatch(/section 19 of the Federal Child Support Guidelines/i);
+    // Round-7 (2026-08-30): the trailing wrap-up "asks the Court" paragraph
+    // was removed as duplicative of the RELIEF prayer, so the intro is now
+    // the only line that cites the section — it uses the "s.19" short form.
+    expect(contested).toMatch(/s\.?\s?19 of the Federal Child Support Guidelines/i);
     expect(contested).toMatch(/\$60,000 to \$180,000/);
 
     // Relief clause carries the s.19 imputation + s.21 disclosure prayer.

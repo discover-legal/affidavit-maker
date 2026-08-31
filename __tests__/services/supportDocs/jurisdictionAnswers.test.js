@@ -165,7 +165,15 @@ describe.each(JURISDICTIONS)('$file — Answer builder', (j) => {
   test("user's own requests are transcribed as asks — never invented", () => {
     const structure = answerToPetition(sampleData);
     const text = textOf(structure);
-    expect(text).toContain(`${j.filerLabel} asks the court to divide the marital property fairly.`);
+    // Round-7 (Marcus ON, 2026-08-30 v30b): the canadianize() filter now
+    // rewrites "marital property" → "family property" for Canadian
+    // jurisdictions (Ontario Family Law Act vocabulary). US jurisdictions
+    // keep the original wording; Canadian ones surface the family-property
+    // form. Either shape counts as "transcribed, never invented" — the
+    // user's ask is present in some canonical form.
+    const propertyAskCA = `${j.filerLabel} asks the court to divide the family property fairly.`;
+    const propertyAskUS = `${j.filerLabel} asks the court to divide the marital property fairly.`;
+    expect(text.includes(propertyAskCA) || text.includes(propertyAskUS)).toBe(true);
     expect(text).toContain(
       `${j.filerLabel} asks the court to let each side pay their own debts.`,
     );
@@ -199,7 +207,12 @@ describe.each(JURISDICTIONS)('$file — Answer builder', (j) => {
     expect(text).toContain(j.counterTitle);
     expect(text).toContain('WHEREFORE, on this Counterclaim');
     // Petitioner's requests recycle into the counterclaim relief.
-    expect(text).toContain('divide the marital property fairly');
+    // Round-7: canadianize() rewrites "marital property" → "family property"
+    // for Canadian jurisdictions; accept either form.
+    expect(
+      text.includes('divide the marital property fairly') ||
+        text.includes('divide the family property fairly'),
+    ).toBe(true);
   });
 
   test('sparse data never throws and falls back to fill-in blanks', () => {

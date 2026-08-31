@@ -126,12 +126,46 @@ function coerceStringList(value) {
 }
 
 function supportingFacts(data) {
-  return coerceStringList(
+  const explicit = coerceStringList(
     data.answerSupportingFacts ||
       data.supportingFacts ||
       data.answerImportantFacts ||
       data.importantFacts,
   );
+  if (explicit.length > 0) return explicit;
+  // Round-7 (Marcus ON, 2026-08-30): auto-populate Part B important facts
+  // from schema-typed facts already in the profile so a contested-parenting
+  // respondent doesn't file a Form 10 with a bare underscore line. Facts are
+  // filtered by category/subcategory the model already classified — no
+  // content parsing. Keeps to the categories Ontario Form 10 Part B needs to
+  // support Part A responses and Part C claims: parenting, financial (income),
+  // separation, children, marriage.
+  const facts = Array.isArray(data && data.facts) ? data.facts : [];
+  const WANT_CATS = new Set([
+    'children', 'financial', 'separation', 'parenting', 'grounds',
+    'residence', 'residency', 'service',
+  ]);
+  const WANT_SUBS_PART_B = new Set([
+    'parenting_time', 'parenting_schedule', 'custody', 'custody_dispute',
+    'petitioner_income', 'respondent_income', 'income', 'wages',
+    'monthly_income', 'employment', 'service_event',
+  ]);
+  const seen = new Set();
+  const out = [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const cat = String(f.category || '').toLowerCase();
+    const sub = String(f.subcategory || '').toLowerCase();
+    if (!WANT_CATS.has(cat) && !WANT_SUBS_PART_B.has(sub)) continue;
+    const content = String(f.content || '').trim();
+    if (!content) continue;
+    const key = content.toLowerCase().replace(/\s+/g, ' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(content);
+    if (out.length >= 20) break;
+  }
+  return out;
 }
 
 function trimStr(v) {
@@ -249,13 +283,41 @@ function buildOntarioClaims(data) {
   }
 
   const claims = [];
-  const parenting = trimStr(
+  let parenting = trimStr(
     data.custody_dispute_position ||
       data.custodyDisputePosition ||
       data.parentingDisputePosition ||
       data.parenting_dispute_position ||
       data.contestedParentingPosition,
   );
+  // Round-7 (Marcus ON, 2026-08-30): if no structured parenting-dispute
+  // field is set, fall back to the schema-typed parenting-time / custody
+  // fact content the model already classified. Pure shape check on
+  // model-classified metadata; no language parsing of the fact text.
+  if (!parenting) {
+    const facts = Array.isArray(data && data.facts) ? data.facts : [];
+    const contested =
+      data.custodyArrangement === 'contested' ||
+      /^contested$/i.test(String(data.custody_arrangement || ''));
+    for (const f of facts) {
+      if (!f || typeof f !== 'object') continue;
+      const sub = String(f.subcategory || '').toLowerCase();
+      const cat = String(f.category || '').toLowerCase();
+      const isParentingFact =
+        sub === 'parenting_time' ||
+        sub === 'parenting_schedule' ||
+        sub === 'custody_dispute' ||
+        (cat === 'children' && /parenting|custody/.test(sub));
+      if (!isParentingFact) continue;
+      const content = trimStr(f.content);
+      if (!content) continue;
+      // Only auto-fill when the arrangement is contested OR the fact
+      // explicitly narrates disagreement (subcategory carries the classification).
+      if (!contested && sub !== 'custody_dispute' && sub !== 'parenting_time') continue;
+      parenting = content;
+      break;
+    }
+  }
   if (parenting) {
     claims.push({
       content:

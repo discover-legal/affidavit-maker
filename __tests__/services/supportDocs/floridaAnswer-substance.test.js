@@ -188,10 +188,12 @@ describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', ()
     expect(sections.conclusion).toMatch(/Petitioner/);
   });
 
-  test('verification cites Fla. Fam. L.R.P. 12.020 / Fla. Stat. § 92.525', () => {
+  test('verification cites Fla. Stat. § 92.525 (Round-7: dropped 12.020, wrong authority)', () => {
     const { sections } = flAnswer(baseFacts);
     expect(sections.perjuryStatement).toMatch(/penalty of perjury/);
-    expect(sections.perjuryStatement).toMatch(/Fla\. Fam\. L\.R\.P\. 12\.020/);
+    // Round-7 attorney review (Tavita FL, 2026-08-30): 12.020 is not the
+    // authority for an unsworn declaration; § 92.525 is. Dropped 12.020.
+    expect(sections.perjuryStatement).not.toMatch(/12\.020/);
     expect(sections.perjuryStatement).toMatch(/§\s*92\.525/);
   });
 

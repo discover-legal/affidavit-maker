@@ -241,8 +241,13 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // Index number
     caption += `Index No.: ${divorceData.caseNumber || '____________________'}\n\n`;
 
-    // Document title
-    caption += this.documentTitle;
+    // David NY round-7 (2026-08-30): do NOT append this.documentTitle here.
+    // BaseDivorcePetitionTemplate.generatePetition puts documentTitle into
+    // sections.title, and pdfService.renderDocumentHeader renders the
+    // caption AND the title back-to-back — appending it to the caption's
+    // `formatted` block produced two consecutive "VERIFIED COMPLAINT FOR
+    // DIVORCE" headings in the rendered PDF (David round-7 attorney flag).
+    // The title still renders once via sections.title.
 
     return {
       courtName: this.getDefaultCourt(divorceData.county),

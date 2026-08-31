@@ -68,7 +68,10 @@ describe('Alberta s.19 factual paragraphs render in the pleading (not only in RE
     expect(contested).toMatch(/60,000|60[k,]/i);
     expect(contested).toMatch(/180,000|180[k,]/i);
     expect(contested).toMatch(/under-reporting|under reporting|line 15000/i);
-    expect(contested).toMatch(/section 19 of the Federal Child Support Guidelines/i);
+    // Round-7 (2026-08-30): the trailing wrap-up paragraph was dropped as
+    // duplicative of the RELIEF clause, so the intro is the only line that
+    // cites the section here — it uses the "s.19" short form.
+    expect(contested).toMatch(/s\.?\s?19 of the Federal Child Support Guidelines/i);
   });
 
   test('fullText carries the contested-issues section BEFORE the relief clause', () => {

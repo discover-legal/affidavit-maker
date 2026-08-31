@@ -101,6 +101,14 @@ const FAMILY_FIELDS: readonly string[] = [
   // so a fact-derived promotion below survives into the render.
   'noPropertyConfirmed', 'noDebtsConfirmed', 'propertyAgreementConfirmed',
   'settlementAgreement', 'settlementAgreementDate', 'mediatedChildSupport',
+  // Attorney round-4 (Sarah AB, 2026-08-30): AB Statement of Claim needs
+  // s.19 Federal Child Support Guidelines imputation gates on the profile.
+  // Promoted below from facts[] (subcategories income_imputation_request,
+  // income_imputation, income_underreporting, respondent_income + content
+  // naming self-employment) so a returning session or a direct render sees
+  // the same structured signals the AB template already reads.
+  'selfEmployedPayor', 'respondentSelfEmployed', 'incomeUnderreporting',
+  'childSupportImputationRequested', 'incomeImputationPosition',
   // Per-party property/debt lists. String arrays — one complete asset/debt
   // per element, values (and "Separate property: " / "Separate debt: "
   // prefixes) intact — mirroring the orchestrator's REPLACE-PER-PERSON
@@ -1136,6 +1144,46 @@ export async function mergeUserProfile(
       sub === 'settlement' || sub === 'mediation',
     );
     if (settled) profile.settlementAgreement = true;
+  }
+
+  // ── Round-4 attorney review (Sarah AB, 2026-08-30) ──
+  // Income-imputation signal promotion. Sarah's Statement of Claim needs
+  // the Federal Child Support Guidelines s.19 imputation pleading, but her
+  // profile carried the signals only on facts[] (subcategories
+  // 'income_imputation_request', 'income_imputation', 'income_underreporting',
+  // 'respondent_income' + content naming "self-employed" / "60k" / "180k").
+  // Promote each to the structured gate `canadianHelpers.shouldPleadIncomeImputation`
+  // already reads, so a returning session and a per-document render both
+  // see the s.19 relief on the AB petition.
+  const SELF_EMPLOY_RE = /(self[- ]employ|contracting business|own business|sole prop|independent contractor)/i;
+  const UNDERREPORT_RE = /(under[- ]report|off the books|cash income|lowball|hiding income|variable income|income (?:is )?all over)/i;
+  const IMPUTATION_SUBS: ReadonlySet<string> = new Set([
+    'income_imputation', 'income_imputation_request', 'imputation',
+  ]);
+  if (
+    profile.selfEmployedPayor === undefined ||
+    profile.selfEmployedPayor === null
+  ) {
+    const selfEmp = anyFactMatches((_sub, _cat, content) => SELF_EMPLOY_RE.test(content));
+    if (selfEmp) profile.selfEmployedPayor = true;
+  }
+  if (
+    profile.incomeUnderreporting === undefined ||
+    profile.incomeUnderreporting === null
+  ) {
+    const under = anyFactMatches(
+      (sub, _cat, content) => sub === 'income_underreporting' || UNDERREPORT_RE.test(content),
+    );
+    if (under) profile.incomeUnderreporting = true;
+  }
+  if (
+    profile.childSupportImputationRequested === undefined ||
+    profile.childSupportImputationRequested === null
+  ) {
+    const requested = anyFactMatches((sub, _cat, content) =>
+      IMPUTATION_SUBS.has(sub) || /impute income|imputation of income|impute\s+.+income/i.test(content),
+    );
+    if (requested) profile.childSupportImputationRequested = true;
   }
 
   // Recompute the role-aware money totals from the merged itemizations so

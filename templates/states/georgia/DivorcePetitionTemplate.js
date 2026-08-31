@@ -691,18 +691,40 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         divorceData.mailingAddress ||
         '';
       const livesWithRaw = typeof child === 'object' && child ? String(child.livesWith || '') : '';
-      const cpRaw = String(divorceData.custodyPreference || '').toLowerCase();
-      const livesWithDefendant = /(defendant|respondent)/i.test(livesWithRaw);
+      const cpRaw = String(divorceData.custodyPreference || divorceData.custodyArrangement || '').toLowerCase();
+      // Attorney round-4 (Amara GA, 2026-08-30): widen to accept every
+      // Plaintiff-side phrasing the LLM emits ("with me", "with plaintiff",
+      // "with mother", "with <plaintiff first name>", "always have", "in
+      // atlanta"). A "both" caregiver phrase is treated as Plaintiff-side
+      // for present-address purposes so the child is anchored to a real
+      // address rather than left blank.
+      const petFirst = String(divorceData.petitionerFirstName || '').trim();
+      const petLast = String(divorceData.petitionerLastName || '').trim();
+      const livesWithBoth = /\bboth\b/i.test(livesWithRaw);
+      const livesWithDefendantOnly =
+        !livesWithBoth && /(defendant|respondent)/i.test(livesWithRaw);
       const livesWithPlaintiff =
-        !livesWithDefendant &&
+        !livesWithDefendantOnly &&
         (
-          /(plaintiff|petitioner|me|myself|self|mother|father)/i.test(livesWithRaw) ||
-          /^(sole|sole_legal|sole_legal_sole_physical|primary|petitioner|plaintiff)/i.test(cpRaw)
+          livesWithBoth ||
+          /(plaintiff|petitioner|with me|myself|self|mother|father|always have)/i.test(livesWithRaw) ||
+          (petFirst && new RegExp(`\\b${petFirst.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i').test(livesWithRaw)) ||
+          (petLast && new RegExp(`\\b${petLast.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i').test(livesWithRaw)) ||
+          /^(sole|sole_legal|sole_legal_sole_physical|primary|petitioner|plaintiff|joint|shared)/i.test(cpRaw)
         );
+      const countyStateFallback = (() => {
+        const county = typeof divorceData.county === 'string' ? divorceData.county.trim() : '';
+        const stateRaw = typeof divorceData.state === 'string' ? divorceData.state.trim() : '';
+        const stateLabel = stateRaw && stateRaw.length <= 3 ? 'Georgia' : stateRaw;
+        if (county && stateLabel) return `${county} County, ${stateLabel}`;
+        return county || stateLabel || '';
+      })();
       const currentAddress =
         (typeof child === 'object' && (child.currentAddress || child.address)) ||
         (livesWithPlaintiff && plaintiffAddress) ||
         plaintiffAddress ||
+        (livesWithPlaintiff && countyStateFallback) ||
+        countyStateFallback ||
         '[CURRENT ADDRESS]';
       items.push({
         number: paragraphNum++,

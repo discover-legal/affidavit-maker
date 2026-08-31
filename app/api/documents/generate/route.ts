@@ -394,8 +394,27 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       if (!templateManager) {
         throw new AppError('Template manager unavailable', 503, 'ServiceUnavailable');
       }
+      // Attorney round-4 (Sarah AB, 2026-08-30): divorce templates now read
+      // profile.facts[] as a fact-based signal source (e.g. AB s.19 income
+      // imputation, when the LLM tagged the payor as self-employed +
+      // under-reporting on facts rather than as a structured field). Merge
+      // profile under saved editor data — saved wins — matching the
+      // support-doc path above, and thread profile.facts through as
+      // `divorceData.facts` so the templates can read them.
+      let divorcePayload: Record<string, unknown> = { ...affidavitData };
       try {
-        documentStructure = buildDocumentStructure(templateManager, affidavitData.state, affidavitData);
+        const profile = await getUserProfile(user.id);
+        divorcePayload = { ...profile.profile, ...affidavitData };
+        divorcePayload.facts = profile.facts;
+        divorcePayload.profileFacts = profile.facts;
+      } catch (profileErr) {
+        logger.warn('document_generate_profile_load_failed_divorce', {
+          userId: user.id,
+          error: profileErr instanceof Error ? profileErr.message : String(profileErr),
+        });
+      }
+      try {
+        documentStructure = buildDocumentStructure(templateManager, affidavitData.state, divorcePayload as typeof affidavitData);
       } catch (templateErr) {
         if (templateErr instanceof ValidationError) throw templateErr;
         logger.error('document_generate_template_failed', {

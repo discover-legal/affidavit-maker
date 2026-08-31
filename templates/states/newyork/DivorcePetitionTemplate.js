@@ -587,9 +587,52 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       const dob = typeof child === 'object'
         ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth)
         : null;
-      const currentAddress = (typeof child === 'object' && (child.currentAddress || child.address))
-        || divorceData.petitionerAddress
-        || '[CURRENT ADDRESS]';
+      // Attorney round-4 (David NY, 2026-08-30): mirror the GA pattern —
+      // when the child's `livesWith` names the Plaintiff (or both parties)
+      // and the profile carries no explicit street address for the child,
+      // fall back to any Plaintiff-address synonym and, ultimately, to the
+      // county+state on the profile (which is what NY UCCJEA § 76-h ¶(a)
+      // requires to establish home state at minimum).
+      const plaintiffAddress =
+        divorceData.petitionerAddress ||
+        divorceData.plaintiffAddress ||
+        divorceData.filerAddress ||
+        divorceData.address ||
+        divorceData.mailingAddress ||
+        '';
+      const livesWithRaw =
+        typeof child === 'object' && child ? String(child.livesWith || '') : '';
+      const livesWithBoth = /\bboth\b/i.test(livesWithRaw);
+      const livesWithDefendantOnly =
+        !livesWithBoth && /(defendant|respondent)/i.test(livesWithRaw);
+      const livesWithPlaintiff =
+        !livesWithDefendantOnly &&
+        (
+          livesWithBoth ||
+          /(plaintiff|petitioner|with me|myself|self|mother|father)/i.test(livesWithRaw) ||
+          /^(sole|primary|petitioner|plaintiff|joint|shared)/i.test(
+            String(divorceData.custodyPreference || divorceData.custodyArrangement || '').toLowerCase(),
+          )
+        );
+      const countyStateFallback = (() => {
+        const county = typeof divorceData.county === 'string' ? divorceData.county.trim() : '';
+        const state = typeof divorceData.state === 'string' ? divorceData.state.trim() : '';
+        if (!county && !state) return '';
+        // NY Kings County → "Brooklyn, New York" per DRL § 76-a home-state
+        // frame; the county name is the concise place identifier the drafter
+        // completes to a street address before filing.
+        const stateLabel = state && state.length <= 3 ? 'New York' : state;
+        return county && stateLabel
+          ? `${county} County, ${stateLabel}`
+          : county || stateLabel;
+      })();
+      const currentAddress =
+        (typeof child === 'object' && (child.currentAddress || child.address)) ||
+        (livesWithPlaintiff && plaintiffAddress) ||
+        plaintiffAddress ||
+        (livesWithPlaintiff && countyStateFallback) ||
+        countyStateFallback ||
+        '[CURRENT ADDRESS]';
       items.push({
         number: paragraphNum++,
         content: `Child: ${name}${dob ? `, born ${dob}` : ''}. Present address: ${currentAddress}.`,
@@ -689,19 +732,42 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         });
       }
 
-      // Custody request
-      items.push({
-        number: paragraphNum++,
-        content: 'Plaintiff requests that the Court determine custody of the child(ren) and establish an appropriate parenting schedule.',
-        type: 'custody_request'
-      });
+      // Custody request. Attorney round-4 (David NY, 2026-08-30): when the
+      // case carries an uncontested/settled posture (recited above), the
+      // request must ASK THE COURT TO APPROVE the parties' agreement, not
+      // to "determine custody" or "order child support" de novo — those
+      // clauses are internally inconsistent with the Settlement Agreement
+      // paragraph. If a specific custodian name is available (agreed
+      // primaryCustodian OR structured custody arrangement), name them; the
+      // fallback approves whatever the Settlement Agreement provides.
+      if (this.hasUncontestedPosture(divorceData)) {
+        const agreedCustodian = this.resolveAgreedCustodianName(divorceData);
+        const custodyContent = agreedCustodian
+          ? `Plaintiff requests that the Court approve and incorporate the custody arrangement set forth in the parties' Settlement Agreement, awarding custody to ${agreedCustodian} on the terms therein.`
+          : "Plaintiff requests that the Court approve and incorporate the custody arrangement as set forth in the parties' Settlement Agreement.";
+        items.push({
+          number: paragraphNum++,
+          content: custodyContent,
+          type: 'custody_request',
+        });
+        items.push({
+          number: paragraphNum++,
+          content: "Plaintiff requests that the Court approve and incorporate the parties' agreed child support arrangement, calculated pursuant to the Child Support Standards Act (Domestic Relations Law § 240 (1-b)).",
+          type: 'support_request',
+        });
+      } else {
+        items.push({
+          number: paragraphNum++,
+          content: 'Plaintiff requests that the Court determine custody of the child(ren) and establish an appropriate parenting schedule.',
+          type: 'custody_request'
+        });
 
-      // Child support request
-      items.push({
-        number: paragraphNum++,
-        content: 'Plaintiff requests that the Court order child support in accordance with the Child Support Standards Act.',
-        type: 'support_request'
-      });
+        items.push({
+          number: paragraphNum++,
+          content: 'Plaintiff requests that the Court order child support in accordance with the Child Support Standards Act.',
+          type: 'support_request'
+        });
+      }
     }
 
     // Agreed child arrangements (custody enum, primary residence, agreed
@@ -806,6 +872,33 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       items,
       nextParagraphNumber: paragraphNum,
     };
+  }
+
+  /**
+   * Attorney round-4 (David NY, 2026-08-30). Return a printable custodian
+   * name when the profile has an explicit agreed custodian (primaryCustodian
+   * with a real name, or custodyArrangement mentioning a party by name).
+   * Returns '' when nothing certain is on file — the caller falls back to
+   * "as set forth in the Settlement Agreement".
+   */
+  resolveAgreedCustodianName(divorceData) {
+    const d = divorceData || {};
+    const val = (x) => (typeof x === 'string' ? x.trim() : '');
+    const primary = val(d.primaryCustodian);
+    if (primary && !/^(undecided|tbd|tba|both|joint|jointly|shared|unknown|n\/?a)$/i.test(primary)) {
+      return primary;
+    }
+    const arrangement = val(d.custodyArrangement);
+    if (/joint|shared/i.test(arrangement)) return 'the parties jointly';
+    const petitioner = val(d.petitionerName);
+    const respondent = val(d.respondentName);
+    if (arrangement && petitioner && arrangement.toLowerCase().includes(petitioner.toLowerCase())) {
+      return petitioner;
+    }
+    if (arrangement && respondent && arrangement.toLowerCase().includes(respondent.toLowerCase())) {
+      return respondent;
+    }
+    return '';
   }
 
   /**
@@ -917,8 +1010,22 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     reliefItems.push('Equitably distributing the marital property;');
 
     if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
-      reliefItems.push('Awarding custody of the child(ren) to the appropriate party;');
-      reliefItems.push('Ordering child support in accordance with the Child Support Standards Act;');
+      // Attorney round-4 (David NY, 2026-08-30): in an uncontested posture,
+      // prayer (c) must not ask the Court to "award custody to the
+      // appropriate party" — the parties have already agreed. Approve
+      // the agreed arrangement (naming the agreed custodian when known).
+      if (this.hasUncontestedPosture(divorceData)) {
+        const agreedCustodian = this.resolveAgreedCustodianName(divorceData);
+        reliefItems.push(
+          agreedCustodian
+            ? `Approving the custody arrangement as set forth in the parties' Settlement Agreement, with custody awarded to ${agreedCustodian};`
+            : "Approving the custody arrangement as set forth in the parties' Settlement Agreement;"
+        );
+        reliefItems.push("Approving the parties' agreed child support arrangement, calculated pursuant to the Child Support Standards Act;");
+      } else {
+        reliefItems.push('Awarding custody of the child(ren) to the appropriate party;');
+        reliefItems.push('Ordering child support in accordance with the Child Support Standards Act;');
+      }
       reliefItems.push('Ordering maintenance of health insurance for the child(ren);');
     }
 

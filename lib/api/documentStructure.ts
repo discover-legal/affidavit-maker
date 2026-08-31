@@ -391,7 +391,18 @@ export function packetRenderContextFor(
   role: string | null | undefined,
   resolvedType: GenerationDocumentType,
 ): 'filing' | 'reference' {
-  if (normalizeRole(role) === 'respondent' && resolvedType === 'divorce_decree') {
+  const normalized = normalizeRole(role);
+  if (normalized === 'respondent' && resolvedType === 'divorce_decree') {
+    return 'reference';
+  }
+  // Attorney round-4 (Tavita FL, 2026-08-30): a respondent generating a
+  // divorce_petition — even on the standalone /generate path (i.e. NOT
+  // inside a packet expansion) — is producing a REFERENCE copy of the
+  // Petitioner's initiating pleading, never a document the respondent
+  // themselves files. Mark it as reference so the REFERENCE — NOT FOR
+  // FILING banner renders. The respondent's own filing is the Answer /
+  // Response (`divorce_response`).
+  if (normalized === 'respondent' && resolvedType === 'divorce_petition') {
     return 'reference';
   }
   return 'filing';
@@ -400,9 +411,11 @@ export function packetRenderContextFor(
 const REFERENCE_BANNER =
   'REFERENCE — NOT FOR FILING. This document shows what the eventual Final ' +
   'Judgment/Decree of Dissolution will look like when the court signs it at ' +
-  'the end of the case. A respondent does NOT file the decree as part of a ' +
-  'responsive packet; the court prepares and enters it. Use this draft only ' +
-  'to see what terms the eventual order would need to cover.';
+  'the end of the case, or what an initiating Petition would look like for ' +
+  'reference. A respondent does NOT file the decree or the opposing ' +
+  "party's petition; the court prepares and enters the decree, and the " +
+  "petitioner filed the petition. Use this draft only to see what terms " +
+  'the corresponding document would need to cover.';
 
 function markStructureAsReference(structure: unknown): unknown {
   if (!structure || typeof structure !== 'object') return structure;

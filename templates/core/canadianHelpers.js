@@ -270,7 +270,7 @@ function shouldPleadIncomeImputation(d) {
   if (!d || typeof d !== 'object') return false;
   if (incomeImputationPosition(d)) return true;
   const boolish = (v) => v === true || v === 'true' || v === 1 || v === '1';
-  return (
+  if (
     boolish(d.respondentSelfEmployed) ||
     boolish(d.respondent_self_employed) ||
     boolish(d.selfEmployedPayor) ||
@@ -278,7 +278,39 @@ function shouldPleadIncomeImputation(d) {
     boolish(d.income_underreporting) ||
     boolish(d.childSupportImputationRequested) ||
     boolish(d.child_support_imputation_requested)
-  );
+  ) {
+    return true;
+  }
+  // Attorney round-4 (Sarah AB, 2026-08-30): the LLM extractor did classify
+  // Sarah's story — self-employed payor, variable income, an explicit
+  // imputation request, and under-reporting — but tagged them on facts[]
+  // rather than as structured fields (subcategories:
+  // 'income_imputation_request', 'income_imputation',
+  // 'income_underreporting', 'respondent_income' + content naming
+  // "self-employed"). Recognize those tags so the s.19 pleading fires even
+  // when the companion promoter in lib/api/profile.ts has not yet run.
+  const facts = Array.isArray(d.facts) ? d.facts : [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const sub = String(f.subcategory || '').toLowerCase();
+    const cat = String(f.category || '').toLowerCase();
+    const content = String(f.content || f.text || '').toLowerCase();
+    if (
+      sub === 'income_imputation_request' ||
+      sub === 'income_imputation' ||
+      sub === 'income_underreporting' ||
+      sub === 'imputation'
+    ) {
+      return true;
+    }
+    if (
+      (cat === 'child_support' || cat === 'support' || sub === 'respondent_income') &&
+      /(self[- ]employ|under[- ]report|imput|earning capacity|off the books|cash income|variable income|income (?:is )?all over)/i.test(content)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -305,6 +337,28 @@ function incomeImputationFacts(d) {
   }
   const pos = incomeImputationPosition(d);
   if (pos && !out.includes(pos)) out.push(pos);
+  // Attorney round-4 (Sarah AB, 2026-08-30): pull the sworn factual detail
+  // from facts[] too — the LLM extractor put every income-imputation datum
+  // (self-employment, income variability, imputation request/estimate,
+  // under-reporting) on facts, not on the structured *_detail keys above.
+  // Recite each fact's content verbatim as its own paragraph so the s.19
+  // record actually cites the payor's earning-capacity evidence.
+  const facts = Array.isArray(d.facts) ? d.facts : [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const sub = String(f.subcategory || '').toLowerCase();
+    const cat = String(f.category || '').toLowerCase();
+    const content = String(f.content || f.text || '').trim();
+    if (!content) continue;
+    const relevant =
+      sub === 'income_imputation_request' ||
+      sub === 'income_imputation' ||
+      sub === 'income_underreporting' ||
+      sub === 'imputation' ||
+      ((cat === 'child_support' || cat === 'support' || sub === 'respondent_income') &&
+        /(self[- ]employ|under[- ]report|imput|earning capacity|off the books|cash income|variable income|income (?:is )?all over|60[k,]|180[k,])/i.test(content));
+    if (relevant && !out.includes(content)) out.push(content);
+  }
   return out;
 }
 

@@ -71,6 +71,11 @@ describe('round-3 property-gate live shapes', () => {
     expect(tpl.hasAgreedPropertyDivision({ propertyAgreement: 'pending', propertyAgreementConfirmed: true }))
       .toBe(true);
 
+    // Attorney round-4 (Sarah AB, 2026-08-30): propertyAgreement="pending"
+    // is a status token, NOT an agreement description. hasProperty:false
+    // without an explicit noPropertyConfirmed flag now renders the
+    // Draft-note (silence-safe) instead of the affirmative "no family
+    // property" allegation — Sarah never confirmed anything either way.
     const section = tpl.generatePropertySection({
       petitionerName: 'Sarah Khoury',
       respondentName: 'Ahmed Khoury',
@@ -81,8 +86,23 @@ describe('round-3 property-gate live shapes', () => {
       propertyAgreement: 'pending',
     });
     const text = collectText(section);
-    expect(text).toMatch(NIL_AB);
+    expect(text).toMatch(/Draft — confirm whether you and your spouse have any family property/i);
+    expect(text).not.toMatch(NIL_AB);
     expect(text).not.toMatch(AB_APPROVE_AGREEMENT);
+
+    // With explicit noPropertyConfirmed:true, the nil clause DOES render.
+    const confirmed = tpl.generatePropertySection({
+      petitionerName: 'Sarah Khoury',
+      respondentName: 'Ahmed Khoury',
+      state: 'AB',
+      county: 'Calgary',
+      hasProperty: false,
+      hasDebts: false,
+      noPropertyConfirmed: true,
+    });
+    const confirmedText = collectText(confirmed);
+    expect(confirmedText).toMatch(NIL_AB);
+    expect(confirmedText).not.toMatch(AB_APPROVE_AGREEMENT);
   });
 
   test('David NY shape (silent hasProperty + silent hasDebts) does NOT fabricate marital-property/debts paragraphs', () => {

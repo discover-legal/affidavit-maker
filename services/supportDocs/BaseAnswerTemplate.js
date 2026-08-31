@@ -362,6 +362,168 @@ function scaffoldResponseLine(filerLabel, topic) {
   );
 }
 
+// ─── Pre-admission fact map (attorney round-4, Tavita FL, 2026-08-30) ──────
+//
+// Mirrors the ontarioAnswer.js Form 10 preAdmittedFactLines pattern: read
+// structured fields AND facts[] to produce a map of scaffold key → sworn
+// ADMITS line. When present, the standard scaffold uses the admission
+// verbatim instead of the blank ADMITS/DENIES/WITHOUT KNOWLEDGE checkbox.
+// UPL line: only reads what the profile already knows — never synthesizes
+// a position the user hasn't stated. Every gate here is a discrete fact the
+// LLM/user classified (state, marriageDate, hasMinorChildren:false,
+// prenupSigned:true, groundsForDivorce:irretrievably_broken).
+
+function factHasSub(data, subTokens) {
+  const facts = Array.isArray(data && data.facts) ? data.facts : [];
+  const set = new Set(subTokens.map((s) => String(s).toLowerCase()));
+  return facts.some(
+    (f) => f && typeof f === 'object' && set.has(String(f.subcategory || '').toLowerCase()),
+  );
+}
+
+function factContentMatches(data, re) {
+  const facts = Array.isArray(data && data.facts) ? data.facts : [];
+  return facts.some((f) => {
+    if (!f || typeof f !== 'object') return false;
+    const content = String(f.content || f.text || '');
+    return re.test(content);
+  });
+}
+
+/**
+ * Build a map of scaffoldKey → { admission } for the STANDARD_DIVORCE_SCAFFOLD
+ * topics the profile already has evidence for. Each admission recites the
+ * fact so the Answer reads as a substantive per-paragraph response, not a
+ * blank checkbox.
+ */
+function preAdmitScaffoldMap(data, filerLabel) {
+  const map = new Map();
+  const s = (v) => (v == null ? '' : String(v).trim());
+  const state = s(data.state).toUpperCase();
+  // Attorney round-4: some LLM extractions land a lone punctuation
+  // character in `county` (e.g. Tavita FL replay: county: "."). A county
+  // string with no alphabetic content is not a real county name — drop it
+  // so the admission does not read ". County, FL".
+  const countyRaw = s(data.county);
+  const county = /[A-Za-z]/.test(countyRaw) ? countyRaw : '';
+
+  // jurisdiction — a valid state code + residency in that jurisdiction
+  // establishes the court's subject-matter jurisdiction admission.
+  if (state) {
+    map.set('jurisdiction', {
+      admission:
+        `${filerLabel} ADMITS the jurisdiction of this Court, ` +
+        (county ? `${county} County, ` : '') +
+        `${state}, over the parties and the subject matter of this action.`,
+    });
+  }
+
+  // residency — a fact-classified residency statement OR a stored months
+  // count is enough to admit residency. Kept jurisdiction-neutral.
+  const residencyMonths = Number(data.residencyStateMonths);
+  const hasResidencyFact =
+    factHasSub(data, ['residency', 'state_residency', 'province_residency']) ||
+    (Number.isFinite(residencyMonths) && residencyMonths >= 6);
+  if (hasResidencyFact && state) {
+    map.set('residency', {
+      admission:
+        `${filerLabel} ADMITS that at least one of the parties has been a resident of ${state} ` +
+        `for the period required by applicable law immediately before the filing of the ${data.__petitionTerm || 'Petition'}.`,
+    });
+  }
+
+  // marriage date and location — take from structured fields first, then
+  // fall back to any marriage-classified fact whose content names the year.
+  const marriageDate = s(data.marriageDate);
+  const marriageWhere =
+    s(data.marriageLocation) || s(data.marriagePlace) || s(data.marriageCity);
+  if (marriageDate) {
+    map.set('marriage', {
+      admission:
+        `${filerLabel} ADMITS the marriage allegations: the parties were married on ${marriageDate}` +
+        (marriageWhere ? ` in ${marriageWhere}.` : '.'),
+    });
+  } else if (factHasSub(data, ['marriage', 'marriage_date_and_location', 'date_and_place'])) {
+    map.set('marriage', {
+      admission:
+        `${filerLabel} ADMITS the allegations concerning the date and place of the parties' marriage.`,
+    });
+  }
+
+  // separation — structured or fact-classified.
+  const separationDate = s(data.separationDate);
+  if (separationDate) {
+    map.set('separation', {
+      admission:
+        `${filerLabel} ADMITS the separation allegations: the parties separated on or about ${separationDate} ` +
+        `and have lived separate and apart since that date.`,
+    });
+  } else if (factHasSub(data, ['separation', 'separation_duration'])) {
+    map.set('separation', {
+      admission:
+        `${filerLabel} ADMITS the allegations concerning the parties' separation.`,
+    });
+  }
+
+  // breakdown / no-fault grounds — either the structured
+  // groundsForDivorce slug OR a fact classified under grounds.
+  const grounds = s(data.groundsForDivorce).toLowerCase();
+  const noFault =
+    /irreconcilable|irretrievabl|insupportabil|breakdown|no[- ]fault/.test(grounds) ||
+    factHasSub(data, ['grounds_for_divorce', 'irretrievable_breakdown', 'no_fault']) ||
+    factContentMatches(data, /irretrievably broken|no[- ]fault|breakdown of (?:the )?marriage/i);
+  if (noFault) {
+    map.set('breakdown', {
+      admission:
+        `${filerLabel} ADMITS the ground stated for the divorce (irretrievable breakdown of the marriage, ` +
+        `or the jurisdictional no-fault equivalent); the marriage between the parties is irretrievably ` +
+        `broken and no reasonable prospect of reconciliation exists.`,
+    });
+  }
+
+  // children — hasMinorChildren:false, or numberOfChildren:0, or a fact
+  // recording "no children".
+  const noChildren =
+    data.hasMinorChildren === false ||
+    data.numberOfChildren === 0 ||
+    factContentMatches(data, /no (?:minor )?children|no children (?:from|of) this marriage/i);
+  if (noChildren) {
+    map.set('children', {
+      admission:
+        `${filerLabel} ADMITS the allegations that there are no minor children of the marriage.`,
+    });
+  }
+
+  // property — a prenup that governs division supports admitting the
+  // property-characterization allegations only to the extent the prenup
+  // controls (attorney round-4, Tavita FL).
+  if (data.prenupSigned === true || factHasSub(data, ['prenuptial_agreement', 'prenup'])) {
+    map.set('property', {
+      admission:
+        `${filerLabel} ADMITS that the parties executed a prenuptial agreement that governs the ` +
+        `characterization and division of the parties' property, and pleads that agreement in bar of ` +
+        `any inconsistent equitable-distribution or community-property claim (see AFFIRMATIVE DEFENSES).`,
+    });
+  }
+
+  // alimony — a mutual spousal-support waiver (structured or via facts)
+  // supports admitting the alimony allegations to the extent the waiver
+  // controls.
+  const spousalWaived =
+    data.spousalSupportWaived === true ||
+    factHasSub(data, ['spousal_support_waiver', 'mutual_waiver']) ||
+    factContentMatches(data, /\bno alimony\b|\bwaive(?:s|d)? (?:spousal )?(?:support|maintenance|alimony)\b/i);
+  if (spousalWaived) {
+    map.set('alimony', {
+      admission:
+        `${filerLabel} ADMITS that neither party seeks spousal support or alimony from the other, ` +
+        `the parties having waived that relief (see AFFIRMATIVE DEFENSES).`,
+    });
+  }
+
+  return map;
+}
+
 // ─── Affirmative defenses ────────────────────────────────────────────────────
 //
 // Auto-seeds from profile facts. The registry pattern is deliberately open —
@@ -652,13 +814,36 @@ function createAnswerBuilder(config) {
       // Emit the standard divorce-petition scaffold. This is the substantive
       // pleading structure a respondent needs when the petition text was not
       // ingested into the tool at Answer-drafting time.
+      //
+      // Attorney round-4 (Tavita FL, 2026-08-30): when the profile ALREADY
+      // has the fact each scaffold paragraph would ADMIT/DENY/etc., render
+      // the sworn admission verbatim instead of a blank checkbox. Mirrors
+      // ontarioAnswer.js's Form 10 preAdmittedFactLines pattern, but at the
+      // Base level so every jurisdiction (FL/CA/GA/TX/NY/AB/UT/…) gets the
+      // pre-admission behaviour by default. A jurisdiction can opt out by
+      // passing `config.suppressPreAdmit === true`.
+      const preAdmit =
+        config.suppressPreAdmit === true
+          ? new Map()
+          : preAdmitScaffoldMap({ ...data, __petitionTerm: petitionTerm }, filerLabel);
       for (const paragraph of scaffoldParagraphs) {
-        items.push({
-          number: number++,
-          content: scaffoldResponseLine(filerLabel, paragraph.topic),
-          type: 'answer_position',
-          scaffoldKey: paragraph.key,
-        });
+        const pre = preAdmit.get(paragraph.key);
+        if (pre && pre.admission) {
+          items.push({
+            number: number++,
+            content: pre.admission,
+            type: 'answer_position',
+            scaffoldKey: paragraph.key,
+            preAdmitted: true,
+          });
+        } else {
+          items.push({
+            number: number++,
+            content: scaffoldResponseLine(filerLabel, paragraph.topic),
+            type: 'answer_position',
+            scaffoldKey: paragraph.key,
+          });
+        }
       }
     } else {
       items.push({

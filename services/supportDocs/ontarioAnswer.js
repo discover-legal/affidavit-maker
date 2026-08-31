@@ -41,6 +41,10 @@ const ONTARIO_AFFIRMATION =
 
 const baseBuilder = createAnswerBuilder({
   state: 'ON',
+  // Ontario Form 10 has its own Part A pre-admission builder
+  // (`preAdmittedFactLines` below), so opt out of the Base pre-admit map
+  // added round-4 to avoid emitting the same admission twice.
+  suppressPreAdmit: true,
   filerLabel: 'Respondent',
   opposingLabel: 'Applicant',
   petitionTerm: 'Application',

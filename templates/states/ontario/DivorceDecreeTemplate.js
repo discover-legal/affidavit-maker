@@ -406,8 +406,23 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       ? divorceData.parentTimeDetails.trim()
       : '';
     const nonAlienation = " Neither party shall do anything to alienate the child(ren)'s affection for the other party (Divorce Act, s.16.3).";
-    if (details.length > 50) {
+    // Attorney round-4 (Marcus ON decree, 2026-08-30): the round-3 pipeline
+    // paraphrased Marcus's aspirational statement ("wants additional
+    // mid-week parenting time; specific schedule not yet provided") into
+    // an operative "IT IS ORDERED" clause — a decree cannot order a wish.
+    // A schedule string that reads as a subjective wish or explicitly
+    // disclaims specificity ("not yet provided" / "TBD" / "unspecified" /
+    // wants / would like / prefers / hopes / seeks) is NOT an operative
+    // schedule; render an explicit [SCHEDULE — insert...] bracket so the
+    // drafter fills it in before filing.
+    const NON_OPERATIVE_RE = /(not yet (?:provided|specified|decided|agreed)|tbd|tba|unspecified|to be (?:decided|determined|agreed)|placeholder|\bwants?\b|\bwould like\b|\bprefers?\b|\bhopes?\b|\bseeks?\b|\bwishes?\b|\bwill request\b)/i;
+    if (details.length > 50 && !NON_OPERATIVE_RE.test(details)) {
       return `IT IS ORDERED pursuant to s.16.1 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of written agreement to vary the schedule, the terms above control.${nonAlienation}`;
+    }
+    if (details.length > 0) {
+      // Non-operative content — surface the drafter's note as an in-line
+      // comment (never as an operative order) and demand a real schedule.
+      return `IT IS ORDERED pursuant to s.16.1 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: [SCHEDULE — insert specific parenting schedule (weekday/weekend, holidays, exchanges) before filing]. (Drafter note: ${details})${nonAlienation}`;
     }
     return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court.' + nonAlienation;
   }

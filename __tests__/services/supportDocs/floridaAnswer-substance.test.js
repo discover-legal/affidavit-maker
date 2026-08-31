@@ -79,12 +79,19 @@ describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', ()
     const positions = structure.sections.facts.items.filter((i) => i.type === 'answer_position');
     expect(positions.length).toBeGreaterThanOrEqual(8);
     for (const item of positions) {
-      // Each scaffold item must offer all three classifications so the user
-      // marks one instead of getting an auto-admit or auto-deny (UPL guard).
-      expect(item.content).toMatch(/ADMITS/);
-      expect(item.content).toMatch(/DENIES/);
-      expect(item.content).toMatch(/WITHOUT KNOWLEDGE/);
-      expect(item.content).toMatch(/mark one/);
+      // Attorney round-4 (2026-08-30): pre-admitted items skip the
+      // classification checkbox because the profile already supplies the
+      // sworn admission. Blank (non-pre-admitted) scaffold items MUST still
+      // offer all three classifications so the user marks one instead of
+      // getting an auto-admit or auto-deny (UPL guard).
+      if (item.preAdmitted) {
+        expect(item.content).toMatch(/ADMITS/);
+      } else {
+        expect(item.content).toMatch(/ADMITS/);
+        expect(item.content).toMatch(/DENIES/);
+        expect(item.content).toMatch(/WITHOUT KNOWLEDGE/);
+        expect(item.content).toMatch(/mark one/);
+      }
     }
     // Substantive coverage — the standard divorce-petition topic set.
     const combined = positions.map((i) => i.content).join('\n');

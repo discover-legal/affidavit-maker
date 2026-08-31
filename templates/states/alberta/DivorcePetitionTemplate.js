@@ -537,18 +537,29 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 12;
 
+    // Attorney round-4 (Sarah AB, 2026-08-30): the round-3 gate accepted
+    // ANY non-empty propertyAgreement string as a confirmation, so a
+    // profile carrying propertyAgreement="pending" (a status token, NOT
+    // an agreement description) still fabricated the "no family property"
+    // allegation Sarah never made. Require an explicit noPropertyConfirmed
+    // flag OR an affirmative described agreement (via the same predicate
+    // the relief block uses). Silent/undecided property status renders the
+    // Draft-note below so the drafter has to confirm before filing.
     const nilPropertyConfirmed =
       divorceData.hasProperty === false &&
       (divorceData.noPropertyConfirmed === true ||
-        (typeof divorceData.propertyAgreement === 'string' &&
-          divorceData.propertyAgreement.trim() !== ''));
+        this.hasAgreedPropertyDivision(divorceData));
     if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
         content: 'There is no family property to be divided under the Family Property Act, RSA 2000, c. F-4.7.',
         type: 'property_info'
       });
-    } else if (divorceData.hasProperty === false) {
+    } else if (
+      divorceData.hasProperty === false ||
+      divorceData.hasProperty === undefined ||
+      divorceData.hasProperty === null
+    ) {
       items.push({
         number: paragraphNum++,
         content: '________________________________________\n(Draft — confirm whether you and your spouse have any family property to divide under the Family Property Act, RSA 2000, c. F-4.7, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',

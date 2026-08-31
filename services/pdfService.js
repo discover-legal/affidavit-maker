@@ -483,8 +483,13 @@ class PDFService {
     this.renderDocumentHeader(doc, sections);
 
     // Numbered-paragraph sections (I. PARTIES, II. JURISDICTION, III. MARRIAGE, etc.)
+    // `contestedIssues` renders factual pleadings a jurisdiction template
+    // (e.g. Alberta s.19 imputation, Ontario custody-dispute) splices in
+    // AFTER property but BEFORE relief. When no template registered one,
+    // the entry is a no-op — the loop skips missing sections.
     const numberedSections = [
-      'parties', 'jurisdiction', 'marriageInfo', 'grounds', 'childrenInfo', 'propertyInfo'
+      'parties', 'jurisdiction', 'marriageInfo', 'grounds', 'childrenInfo', 'propertyInfo',
+      'contestedIssues'
     ];
 
     for (const key of numberedSections) {

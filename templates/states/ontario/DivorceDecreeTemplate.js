@@ -231,8 +231,10 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Ontario child custody section uses 2021 Divorce Act terminology:
-   * "decision-making responsibility" (s.16.1) replaces "custody";
-   * "parenting time" (s.16.1) replaces "access".
+   * "decision-making responsibility" (s.16.3) replaces "custody";
+   * "parenting time" (s.16.2) replaces "access";
+   * both flow from the Court's general parenting-order authority in s.16.1
+   * and the best-interests test in s.16.
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Child parenting section or null if no children
    */
@@ -276,7 +278,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.3.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -293,18 +295,18 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       soleCustodianName = custodianName;
 
       items.push({
-        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.3.`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order.`,
+        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order (Divorce Act, s.16.2).`,
         type: 'order'
       });
     } else {
       // Unrecognized/undecided arrangement — neutral order with an explicit
       // placeholder for the parties' actual agreement. Never default to sole.
       items.push({
-        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.1).',
+        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.3).',
         type: 'order'
       });
     }
@@ -338,6 +340,43 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: this.getVisitationLanguage(divorceData), type: 'order' });
 
     return { title: 'PARENTING ORDER', items, type: 'custody' };
+  }
+
+  /**
+   * Ontario opening recital — the base template's
+   * "the Court considered the above-entitled and numbered cause" is a US
+   * (Texas/California/Missouri) formulation that does not appear in
+   * Ontario Divorce Orders. The Ontario opener is "Upon reading the
+   * Application and hearing the parties (or upon the material filed and
+   * without a hearing, in an uncontested paper application under Family
+   * Law Rule 36) …" (Attorney round-5, Marcus ON, 2026-08-30.)
+   */
+  generateAppearancesSection(divorceData) {
+    let text = '';
+    const uncontested =
+      divorceData.appearanceType === 'agreed' || divorceData.isUncontested;
+    text += uncontested
+      ? 'Upon reading the Application, the Affidavit for Divorce (Form 36), and the material filed, and being satisfied that the Court has jurisdiction and that the requirements of the Divorce Act and the Family Law Rules have been met:\n\n'
+      : 'Upon reading the Application and hearing the parties:\n\n';
+
+    const selfRepPhrase = this.terminology.selfRepresentedLabel.toLowerCase();
+    text +=
+      `${this.terminology.filerLabel}, ${divorceData.petitionerName || '_________________________________'}, ` +
+      `${
+        divorceData.petitionerRepresentation === 'lawyer' ||
+        divorceData.petitionerRepresentation === 'attorney'
+          ? 'appeared by and through a lawyer of record'
+          : `appeared ${selfRepPhrase}`
+      }.\n\n`;
+    text +=
+      `${this.terminology.responderLabel}, ${divorceData.respondentName || '_________________________________'}, ` +
+      `${this.getRespondentAppearanceText(divorceData)}.`;
+
+    return {
+      title: 'APPEARANCES',
+      text,
+      type: 'appearances',
+    };
   }
 
   /**
@@ -405,7 +444,12 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const details = typeof divorceData.parentTimeDetails === 'string'
       ? divorceData.parentTimeDetails.trim()
       : '';
-    const nonAlienation = " Neither party shall do anything to alienate the child(ren)'s affection for the other party (Divorce Act, s.16.3).";
+    // Non-alienation obligation flows from the best-interests standard in
+    // Divorce Act s.16 (best-interests of the child), which requires each
+    // spouse to protect the child(ren)'s relationship with the other. It
+    // is NOT s.16.3, which is decision-making responsibility (post-2021
+    // Divorce Act renumbering).
+    const nonAlienation = " Neither party shall do anything to alienate the child(ren)'s affection for the other party (Divorce Act, s.16).";
     // Attorney round-4 (Marcus ON decree, 2026-08-30): the round-3 pipeline
     // paraphrased Marcus's aspirational statement ("wants additional
     // mid-week parenting time; specific schedule not yet provided") into
@@ -417,12 +461,12 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     // drafter fills it in before filing.
     const NON_OPERATIVE_RE = /(not yet (?:provided|specified|decided|agreed)|tbd|tba|unspecified|to be (?:decided|determined|agreed)|placeholder|\bwants?\b|\bwould like\b|\bprefers?\b|\bhopes?\b|\bseeks?\b|\bwishes?\b|\bwill request\b)/i;
     if (details.length > 50 && !NON_OPERATIVE_RE.test(details)) {
-      return `IT IS ORDERED pursuant to s.16.1 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of written agreement to vary the schedule, the terms above control.${nonAlienation}`;
+      return `IT IS ORDERED pursuant to s.16.2 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of written agreement to vary the schedule, the terms above control.${nonAlienation}`;
     }
     if (details.length > 0) {
       // Non-operative content — surface the drafter's note as an in-line
       // comment (never as an operative order) and demand a real schedule.
-      return `IT IS ORDERED pursuant to s.16.1 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: [SCHEDULE — insert specific parenting schedule (weekday/weekend, holidays, exchanges) before filing]. (Drafter note: ${details})${nonAlienation}`;
+      return `IT IS ORDERED pursuant to s.16.2 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: [SCHEDULE — insert specific parenting schedule (weekday/weekend, holidays, exchanges) before filing]. (Drafter note: ${details})${nonAlienation}`;
     }
     return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court.' + nonAlienation;
   }

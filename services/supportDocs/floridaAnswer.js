@@ -21,10 +21,38 @@ function normalizeCountyName(county) {
   return typeof county === 'string' ? county.replace(/\s+county$/i, '').trim() : county;
 }
 
+// Round-5 attorney review (Tavita, FL): the answer's court-name line
+// used to render "IN THE CIRCUIT COURT OF THE ___ JUDICIAL CIRCUIT" for
+// every county because the answer builder never consulted the
+// county-to-circuit map that the FL petition template already ships.
+// Mirror the petition's mapping here so the answer's caption is
+// consistent with the corresponding petition. Unmapped counties keep
+// the blank so the filer completes it by hand.
+const FL_CIRCUITS = {
+  'Miami-Dade': '11th',
+  'Broward': '17th',
+  'Palm Beach': '15th',
+  'Hillsborough': '13th',
+  'Orange': '9th',
+  'Duval': '4th',
+  'Pinellas': '6th',
+};
+
+function judicialCircuitFor(county) {
+  if (!county) return '___';
+  return FL_CIRCUITS[county] || '___';
+}
+
+function isNullishString(v) {
+  if (v == null) return true;
+  const s = String(v).trim().toLowerCase();
+  return s === '' || s === 'null' || s === 'undefined' || s === 'n/a' || s === 'none';
+}
+
 function fromData(data) {
-  return {
-    county: normalizeCountyName(String(data.county || '').trim()) || BLANK_SHORT,
-  };
+  const raw = String(data.county || '').trim();
+  const cleaned = isNullishString(raw) ? '' : normalizeCountyName(raw);
+  return { county: cleaned || BLANK_SHORT, countyRaw: cleaned };
 }
 
 const answerToPetition = createAnswerBuilder({
@@ -48,9 +76,10 @@ const answerToPetition = createAnswerBuilder({
     'The marriage between the parties is irretrievably broken. ' +
     '(Fla. Stat. § 61.052(1)(a).)',
   header(data) {
-    const { county } = fromData(data);
+    const { county, countyRaw } = fromData(data);
+    const circuit = judicialCircuitFor(countyRaw);
     return (
-      `IN THE CIRCUIT COURT OF THE ___ JUDICIAL CIRCUIT, ` +
+      `IN THE CIRCUIT COURT OF THE ${circuit} JUDICIAL CIRCUIT, ` +
       `IN AND FOR ${county.toUpperCase()} COUNTY, FLORIDA`
     );
   },

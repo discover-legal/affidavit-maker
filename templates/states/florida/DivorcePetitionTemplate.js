@@ -5,6 +5,21 @@
 const BaseDivorcePetitionTemplate = require('../../core/BaseDivorcePetitionTemplate');
 
 /**
+ * Attorney round-5 (Tavita FL, 2026-08-30): LLM extraction occasionally
+ * lands the literal string "null" / "undefined" / "N/A" where the slot
+ * was meant to be empty. Rendering "Case No.: null" is worse than a
+ * blank fill-in line.
+ */
+function _sanitizeCaseNumber(value) {
+  if (value == null) return '';
+  const s = String(value).trim();
+  if (!s) return '';
+  const lower = s.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'n/a' || lower === 'none') return '';
+  return s;
+}
+
+/**
  * Florida Petition for Dissolution of Marriage Template
  *
  * Legal References:
@@ -165,8 +180,11 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     const courtName = divorceData.court || this.getDefaultCourt(divorceData.county);
     caption += `IN THE ${courtName.toUpperCase()}\n\n`;
 
-    // Case number
-    caption += `Case No.: ${divorceData.caseNumber || '____________________'}\n`;
+    // Case number — reject literal "null"/"undefined" strings that
+    // slip in when the LLM extracts a missing case number as a string
+    // sentinel (Tavita FL, round-5).
+    const caseNumberSafe = _sanitizeCaseNumber(divorceData.caseNumber);
+    caption += `Case No.: ${caseNumberSafe || '____________________'}\n`;
     caption += `Division: ${divorceData.division || 'Family'}\n\n`;
 
     // Parties
@@ -283,7 +301,11 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     paragraphNum = this.appendAgreedChildArrangementPleadings(items, paragraphNum, divorceData);
 
     return {
-      title: 'CHILDREN',
+      // Attorney round-5 (Tavita, FL, 2026-08-30): title had dropped the
+      // roman numeral, producing "…IV. GROUNDS FOR DIVORCE / CHILDREN /
+      // VI. PROPERTY AND DEBTS" — a visible V-skip. Section titles must
+      // stay sequential with the base template's I…VII scheme.
+      title: 'V. CHILDREN',
       items,
       nextParagraphNumber: paragraphNum
     };
@@ -444,7 +466,8 @@ class FloridaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     });
 
     return {
-      title: 'PRAYER FOR RELIEF',
+      // Attorney round-5 (Tavita, FL, 2026-08-30): sync roman numeral with base I..VII sequence.
+      title: 'VII. PRAYER FOR RELIEF',
       items,
       nextParagraphNumber: null
     };

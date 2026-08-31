@@ -755,8 +755,36 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       reliefItems.push('Order child support per the California Statewide Uniform Guideline (Family Code § 4050-4076);');
     }
 
-    if (divorceData.requestSpousalSupport) {
+    // Spousal-support election (attorney round-5, Alison CA, 2026-08-30):
+    // in a California dissolution, the FL-100 prayer must AFFIRMATIVELY
+    // request, waive, or reserve spousal support — silence in the pleading
+    // can bind. Prefer explicit signals from the profile; otherwise emit a
+    // fill-in prompt that names all three options so the drafter picks one
+    // before filing rather than accidentally waiving by omission.
+    const spSupport =
+      divorceData.spousalSupport ||
+      divorceData.spousalSupportElection ||
+      null;
+    const spSilent =
+      !divorceData.requestSpousalSupport &&
+      divorceData.spousalSupportWaived !== true &&
+      divorceData.spousalSupportReserved !== true &&
+      (!spSupport || String(spSupport).trim() === '' || /unknown|silent|tbd|undecided/i.test(String(spSupport)));
+
+    if (divorceData.requestSpousalSupport || /^request/i.test(String(spSupport || ''))) {
       reliefItems.push('Order spousal support from Respondent to Petitioner (Family Code § 4320);');
+    } else if (divorceData.spousalSupportWaived === true || /^waive/i.test(String(spSupport || ''))) {
+      reliefItems.push(
+        'Terminate the Court\'s jurisdiction to award spousal support to either party, each party waiving any right to spousal support from the other (Family Code § 4335; In re Marriage of Vomacka (1984) 36 Cal.3d 459);',
+      );
+    } else if (divorceData.spousalSupportReserved === true || /^reserv/i.test(String(spSupport || ''))) {
+      reliefItems.push(
+        'Reserve jurisdiction over spousal support for both parties, to be determined on further order of the Court (Family Code § 4330);',
+      );
+    } else if (spSilent) {
+      reliefItems.push(
+        '(Draft — Spousal-support election REQUIRED before filing: California FL-100 must affirmatively (a) REQUEST spousal support pursuant to Family Code § 4320, (b) WAIVE spousal support and terminate the Court\'s jurisdiction over support pursuant to Family Code § 4335, or (c) RESERVE jurisdiction over spousal support pursuant to Family Code § 4330. Silence in the petition may bind. Select one before filing.)',
+      );
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {

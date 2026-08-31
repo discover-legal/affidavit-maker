@@ -390,9 +390,13 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       'O.C.G.A. § 9-11-4(f)(1)(A), supported by a due-diligence affidavit ' +
       `describing the search for ${t.responderLabel}. Service by publication is ` +
       'limited relief: it will not support a personal money judgment ' +
-      `against ${t.responderLabel}, and it will not support child support against ` +
-      'an absent spouse unless the long-arm requirements of O.C.G.A. ' +
-      '§ 19-9-64 are independently satisfied.'
+      `against ${t.responderLabel}, and it will not support a child-support ` +
+      'order against an absent nonresident spouse unless personal ' +
+      'jurisdiction is independently established under the Georgia long-arm ' +
+      'statute, O.C.G.A. § 9-10-91, or the personal-jurisdiction bases ' +
+      'in the Uniform Interstate Family Support Act, O.C.G.A. § 19-11-40 ' +
+      'et seq. (O.C.G.A. § 19-9-64 is the UCCJEA long-arm; it supports ' +
+      'jurisdiction over custody, not support.)'
     );
   }
 

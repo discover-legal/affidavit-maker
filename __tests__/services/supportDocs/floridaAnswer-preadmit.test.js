@@ -46,7 +46,9 @@ describe('FL Answer pre-admits from profile facts', () => {
     // jurisdiction
     expect(text).toMatch(/Respondent ADMITS the jurisdiction of this Court/i);
     // marriage
-    expect(text).toMatch(/ADMITS the marriage allegations: the parties were married on 2019/);
+    // Round-5 (Tavita, 2026-08-30): year-only marriageDate renders as
+    // "married in 2019" not "married on 2019" — grammar fix.
+    expect(text).toMatch(/ADMITS the marriage allegations: the parties were married in 2019/);
     // breakdown / no-fault
     expect(text).toMatch(/ADMITS the ground stated for the divorce \(irretrievable breakdown of the marriage/);
     // children (none)

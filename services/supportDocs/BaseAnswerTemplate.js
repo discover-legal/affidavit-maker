@@ -51,6 +51,37 @@ const crypto = require('node:crypto');
 const BLANK_SHORT = '______________';
 const BLANK_LINE = '________________________________';
 
+/**
+ * True when the value is a "no-data" sentinel that must NOT reach a
+ * pleading verbatim. LLM extraction sometimes lands the literal string
+ * "null" / "undefined" / "N/A" in slots (see Tavita FL profile:
+ * `county: "null"`), and rendering "Case No. null" or ". County, FL"
+ * would embarrass the filer. Callers treat a hit as absence.
+ */
+function isNullish(value) {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'string') return false;
+  const s = value.trim().toLowerCase();
+  return s === '' || s === 'null' || s === 'undefined' || s === 'n/a' || s === 'none';
+}
+
+/**
+ * True when a date-shaped value is nothing more than a bare four-digit
+ * year (e.g. "2019", "in 2019"). "on 2019" is grammatically wrong; a
+ * year-only value should be rendered with "in".
+ */
+function isYearOnly(value) {
+  if (value == null) return false;
+  const s = String(value).trim();
+  if (!s) return false;
+  // Strict: exactly 4 digits, 1900-2099
+  return /^(19|20)\d{2}$/.test(s);
+}
+
+function marriagePreposition(dateValue) {
+  return isYearOnly(dateValue) ? 'in' : 'on';
+}
+
 // Two-letter jurisdiction codes for Canadian provinces / territories. When the
 // answer is being built for one of these, the US-idiom filter rewrites tokens
 // that would read wrong in a Canadian court file (alimony → spousal support,
@@ -381,6 +412,19 @@ function factHasSub(data, subTokens) {
   );
 }
 
+function _prenupYearFromFacts(data) {
+  const facts = Array.isArray(data && data.facts) ? data.facts : [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const sub = String(f.subcategory || '').toLowerCase();
+    if (!/prenup|premarital/.test(sub)) continue;
+    const blob = `${f.content || ''} ${f.sourceQuote || ''}`;
+    const m = blob.match(/\b(19|20)\d{2}\b/);
+    if (m) return m[0];
+  }
+  return '';
+}
+
 function factContentMatches(data, re) {
   const facts = Array.isArray(data && data.facts) ? data.facts : [];
   return facts.some((f) => {
@@ -405,7 +449,7 @@ function preAdmitScaffoldMap(data, filerLabel) {
   // string with no alphabetic content is not a real county name — drop it
   // so the admission does not read ". County, FL".
   const countyRaw = s(data.county);
-  const county = /[A-Za-z]/.test(countyRaw) ? countyRaw : '';
+  const county = isNullish(countyRaw) || !/[A-Za-z]/.test(countyRaw) ? '' : countyRaw;
 
   // jurisdiction — a valid state code + residency in that jurisdiction
   // establishes the court's subject-matter jurisdiction admission.
@@ -438,9 +482,10 @@ function preAdmitScaffoldMap(data, filerLabel) {
   const marriageWhere =
     s(data.marriageLocation) || s(data.marriagePlace) || s(data.marriageCity);
   if (marriageDate) {
+    const prep = marriagePreposition(marriageDate);
     map.set('marriage', {
       admission:
-        `${filerLabel} ADMITS the marriage allegations: the parties were married on ${marriageDate}` +
+        `${filerLabel} ADMITS the marriage allegations: the parties were married ${prep} ${marriageDate}` +
         (marriageWhere ? ` in ${marriageWhere}.` : '.'),
     });
   } else if (factHasSub(data, ['marriage', 'marriage_date_and_location', 'date_and_place'])) {
@@ -537,9 +582,21 @@ function buildAffirmativeDefenses(data, config) {
   // can override the boilerplate via config.prenupDefense(data, meta) — for
   // example, FL's config cites §§ 61.079 / 61.075 explicitly (attorney
   // round-2, Tavita, 2026-08-30).
-  if (data.prenupSigned === true) {
+  // Attorney round-5 (Tavita FL, 2026-08-30): the AFFIRMATIVE DEFENSES
+  // section MUST render when any pre-admission cross-refers to it. The
+  // property/alimony pre-admissions reference "(see AFFIRMATIVE
+  // DEFENSES)" whenever a prenup fact OR a spousal-support waiver fact
+  // is on the profile, so trigger the section on the same signals — not
+  // only on the boolean `prenupSigned === true` flag (which the
+  // orchestrator often fails to set even when facts[] carries the
+  // prenuptial_agreement subcategory).
+  const prenupPresent =
+    data.prenupSigned === true ||
+    factHasSub(data, ['prenuptial_agreement', 'prenup', 'premarital_agreement']);
+  if (prenupPresent) {
     const year =
-      str(data.prenupYear) || str(data.prenupDate) || str(data.prenupSignedYear);
+      str(data.prenupYear) || str(data.prenupDate) || str(data.prenupSignedYear) ||
+      _prenupYearFromFacts(data);
     const dateFragment = year ? ` dated ${year}` : ` dated ${BLANK_SHORT}`;
     // Attorney round-3 (Tavita, FL): prenupDefense may now return either a
     // single string (legacy) OR an array of strings so a jurisdiction can
@@ -678,7 +735,8 @@ function createAnswerBuilder(config) {
     ((data, parties) => {
       const header =
         typeof config.header === 'function' ? config.header(data) : String(config.header || '');
-      const caseNumber = str(data.caseNumber) || BLANK_SHORT;
+      const caseNumberRaw = str(data.caseNumber);
+      const caseNumber = isNullish(caseNumberRaw) ? BLANK_SHORT : caseNumberRaw;
       const petitioner = upper(parties.petitioner);
       const respondent = upper(parties.respondent);
       const formatted = [
@@ -934,10 +992,11 @@ function createAnswerBuilder(config) {
 
       const marriageDate = str(data.marriageDate) || BLANK_SHORT;
       const marriageLocation = str(data.marriageLocation) || str(data.marriagePlace);
+      const prep = marriagePreposition(marriageDate);
       items.push({
         number: number++,
         content:
-          `${opposingLabel} and ${filerLabel} were married on ${marriageDate}` +
+          `${opposingLabel} and ${filerLabel} were married ${prep} ${marriageDate}` +
           (marriageLocation ? ` in ${marriageLocation}.` : '.'),
         type: 'counterclaim_allegation',
       });

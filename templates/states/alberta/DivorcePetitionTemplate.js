@@ -65,7 +65,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       jurisdictionLabel: null,
       jurisdictionTerm: 'Province',
       districtLabel: null,
-      districtTerm: 'Judicial centre',
+      districtTerm: 'Judicial Centre',
       districtStyle: 'plain',
       districtPlaceholder: '[JUDICIAL CENTRE]',
       filerLabel: 'Plaintiff',
@@ -93,7 +93,7 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.residencyRequirements = {
       stateMonths: 12,
       countyDays: 0,
-      description: 'Either spouse must have been habitually resident in Alberta for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
+      description: 'Either spouse must have been ordinarily resident in Alberta for at least one year immediately before the divorce application (Divorce Act, s.3(1)).'
     };
 
     this.waitingPeriod = {
@@ -116,8 +116,12 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
   }
 
   getDefaultCourt(county) {
-    const district = (county || '[JUDICIAL DISTRICT]').toUpperCase();
-    return `COURT OF KING'S BENCH OF ALBERTA — JUDICIAL DISTRICT OF ${district}`;
+    // Alberta uses "Judicial Centre" (not "Judicial District"). Under the
+    // Court of King's Bench, divorce actions are filed at a Judicial Centre
+    // (Rules of Court, Alta Reg 124/2010, r.3.3; Alta. Court of King's
+    // Bench Practice Notes).
+    const district = (county || '[JUDICIAL CENTRE]').toUpperCase();
+    return `COURT OF KING'S BENCH OF ALBERTA — JUDICIAL CENTRE OF ${district}`;
   }
 
   /**
@@ -160,19 +164,24 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   /**
    * Alberta jurisdiction statement — Divorce Act, s.3(1).
-   * Either spouse must have been habitually resident in Alberta for 1 year.
-   * Divorce in Alberta is a civil action; parties are "Plaintiff" and "Defendant"
-   * (Alberta Rules of Court, Alta Reg 124/2010; not "Petitioner/Respondent").
+   * The Divorce Act uses "ordinarily resident" (not the US phrasing
+   * "habitually resident"). Pleads a positive statement grounded in the
+   * Plaintiff's residence; the Statement of Claim is being filed by the
+   * Plaintiff and the Plaintiff must be prepared to prove residence at the
+   * hearing. Alberta divorce is a civil action; parties are "Plaintiff" and
+   * "Defendant" (Alberta Rules of Court, Alta Reg 124/2010).
    */
   getJurisdictionStatement(divorceData) {
-    return `Either the Plaintiff or the Defendant has been habitually resident in the Province of Alberta for at least one year immediately preceding the filing of this Statement of Claim, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
+    return `The Plaintiff has been ordinarily resident in the Province of Alberta for at least one year immediately preceding the commencement of this proceeding, as required by section 3(1) of the Divorce Act, RSC 1985, c. 3 (2nd Supp.).`;
   }
 
   /**
-   * Alberta venue reason — Plaintiff or Defendant resides in this judicial district.
+   * Alberta venue reason — Plaintiff or Defendant resides in this Judicial
+   * Centre. Alberta uses "Judicial Centre" for the local Court of King's
+   * Bench office (Alta. Rules of Court, r.3.3).
    */
   getVenueReason(divorceData) {
-    const district = divorceData.county || '[JUDICIAL DISTRICT]';
+    const district = divorceData.county || '[JUDICIAL CENTRE]';
     return `the Plaintiff or Defendant resides in the Judicial Centre of ${district}`;
   }
 
@@ -671,7 +680,24 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
 
   getVerificationText(divorceData) {
     const name = divorceData.petitionerName || '[PLAINTIFF NAME]';
-    return `I, ${name}, Plaintiff, make oath and say (or solemnly affirm) that the facts stated in this Statement of Claim are true, to the best of my knowledge, information, and belief.`;
+    // Attorney round-5 (Sarah AB, 2026-08-30): the verification body was a
+    // bare sworn statement with no jurat, so the Statement of Claim could
+    // not be sworn — a Commissioner for Oaths has nothing to sign. Alberta
+    // Rules of Court, Alta Reg 124/2010, r.13.19–13.22 require a jurat
+    // identifying place, date, and the Commissioner. Add the standard AB
+    // jurat block (Notaries and Commissioners Act, RSA 2013, c. N-5.5).
+    return (
+      `I, ${name}, Plaintiff, make oath and say (or solemnly affirm) that ` +
+      `the facts stated in this Statement of Claim are true, to the best of ` +
+      `my knowledge, information, and belief.\n\n` +
+      `SWORN (or AFFIRMED) BEFORE ME at ______________________, in the ` +
+      `Province of Alberta, this ______ day of __________________, 20____.\n\n` +
+      `_____________________________________\n` +
+      `A Commissioner for Oaths in and for the Province of Alberta\n` +
+      `(Print name and expiry date of commission below)\n` +
+      `Name: ______________________________\n` +
+      `Commission expires: _________________`
+    );
   }
 }
 
@@ -714,12 +740,73 @@ function appendContestedIssuesAlberta(doc, data) {
     });
   }
   doc.sections = doc.sections || {};
-  doc.sections.contestedIssues = { title: 'VIII. CONTESTED ISSUES', items };
-  if (typeof doc.fullText === 'string') {
-    let block = 'VIII. CONTESTED ISSUES\n\n';
-    for (const item of items) block += `${item.content}\n\n`;
-    doc.fullText += `\n${block}`;
+  // Renumber items so they render as sworn numbered factual paragraphs in
+  // the PDF (buildPetitionPDF assigns numbering from item.number). Take the
+  // next number from the property section, which is the last enumerated
+  // fact block before this one.
+  const propertySection = doc.sections.propertyInfo;
+  let paragraphNum =
+    (propertySection && propertySection.nextParagraphNumber) || 15;
+  for (const item of items) {
+    if (item.number == null) item.number = paragraphNum++;
   }
+  doc.sections.contestedIssues = {
+    title: 'VII. CONTESTED ISSUES AND SUPPORTING FACTS',
+    items,
+    nextParagraphNumber: paragraphNum,
+  };
+  // Splice the section text into `fullText` immediately BEFORE the relief
+  // clause — the fact paragraphs are pleadings, not an addendum below the
+  // verification/signature. Same for `htmlContent`.
+  if (typeof doc.fullText === 'string') {
+    let block = '\nVII. CONTESTED ISSUES AND SUPPORTING FACTS\n\n';
+    for (const item of items) {
+      if (item.number != null) block += `${item.number}. ${item.content}\n\n`;
+      else block += `${item.content}\n\n`;
+    }
+    const reliefTitle = doc.sections.reliefRequested?.title;
+    if (reliefTitle && doc.fullText.includes(`\n${reliefTitle}\n`)) {
+      doc.fullText = doc.fullText.replace(
+        `\n${reliefTitle}\n`,
+        `${block}\n${reliefTitle}\n`,
+      );
+    } else {
+      doc.fullText += block;
+    }
+  }
+  if (typeof doc.htmlContent === 'string') {
+    let html = '<div class="section"><h2 class="section-title">VII. CONTESTED ISSUES AND SUPPORTING FACTS</h2>';
+    for (const item of items) {
+      const num = item.number != null ? `${item.number}. ` : '';
+      html += `<p class="paragraph">${num}${escapeHtmlLocal(item.content)}</p>`;
+    }
+    html += '</div>';
+    // Insert before the relief section header if present.
+    const marker = '<h2 class="section-title">';
+    const reliefMarker = 'RELIEF';
+    const idx = doc.htmlContent.indexOf(reliefMarker);
+    if (idx > 0) {
+      const openIdx = doc.htmlContent.lastIndexOf('<div class="section">', idx);
+      if (openIdx > 0) {
+        doc.htmlContent =
+          doc.htmlContent.slice(0, openIdx) + html + doc.htmlContent.slice(openIdx);
+      } else {
+        doc.htmlContent += html;
+      }
+    } else {
+      doc.htmlContent += html;
+    }
+    void marker;
+  }
+}
+
+function escapeHtmlLocal(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 module.exports = AlbertaDivorcePetitionTemplate;

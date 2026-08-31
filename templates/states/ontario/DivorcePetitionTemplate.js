@@ -380,7 +380,16 @@ class OntarioDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     if (divorceData.requestNameChange && divorceData.previousName) {
-      reliefItems.push(`An order restoring the Applicant's former name: ${divorceData.previousName};`);
+      // Attorney round-5 (Marcus ON, 2026-08-30): the Divorce Act does NOT
+      // govern surname changes on divorce — s.15.2 is spousal support.
+      // Ontario surname changes are governed by the Change of Name Act,
+      // RSO 1990, c. C.7, s.3(1)(a) (election to resume former name on
+      // dissolution) with the process administered by ServiceOntario;
+      // divorce proceedings can recite the election but do not themselves
+      // effect the statutory name change.
+      reliefItems.push(
+        `An order acknowledging the Applicant's election to resume the former name "${divorceData.previousName}" pursuant to the Change of Name Act, RSO 1990, c. C.7, s.3(1)(a) (statutory election on dissolution of marriage, effected through ServiceOntario);`,
+      );
     }
 
     reliefItems.push('Such further and other relief as this Court deems just and appropriate.');

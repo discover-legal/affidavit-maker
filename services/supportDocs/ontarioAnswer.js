@@ -53,7 +53,10 @@ const baseBuilder = createAnswerBuilder({
   counterTitle: 'RESPONDENT’S CLAIM',
   counterPetitionForm: 'Family Law Rules, O. Reg. 114/99, Form 10 — Respondent’s Claim section',
   counterPetitionExamples: [
-    'a change of surname (Divorce Act, s. 15.2 and provincial equivalents)',
+    // Attorney round-5 (Marcus ON, 2026-08-30): Divorce Act s. 15.2 is
+    // spousal support — surname changes on divorce in Ontario are
+    // governed by the Change of Name Act, RSO 1990, c. C.7.
+    'a resumption of a former surname on dissolution of marriage (Change of Name Act, RSO 1990, c. C.7, s. 3(1)(a))',
     'costs (Family Law Rules, Rule 24)',
     'equalization of net family property (Family Law Act, s. 5)',
     'spousal support (Divorce Act, s. 15.2; Family Law Act, s. 30)',

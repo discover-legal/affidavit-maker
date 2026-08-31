@@ -108,6 +108,22 @@ const normalizeCountyName = (county, fallback = '[COUNTY]') =>
   String(county || fallback).replace(/\s+county$/i, '').trim();
 
 /**
+ * Round-5 attorney review (Tavita FL, 2026-08-30): the LLM extraction
+ * layer occasionally lands the literal string "null" / "undefined" /
+ * "N/A" in a slot the caller expected to be empty (see Tavita profile:
+ * `county: "null"`). Rendering "Case No.: null" is worse than an
+ * unfilled blank — treat these sentinels as absent.
+ */
+function _sanitizeCaseNumber(value) {
+  if (value == null) return '';
+  const s = String(value).trim();
+  if (!s) return '';
+  const lower = s.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'n/a' || lower === 'none') return '';
+  return s;
+}
+
+/**
  * Base template class for divorce petition generation
  * Provides common functionality across all states
  *
@@ -465,9 +481,10 @@ class BaseDivorcePetitionTemplate {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '______________________ COURT').toUpperCase();
     caption += `IN THE ${courtName}\n\n`;
 
-    // Case number
+    // Case number — reject literal "null"/"undefined" sentinels.
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '____________________';
+    const caseNumberClean = _sanitizeCaseNumber(divorceData.caseNumber);
+    const caseNumber = caseNumberClean || '____________________';
     caption += `${caseLabel} ${caseNumber}\n\n`;
 
     // Party names in family law format
@@ -503,7 +520,7 @@ class BaseDivorcePetitionTemplate {
         `          ${t.responderLabel}.`,
       ],
       right: [
-        `${caseLabel} ${divorceData.caseNumber || '_______________'}`,
+        `${caseLabel} ${caseNumberClean || '_______________'}`,
         '',
         'Judge _______________',
       ],

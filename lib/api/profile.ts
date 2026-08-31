@@ -722,6 +722,115 @@ export async function mergeUserProfile(
     }
   }
 
+  // v22-D: broader-scan rescue. Amara-shape replay: the primary Luna call
+  // set respondentAddressUnknown=true but emitted NO whereabouts-tagged
+  // fact this turn, so the narrow rescue above (which keys on a
+  // whereabouts fact's sourceQuote) had nothing to scan — even though a
+  // different fact's sourceQuote clearly mentioned "moved to Alabama
+  // maybe". When respondentAddressUnknown is true, respondentSuspectedLocation
+  // is still empty, AND no whereabouts fact exists, sweep the sourceQuote +
+  // content of ALL available facts (bounded by a char budget) and let the
+  // rescue LLM find any place name mentioned as where the respondent might
+  // be. Still LLM-first — the model does the extraction, no regex over
+  // user language; fail-open on any error.
+  if (
+    profile.respondentAddressUnknown === true &&
+    (profile.respondentSuspectedLocation === undefined ||
+      profile.respondentSuspectedLocation === null ||
+      profile.respondentSuspectedLocation === '') &&
+    !factCandidates.some((f) => isWhereaboutsFact(f))
+  ) {
+    // Budget the combined snippet ~ 6000 chars to keep the sub-call cheap.
+    const MAX_RESCUE_CHARS = 6000;
+    const parts: string[] = [];
+    let budget = MAX_RESCUE_CHARS;
+    for (const f of factCandidates) {
+      if (!f || typeof f !== 'object') continue;
+      const r = f as Record<string, unknown>;
+      const q = typeof r.sourceQuote === 'string' ? r.sourceQuote.trim() : '';
+      const c = typeof r.content === 'string' ? r.content.trim() : '';
+      const snippet = [
+        q ? `USER SAID: ${q}` : '',
+        c ? `RECORDED FACT: ${c}` : '',
+      ].filter(Boolean).join('\n');
+      if (!snippet) continue;
+      if (snippet.length + 1 > budget) break;
+      parts.push(snippet);
+      budget -= snippet.length + 1;
+    }
+    const rescueText = parts.join('\n---\n');
+    if (rescueText.length > 0) {
+      try {
+        const svc = (global as unknown as { openAIService?: { chat?: Function } })
+          .openAIService;
+        if (svc && typeof svc.chat === 'function') {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[profile-rescue] invoking gpt-5-nano BROADER-scan rescue for respondentSuspectedLocation, textLen=${rescueText.length}`,
+          );
+          const completion = await svc.chat(
+            [
+              {
+                role: 'system',
+                content:
+                  'You are helping fill a divorce petition. The user has said the respondent\'s current address is UNKNOWN. ' +
+                  'Read the fact snippets below (user\'s verbatim words plus recorded facts) and identify any PLACE mentioned as where the respondent might be, might have moved to, was last seen, etc. ' +
+                  'Return a JSON object {"place":"..."} with the hedge-stripped place name(s). ' +
+                  'Rules: (1) strip leading hedges ("possibly", "maybe", "I think", "somewhere in", "could be", "not sure", "I don\'t know") before emitting; ' +
+                  '(2) keep disjunctions intact ("Louisiana or Mississippi"); ' +
+                  '(3) if NO snippet names any place as a possible respondent location, emit "" (empty string); ' +
+                  '(4) never invent a place not present in the text; ' +
+                  '(5) do NOT return places that clearly refer to the petitioner\'s residence, the marriage location, or unrelated venues — only where the RESPONDENT might be.',
+              },
+              { role: 'user', content: rescueText },
+            ],
+            {
+              model: 'gpt-5-nano',
+              response_format: {
+                type: 'json_schema',
+                json_schema: {
+                  name: 'place_extraction',
+                  strict: true,
+                  schema: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['place'],
+                    properties: {
+                      place: { type: 'string', description: 'Hedge-stripped place name(s); "" if none.' },
+                    },
+                  },
+                },
+              },
+              temperature: 0,
+              max_tokens: 3000,
+            },
+          );
+          const contentStr = completion?.choices?.[0]?.message?.content;
+          if (typeof contentStr === 'string' && contentStr.length > 0) {
+            const parsed = JSON.parse(contentStr);
+            const place = typeof parsed?.place === 'string' ? parsed.place.trim() : '';
+            // eslint-disable-next-line no-console
+            console.log(`[profile-rescue] broader-scan rescue returned place="${place}"`);
+            if (place) {
+              profile.respondentSuspectedLocation = place;
+            }
+          } else {
+            // eslint-disable-next-line no-console
+            console.log('[profile-rescue] empty response from broader-scan rescue');
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('[profile-rescue] global.openAIService unavailable; skipping broader-scan rescue');
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[profile-rescue] broader-scan rescue LLM threw ${(err as Error)?.message} (fail-open)`,
+        );
+      }
+    }
+  }
+
   // v11-B: numberOfChildren promotion from schema-typed numeric_value on a
   // children fact. Alison persona: the LLM narrated "two adults" without ever
   // emitting the structured count. When a fact tagged with the children

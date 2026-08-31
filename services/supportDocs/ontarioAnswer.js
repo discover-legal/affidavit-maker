@@ -159,7 +159,16 @@ function supportingFacts(data) {
     if (!WANT_CATS.has(cat) && !WANT_SUBS_PART_B.has(sub)) continue;
     const content = String(f.content || '').trim();
     if (!content) continue;
-    const key = content.toLowerCase().replace(/\s+/g, ' ');
+    // Round-8 fix: strip tense variations so "the year 2026 is assumed" and
+    // "the year 2026 was assumed" dedup as one paragraph (Marcus packet had
+    // both as ¶15 and ¶16 pre-v32 fix). Also collapse punctuation/whitespace
+    // and normalize common conjugations.
+    const key = content
+      .toLowerCase()
+      .replace(/\bis\b|\bwas\b|\bare\b|\bwere\b/g, 'be')
+      .replace(/[.,;:!?]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(content);

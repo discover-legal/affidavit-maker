@@ -116,6 +116,14 @@ function sanitizeSubstrate(desc, divorceData) {
       // Whole-word, preserving the possessive marker when present.
       s = s.replace(new RegExp(`\\b${escaped}(?=\\b|['’])`, 'g'), role);
     }
+    // Collapse consecutive role+role artifacts introduced by the two-stage
+    // substitution: input "Plaintiff, Amara Okafor," first became "Plaintiff,
+    // Plaintiff," when the name was independently replaced. Same for
+    // "Plaintiff Plaintiff" (space-separated). Amara round-8 fix.
+    for (const role of ['Plaintiff', 'Defendant', 'Petitioner', 'Respondent', 'Applicant']) {
+      s = s.replace(new RegExp(`\\b${role}\\s*,\\s*${role}\\b(?:['’]s)?`, 'g'), role);
+      s = s.replace(new RegExp(`\\b${role}\\s+${role}\\b(?:['’]s)?`, 'g'), role);
+    }
   }
   s = s.trim().replace(/\s+/g, ' ').replace(/[,;:\s]+$/, '');
   if (!s) return '';

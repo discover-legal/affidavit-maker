@@ -652,42 +652,56 @@ export async function mergeUserProfile(
           console.log(
             `[profile-rescue] invoking gpt-5-nano rescue for respondentSuspectedLocation, textLen=${rescueText.length}`,
           );
-          const completion = await svc.chat(
-            [
+          // gpt-5-nano occasionally returns an empty content string on the
+          // first shot (reasoning budget exhausted before emitting JSON, or
+          // model refused). Retry once with a higher budget before giving up
+          // — the second attempt reliably lands for the same input (Amara
+          // v31e Alabama replay showed this pattern).
+          const callRescue = async (maxTokens: number) => {
+            return await svc.chat(
+              [
+                {
+                  role: 'system',
+                  content:
+                    'Extract the respondent\'s suspected LOCATION from the given text and return a JSON object {"place":"..."}. ' +
+                    'The text is one user message from a divorce interview describing where the respondent might be. ' +
+                    'Rules: (1) strip leading hedges ("possibly", "maybe", "I think", "somewhere in", "could be", "not sure", "I don\'t know") before emitting; ' +
+                    '(2) keep disjunctions intact ("Louisiana or Mississippi"); ' +
+                    '(3) if the text names NO place, emit "" (empty string); ' +
+                    '(4) never invent a place not present in the text.',
+                },
+                { role: 'user', content: rescueText },
+              ],
               {
-                role: 'system',
-                content:
-                  'Extract the respondent\'s suspected LOCATION from the given text and return a JSON object {"place":"..."}. ' +
-                  'The text is one user message from a divorce interview describing where the respondent might be. ' +
-                  'Rules: (1) strip leading hedges ("possibly", "maybe", "I think", "somewhere in", "could be", "not sure", "I don\'t know") before emitting; ' +
-                  '(2) keep disjunctions intact ("Louisiana or Mississippi"); ' +
-                  '(3) if the text names NO place, emit "" (empty string); ' +
-                  '(4) never invent a place not present in the text.',
-              },
-              { role: 'user', content: rescueText },
-            ],
-            {
-              model: 'gpt-5-nano',
-              response_format: {
-                type: 'json_schema',
-                json_schema: {
-                  name: 'place_extraction',
-                  strict: true,
-                  schema: {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['place'],
-                    properties: {
-                      place: { type: 'string', description: 'Hedge-stripped place name(s); "" if none.' },
+                model: 'gpt-5-nano',
+                response_format: {
+                  type: 'json_schema',
+                  json_schema: {
+                    name: 'place_extraction',
+                    strict: true,
+                    schema: {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['place'],
+                      properties: {
+                        place: { type: 'string', description: 'Hedge-stripped place name(s); "" if none.' },
+                      },
                     },
                   },
                 },
+                temperature: 0,
+                max_tokens: maxTokens,
               },
-              temperature: 0,
-              max_tokens: 3000,
-            },
-          );
-          const contentStr = completion?.choices?.[0]?.message?.content;
+            );
+          };
+          let completion = await callRescue(3000);
+          let contentStr = completion?.choices?.[0]?.message?.content;
+          if (!(typeof contentStr === 'string' && contentStr.length > 0)) {
+            // eslint-disable-next-line no-console
+            console.log('[profile-rescue] empty response from rescue call — retrying with 6000 tokens');
+            completion = await callRescue(6000);
+            contentStr = completion?.choices?.[0]?.message?.content;
+          }
           if (typeof contentStr === 'string' && contentStr.length > 0) {
             const parsed = JSON.parse(contentStr);
             const place = typeof parsed?.place === 'string' ? parsed.place.trim() : '';
@@ -707,7 +721,7 @@ export async function mergeUserProfile(
             }
           } else {
             // eslint-disable-next-line no-console
-            console.log('[profile-rescue] empty response from rescue call');
+            console.log('[profile-rescue] empty response from rescue call (both attempts)');
           }
         } else {
           // eslint-disable-next-line no-console

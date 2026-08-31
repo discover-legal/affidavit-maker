@@ -56,7 +56,61 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('en-US', options);
 }
 
+/**
+ * Extract a four-digit birth year from either a bare value ("2016",
+ * 2016, "born 2016") or a child object (`{ birthYear: 2016 }` or
+ * `{ birthDate: '2016' }`). Returns null when nothing usable is
+ * present.
+ *
+ * Attorney round-3 (2026-08-30): David NY got the year-only fix
+ * (child.birthYear), Sarah AB and Marcus ON did NOT — the AB helper
+ * looked only at birthDate/dob/dateOfBirth and never at the
+ * `birthYear` field, so year-only children rendered a blank. Fix
+ * universally with a single shared helper.
+ */
+function birthYearOf(childOrValue) {
+  if (childOrValue == null) return null;
+  const yearFromString = (v) => {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    const m = s.match(/(?:^|\D)(19\d{2}|20\d{2})(?:\D|$)/);
+    return m ? m[1] : null;
+  };
+  if (typeof childOrValue === 'object') {
+    const bd = childOrValue.birthDate ?? childOrValue.dob ?? childOrValue.dateOfBirth;
+    return (
+      yearFromString(childOrValue.birthYear) ||
+      yearFromString(childOrValue.birth_year) ||
+      yearFromString(bd)
+    );
+  }
+  return yearFromString(childOrValue);
+}
+
+/**
+ * Format a child's date of birth for pleading display. Prefer the
+ * full formatted date; fall back to a bare year ("born 2020") when
+ * that is all we have; return null when nothing is renderable so the
+ * caller can decide on a blank/draft-note fallback.
+ *
+ * @param {unknown} child - child object or raw dob value
+ * @returns {string|null}
+ */
+function formatBirthDisplay(child) {
+  if (child == null) return null;
+  const rawDob = typeof child === 'object'
+    ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
+    : child;
+  const full = formatDate(rawDob);
+  if (full) return full;
+  const year = birthYearOf(child);
+  return year ? year : null;
+}
+
 module.exports = {
   isRenderableDate,
   formatDate,
+  birthYearOf,
+  formatBirthDisplay,
 };

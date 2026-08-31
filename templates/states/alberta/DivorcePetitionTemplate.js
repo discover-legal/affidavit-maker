@@ -15,7 +15,7 @@ const {
   normalizeCanadianDivorceData,
   yearOnlyOf,
 } = require('../../core/canadianHelpers');
-const { asList } = require('../../core/dataShapes');
+const { asList, PROPERTY_AGREEMENT_STATUS_TOKENS } = require('../../core/dataShapes');
 
 /**
  * Alberta Divorce Template — Statement of Claim for Divorce
@@ -237,7 +237,9 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         } else {
           const rawDob = child.birthDate ?? child.dob ?? child.dateOfBirth;
           const childDob = this.formatDate(rawDob);
-          const yearOnly = childDob ? null : yearOnlyOf(rawDob);
+          // Attorney round-3 (2026-08-30): also look at the child object
+          // itself so `birthYear` field alone renders as "born in 2011".
+          const yearOnly = childDob ? null : (yearOnlyOf(rawDob) || yearOnlyOf(child.birthYear) || yearOnlyOf(child));
           let dobDisplay;
           let draftNote;
           if (childDob) {
@@ -633,12 +635,27 @@ class AlbertaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   hasAgreedPropertyDivision(divorceData) {
     if (!divorceData) return false;
+    if (divorceData.propertyAgreementConfirmed === true) return true;
     const desc = typeof divorceData.propertyAgreement === 'string'
       ? divorceData.propertyAgreement.trim()
       : '';
-    if (desc) return true;
-    if (divorceData.propertyAgreementConfirmed === true) return true;
-    return false;
+    if (!desc) return false;
+    // Round-3 attorney review (Sarah AB, 2026-08-30): profile carried
+    // propertyAgreement="pending". The prior predicate treated any
+    // non-empty string as an agreement, so relief (f) invited the court
+    // to "approve the parties' agreement regarding the division of their
+    // property and debts" against a payload that explicitly says the
+    // agreement is NOT reached. Reject status-token values.
+    const norm = desc.toLowerCase().replace(/[.!]+$/, '').replace(/\s+/g, ' ');
+    // Affirmative status tokens ("agreed"/"yes"/"true") still count —
+    // only the non-affirmative tokens ("pending"/"unknown"/"undecided"/
+    // "no"/"false"/"contested") are rejected.
+    const AFFIRMATIVE_STATUS = new Set(['agreed', 'agree', 'agreement', 'yes', 'true', 'y']);
+    if (AFFIRMATIVE_STATUS.has(norm)) return true;
+    if (PROPERTY_AGREEMENT_STATUS_TOKENS.has(norm)) return false;
+    // A single-word non-status value is still not a described agreement.
+    if (!/\s/.test(desc)) return false;
+    return true;
   }
 
   getVerificationText(divorceData) {

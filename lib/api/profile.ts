@@ -96,6 +96,11 @@ const FAMILY_FIELDS: readonly string[] = [
   // templates read alongside it, had the same gap.
   'spousalSupportWaived', 'spousalSupportAwarded', 'requestSpousalSupport',
   'hasProperty', 'hasDebts', 'propertyAgreement',
+  // Round-3 attorney review (Mari TX, David NY, 2026-08-30): the petition
+  // template gates on these structured fields; add them to the whitelist
+  // so a fact-derived promotion below survives into the render.
+  'noPropertyConfirmed', 'noDebtsConfirmed', 'propertyAgreementConfirmed',
+  'settlementAgreement', 'settlementAgreementDate', 'mediatedChildSupport',
   // Per-party property/debt lists. String arrays — one complete asset/debt
   // per element, values (and "Separate property: " / "Separate debt: "
   // prefixes) intact — mirroring the orchestrator's REPLACE-PER-PERSON
@@ -1041,6 +1046,96 @@ export async function mergeUserProfile(
         );
       }
     }
+  }
+
+  // ── Round-3 attorney review (Mari TX, David NY, 2026-08-30) ──
+  // Property-negation promotion. When facts[] carries an explicit
+  // "no property/house/assets/retirement" statement but the structured
+  // hasProperty flag is truly absent, promote to hasProperty=false +
+  // noPropertyConfirmed=true so the petition template's nil-property
+  // clause renders instead of the community-property boilerplate.
+  // Deterministic keyword intersection over model-classified fact
+  // metadata — same LLM-first discipline as the whereabouts/grounds
+  // promotions above.
+  const NO_PROP_KEYWORDS = [
+    'no property', 'no house', 'no assets', 'no real estate',
+    'no retirement', 'no home', 'no marital property',
+    'no community property', 'no family property',
+  ];
+  const NO_DEBT_KEYWORDS = [
+    'no debts', 'no debt', 'no liabilities', 'no marital debt',
+    'no community debt', 'no family debt',
+  ];
+  const factBlob = (f: unknown): string => {
+    if (!f || typeof f !== 'object') return '';
+    const r = f as Record<string, unknown>;
+    return [r.content, r.text, r.value, r.sourceQuote, r.source_quote, r.subcategory, r.category]
+      .filter(Boolean).map(String).join(' ').toLowerCase();
+  };
+  const anyFactHits = (keywords: string[]): boolean =>
+    factCandidates.some((f) => {
+      const blob = factBlob(f);
+      return blob && keywords.some((k) => blob.includes(k));
+    });
+  if (profile.hasProperty === undefined || profile.hasProperty === null) {
+    if (anyFactHits(NO_PROP_KEYWORDS)) {
+      profile.hasProperty = false;
+      if (profile.noPropertyConfirmed === undefined || profile.noPropertyConfirmed === null) {
+        profile.noPropertyConfirmed = true;
+      }
+    }
+  }
+  if (profile.hasDebts === undefined || profile.hasDebts === null) {
+    if (anyFactHits(NO_DEBT_KEYWORDS)) {
+      profile.hasDebts = false;
+      if (profile.noDebtsConfirmed === undefined || profile.noDebtsConfirmed === null) {
+        profile.noDebtsConfirmed = true;
+      }
+    }
+  }
+
+  // ── Round-3 attorney review (David NY, 2026-08-30) ──
+  // Settlement / mediation / spousal-support-waiver promotion. David's
+  // profile had none of the structured NY-uncontested fields set, yet
+  // facts[] clearly recorded subcategory='uncontested_agreement',
+  // subcategory='mutual_waiver' (category=spousal_support), and a
+  // parenting/CSSA fact whose content named "mediated" and "CSSA". The
+  // NY template's `hasUncontestedPosture` reads structured fields; add
+  // fact-driven promotions so a returning session or a per-document
+  // render has the fields consistently.
+  const factsForSettlement = factCandidates as Array<Record<string, unknown> | null | undefined>;
+  const anyFactMatches = (
+    pred: (sub: string, cat: string, content: string) => boolean,
+  ): boolean =>
+    factsForSettlement.some((f) => {
+      if (!f || typeof f !== 'object') return false;
+      const sub = String((f as Record<string, unknown>).subcategory ?? '').toLowerCase();
+      const cat = String((f as Record<string, unknown>).category ?? '').toLowerCase();
+      const content = String(
+        (f as Record<string, unknown>).content ?? (f as Record<string, unknown>).text ?? '',
+      ).toLowerCase();
+      return pred(sub, cat, content);
+    });
+  if (profile.spousalSupportWaived === undefined || profile.spousalSupportWaived === null) {
+    const waived = anyFactMatches((sub, cat, content) =>
+      (sub === 'mutual_waiver' && (cat === 'spousal_support' || cat === 'support')) ||
+      (cat === 'spousal_support' && /waiv/.test(content))
+    );
+    if (waived) profile.spousalSupportWaived = true;
+  }
+  if (profile.mediatedChildSupport === undefined || profile.mediatedChildSupport === null) {
+    const mediated = anyFactMatches((sub, cat, content) =>
+      (sub === 'child_support' || cat === 'children' || sub === 'parenting_schedule') &&
+      /mediat|cssa/.test(content)
+    );
+    if (mediated) profile.mediatedChildSupport = true;
+  }
+  if (profile.settlementAgreement === undefined || profile.settlementAgreement === null) {
+    const settled = anyFactMatches((sub, _cat, _content) =>
+      sub === 'uncontested_agreement' || sub === 'settlement_agreement' ||
+      sub === 'settlement' || sub === 'mediation',
+    );
+    if (settled) profile.settlementAgreement = true;
   }
 
   // Recompute the role-aware money totals from the merged itemizations so

@@ -49,7 +49,8 @@ describe('Texas cruelty petition — factual substrate + TFC §6.504/§6.501 dra
     expect(grounds).toBeTruthy();
     expect(grounds.content).toMatch(/cruel treatment/i);
     expect(grounds.content).toMatch(/emergency-room treatment/i);
-    expect(grounds.content).toMatch(/documentation of which Petitioner will produce/i);
+    expect(grounds.content).toMatch(/Petitioner will produce documentation/i);
+    expect(grounds.content).toMatch(/Specifically,/);
   });
 
   test('cruelty without a matching substrate fact renders the bare statutory clause', () => {
@@ -58,7 +59,8 @@ describe('Texas cruelty petition — factual substrate + TFC §6.504/§6.501 dra
     );
     const grounds = section.items.find((it) => it.type === 'grounds');
     expect(grounds.content).toMatch(/cruel treatment/i);
-    expect(grounds.content).not.toMatch(/documentation of which/i);
+    expect(grounds.content).not.toMatch(/will produce documentation/i);
+    expect(grounds.content).not.toMatch(/Specifically,/);
   });
 
   test('cruelty petition attaches Draft note referencing TFC §6.504 and §6.501', () => {
@@ -93,6 +95,6 @@ describe('Texas cruelty petition — factual substrate + TFC §6.504/§6.501 dra
     );
     const grounds = section.items.find((it) => it.type === 'grounds');
     expect(grounds.content).toMatch(/hospital records/i);
-    expect(grounds.content).toMatch(/documentation of which Petitioner will produce/i);
+    expect(grounds.content).toMatch(/Petitioner will produce documentation/i);
   });
 });

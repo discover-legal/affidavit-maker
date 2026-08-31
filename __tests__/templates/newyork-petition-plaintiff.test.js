@@ -161,14 +161,24 @@ describe('NY petition — uncontested / settlement recital', () => {
 });
 
 describe('NY petition — equitable-distribution property (never community)', () => {
-  test('default marital-property pleading, never "community"', () => {
+  test('affirmative hasProperty=true → marital-property pleading, never "community"', () => {
     const tpl = new NewYorkDivorcePetitionTemplate();
-    const section = tpl.generatePropertySection(baseData());
+    const section = tpl.generatePropertySection(baseData({ hasProperty: true }));
     const body = section.items.map((i) => i.content).join('\n');
     expect(body).not.toMatch(/community property/i);
     expect(body).toMatch(/marital property/i);
     expect(body).toMatch(/§ 236-B/);
     expect(section.title).toMatch(/MARITAL PROPERTY/);
+  });
+
+  test('silent hasProperty (round-3 attorney review) → draft-note blank, never fabricated allegation', () => {
+    const tpl = new NewYorkDivorcePetitionTemplate();
+    const section = tpl.generatePropertySection(baseData());
+    const body = section.items.map((i) => i.content).join('\n');
+    expect(body).not.toMatch(/community property/i);
+    // Fabricated real-property allegation must NOT appear on silent data.
+    expect(body).not.toMatch(/real property, personal property, and financial accounts/i);
+    expect(body).toMatch(/Draft — confirm whether you and your spouse/i);
   });
 
   test('hasProperty=false path still avoids the word "community"', () => {

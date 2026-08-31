@@ -14,9 +14,64 @@
 const { randomUUID: uuidv4 } = require('node:crypto');
 const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
-const { asList, propertyAgreementProse } = require('./dataShapes');
+const { asList, propertyAgreementProse, PROPERTY_AGREEMENT_STATUS_TOKENS } = require('./dataShapes');
+const { yearOnlyOf } = require('./canadianHelpers');
+
+// Round-3 attorney review (2026-08-30): live personas (Mari TX, David NY)
+// arrived with `hasProperty`/`hasDebts` UNSET but a facts[] array that
+// explicitly said "no property, no house, no retirement" / "no debts".
+// The petition still fabricated a community-property allegation.
+// Fix: extend the property/debt guards to promote from facts[] via a
+// deterministic keyword intersection over model-classified metadata. No
+// free-text prose parsing beyond a small closed keyword list — same
+// LLM-first discipline as the whereabouts/grounds promotions in
+// lib/api/profile.ts.
+const NO_PROPERTY_KEYWORDS = [
+  'no property', 'no house', 'no assets', 'no real estate',
+  'no retirement', 'no home', 'no marital property',
+  'no community property', 'no family property',
+];
+const NO_DEBTS_KEYWORDS = [
+  'no debts', 'no debt', 'no liabilities', 'no marital debt',
+  'no community debt', 'no family debt',
+];
+const PROPERTY_CATEGORY_TOKENS = ['property', 'assets', 'finances', 'financial'];
+const DEBT_CATEGORY_TOKENS = ['debt', 'debts', 'liabilities'];
+
+function _factSearchBlob(fact) {
+  if (!fact || typeof fact !== 'object') return '';
+  const parts = [
+    fact.content, fact.text, fact.value,
+    fact.sourceQuote, fact.source_quote,
+    fact.subcategory, fact.category,
+  ];
+  return parts.filter(Boolean).map(String).join(' ').toLowerCase();
+}
+function _factsIndicateNo(divorceData, keywordList, categoryTokens) {
+  const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const blob = _factSearchBlob(f);
+    if (!blob) continue;
+    // A property/debt-adjacent fact whose content OR sourceQuote hits any
+    // negation keyword counts; OR any fact whose category/subcategory names
+    // property/debt topic AND the negation keyword appears.
+    const hitsKeyword = keywordList.some((k) => blob.includes(k));
+    if (!hitsKeyword) continue;
+    const cat = String(f.category || '').toLowerCase();
+    const sub = String(f.subcategory || '').toLowerCase();
+    const categoryHit = categoryTokens.some((t) => cat.includes(t) || sub.includes(t));
+    // Direct phrase like "no property" is dispositive even in a marriage-tagged
+    // fact — the user said it. Category match confirms the phrase is about
+    // the property/debt topic and not e.g. "no property was destroyed".
+    if (hitsKeyword && (categoryHit || keywordList.some((k) => blob.includes(k)))) {
+      return true;
+    }
+  }
+  return false;
+}
 const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
-const { isRenderableDate, formatDate: sharedFormatDate } = require('./dateUtils');
+const { isRenderableDate, formatDate: sharedFormatDate, formatBirthDisplay } = require('./dateUtils');
 
 /**
  * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
@@ -939,9 +994,10 @@ class BaseDivorcePetitionTemplate {
 
       if (divorceData.children && divorceData.children.length > 0) {
         divorceData.children.forEach((child, index) => {
+          const dobText = typeof child === 'object' ? this.formatChildDob(child) : null;
           const childInfo = typeof child === 'string'
             ? child
-            : `${child.name || '______________________'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '______________'}`;
+            : `${child.name || '______________________'}, born ${dobText || '______________'}`;
           items.push({
             number: paragraphNum++,
             content: `Child ${index + 1}: ${childInfo}`,
@@ -1094,11 +1150,16 @@ class BaseDivorcePetitionTemplate {
     //       fall through into the boilerplate community-property allegation
     //       even when hasProperty was never explicitly set to false
     //       (Mari's TX petition, live audit 2026-08).
+    const factsSayNoProperty = this.factsIndicateNoProperty(divorceData);
     const nilPropertyConfirmed =
       divorceData.noPropertyConfirmed === true ||
       (divorceData.hasProperty === false &&
         (typeof divorceData.propertyAgreement === 'string' &&
-          divorceData.propertyAgreement.trim() !== ''));
+          divorceData.propertyAgreement.trim() !== '')) ||
+      // Round-3 attorney review (Mari TX): facts[] explicitly said
+      // "no property, no house, no retirement" but the structured
+      // hasProperty flag never landed. Treat the fact as authoritative.
+      factsSayNoProperty;
     if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
@@ -1147,10 +1208,26 @@ class BaseDivorcePetitionTemplate {
       });
     }
 
-    if (divorceData.hasDebts !== false) {
+    // Round-3 attorney review (David NY): a debts boilerplate paragraph
+    // rendered against a silent transcript. Only emit when we have an
+    // affirmative signal (hasDebts === true, an itemized list on either
+    // side, or an explicit facts-derived "we have debts" cue); silence
+    // OR a facts-derived "no debts" statement suppress the paragraph.
+    const factsSayNoDebts = this.factsIndicateNoDebts(divorceData);
+    const affirmativeDebtSignal =
+      divorceData.hasDebts === true ||
+      asList(divorceData.petitionerDebts).length > 0 ||
+      asList(divorceData.respondentDebts).length > 0;
+    if (affirmativeDebtSignal && !factsSayNoDebts) {
       items.push({
         number: paragraphNum++,
         content: `The parties have accumulated debts during the marriage. ${this.terminology.filerLabel} requests that the Court allocate responsibility for such debts in a just and equitable manner.`,
+        type: 'debt_info'
+      });
+    } else if (divorceData.hasDebts === false || factsSayNoDebts) {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties have no marital debts to be divided.',
         type: 'debt_info'
       });
     }
@@ -1169,11 +1246,71 @@ class BaseDivorcePetitionTemplate {
    * @returns {boolean}
    */
   hasAgreedPropertyDivision(divorceData) {
+    // Round-3 attorney review (Sarah AB): profile carried
+    // propertyAgreement="pending" and the base predicate treated the raw
+    // truthy string as an affirmative agreement — the petition then
+    // pleaded a fabricated "the parties have reached an agreement…" and
+    // relief (f) invited the court to approve it. A status token
+    // ("pending"/"unknown"/"undecided"/…) is NOT an agreement.
+    const raw = typeof divorceData.propertyAgreement === 'string'
+      ? divorceData.propertyAgreement.trim()
+      : divorceData.propertyAgreement;
+    const rawNorm = typeof raw === 'string'
+      ? raw.toLowerCase().replace(/[.!]+$/, '').replace(/\s+/g, ' ')
+      : '';
+    // Split PROPERTY_AGREEMENT_STATUS_TOKENS by polarity: "agreed"/"yes"/
+    // "true"/"y" are AFFIRMATIVE and count as an agreement even without a
+    // description; "pending"/"unknown"/"undecided"/"tbd"/"no"/"false"/
+    // "contested"/"disputed"/"n/a"/"none" are NON-affirmative and never
+    // count on their own (Sarah AB round-3: propertyAgreement="pending").
+    const AFFIRMATIVE_STATUS = new Set(['agreed', 'agree', 'agreement', 'yes', 'true', 'y']);
+    const isStatusToken = rawNorm && PROPERTY_AGREEMENT_STATUS_TOKENS.has(rawNorm);
+    const isAffirmativeStatus = rawNorm && AFFIRMATIVE_STATUS.has(rawNorm);
+    const affirmativeAgreement =
+      raw === true ||
+      divorceData.propertyAgreementConfirmed === true ||
+      isAffirmativeStatus ||
+      (typeof raw === 'string' && raw.length > 0 && !isStatusToken);
     return Boolean(
-      divorceData.propertyAgreement ||
+      affirmativeAgreement ||
       asList(divorceData.petitionerProperty).length > 0 ||
       asList(divorceData.respondentProperty).length > 0
     );
+  }
+
+  /**
+   * Round-3 attorney review (Mari TX / David NY): fact-derived signal
+   * that the parties have no property to divide. Deterministic keyword
+   * intersection over model-classified metadata — no free-text prose
+   * parsing beyond the closed keyword list above.
+   */
+  factsIndicateNoProperty(divorceData) {
+    return _factsIndicateNo(divorceData, NO_PROPERTY_KEYWORDS, PROPERTY_CATEGORY_TOKENS);
+  }
+
+  /**
+   * Fact-derived signal that the parties have no debts to divide.
+   */
+  factsIndicateNoDebts(divorceData) {
+    return _factsIndicateNo(divorceData, NO_DEBTS_KEYWORDS, DEBT_CATEGORY_TOKENS);
+  }
+
+  /**
+   * Universal year-only DOB helper. Round-3 attorney review (Marcus,
+   * Sarah's kids): transcripts said "born 2020" / "born 2011" and the
+   * base formatDate returned null for bare years, so pleadings read
+   * "born __________________" even when the year was clearly stated.
+   * The Alberta template already did this via yearOnlyOf; hoist to the
+   * base so every jurisdiction inherits it.
+   */
+  formatChildDob(child) {
+    if (!child || typeof child !== 'object') return null;
+    const raw = child.birthDate ?? child.dob ?? child.dateOfBirth;
+    const full = this.formatDate(raw);
+    if (full) return full;
+    const year = child.birthYear ?? yearOnlyOf(raw);
+    if (year && /^\d{4}$/.test(String(year).trim())) return String(year).trim();
+    return null;
   }
 
   /**

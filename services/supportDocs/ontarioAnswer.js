@@ -183,7 +183,9 @@ function preAdmittedFactLines(data) {
     : [];
   if (children.length > 0) {
     const list = children
-      .map((c) => `${trimStr(c.name)} (born ${trimStr(c.birthDate) || trimStr(c.dob) || BLANK_SHORT})`)
+      // Attorney round-3 (2026-08-30): Marcus ON transcript carried
+      // only `birthYear`; render that rather than a blank.
+      .map((c) => `${trimStr(c.name)} (born ${trimStr(c.birthDate) || trimStr(c.dob) || trimStr(c.birthYear) || trimStr(c.birth_year) || BLANK_SHORT})`)
       .join('; ');
     lines.push({
       topic: 'the allegations concerning any minor children of the marriage',
@@ -274,8 +276,13 @@ function buildOntarioClaims(data) {
         `parenting order (Divorce Act, ss. 16, 16.1), child support (s. 15.1) and the ` +
         `Federal Child Support Guidelines, spousal support (s. 15.2), equalization of net ` +
         `family property (Family Law Act, RSO 1990, c. F.3, s. 5), and costs (Family Law ` +
-        `Rules, r. 24). If none is sought, set ` +
-        `respondentClaimsNothing = true to render an affirmative no-claim statement.`,
+        `Rules, r. 24). ` +
+        // Attorney round-3 (2026-08-30): removed a leaked developer
+        // instruction ("set respondentClaimsNothing = true...") that
+        // was rendering into the client-facing Form 10. Replaced with
+        // plain-English drafter guidance.
+        `If the Respondent seeks no corollary relief, delete this paragraph and ` +
+        `substitute the plain no-claim recital before filing.`,
       type: 'form10_claim_scaffold',
     });
   }

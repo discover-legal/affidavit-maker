@@ -407,7 +407,14 @@ class PDFService {
           this.checkPageBreak(doc, estimatedHeight);
         }
 
-        this.renderNumberedParagraph(doc, fact.number, fact.content);
+        if (this._isHeaderFactType(fact.type) || fact.number == null) {
+          // Section heading: centered, bold, no numeric prefix.
+          doc.fontSize(12).font('Times-Bold');
+          doc.text(fact.content, { align: 'center' });
+          doc.font('Times-Roman');
+        } else {
+          this.renderNumberedParagraph(doc, fact.number, fact.content);
+        }
         doc.moveDown(1.0);
         renderedFactCount++;
       });
@@ -949,9 +956,14 @@ class PDFService {
     if (!factsSection) return [];
 
     if (factsSection.items && Array.isArray(factsSection.items)) {
+      // Attorney round-3 (2026-08-30): preserve `type` and DO NOT
+      // coerce missing `number` to 0 — an item without a number is a
+      // heading, and rendering it via renderNumberedParagraph would
+      // emit "0. PART A ..." as attorneys reported on Marcus Form 10.
       return factsSection.items.map((fact) => ({
-        number: fact.number || 0,
-        content: fact.content || ''
+        number: (typeof fact.number === 'number' && fact.number > 0) ? fact.number : null,
+        content: fact.content || '',
+        type: fact.type || null,
       }));
     }
 
@@ -982,6 +994,19 @@ class PDFService {
     }
 
     return [];
+  }
+
+  /**
+   * Attorney round-3 (2026-08-30): a fact item without a `number` is a
+   * heading/subheader (section_header, form10_header,
+   * form10_claim_subheader). Render it as a centered bold line, not
+   * as "0. <content>".
+   */
+  _isHeaderFactType(type) {
+    return type === 'section_header'
+      || type === 'form10_header'
+      || type === 'form10_claim_subheader'
+      || type === 'header';
   }
 
   estimateTextHeight(doc, text, fontSize) {
@@ -1392,6 +1417,14 @@ class PDFService {
     // Facts
     const factsList = this.getFactsArray(sections.facts);
     factsList.forEach(fact => {
+      if (this._isHeaderFactType(fact.type) || fact.number == null) {
+        // Section heading — bold, centered, no numeric prefix.
+        children.push(new docx.Paragraph({
+          children: [new docx.TextRun({ text: fact.content, bold: true, size: 24 })],
+          alignment: docx.AlignmentType.CENTER, spacing: { before: 200, after: 200 }
+        }));
+        return;
+      }
       children.push(new docx.Paragraph({
         children: [
           new docx.TextRun({ text: `${fact.number}. `, bold: true, size: 24 }),

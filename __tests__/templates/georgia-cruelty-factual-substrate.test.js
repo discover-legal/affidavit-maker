@@ -49,7 +49,8 @@ describe('Georgia cruelty petition — factual substrate + §19-13/§19-9-3(a)(4
     expect(grounds.content).toMatch(/§\s*19-5-3\(10\)/);
     expect(grounds.content).toMatch(/hospital records/i);
     expect(grounds.content).toMatch(/police reports/i);
-    expect(grounds.content).toMatch(/documentation of which Plaintiff will produce/i);
+    expect(grounds.content).toMatch(/Plaintiff will produce documentation/i);
+    expect(grounds.content).toMatch(/Specifically,/);
   });
 
   test('cruelty without a matching substrate fact renders the bare statutory clause', () => {
@@ -58,7 +59,8 @@ describe('Georgia cruelty petition — factual substrate + §19-13/§19-9-3(a)(4
     );
     const grounds = section.items.find((it) => it.type === 'grounds');
     expect(grounds.content).toMatch(/cruel treatment/i);
-    expect(grounds.content).not.toMatch(/documentation of which/i);
+    expect(grounds.content).not.toMatch(/will produce documentation/i);
+    expect(grounds.content).not.toMatch(/Specifically,/);
   });
 
   test('cruelty petition attaches Draft note referencing O.C.G.A. §19-13-1 et seq. and §19-9-3(a)(4)', () => {
@@ -93,6 +95,6 @@ describe('Georgia cruelty petition — factual substrate + §19-13/§19-9-3(a)(4
     );
     const grounds = section.items.find((it) => it.type === 'grounds');
     expect(grounds.content).toMatch(/hospital records/i);
-    expect(grounds.content).toMatch(/documentation of which Plaintiff will produce/i);
+    expect(grounds.content).toMatch(/Plaintiff will produce documentation/i);
   });
 });

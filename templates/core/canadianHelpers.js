@@ -240,6 +240,19 @@ function normalizeCanadianDivorceData(input) {
  */
 function yearOnlyOf(v) {
   if (v == null) return null;
+  // Attorney round-3 (2026-08-30): accept a whole child object too, so
+  // profiles that carry only `birthYear` (Sarah AB, Marcus ON) render
+  // as "born in <year>" instead of an empty blank.
+  if (typeof v === 'object') {
+    const cand =
+      v.birthYear ??
+      v.birth_year ??
+      v.birthDate ??
+      v.dob ??
+      v.dateOfBirth;
+    if (cand == null) return null;
+    return yearOnlyOf(cand);
+  }
   const s = String(v).trim();
   if (!s) return null;
   const m = s.match(/(?:^|\D)(19\d{2}|20\d{2})(?:\D|$)/);

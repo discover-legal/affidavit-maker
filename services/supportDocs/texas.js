@@ -425,14 +425,25 @@ function statementOfInability(data = {}, opts = {}) {
     ? `Legal-aid or pro-bono representation: ${legalAidRaw}. (Tex. R. Civ. P. 145(e): a legal-aid provider's determination of financial eligibility is evidence of inability to pay.)`
     : `Legal-aid or pro-bono representation: none / ${BLANK_LINE}. (If you are represented by a legal-aid provider that determined you financially eligible, TRCP 145(e) makes that determination evidence supporting this Statement — attach the provider's letter.)`;
 
+  // Attorney round-3 (Mari, TX, 2026-08-30): mirror the expense block's
+  // scalar branch — when a scalar monthly-income total is on file but no
+  // itemized breakdown, render "Monthly income: $X" as ONE line rather
+  // than "(no itemized income on file)" + the blank scaffold rows, which
+  // read as a template leak in the final sworn statement.
+  let incomeBodyLines;
+  if (income.lines.length) {
+    incomeBodyLines = income.lines;
+  } else if (own.amount !== null && own.amount !== undefined) {
+    incomeBodyLines = [`Monthly income: ${formatMoney(own.amount)}`];
+  } else {
+    incomeBodyLines = [
+      `(no itemized income on file) ${BLANK_LINE}`,
+      ...INCOME_SCAFFOLD_CATEGORIES.map(scaffoldRow),
+    ];
+  }
   const incomeContent = [
     "MONTHLY INCOME (the declarant's own, itemized):",
-    ...(income.lines.length
-      ? income.lines
-      : [
-          `(no itemized income on file) ${BLANK_LINE}`,
-          ...INCOME_SCAFFOLD_CATEGORIES.map(scaffoldRow),
-        ]),
+    ...incomeBodyLines,
     `TOTAL MONTHLY INCOME: ${incomeTotal}`,
     ...(hasIncomeData
       ? []
@@ -476,9 +487,15 @@ function statementOfInability(data = {}, opts = {}) {
     'the past month\'s bank statement(s), and a copy of any legal-aid financial ' +
     'eligibility determination (TRCP 145(e)).)';
 
-  const introduction = qualificationDraftNote
-    ? `I, ${declarant}, declare the following under penalty of perjury:\n\n${qualificationDraftNote}`
-    : `I, ${declarant}, declare the following under penalty of perjury:`;
+  // Attorney round-3 (Mari, TX, 2026-08-30): the Rule 145 surplus
+  // qualification note used to be spliced into the SWORN introduction,
+  // which sent language like "review whether you qualify before filing"
+  // to the court over the declarant's signature. It now stays out of
+  // every emitted section and rides only in metadata.warnings so the
+  // editor UI (which reads warnings for its sidebar hints) surfaces it
+  // to the drafter without printing it on the filed form.
+  void qualificationDraftNote;
+  const introduction = `I, ${declarant}, declare the following under penalty of perjury:`;
 
   const facts = {
     items: [
@@ -580,9 +597,18 @@ function financialInformationStatement(data = {}, opts = {}) {
   const ownDebts = derived.declarant === 'respondent' ? respondentDebts : petitionerDebts;
   const debtText = ownDebts || BLANK_LINE;
 
+  // Same scalar-branch fix as statementOfInability above.
+  let incomeBodyLines2;
+  if (income.lines.length) {
+    incomeBodyLines2 = income.lines;
+  } else if (own.amount !== null && own.amount !== undefined) {
+    incomeBodyLines2 = [`Monthly income: ${formatMoney(own.amount)}`];
+  } else {
+    incomeBodyLines2 = [`(no itemized income on file) ${BLANK_LINE}`];
+  }
   const incomeContent = [
     "MONTHLY INCOME (the declarant's own, itemized):",
-    ...(income.lines.length ? income.lines : [`(no itemized income on file) ${BLANK_LINE}`]),
+    ...incomeBodyLines2,
     `TOTAL MONTHLY INCOME: ${incomeTotal}`,
   ].join('\n');
 

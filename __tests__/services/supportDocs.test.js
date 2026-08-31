@@ -922,14 +922,18 @@ describe('TX Rule 145 — attorney-review polish (surplus, scaffold, mandatory f
     dependentsCount: 1,
   };
 
-  test('surplus > $500 with no public benefits triggers a Rule 145(f) qualification Draft note', () => {
+  test('surplus > $500 with no public benefits triggers a Rule 145(f) qualification warning — in metadata only, never in sworn text', () => {
+    // Attorney round-3 (Mari, TX, 2026-08-30): the surplus qualification
+    // hint used to be spliced into the sworn introduction, sending
+    // "review whether you qualify before filing" language to the court
+    // over the declarant's signature. It now rides only in
+    // metadata.warnings so the editor UI surfaces it to the drafter
+    // without printing it on the filed form.
     const structure = texas.statementOfInability(mariSurplus);
     const text = textOf(structure);
-    expect(text).toMatch(/Draft — Rule 145 waivers are typically granted/);
-    expect(text).toMatch(/\$4,800 in/);
-    expect(text).toMatch(/\$2,400 out/);
-    expect(text).toMatch(/\$2,400 surplus/);
-    expect(text).toMatch(/TRCP 145\(f\)/);
+    expect(text).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+    expect(text).not.toMatch(/review whether you qualify/i);
+    expect(text).not.toMatch(/\$2,400 surplus/);
     const warnings = (structure.metadata.warnings || []).join(' ');
     expect(warnings).toMatch(/qualification check/i);
     expect(warnings).toMatch(/\$2,400/);
@@ -954,6 +958,8 @@ describe('TX Rule 145 — attorney-review polish (surplus, scaffold, mandatory f
     });
     const text = textOf(structure);
     expect(text).not.toMatch(/Draft — Rule 145 waivers are typically granted/);
+    const warnings = (structure.metadata.warnings || []).join(' ');
+    expect(warnings).not.toMatch(/qualification check/i);
   });
 
   test('missing income OR expenses never triggers the qualification warning (blank beats a wrong verdict)', () => {
@@ -1104,7 +1110,10 @@ describe('TX Rule 145 — attorney-review polish (surplus, scaffold, mandatory f
       },
     });
     const text = textOf(structure);
-    expect(text).toMatch(/Draft — Rule 145 waivers are typically granted/);
+    // Round-3: the qualification hint is now warnings-only, so this
+    // wrapped-payload test asserts against metadata.warnings instead.
+    const warnings = (structure.metadata.warnings || []).join(' ');
+    expect(warnings).toMatch(/qualification check/i);
     expect(text).toMatch(/represented by Jane Roe, Esq\./);
     expect(text).toMatch(/financially dependent on me \(including myself\): 1 \(myself\)/);
   });

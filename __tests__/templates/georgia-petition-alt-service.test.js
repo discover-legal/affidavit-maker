@@ -36,7 +36,7 @@ describe('Georgia petition — respondent residence / alternative service clause
     );
     expect(clause).toMatch(/address unknown/i);
     expect(clause).toMatch(/alternative service/i);
-    expect(clause).toMatch(/has heard, but cannot swear, that Respondent may be in Alabama near Mobile/);
+    expect(clause).toMatch(/has heard, but cannot swear, that Defendant may be in Alabama near Mobile/);
   });
 
   test('address unknown, no suspected location — bare alt-service clause, no bracketed follow-up', () => {
@@ -67,7 +67,7 @@ describe('Georgia petition — respondent residence / alternative service clause
     );
     expect(clause).toMatch(/address unknown/i);
     expect(clause).toMatch(/alternative service/i);
-    expect(clause).toMatch(/cannot swear, that Respondent may be in Alabama near Mobile/);
+    expect(clause).toMatch(/cannot swear, that Defendant may be in Alabama near Mobile/);
     // The raw hedged free text must not survive into the sworn clause.
     expect(clause).not.toMatch(/possibly in Alabama with his brother/);
   });

@@ -36,6 +36,64 @@ function normalizeSubstrateDescription(raw) {
   return raw.trim().replace(/\s+/g, ' ').replace(/[.;,\s]+$/, '');
 }
 
+// Attorney round-3 (2026-08-30): mirror the TX rejection of LLM
+// planning/meta-commentary. Amara ¶7 was picking up "seeks
+// dissolution on the Georgia ground of cruel treatment rather than
+// irreconcilable differences" — that is the model's routing choice,
+// not a factual allegation.
+const META_ROUTING_PATTERN =
+  /(?:\brather\s+than\b|\binstead\s+of\b|\bseeks\s+dissolution\b|\bthe\s+appropriate\s+ground\b|\bon\s+the\s+ground\s+of\b.*\brather\s+than\b|\bproper\s+ground\s+for\b|\bwe\s+should\s+plead\b|\brecommends?\s+pleading\b)/i;
+
+function collapseRoleNameDuplicates(text, divorceData) {
+  if (typeof text !== 'string' || !text) return text || '';
+  let s = text;
+  const roles = ['Petitioner', 'Respondent', 'Plaintiff', 'Defendant', 'Applicant'];
+  const knownNames = [];
+  if (divorceData) {
+    for (const k of ['petitionerName', 'respondentName', 'plaintiffName', 'defendantName', 'applicantName']) {
+      const v = divorceData[k];
+      if (typeof v === 'string' && v.trim()) knownNames.push(v.trim());
+    }
+  }
+  for (const role of roles) {
+    for (const nm of knownNames) {
+      const escaped = nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      s = s.replace(new RegExp(`\\b${role}\\s+${escaped}\\b`, 'gi'), role);
+    }
+    s = s.replace(
+      new RegExp(
+        `\\b${role}\\s+([A-Z][A-Za-z\\u00C0-\\u017F.'’-]+(?:[-\\s][A-Z][A-Za-z\\u00C0-\\u017F.'’-]+){0,3})\\b`,
+        'g'
+      ),
+      (m, name) => {
+        const firstWord = name.split(/[\s-]/)[0];
+        if (/^(Court|County|District|Circuit|State|Family|Superior|Alleges|States|Claims|Avers|Contends|Reports|Further|Also|And|Or|But|Was|Is|Has|Had|Will|Shall|Does|Did|Seeks|Prays|Pleads)$/i.test(firstWord)) {
+          return m;
+        }
+        return role;
+      }
+    );
+  }
+  return s;
+}
+
+function sanitizeSubstrate(desc, divorceData) {
+  if (typeof desc !== 'string') return '';
+  let s = desc.trim();
+  if (!s) return '';
+  if (META_ROUTING_PATTERN.test(s)) return '';
+  s = s.replace(
+    /^(?:the\s+)?(petitioner|plaintiff|applicant)(?:\s+[A-Z][\w.'’-]+(?:[-\s][A-Z][\w.'’-]+){0,3})?\s+(?:alleges|states|avers|claims|contends|reports|says|swears)\s+that\s+/i,
+    ''
+  );
+  s = collapseRoleNameDuplicates(s, divorceData);
+  s = s.trim().replace(/\s+/g, ' ').replace(/[,;:\s]+$/, '');
+  if (!s) return '';
+  if (!/[.!?]$/.test(s)) s += '.';
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s;
+}
+
 function findCrueltySubstrate(divorceData) {
   const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
   let fallback = null;
@@ -49,7 +107,10 @@ function findCrueltySubstrate(divorceData) {
     const subcatHit = CRUELTY_SUBCAT_PATTERN.test(subcat);
     const keywordHit = CRUELTY_KEYWORD_PATTERN.test(searchBlob);
     if (!subcatHit && !keywordHit) continue;
-    const desc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    if (META_ROUTING_PATTERN.test(content) && META_ROUTING_PATTERN.test(sourceQuote || content)) continue;
+    const rawDesc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    if (!rawDesc) continue;
+    const desc = sanitizeSubstrate(rawDesc, divorceData);
     if (!desc) continue;
     if (category === 'grounds' || category === 'ground' || subcatHit) {
       return desc;
@@ -131,6 +192,19 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     this.state = 'GA';
     this.stateName = 'Georgia';
     this.documentTitle = 'COMPLAINT FOR DIVORCE';
+
+    // Attorney round-3 (Amara, GA, 2026-08-30): Georgia complaints style
+    // parties as PLAINTIFF / DEFENDANT (O.C.G.A. § 9-11-10 caption
+    // convention), not Petitioner / Respondent. The caption block already
+    // hardcoded Plaintiff/Defendant, but ¶¶1-2 and every other body item
+    // that goes through terminology.filerLabel / responderLabel still read
+    // "Petitioner"/"Respondent" from DEFAULT_TERMS. Override here so the
+    // caption, body, and signature block all speak the same language.
+    this.terminology = {
+      ...this.terminology,
+      filerLabel: 'Plaintiff',
+      responderLabel: 'Defendant',
+    };
 
     try {
       this.metadata = require('./divorce-metadata.json');
@@ -272,7 +346,7 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     );
     const altService = `resides at an address unknown to ${t.filerLabel}; ${t.filerLabel} will request alternative service under the applicable rules`;
     const suspectedNote = suspected
-      ? ` (${t.filerLabel} has heard, but cannot swear, that Respondent may be in ${suspected})`
+      ? ` (${t.filerLabel} has heard, but cannot swear, that ${t.responderLabel} may be in ${suspected})`
       : '';
 
     if (divorceData.respondentAddressUnknown === true || !raw) {
@@ -310,12 +384,13 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * satisfied.
    */
   getAltServiceNote(_divorceData) {
+    const t = this.terminology;
     return (
       'Alternative service in Georgia requires a court order under ' +
       'O.C.G.A. § 9-11-4(f)(1)(A), supported by a due-diligence affidavit ' +
-      'describing the search for Respondent. Service by publication is ' +
+      `describing the search for ${t.responderLabel}. Service by publication is ` +
       'limited relief: it will not support a personal money judgment ' +
-      'against Respondent, and it will not support child support against ' +
+      `against ${t.responderLabel}, and it will not support child support against ` +
       'an absent spouse unless the long-arm requirements of O.C.G.A. ' +
       '§ 19-9-64 are independently satisfied.'
     );
@@ -417,7 +492,12 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
           'Defendant has engaged in cruel treatment toward Plaintiff, consisting of the willful infliction of pain, bodily or mental, upon Plaintiff, such as reasonably justifies apprehension of danger to life, limb, or health. (O.C.G.A. § 19-5-3(10))';
         const substrate = findCrueltySubstrate(divorceData || {});
         if (!substrate) return base;
-        return `${base} Plaintiff further pleads that the cruel treatment includes ${substrate}, documentation of which Plaintiff will produce.`;
+        // Attorney round-3 (2026-08-30): substrate is now a sanitized,
+        // period-terminated independent sentence. Splice with
+        // "Specifically, X." so the pleading stays grammatical when X
+        // is a full clause; documentation-production commitment
+        // follows as its own sentence.
+        return `${base} Specifically, ${substrate} Plaintiff will produce documentation of the same.`;
       }
       case 'habitual_intoxication':
         return 'Defendant is guilty of habitual intoxication. (O.C.G.A. § 19-5-3(9))';
@@ -595,9 +675,35 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       const dob = typeof child === 'object'
         ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth)
         : null;
-      const currentAddress = (typeof child === 'object' && (child.currentAddress || child.address))
-        || divorceData.petitionerAddress
-        || '[CURRENT ADDRESS]';
+      // Attorney round-3 (Amara, GA, 2026-08-30): UCCJEA present-address
+      // used to render '[CURRENT ADDRESS]' whenever the child object
+      // carried no explicit address and divorceData.petitionerAddress
+      // happened to be stored under a different key. When custody is
+      // pleaded with Plaintiff (or the child's `livesWith` names the
+      // plaintiff), default to the plaintiff's address using every
+      // supported synonym; the caller can still override via
+      // child.currentAddress.
+      const plaintiffAddress =
+        divorceData.petitionerAddress ||
+        divorceData.plaintiffAddress ||
+        divorceData.filerAddress ||
+        divorceData.address ||
+        divorceData.mailingAddress ||
+        '';
+      const livesWithRaw = typeof child === 'object' && child ? String(child.livesWith || '') : '';
+      const cpRaw = String(divorceData.custodyPreference || '').toLowerCase();
+      const livesWithDefendant = /(defendant|respondent)/i.test(livesWithRaw);
+      const livesWithPlaintiff =
+        !livesWithDefendant &&
+        (
+          /(plaintiff|petitioner|me|myself|self|mother|father)/i.test(livesWithRaw) ||
+          /^(sole|sole_legal|sole_legal_sole_physical|primary|petitioner|plaintiff)/i.test(cpRaw)
+        );
+      const currentAddress =
+        (typeof child === 'object' && (child.currentAddress || child.address)) ||
+        (livesWithPlaintiff && plaintiffAddress) ||
+        plaintiffAddress ||
+        '[CURRENT ADDRESS]';
       items.push({
         number: paragraphNum++,
         content: `Child: ${name}${dob ? `, born ${dob}` : ''}. Present address: ${currentAddress}.`,
@@ -702,10 +808,35 @@ class GeorgiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       // request understates the relief sought.
       const soleReq = detectSoleCustodyRequest(divorceData);
       const plaintiffName = divorceData.petitionerName || 'Plaintiff';
-      if (soleReq.sole) {
+      // Attorney round-3 (Amara, GA, 2026-08-30): a cruelty-grounds
+      // petition (O.C.G.A. § 19-5-3(10)) OR facts naming family violence
+      // triggers the O.C.G.A. § 19-9-3(a)(4) presumption AGAINST
+      // awarding custody to the offending parent. The prayer must elevate
+      // to supervised visitation under O.C.G.A. § 19-9-7 rather than the
+      // generic "best interests" parenting-time schedule.
+      const resolvedGrounds = resolveGroundsForDivorce(divorceData);
+      const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
+      const familyViolencePattern =
+        /(family[_\s-]?violence|domestic[_\s-]?violence|domestic[_\s-]?abuse|abuse|battery|batter(?:ed|ing)|assault(?:ed)?|struck|hit\s+me|physical[_\s]abuse)/i;
+      const hasFamilyViolenceFacts = facts.some((f) => {
+        if (!f || typeof f !== 'object') return false;
+        const blob = [
+          f.subcategory || '',
+          f.content || f.text || f.value || '',
+          f.sourceQuote || '',
+        ].join(' ');
+        return familyViolencePattern.test(blob);
+      });
+      const fvpaContext =
+        resolvedGrounds === 'cruel_treatment' ||
+        resolvedGrounds === 'cruelty' ||
+        hasFamilyViolenceFacts;
+      if (soleReq.sole || fvpaContext) {
         reliefItems.push(`Award ${plaintiffName} sole legal custody and sole physical custody of the minor child(ren);`);
-        if (soleReq.supervised) {
-          reliefItems.push('Order that Defendant\'s visitation with the minor child(ren), if any, be supervised;');
+        if (soleReq.supervised || fvpaContext) {
+          reliefItems.push(
+            "Order that Defendant's visitation with the minor child(ren), if any, be supervised, or such other restricted visitation as the Court finds necessary to protect the minor children, pursuant to O.C.G.A. § 19-9-7 and O.C.G.A. § 19-9-3(a)(4);"
+          );
         } else {
           reliefItems.push('Establish a parenting time schedule that serves the best interests of the child(ren);');
         }

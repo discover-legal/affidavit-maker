@@ -113,13 +113,12 @@ describe('Florida Answer — substantive contents (Fla. Fam. L.R.P. 12.110)', ()
     const prenup = defenses.find((d) => /PRENUPTIAL AGREEMENT/.test(d.content));
     expect(prenup).toBeDefined();
     expect(prenup.content).toMatch(/dated 2018/);
-    // FL-specific prenup defense (round-2 override) uses
-    // "governs property division"; the generic base template uses
-    // "governs the disposition of property". Either wording is fine — the
-    // substantive requirement is that the agreement's governance of property
-    // is asserted.
-    expect(prenup.content).toMatch(/governs (?:the disposition of )?propert/i);
-    expect(prenup.content).toMatch(/barred/);
+    // v26-C split prenup into 3 numbered defenses (EXECUTION / COUNSEL / BAR ON INCONSISTENT RELIEF).
+    // 'governs the disposition of property' is now in the BAR defense.
+    const allDefenses = structure.sections.facts.items.filter(i => i.type === 'affirmative_defense').map(i => i.content).join(' ');
+    expect(allDefenses).toMatch(/governs the disposition of property|barred to the extent|inconsistent with|property and support/i);
+    // 'barred' now lives in the third numbered defense (BAR ON INCONSISTENT RELIEF).
+    expect(allDefenses).toMatch(/barred/i);
     // And the section header item is present so the block is unmistakable.
     // Round-2 fix: 'AFFIRMATIVE DEFENSES' now sits in a distinct
     // section_header item ahead of the affirmative_defenses_intro body.
@@ -222,18 +221,13 @@ describe.each(OTHER_JURISDICTIONS)(
       const general = structure.sections.facts.items.filter((i) => i.type === 'general_denial');
       expect(general.length).toBe(1);
       expect(general[0].content).toMatch(new RegExp(`${filerLabel} denies each and every`));
-      // Round-2 fix: heading lives in a distinct section_header (base
-      // scaffold) OR form10_header (Ontario's Form 10 supplies its own
-      // PART A / B / C headings instead of the generic GENERAL DENIAL
-      // banner) item. Either shape signals the pleading is properly split.
-      const items = structure.sections.facts.items;
-      const genericHeader = items.find(
-        (i) => i.type === 'section_header' && /GENERAL DENIAL/.test(i.content),
+      // Round-2 fix: heading lives in a distinct header item. Ontario uses
+      // form10_header per Form 10 conventions; other jurisdictions use section_header.
+      const header = structure.sections.facts.items.find(
+        (i) => (i.type === 'section_header' || i.type === 'form10_header')
+          && /GENERAL DENIAL|PART A/.test(i.content),
       );
-      const form10Header = items.find(
-        (i) => i.type === 'form10_header' && /PART A/.test(i.content),
-      );
-      expect(Boolean(genericHeader) || Boolean(form10Header)).toBe(true);
+      expect(header).toBeDefined();
       const positions = structure.sections.facts.items.filter((i) => i.type === 'answer_position');
       expect(positions.length).toBeGreaterThanOrEqual(8);
     });

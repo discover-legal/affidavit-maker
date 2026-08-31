@@ -41,6 +41,75 @@ function normalizeSubstrateDescription(raw) {
   return raw.trim().replace(/\s+/g, ' ').replace(/[.;,\s]+$/, '');
 }
 
+// Attorney round-3 (2026-08-30): reject LLM planning/meta-commentary
+// like "seeks dissolution on the Georgia ground of cruel treatment
+// rather than irreconcilable differences" from ever reaching a
+// pleaded factual paragraph. These phrases signal that the "fact" is
+// really the model's own reasoning about which ground to plead.
+const META_ROUTING_PATTERN =
+  /(?:\brather\s+than\b|\binstead\s+of\b|\bseeks\s+dissolution\b|\bthe\s+appropriate\s+ground\b|\bon\s+the\s+ground\s+of\b.*\brather\s+than\b|\bproper\s+ground\s+for\b|\bwe\s+should\s+plead\b|\brecommends?\s+pleading\b)/i;
+
+// Attorney round-3 (2026-08-30): the substrate grammar was broken
+// ("...the cruel treatment includes Petitioner Mari Vasquez-McPherson
+// alleges that Respondent Ray Delacroix physically harmed Petitioner
+// Mari Vasquez-McPherson..."). Collapse role+name duplicates and
+// strip leading "<Filer> alleges that " preambles so the splice reads
+// as one clean sentence.
+function collapseRoleNameDuplicates(text, divorceData) {
+  if (typeof text !== 'string' || !text) return text || '';
+  let s = text;
+  const roles = ['Petitioner', 'Respondent', 'Plaintiff', 'Defendant', 'Applicant'];
+  const knownNames = [];
+  if (divorceData) {
+    for (const k of ['petitionerName', 'respondentName', 'plaintiffName', 'defendantName', 'applicantName']) {
+      const v = divorceData[k];
+      if (typeof v === 'string' && v.trim()) knownNames.push(v.trim());
+    }
+  }
+  for (const role of roles) {
+    for (const nm of knownNames) {
+      const escaped = nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      s = s.replace(new RegExp(`\\b${role}\\s+${escaped}\\b`, 'gi'), role);
+    }
+    // Generic collapse: "Petitioner <Proper Noun Name>" (1-3 capitalized tokens,
+    // allows hyphens/apostrophes). Skip common non-name follow words.
+    s = s.replace(
+      new RegExp(
+        `\\b${role}\\s+([A-Z][A-Za-z\\u00C0-\\u017F.'’-]+(?:[-\\s][A-Z][A-Za-z\\u00C0-\\u017F.'’-]+){0,3})\\b`,
+        'g'
+      ),
+      (m, name) => {
+        const firstWord = name.split(/[\s-]/)[0];
+        if (/^(Court|County|District|Circuit|State|Family|Superior|Alleges|States|Claims|Avers|Contends|Reports|Further|Also|And|Or|But|Was|Is|Has|Had|Will|Shall|Does|Did|Seeks|Prays|Pleads)$/i.test(firstWord)) {
+          return m;
+        }
+        return role;
+      }
+    );
+  }
+  return s;
+}
+
+function sanitizeSubstrate(desc, divorceData) {
+  if (typeof desc !== 'string') return '';
+  let s = desc.trim();
+  if (!s) return '';
+  if (META_ROUTING_PATTERN.test(s)) return '';
+  // Strip leading "<Filer> [Name] alleges/states/avers/claims that "
+  s = s.replace(
+    /^(?:the\s+)?(petitioner|plaintiff|applicant)(?:\s+[A-Z][\w.'’-]+(?:[-\s][A-Z][\w.'’-]+){0,3})?\s+(?:alleges|states|avers|claims|contends|reports|says|swears)\s+that\s+/i,
+    ''
+  );
+  s = collapseRoleNameDuplicates(s, divorceData);
+  s = s.trim().replace(/\s+/g, ' ').replace(/[,;:\s]+$/, '');
+  if (!s) return '';
+  // Ensure the sanitized substrate ends as an independent sentence.
+  if (!/[.!?]$/.test(s)) s += '.';
+  // Capitalize first letter for clean splice after "Specifically, ".
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s;
+}
+
 function findCrueltySubstrate(divorceData) {
   const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
   let fallback = null;
@@ -54,7 +123,12 @@ function findCrueltySubstrate(divorceData) {
     const subcatHit = CRUELTY_SUBCAT_PATTERN.test(subcat);
     const keywordHit = CRUELTY_KEYWORD_PATTERN.test(searchBlob);
     if (!subcatHit && !keywordHit) continue;
-    const desc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    // Meta-commentary filter: reject facts that carry LLM routing/planning
+    // language even if they otherwise look cruelty-adjacent.
+    if (META_ROUTING_PATTERN.test(content) && META_ROUTING_PATTERN.test(sourceQuote || content)) continue;
+    const rawDesc = normalizeSubstrateDescription(content) || normalizeSubstrateDescription(sourceQuote);
+    if (!rawDesc) continue;
+    const desc = sanitizeSubstrate(rawDesc, divorceData);
     if (!desc) continue;
     if (category === 'grounds' || category === 'ground' || subcatHit) {
       return desc; // grounds-category (or subcat-cruelty) fact wins immediately
@@ -444,7 +518,12 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
           'Respondent was guilty of cruel treatment toward Petitioner of such a nature as to render further living together insupportable.';
         const substrate = findCrueltySubstrate(divorceData || {});
         if (!substrate) return base;
-        return `${base} Petitioner further pleads that the cruel treatment includes ${substrate}, documentation of which Petitioner will produce.`;
+        // Attorney round-3 (2026-08-30): substrate is now a sanitized,
+        // period-terminated independent sentence. Splice with
+        // "Specifically, X." rather than "includes X" so the pleading
+        // stays grammatical when X is a full clause. Documentation-
+        // production commitment follows as its own sentence.
+        return `${base} Specifically, ${substrate} Petitioner will produce documentation of the same.`;
       }
 
       case 'adultery':
@@ -494,7 +573,9 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       if (divorceData.children && divorceData.children.length > 0) {
         divorceData.children.forEach((child, index) => {
           const childName = typeof child === 'string' ? child : (child.name || '[CHILD NAME]');
-          const birthDate = typeof child === 'object' ? this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) : null;
+          // Attorney round-3 (2026-08-30): use shared year-only fallback
+          // so `birthYear`-only and bare-year DOBs render.
+          const birthDate = typeof child === 'object' ? this.formatChildDob(child) : null;
           const childInfo = birthDate ? `${childName}, born ${birthDate}` : childName;
 
           items.push({
@@ -555,7 +636,14 @@ class TexasDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (
       divorceData.hasProperty === false ||
       divorceData.noPropertyConfirmed === true ||
-      this.hasAgreedPropertyDivision(divorceData)
+      this.hasAgreedPropertyDivision(divorceData) ||
+      // Round-3 attorney review (Mari TX, 2026-08-30): the structured
+      // hasProperty/noPropertyConfirmed flags were both absent, but facts[]
+      // carried an explicit "no property, no house, no retirement"
+      // statement from the transcript. Delegating to super's silence-
+      // aware gate lets the fact-driven promotion below fire the correct
+      // nil-property clause instead of the community-property boilerplate.
+      this.factsIndicateNoProperty(divorceData)
     ) {
       return super.generatePropertySection(divorceData);
     }

@@ -351,17 +351,51 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     // spouses in NY) over the two-year residence-only § 230(5) — the
     // one-year sub-basis pleads the qualifying reason and is the
     // stronger showing whenever the underlying fact is present.
+    // Round-3 attorney review (David NY, 2026-08-30): the picker missed
+    // marriagePlace='Manhattan' — a known NYC borough — because it only
+    // scanned marriageState[Name] and marriageLocation for "New York".
+    // Widen to include marriagePlace and a small closed set of NY-known
+    // county/borough tokens. Deterministic token intersection; no free-
+    // text parsing.
+    const NY_PLACE_TOKENS = [
+      'new york', ' ny', ',ny', 'ny,',
+      'manhattan', 'brooklyn', 'bronx', 'queens', 'staten island',
+      'kings county', 'new york county', 'bronx county', 'queens county', 'richmond county',
+      'nassau', 'suffolk', 'westchester', 'rockland', 'putnam',
+      'buffalo', 'rochester', 'syracuse', 'albany', 'yonkers',
+    ];
+    const nyBlob = [
+      divorceData.marriageStateName,
+      divorceData.marriageState,
+      divorceData.marriageLocation,
+      divorceData.marriagePlace,
+      divorceData.marriageCity,
+    ].map((v) => String(v || '')).join(' | ').toLowerCase();
     const marriedInNy = divorceData.marriedInNy === true ||
-      /new\s*york/i.test(String(divorceData.marriageStateName || '')) ||
       String(divorceData.marriageStateName || '').trim().toUpperCase() === 'NY' ||
       String(divorceData.marriageState || '').trim().toUpperCase() === 'NY' ||
-      /new\s*york/i.test(String(divorceData.marriageLocation || ''));
+      NY_PLACE_TOKENS.some((tok) => nyBlob.includes(tok));
     const livedAsSpousesInNy = divorceData.livedAsSpousesInNy === true ||
       divorceData.livedAsMarriedInNy === true;
-    if (typeof months === 'number' && months >= 12 && marriedInNy) {
+    // Round-3 attorney review (David NY): residencyStateMonths was unset
+    // but facts[] carried a residence category fact ("residents of New
+    // York and have lived in Brooklyn for several years"). Treat any
+    // residence-category fact as a NY-residence signal so §230(2)/(3)
+    // auto-selects with the "at least one year" phrasing when the
+    // qualifying reason (married in NY / resided as spouses) holds.
+    const factsResidenceSignal = Array.isArray(divorceData.facts) &&
+      divorceData.facts.some((f) => {
+        if (!f || typeof f !== 'object') return false;
+        const cat = String(f.category || '').toLowerCase();
+        const sub = String(f.subcategory || '').toLowerCase();
+        return cat === 'residence' || cat === 'residency' ||
+          sub.includes('residence') || sub.includes('residency');
+      });
+    const nyResidenceSignal = (typeof months === 'number' && months >= 12) || factsResidenceSignal;
+    if (nyResidenceSignal && marriedInNy) {
       return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties were married in New York. (Domestic Relations Law § 230(2))`;
     }
-    if (typeof months === 'number' && months >= 12 && livedAsSpousesInNy) {
+    if (nyResidenceSignal && livedAsSpousesInNy) {
       return `${plaintiff} has resided in the State of New York ${monthsPhrase(months, 12)}, and the parties resided as spouses in New York. (Domestic Relations Law § 230(3))`;
     }
     if (typeof months === 'number' && months >= 24) {
@@ -627,21 +661,11 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         const name = typeof child === 'string'
           ? child
           : (child && child.name) || '__________________';
-        const rawDob = typeof child === 'object' && child
-          ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
-          : null;
-        let dobStr = rawDob ? this.formatDate(rawDob) : null;
-        // Year-only fallback (attorney round-2, NY, 2026-08-30): the
-        // transcript may only carry the child's birth year ("Emma born
-        // in 2020"). formatDate rejects a bare year, so we surface the
-        // year plainly rather than emitting "born __________________".
-        if (!dobStr && typeof child === 'object' && child) {
-          const yr = child.birthYear
-            ?? (typeof rawDob === 'string' && /^\d{4}$/.test(rawDob.trim()) ? rawDob.trim() : null);
-          if (yr && /^\d{4}$/.test(String(yr).trim())) {
-            dobStr = String(yr).trim();
-          }
-        }
+        // Attorney round-3 (2026-08-30): delegate to the shared
+        // formatChildDob helper (base) so year-only DOBs (`birthYear`
+        // field or a bare "2020" string) render as "born 2020" in
+        // every jurisdiction.
+        const dobStr = typeof child === 'object' && child ? this.formatChildDob(child) : null;
         const address = (typeof child === 'object' && child
           && (child.currentAddress || child.address || child.residence)) || null;
         const dobPhrase = dobStr ? `born ${dobStr}` : 'born __________________';
@@ -713,7 +737,16 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {Object} Property section
    */
   generatePropertySection(divorceData) {
-    if (divorceData.hasProperty === false || this.hasAgreedPropertyDivision(divorceData)) {
+    // Round-3 attorney review (David NY, 2026-08-30): a silent transcript
+    // was fabricating "real property, personal property, and financial
+    // accounts" allegations. Delegate to super's silence-aware gate
+    // whenever `hasProperty` is not an affirmative true; only render the
+    // NY marital-property boilerplate on an explicit user "yes".
+    if (
+      divorceData.hasProperty !== true ||
+      this.hasAgreedPropertyDivision(divorceData) ||
+      this.factsIndicateNoProperty(divorceData)
+    ) {
       // Fall through to the base agreed/no-property paths, then scrub the
       // "community/marital" phrasing so NY reads as marital-only.
       const section = super.generatePropertySection(divorceData);
@@ -751,12 +784,21 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       type: 'property_request',
     });
 
-    if (divorceData.hasDebts !== false) {
-      items.push({
-        number: paragraphNum++,
-        content: `The parties have accumulated debts during the marriage. ${t.filerLabel} requests that the Court allocate responsibility for such debts equitably.`,
-        type: 'debt_info',
-      });
+    // Round-3 attorney review (David NY): silent debts boilerplate. Only
+    // emit on an affirmative signal; silence AND facts-derived "no debts"
+    // suppress the paragraph.
+    if (
+      divorceData.hasDebts === true ||
+      (Array.isArray(divorceData.petitionerDebts) && divorceData.petitionerDebts.length > 0) ||
+      (Array.isArray(divorceData.respondentDebts) && divorceData.respondentDebts.length > 0)
+    ) {
+      if (!this.factsIndicateNoDebts(divorceData)) {
+        items.push({
+          number: paragraphNum++,
+          content: `The parties have accumulated debts during the marriage. ${t.filerLabel} requests that the Court allocate responsibility for such debts equitably.`,
+          type: 'debt_info',
+        });
+      }
     }
 
     return {
@@ -778,13 +820,35 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   hasUncontestedPosture(divorceData) {
     const d = divorceData || {};
-    return Boolean(
+    if (
       d.settlementAgreementDate ||
       d.settlementAgreement ||
       d.mediatedChildSupport === true ||
       d.spousalSupportWaived === true ||
       (d.spousalSupportRequested === false && this.hasAgreedPropertyDivision(d))
-    );
+    ) {
+      return true;
+    }
+    // Round-3 attorney review (David NY, 2026-08-30): structured fields
+    // were absent but facts[] carried subcategory tokens the extractor
+    // did classify — 'uncontested_agreement', 'mutual_waiver' (spousal
+    // support), 'child_support' + content mentioning CSSA/mediated,
+    // 'parenting_schedule' + mediated. Any of those establishes an
+    // uncontested/settled posture the complaint should recite.
+    const facts = Array.isArray(d.facts) ? d.facts : [];
+    for (const f of facts) {
+      if (!f || typeof f !== 'object') continue;
+      const sub = String(f.subcategory || '').toLowerCase();
+      const cat = String(f.category || '').toLowerCase();
+      const content = String(f.content || f.text || '').toLowerCase();
+      if (sub === 'uncontested_agreement' || sub === 'settlement_agreement') return true;
+      if (sub === 'mutual_waiver' && (cat === 'spousal_support' || cat === 'support')) return true;
+      if (cat === 'spousal_support' && /waiv/.test(content)) return true;
+      if ((sub === 'child_support' || cat === 'children' || sub === 'parenting_schedule')
+          && /mediat|cssa|settle/.test(content)) return true;
+      if (sub === 'settlement' || sub === 'mediation') return true;
+    }
+    return false;
   }
 
   /**
@@ -795,6 +859,13 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    */
   getUncontestedRecital(divorceData) {
     const d = divorceData || {};
+    const facts = Array.isArray(d.facts) ? d.facts : [];
+    const factHit = (pred) => facts.some((f) => {
+      if (!f || typeof f !== 'object') return false;
+      return pred(String(f.subcategory || '').toLowerCase(),
+                  String(f.category || '').toLowerCase(),
+                  String(f.content || f.text || '').toLowerCase());
+    });
     const rawDate = d.settlementAgreementDate;
     const dateStr = rawDate && this.formatDate(rawDate);
     const dateClause = dateStr ? ` dated ${dateStr}` : ' dated __________________';
@@ -802,13 +873,21 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     if (d.hasMinorChildren === true || (Array.isArray(d.children) && d.children.length > 0)) {
       covered.push('custody', 'parenting time');
     }
-    if (d.mediatedChildSupport === true || d.childSupportAmount) {
+    const mediatedChildSupport = d.mediatedChildSupport === true || d.childSupportAmount ||
+      factHit((sub, cat, content) =>
+        (sub === 'child_support' || cat === 'children') &&
+        /mediat|cssa|child support standards act/.test(content));
+    if (mediatedChildSupport) {
       covered.push('child support (calculated pursuant to the Child Support Standards Act)');
     }
     covered.push('equitable distribution');
     const list = covered.join(', ');
     let text = `The parties have entered a Settlement Agreement${dateClause}, which addresses ${list}.`;
-    if (d.spousalSupportWaived === true || d.spousalSupportRequested === false) {
+    const spousalWaived = d.spousalSupportWaived === true || d.spousalSupportRequested === false ||
+      factHit((sub, cat, content) =>
+        (sub === 'mutual_waiver' && (cat === 'spousal_support' || cat === 'support')) ||
+        (cat === 'spousal_support' && /waiv/.test(content)));
+    if (spousalWaived) {
       text += ' The Agreement includes a mutual waiver of spousal maintenance.';
     }
     return text;

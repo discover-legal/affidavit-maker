@@ -62,19 +62,24 @@ const answerToPetition = createAnswerBuilder({
    * expressly denies the "marital" characterization of assets identified
    * in the Petition, which round-2 flagged as lumped in Answer ¶8.
    */
+  /**
+   * Attorney round-3 (Tavita, 2026-08-30): render the prenup defense as
+   * three numbered items so it reads as a proper Fla. R. Civ. P. 1.110(d)
+   * AFFIRMATIVE DEFENSES section, not one composite paragraph. The three
+   * items are the execution recital, the counsel recital (§ 61.079(3)),
+   * and the bar on inconsistent equitable-distribution / alimony claims
+   * (§ 61.075).
+   */
   prenupDefense(data, { year, dateFragment }) {
     void year;
-    return (
-      'PRENUPTIAL AGREEMENT. Respondent affirmatively pleads a prenuptial ' +
-      `agreement${dateFragment} executed with independent counsel on both sides, which ` +
-      'governs property division and precludes alimony. Respondent will seek ' +
-      'enforcement of the prenuptial agreement pursuant to Fla. Stat. § 61.079 ' +
-      '(Florida Uniform Premarital Agreement Act) and § 61.075 (equitable ' +
-      'distribution). Respondent specifically denies that the assets and debts ' +
-      'identified in the Petition are marital to the extent the prenuptial ' +
-      'agreement characterizes them as separate property, and any claim ' +
-      'inconsistent with the prenuptial agreement is barred.'
-    );
+    const counselRecital = (data && data.prenupBothCounsel === false)
+      ? 'Each party had opportunity to consult independent counsel prior to execution of the prenuptial agreement, and any waiver of counsel was voluntary and made after fair and reasonable disclosure of property or financial obligations, as required by Fla. Stat. § 61.079(7).'
+      : 'Each party was represented by independent counsel at the execution of the prenuptial agreement, and the agreement was executed voluntarily after fair and reasonable disclosure of property and financial obligations, as required by Fla. Stat. § 61.079(7).';
+    return [
+      `PRENUPTIAL AGREEMENT — EXECUTION. The parties executed a valid prenuptial agreement${dateFragment} pursuant to Fla. Stat. § 61.079 (Florida Uniform Premarital Agreement Act).`,
+      `PRENUPTIAL AGREEMENT — INDEPENDENT COUNSEL. ${counselRecital}`,
+      "PRENUPTIAL AGREEMENT — BAR ON INCONSISTENT RELIEF. All property, debt, alimony, and support issues between the parties are governed by that agreement. Petitioner's requests for equitable distribution and any alimony are barred to the extent inconsistent with the agreement, and Respondent specifically denies that the assets and debts identified in the Petition are marital to the extent the prenuptial agreement characterizes them as separate property (Fla. Stat. §§ 61.075, 61.079).",
+    ];
   },
   answerWherefore(data, parties) {
     void data;

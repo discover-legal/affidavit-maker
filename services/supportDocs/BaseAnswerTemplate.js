@@ -379,17 +379,28 @@ function buildAffirmativeDefenses(data, config) {
     const year =
       str(data.prenupYear) || str(data.prenupDate) || str(data.prenupSignedYear);
     const dateFragment = year ? ` dated ${year}` : ` dated ${BLANK_SHORT}`;
+    // Attorney round-3 (Tavita, FL): prenupDefense may now return either a
+    // single string (legacy) OR an array of strings so a jurisdiction can
+    // split the defense into multiple numbered items (execution, counsel
+    // recital, bar-on-inconsistent-claims each as its own defense).
     const override =
       typeof config.prenupDefense === 'function'
         ? config.prenupDefense(data, { year, dateFragment })
         : '';
-    defenses.push(
-      str(override) ||
-        `PRENUPTIAL AGREEMENT. The parties entered into a valid prenuptial agreement${dateFragment}, ` +
-          'which governs the disposition of property and debts between the parties. Any claim ' +
-          'inconsistent with the prenuptial agreement is barred, and the agreement is pleaded ' +
-          'as an affirmative defense and, where applicable, as a bar to relief.',
-    );
+    if (Array.isArray(override)) {
+      for (const line of override) {
+        const s = str(line);
+        if (s) defenses.push(ensurePeriod(s));
+      }
+    } else {
+      defenses.push(
+        str(override) ||
+          `PRENUPTIAL AGREEMENT. The parties entered into a valid prenuptial agreement${dateFragment}, ` +
+            'which governs the disposition of property and debts between the parties. Any claim ' +
+            'inconsistent with the prenuptial agreement is barred, and the agreement is pleaded ' +
+            'as an affirmative defense and, where applicable, as a bar to relief.',
+      );
+    }
   }
 
   // Postnup — same waiver rule.
@@ -542,8 +553,16 @@ function createAnswerBuilder(config) {
   const introduction =
     config.introduction ||
     ((data, parties) =>
+      // Attorney round-3 (Tavita, FL, 2026-08-30): default intro used to
+      // append a hardcoded " for Divorce" after ${petitionTerm}, which
+      // duplicated the fragment for every jurisdiction whose petitionTerm
+      // already carried "for Divorce" (FL "Petition for Dissolution of
+      // Marriage for Divorce", GA "Complaint for Divorce for Divorce",
+      // etc.). petitionTerm now stands on its own; jurisdictions whose
+      // petitionTerm reads incomplete without the suffix carry it
+      // themselves (see e.g. NY 'Verified Complaint').
       `I, ${parties.respondent}, am the ${filerLabel} in this case. I answer the ${petitionTerm} ` +
-      `for Divorce filed by ${parties.petitioner} as follows:`);
+      `filed by ${parties.petitioner} as follows:`);
 
   const certificateOfService =
     config.certificateOfService ||
@@ -762,7 +781,10 @@ function createAnswerBuilder(config) {
         : [];
       if (children.length > 0) {
         const childList = children
-          .map((c) => `${str(c.name)} (born ${str(c.birthDate) || str(c.dob) || BLANK_SHORT})`)
+          // Attorney round-3 (2026-08-30): fall back to year-only when
+          // the profile only carries `birthYear` (Marcus ON) or a bare
+          // 4-digit year in birthDate.
+          .map((c) => `${str(c.name)} (born ${str(c.birthDate) || str(c.dob) || str(c.birthYear) || str(c.birth_year) || BLANK_SHORT})`)
           .join('; ');
         items.push({
           number: number++,

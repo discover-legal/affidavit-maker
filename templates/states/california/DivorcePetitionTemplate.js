@@ -441,10 +441,11 @@ class CaliforniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
       });
       childArr.forEach((child) => {
         const name = typeof child === 'string' ? child : (child && child.name) || '[CHILD NAME]';
-        const rawDob = typeof child === 'object' && child
-          ? (child.birthDate ?? child.dob ?? child.dateOfBirth)
+        // Attorney round-3 (2026-08-30): route through formatChildDob
+        // so `birthYear` and bare-year DOBs render instead of blank.
+        const birthDate = typeof child === 'object' && child
+          ? this.formatChildDob(child)
           : null;
-        const birthDate = rawDob ? this.formatDate(rawDob) : null;
         items.push({
           number: paragraphNum++,
           content: birthDate ? `${name}, born ${birthDate}` : `${name}`,

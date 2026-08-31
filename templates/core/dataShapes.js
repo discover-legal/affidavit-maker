@@ -88,4 +88,9 @@ function partitionByCharacter(value, kind = 'property') {
   return { community, separate };
 }
 
-module.exports = { asList, propertyAgreementProse, partitionByCharacter };
+module.exports = {
+  asList,
+  propertyAgreementProse,
+  partitionByCharacter,
+  PROPERTY_AGREEMENT_STATUS_TOKENS,
+};

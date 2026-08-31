@@ -87,6 +87,14 @@ function sanitizeSubstrate(desc, divorceData) {
     ''
   );
   s = collapseRoleNameDuplicates(s, divorceData);
+  // Georgia uses Plaintiff/Defendant convention throughout the pleading.
+  // LLM-extracted fact content may use Petitioner/Respondent; normalize so
+  // the substrate reads consistently with the caption and every other
+  // paragraph. Applies before final cleanup so subsequent trims still work.
+  s = s.replace(/\bRespondent(s?)\b/g, 'Defendant$1');
+  s = s.replace(/\brespondent(s?)\b/g, 'defendant$1');
+  s = s.replace(/\bPetitioner(s?)\b/g, 'Plaintiff$1');
+  s = s.replace(/\bpetitioner(s?)\b/g, 'plaintiff$1');
   s = s.trim().replace(/\s+/g, ' ').replace(/[,;:\s]+$/, '');
   if (!s) return '';
   if (!/[.!?]$/.test(s)) s += '.';

@@ -62,7 +62,12 @@ function isNullish(value) {
   if (value === undefined || value === null) return true;
   if (typeof value !== 'string') return false;
   const s = value.trim().toLowerCase();
-  return s === '' || s === 'null' || s === 'undefined' || s === 'n/a' || s === 'none';
+  if (s === '' || s === 'null' || s === 'undefined' || s === 'n/a' || s === 'none') return true;
+  // Round-6 attorney review (Tavita FL, 2026-08-30 v29): punctuation-only
+  // extractions (e.g. bare ".") should be treated as absent so captions do
+  // not render "Case No. .".
+  if (!/[a-z0-9]/i.test(s)) return true;
+  return false;
 }
 
 /**
@@ -895,9 +900,13 @@ function createAnswerBuilder(config) {
             preAdmitted: true,
           });
         } else {
+          const lineFn =
+            typeof config.scaffoldResponseLine === 'function'
+              ? config.scaffoldResponseLine
+              : scaffoldResponseLine;
           items.push({
             number: number++,
-            content: scaffoldResponseLine(filerLabel, paragraph.topic),
+            content: lineFn(filerLabel, paragraph.topic, paragraph.key),
             type: 'answer_position',
             scaffoldKey: paragraph.key,
           });

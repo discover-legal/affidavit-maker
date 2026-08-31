@@ -717,18 +717,25 @@ function appendContestedIssuesAlberta(doc, data) {
     });
   }
   if (wantImputation) {
-    // Sarah AB round-2 substantive #1: every fact the profile gives about
-    // the payor's income (self-employment, variability, under-reporting)
-    // becomes its own sworn factual paragraph, so the record supports the
-    // s.19 imputation prayer.
+    // Sarah AB round-6 fix: one intro paragraph, then each supporting fact
+    // as its own numbered sub-paragraph. Don't repeat the 30-word preamble.
     const facts = incomeImputationFacts(data);
-    for (const fact of facts) {
+    if (facts.length > 0) {
       items.push({
         content:
           `The Plaintiff pleads the following in support of a request that income be imputed ` +
-          `to the Defendant under s.19 of the Federal Child Support Guidelines, SOR/97-175: ${fact}.`,
+          `to the Defendant under s.19 of the Federal Child Support Guidelines, SOR/97-175:`,
         type: 'contested_issue',
       });
+      for (const fact of facts) {
+        // Trim trailing period(s)/whitespace from fact content to avoid
+        // double periods when the template appends its own.
+        const cleaned = String(fact).replace(/[.\s]+$/, '');
+        items.push({
+          content: `${cleaned}.`,
+          type: 'contested_issue',
+        });
+      }
     }
     items.push({
       content:

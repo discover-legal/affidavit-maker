@@ -16,6 +16,9 @@ function _sanitizeCaseNumber(value) {
   if (!s) return '';
   const lower = s.toLowerCase();
   if (lower === 'null' || lower === 'undefined' || lower === 'n/a' || lower === 'none') return '';
+  // Round-6: strip punctuation-only sentinels (".", "..") that LLM
+  // extraction lands when the case number is unknown.
+  if (!/[A-Za-z0-9]/.test(s)) return '';
   return s;
 }
 

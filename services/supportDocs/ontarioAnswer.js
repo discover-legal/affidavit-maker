@@ -51,6 +51,17 @@ const baseBuilder = createAnswerBuilder({
   answerTitle: 'ANSWER (Form 10)',
   answerWithCounterTitle: 'ANSWER AND CLAIM (Form 10)',
   counterTitle: 'RESPONDENT’S CLAIM',
+  // Round-6 (Marcus ON, 2026-08-30 v29): Ontario Form 10 uses the plain
+  // "agree / do not agree / no knowledge" checkbox vocabulary from the
+  // Family Law Rules — not the US federal FRCP 8(b)(5) "IS WITHOUT
+  // KNOWLEDGE OR INFORMATION SUFFICIENT TO FORM A BELIEF" idiom.
+  scaffoldResponseLine(filerLabel, topic) {
+    return (
+      `Regarding ${topic}: ${filerLabel} AGREES / DOES NOT AGREE / HAS NO KNOWLEDGE ` +
+      `of the truth of the allegations (mark one). Application paragraph number(s): ${BLANK_SHORT}. ` +
+      `Explanation, if any: ${BLANK_LINE}.`
+    );
+  },
   counterPetitionForm: 'Family Law Rules, O. Reg. 114/99, Form 10 — Respondent’s Claim section',
   counterPetitionExamples: [
     // Attorney round-5 (Marcus ON, 2026-08-30): Divorce Act s. 15.2 is
@@ -144,8 +155,12 @@ function preAdmittedFactLines(data) {
     /(^|\W)ontario(\W|$)/i.test(trimStr(data.residencyProvince)) ||
     /(^|\W)on(\W|$)/i.test(trimStr(data.state));
   if (jurisdictionOk) {
+    // Round-6: Ontario Form 10 collapses jurisdiction and residency into a
+    // single s. 3(1) habitual-residence admission; tag BOTH scaffold keys
+    // so neither scaffold checkbox re-renders the same substantive fact.
     lines.push({
       topic: "the court's jurisdiction",
+      scaffoldKeys: ['jurisdiction', 'residency'],
       admission:
         'The Respondent ADMITS the jurisdiction of this Court, at least one party having ' +
         'been habitually resident in Ontario for the one year immediately preceding the ' +
@@ -157,6 +172,7 @@ function preAdmittedFactLines(data) {
     const where = trimStr(data.marriageLocation) || trimStr(data.marriagePlace);
     lines.push({
       topic: 'the date and place of the marriage',
+      scaffoldKeys: ['marriage'],
       admission:
         `The Respondent ADMITS the allegation that the parties were married on ${marriageDate}` +
         (where ? ` in ${where}.` : '.'),
@@ -166,6 +182,7 @@ function preAdmittedFactLines(data) {
   if (separationDate) {
     lines.push({
       topic: 'the date of separation',
+      scaffoldKeys: ['separation'],
       admission:
         `The Respondent ADMITS that the parties separated on or about ${separationDate} ` +
         'and have lived separate and apart since that date.',
@@ -178,6 +195,7 @@ function preAdmittedFactLines(data) {
   if (oneYearSep) {
     lines.push({
       topic: 'the ground stated for the divorce (one-year separation)',
+      scaffoldKeys: ['breakdown'],
       admission:
         'The Respondent ADMITS that the sole ground alleged — that the parties have lived ' +
         'separate and apart for at least one year immediately preceding the determination of ' +
@@ -196,12 +214,14 @@ function preAdmittedFactLines(data) {
       .join('; ');
     lines.push({
       topic: 'the allegations concerning any minor children of the marriage',
+      scaffoldKeys: ['children'],
       admission:
         `The Respondent ADMITS the existence of the following minor children of the marriage: ${list}.`,
     });
   } else if (data.hasMinorChildren === false) {
     lines.push({
       topic: 'the allegations concerning any minor children of the marriage',
+      scaffoldKeys: ['children'],
       admission:
         'The Respondent ADMITS that there are no minor children of this marriage.',
     });
@@ -323,6 +343,15 @@ function scaffoldForm10(doc, data) {
   const explicitPositions = Array.isArray(data.answerPositions) && data.answerPositions.length > 0;
   const preAdmitted = explicitPositions ? [] : preAdmittedFactLines(data);
   const admittedTopics = new Set(preAdmitted.map((entry) => entry.topic));
+  // Round-6 (Marcus ON, 2026-08-30 v29): dedup scaffold rows by
+  // scaffoldKey too — Ontario's admissions cover residency (via
+  // jurisdiction) and breakdown (via one-year separation), whose scaffold
+  // topic text differs from the admission's topic string.
+  const admittedKeys = new Set();
+  for (const entry of preAdmitted) {
+    const keys = Array.isArray(entry.scaffoldKeys) ? entry.scaffoldKeys : [];
+    for (const k of keys) admittedKeys.add(k);
+  }
 
   const partA = { title: 'PART A — RESPONSES TO THE APPLICANT’S CLAIMS', items: [] };
   if (responseItems.length === 0 && preAdmitted.length === 0) {
@@ -343,7 +372,13 @@ function scaffoldForm10(doc, data) {
       });
     }
     for (const it of responseItems) {
-      // Skip generic scaffold rows whose topic we already pre-admitted.
+      // Skip generic scaffold rows whose topic (or scaffoldKey) we already
+      // pre-admitted. Key-based match catches cases where the Base scaffold
+      // topic phrasing differs from the admission's topic string (e.g.
+      // Ontario admits "one-year separation" but Base emits "irretrievable
+      // breakdown or the equivalent").
+      const scaffoldKey = it && typeof it.scaffoldKey === 'string' ? it.scaffoldKey : '';
+      if (scaffoldKey && admittedKeys.has(scaffoldKey)) continue;
       const topic = it && typeof it.content === 'string' ? it.content : '';
       const dropped = [...admittedTopics].some((t) => topic.includes(t));
       if (dropped) continue;

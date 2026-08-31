@@ -789,7 +789,10 @@ class NewYorkDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
     }
 
     return {
-      title: 'CHILDREN',
+      // Round-6 (David NY, 2026-08-30 v29): sections skipped from IV to
+      // VI because CHILDREN had no roman numeral. Restore the V. prefix so
+      // the pleading's outline is contiguous.
+      title: 'V. CHILDREN',
       items,
       nextParagraphNumber: paragraphNum
     };

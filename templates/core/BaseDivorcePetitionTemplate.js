@@ -120,6 +120,12 @@ function _sanitizeCaseNumber(value) {
   if (!s) return '';
   const lower = s.toLowerCase();
   if (lower === 'null' || lower === 'undefined' || lower === 'n/a' || lower === 'none') return '';
+  // Round-6 attorney review (Tavita FL, 2026-08-30 v29): tolerate stray
+  // punctuation-only values ("." or "..") that LLM extraction leaves when
+  // the case number is absent — rendering "Case No. ." is worse than a
+  // fill-in blank. Any value that contains no alphanumeric character is
+  // treated as absent.
+  if (!/[A-Za-z0-9]/.test(s)) return '';
   return s;
 }
 
@@ -841,9 +847,11 @@ class BaseDivorcePetitionTemplate {
       // marriageState only when it's a full name, never a bare code
       (clean(divorceData.marriageState).length > 2 ? clean(divorceData.marriageState) : '');
 
-    // A location that already says more than the bare city wins as-is
-    // (e.g. "Provo, Utah" or "Paris, France").
-    if (location && (!city || location.toLowerCase() !== city.toLowerCase())) {
+    // A location that already contains a comma is treated as fully
+    // qualified ("Provo, Utah", "Paris, France"). A bare "Atlanta" — no
+    // comma, no state — falls through to the city+state fallback so the
+    // paragraph reads "in Atlanta, Georgia" rather than a bare city.
+    if (location && location.includes(',')) {
       return location;
     }
     const effectiveCity = city || location;

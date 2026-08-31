@@ -22,7 +22,11 @@ export async function GET(req: Request, { params: paramsPromise }: { params: Pro
       throw new NotFoundError(`Matter type "${params.code}" not found`);
     }
     const documents = DOCS_BY_MATTER[params.code] ?? [];
-    const supported_states = SUPPORTED_STATES[params.code] ?? getAllJurisdictions();
+    const rawSupported = SUPPORTED_STATES[params.code] ?? getAllJurisdictions();
+    // Cross-filter through the active-jurisdictions allowlist so
+    // JURISDICTION_ALLOWLIST=ON,UT hides everything else on the matter card.
+    const active = new Set(getAllJurisdictions());
+    const supported_states = rawSupported.filter((s) => active.has(s));
     return NextResponse.json({
       success: true,
       data: { matter: { ...matter, documents, supported_states } },

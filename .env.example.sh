@@ -98,6 +98,10 @@ CLEANUP_HEARTBEAT_URL=
 # FEATURE FLAGS
 # ===========================
 ENABLE_INTERNATIONAL=false
+# Narrow launch: comma-separated jurisdiction allowlist. When set, ONLY these
+# codes surface (overrides ENABLE_INTERNATIONAL). Leave unset for the full
+# NA (US 51 + CA 13) default. Currently launching ON + UT only.
+JURISDICTION_ALLOWLIST=ON,UT
 # The app is FREE (donation-supported) by default. Set to true to re-arm
 # Stripe charging — the payment + webhook infra stays intact and dormant.
 PAYMENTS_ENABLED=false

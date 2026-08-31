@@ -657,8 +657,9 @@ export async function mergeUserProfile(
           // model refused). Retry once with a higher budget before giving up
           // — the second attempt reliably lands for the same input (Amara
           // v31e Alabama replay showed this pattern).
+          const chatFn = svc.chat!;
           const callRescue = async (maxTokens: number) => {
-            return await svc.chat(
+            return await chatFn(
               [
                 {
                   role: 'system',

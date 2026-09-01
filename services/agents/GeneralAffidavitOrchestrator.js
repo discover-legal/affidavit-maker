@@ -42,6 +42,18 @@ const {
 } = require('./extractionQuality');
 const { retireFacts, sanitizeSupersededStatements } = require('./factRetirement');
 
+// Same NAME_FIRST_RULE as the divorce + matter orchestrators. The affidavit
+// interview must ask for the user's own full legal name up front — waiting
+// for it to fall out of natural conversation once produced a 14-turn burn.
+const NAME_FIRST_RULE = `
+TURN 1 RULE — USER'S OWN NAME IS MISSING: The user's own full legal name is not yet in ALREADY COLLECTED. Your VERY NEXT question MUST be exactly: "What is your full legal name?" — regardless of what the current phase's COLLECT list says. Do NOT extract other facts in preference to the name. Do NOT skip this question because the user shared other information. Do NOT accept vague answers ("me", "the affiant", "just my first name is fine") without a follow-up asking for the full first + last name. Do NOT set phase_complete: true until the user's own full legal name is captured.
+`;
+
+function _userNameMissing(data) {
+  if (!data || typeof data !== 'object') return true;
+  return !data.affiantName && !data.firstName && !data.affiantFirstName;
+}
+
 // ─── LLM tool definition ──────────────────────────────────────────────────────
 
 const AFFIDAVIT_TOOL = {
@@ -211,6 +223,12 @@ class GeneralAffidavitOrchestrator {
           factCount:      checkResult.factCount,
           minimumFacts:   checkResult.minimumFacts,
         });
+      } else if (phase_complete && _userNameMissing(updatedData)) {
+        // Symbolic gate also refuses to advance past FACTS while the user's
+        // own name is missing — same rule the divorce/matter orchestrators
+        // enforce at every phase transition.
+        resolvedPhaseComplete = false;
+        logger.info('GeneralAffidavitOrchestrator: blocked phase_complete — user name missing');
       } else if (!phase_complete && checkResult.isComplete) {
         // Checker says we're done even though LLM didn't flag it — advance anyway
         resolvedPhaseComplete = true;
@@ -218,6 +236,16 @@ class GeneralAffidavitOrchestrator {
           typeId, completeness: checkResult.completeness
         });
       }
+    }
+
+    // Name-first gate for non-FACTS phases (CLASSIFY / PARTIES / REVIEW):
+    // never advance past the current phase while the user's own name is
+    // still missing. The FACTS-phase branch above already handles this.
+    if (resolvedPhaseComplete && state.currentPhase !== 'FACTS' && _userNameMissing(updatedData)) {
+      resolvedPhaseComplete = false;
+      logger.info('GeneralAffidavitOrchestrator: blocked phase_complete — user name missing', {
+        phase: state.currentPhase,
+      });
     }
 
     // Phase advancement
@@ -303,7 +331,11 @@ class GeneralAffidavitOrchestrator {
         requirementsChecker.formatSatisfiedForPrompt(checkResult)
       ) + '\n' + EXTRACTION_QUALITY;
     }
-    return (PHASES[phaseName]?.prompt || PHASES['CLASSIFY'].prompt) + '\n' + EXTRACTION_QUALITY;
+    const basePrompt = (PHASES[phaseName]?.prompt || PHASES['CLASSIFY'].prompt) + '\n' + EXTRACTION_QUALITY;
+    // Ask for the user's own name first, even when the current phase is PARTIES
+    // (which nominally asks for the name anyway) or later — no phase gets to
+    // extract other facts while the name is still missing.
+    return _userNameMissing(data) ? basePrompt + '\n' + NAME_FIRST_RULE : basePrompt;
   }
 
   _buildUserPrompt(message, data, state) {

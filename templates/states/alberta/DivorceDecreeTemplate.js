@@ -7,6 +7,12 @@
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
+const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
+const {
+  custodyDisputePosition,
+  incomeImputationPosition,
+  normalizeCanadianDivorceData,
+} = require('../../core/canadianHelpers');
 
 /**
  * Alberta Divorce Judgment Template
@@ -37,6 +43,26 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     this.stateName = 'Alberta';
     this.countryCode = 'CA';
     this.documentTitle = 'DIVORCE JUDGMENT';
+
+    // Canadian civil-action terminology: parties are Plaintiff/Defendant;
+    // self-represented filers are "Self-Represented" (not "Pro Se"); the
+    // caption's court-name line carries the venue so the "STATE OF" /
+    // "COUNTY OF" header/venue lines are suppressed. This is required so
+    // the base class's `generateAppearancesSection` renders Plaintiff /
+    // Defendant / Self-Represented instead of the US-default Petitioner /
+    // Respondent / Pro Se.
+    this.terminology = {
+      ...this.terminology,
+      jurisdictionLabel: null,
+      jurisdictionTerm: 'Province',
+      districtLabel: null,
+      districtTerm: 'Judicial district',
+      districtStyle: 'plain',
+      districtPlaceholder: '[JUDICIAL DISTRICT]',
+      filerLabel: 'Plaintiff',
+      responderLabel: 'Defendant',
+      selfRepresentedLabel: 'Self-Represented',
+    };
 
     try {
       this.metadata = require('./metadata.json');
@@ -100,13 +126,22 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    // Action Number is often unknown at draft time — render a visible
+    // fill-in blank plus a Draft note rather than a `[CASE NUMBER]`
+    // sentinel that the generate-route denylist catches as 422 (mirrors
+    // the ON v8-D Divorce Order pattern).
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    const caseDraftNote = hasCaseNumber
+      ? ''
+      : '\n(Draft — insert case number before filing)';
     const plaintiff = (divorceData.petitionerName || '[PLAINTIFF NAME]').toUpperCase();
     const defendant = (divorceData.respondentName || '[DEFENDANT NAME]').toUpperCase();
 
     const formatted = (
       `IN THE ${courtName}\n\n` +
-      `${caseLabel} ${caseNumber}\n\n` +
+      `${caseLabel} ${caseNumber}${caseDraftNote}\n\n` +
       `IN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
       `BETWEEN:\n\n` +
       `${plaintiff}\n` +
@@ -135,10 +170,23 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generatePropertyDivisionSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): mirror the base — a nil
+    // family-property finding waives distribution claims and may render
+    // ONLY on an affirmative user-confirmed statement.
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no family property to be distributed under the Family Property Act, RSA 2000, c. F-4.7.',
         type: 'finding'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have family property to distribute under the Family Property Act, RSA 2000, c. F-4.7, or a written agreement, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else {
       items.push({
@@ -199,9 +247,18 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
 
     divorceData.children.forEach((child, index) => {
-      const childInfo = typeof child === 'string'
-        ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+      // Child NAME stays as `[CHILD NAME]` (denylist catches it). Birth date
+      // renders as a visible fill-in blank + Draft note rather than the
+      // `[BIRTH DATE]` sentinel (mirrors ON v8-D / GA v18-C).
+      let childInfo;
+      if (typeof child === 'string') {
+        childInfo = child;
+      } else {
+        const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+        const dobDisplay = childDob || '__________________';
+        const draftNote = childDob ? '' : '\n(Draft — insert exact date of birth before filing)';
+        childInfo = `${child.name || '[CHILD NAME]'}, born ${dobDisplay}${draftNote}`;
+      }
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
@@ -218,10 +275,23 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         content: `IT IS ORDERED that ${divorceData.petitionerName || 'Plaintiff'} and ${divorceData.respondentName || 'Defendant'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
         type: 'order'
       });
-      items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Plaintiff'}, who shall have primary parenting time.`,
-        type: 'order'
-      });
+      // Primary residence in the joint branch also comes from the explicit
+      // primaryResidence fact — no defaulting to the Plaintiff.
+      if (residenceName) {
+        items.push({
+          content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}, who shall have primary parenting time.`,
+          type: 'order'
+        });
+      } else {
+        items.push({
+          content:
+            'IT IS ORDERED that the parties shall determine the child(ren)\'s primary residence ' +
+            'by agreement, or, failing agreement, in accordance with a parenting schedule filed ' +
+            'with this Court: [PRIMARY RESIDENCE — set out the parent with whom the child(ren) ' +
+            'primarily reside].',
+          type: 'order'
+        });
+      }
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
       const custodianName =
         custody.kind === 'sole_petitioner'
@@ -314,20 +384,29 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
-      return null;
-    }
+    // Route through the shared safety-gated resolver so a false waiver
+    // from silence can NEVER render — matches the ON override and the
+    // 2026-08 attorney-review requirement.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const payor = decision.payor || divorceData.respondentName || 'Defendant';
+    const payee = decision.payee || divorceData.petitionerName || 'Plaintiff';
 
-    if (divorceData.spousalSupportWaived) {
+    if (decision.outcome === 'award') {
       items.push({
-        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
+        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${payor} shall pay spousal support to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month for ${decision.duration || '[DURATION]'}.`,
         type: 'order'
       });
-    } else if (divorceData.spousalSupportAwarded) {
+    } else if (decision.outcome === 'reserve') {
       items.push({
-        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Defendant'} shall pay spousal support to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Plaintiff'} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED that the Court reserves jurisdiction over spousal support under s.15.2 of the Divorce Act, RSC 1985, c. 3, ${payee} having claimed support with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
         type: 'order'
       });
     }
@@ -377,6 +456,116 @@ class AlbertaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   getCertificateNote() {
     return 'A Certificate of Divorce may be obtained from the court office after the effective date, upon application by either party (Divorce Act, s.12(7)).';
+  }
+
+  /**
+   * Alberta dissolution — Canadian "IT IS ORDERED" phrasing under Divorce Act
+   * s.8; drops the base class's US "IT IS ORDERED AND DECREED" formulation
+   * and cites the King's Bench Divorce Judgment framework.
+   */
+  generateDissolutionSection(divorceData) {
+    const plaintiff = divorceData.petitionerName || '_________________________________';
+    const defendant = divorceData.respondentName || '_________________________________';
+    return {
+      title: 'DIVORCE GRANTED',
+      text:
+        `IT IS ORDERED that the marriage between ${plaintiff} and ${defendant} is dissolved ` +
+        'pursuant to section 8 of the Divorce Act, RSC 1985, c. 3, and that a Divorce Judgment ' +
+        'shall issue, taking effect on the 31st day after it is made (Divorce Act, s.12(1)).',
+      type: 'dissolution'
+    };
+  }
+
+  /**
+   * Alberta respondent-appearance recital in Canadian civil-action vocabulary.
+   * The base class's "although duly cited … wholly made default" is US
+   * criminal-writ language; Alberta divorce is a civil action under the
+   * Rules of Court and defaults are noted as "duly served with the
+   * Statement of Claim and did not file a Statement of Defence within the
+   * time provided".
+   */
+  getRespondentAppearanceText(divorceData) {
+    const uncontested = divorceData.appearanceType === 'agreed' || divorceData.isUncontested;
+    if (divorceData.respondentAppeared) {
+      return uncontested ? 'appeared and consented to the terms of this Judgment' : 'appeared';
+    }
+    const method = typeof divorceData.serviceMethod === 'string'
+      ? divorceData.serviceMethod.trim().toLowerCase()
+      : '';
+    const defaulted =
+      divorceData.respondentDefaulted === true ||
+      divorceData.defaultJudgment === true ||
+      divorceData.appearanceType === 'default';
+
+    if (method === 'waiver') {
+      return uncontested
+        ? 'accepted service of the Statement of Claim and consents to the terms of this Judgment'
+        : 'accepted service of the Statement of Claim';
+    }
+    if (method === 'publication') {
+      return defaulted
+        ? 'was served by substituted service or publication and did not file a Statement of Defence'
+        : 'was served by substituted service or publication';
+    }
+    if (method === 'formal') {
+      if (defaulted) {
+        return 'was duly served with the Statement of Claim and did not file a Statement of Defence within the time provided';
+      }
+      return uncontested
+        ? 'was duly served with the Statement of Claim and consents to the terms of this Judgment'
+        : 'was duly served with the Statement of Claim';
+    }
+    if (defaulted) {
+      return 'was duly served with the Statement of Claim and did not file a Statement of Defence within the time provided';
+    }
+    return uncontested
+      ? 'was served with the Statement of Claim and does not oppose the relief sought'
+      : 'was served with the Statement of Claim';
+  }
+
+  /**
+   * generateDocument override: alias-normalize the incoming data (Action No.,
+   * marriage year, separation date, children DOBs) and splice a
+   * CONTESTED ISSUES section carrying the party's parenting-dispute /
+   * s.19 imputation positions.
+   */
+  generateDocument(divorceData = {}) {
+    const data = normalizeCanadianDivorceData(divorceData);
+    const doc = super.generateDocument(data);
+    appendContestedIssuesAlbertaDecree(doc, data);
+    return doc;
+  }
+}
+
+function appendContestedIssuesAlbertaDecree(doc, data) {
+  const custody = custodyDisputePosition(data);
+  const imputation = incomeImputationPosition(data);
+  if (!custody && !imputation) return;
+  const items = [];
+  if (custody) {
+    items.push({
+      content:
+        `The Court has considered the Plaintiff's contested parenting-time position: ${custody}. ` +
+        `The Court makes a parenting order under section 16.5 of the Divorce Act on the basis of ` +
+        `changed circumstances in the best interests of the child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue',
+    });
+  }
+  if (imputation) {
+    items.push({
+      content:
+        `IT IS ORDERED, pursuant to section 19 of the Federal Child Support Guidelines, ` +
+        `SOR/97-175, that income is imputed to the child-support payor on the following basis: ` +
+        `${imputation}.`,
+      type: 'contested_issue',
+    });
+  }
+  doc.sections = doc.sections || {};
+  doc.sections.contestedIssues = { title: 'CONTESTED ISSUES', items };
+  if (typeof doc.fullText === 'string') {
+    let block = 'CONTESTED ISSUES\n\n';
+    for (const item of items) block += `${item.content}\n\n`;
+    doc.fullText += `\n${block}`;
   }
 }
 

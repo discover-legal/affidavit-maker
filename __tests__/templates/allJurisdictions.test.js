@@ -440,21 +440,27 @@ describe('All Jurisdictions - Template System', () => {
         }
       );
 
-      it('petition header + caption together identify the court exactly once (preview contract)', () => {
-        // The SPA preview (components/app/DocumentPreview.js) renders
-        // sections.header and sections.caseCaption.formatted as separate
-        // blocks — together they must carry ONE court identification.
-        const Template = require(path.join(templateDir, 'DivorcePetitionTemplate.js'));
-        const instance = new Template();
-        const doc = instance.generateDocument({ ...SAMPLE, state: instance.state });
-        const caption = doc.sections.caseCaption || {};
-        const needle = captionCourtNeedle(doc);
-        expect(needle).toBeTruthy();
-        const combined = normalizeCourtText(
-          `${doc.sections.header || ''}\n${doc.sections.venue || ''}\n${caption.formatted || ''}`
-        );
-        expect(countOccurrences(combined, needle)).toBe(1);
-      });
+      // The SPA preview (components/app/DocumentPreview.js) renders
+      // sections.header, sections.venue, and sections.caseCaption.formatted
+      // as separate blocks — together they must carry ONE court
+      // identification. Extended to both petition AND decree after the CA
+      // audit (2026-08-28) surfaced a doubled/tripled court line in the
+      // decree preview surface that the petition-only assertion missed.
+      it.each(['DivorcePetitionTemplate.js', 'DivorceDecreeTemplate.js'])(
+        '%s header + venue + caption together identify the court exactly once (preview contract)',
+        (file) => {
+          const Template = require(path.join(templateDir, file));
+          const instance = new Template();
+          const doc = instance.generateDocument({ ...SAMPLE, state: instance.state });
+          const caption = doc.sections.caseCaption || {};
+          const needle = captionCourtNeedle(doc);
+          expect(needle).toBeTruthy();
+          const combined = normalizeCourtText(
+            `${doc.sections.header || ''}\n${doc.sections.venue || ''}\n${caption.formatted || ''}`
+          );
+          expect(countOccurrences(combined, needle)).toBe(1);
+        }
+      );
     });
 
     // ── 5. Orchestrator loading ───────────────────────────────────────────

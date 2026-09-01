@@ -8,7 +8,9 @@ import {
   formatResidencyDuration,
   fullName,
   groupFacts,
+  partitionFactsByState,
   spouseName,
+  statesMentioned,
 } from '@/components/app/lifeStory';
 
 describe('formatResidencyDuration', () => {
@@ -84,20 +86,44 @@ describe('computeAge', () => {
   });
 });
 
+describe('buildRecitals identity is role-aware (uses the USER, not the caption)', () => {
+  test('respondent-role profile: "Your name is" reads the respondent side / affiantName, not the petitioner caption', () => {
+    const recitals = buildRecitals({
+      role: 'respondent',
+      affiantName: 'Marcus David Whitfield-Nuñez',
+      petitionerName: 'Éloïse Marie Whitfield-Nuñez',
+      respondentName: 'Marcus David Whitfield-Nuñez',
+      spouseName: 'Éloïse Marie Whitfield-Nuñez',
+      marriageDate: '2009-07-11',
+    });
+    const identity = recitals.find((r) => r.id === 'identity')!;
+    const text = identity.segments.map((s) => s.text).join('');
+    expect(text).toContain('Marcus David Whitfield-Nuñez');
+    expect(text).not.toContain('Éloïse');
+
+    const marriage = recitals.find((r) => r.id === 'marriage')!;
+    const marriageText = marriage.segments.map((s) => s.text).join('');
+    expect(marriageText).toContain('Éloïse Marie Whitfield-Nuñez');
+  });
+});
+
 describe('buildRecitals', () => {
   test('always shows identity, marriage, and home — with blanks when unknown', () => {
     const recitals = buildRecitals({});
     expect(recitals.map((r) => r.id)).toEqual(['identity', 'marriage', 'home']);
     expect(recitals.every((r) => !r.known)).toBe(true);
     const identity = recitals[0].segments;
-    expect(identity.some((s) => s.kind === 'blank' && s.text === 'your name')).toBe(true);
+    // Empty-identity CTA reads as an invitation, not a duplicated fallback.
+    expect(identity.some((s) => s.kind === 'blank' && s.text === 'Add your name')).toBe(true);
     expect(recitals[1].segments.map((s) => s.text).join('')).toContain('Your marriage details:');
   });
 
   test('normalizes a county value that already includes the County suffix', () => {
     const home = buildRecitals({ county: 'Salt Lake County', state: 'UT' })
       .find((r) => r.id === 'home');
-    expect(home?.segments.map((s) => s.text).join('')).toBe('Home is Salt Lake County, UT.');
+    // The home recital renders full US state names ("Utah") over bare
+    // 2-letter codes when we have the mapping.
+    expect(home?.segments.map((s) => s.text).join('')).toBe('Home is Salt Lake County, Utah.');
   });
 
   test('narrates known values as tokens', () => {
@@ -122,7 +148,7 @@ describe('buildRecitals', () => {
         'Alex Example',
         'May 1, 2010',
         'Austin, Texas',
-        'Travis County, TX',
+        'Travis County, Texas',
         '4 years',
         '$5,200 a month',
         'protective order',
@@ -222,6 +248,43 @@ describe('fact chapters', () => {
   test('categoryLabel humanizes unknown categories', () => {
     expect(categoryLabel('custody_details')).toBe('Custody details');
     expect(categoryLabel(undefined)).toBe('Your story');
+  });
+});
+
+describe('partitionFactsByState (Reno/NV must not linger on a CA profile)', () => {
+  test('a bare "used to live in Reno" residency fact is superseded on a CA profile', () => {
+    const facts = [
+      { content: 'I used to live in Reno.', category: 'residency', subcategory: 'prior_residence' },
+      { content: 'I live in San Jose, California.', category: 'residency' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    // The Reno-only line moves out of the current bullets and into the
+    // collapsible "Earlier notes" section; the CA line stays put.
+    expect(current.map((f) => f.content)).toEqual(['I live in San Jose, California.']);
+    expect(superseded.map((f) => f.content)).toEqual(['I used to live in Reno.']);
+    // And that Reno fact is under the chapter groupings shown ONLY in the
+    // superseded section — never in the "In your own words" chapters.
+    const chapters = groupFacts(current);
+    const supersededChapters = groupFacts(superseded);
+    expect(chapters.some((c) => c.facts.some((f) => /reno/i.test(f.content)))).toBe(false);
+    expect(
+      supersededChapters.some((c) => c.facts.some((f) => /reno/i.test(f.content))),
+    ).toBe(true);
+  });
+
+  test('a filing-category fact naming a non-current jurisdiction is partitioned', () => {
+    const facts = [
+      { content: 'Petition filed in Washoe County.', category: 'filing' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    expect(current).toHaveLength(0);
+    expect(superseded).toHaveLength(1);
+  });
+
+  test('statesMentioned reads city/county hints ("Reno", "Washoe" → NV)', () => {
+    expect(statesMentioned('I used to live in Reno.').has('NV')).toBe(true);
+    expect(statesMentioned('Filed in Washoe County').has('NV')).toBe(true);
+    expect(statesMentioned('nothing here').size).toBe(0);
   });
 });
 
@@ -542,6 +605,170 @@ describe('pro se helpers', () => {
     ]);
     expect(chapters[0].facts[0].provenance).toContain('You said:');
     expect(chapters[1].facts[0].provenance).toBe('From: Petition served on you');
+  });
+});
+
+describe('respondent affiantName safety-net', () => {
+  test('affiantName === petitionerName on a respondent profile → falls back to respondent caption', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const profile = {
+        role: 'respondent',
+        // extraction bug: affiantName accidentally captured the petitioner
+        affiantName: 'Éloïse Whitfield',
+        petitionerName: 'Éloïse Whitfield',
+        respondentName: 'Marcus Whitfield',
+      };
+      expect(fullName(profile)).toBe('Marcus Whitfield');
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
+describe('hasMinors / noMinors on record', () => {
+  const { hasMinorsOnRecord, noMinorsOnRecord } = require('@/components/app/lifeStory');
+  const now = new Date(2026, 6, 10);
+  test('hasMinorChildren flag rules unambiguously', () => {
+    expect(hasMinorsOnRecord({ hasMinorChildren: true })).toBe(true);
+    expect(noMinorsOnRecord({ hasMinorChildren: false })).toBe(true);
+  });
+  test('all-adult children list → no minors on record', () => {
+    const profile = { children: [{ name: 'Ada', dob: '1998-01-01' }] };
+    expect(hasMinorsOnRecord(profile, now)).toBe(false);
+    expect(noMinorsOnRecord(profile, now)).toBe(true);
+  });
+  test('mixed / unknown DOB counts as possibly-minor', () => {
+    expect(hasMinorsOnRecord({ children: [{ name: 'x' }] }, now)).toBe(true);
+    expect(noMinorsOnRecord({ children: [{ name: 'x' }] }, now)).toBe(false);
+  });
+});
+
+describe('ledger suppresses custody / child-support when no minors', () => {
+  const { buildLedger } = require('@/components/app/lifeStory');
+  test('hasMinorChildren:false → no custody or child_support rows', () => {
+    const keys = buildLedger({ hasMinorChildren: false }).map((i: { key: string }) => i.key);
+    expect(keys).not.toContain('custody');
+    expect(keys).not.toContain('child_support');
+    // grounds / property / service etc. still render
+    expect(keys).toContain('grounds');
+  });
+  test('all-adult children list → same suppression', () => {
+    const items = buildLedger({ children: [{ name: 'A', dob: '1998-01-01' }] });
+    const keys = items.map((i: { key: string }) => i.key);
+    expect(keys).not.toContain('custody');
+    expect(keys).not.toContain('child_support');
+  });
+  test('minor on record → rows render', () => {
+    const items = buildLedger({ hasMinorChildren: true });
+    const keys = items.map((i: { key: string }) => i.key);
+    expect(keys).toContain('custody');
+    expect(keys).toContain('child_support');
+  });
+});
+
+describe('residency humanization applies to any jurisdiction', () => {
+  test('Canadian profile: city + full province name + years, no "County"', () => {
+    const home = buildRecitals({
+      city: 'Oakville',
+      state: 'ON',
+      residencyStateMonths: 72,
+    }).find((r) => r.id === 'home');
+    const flat = home?.segments.map((s) => s.text).join('');
+    expect(flat).toBe('Home is Oakville, Ontario — where you have lived for 6 years.');
+  });
+  test('reads alternate residency-months field names', () => {
+    const home = buildRecitals({
+      city: 'London',
+      state: 'ON',
+      residencyMonths: 27,
+    }).find((r) => r.id === 'home');
+    expect(home?.segments.map((s) => s.text).join('')).toContain(
+      '2 years and 3 months',
+    );
+  });
+  test('California: state code expands to full name', () => {
+    const home = buildRecitals({ county: 'Alameda', state: 'CA' })
+      .find((r) => r.id === 'home');
+    expect(home?.segments.map((s) => s.text).join('')).toBe(
+      'Home is Alameda County, California.',
+    );
+  });
+});
+
+describe('partitionFactsByState', () => {
+  const { partitionFactsByState } = require('@/components/app/lifeStory');
+  test('a residency fact mentioning NV is superseded on a CA profile', () => {
+    const facts = [
+      { content: 'I lived in Reno, Nevada for 12 years.', category: 'residency' },
+      { content: 'I moved to Oakland in 2025.', category: 'residency' },
+      { content: 'Filed in Washoe County, NV.', category: 'court' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    expect(superseded).toHaveLength(2);
+    expect(current).toHaveLength(1);
+    expect(current[0].content).toContain('Oakland');
+  });
+  test('a fact that mentions BOTH the current state and another is superseded', () => {
+    // Live CA acceptance run (2026-08): correction sentences like "I moved
+    // from Reno, Nevada, to San Jose, California" and "use California as the
+    // jurisdiction, not Nevada" mention the current state alongside the one
+    // being corrected; keeping such facts in the current bullets recited the
+    // superseded jurisdiction verbatim in the user's "In your own words"
+    // chapters. Any mention of a non-current state now moves the fact into
+    // the Earlier notes section — the affirmative CA-only fact
+    // ("I live in San Jose, California") is the one that stays current.
+    const facts = [
+      { content: 'I moved from Nevada to California in 2024.', category: 'residency' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    expect(current).toHaveLength(0);
+    expect(superseded).toHaveLength(1);
+  });
+
+  test('the live CA correction bullets are moved to superseded', () => {
+    // Reproducing the three CURRENT bullets that leaked through on
+    // scratchpad/accept5-calcorr — a Reno→San Jose residency line
+    // (residency), a "use California, not Nevada" line (jurisdiction),
+    // and a "only California / no Nevada or Washoe" line (filing).
+    // All three mention the current state alongside Nevada, and belong
+    // in Earlier notes, not the current bullets.
+    const facts = [
+      {
+        content:
+          'I moved from Reno, Nevada, to San Jose, California, on June 20, 2025, and have lived in California for approximately 14 months.',
+        category: 'residency',
+      },
+      {
+        content: 'I want to use California as the jurisdiction for this case, not Nevada.',
+        category: 'jurisdiction',
+      },
+      {
+        content:
+          'I want the final packet to reference only California, Santa Clara County, and California Judicial Council forms, with no references to Nevada, Washoe County, or Nevada forms.',
+        category: 'filing',
+      },
+      // An affirmative, CA-only residency fact stays current.
+      { content: 'I live in San Jose, California, in Santa Clara County.', category: 'residency' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    expect(superseded).toHaveLength(3);
+    expect(current).toHaveLength(1);
+    expect(current[0].content).toContain('San Jose, California');
+  });
+  test('non-jurisdiction categories are never filtered', () => {
+    const facts = [
+      { content: 'Married in Reno, Nevada.', category: 'marriage' },
+    ];
+    const { current, superseded } = partitionFactsByState(facts, 'CA');
+    expect(current).toHaveLength(1);
+    expect(superseded).toHaveLength(0);
+  });
+  test('unknown current state → all facts pass through', () => {
+    const facts = [{ content: 'anywhere', category: 'residency' }];
+    expect(partitionFactsByState(facts, 'ZZ').superseded).toHaveLength(0);
+    expect(partitionFactsByState(facts, '').superseded).toHaveLength(0);
   });
 });
 

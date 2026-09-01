@@ -14,8 +14,64 @@
 const { randomUUID: uuidv4 } = require('node:crypto');
 const { DEFAULT_TERMS, districtPhrase } = require('./terminology');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('./parenting');
-const { asList, propertyAgreementProse } = require('./dataShapes');
+const { asList, propertyAgreementProse, PROPERTY_AGREEMENT_STATUS_TOKENS } = require('./dataShapes');
+const { yearOnlyOf } = require('./canadianHelpers');
+
+// Round-3 attorney review (2026-08-30): live personas (Mari TX, David NY)
+// arrived with `hasProperty`/`hasDebts` UNSET but a facts[] array that
+// explicitly said "no property, no house, no retirement" / "no debts".
+// The petition still fabricated a community-property allegation.
+// Fix: extend the property/debt guards to promote from facts[] via a
+// deterministic keyword intersection over model-classified metadata. No
+// free-text prose parsing beyond a small closed keyword list — same
+// LLM-first discipline as the whereabouts/grounds promotions in
+// lib/api/profile.ts.
+const NO_PROPERTY_KEYWORDS = [
+  'no property', 'no house', 'no assets', 'no real estate',
+  'no retirement', 'no home', 'no marital property',
+  'no community property', 'no family property',
+];
+const NO_DEBTS_KEYWORDS = [
+  'no debts', 'no debt', 'no liabilities', 'no marital debt',
+  'no community debt', 'no family debt',
+];
+const PROPERTY_CATEGORY_TOKENS = ['property', 'assets', 'finances', 'financial'];
+const DEBT_CATEGORY_TOKENS = ['debt', 'debts', 'liabilities'];
+
+function _factSearchBlob(fact) {
+  if (!fact || typeof fact !== 'object') return '';
+  const parts = [
+    fact.content, fact.text, fact.value,
+    fact.sourceQuote, fact.source_quote,
+    fact.subcategory, fact.category,
+  ];
+  return parts.filter(Boolean).map(String).join(' ').toLowerCase();
+}
+function _factsIndicateNo(divorceData, keywordList, categoryTokens) {
+  const facts = Array.isArray(divorceData && divorceData.facts) ? divorceData.facts : [];
+  for (const f of facts) {
+    if (!f || typeof f !== 'object') continue;
+    const blob = _factSearchBlob(f);
+    if (!blob) continue;
+    // A property/debt-adjacent fact whose content OR sourceQuote hits any
+    // negation keyword counts; OR any fact whose category/subcategory names
+    // property/debt topic AND the negation keyword appears.
+    const hitsKeyword = keywordList.some((k) => blob.includes(k));
+    if (!hitsKeyword) continue;
+    const cat = String(f.category || '').toLowerCase();
+    const sub = String(f.subcategory || '').toLowerCase();
+    const categoryHit = categoryTokens.some((t) => cat.includes(t) || sub.includes(t));
+    // Direct phrase like "no property" is dispositive even in a marriage-tagged
+    // fact — the user said it. Category match confirms the phrase is about
+    // the property/debt topic and not e.g. "no property was destroyed".
+    if (hitsKeyword && (categoryHit || keywordList.some((k) => blob.includes(k)))) {
+      return true;
+    }
+  }
+  return false;
+}
 const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
+const { isRenderableDate, formatDate: sharedFormatDate, formatBirthDisplay } = require('./dateUtils');
 
 /**
  * Title-case an all-caps document title ("PETITION FOR DIVORCE" →
@@ -50,6 +106,28 @@ const escapeHtml = (str) => {
  */
 const normalizeCountyName = (county, fallback = '[COUNTY]') =>
   String(county || fallback).replace(/\s+county$/i, '').trim();
+
+/**
+ * Round-5 attorney review (Tavita FL, 2026-08-30): the LLM extraction
+ * layer occasionally lands the literal string "null" / "undefined" /
+ * "N/A" in a slot the caller expected to be empty (see Tavita profile:
+ * `county: "null"`). Rendering "Case No.: null" is worse than an
+ * unfilled blank — treat these sentinels as absent.
+ */
+function _sanitizeCaseNumber(value) {
+  if (value == null) return '';
+  const s = String(value).trim();
+  if (!s) return '';
+  const lower = s.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'n/a' || lower === 'none') return '';
+  // Round-6 attorney review (Tavita FL, 2026-08-30 v29): tolerate stray
+  // punctuation-only values ("." or "..") that LLM extraction leaves when
+  // the case number is absent — rendering "Case No. ." is worse than a
+  // fill-in blank. Any value that contains no alphanumeric character is
+  // treated as absent.
+  if (!/[A-Za-z0-9]/.test(s)) return '';
+  return s;
+}
 
 /**
  * Base template class for divorce petition generation
@@ -258,6 +336,11 @@ class BaseDivorcePetitionTemplate {
     // With a structured caption, the page opens with the filer block and the
     // court-name line; the old STATE OF X / COUNTY OF Y venue opener belongs
     // to the verification jurat, not the top of a petition.
+    // Top-of-document prep-tool disclaimer (attorney-review requirement,
+    // 2026-08). This is a DRAFT organized by an AI intake tool; every
+    // paragraph must be reviewed by the filer before filing, and any
+    // "(Draft — ...)" blank in the body requires confirmation.
+    const draftBanner = 'DRAFT — This document was prepared with an AI intake tool to help organize your facts. Review every paragraph before filing. Blanks marked with "(Draft — ...)" require your confirmation. This is not legal advice.';
     const caseCaption = this.generateCaseCaption(divorceData);
     const filerBlock = this.generateFilerBlock(divorceData);
     // Exactly ONE court identification: subclasses whose captions are not
@@ -317,6 +400,7 @@ class BaseDivorcePetitionTemplate {
         documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
       },
       sections: {
+        draftBanner,
         filerBlock,
         header,
         venue,
@@ -334,12 +418,12 @@ class BaseDivorcePetitionTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption: caption, title, parties, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption: caption, title, parties, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, parties, jurisdiction,
         marriageInfo, grounds, childrenInfo, propertyInfo,
         reliefRequested, verification, signatureBlock
       }),
@@ -403,9 +487,10 @@ class BaseDivorcePetitionTemplate {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county) || '______________________ COURT').toUpperCase();
     caption += `IN THE ${courtName}\n\n`;
 
-    // Case number
+    // Case number — reject literal "null"/"undefined" sentinels.
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '____________________';
+    const caseNumberClean = _sanitizeCaseNumber(divorceData.caseNumber);
+    const caseNumber = caseNumberClean || '____________________';
     caption += `${caseLabel} ${caseNumber}\n\n`;
 
     // Party names in family law format
@@ -441,7 +526,7 @@ class BaseDivorcePetitionTemplate {
         `          ${t.responderLabel}.`,
       ],
       right: [
-        `${caseLabel} ${divorceData.caseNumber || '_______________'}`,
+        `${caseLabel} ${caseNumberClean || '_______________'}`,
         '',
         'Judge _______________',
       ],
@@ -537,9 +622,30 @@ class BaseDivorcePetitionTemplate {
       type: 'party_identification'
     });
 
+    // Respondent residence. The extraction layer sometimes stores free
+    // text like "Unknown; possibly Louisiana with brother, no address" —
+    // dumping that into a "resident of …" clause is a defective pleading
+    // (live Texas audit, 2026-08). When the address is missing or
+    // signals "unknown/no address", plead residence-unknown and note that
+    // alternative service will be requested; otherwise use the stored
+    // address as-is.
+    const respondentResidenceClause = this.getRespondentResidenceClause(divorceData);
+    let respondentContent = `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, ${respondentResidenceClause}.`;
+    // When the residence clause pleaded alternative service, append the
+    // jurisdiction-specific Draft note explaining the procedural next step
+    // (e.g., TX TRCP 106/109 due-diligence affidavit; GA §9-11-4(f)(1)(A)
+    // motion + limited-relief warning). Templates that don't override
+    // getAltServiceNote() get no note; those that do get their statute-
+    // specific reminder.
+    if (this.isAltServiceCase(divorceData)) {
+      const note = this.getAltServiceNote(divorceData);
+      if (note) respondentContent += `\n(Draft — ${note})`;
+    } else if (this.isMissingAddressCase(divorceData)) {
+      respondentContent += `\n(Draft — insert ${t.responderLabel}'s current address before filing, or affirm the address is unknown for alternative-service treatment)`;
+    }
     items.push({
       number: paragraphNum++,
-      content: `${t.responderLabel}, ${divorceData.respondentName || '[RESPONDENT NAME]'}, is ${divorceData.respondentAddress ? `a resident of ${divorceData.respondentAddress}` : `a resident of this ${t.jurisdictionTerm.toLowerCase()}`}.`,
+      content: respondentContent,
       type: 'party_identification'
     });
 
@@ -548,6 +654,121 @@ class BaseDivorcePetitionTemplate {
       items,
       nextParagraphNumber: paragraphNum
     };
+  }
+
+  /**
+   * Honest residence clause for the Respondent. Values like "Unknown;
+   * possibly in Louisiana with his brother, no address available"
+   * (a real live-Texas extraction, 2026-08) must NOT dump into a
+   * "resident of …" clause. Rules:
+   *   - No address on file → residence unknown; alternative-service note.
+   *   - Address contains "unknown" or "no address" (case-insensitive) →
+   *     same residence-unknown clause; the free-text detail is preserved
+   *     as a follow-up sentence so the record still reflects what is
+   *     known ("possibly in Louisiana with his brother").
+   *   - Otherwise render "is a resident of <address>" as before.
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Sentence fragment that follows "Respondent, <name>,"
+   */
+  getRespondentResidenceClause(divorceData) {
+    const t = this.terminology;
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
+    const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
+    // Sworn-truth flag: petitioner has affirmed the whereabouts are unknown.
+    if (divorceData.respondentAddressUnknown === true) {
+      const suspectedNote = suspected
+        ? ` (${t.filerLabel} has heard, but cannot swear, that ${t.responderLabel} may be in ${suspected})`
+        : '';
+      return `resides at an address unknown to ${t.filerLabel}${suspectedNote}; ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    // Well-formed, non-hedged address — plead residence as given.
+    if (raw && !unknownPattern.test(raw)) {
+      return `is a resident of ${raw}`;
+    }
+    // Raw carries an "unknown/no address" hedge — treat as alt-service.
+    if (raw && unknownPattern.test(raw)) {
+      return `resides at an address unknown to ${t.filerLabel} (${raw}); ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    // Empty raw + suspected location — alt-service with bracketed caveat.
+    if (!raw && suspected) {
+      return `resides at an address unknown to ${t.filerLabel} (${t.filerLabel} has heard, but cannot swear, that ${t.responderLabel} may be in ${suspected}); ${t.filerLabel} will request alternative service under the applicable rules`;
+    }
+    // SAFETY GATE (attorney review, 2026-08): silence-derived missing
+    // address. Refuse to fabricate a "resides here / or unknown" hedge —
+    // emit a visible fill-in blank; generatePartiesSection appends a
+    // Draft note asking the filer to confirm or mark unknown before filing.
+    return 'resides at __________________________________________';
+  }
+
+  /**
+   * Whether this data payload will render an alternative-service residence
+   * clause (i.e., the "resides at an address unknown … will request
+   * alternative service" branch, not the classic "is a resident of ..."
+   * sentence). Mirrors the base getRespondentResidenceClause() logic; state
+   * templates that add hedge detection (TX, GA) override this so the Draft
+   * note appears on the same triggers that produce the alt-service clause.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  isAltServiceCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return true;
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
+    if (raw) {
+      const unknownPattern = /(^|\b)(unknown|no address|whereabouts unknown|address unknown)\b/i;
+      return unknownPattern.test(raw);
+    }
+    // Empty raw only counts as alt-service when we have a suspected
+    // location the petitioner can't swear to. Silence alone is treated
+    // as a missing-address Draft note by generatePartiesSection, not as
+    // a sworn "resides at an address unknown" allegation.
+    return Boolean(suspected);
+  }
+
+  /**
+   * Whether the data payload has no address information at all — no
+   * sworn-truth flag, no raw address, no suspected location. Distinct
+   * from isAltServiceCase: this triggers a "fill in the address before
+   * filing" Draft note rather than pleading alternative service.
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  isMissingAddressCase(divorceData) {
+    if (divorceData.respondentAddressUnknown === true) return false;
+    const raw = typeof divorceData.respondentAddress === 'string'
+      ? divorceData.respondentAddress.trim()
+      : '';
+    const suspected = typeof divorceData.respondentSuspectedLocation === 'string'
+      ? divorceData.respondentSuspectedLocation.trim()
+      : '';
+    return !raw && !suspected;
+  }
+
+  /**
+   * Jurisdiction-specific "next steps" note appended to the respondent's
+   * residence paragraph when isAltServiceCase() is true. State templates
+   * override this to point users at the applicable statute/rule and its
+   * due-diligence requirement (e.g., TX TRCP 106/109, GA §9-11-4(f)(1)(A),
+   * CA CCP §415.50, NY CPLR §308(5), ON FLR 6(20)). Returning null (the
+   * base default) suppresses the note.
+   *
+   * @param {Object} divorceData
+   * @returns {?string}
+   */
+  getAltServiceNote(_divorceData) {
+    return null;
   }
 
   /**
@@ -626,9 +847,11 @@ class BaseDivorcePetitionTemplate {
       // marriageState only when it's a full name, never a bare code
       (clean(divorceData.marriageState).length > 2 ? clean(divorceData.marriageState) : '');
 
-    // A location that already says more than the bare city wins as-is
-    // (e.g. "Provo, Utah" or "Paris, France").
-    if (location && (!city || location.toLowerCase() !== city.toLowerCase())) {
+    // A location that already contains a comma is treated as fully
+    // qualified ("Provo, Utah", "Paris, France"). A bare "Atlanta" — no
+    // comma, no state — falls through to the city+state fallback so the
+    // paragraph reads "in Atlanta, Georgia" rather than a bare city.
+    if (location && location.includes(',')) {
       return location;
     }
     const effectiveCity = city || location;
@@ -648,16 +871,42 @@ class BaseDivorcePetitionTemplate {
     let paragraphNum = divorceData._paragraphNum || 5;
 
     const marriagePlace = this.formatMarriagePlace(divorceData);
-    items.push({
-      number: paragraphNum++,
-      content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${this.formatDate(divorceData.marriageDate) || '[DATE OF MARRIAGE]'}${marriagePlace ? ` in ${marriagePlace}` : ''}.`,
-      type: 'marriage_info'
-    });
+    const marriagePlaceSuffix = marriagePlace ? ` in ${marriagePlace}` : '';
+    const marriageDateFormatted = this.formatDate(divorceData.marriageDate);
+    if (marriageDateFormatted) {
+      items.push({
+        number: paragraphNum++,
+        content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on ${marriageDateFormatted}${marriagePlaceSuffix}.`,
+        type: 'marriage_info'
+      });
+    } else {
+      // Visible fill-in blank + Draft note (mirrors v11-B CA pattern) when
+      // the interviewee never gave a renderable date shape ("married a
+      // while ago"). Avoids the [DATE OF MARRIAGE] denylist sentinel that
+      // would 422 the generate route AND avoids emitting freeform text as
+      // if it were sworn.
+      items.push({
+        number: paragraphNum++,
+        content: `${this.terminology.filerLabel} and ${this.terminology.responderLabel} were married on __________________${marriagePlaceSuffix}.\n(Draft — insert exact date of marriage before filing)`,
+        type: 'marriage_info'
+      });
+    }
 
-    if (divorceData.separationDate) {
+    // Only emit the separation clause when the underlying value looks
+    // like a date shape. A freeform "a few months ago" earlier reached
+    // formatDate, which returned it raw and interpolated it into the
+    // pleading (v12-B); now formatDate returns null and we render the
+    // blank-plus-note pattern instead of "separated on or about null".
+    if (isRenderableDate(divorceData.separationDate)) {
       items.push({
         number: paragraphNum++,
         content: `The parties separated on or about ${this.formatDate(divorceData.separationDate)}.`,
+        type: 'marriage_info'
+      });
+    } else if (divorceData.separationDate) {
+      items.push({
+        number: paragraphNum++,
+        content: `The parties separated on or about __________________.\n(Draft — insert exact date of separation before filing)`,
         type: 'marriage_info'
       });
     }
@@ -676,12 +925,12 @@ class BaseDivorcePetitionTemplate {
    * @returns {string} Formatted date
    */
   formatDate(dateStr) {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr;
-
-    const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
-    return date.toLocaleDateString('en-US', options);
+    // Delegates to the shared helper. Returns null on empty / non-date
+    // shapes / NaN — earlier this returned the raw input string, which
+    // let freeform narratives ("a few months ago") reach the pleading
+    // verbatim. Callers must guard the null with a visible-blank +
+    // Draft-note branch or a denylist sentinel; never interpolate null.
+    return sharedFormatDate(dateStr);
   }
 
   /**
@@ -770,9 +1019,10 @@ class BaseDivorcePetitionTemplate {
 
       if (divorceData.children && divorceData.children.length > 0) {
         divorceData.children.forEach((child, index) => {
+          const dobText = typeof child === 'object' ? this.formatChildDob(child) : null;
           const childInfo = typeof child === 'string'
             ? child
-            : `${child.name || '______________________'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '______________'}`;
+            : `${child.name || '______________________'}, born ${dobText || '______________'}`;
           items.push({
             number: paragraphNum++,
             content: `Child ${index + 1}: ${childInfo}`,
@@ -910,11 +1160,43 @@ class BaseDivorcePetitionTemplate {
     const items = [];
     let paragraphNum = divorceData._paragraphNum || 12;
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): "there is no property to be
+    // divided" is a dispositive nil-finding that waives a party's claim to
+    // marital property. It may render ONLY when the profile carries an
+    // AFFIRMATIVE, user-confirmed statement — `hasProperty === false`
+    // together with a corroborating signal (`noPropertyConfirmed === true`
+    // OR a described `propertyAgreement`). Otherwise emit a visible
+    // Draft-note blank so the self-rep filer must confirm before filing.
+    // Nil finding fires on either:
+    //   (a) hasProperty === false + a corroborating signal
+    //       (noPropertyConfirmed === true OR a described propertyAgreement),
+    //   (b) noPropertyConfirmed === true on its own — an affirmative
+    //       user-confirmed "no property" from the intake that shouldn't
+    //       fall through into the boilerplate community-property allegation
+    //       even when hasProperty was never explicitly set to false
+    //       (Mari's TX petition, live audit 2026-08).
+    const factsSayNoProperty = this.factsIndicateNoProperty(divorceData);
+    const nilPropertyConfirmed =
+      divorceData.noPropertyConfirmed === true ||
+      (divorceData.hasProperty === false &&
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== '')) ||
+      // Round-3 attorney review (Mari TX): facts[] explicitly said
+      // "no property, no house, no retirement" but the structured
+      // hasProperty flag never landed. Treat the fact as authoritative.
+      factsSayNoProperty;
+    if (nilPropertyConfirmed) {
       items.push({
         number: paragraphNum++,
-        content: 'There is no community or marital property to be divided.',
+        content: 'The parties own no community or marital property to be divided.',
         type: 'property_info'
+      });
+    } else if (divorceData.hasProperty === false) {
+      // Silence-derived "no property" — refuse to fabricate. Draft note.
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else if (this.hasAgreedPropertyDivision(divorceData)) {
       // The parties described an agreed division — plead it instead of the
@@ -926,7 +1208,7 @@ class BaseDivorcePetitionTemplate {
           type: 'property_agreement'
         });
       }
-    } else {
+    } else if (divorceData.hasProperty === true) {
       items.push({
         number: paragraphNum++,
         content: 'The parties have accumulated community/marital property during the marriage, including but not limited to real property, personal property, and financial accounts.',
@@ -938,12 +1220,39 @@ class BaseDivorcePetitionTemplate {
         content: `${this.terminology.filerLabel} requests that the Court divide the community/marital property in a just and right manner.`,
         type: 'property_request'
       });
+    } else {
+      // SAFETY GATE: neither an affirmative "we have property" flag nor a
+      // confirmed no-property finding — refuse to fabricate a
+      // community-property allegation. Emit a Draft-note blank so the
+      // self-rep filer must confirm whether marital property exists
+      // before filing.
+      items.push({
+        number: paragraphNum++,
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing.)',
+        type: 'property_draft_note'
+      });
     }
 
-    if (divorceData.hasDebts !== false) {
+    // Round-3 attorney review (David NY): a debts boilerplate paragraph
+    // rendered against a silent transcript. Only emit when we have an
+    // affirmative signal (hasDebts === true, an itemized list on either
+    // side, or an explicit facts-derived "we have debts" cue); silence
+    // OR a facts-derived "no debts" statement suppress the paragraph.
+    const factsSayNoDebts = this.factsIndicateNoDebts(divorceData);
+    const affirmativeDebtSignal =
+      divorceData.hasDebts === true ||
+      asList(divorceData.petitionerDebts).length > 0 ||
+      asList(divorceData.respondentDebts).length > 0;
+    if (affirmativeDebtSignal && !factsSayNoDebts) {
       items.push({
         number: paragraphNum++,
         content: `The parties have accumulated debts during the marriage. ${this.terminology.filerLabel} requests that the Court allocate responsibility for such debts in a just and equitable manner.`,
+        type: 'debt_info'
+      });
+    } else if (divorceData.hasDebts === false || factsSayNoDebts) {
+      items.push({
+        number: paragraphNum++,
+        content: 'The parties have no marital debts to be divided.',
         type: 'debt_info'
       });
     }
@@ -962,11 +1271,71 @@ class BaseDivorcePetitionTemplate {
    * @returns {boolean}
    */
   hasAgreedPropertyDivision(divorceData) {
+    // Round-3 attorney review (Sarah AB): profile carried
+    // propertyAgreement="pending" and the base predicate treated the raw
+    // truthy string as an affirmative agreement — the petition then
+    // pleaded a fabricated "the parties have reached an agreement…" and
+    // relief (f) invited the court to approve it. A status token
+    // ("pending"/"unknown"/"undecided"/…) is NOT an agreement.
+    const raw = typeof divorceData.propertyAgreement === 'string'
+      ? divorceData.propertyAgreement.trim()
+      : divorceData.propertyAgreement;
+    const rawNorm = typeof raw === 'string'
+      ? raw.toLowerCase().replace(/[.!]+$/, '').replace(/\s+/g, ' ')
+      : '';
+    // Split PROPERTY_AGREEMENT_STATUS_TOKENS by polarity: "agreed"/"yes"/
+    // "true"/"y" are AFFIRMATIVE and count as an agreement even without a
+    // description; "pending"/"unknown"/"undecided"/"tbd"/"no"/"false"/
+    // "contested"/"disputed"/"n/a"/"none" are NON-affirmative and never
+    // count on their own (Sarah AB round-3: propertyAgreement="pending").
+    const AFFIRMATIVE_STATUS = new Set(['agreed', 'agree', 'agreement', 'yes', 'true', 'y']);
+    const isStatusToken = rawNorm && PROPERTY_AGREEMENT_STATUS_TOKENS.has(rawNorm);
+    const isAffirmativeStatus = rawNorm && AFFIRMATIVE_STATUS.has(rawNorm);
+    const affirmativeAgreement =
+      raw === true ||
+      divorceData.propertyAgreementConfirmed === true ||
+      isAffirmativeStatus ||
+      (typeof raw === 'string' && raw.length > 0 && !isStatusToken);
     return Boolean(
-      divorceData.propertyAgreement ||
+      affirmativeAgreement ||
       asList(divorceData.petitionerProperty).length > 0 ||
       asList(divorceData.respondentProperty).length > 0
     );
+  }
+
+  /**
+   * Round-3 attorney review (Mari TX / David NY): fact-derived signal
+   * that the parties have no property to divide. Deterministic keyword
+   * intersection over model-classified metadata — no free-text prose
+   * parsing beyond the closed keyword list above.
+   */
+  factsIndicateNoProperty(divorceData) {
+    return _factsIndicateNo(divorceData, NO_PROPERTY_KEYWORDS, PROPERTY_CATEGORY_TOKENS);
+  }
+
+  /**
+   * Fact-derived signal that the parties have no debts to divide.
+   */
+  factsIndicateNoDebts(divorceData) {
+    return _factsIndicateNo(divorceData, NO_DEBTS_KEYWORDS, DEBT_CATEGORY_TOKENS);
+  }
+
+  /**
+   * Universal year-only DOB helper. Round-3 attorney review (Marcus,
+   * Sarah's kids): transcripts said "born 2020" / "born 2011" and the
+   * base formatDate returned null for bare years, so pleadings read
+   * "born __________________" even when the year was clearly stated.
+   * The Alberta template already did this via yearOnlyOf; hoist to the
+   * base so every jurisdiction inherits it.
+   */
+  formatChildDob(child) {
+    if (!child || typeof child !== 'object') return null;
+    const raw = child.birthDate ?? child.dob ?? child.dateOfBirth;
+    const full = this.formatDate(raw);
+    if (full) return full;
+    const year = child.birthYear ?? yearOnlyOf(raw);
+    if (year && /^\d{4}$/.test(String(year).trim())) return String(year).trim();
+    return null;
   }
 
   /**
@@ -1028,9 +1397,7 @@ class BaseDivorcePetitionTemplate {
     const all = () => reliefItems.join(' ');
     const additions = [];
 
-    const hasChildren =
-      divorceData.hasMinorChildren === true ||
-      (Array.isArray(divorceData.children) && divorceData.children.length > 0);
+    const hasChildren = this.hasMinorChildrenForRelief(divorceData);
     if (hasChildren && divorceData.childSupportAmount &&
         !all().includes(`$${divorceData.childSupportAmount}`)) {
       const payor = divorceData.childSupportObligor || divorceData.respondentName || t.responderLabel;
@@ -1039,9 +1406,18 @@ class BaseDivorcePetitionTemplate {
       );
     }
 
+    // SAFETY GATE (attorney review, 2026-08): a spousal-support waiver
+    // relinquishes a legal right — plead it ONLY on an affirmative,
+    // user-confirmed waiver (`spousalSupportWaived === true` OR the newer
+    // `spousalSupportAgreed === true`). A bare `spousalSupportRequested
+    // === false` (an LLM default when the topic was never discussed) is
+    // NOT sufficient — that is the fabrication the Marcus/Sarah audits
+    // caught.
     const supportWaived =
-      (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) &&
-      !divorceData.requestSpousalSupport;
+      (divorceData.spousalSupportWaived === true ||
+        divorceData.spousalSupportAgreed === true) &&
+      !divorceData.requestSpousalSupport &&
+      !divorceData.spousalSupportRequested;
     if (supportWaived && !/waiv/i.test(all())) {
       additions.push(
         'Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;'
@@ -1059,6 +1435,23 @@ class BaseDivorcePetitionTemplate {
       reliefItems.splice(insertAt, 0, ...additions);
     }
     return reliefItems;
+  }
+
+  /**
+   * Whether the case has MINOR children on file — the trigger for
+   * custody/child-support prayer items and agreed-child-arrangement
+   * relief. hasMinorChildren === false overrides any children[] entries
+   * (they are then treated as adult children of the marriage, named
+   * elsewhere but never as minors — live audits, 2026-08).
+   *
+   * @param {Object} divorceData
+   * @returns {boolean}
+   */
+  hasMinorChildrenForRelief(divorceData) {
+    const d = divorceData || {};
+    if (d.hasMinorChildren === false) return false;
+    if (d.hasMinorChildren === true) return true;
+    return Array.isArray(d.children) && d.children.length > 0;
   }
 
   /**
@@ -1085,8 +1478,13 @@ class BaseDivorcePetitionTemplate {
       'Allocate responsibility for debts in an equitable manner;'
     ];
 
-    // Add child-related relief if applicable
-    if (divorceData.hasMinorChildren === true || (divorceData.children && divorceData.children.length > 0)) {
+    // Add child-related relief only when the case has minor children on
+    // file. hasMinorChildren === false suppresses custody/support prayer
+    // items even when the children[] array holds ADULT children (live
+    // Texas + California audits, 2026-08 — the prayer asked the court to
+    // "determine custody" in cases where the parties have no minor
+    // children).
+    if (this.hasMinorChildrenForRelief(divorceData)) {
       reliefItems.push('Determine custody and parenting time/visitation arrangements for the minor child(ren);');
       reliefItems.push('Order appropriate parenting time/visitation for the non-custodial parent;');
       if (divorceData.childSupportAmount) {
@@ -1101,8 +1499,19 @@ class BaseDivorcePetitionTemplate {
     // when the data explicitly says support is not sought.
     if (divorceData.requestSpousalSupport || divorceData.spousalSupportRequested) {
       reliefItems.push(`Award spousal maintenance/alimony to ${t.filerLabel};`);
-    } else if (divorceData.spousalSupportRequested === false || divorceData.spousalSupportWaived) {
+    } else if (
+      // SAFETY GATE (attorney review, 2026-08): a spousal-support waiver
+      // relinquishes a legal right. Emit ONLY on an affirmative,
+      // user-confirmed waiver. A bare `spousalSupportRequested === false`
+      // (LLM default when the topic was never discussed) is not enough.
+      divorceData.spousalSupportWaived === true ||
+      divorceData.spousalSupportAgreed === true
+    ) {
       reliefItems.push('Confirm the parties\' agreement that neither party shall pay spousal maintenance/alimony to the other, each party having waived such support;');
+    } else if (divorceData.spousalSupportRequested === false) {
+      // Silence-derived: leave the ask open with a Draft note the filer
+      // must confirm — never a fabricated release.
+      reliefItems.push('________________________________________ (Draft — confirm whether you have agreed on spousal support before filing; silence on this line may be treated as no agreement.);');
     }
 
     // Add name change if requested
@@ -1199,6 +1608,12 @@ class BaseDivorcePetitionTemplate {
    */
   generateFullText(sections) {
     let text = '';
+
+    // Prep-tool disclaimer sits above every other section so the filer
+    // (and any downstream reviewer) sees it before reading the pleading.
+    if (sections.draftBanner) {
+      text += sections.draftBanner + '\n\n';
+    }
 
     // With a structured caption, sections.header keeps the court line for
     // the PDF layer's caption layout — skip it here when the caption's
@@ -1330,6 +1745,7 @@ class BaseDivorcePetitionTemplate {
   </style>
 </head>
 <body>
+  ${sections.draftBanner ? `<div class="draft-banner" style="border:1px solid #b45309;background:#fff7ed;padding:10px 14px;margin:0 0 20px 0;font-size:10pt;line-height:1.4;color:#7c2d12;"><strong>DRAFT</strong> — ${escapeHtml(sections.draftBanner.replace(/^DRAFT — /, ''))}</div>` : ''}
   ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
   ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}

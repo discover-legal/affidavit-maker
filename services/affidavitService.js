@@ -246,6 +246,11 @@ SUPPORTED JURISDICTIONS: Currently available - ${this.supportedStates.map(s => `
 - If user mentions OTHER states → Set extracted_state to "UNSUPPORTED" and inform them politely
 - Response for unsupported states: "I appreciate you sharing that information! Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve ${this.supportedStates.map(s => s.name).join(', ')}. Is there anything else I can help you with?"
 
+TURN 1 RULE — USER'S OWN NAME COMES FIRST:
+- If the CURRENT AFFIDAVIT STATUS below shows the first or last name as "❌ NOT PROVIDED", your VERY NEXT question in chat_response MUST be exactly: "What is your full legal name?"
+- Do NOT extract other facts in preference to the name. Do NOT skip this question because the user shared other information (state, story, etc.). Do NOT accept vague answers ("me", "the affiant", "just my first name is fine") without a follow-up asking for the full first + last name.
+- The interview must not advance past name collection until both extracted_first_name and extracted_last_name are captured.
+
 EXTRACTION RULES:
 - Collect the affiant's FULL legal name (first and last fields)
   * If only part of the name was given, ask for the missing part — never proceed with just a first name
@@ -402,6 +407,11 @@ SUPPORTED JURISDICTIONS: Currently available - ${this.supportedStates.map(s => `
 - If user mentions these states → Extract normally
 - If user mentions OTHER states → Set extracted_state to "UNSUPPORTED" and inform them politely
 - Response for unsupported states: "I understand this is a difficult time. Unfortunately, we don't currently support [State Name] yet, but we're working on expanding. We currently serve ${this.supportedStates.map(s => s.name).join(', ')}. Is there anything else I can help you with?"
+
+TURN 1 RULE — USER'S OWN NAME COMES FIRST:
+- If the CURRENT DIVORCE DOCUMENT STATUS below shows BOTH petitioner and respondent first names as "❌ NOT PROVIDED", your VERY NEXT question in chat_response MUST be exactly: "What is your full legal name?" Do NOT ask "who filed" first, do NOT ask about children or property first, do NOT extract facts in preference to the name.
+- Do NOT accept vague answers ("me", "the petitioner", "just my first name is fine") without a follow-up asking for the full first + last name.
+- The interview must not advance past name collection until at least one of petitioner_first_name / respondent_first_name is captured.
 
 DIVORCE DOCUMENT COLLECTION ORDER:
 1. **Petitioner Information** (the person filing)
@@ -714,27 +724,38 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
               type: "string",
               description: "REQUIRED: Conversational response to guide user through divorce document creation."
             },
-            // Petitioner (person filing)
+            // Petitioner (person filing) — the ROLE, not necessarily the user.
+            // If the user's spouse filed, the spouse's name goes here.
             petitioner_first_name: {
               type: "string",
-              description: `Petitioner: ${FIRST_NAME_DESCRIPTION} Use null if not mentioned.`
+              description: `Petitioner (whoever FILED, even if that is not the user): ${FIRST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             petitioner_last_name: {
               type: "string",
-              description: `Petitioner: ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
+              description: `Petitioner (whoever FILED): ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
             },
             petitioner_address: {
               type: "string",
               description: "Petitioner's current address. Use null if not mentioned."
             },
-            // Respondent (spouse)
+            // Respondent (the SERVED party) — the ROLE, not necessarily the spouse.
             respondent_first_name: {
               type: "string",
-              description: `Respondent (spouse): ${FIRST_NAME_DESCRIPTION} Extract from ANY mention of the spouse, even mid-sentence. Use null if not mentioned.`
+              description: `Respondent (whoever was SERVED / did NOT file — the user themselves when the user was served): ${FIRST_NAME_DESCRIPTION} Extract from ANY mention of the non-filing party, even mid-sentence. Use null if not mentioned.`
             },
             respondent_last_name: {
               type: "string",
-              description: `Respondent (spouse): ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
+              description: `Respondent: ${LAST_NAME_DESCRIPTION} Use null if not mentioned.`
+            },
+            who_filed: {
+              type: "string",
+              enum: ["me", "my_spouse", "unknown"],
+              description: 'MACHINE-READ role signal: who filed the divorce. "me" → user is petitioner; "my_spouse" → user is respondent. Extract as soon as the user makes it clear ("my wife filed", "I got served").'
+            },
+            served_on_user: {
+              type: "string",
+              enum: ["yes", "no", "unknown"],
+              description: 'MACHINE-READ role signal: was the USER personally served with divorce papers? "yes" implies the user is the respondent. Only set when the user describes being served, not when they are describing serving papers on their spouse.'
             },
             respondent_address: {
               type: "string",
@@ -1199,6 +1220,21 @@ CRITICAL INSTRUCTION: Only extract NEW information that is NOT already captured 
   processDivorceToolCall(args, currentData, sourceMessage = '') {
     const newData = { ...currentData };
     let hasNewData = false;
+
+    // Role signals resolve FIRST so caption-name assignments below already
+    // know which side of the case IS the user. Historical bug: the user
+    // saying "my wife filed" left role unset, so affiantName defaulted to
+    // the wife (petitioner) instead of the user (respondent). Ontario Marcus.
+    if (typeof args.served_on_user === 'string' &&
+        args.served_on_user.toLowerCase() === 'yes') {
+      newData.role = 'respondent';
+      hasNewData = true;
+    }
+    if (typeof args.who_filed === 'string') {
+      const w = args.who_filed.toLowerCase();
+      if (w === 'my_spouse') { newData.role = 'respondent'; hasNewData = true; }
+      else if (w === 'me')   { newData.role = 'petitioner'; hasNewData = true; }
+    }
 
     // The affiant is the USER, on whichever side of the caption they sit —
     // when role === 'respondent' the petitioner caption is the SPOUSE, so the

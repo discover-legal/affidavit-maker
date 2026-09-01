@@ -312,6 +312,65 @@ describe('computeNextSteps — respondent perspective', () => {
   });
 });
 
+describe('Ontario procedure (R. 10 answer deadlines)', () => {
+  const ON = getProcedure('ON') as StateProcedure;
+
+  it('is registered and reports the R. 10 answer window', () => {
+    expect(ON).not.toBeNull();
+    expect(ON.stateCode).toBe('ON');
+    expect(ON.stateName).toBe('Ontario');
+    // Family Law Rules R. 10: 30 days in Canada / US, 60 days elsewhere.
+    // The /respond banner reads answerDeadlineDays.inState — a non-null
+    // value here is what makes it stop rendering the "we don't have the
+    // deadline rules for your area here yet" fallback for Ontario.
+    expect(ON.answerDeadlineDays.inState).toBe(30);
+    expect(ON.answerDeadlineDays.outOfState).toBe(60);
+  });
+
+  it('carries the Divorce Act residency + effective-date facts', () => {
+    // s.3(1) — one year of ordinary residence before starting the case.
+    expect(ON.residency.months).toBe(12);
+    // s.12(1) — Divorce Order takes effect on the 31st day.
+    expect(ON.waitingPeriodDays).toBe(31);
+    expect(ON.waitingWaivable).toBe(true);
+  });
+
+  it('exposes the R. 6 service methods including publication', () => {
+    const keys = ON.serviceMethods.map((m) => m.key);
+    expect(keys).toContain('acceptance');
+    expect(keys).toContain('personal');
+    expect(keys).toContain('publication');
+  });
+
+  it('computes a real answer-due date for a respondent served in Ontario', () => {
+    // Marcus persona from the v5 /respond audit: served June 24, 2025,
+    // in Ontario. R. 10 → 30 days → July 24, 2025.
+    const profile = {
+      role: 'respondent',
+      keyEvents: [{ label: 'Original petition served on you', date: '2025-06-24' }],
+    };
+    const steps = computeNextSteps(profile, ON, new Date(2025, 6, 1));
+    const answer = steps.find((s) => s.key === 'answer');
+    expect(answer).toBeDefined();
+    expect(answer?.due).toBe('2025-07-24');
+    expect(answer?.detail).toMatch(/30 days/);
+    expect(answer?.detail).toMatch(/60 days/);
+    expect(answer?.detail).toMatch(/Ontario/);
+  });
+
+  it('answer detail cites the out-of-province window a served-abroad respondent needs', () => {
+    // Rendered from the same StateProcedure fields, so a respondent
+    // served outside Canada/US sees the 60-day figure in the copy.
+    const profile = {
+      role: 'respondent',
+      keyEvents: [{ label: 'Original petition served on you', date: '2025-06-24' }],
+    };
+    const steps = computeNextSteps(profile, ON, new Date(2025, 6, 1));
+    const answer = steps.find((s) => s.key === 'answer');
+    expect(answer?.detail).toContain('60 days');
+  });
+});
+
 describe('isCanadianJurisdiction', () => {
   it('recognizes every province and territory code, case-insensitively', () => {
     for (const code of ['ON', 'BC', 'AB', 'MB', 'SK', 'QC', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU']) {

@@ -16,6 +16,7 @@ import { paymentsEnabled } from '@/lib/api/stripe';
 import {
   buildDocumentStructureForType,
   listPacketDocumentTypes,
+  packetRenderContextFor,
   type AffidavitData,
   type TemplateManager,
 } from '@/lib/api/documentStructure';
@@ -234,6 +235,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     const packetTypes = listPacketDocumentTypes(
       doc.document_type ?? (content.documentType as string | undefined),
+      // Role-aware: a respondent's divorce_package expands to just the
+      // decree draft, not the petition (which is the other side's filing).
+      content.role as string | undefined,
     );
 
     const documentStructures: unknown[] = [];
@@ -250,6 +254,17 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
               stateCode,
               { ...content, state: stateCode, documentType: packetType } as AffidavitData,
               packetType,
+              {
+                // Bug (Tavita, FL): a respondent-side packet must not put the
+                // Final Judgment of Dissolution in the "file this" pile; the
+                // court signs the decree. Mark it as REFERENCE — NOT FOR
+                // FILING so the packet still shows the eventual terms without
+                // implying the respondent files it.
+                renderContext: packetRenderContextFor(
+                  content.role as string | undefined,
+                  packetType,
+                ),
+              },
             ),
           );
         } catch (templateErr) {
@@ -406,9 +421,21 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // ── STEP 3: Assemble the packet ─────────────────────────────────────────
     const { assemblePacket } = require('@/services/courtPacket') as CourtPacketModule;
 
+    // Round-7 attorney (Marcus ON, 2026-08-30 v30b): the filing party is
+    // called the "Applicant" in every Canadian jurisdiction that follows
+    // the Divorce Act / provincial Family Law Rules (ON, AB, BC, QC, MB,
+    // SK, NS, NB, PE, NL, YT, NT, NU) — "Petitioner" is US idiom. Choose
+    // the label per state code so the cover page matches the substance
+    // of the pleadings inside.
+    const CANADIAN_JURISDICTIONS = new Set(
+      ['ON', 'AB', 'BC', 'QC', 'MB', 'SK', 'NS', 'NB', 'PE', 'NL', 'YT', 'NT', 'NU'],
+    );
+    const filerLabel = CANADIAN_JURISDICTIONS.has(String(stateCode || '').toUpperCase())
+      ? 'Applicant'
+      : 'Petitioner';
     const parties: string[] = [];
     if (typeof content.petitionerName === 'string' && content.petitionerName.trim()) {
-      parties.push(`Petitioner: ${content.petitionerName.trim()}`);
+      parties.push(`${filerLabel}: ${content.petitionerName.trim()}`);
     }
     if (typeof content.respondentName === 'string' && content.respondentName.trim()) {
       parties.push(`Respondent: ${content.respondentName.trim()}`);
@@ -427,7 +454,18 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       evidence,
       state: stateCode,
       county: typeof content.county === 'string' ? content.county : undefined,
-      packetDate: new Date().toISOString().slice(0, 10),
+      // Round-7 attorney review (Tavita FL, 2026-08-30): using UTC's ISO
+      // date (toISOString()) rendered the packet cover as "one day in the
+      // future" for every user west of UTC once server time crossed
+      // midnight UTC. Anchor the packet date at UTC-12 (Etc/GMT+12, the
+      // westernmost civilian timezone) so the printed date is never
+      // AHEAD of any viewer's local calendar date on Earth. It may lag
+      // by one day for users east of UTC-12 late in the local evening,
+      // which is far less confusing than a future-dated cover.
+      packetDate: (() => {
+        const nowMs = Date.now() - 12 * 60 * 60 * 1000;
+        return new Date(nowMs).toISOString().slice(0, 10);
+      })(),
       parties,
     });
 
@@ -439,7 +477,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         : undefined,
       'document',
     );
-    const safeFilename = `filing-packet-${baseName}.pdf`;
+    const safeFilename = `case-packet-${baseName}.pdf`;
 
     logger.info('document_packet_generated', {
       userId: user.id,

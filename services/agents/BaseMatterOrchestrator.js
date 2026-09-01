@@ -83,6 +83,26 @@ const DEFAULT_PHASE_CATEGORY = {
 // ─── Orchestrator behavior rules ──────────────────────────────────────────────
 // Injected into every system prompt to enforce consistent UX across all matter types.
 
+// Same NAME_FIRST_RULE as BaseDivorceOrchestrator — every matter interview
+// must volunteer to ask the user's own name up front rather than waiting for
+// it to fall out of natural conversation. Injected only while missing.
+const NAME_FIRST_RULE = `
+TURN 1 RULE — USER'S OWN NAME IS MISSING: The user's own full legal name is not yet in ALREADY COLLECTED. Your VERY NEXT question MUST be exactly: "What is your full legal name?" — regardless of what the current phase's COLLECT list says. Do NOT extract other facts in preference to the name. Do NOT skip this question because the user shared other information. Do NOT accept vague answers ("me", "the petitioner", "just call me by my first name") without a follow-up asking for the full first + last name. Do NOT set phase_complete: true until the user's own full legal name is captured.
+`;
+
+// The "user's own name" is present when any of the caption first-name
+// fields is set. Mirrors BaseDivorceOrchestrator's predicate — matter data
+// uses the same field names for the filing / represented party.
+function _userNameMissing(data) {
+  if (!data || typeof data !== 'object') return true;
+  return !data.affiantName &&
+    !data.firstName &&
+    !data.petitionerFirstName &&
+    !data.petitionerName &&
+    !data.plaintiffFirstName &&
+    !data.plaintiffName;
+}
+
 const ORCHESTRATOR_BEHAVIOR = `
 CONVERSATION RULES (you MUST follow these strictly):
 1. Ask exactly ONE question per message. The COLLECT list above shows everything to gather in this phase, but you MUST ask them one at a time across multiple messages. Never combine two or more questions.
@@ -209,7 +229,18 @@ class BaseMatterOrchestrator {
       updatedData.facts = mergeFacts(updatedData.facts || [], newFacts);
     }
 
-    if (phase_complete) {
+    // Phase-advance gate: no phase past INTAKE is satisfied while the
+    // user's own name is missing. Blocks the same TX Mari class of bug in
+    // every non-divorce matter interview.
+    let resolvedPhaseComplete = phase_complete;
+    if (resolvedPhaseComplete && _userNameMissing(updatedData)) {
+      resolvedPhaseComplete = false;
+      logger.info(`${this.matterTypeCode}Orchestrator: blocked phase_complete — user name missing`, {
+        phase: state.currentPhase,
+      });
+    }
+
+    if (resolvedPhaseComplete) {
       state.completedPhases = [...(state.completedPhases || []), state.currentPhase];
       state.phaseHistory    = [
         ...(state.phaseHistory || []),
@@ -245,6 +276,11 @@ class BaseMatterOrchestrator {
 
     // Core behavior rules (one question at a time, auto-transition)
     parts.push(ORCHESTRATOR_BEHAVIOR);
+
+    // Turn-1 name rule fires until the user's own full legal name lands.
+    if (_userNameMissing(matterData)) {
+      parts.push(NAME_FIRST_RULE);
+    }
 
     // Extraction-quality rules (full names, casing, typo cleanup,
     // extract-everything, never re-ask, duration conversion)

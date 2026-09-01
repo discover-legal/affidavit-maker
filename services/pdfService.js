@@ -138,24 +138,41 @@ class PDFService {
       const pageHeight = pageOptions.size === 'A4' ? 841.89 : 792;
       this.EFFECTIVE_PAGE_HEIGHT = pageHeight - this.FOOTER_BOTTOM_MARGIN - this.FOOTER_HEIGHT - this.MIN_CONTENT_FOOTER_GAP;
 
-      // Generate base PDF
+      // Generate base PDF.
+      //
+      // Sarah AB round-7 (2026-08-30): the historical two-pass model (pass 1
+      // counted pages on a dummy doc, pass 2 rendered footers "N of TOTAL"
+      // during content flow) drifted by one on real petitions — pass 1 saw
+      // 4 pages, pass 2 rendered only 3, and every footer read "of 4". Root
+      // cause is that pass 1's flow can trip a trailing addPageWithFooter →
+      // addPage that pass 2 does not, leaving an empty extra page in the
+      // count. Fix: single-pass build with footers deferred; after content
+      // is buffered we know the true page count from bufferedPageRange, then
+      // switchToPage each real page and stamp its footer. bufferPages:true
+      // (constructor) makes the pages addressable after render.
       const result = await new Promise((resolve, reject) => {
-        // PASS 1: Count total pages by rendering to a dummy document
-        const dummyDoc = new PDFDocument(pageOptions);
-        dummyDoc.pipe(require('stream').PassThrough()); // Pipe to nowhere
-        this.buildPDF(dummyDoc, document, false); // false = no footers
-        const totalPages = dummyDoc.bufferedPageRange().count;
-        dummyDoc.end();
-
-        // PASS 2: Render actual PDF with footers
         const doc = new PDFDocument(pageOptions);
         const stream = doc.pipe(require('fs').createWriteStream(filepath));
 
-        // Set up page numbering for pass 2
-        this.totalPages = totalPages;
-
         try {
-          this.buildPDF(doc, document, true); // true = add footers
+          // Content-only pass: buildPDF's inline footer paths short-circuit
+          // when shouldAddFooters is false, so page transitions still work
+          // (addPageWithFooter just calls addPage) without stamping.
+          this.buildPDF(doc, document, false);
+
+          // True total from the buffered pages, then stamp footers.
+          const range = doc.bufferedPageRange();
+          const totalPages = range.count;
+          this.totalPages = totalPages;
+          this.shouldAddFooters = true;
+          for (let i = 0; i < totalPages; i += 1) {
+            doc.switchToPage(range.start + i);
+            this.currentPage = i + 1;
+            this.addingFooter = false;
+            this.addFooter(doc);
+          }
+          this.shouldAddFooters = false;
+
           doc.end();
 
           stream.on('finish', () => {
@@ -407,7 +424,14 @@ class PDFService {
           this.checkPageBreak(doc, estimatedHeight);
         }
 
-        this.renderNumberedParagraph(doc, fact.number, fact.content);
+        if (this._isHeaderFactType(fact.type) || fact.number == null) {
+          // Section heading: centered, bold, no numeric prefix.
+          doc.fontSize(12).font('Times-Bold');
+          doc.text(fact.content, { align: 'center' });
+          doc.font('Times-Roman');
+        } else {
+          this.renderNumberedParagraph(doc, fact.number, fact.content);
+        }
         doc.moveDown(1.0);
         renderedFactCount++;
       });
@@ -476,8 +500,13 @@ class PDFService {
     this.renderDocumentHeader(doc, sections);
 
     // Numbered-paragraph sections (I. PARTIES, II. JURISDICTION, III. MARRIAGE, etc.)
+    // `contestedIssues` renders factual pleadings a jurisdiction template
+    // (e.g. Alberta s.19 imputation, Ontario custody-dispute) splices in
+    // AFTER property but BEFORE relief. When no template registered one,
+    // the entry is a no-op — the loop skips missing sections.
     const numberedSections = [
-      'parties', 'jurisdiction', 'marriageInfo', 'grounds', 'childrenInfo', 'propertyInfo'
+      'parties', 'jurisdiction', 'marriageInfo', 'grounds', 'childrenInfo', 'propertyInfo',
+      'contestedIssues'
     ];
 
     for (const key of numberedSections) {
@@ -949,9 +978,14 @@ class PDFService {
     if (!factsSection) return [];
 
     if (factsSection.items && Array.isArray(factsSection.items)) {
+      // Attorney round-3 (2026-08-30): preserve `type` and DO NOT
+      // coerce missing `number` to 0 — an item without a number is a
+      // heading, and rendering it via renderNumberedParagraph would
+      // emit "0. PART A ..." as attorneys reported on Marcus Form 10.
       return factsSection.items.map((fact) => ({
-        number: fact.number || 0,
-        content: fact.content || ''
+        number: (typeof fact.number === 'number' && fact.number > 0) ? fact.number : null,
+        content: fact.content || '',
+        type: fact.type || null,
       }));
     }
 
@@ -982,6 +1016,19 @@ class PDFService {
     }
 
     return [];
+  }
+
+  /**
+   * Attorney round-3 (2026-08-30): a fact item without a `number` is a
+   * heading/subheader (section_header, form10_header,
+   * form10_claim_subheader). Render it as a centered bold line, not
+   * as "0. <content>".
+   */
+  _isHeaderFactType(type) {
+    return type === 'section_header'
+      || type === 'form10_header'
+      || type === 'form10_claim_subheader'
+      || type === 'header';
   }
 
   estimateTextHeight(doc, text, fontSize) {
@@ -1392,6 +1439,14 @@ class PDFService {
     // Facts
     const factsList = this.getFactsArray(sections.facts);
     factsList.forEach(fact => {
+      if (this._isHeaderFactType(fact.type) || fact.number == null) {
+        // Section heading — bold, centered, no numeric prefix.
+        children.push(new docx.Paragraph({
+          children: [new docx.TextRun({ text: fact.content, bold: true, size: 24 })],
+          alignment: docx.AlignmentType.CENTER, spacing: { before: 200, after: 200 }
+        }));
+        return;
+      }
       children.push(new docx.Paragraph({
         children: [
           new docx.TextRun({ text: `${fact.number}. `, bold: true, size: 24 }),

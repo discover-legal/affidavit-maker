@@ -183,7 +183,7 @@ class PennsylvaniaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
         return 'The marriage is irretrievably broken, and both parties consent to the divorce. Pursuant to 23 Pa.C.S. § 3301(c), Plaintiff requests that after ninety (90) days from the date of service of this Complaint, both parties shall file Affidavits of Consent evidencing their desire to proceed with the divorce.';
 
       case 'separation':
-        return `The parties have been living separate and apart for a period of at least one (1) year, and the marriage is irretrievably broken, pursuant to 23 Pa.C.S. § 3301(d). The parties separated on or about ${divorceData.separationDate ? this.formatDate(divorceData.separationDate) : '[DATE OF SEPARATION]'}.`;
+        return `The parties have been living separate and apart for a period of at least one (1) year, and the marriage is irretrievably broken, pursuant to 23 Pa.C.S. § 3301(d). The parties separated on or about ${this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]'}.`;
 
       case 'desertion':
         return 'Defendant has willfully and maliciously deserted Plaintiff, and has absented from Plaintiff\'s habitation, for and during the period of one or more years, pursuant to 23 Pa.C.S. § 3301(a)(1).';

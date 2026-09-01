@@ -4,6 +4,7 @@
 // Misc. Docket No. 15-9171
 
 const BaseAffidavitTemplate = require('../../core/BaseAffidavitTemplate');
+const { captionUpper } = require('../../core/nameCase');
 
 /**
  * Texas Statement of Inability to Afford Payment of Court Costs
@@ -96,8 +97,9 @@ class TexasIndigencyAffidavitTemplate extends BaseAffidavitTemplate {
     caption += `CAUSE NO. ${caseNumber.toUpperCase()}\n\n`;
 
     // Party identifiers: affiant is the party filing; respondent/opposing party may or may not be known
-    const petitioner = (data.petitioner || data.affiantName || '[PETITIONER/PLAINTIFF NAME]').toUpperCase();
-    const respondent = (data.respondent || data.defendant || '[RESPONDENT/DEFENDANT NAME]').toUpperCase();
+    // captionUpper preserves McPherson/DiCaprio style internal capitals.
+    const petitioner = captionUpper(data.petitioner || data.affiantName || '[PETITIONER/PLAINTIFF NAME]');
+    const respondent = captionUpper(data.respondent || data.defendant || '[RESPONDENT/DEFENDANT NAME]');
 
     caption += `${petitioner}\n\n`;
     caption += `V.\n\n`;

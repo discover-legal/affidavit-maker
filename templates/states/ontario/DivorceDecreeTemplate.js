@@ -7,6 +7,12 @@
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
+const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
+const {
+  custodyDisputePosition,
+  incomeImputationPosition,
+  normalizeCanadianDivorceData,
+} = require('../../core/canadianHelpers');
 
 /**
  * Ontario Divorce Judgment Template
@@ -23,7 +29,8 @@ const { asList } = require('../../core/dataShapes');
  *   - s.10: Duty of court — consider possibility of reconciliation, ensure reasonable
  *     arrangements for children
  *   - s.12: Effective date of divorce — 31 days after judgment unless varied
- *   - s.12(7): Certificate of divorce — issued by registrar after effective date
+ *   - s.12(6): Certificate of divorce — issued by registrar after effective date
+ *              (procedural: Family Law Rules, O. Reg. 114/99, r. 36(7))
  * - Family Law Act, RSO 1990, c. F.3 (property and spousal support)
  * - Family Law Rules, O. Reg. 114/99 (Form 25A — Divorce Order)
  *
@@ -78,7 +85,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   }
 
   getCaseNumberLabel() {
-    return 'Court File No.';
+    return 'Court File No.:';
   }
 
   getDefaultCourt(county) {
@@ -112,14 +119,26 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generateCaseCaption(divorceData) {
     const courtName = (divorceData.court || this.getDefaultCourt(divorceData.county)).toUpperCase();
     const caseLabel = this.getCaseNumberLabel();
-    const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
+    // Ontario decrees are commonly assembled before the court has assigned a
+    // Court File No. — render a visible fill-in-by-hand blank plus a drafter
+    // note rather than the `[CASE NUMBER]` sentinel token, which the
+    // generate route's PLACEHOLDER_DENYLIST would (correctly) refuse. The
+    // packet path already sanitizes tokens to blanks in pdfService; this
+    // brings the per-document path in line for the case-number field.
+    const hasCaseNumber = typeof divorceData.caseNumber === 'string'
+      && divorceData.caseNumber.trim().length > 0;
+    const caseNumber = hasCaseNumber ? divorceData.caseNumber : '______________________';
+    const draftNote = hasCaseNumber
+      ? ''
+      : '(Draft — insert case number before filing)\n';
     const applicant = (divorceData.petitionerName || '[APPLICANT NAME]').toUpperCase();
     const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
 
     const formatted = (
       `IN THE ${courtName}\n\n` +
-      `${caseLabel} ${caseNumber}\n\n` +
-      `IN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
+      `${caseLabel} ${caseNumber}\n` +
+      `${draftNote}` +
+      `\nIN THE MATTER OF THE DIVORCE ACT, RSC 1985, c. 3\n\n` +
       `BETWEEN:\n\n` +
       `${applicant}\n` +
       `Applicant\n\n` +
@@ -148,10 +167,46 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
   generatePropertyDivisionSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): mirror the base — a nil
+    // equalization finding waives NFP claims and may render ONLY on an
+    // affirmative user-confirmed statement (`hasProperty === false` PLUS
+    // `noPropertyConfirmed === true` or a described propertyAgreement).
+    // Round-7 attorney (Marcus ON, 2026-08-30 v30b): the previous guard
+    // accepted ANY non-empty propertyAgreement string as evidence of a
+    // "described" agreement — but propertyAgreement is an enum
+    // ('agreed' | 'contested' | 'pending'). The status marker "pending"
+    // (or "contested") explicitly means the parties have NOT reached
+    // agreement, yet was passing the gate and rendering the "no NFP to be
+    // equalized" finding — a fabrication that waives the equalization claim.
+    // Only 'agreed', or a free-text description longer than the enum tokens,
+    // now counts as an actual described agreement.
+    const propAgreementRaw =
+      typeof divorceData.propertyAgreement === 'string'
+        ? divorceData.propertyAgreement.trim()
+        : '';
+    const propAgreementLc = propAgreementRaw.toLowerCase();
+    const propAgreementDescribed =
+      propAgreementLc === 'agreed' ||
+      (propAgreementRaw.length > 0 &&
+        propAgreementLc !== 'pending' &&
+        propAgreementLc !== 'contested' &&
+        propAgreementLc !== 'undecided' &&
+        propAgreementLc !== 'unknown' &&
+        propAgreementLc !== 'tbd' &&
+        propAgreementLc !== 'n/a' &&
+        propAgreementLc !== 'none');
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true || propAgreementDescribed);
+    if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no net family property to be equalized under the Family Law Act, RSO 1990, c. F.3.',
         type: 'finding'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have net family property to equalize under the Family Law Act, RSO 1990, c. F.3, or a written agreement, before filing. Silence on this line may be treated as no equalization owing, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else {
       items.push({
@@ -199,8 +254,10 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Ontario child custody section uses 2021 Divorce Act terminology:
-   * "decision-making responsibility" (s.16.1) replaces "custody";
-   * "parenting time" (s.16.1) replaces "access".
+   * "decision-making responsibility" (s.16.3) replaces "custody";
+   * "parenting time" (s.16.2) replaces "access";
+   * both flow from the Court's general parenting-order authority in s.16.1
+   * and the best-interests test in s.16.
    * @param {Object} divorceData - Divorce data
    * @returns {Object|null} Child parenting section or null if no children
    */
@@ -219,9 +276,17 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: 'The child(ren) subject to this order:', type: 'order' });
 
     divorceData.children.forEach((child, index) => {
+      // Child NAME stays as `[CHILD NAME]` — a decree with an unnamed child
+      // is genuinely defective and must trip the denylist. Birth date, by
+      // contrast, is frequently unknown at draft time (adoption records
+      // pending, foreign birth certificate not translated); render a visible
+      // blank instead of a `[BIRTH DATE]` sentinel that would 422 the whole
+      // decree — matches the packet path's sanitizer behaviour.
+      const childDob = this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth);
+      const dobDisplay = childDob || '__________________';
       const childInfo = typeof child === 'string'
         ? child
-        : `${child.name || '[CHILD NAME]'}, born ${this.formatDate(child.birthDate ?? child.dob ?? child.dateOfBirth) || '[BIRTH DATE]'}`;
+        : `${child.name || '[CHILD NAME]'}, born ${dobDisplay}`;
       items.push({ content: `${index + 1}. ${childInfo}`, type: 'child_item' });
     });
 
@@ -236,7 +301,7 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     if (custody.kind === 'joint') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: `IT IS ORDERED that ${divorceData.petitionerName || 'Applicant'} and ${divorceData.respondentName || 'Respondent'} shall have shared decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.3.`,
         type: 'order'
       });
     } else if (custody.kind === 'sole_petitioner' || custody.kind === 'sole_respondent' || custody.kind === 'legacy_sole') {
@@ -253,33 +318,44 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       soleCustodianName = custodianName;
 
       items.push({
-        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.1.`,
+        content: `IT IS ORDERED that ${custodianName} shall have sole decision-making responsibility for the child(ren) pursuant to the Divorce Act, RSC 1985, c. 3, s.16.3.`,
         type: 'order'
       });
       items.push({
-        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order.`,
+        content: `IT IS ORDERED that ${otherParentName} shall have parenting time with the child(ren) as agreed by the parties or as set out in a parenting schedule attached to this Order (Divorce Act, s.16.2).`,
         type: 'order'
       });
     } else {
       // Unrecognized/undecided arrangement — neutral order with an explicit
       // placeholder for the parties' actual agreement. Never default to sole.
       items.push({
-        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.1).',
+        content: 'IT IS ORDERED that the parties shall exercise decision-making responsibility for the child(ren) as agreed by the parties: [ARRANGEMENT — set out the parties\' decision-making agreement] (Divorce Act, RSC 1985, c. 3, s.16.3).',
         type: 'order'
       });
     }
 
-    // Primary residence: ordered whenever the case data says where the
-    // child(ren) live, regardless of the decision-making branch. The shared
-    // branch keeps its historical Applicant fallback for compatibility.
-    if (custody.kind === 'joint') {
-      items.push({
-        content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName || resolvePrimaryResidenceName(divorceData) || divorceData.petitionerName || 'Applicant'}, who shall have primary parenting time.`,
-        type: 'order'
-      });
-    } else if (residenceName && residenceName !== soleCustodianName) {
+    // Primary residence: ALWAYS derived from the explicit
+    // primaryResidence / primaryCustodian fact (resolvePrimaryResidenceName),
+    // never auto-derived from the custody-kind enum. The Marcus/Priya audit
+    // (2026-08) surfaced the ON decree naming Marcus (respondent) as primary
+    // parent whenever custody.kind resolved to 'sole_respondent' — even
+    // though the transcript said the children lived mostly with Priya
+    // (applicant). If the parties' own arrangement conflicts with the sole-
+    // custody enum, the arrangement wins and no primary residence line is
+    // rendered without it: a placeholder is truthful; a wrong parent's name
+    // is not.
+    if (residenceName) {
       items.push({
         content: `IT IS ORDERED that the child(ren) shall primarily reside with ${residenceName}, who shall have primary parenting time.`,
+        type: 'order'
+      });
+    } else if (custody.kind === 'joint') {
+      items.push({
+        content:
+          'IT IS ORDERED that the parties shall determine the child(ren)\'s primary residence ' +
+          'by agreement, or, failing agreement, in accordance with a parenting schedule filed ' +
+          'with this Court: [PRIMARY RESIDENCE — set out the parent with whom the child(ren) ' +
+          'primarily reside].',
         type: 'order'
       });
     }
@@ -287,6 +363,53 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     items.push({ content: this.getVisitationLanguage(divorceData), type: 'order' });
 
     return { title: 'PARENTING ORDER', items, type: 'custody' };
+  }
+
+  /**
+   * Ontario opening recital — the base template's
+   * "the Court considered the above-entitled and numbered cause" is a US
+   * (Texas/California/Missouri) formulation that does not appear in
+   * Ontario Divorce Orders. The Ontario opener is "Upon reading the
+   * Application and hearing the parties (or upon the material filed and
+   * without a hearing, in an uncontested paper application under Family
+   * Law Rule 36) …" (Attorney round-5, Marcus ON, 2026-08-30.)
+   */
+  generateAppearancesSection(divorceData) {
+    let text = '';
+    const uncontested =
+      divorceData.appearanceType === 'agreed' || divorceData.isUncontested;
+    text += uncontested
+      ? 'Upon reading the Application, the Affidavit for Divorce (Form 36), and the material filed, and being satisfied that the Court has jurisdiction and that the requirements of the Divorce Act and the Family Law Rules have been met:\n\n'
+      : 'Upon reading the Application and hearing the parties:\n\n';
+
+    // Round-7 attorney (Marcus ON, 2026-08-30 v30b): the previous default
+    // recited "appeared self-represented" whenever petitionerRepresentation
+    // was not affirmatively 'lawyer'/'attorney' — but a missing field is
+    // NOT evidence of self-representation, and swearing to a fact the user
+    // never affirmed is fabrication. Render an explicit blank + Draft note
+    // when the representation status is unknown.
+    const selfRepPhrase = this.terminology.selfRepresentedLabel.toLowerCase();
+    const petRep = typeof divorceData.petitionerRepresentation === 'string'
+      ? divorceData.petitionerRepresentation.trim().toLowerCase()
+      : '';
+    const petRepClause =
+      petRep === 'lawyer' || petRep === 'attorney'
+        ? 'appeared by and through a lawyer of record'
+        : petRep === 'self' || petRep === 'self-represented' || petRep === 'self_represented' || petRep === 'pro_se' || petRep === 'pro se'
+          ? `appeared ${selfRepPhrase}`
+          : '__________________________ (Draft — confirm representation of the Applicant before filing: appeared by lawyer of record, appeared self-represented, or did not appear)';
+    text +=
+      `${this.terminology.filerLabel}, ${divorceData.petitionerName || '_________________________________'}, ` +
+      `${petRepClause}.\n\n`;
+    text +=
+      `${this.terminology.responderLabel}, ${divorceData.respondentName || '_________________________________'}, ` +
+      `${this.getRespondentAppearanceText(divorceData)}.`;
+
+    return {
+      title: 'APPEARANCES',
+      text,
+      type: 'appearances',
+    };
   }
 
   /**
@@ -346,7 +469,39 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {string} Parenting time language
    */
   getVisitationLanguage(divorceData) {
-    return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court. Neither party shall do anything to alienate the child(ren)\'s affection for the other party (Divorce Act, s.16.3).';
+    // A substantive parentTimeDetails string (alt Fri–Sun + Wed dinners,
+    // holiday rotations) belongs verbatim in the order — the boilerplate
+    // "as agreed in writing" clause dropped it entirely (live Ontario audit,
+    // 2026-08). Extraction phrases the value in neutral third-person court
+    // language, so it renders as-is.
+    const details = typeof divorceData.parentTimeDetails === 'string'
+      ? divorceData.parentTimeDetails.trim()
+      : '';
+    // Non-alienation obligation flows from the best-interests standard in
+    // Divorce Act s.16 (best-interests of the child), which requires each
+    // spouse to protect the child(ren)'s relationship with the other. It
+    // is NOT s.16.3, which is decision-making responsibility (post-2021
+    // Divorce Act renumbering).
+    const nonAlienation = " Neither party shall do anything to alienate the child(ren)'s affection for the other party (Divorce Act, s.16).";
+    // Attorney round-4 (Marcus ON decree, 2026-08-30): the round-3 pipeline
+    // paraphrased Marcus's aspirational statement ("wants additional
+    // mid-week parenting time; specific schedule not yet provided") into
+    // an operative "IT IS ORDERED" clause — a decree cannot order a wish.
+    // A schedule string that reads as a subjective wish or explicitly
+    // disclaims specificity ("not yet provided" / "TBD" / "unspecified" /
+    // wants / would like / prefers / hopes / seeks) is NOT an operative
+    // schedule; render an explicit [SCHEDULE — insert...] bracket so the
+    // drafter fills it in before filing.
+    const NON_OPERATIVE_RE = /(not yet (?:provided|specified|decided|agreed)|tbd|tba|unspecified|to be (?:decided|determined|agreed)|placeholder|\bwants?\b|\bwould like\b|\bprefers?\b|\bhopes?\b|\bseeks?\b|\bwishes?\b|\bwill request\b)/i;
+    if (details.length > 50 && !NON_OPERATIVE_RE.test(details)) {
+      return `IT IS ORDERED pursuant to s.16.2 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of written agreement to vary the schedule, the terms above control.${nonAlienation}`;
+    }
+    if (details.length > 0) {
+      // Non-operative content — surface the drafter's note as an in-line
+      // comment (never as an operative order) and demand a real schedule.
+      return `IT IS ORDERED pursuant to s.16.2 of the Divorce Act that each party shall have parenting time with the child(ren) on the following schedule: [SCHEDULE — insert specific parenting schedule (weekday/weekend, holidays, exchanges) before filing]. (Drafter note: ${details})${nonAlienation}`;
+    }
+    return 'IT IS ORDERED that each party shall have parenting time with the child(ren) as agreed in writing by the parties, or, failing agreement, in accordance with a parenting schedule to be filed with this Court.' + nonAlienation;
   }
 
   /**
@@ -389,25 +544,30 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    // spousalSupportRequested === false is the orchestrator's explicit
-    // "the parties waive spousal support" signal — render the waiver order.
-    const waived =
-      divorceData.spousalSupportWaived ||
-      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
-    if (!divorceData.spousalSupportAwarded && !waived) {
-      return null;
-    }
+    // Precedence (see templates/core/spousalSupport.js): a contested
+    // request-plus-amount renders the AWARD, even absent an explicit
+    // spousalSupportAwarded flag — the live Ontario audit surfaced a
+    // $1,800/mo request being rendered as a mutual waiver.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const payor = decision.payor || 'Respondent';
+    const payee = decision.payee || 'Applicant';
 
-    if (waived && !divorceData.spousalSupportAwarded) {
+    if (decision.outcome === 'award') {
       items.push({
-        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
+        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${payor} shall pay spousal support to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month for ${decision.duration || '[DURATION]'}.`,
         type: 'order'
       });
-    } else if (divorceData.spousalSupportAwarded) {
+    } else if (decision.outcome === 'reserve') {
       items.push({
-        content: `IT IS ORDERED pursuant to s.15.2 of the Divorce Act, RSC 1985, c. 3, that ${divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent'} shall pay spousal support to ${divorceData.spousalSupportPayee || divorceData.petitionerName || 'Applicant'} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED that the Court reserves jurisdiction over spousal support under s.15.2 of the Divorce Act, RSC 1985, c. 3, ${payee} having claimed support with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'IT IS ORDERED that each party waives and releases any claim for spousal support from the other party under s.15.2 of the Divorce Act, RSC 1985, c. 3, now and in the future.',
         type: 'order'
       });
     }
@@ -461,10 +621,118 @@ class OntarioDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
   /**
    * Ontario uses "Certificate of Divorce" issued by the court registrar
-   * after the effective date (Divorce Act, s.12(7)).
+   * after the effective date (Divorce Act, s.12(6); Family Law Rules, r. 36(7)).
    */
   getCertificateNote() {
-    return 'A Certificate of Divorce may be obtained from the court office after the effective date of this Order, upon application by either party (Divorce Act, s.12(7)).';
+    return 'A Certificate of Divorce may be obtained from the court office after the effective date of this Order, upon application by either party (Divorce Act, s.12(6); Family Law Rules, r. 36(7)).';
+  }
+
+  /**
+   * Ontario dissolution section — Canadian "IT IS ORDERED" phrasing.
+   * The base class emits "IT IS ORDERED AND DECREED that … is dissolved,
+   * and the parties are divorced" — a US ("decree") formulation. Ontario
+   * grants a Divorce Order under Divorce Act s.8, not a "decree", and the
+   * order-granting language is bare "IT IS ORDERED".
+   */
+  generateDissolutionSection(divorceData) {
+    const applicant = divorceData.petitionerName || '_________________________________';
+    const respondent = divorceData.respondentName || '_________________________________';
+    return {
+      title: 'DIVORCE GRANTED',
+      text:
+        `IT IS ORDERED that the marriage between ${applicant} and ${respondent} is dissolved ` +
+        'pursuant to section 8 of the Divorce Act, RSC 1985, c. 3, and that a Divorce Order shall ' +
+        'issue, taking effect on the 31st day after it is made (Divorce Act, s.12(1)).',
+      type: 'dissolution'
+    };
+  }
+
+  /**
+   * generateDocument override: alias-normalize the incoming case data so
+   * Court File No., marriage year, separation date, and children DOBs stored
+   * under legacy field names reach the template's rendering methods; then
+   * splice a "CONTESTED ISSUES" section carrying the party's custody-dispute
+   * and/or Federal Child Support Guidelines s.19 imputation positions.
+   */
+  generateDocument(divorceData = {}) {
+    const data = normalizeCanadianDivorceData(divorceData);
+    const doc = super.generateDocument(data);
+    appendContestedIssuesOntarioDecree(doc, data);
+    return doc;
+  }
+}
+
+/**
+ * "Wants X" scrubber (attorney round-2, Marcus, ON, 2026-08-30). The
+ * contested-issue recital used to inline the raw profile string, which meant
+ * an "IT IS ORDERED" clause could read as "The Respondent wants more
+ * mid-week parenting time; the specific schedule remains to be proposed" —
+ * a wish, not an order. Rewrite any leading "the X wants Y" phrasing into a
+ * neutral "seeks Y" preamble and cut the "remains to be proposed" clause
+ * (which is not something a court orders). Preserves the underlying
+ * substance so the decree still records what the party is asking for.
+ */
+function neutralizePartyWish(text) {
+  if (typeof text !== 'string') return '';
+  let out = text.trim();
+  out = out.replace(
+    /\bthe\s+(applicant|respondent|petitioner)\s+wants\s+/i,
+    'the $1 seeks ',
+  );
+  out = out.replace(/\bwants\b/gi, 'seeks');
+  out = out.replace(
+    /;?\s*the\s+specific\s+(?:schedule|arrangement|amount)\s+remains\s+to\s+be\s+(?:proposed|determined|filed|set)\.?\s*$/i,
+    '',
+  );
+  return out.trim();
+}
+
+function appendContestedIssuesOntarioDecree(doc, data) {
+  const custody = custodyDisputePosition(data);
+  const imputation = incomeImputationPosition(data);
+  if (!custody && !imputation) return;
+  const items = [];
+  if (custody) {
+    // Attribute the position to whichever party actually holds it — the
+    // template used to hard-code "Applicant's contested parenting-time
+    // position", which lied when the respondent is the disputing party
+    // (Marcus, ON). Fall back to a neutral "a party's" phrasing rather
+    // than mis-attributing.
+    const role = String(data.role || '').trim().toLowerCase();
+    const attributedParty =
+      role === 'respondent'
+        ? "the Respondent's"
+        : role === 'applicant' || role === 'petitioner'
+          ? "the Applicant's"
+          : "a party's";
+    const cleaned = neutralizePartyWish(custody);
+    items.push({
+      // PREAMBLE / RECITAL — a court finding under s.16(2), not an
+      // operative "IT IS ORDERED" clause. The decree's operative parenting
+      // order still lives in generateChildCustodySection().
+      content:
+        `The Court has considered ${attributedParty} contested parenting-time ` +
+        `position: ${cleaned}. The Court makes a parenting order under section ` +
+        `16.5 of the Divorce Act on the basis of changed circumstances in the ` +
+        `best interests of the child(ren) (Divorce Act, s.16(2)).`,
+      type: 'contested_issue_preamble',
+    });
+  }
+  if (imputation) {
+    items.push({
+      content:
+        `IT IS ORDERED, pursuant to section 19 of the Federal Child Support Guidelines, ` +
+        `SOR/97-175, that income is imputed to the child-support payor on the following basis: ` +
+        `${neutralizePartyWish(imputation)}.`,
+      type: 'contested_issue',
+    });
+  }
+  doc.sections = doc.sections || {};
+  doc.sections.contestedIssues = { title: 'CONTESTED ISSUES', items };
+  if (typeof doc.fullText === 'string') {
+    let block = 'CONTESTED ISSUES\n\n';
+    for (const item of items) block += `${item.content}\n\n`;
+    doc.fullText += `\n${block}`;
   }
 }
 

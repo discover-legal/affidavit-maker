@@ -43,6 +43,98 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+/** Canadian provinces + territories keyed by ISO 3166-2 subdivision code.
+ * Used to (a) render "Ontario" instead of "ON" in the home recital, and
+ * (b) route home-location formatting away from the "County" pattern. */
+const CANADIAN_PROVINCE_NAMES: Record<string, string> = {
+  ON: 'Ontario', BC: 'British Columbia', AB: 'Alberta', MB: 'Manitoba',
+  SK: 'Saskatchewan', QC: 'Quebec', NS: 'Nova Scotia', NB: 'New Brunswick',
+  NL: 'Newfoundland and Labrador', PE: 'Prince Edward Island',
+  YT: 'Yukon', NT: 'Northwest Territories', NU: 'Nunavut',
+};
+
+/** US state codes → display names. Used so the residency sentence reads
+ * "…California" instead of "…CA". District of Columbia included. */
+const US_STATE_NAMES: Record<string, string> = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+  CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia',
+  FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois',
+  IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan',
+  MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+  NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+  NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota',
+  OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island',
+  SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas',
+  UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia',
+  WI: 'Wisconsin', WY: 'Wyoming',
+};
+
+/** Reverse index: state/province full name (lowercased) → code. Used to
+ * detect when a free-text fact mentions a state OTHER than the current
+ * profile state, so the display layer can move it out of "current" bullets. */
+const NAME_TO_STATE_CODE: Record<string, string> = Object.fromEntries([
+  ...Object.entries(US_STATE_NAMES).map(([code, name]) => [name.toLowerCase(), code]),
+  ...Object.entries(CANADIAN_PROVINCE_NAMES).map(([code, name]) => [name.toLowerCase(), code]),
+]);
+
+/**
+ * Small closed set of unambiguous city/county names that unmistakably fix
+ * the jurisdiction. A residency fact like "I used to live in Reno" carries
+ * no state code or state name — without this hint the partition treated it
+ * as ambient and left it in the current "In your own words" bullets on a
+ * California profile (live CA correction acceptance run, 2026-08). Kept
+ * intentionally small: only names that identify exactly one US state
+ * without ambiguity go here. Not a gazetteer.
+ */
+const CITY_COUNTY_TO_STATE_CODE: Record<string, string> = {
+  reno: 'NV',
+  'las vegas': 'NV',
+  henderson: 'NV',
+  washoe: 'NV', // "Washoe" / "Washoe County" — the county Reno sits in.
+};
+
+/** All state codes we can detect in a fact — both the codes themselves
+ * and their full names, so "NV", "Nevada" both point to NV. */
+const ALL_STATE_CODES = new Set([
+  ...Object.keys(US_STATE_NAMES),
+  ...Object.keys(CANADIAN_PROVINCE_NAMES),
+]);
+
+/**
+ * Extract every state/province code a piece of free text mentions. Used
+ * by the display filter to spot facts about jurisdictions the user has
+ * since moved past — a Nevada residency line lingering on a California
+ * profile, for example. Whole-word matching so "IN" (Indiana) doesn't
+ * eat every appearance of the preposition, and full names take
+ * precedence over their two-letter codes for the same reason.
+ */
+export function statesMentioned(text: string): Set<string> {
+  const hits = new Set<string>();
+  if (!text) return hits;
+  const lower = text.toLowerCase();
+  for (const [name, code] of Object.entries(NAME_TO_STATE_CODE)) {
+    // Full state/province names are always specific enough to trust.
+    if (lower.includes(name)) hits.add(code);
+  }
+  // City/county hints for facts that name a place without naming the
+  // state — "I used to live in Reno" carries NV even though "Nevada" is
+  // never said. Whole-word match so "washoe" doesn't eat a longer token.
+  for (const [name, code] of Object.entries(CITY_COUNTY_TO_STATE_CODE)) {
+    const re = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i');
+    if (re.test(lower)) hits.add(code);
+  }
+  // Match uppercase two-letter codes as whole tokens ("NV" but not "NVIDIA"
+  // or "in"). Lowercase / mixed-case tokens are ignored — they collide too
+  // often with English words ("in", "or", "me", "hi").
+  const codeRe = /\b([A-Z]{2})\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = codeRe.exec(text))) {
+    if (ALL_STATE_CODES.has(m[1])) hits.add(m[1]);
+  }
+  return hits;
+}
+
 /** Localize the dynamic procedure engine's output for the bilingual story page. */
 export function localizeNextStep(
   step: NextStep,
@@ -202,6 +294,45 @@ function isRespondent(profile: Record<string, unknown>): boolean {
   return str(profile.role).toLowerCase() === 'respondent';
 }
 
+/**
+ * Do any of the children on record still count as minors? True when
+ * hasMinorChildren is affirmatively set, or when at least one child has a
+ * computed age below 18 (or an unparseable/unknown DOB, treated as
+ * possibly-minor rather than silently assumed adult). False only when the
+ * user has clearly stated no minors AND no child on record is under 18.
+ */
+export function hasMinorsOnRecord(
+  profile: Record<string, unknown>,
+  now: Date = new Date(),
+): boolean {
+  if (profile.hasMinorChildren === true) return true;
+  const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
+  if (children.length === 0) return false;
+  return children.some((child) => {
+    const age = computeAge(child, now);
+    return age === null || age < 18;
+  });
+}
+
+/**
+ * Has the user affirmatively established that there are NO minor children
+ * (either the hasMinorChildren flag, or a child list where every child is
+ * a computable adult). Used to suppress custody/support prompts when the
+ * question doesn't apply.
+ */
+export function noMinorsOnRecord(
+  profile: Record<string, unknown>,
+  now: Date = new Date(),
+): boolean {
+  if (profile.hasMinorChildren === false) return true;
+  const children = (Array.isArray(profile.children) ? profile.children : []) as ProfileChild[];
+  if (children.length === 0) return false;
+  return children.every((child) => {
+    const age = computeAge(child, now);
+    return age !== null && age >= 18;
+  });
+}
+
 function petitionerName(profile: Record<string, unknown>): string {
   return (
     str(profile.petitionerName) ||
@@ -224,9 +355,30 @@ function respondentName(profile: Record<string, unknown>): string {
  * petitionerName without checking role.
  */
 export function fullName(profile: Record<string, unknown>): string {
+  const affiant = str(profile.affiantName);
+  const respondent = respondentName(profile);
+  const petitioner = petitionerName(profile);
+  // Safety-net for extraction bugs: a respondent whose affiantName was
+  // captured from the petitioner side gets corrected to the respondent
+  // caption. The primary fix belongs in the extraction agent; this stops
+  // the wrong name from ever narrating a respondent's own story.
+  if (
+    affiant &&
+    isRespondent(profile) &&
+    respondent &&
+    petitioner &&
+    affiant.toLowerCase() === petitioner.toLowerCase() &&
+    affiant.toLowerCase() !== respondent.toLowerCase()
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[lifeStory] respondent profile had affiantName === petitionerName; falling back to respondent caption',
+    );
+    return respondent;
+  }
   return (
-    str(profile.affiantName) ||
-    (isRespondent(profile) ? respondentName(profile) : petitionerName(profile)) ||
+    affiant ||
+    (isRespondent(profile) ? respondent : petitioner) ||
     [str(profile.firstName), str(profile.lastName)].filter(Boolean).join(' ')
   );
 }
@@ -346,16 +498,16 @@ export function buildRecitals(
   const es = lang === 'es';
   const recitals: Recital[] = [];
 
-  // 1 — who you are
+  // 1 — who you are. When the name is missing, render as a pure CTA so
+  // the sentence never reads "Your name is your name +" — the placeholder
+  // must read like an invitation to fill it in, not a duplicated fallback.
   const name = fullName(profile);
   recitals.push({
     id: 'identity',
     known: Boolean(name),
-    segments: [
-      text(es ? 'Tu nombre es ' : 'Your name is '),
-      name ? value(name) : blank(es ? 'tu nombre' : 'your name'),
-      text('.'),
-    ],
+    segments: name
+      ? [text(es ? 'Tu nombre es ' : 'Your name is '), value(name), text('.')]
+      : [blank(es ? 'Agrega tu nombre' : 'Add your name'), text('.')],
   });
 
   // 2 — your marriage
@@ -367,9 +519,11 @@ export function buildRecitals(
     ? [text(es ? 'Te casaste con ' : 'You married ')]
     : [text(es ? 'Los detalles de tu matrimonio: ' : 'Your marriage details: ')];
   if (hasMarriageDetail) {
-    marriageSegments.push(spouse ? value(spouse) : blank(es ? 'tu cónyuge' : 'your spouse'));
+    marriageSegments.push(
+      spouse ? value(spouse) : blank(es ? 'agrega su nombre' : 'add their name'),
+    );
     marriageSegments.push(text(es ? ' el ' : ' on '));
-    marriageSegments.push(married ? value(married) : blank(es ? 'una fecha' : 'a date'));
+    marriageSegments.push(married ? value(married) : blank(es ? 'agrega una fecha' : 'add a date'));
   } else {
     marriageSegments.push(blank(es ? 'agrégalos' : 'add them'));
   }
@@ -391,23 +545,47 @@ export function buildRecitals(
     segments: marriageSegments,
   });
 
-  // 3 — where you live
+  // 3 — where you live. Canadian jurisdictions (and other non-US locales)
+  // don't use "County" — prefer the recorded city + full province name
+  // when we have them so the sentence reads like a real place instead of
+  // a bare 2-letter code.
   const county = str(profile.county);
   const countyName = county.replace(/\s+county$/i, '').trim();
-  const state = str(profile.state).toUpperCase();
+  const city = str(profile.city);
+  const stateCode = str(profile.state).toUpperCase();
+  const isCanadian = CANADIAN_PROVINCE_NAMES[stateCode] !== undefined;
+  const stateDisplay =
+    str(profile.stateName) ||
+    CANADIAN_PROVINCE_NAMES[stateCode] ||
+    US_STATE_NAMES[stateCode] ||
+    stateCode;
   const homeSegments: Segment[] = [text(es ? 'Tu hogar está en ' : 'Home is ')];
-  if (county || state) {
-    homeSegments.push(
-      value(
-        [countyName && (es ? `el condado de ${countyName}` : `${countyName} County`), state]
-          .filter(Boolean)
-          .join(', '),
-      ),
-    );
+  const placeParts: string[] = [];
+  // Canadian: city first (no "County"); US: county when we have it, city
+  // as a secondary fallback for people whose state cadastre isn't
+  // county-based (or for pre-county profiles). Either way, always render
+  // the fullest place name we can, not a bare state code.
+  if (isCanadian) {
+    if (city) placeParts.push(city);
+    if (stateDisplay) placeParts.push(stateDisplay);
+  } else {
+    if (countyName) placeParts.push(es ? `el condado de ${countyName}` : `${countyName} County`);
+    else if (city) placeParts.push(city);
+    if (stateDisplay) placeParts.push(stateDisplay);
+  }
+  if (placeParts.length > 0) {
+    homeSegments.push(value(placeParts.join(', ')));
   } else {
     homeSegments.push(blank(es ? 'un lugar' : 'a place'));
   }
-  const months = Number(profile.residencyStateMonths);
+  // Residency months live under a few historical field names — read them
+  // all so Canadian and older profiles show the humanized duration too.
+  const months = Number(
+    profile.residencyStateMonths ??
+      (profile as Record<string, unknown>).residencyMonths ??
+      (profile as Record<string, unknown>).residencyMonthsInState ??
+      (profile as Record<string, unknown>).residencyDurationMonths,
+  );
   if (Number.isFinite(months) && months > 0) {
     homeSegments.push(
       text(es ? ' — donde has vivido por ' : ' — where you have lived for '),
@@ -417,7 +595,7 @@ export function buildRecitals(
   homeSegments.push(text('.'));
   recitals.push({
     id: 'home',
-    known: Boolean(county || state),
+    known: Boolean(county || stateCode || city),
     segments: homeSegments,
   });
 
@@ -927,31 +1105,41 @@ export function buildLedger(
 
   push('grounds', str(profile.groundsForDivorce) || null);
 
-  const custody = str(profile.custodyArrangement) || str(profile.custodyType);
-  const custodian = str(profile.primaryCustodian);
-  push(
-    'custody',
-    custody || custodian
-      ? [
-          custody && titleCase(custody),
-          custodian && `${es ? 'con' : 'with'} ${custodian.split(' ')[0]}`,
-        ]
-          .filter(Boolean)
-          .join(', ')
-      : null,
-  );
+  // Custody + child support only apply when minor children are (or may
+  // be) on record. When the user has clearly said there are none, omit
+  // the rows entirely instead of nagging with "add this +" chips for a
+  // question that doesn't apply to them. Suppression is symmetric across
+  // both jurisdictions — no minors, no custody column, ever.
+  const suppressChildRows = noMinorsOnRecord(profile);
+  if (!suppressChildRows) {
+    const custody = str(profile.custodyArrangement) || str(profile.custodyType);
+    const custodian = str(profile.primaryCustodian);
+    push(
+      'custody',
+      custody || custodian
+        ? [
+            custody && titleCase(custody),
+            custodian && `${es ? 'con' : 'with'} ${custodian.split(' ')[0]}`,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : null,
+    );
+  }
 
   const perMo = es ? '/mes' : '/mo';
-  const csAmount = Number(profile.childSupportAmount);
-  const csPayor = str(profile.childSupportObligor || profile.childSupportPayor);
-  push(
-    'child_support',
-    Number.isFinite(csAmount) && csAmount > 0
-      ? `$${Math.round(csAmount).toLocaleString('en-US')}${perMo}${
-          csPayor ? ` ${es ? 'de' : 'from'} ${csPayor.split(' ')[0]}` : ''
-        }`
-      : null,
-  );
+  if (!suppressChildRows) {
+    const csAmount = Number(profile.childSupportAmount);
+    const csPayor = str(profile.childSupportObligor || profile.childSupportPayor);
+    push(
+      'child_support',
+      Number.isFinite(csAmount) && csAmount > 0
+        ? `$${Math.round(csAmount).toLocaleString('en-US')}${perMo}${
+            csPayor ? ` ${es ? 'de' : 'from'} ${csPayor.split(' ')[0]}` : ''
+          }`
+        : null,
+    );
+  }
 
   let spousal: string | null = null;
   // An explicit mutual waiver is an agreement on the record — a different
@@ -1179,6 +1367,83 @@ export type FactChapter = { label: string; facts: ChapterFact[] };
  * the court paper it was read from — so the story is verifiable before it
  * goes into a sworn document.
  */
+/**
+ * Which fact categories can hold a residency/jurisdiction claim that a
+ * later state move would supersede. A fact under one of these categories
+ * that mentions a state OTHER than the current profile state gets moved
+ * out of the current story into the "earlier notes" section — a Nevada
+ * residency line lingering on a California profile, for example.
+ */
+const JURISDICTION_CATEGORIES = new Set([
+  'residency',
+  'jurisdiction',
+  'court',
+  'case_number',
+  'parties',
+  'general',
+  // The correction-request fact from the live CA acceptance run ("only
+  // California forms, not Nevada, Washoe County, or Nevada forms") was
+  // tagged 'filing' by the extractor — without it here, a superseded
+  // Nevada mention leaked back into the current bullets.
+  'filing',
+]);
+
+/**
+ * Partition facts into `current` and `superseded` based on state-code
+ * conflict. A fact in a jurisdiction-bearing category that mentions a
+ * state other than the current profile's, and does NOT mention the
+ * current state, is considered stale and moved into `superseded` so the
+ * page can render it under a collapsed "Earlier notes" section instead
+ * of a current bullet. Plumbing only — enum equality, no NLP; the
+ * LLM-first pass is out of scope here.
+ */
+export function partitionFactsByState(
+  facts: Array<Record<string, unknown>>,
+  currentStateCode: string,
+): {
+  current: Array<Record<string, unknown>>;
+  superseded: Array<Record<string, unknown>>;
+} {
+  const current: Array<Record<string, unknown>> = [];
+  const superseded: Array<Record<string, unknown>> = [];
+  const state = (currentStateCode || '').toUpperCase();
+  if (!state || !ALL_STATE_CODES.has(state)) {
+    return { current: facts.slice(), superseded };
+  }
+  for (const fact of facts || []) {
+    const category = str(fact?.category).trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const content = str(fact?.content);
+    const quote = str(fact?.sourceQuote);
+    if (!JURISDICTION_CATEGORIES.has(category) || !content) {
+      current.push(fact);
+      continue;
+    }
+    const mentions = statesMentioned(`${content} ${quote}`);
+    if (mentions.size === 0) {
+      current.push(fact);
+      continue;
+    }
+    // ANY mention of a state other than the current one marks the fact as
+    // superseded — including facts that ALSO name the current state (the
+    // correction sentences "I want California, not Nevada" and "I moved from
+    // Reno to San Jose" both mention the current state alongside the state
+    // being corrected, and the earlier "mentions current → keep as current"
+    // rule left them on the current bullets on the live CA acceptance run).
+    // The affirmative "I live in San Jose, California" fact mentions only
+    // California, so it stays current.
+    let hasOtherState = false;
+    for (const code of mentions) {
+      if (code !== state) { hasOtherState = true; break; }
+    }
+    if (hasOtherState) {
+      superseded.push(fact);
+      continue;
+    }
+    current.push(fact);
+  }
+  return { current, superseded };
+}
+
 export function groupFacts(
   facts: Array<Record<string, unknown>>,
   lang: Lang = 'en',

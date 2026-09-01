@@ -105,6 +105,49 @@ describe('EXTRACTION_QUALITY prompt block', () => {
     expect(EXTRACTION_QUALITY).toMatch(/VARY RE-ASK PHRASING/);
     expect(EXTRACTION_QUALITY).toMatch(/NEVER repeat a previous question word-for-word/i);
   });
+
+  // v22-B: rule 20 covers BOTH the "no children" and the adult-only cases.
+  // Alison (2 adult) and Tavita (0) both had the LLM record only prose,
+  // leaving profile.numberOfChildren null on the story page.
+  test('rule 20 covers both "no children" (Tavita, 0) and adult-only (Alison, N) cases', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/CHILDREN COUNT — ALWAYS EMIT THE STRUCTURED COUNT/);
+    // "No children" branch — Tavita shape.
+    expect(EXTRACTION_QUALITY).toMatch(/NO CHILDREN/);
+    expect(EXTRACTION_QUALITY).toMatch(/has_minor_children: false AND number_of_children: 0/);
+    expect(EXTRACTION_QUALITY).toMatch(/Tavita \(FL, no kids\) failure/);
+    // Adult-only branch — Alison shape.
+    expect(EXTRACTION_QUALITY).toMatch(/ADULT-ONLY CHILDREN/);
+    expect(EXTRACTION_QUALITY).toMatch(/two adult kids/);
+    expect(EXTRACTION_QUALITY).toMatch(/has_minor_children: false AND number_of_children: N/);
+    expect(EXTRACTION_QUALITY).toMatch(/Alison \(CA, 2 adult kids\) failure/);
+    // Emphasises: adult children still count toward number_of_children.
+    expect(EXTRACTION_QUALITY).toMatch(/the field is the COUNT of children of the marriage, minor or adult/);
+  });
+
+  // Alison v8-B replay guard: "we have two kids ages 24 and 21" produced a
+  // profile.children array 25 entries long (2 anonymous kids re-emitted every
+  // turn, cap hit) and the CA petition read "There are 25 adult children of
+  // the marriage". The children schema description must (a) tell the LLM
+  // that one array entry = one distinct child and NEVER a sum/concat of
+  // ages, and (b) require a name (real or placeholder) so mergeChildren
+  // can dedupe on re-mention.
+  test('children field schema description prevents the Alison "25 kids" duplication', () => {
+    const orch = makeDivorceOrchestrator();
+    const props = orch.tool.function.parameters.properties;
+    expect(props.children).toBeDefined();
+    const desc = props.children.description || '';
+    expect(desc).toMatch(/ONE ENTRY PER DISTINCT CHILD/);
+    expect(desc).toMatch(/kids are 24 and 21/);
+    expect(desc).toMatch(/\bTWO entries\b/);
+    expect(desc).toMatch(/NOT 25/);
+    expect(desc).toMatch(/DO NOT re-send children already in ALREADY COLLECTED/);
+    expect(desc).toMatch(/synthesize a stable placeholder/);
+    // Nested item props also carry the guardrail so age-only entries do
+    // not lose the "one child per entry" constraint.
+    const items = props.children.items || {};
+    expect(items.properties.age.description).toMatch(/never a joined multi-digit string/);
+    expect(items.properties.name.description).toMatch(/placeholder/);
+  });
 });
 
 // ─── Correction retirement plumbing (factRetirement) ─────────────────────────
@@ -166,7 +209,7 @@ describe('BaseDivorceOrchestrator extraction hardening', () => {
     expect(props.petitioner_first_name.description).toMatch(/middle name/i);
     expect(props.petitioner_last_name.description).toMatch(/hyphenated and multi-word compound surnames/i);
     expect(props.petitioner_last_name.description).toMatch(/Smith Son-Wyatt/);
-    expect(props.respondent_first_name.description).toMatch(/ANY mention of the spouse/i);
+    expect(props.respondent_first_name.description).toMatch(/ANY mention of the non-filing spouse/i);
     expect(props.respondent_last_name.description).toMatch(/never just "Smith"/);
     expect(props.petitioner_first_name.description).toMatch(/McDonald/);
   });
@@ -221,6 +264,33 @@ describe('BaseDivorceOrchestrator extraction hardening', () => {
     const content = props.extracted_facts.items.properties.content.description;
     expect(content).toMatch(/typos and speech-to-text noise corrected/i);
     expect(content).toMatch(/verbatim words are stored separately/i);
+  });
+
+  // v11-B: schema-typed fact companions carry structured payloads alongside
+  // the sworn-prose content string so profile-merge promotion can route the
+  // quantity/place into the right structured scalar without string-parsing.
+  test('extracted_facts item schema declares numeric_value and place_value companions', () => {
+    const itemProps = props.extracted_facts.items.properties;
+    expect(itemProps.numeric_value).toBeDefined();
+    expect(itemProps.numeric_value.type).toEqual(expect.arrayContaining(['number']));
+    expect(itemProps.numeric_value.description).toMatch(/numeric quantity/i);
+    expect(itemProps.place_value).toBeDefined();
+    expect(itemProps.place_value.type).toEqual(expect.arrayContaining(['string']));
+    expect(itemProps.place_value.description).toMatch(/place/i);
+    expect(itemProps.place_value.description).toMatch(/hedge/i);
+  });
+
+  // v21-A: grounds_value companion so a narrated ground (David NY
+  // "irretrievable breakdown", Amara GA "documented cruelty") reaches the
+  // durable profile via the same shape-check promotion the other companions use.
+  test('extracted_facts item schema declares the grounds_value companion (v21-A)', () => {
+    const itemProps = props.extracted_facts.items.properties;
+    expect(itemProps.grounds_value).toBeDefined();
+    expect(itemProps.grounds_value.type).toEqual(expect.arrayContaining(['string']));
+    expect(itemProps.grounds_value.description).toMatch(/grounds/i);
+    expect(itemProps.grounds_value.description).toMatch(/snake_case/);
+    expect(itemProps.grounds_value.description).toMatch(/irretrievable_breakdown/);
+    expect(itemProps.grounds_value.description).toMatch(/cruel_treatment/);
   });
 
   test('system prompt includes the shared quality rules and drops the verbatim-values rule', () => {
@@ -334,7 +404,7 @@ describe('AffidavitService extraction hardening', () => {
   test('divorce tool name descriptions carry the new rules', () => {
     const props = service.createDivorceProcessingTool().function.parameters.properties;
     expect(props.petitioner_last_name.description).toMatch(/Smith Son-Wyatt/);
-    expect(props.respondent_first_name.description).toMatch(/ANY mention of the spouse/i);
+    expect(props.respondent_first_name.description).toMatch(/ANY mention of the non-filing party/i);
     expect(props.residency_duration.description).toMatch(/35 yeRs/);
     expect(props.extracted_facts.items.properties.content.description)
       .toMatch(/typos and speech-to-text noise corrected/i);
@@ -420,15 +490,279 @@ describe('property/debt lists are LLM-built arrays, never comma-split', () => {
     ]);
   });
 
-  test('entries append to the collected list and dedupe, never dropping prior items', () => {
+  test('REPLACE-PER-PARTY: this turn\'s list supersedes the stored list for that party; the other side is untouched', () => {
+    // Mirrors the income breakdown contract: a live turn where the model
+    // restated 3 items must land as 3 stored items, never 6.
     const data = orch._applyFieldUpdates(
-      { petitionerProperty: ['2019 Honda Odyssey'] },
-      { petitioner_property: ['2019 Honda Odyssey', 'the marital home at 1487 E Sycamore Way'] },
+      {
+        petitionerProperty: ['old stale item that was corrected'],
+        respondentProperty: ['2021 Toyota Tacoma'],
+      },
+      { petitioner_property: [
+        '2019 Honda Odyssey',
+        'the marital home at 1487 E Sycamore Way',
+        'Fidelity 401(k), approximately $62,000',
+      ] },
     );
     expect(data.petitionerProperty).toEqual([
       '2019 Honda Odyssey',
       'the marital home at 1487 E Sycamore Way',
+      'Fidelity 401(k), approximately $62,000',
     ]);
+    // Respondent's stored property is untouched — no field for it this turn.
+    expect(data.respondentProperty).toEqual(['2021 Toyota Tacoma']);
+  });
+
+  test('same-turn dedupe collapses label-variant restatements, keeping the LONGER wording', () => {
+    // Cross-persona real symptom: a single turn restated the same asset
+    // under two labels. Normalize (whitespace/punct/currency/articles),
+    // collide, keep the longer original — truly distinct items survive.
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_property: [
+        '$18k dog-grooming business',
+        'the mobile dog-grooming business worth $18k',
+        '2021 Toyota Tacoma',
+      ],
+    });
+    expect(data.petitionerProperty).toEqual([
+      'the mobile dog-grooming business worth $18k',
+      '2021 Toyota Tacoma',
+    ]);
+  });
+
+  test('schema descriptions carry the replace-per-person, attribution, negative-equity, and separate-property rules', () => {
+    for (const field of LIST_FIELDS) {
+      expect(props[field].description).toMatch(/REPLACE-PER-PERSON/);
+      expect(props[field].description).toMatch(/COMPLETE list/);
+    }
+    // Any asset/debt in a fact MUST populate the list — Marcus persona.
+    expect(props.petitioner_property.description).toMatch(/mentioned in extracted_facts MUST also appear here/);
+    expect(props.petitioner_debts.description).toMatch(/mentioned in extracted_facts MUST also appear here/);
+    // Negative equity preserved.
+    expect(props.petitioner_property.description).toMatch(/underwater by approximately \$22,000/);
+    // Separate-property prefix (naming convention the templates consume).
+    expect(props.petitioner_property.description).toMatch(/Separate property: /);
+    expect(props.petitioner_debts.description).toMatch(/Separate debt: /);
+  });
+});
+
+describe('EXTRACTION_QUALITY covers property/debt attribution and negative equity', () => {
+  test('attribution rule: any asset or debt in a fact must populate the list field', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/ASSETS AND DEBTS MUST POPULATE THEIR LIST FIELDS/);
+    // The exact Marcus persona failure is cited as the example.
+    expect(EXTRACTION_QUALITY).toMatch(/87 Ridgemount Crescent/);
+  });
+
+  test('negative-equity rule preserves the negative sign / underwater phrasing', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/PRESERVE NEGATIVE EQUITY/);
+    expect(EXTRACTION_QUALITY).toMatch(/underwater by \$X/);
+    expect(EXTRACTION_QUALITY).toMatch(/never truncate to a positive value/i);
+  });
+
+  test('separate-vs-community rule uses the "Separate property:" prefix', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/SEPARATE VS COMMUNITY\/MARITAL PROPERTY/);
+    expect(EXTRACTION_QUALITY).toMatch(/prefix that list entry with "Separate property: "/);
+    // Texas Mari's $45k inherited CD is cited as the example.
+    expect(EXTRACTION_QUALITY).toMatch(/inherited from Aunt Rita/);
+  });
+
+  test('rule 16: equalization payments are property, never debts', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/EQUALIZATION PAYMENTS ARE PROPERTY, NOT DEBTS/);
+    expect(EXTRACTION_QUALITY).toMatch(/NEVER list the equalization payment as an entry in petitioner_debts \/ respondent_debts/);
+    // The exact live-run failure is cited.
+    expect(EXTRACTION_QUALITY).toMatch(/\$80,000 equalization payment under ALLOCATION OF DEBTS/);
+  });
+
+  test('rule 17: date completion infers year from context — Marcus persona', () => {
+    // Marcus persona (Ontario acceptance v6): user typed "june 24"; the
+    // model wrongly defaulted to the separation-date year (2024) instead
+    // of the case-filing year (2025 per file number FS-25-…). The
+    // /respond banner then read "deadline passed a year ago" for a real
+    // respondent whose deadline is actually weeks out.
+    expect(EXTRACTION_QUALITY).toMatch(/DATE COMPLETION — INFER YEAR FROM CONTEXT/);
+    expect(EXTRACTION_QUALITY).toMatch(/NEVER silently default to the separation-date year/);
+    expect(EXTRACTION_QUALITY).toMatch(/FS-25-…/);
+    expect(EXTRACTION_QUALITY).toMatch(/2025-06-24/);
+    expect(EXTRACTION_QUALITY).toMatch(/wrongly inferred 2024-06-24/);
+    // Fallback contract: current year + fact-note, never a silent guess.
+    expect(EXTRACTION_QUALITY).toMatch(/CURRENT calendar year/);
+    expect(EXTRACTION_QUALITY).toMatch(/year was assumed/i);
+  });
+});
+
+describe('rule 21: grounds — always emit structured field AND fact companion (v21-A)', () => {
+  test('EXTRACTION_QUALITY tells the model to emit both grounds slug and grounds_value companion', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/GROUNDS — ALWAYS EMIT BOTH THE STRUCTURED FIELD AND A FACT COMPANION/);
+    expect(EXTRACTION_QUALITY).toMatch(/irretrievable_breakdown/);
+    expect(EXTRACTION_QUALITY).toMatch(/cruel_treatment/);
+    expect(EXTRACTION_QUALITY).toMatch(/grounds_value/);
+    expect(EXTRACTION_QUALITY).toMatch(/David \(NY\)/);
+    expect(EXTRACTION_QUALITY).toMatch(/Amara \(GA\)/);
+  });
+});
+
+describe('rule 19: hedge-strip suspected-location values', () => {
+  test('EXTRACTION_QUALITY tells the model to strip leading hedge words from suspected_location', () => {
+    expect(EXTRACTION_QUALITY).toMatch(/HEDGE-STRIPPED SUSPECTED-LOCATION VALUE/);
+    expect(EXTRACTION_QUALITY).toMatch(/"possibly"/);
+    expect(EXTRACTION_QUALITY).toMatch(/"maybe"/);
+    expect(EXTRACTION_QUALITY).toMatch(/"somewhere in"/);
+    expect(EXTRACTION_QUALITY).toMatch(/"I think"/);
+    // The rule cites the exact fix: "Possibly Louisiana or Mississippi" → "Louisiana or Mississippi"
+    expect(EXTRACTION_QUALITY).toMatch(/Louisiana or Mississippi/);
+    expect(EXTRACTION_QUALITY).toMatch(/NOT "Possibly Louisiana or Mississippi"/);
+    // Provenance guidance: user's hedged words stay in a fact
+    expect(EXTRACTION_QUALITY).toMatch(/exact hedged words in a fact/);
+  });
+});
+
+describe('service_date schema description carries the year-inference rule', () => {
+  const BaseDivorceOrchestrator = require('../../services/agents/BaseDivorceOrchestrator');
+  const props = new BaseDivorceOrchestrator({
+    stateCode: 'ON',
+    stateName: 'Ontario',
+    phases: { INTAKE: { prompt: 'intake', displayName: 'Intake' } },
+    phaseOrder: ['INTAKE'],
+  }).tool.function.parameters.properties;
+
+  test('service_date description cites the Marcus failure verbatim', () => {
+    const d = props.service_date.description;
+    expect(d).toMatch(/INFER the year from surrounding context/);
+    expect(d).toMatch(/FS-25-…/);
+    expect(d).toMatch(/2025-06-24/);
+    expect(d).toMatch(/NOT 2024-06-24/);
+    expect(d).toMatch(/NEVER silently default to the separation-date year/);
+    expect(d).toMatch(/CURRENT calendar year/);
+    // Deadline-banner blast radius must appear so future editors know
+    // why this field's year matters.
+    expect(d).toMatch(/deadline banner/i);
+  });
+
+  test('service_date description demands the structured field for any narrated service event (ON Marcus v7)', () => {
+    // ON acceptance v7: "she served me May 12" (no year) went into a
+    // free-text fact only; service_date stayed empty so rule 18 year-
+    // inference never fired. The schema must now REQUIRE the structured
+    // field whenever the user narrates a service event.
+    const d = props.service_date.description;
+    expect(d).toMatch(/NEVER OMIT THIS FIELD/);
+    expect(d).toMatch(/served May 12/);
+    expect(d).toMatch(/free-text fact/);
+    expect(d).toMatch(/STRUCTURED field/);
+  });
+});
+
+// ─── Equalization + prenup schema fields (live CA acceptance run) ────────────
+
+describe('BaseDivorceOrchestrator equalization and prenup schema fields', () => {
+  const orch = makeDivorceOrchestrator();
+  const props = orch.tool.function.parameters.properties;
+
+  test('equalization fields are present and structured', () => {
+    expect(props.equalization_amount.type).toBe('number');
+    expect(props.equalization_amount.description).toMatch(/NEVER list the equalization payment as an entry in petitioner_debts/);
+    expect(props.equalization_schedule.type).toBe('string');
+    expect(props.equalization_schedule.description).toMatch(/schedule/i);
+    expect(props.equalization_payor.enum).toEqual(['petitioner', 'respondent']);
+    expect(props.equalization_payee.enum).toEqual(['petitioner', 'respondent']);
+  });
+
+  test('prenup fields are present and structured', () => {
+    expect(props.prenup_signed.type).toBe('boolean');
+    expect(props.prenup_signed.description).toMatch(/WHEREAS-style recital/);
+    expect(props.prenup_signed_year.type).toBe('number');
+    expect(props.prenup_signed_year.minimum).toBe(1900);
+    expect(props.prenup_signed_year.maximum).toBe(2100);
+    expect(props.prenup_governs_after_divorce.type).toBe('boolean');
+    expect(props.prenup_governs_after_divorce.description).toMatch(/continues to govern/);
+  });
+
+  test('equalization + prenup snake→camel field mapping lands on the template-read names', () => {
+    const data = orch._applyFieldUpdates(
+      { petitionerName: 'Alison Rae McPherson', respondentName: 'Devin McPherson' },
+      {
+        equalization_amount: 80000,
+        equalization_schedule: 'in 36 monthly installments of $2,222.22 beginning October 1, 2026',
+        equalization_payor: 'petitioner',
+        equalization_payee: 'respondent',
+        prenup_signed: true,
+        prenup_signed_year: 2001,
+        prenup_governs_after_divorce: true,
+      }
+    );
+    expect(data.equalizationAmount).toBe(80000);
+    expect(data.equalizationSchedule).toMatch(/36 monthly installments/);
+    // Role codes resolve to actual names so the decree reads coherently.
+    expect(data.equalizationPayor).toBe('Alison Rae McPherson');
+    expect(data.equalizationPayee).toBe('Devin McPherson');
+    expect(data.prenupSigned).toBe(true);
+    expect(data.prenupSignedYear).toBe(2001);
+    expect(data.prenupGovernsAfterDivorce).toBe(true);
+  });
+
+  test('equalization payee derives from payor when only one side is emitted', () => {
+    const data = orch._applyFieldUpdates(
+      { petitionerName: 'Alison Rae McPherson', respondentName: 'Devin McPherson' },
+      { equalization_amount: 80000, equalization_payor: 'petitioner' }
+    );
+    expect(data.equalizationPayor).toBe('Alison Rae McPherson');
+    expect(data.equalizationPayee).toBe('Devin McPherson');
+  });
+});
+
+describe('dedupePropertyItems — home/house synonym + token-subset (CA acceptance)', () => {
+  const orch = makeDivorceOrchestrator();
+
+  test('collapses "marital home at 1418 …" with "house at 1418 … assigned to the petitioner"', () => {
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_property: [
+        'the marital home at 1418 Willow Glen Terrace in San Jose, valued at approximately $1,200,000 with approximately $860,000 in equity, subject to the $340,000 mortgage assigned to the petitioner',
+        'the house at 1418 Willow Glen Terrace in San Jose, assigned to the petitioner',
+      ],
+    });
+    expect(data.petitionerProperty).toHaveLength(1);
+    // Keeps the LONGER wording so no detail is lost.
+    expect(data.petitionerProperty[0]).toMatch(/valued at approximately \$1,200,000/);
+  });
+
+  test('collapses the mortgage duplicate too', () => {
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_debts: [
+        'the mortgage on the marital home at 1418 Willow Glen Terrace in San Jose, approximately $340,000, assigned to the petitioner',
+        'the mortgage on the house at 1418 Willow Glen Terrace in San Jose, assigned to the petitioner',
+      ],
+    });
+    expect(data.petitionerDebts).toHaveLength(1);
+    expect(data.petitionerDebts[0]).toMatch(/approximately \$340,000/);
+  });
+
+  test('leaves truly distinct items alone (a 2021 Toyota is not the marital home)', () => {
+    const data = orch._applyFieldUpdates({}, {
+      petitioner_property: [
+        'the marital home at 1418 Willow Glen Terrace in San Jose',
+        '2021 Toyota Tacoma, approximately $28,000',
+        'Fidelity 401(k), approximately $62,000',
+      ],
+    });
+    expect(data.petitionerProperty).toHaveLength(3);
+  });
+});
+
+describe('BaseDivorceOrchestrator._summarizeCollected surfaces property/debt invariants', () => {
+  const orch = makeDivorceOrchestrator();
+
+  test('lists each party\'s current property/debt items and instructs restate-exact', () => {
+    const summary = orch._summarizeCollected({
+      petitionerProperty: ['the marital home at 1487 E Sycamore Way', 'Fidelity 401(k), approximately $62,000'],
+      respondentDebts: ['joint Amex balance, approximately $6,400'],
+    });
+    expect(summary).toMatch(/Petitioner property recorded/);
+    expect(summary).toMatch(/restate every one of these items EXACTLY/);
+    expect(summary).toMatch(/1487 E Sycamore Way/);
+    expect(summary).toMatch(/Respondent debts recorded/);
+    expect(summary).toMatch(/joint Amex balance, approximately \$6,400/);
+    // The other buckets are silent when empty.
+    expect(summary).not.toMatch(/Petitioner debts recorded/);
+    expect(summary).not.toMatch(/Respondent property recorded/);
   });
 });
 
@@ -595,11 +929,17 @@ describe('DMDC military search soft gate', () => {
   });
 
   test('a planned search satisfies the MILITARY phase without a date', () => {
+    // Seed the user's own name — the phase-satisfied check refuses to mark
+    // any non-INTAKE phase satisfied while the name is missing (TX Mari).
     expect(orch._phaseAlreadySatisfied('MILITARY', {
+      affiantName: 'Alison Rae McPherson',
+      petitionerFirstName: 'Alison',
       respondentMilitaryStatus: 'not_military',
       dmdcSearchPlanned: 'before_filing',
     })).toBe(true);
     expect(orch._phaseAlreadySatisfied('MILITARY', {
+      affiantName: 'Alison Rae McPherson',
+      petitionerFirstName: 'Alison',
       respondentMilitaryStatus: 'not_military',
     })).toBe(false);
   });

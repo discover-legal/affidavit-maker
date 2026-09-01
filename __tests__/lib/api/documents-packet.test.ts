@@ -157,7 +157,11 @@ describe('POST /api/documents/packet payment and ownership gate', () => {
 });
 
 describe('POST /api/documents/packet divorce package expansion', () => {
-  it('renders BOTH sub-documents and passes them in filing order', async () => {
+  it('renders the petition alone (proposed decree is not part of the initiating packet)', async () => {
+    // Sarah AB round-2: the initiating packet ships the Statement of
+    // Claim / Petition only. The proposed Divorce Judgment / Decree is a
+    // post-hearing / on-consent document and belongs in a separate
+    // finalization packet, not next to the petition.
     mockQuery.mockResolvedValueOnce({
       rows: [{ ...documentRow, document_type: 'divorce_package' }],
     });
@@ -165,30 +169,14 @@ describe('POST /api/documents/packet divorce package expansion', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('application/pdf');
 
-    // Petition and decree each rendered through pdfService…
-    expect(mockGeneratePDF).toHaveBeenCalledTimes(2);
+    expect(mockGeneratePDF).toHaveBeenCalledTimes(1);
     expect(mockTemplateManager.generateDivorcePetition).toHaveBeenCalledTimes(1);
-    expect(mockTemplateManager.generateDivorceDecree).toHaveBeenCalledTimes(1);
-    // …in filing order (petition first) with unique per-render temp ids.
-    const structures = mockGeneratePDF.mock.calls.map(
-      (c: unknown[]) => c[0] as { metadata?: { documentTitle?: string } },
-    );
-    expect(structures[0].metadata?.documentTitle).toBe('Verified Petition for Divorce');
-    expect(structures[1].metadata?.documentTitle).toBe('Decree of Divorce');
-    const tempIds = mockGeneratePDF.mock.calls.map(
-      (c: unknown[]) => (c[1] as { documentId: string }).documentId,
-    );
-    expect(new Set(tempIds).size).toBe(2);
+    expect(mockTemplateManager.generateDivorceDecree).not.toHaveBeenCalled();
 
-    // The assembler receives the multi-document array with both titles.
     const call = lastPacketCall();
-    expect(call.mainPdfBuffer).toBeUndefined();
-    expect(call.documents).toHaveLength(2);
-    expect(call.documents!.map((d) => d.title)).toEqual([
-      'Verified Petition for Divorce',
-      'Decree of Divorce',
-    ]);
-    for (const d of call.documents!) expect(Buffer.isBuffer(d.buffer)).toBe(true);
+    expect(call.documents).toBeUndefined();
+    expect(Buffer.isBuffer(call.mainPdfBuffer)).toBe(true);
+    expect(call.mainTitle).toBe('Verified Petition for Divorce');
   });
 
   it('degrades to the petition alone when the jurisdiction has no decree template', async () => {

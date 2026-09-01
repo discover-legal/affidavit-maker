@@ -4,7 +4,69 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
-const { asList } = require('../../core/dataShapes');
+const { asList, partitionByCharacter } = require('../../core/dataShapes');
+const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
+const { resolveGroundsForDivorce } = require('./groundsResolver');
+
+/**
+ * Normalize service-method signals from a divorceData object into the
+ * template's four-value enum ('waiver' | 'formal' | 'publication' |
+ * 'undecided' | ''). Reads the canonical serviceMethod key first, then
+ * falls back to snake_case (service_method), a legacy serviceType key,
+ * an alternativeService flag, and finally infers 'publication' from
+ * unknown-whereabouts phrasing in respondentAddress — the persona shape
+ * that once still fell through to the bare-default fallback despite the
+ * TRCP 109 branch existing (v5 audit, 2026-08-28 Mari case).
+ *
+ * @param {Object} data - divorceData blob passed to the appearances section
+ * @returns {string} lowercase enum value ('' when nothing recognizable)
+ */
+function normalizeServiceMethod(data) {
+  const norm = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+
+  // Direct enum keys, in precedence order.
+  const raw =
+    norm(data.serviceMethod) ||
+    norm(data.service_method) ||
+    norm(data.serviceType) ||
+    norm(data.service_type);
+  if (raw === 'waiver' || raw === 'formal' || raw === 'publication' || raw === 'undecided') {
+    return raw;
+  }
+
+  // Textual synonyms — the extraction layer emits the enum code, but a
+  // saved doc from an older path or a hand-edited affidavit blob may carry
+  // free text. Preserve intent rather than falling through.
+  if (raw) {
+    if (/\bwaiv|\baccept|acknowledg|consent/.test(raw)) return 'waiver';
+    if (/\bpublicat|\bpublish|newspaper|substituted|by\s+notice/.test(raw)) return 'publication';
+    if (/\bformal|personal|process\s*server|sheriff|hand[\s-]*deliver|certified\s*mail/.test(raw)) {
+      return 'formal';
+    }
+    if (/undecid|not\s+yet|unknown/.test(raw)) return 'undecided';
+  }
+
+  // Boolean/flag shapes that other paths sometimes set.
+  if (data.alternativeService === true || data.serviceByPublication === true) return 'publication';
+  if (data.waiverOfService === true || data.acceptedService === true) return 'waiver';
+
+  // Whereabouts-unknown inference: when the address itself says the
+  // respondent cannot be located AND no other service signal exists, TRCP
+  // 109 publication is the mechanism a Texas litigant would use to move
+  // forward. This is a defensive last resort — never fires when serviceMethod
+  // is already set (handled above).
+  const addr = norm(data.respondentAddress);
+  const whereaboutsUnknown =
+    data.respondentAddressUnknown === true ||
+    data.respondentWhereaboutsUnknown === true ||
+    (addr &&
+      /^unknown\b|whereabouts\s+unknown|address\s+unknown|no\s+(known|current)\s+address|cannot\s+be\s+located/.test(
+        addr,
+      ));
+  if (whereaboutsUnknown) return 'publication';
+
+  return '';
+}
 
 /**
  * Texas Final Decree of Divorce Template
@@ -155,21 +217,54 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     text += `On ${this.formatDate(divorceData.hearingDate) || '___________________'}, this case was called for trial.\n\n`;
 
-    if (divorceData.isUncontested || divorceData.appearanceType === 'agreed') {
-      text += `${divorceData.petitionerName || 'Petitioner'} appeared in person${divorceData.petitionerRepresentation === 'attorney' ? ' and through attorney of record' : ', pro se'}.\n\n`;
+    const petitioner = divorceData.petitionerName || 'Petitioner';
+    const respondent = divorceData.respondentName || 'Respondent';
+    const petitionerAppearance =
+      divorceData.petitionerRepresentation === 'attorney' ? ' and through attorney of record' : ', pro se';
 
-      if (divorceData.respondentAppeared) {
-        text += `${divorceData.respondentName || 'Respondent'} appeared in person and announced ready.\n\n`;
-      } else {
-        text += `${divorceData.respondentName || 'Respondent'}, although duly cited, did not appear, and the Court proceeds to hear evidence and render judgment by default.\n\n`;
-      }
+    // Truthful respondent appearance. serviceMethod 'publication' (TRCP 109
+    // citation-by-publication) is NOT a default in itself — an attorney ad
+    // litem is appointed for the respondent (TRCP 244). Default is recited
+    // ONLY when the data affirmatively says so (live Texas audit, 2026-08).
+    //
+    // DEFENSIVE KEY NORMALIZATION (v5 audit, 2026-08-28): the live Mari
+    // decree still fell through to "although duly cited, did not appear"
+    // even though the persona said "his whereabouts are unknown, I'll need
+    // publication". A signal recorded under a variant key (service_method
+    // snake_case, serviceType, alternativeService), or a signal only
+    // surfaced through respondentAddress (unknown-whereabouts), or a raw
+    // enum stored with an alternate value ("publish", "citation by
+    // publication", "newspaper") must still route to the publication
+    // branch — never the bare-default fallback that misrecites a
+    // publication case as a defaulted appearance.
+    const method = normalizeServiceMethod(divorceData);
+    const defaulted =
+      divorceData.respondentDefaulted === true ||
+      divorceData.defaultJudgment === true ||
+      divorceData.appearanceType === 'default';
 
-      text += `A jury was waived. All matters in controversy were submitted to the Court.`;
+    let respondentLine;
+    if (divorceData.respondentAppeared) {
+      respondentLine = `${respondent} appeared in person and announced ready.`;
+    } else if (method === 'waiver') {
+      respondentLine = `${respondent} accepted service and waived further service of process, and has agreed to the terms of this decree.`;
+    } else if (method === 'publication') {
+      respondentLine = defaulted
+        ? `${respondent}, having been served by publication pursuant to Tex. R. Civ. P. 109 and having failed to appear or answer, made default; an attorney ad litem was appointed pursuant to Tex. R. Civ. P. 244 to represent the interests of ${respondent}.`
+        : `${respondent} was served by citation by publication pursuant to Tex. R. Civ. P. 109; an attorney ad litem was appointed pursuant to Tex. R. Civ. P. 244 to represent the interests of ${respondent}.`;
+    } else if (defaulted) {
+      respondentLine = `${respondent}, although duly cited, did not appear, and the Court proceeds to hear evidence and render judgment by default.`;
+    } else if (divorceData.isUncontested || divorceData.appearanceType === 'agreed') {
+      respondentLine = method === 'formal'
+        ? `${respondent} was duly served and has agreed to the terms of this decree.`
+        : `${respondent}, having been duly served, did not appear but signed a Waiver of Citation and Agreement.`;
     } else {
-      text += `${divorceData.petitionerName || 'Petitioner'} appeared in person${divorceData.petitionerRepresentation === 'attorney' ? ' and through attorney of record' : ', pro se'}.\n\n`;
-      text += `${divorceData.respondentName || 'Respondent'} ${divorceData.respondentAppeared ? 'appeared in person' : 'although duly cited, did not appear'}.\n\n`;
-      text += `A jury was waived. All matters in controversy were submitted to the Court.`;
+      respondentLine = `${respondent}, although duly cited, did not appear.`;
     }
+
+    text += `${petitioner} appeared in person${petitionerAppearance}.\n\n`;
+    text += `${respondentLine}\n\n`;
+    text += `A jury was waived. All matters in controversy were submitted to the Court.`;
 
     return {
       title: 'APPEARANCES',
@@ -197,11 +292,59 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object} Dissolution section
    */
   generateDissolutionSection(divorceData) {
+    // Render the ground the parties PLEADED — a fault-ground petition
+    // (cruelty, adultery, felony conviction, abandonment, confinement,
+    // 3-year living apart) must never be silently downgraded to
+    // "insupportability" (§6.001) in the decree. The live Texas audit
+    // caught a §6.002 cruelty petition emerging as an insupportability
+    // decree — a defective final order.
+    const ground = this.getDecreeGroundClause(divorceData);
     return {
       title: 'DIVORCE GRANTED',
-      text: `IT IS ORDERED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are divorced and that the marriage between them is dissolved on the ground of insupportability.`,
+      text: `IT IS ORDERED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} and ${divorceData.respondentName || 'Respondent'} are divorced and that the marriage between them is dissolved ${ground}.`,
       type: 'dissolution'
     };
+  }
+
+  /**
+   * Texas statutory ground fragment for the dissolution decretal clause.
+   * Falls back to §6.001 insupportability ONLY when the data does not
+   * name a recognized fault ground (or names insupportability/no-fault
+   * explicitly).
+   *
+   * @param {Object} divorceData - Divorce data
+   * @returns {string} Ground fragment beginning "on the ground of …"
+   */
+  getDecreeGroundClause(divorceData) {
+    // Resolve from the structured field first, then from any `facts[]`
+    // entry the extractor tagged as `category: 'grounds'` — the
+    // Mari-acceptance replay showed a cruelty petition losing its
+    // §6.002 grounds because the structured field was empty and the
+    // fact never got promoted upstream. groundsResolver.js is the
+    // single source of truth shared with the petition template.
+    const raw = resolveGroundsForDivorce(divorceData);
+    switch (raw) {
+      case 'cruelty':
+        return 'on the ground of cruelty (Tex. Fam. Code § 6.002)';
+      case 'adultery':
+        return 'on the ground of adultery (Tex. Fam. Code § 6.003)';
+      case 'conviction':
+      case 'felony':
+      case 'felony_conviction':
+        return 'on the ground of conviction of a felony (Tex. Fam. Code § 6.004)';
+      case 'abandonment':
+        return 'on the ground of abandonment (Tex. Fam. Code § 6.005)';
+      case 'living_apart':
+        return 'on the ground of living apart for at least three years (Tex. Fam. Code § 6.006)';
+      case 'confinement':
+        return 'on the ground of confinement in a mental hospital (Tex. Fam. Code § 6.007)';
+      case 'insupportability':
+      case 'irreconcilable_differences':
+      case 'no_fault':
+      case '':
+      default:
+        return 'on the ground of insupportability (Tex. Fam. Code § 6.001)';
+    }
   }
 
   /**
@@ -217,17 +360,26 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'finding'
     });
 
-    // Property to Petitioner
-    items.push({
-      content: `IT IS ORDERED AND DECREED that ${divorceData.petitionerName || 'Petitioner'} is awarded the following as ${divorceData.petitionerName || 'Petitioner'}'s sole and separate property, and ${divorceData.respondentName || 'Respondent'} is divested of all right, title, interest, and claim in and to that property:`,
-      type: 'order'
-    });
-
     const petitionerName = divorceData.petitionerName || 'Petitioner';
     const respondentName = divorceData.respondentName || 'Respondent';
 
-    if (asList(divorceData.petitionerProperty).length > 0) {
-      asList(divorceData.petitionerProperty).forEach(prop => {
+    // Split each party's list into community vs pre-existing separate property
+    // by the "Separate property: " prefix (see services/agents/extractionQuality.js).
+    // Under Texas Fam. Code § 3.001 separate property is not divisible by the
+    // court — it is confirmed to the owning spouse in its own decretal
+    // paragraph, never awarded as part of the just-and-right community division.
+    const petParts = partitionByCharacter(divorceData.petitionerProperty, 'property');
+    const respParts = partitionByCharacter(divorceData.respondentProperty, 'property');
+
+    // Property to Petitioner — community estate awarded to Petitioner as
+    // Petitioner's sole property (Tex. Fam. Code § 7.001).
+    items.push({
+      content: `IT IS ORDERED AND DECREED that ${petitionerName} is awarded the following as ${petitionerName}'s sole and separate property, and ${respondentName} is divested of all right, title, interest, and claim in and to that property:`,
+      type: 'order'
+    });
+
+    if (petParts.community.length > 0) {
+      petParts.community.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -247,8 +399,8 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       type: 'order'
     });
 
-    if (asList(divorceData.respondentProperty).length > 0) {
-      asList(divorceData.respondentProperty).forEach(prop => {
+    if (respParts.community.length > 0) {
+      respParts.community.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -259,6 +411,20 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       items.push({
         content: `• All funds in accounts in ${respondentName}'s sole name`,
         type: 'property_item'
+      });
+    }
+
+    // Confirmation of pre-existing separate property (Tex. Fam. Code § 3.001).
+    if (petParts.separate.length + respParts.separate.length > 0) {
+      items.push({
+        content: 'IT IS ORDERED AND DECREED that the following property is confirmed as the separate property of the owning party pursuant to Tex. Fam. Code § 3.001, and is not subject to division:',
+        type: 'order'
+      });
+      petParts.separate.forEach(prop => {
+        items.push({ content: `• ${petitionerName}'s separate property: ${prop}`, type: 'property_item' });
+      });
+      respParts.separate.forEach(prop => {
+        items.push({ content: `• ${respondentName}'s separate property: ${prop}`, type: 'property_item' });
       });
     }
 
@@ -442,28 +608,33 @@ class TexasDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
-      return null;
-    }
+    // Precedence (templates/core/spousalSupport.js): request-plus-amount
+    // renders the AWARD even absent an explicit awarded flag; a bare
+    // request with no amount pleads a reservation, never a false waiver.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const payor = decision.payor || 'Respondent';
+    const payee = decision.payee || 'Petitioner';
 
-    if (divorceData.spousalSupportWaived) {
-      items.push({
-        content: 'IT IS ORDERED AND DECREED that each party waives any right to spousal maintenance, now and in the future, from the other party.',
-        type: 'order'
-      });
-    } else if (divorceData.spousalSupportAwarded) {
-      const payor = divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent';
-      const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
-
+    if (decision.outcome === 'award') {
       items.push({
         content: `The Court finds that ${payee} lacks sufficient property to provide for ${payee}'s minimum reasonable needs and meets the eligibility requirements for spousal maintenance under Chapter 8 of the Texas Family Code.`,
         type: 'finding'
       });
-
       items.push({
-        content: `IT IS ORDERED AND DECREED that ${payor} shall pay spousal maintenance to ${payee} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month, beginning on ${this.formatDate(divorceData.spousalSupportStartDate) || '[DATE]'} and continuing for a period of ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED AND DECREED that ${payor} shall pay spousal maintenance to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month, beginning on ${this.formatDate(decision.startDate) || '[DATE]'} and continuing for a period of ${decision.duration || '[DURATION]'}.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'reserve') {
+      items.push({
+        content: `IT IS ORDERED AND DECREED that the Court reserves jurisdiction over spousal maintenance under Chapter 8 of the Texas Family Code, ${payee} having requested maintenance with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'IT IS ORDERED AND DECREED that each party waives any right to spousal maintenance, now and in the future, from the other party.',
         type: 'order'
       });
     }

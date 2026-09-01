@@ -51,6 +51,12 @@ jest.mock('pdfkit', () => {
       count: stream._pageBuffer.length
     }));
 
+    // Sarah AB round-7 (2026-08-30): the two-pass footer model was
+    // replaced by a single-pass build + switchToPage post-stamp — the
+    // mock therefore needs a switchToPage stub that behaves like the
+    // real pdfkit method (no-op switch onto the addressed page).
+    stream.switchToPage = jest.fn();
+
     // PDF graphics state methods
     stream.save = jest.fn(() => stream);
     stream.restore = jest.fn(() => stream);

@@ -55,4 +55,42 @@ function propertyAgreementProse(value) {
   return trimmed;
 }
 
-module.exports = { asList, propertyAgreementProse };
+/**
+ * Split a property/debt list into community and separate buckets by the
+ * "Separate property: " / "Separate debt: " prefix convention the
+ * extraction layer emits (see services/agents/extractionQuality.js —
+ * PROPERTY_ITEM_DESCRIPTION / DEBT_ITEM_DESCRIPTION). Templates that render
+ * separate-property tracing paragraphs use this to route items to the right
+ * section instead of lumping every item into the community/marital division.
+ *
+ * The prefix is stripped from the returned separate items so the template
+ * can render them cleanly ("$45,000 CD inherited …", not "Separate property:
+ * $45,000 CD inherited …"). Matching is case-insensitive on the prefix word
+ * only — the item's payload is preserved verbatim.
+ *
+ * Legacy strings and non-lists degrade to community-only, mirroring
+ * `asList` — a template that expects both buckets is safe on old data.
+ */
+const SEPARATE_PROPERTY_PREFIX = /^\s*separate\s+property\s*:\s*/i;
+const SEPARATE_DEBT_PREFIX = /^\s*separate\s+debt\s*:\s*/i;
+
+function partitionByCharacter(value, kind = 'property') {
+  const rx = kind === 'debt' ? SEPARATE_DEBT_PREFIX : SEPARATE_PROPERTY_PREFIX;
+  const community = [];
+  const separate = [];
+  for (const item of asList(value)) {
+    if (rx.test(item)) {
+      separate.push(item.replace(rx, '').trim());
+    } else {
+      community.push(item);
+    }
+  }
+  return { community, separate };
+}
+
+module.exports = {
+  asList,
+  propertyAgreementProse,
+  partitionByCharacter,
+  PROPERTY_AGREEMENT_STATUS_TOKENS,
+};

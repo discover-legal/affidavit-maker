@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Affidavit Maker
 
-**Last Updated**: 2026-05-04
-**Version**: 5.0.0 — Next.js 14 + TypeScript
+**Last Updated**: 2026-08-31
+**Version**: 5.1.0 — Attorney-verified draft quality across 7 personas + narrow launch (ON+UT)
 
 ---
 
@@ -274,9 +274,14 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 # Feature flags
 ENABLE_INTERNATIONAL=false  # Set true to activate ~110 international jurisdictions
+JURISDICTION_ALLOWLIST=ON,UT # Narrow launch: comma-separated codes surface ONLY these
+                            # (overrides ENABLE_INTERNATIONAL). Unset for full NA default.
+                            # Currently launching Ontario + Utah only.
 PAYMENTS_ENABLED=false      # FREE by default (donation-supported). true re-arms
                             # Stripe charging; the payment infra stays dormant
 NEXT_PUBLIC_DONATION_URL=   # "Buy us a coffee" link; coffee links render only when set
+MAINTENANCE_MODE=true       # Kill-switch: proxy.ts serves 503 maintenance page for
+                            # every request. Unset (or =false) to bring the site back.
 ```
 
 ---
@@ -490,8 +495,154 @@ Built into Next.js — no react-snap, no Chromium, no postbuild hacks:
 
 ## Version History
 
-### v5.0.0 (2026-05-04) — current
-**Migration to Next.js 14 + TypeScript.** CRA + Express both retired.
+### v5.1.0 (2026-08-31) — current
+**Attorney-verified draft quality + narrow launch.** Eight recursive rounds of
+LLM-driven persona replay (Marcus/ON, Mari/TX, Alison/CA, David/NY, Sarah/AB,
+Tavita/FL, Amara/GA) plus eight rounds of senior-family-law attorney review
+raised draft quality from 62/69 to 69/69 across all seven personas, with
+attorney round 8 declaring the packets READY FOR LIMITED-INVITATION UNPAUSE.
+Launch flagged narrow (Ontario + Utah) pending progressive rollout.
+
+**Feature flags**:
+- `JURISDICTION_ALLOWLIST` (new): comma-separated codes; when set, ONLY those
+  jurisdictions surface (overrides `ENABLE_INTERNATIONAL`). Priority:
+  allowlist > international flag > NA default. Currently `ON,UT`.
+- `MAINTENANCE_MODE` (existing): 503 kill-switch, still on pending unpause.
+
+**Safety fixes (highest liability)**:
+- Base templates never FABRICATE waivers, nil-findings, or "no property"
+  allegations. Silence in the transcript renders a Draft-note blank; only
+  affirmative `noPropertyConfirmed`/`noDebtsConfirmed`/`spousalSupportWaived`
+  flags render dispositive text. 98 petition + 98 decree subclasses inherit.
+- Orchestrator no longer auto-derives `spousalSupportWaived` from
+  `spousalSupportRequested=false`. Silence ≠ waiver.
+- TX cruelty petitions plead §6.002 primary + §6.001 insupportability
+  alternative so the case doesn't collapse if fault proof is thin.
+- Canadian ground gate: Divorce Act s.8(2)(a) one-year separation cannot be
+  pleaded as satisfied when actual separation < 12 months; template pleads
+  "will have been separate for one year by [date]" + Draft note pointing at
+  alternative cruelty/adultery grounds.
+- Predicate guards: "resides at address unknown" fires only when
+  `respondentAddressUnknown === true`; "community property exists" only when
+  `hasProperty === true`; GA venue nonresident-basis when addr unknown.
+- Substrate composition guards: LLM meta-commentary ("rather than",
+  "seeks dissolution", "the appropriate ground") filtered out before splice.
+- No literal `Case No. null` / `Case No. .` — any punctuation-only or nullish
+  value renders as visible blank + Draft note.
+
+**Draft-quality fixes (per jurisdiction)**:
+- **Ontario**: US-idiom purge (`marital assets/debts` → `family
+  assets/debts`, `Counter-Petition` → `Answer with Claim`, `Petitioner` →
+  `Applicant` on packets, `IT IS ORDERED AND DECREED` → `IT IS ORDERED`,
+  `pro se` → `self-represented`, `Case No.` → `Court File No.`, `v.` → `AND
+  BETWEEN`); Form 10 Answer PART A/B/C structured scaffold with pre-populated
+  ADMITS from schema-typed facts; Part C claim template auto-populated from
+  custody-dispute facts; Divorce Act post-2021 cites (s.16 best-interests,
+  s.16.1 parenting orders, s.16.2 parenting time, s.16.3 decision-making);
+  Certificate of Divorce cite corrected to s.12(6) + FLR r.36(7); name-change
+  cites Change of Name Act, RSO 1990 c. C.7 s.3(1)(a); decree appearances no
+  longer default to "self-represented"; decree contested-issues rewritten as
+  preamble (not "IT IS ORDERED"); parenting order reads primary-residence
+  from actual custody arrangement, not template-default respondent.
+- **Alberta**: "JUDICIAL CENTRE" (Alta. r.3.3) not "JUDICIAL DISTRICT";
+  "ordinarily resident" (Divorce Act s.3(1)) not "habitually resident";
+  Commissioner-for-Oaths jurat block (Alta. Rules 13.19–13.22); positive
+  s.3(1) residency (no disjunctive "either/or"); §19 Federal CS Guidelines
+  imputation section renders factual paragraphs + relief when profile has
+  imputation facts; "community" scrubbed (AB uses Family Property Act
+  vocabulary); `hasAgreedPropertyDivision` rejects "pending"/"contested"/
+  "n/a" as agreement tokens; Divorce Act 2021 vocabulary (decision-making
+  responsibility, parenting time).
+- **Texas**: `resolveGroundsForDivorce()` reads alias → structured → facts;
+  §6.002 cruelty pinpoint + §6.001 alternative always both render; alt-service
+  clause with "Petitioner has heard, but cannot swear" caveat when
+  whereabouts flags set; TRCP 106/109/244 + TFC §6.504/§6.501 Draft notes;
+  Rule 145 Statement of Inability qualification-check + itemized income +
+  itemized expense scaffold; hedge-strip on suspected-location.
+- **California**: `In re Marriage of` caption; real-estate items rendered in
+  Section VI with description + county; §2320 6-mo + 3-mo residency pleaded
+  with facts; adult-only children path renders "There are N adult children of
+  the marriage; no orders regarding custody, visitation, or child support
+  are requested"; `V. CHILDREN OF THE MARRIAGE` header when adult-only;
+  spousal-support election prompt (§4320 request / §4335 waive / §4330
+  reserve); FL-100 official-form link; date shape validation via
+  `isRenderableDate()` — freeform "a few months ago" renders blank + Draft
+  note.
+- **New York**: Plaintiff/Defendant throughout body (was mixed with
+  Petitioner); DRL §230(2) sub-basis auto-selected with marriage-in-NY fact;
+  uncontested settlement recital + "incorporate but not merge" prayer when
+  profile has settlement/mediation/waiver facts; UD-1 through UD-13 packet
+  Draft note; 22 NYCRR 202.16(e) no-prior-action disclosure; UCCJEA §75-a
+  declaration for minors; marital property (not community) under DRL §236-B.
+- **Georgia**: `groundsResolver.js` covers all 13 O.C.G.A. §19-5-3
+  sub-grounds; §19-5-2 nonresident venue basis when respondent absent;
+  UCCJEA §19-9-40 per-child declarations with Plaintiff-address autofill;
+  cruelty §19-5-3(10) with factual substrate + FVPA §19-13-1 / §19-9-3(a)(4)
+  Draft note; supervised-visitation prayer elevation when family-violence
+  facts present; support long-arm §9-10-91 / UIFSA §19-11-40 (NOT §19-9-64
+  which is UCCJEA); Plaintiff/Defendant terminology enforced throughout.
+- **Florida**: FL Answer full rebuild with per-paragraph admit/deny scaffold
+  (Fla. Fam. L.R.P. 12.110 / Fla. R. Civ. P. 1.110(c)); AFFIRMATIVE DEFENSES
+  section auto-renders 3 prenup defenses (EXECUTION / COUNSEL / BAR)
+  from `prenupSigned` OR prenup fact subcategory (Fla. R. Civ. P. 1.110(d)
+  waiver-if-omitted); WHEREFORE closing; counter-petition offer citing
+  Form 12.903(b); prenup enforcement in prayer (§61.079); year-only
+  marriage renders "in 2019" not "on 2019"; 11th Judicial Circuit lookup
+  by county; verification cites Fla. Stat. §92.525 only (not 12.020).
+- **Universal**: base `formatDate()` returns null on NaN + shape check;
+  `utils/childrenMerge.js` age-identity dedupe for anonymous entries;
+  `PACKAGE_SUB_DOCUMENTS_BY_ROLE` — respondent packet = `[divorce_response]`
+  only (no proposed final orders bundled with initial responsive
+  pleadings); `normalizeRole` recognizes applicant/plaintiff/defendant;
+  PLACEHOLDER_DENYLIST extended; TODAY-anchored system prompt so LLM year
+  inference never falls back to training-data year; canonical
+  `resolveGroundsForDivorce` per-jurisdiction resolvers with cross-jurisdiction
+  slug canonicalization (rescue LLM may emit GA slug for TX case → normalized).
+
+**Extraction / orchestrator**:
+- Schema-typed fact companions (`numeric_value`, `place_value`,
+  `grounds_value`) with jurisdictional slug examples.
+- `_promoteFactCompanions` gpt-5-nano batched sub-call fills companions
+  Luna's primary extraction sparsely omits. `max_tokens: 2000` (reasoning
+  budget).
+- Three merge-time rescue LLMs (respondentSuspectedLocation, numberOfChildren,
+  groundsForDivorce), each jurisdiction-aware and fail-open. Retry with
+  6000-token budget when first call returns empty. Broader-scan rescue
+  for whereabouts when no dedicated fact exists.
+- Shape predicates (`isWhereaboutsTag`, `isChildrenCountFact`,
+  `isGroundsFact`) accept LLM subcategory drift (e.g. `respondent_address_unknown`,
+  `parental/children_of_marriage`, evidence-category `cruel_treatment`)
+  instead of strict-equality rejection.
+- `FORBIDDEN_GROUNDS_SENTINELS` scrub overwrites `other`/`unknown`/etc.
+  before promotion loop.
+- Fact-to-structured-field promotion in `mergeUserProfile`:
+  property/debt negation → `hasProperty=false + noPropertyConfirmed=true`;
+  settlement/mediation/waiver subcategory → structured settlement fields.
+- `case_number` first-class schema field so LLM can capture "FS-26-01234"
+  directly into the caption instead of parking it as a free-text fact.
+- RESPONDENT_NAME_RULE: proactively asks for full legal name when only
+  nickname given.
+
+**Answer templates**:
+- `BaseAnswerTemplate` factory with `preAdmitScaffoldMap` that pre-admits
+  scaffold paragraphs from schema-typed facts; per-jurisdiction configs
+  for FL/GA/NY/TX/CA/ON/AB.
+- `canadianize()` filter rewrites US idioms for Canadian jurisdictions.
+
+**Rendering**:
+- `services/pdfService.js` header items (`section_header`, `form10_header`,
+  `form10_claim_subheader`) render bold centered — no `0.` numeric prefix.
+- Footer page-of-total single-pass render + post-stamp (was two-pass with
+  phantom-page over-count).
+- `services/pdfService.js` `buildPetitionPDF` includes `contestedIssues`
+  section (was dropped silently — Sarah's §19 imputation facts existed on
+  divorceData but never reached the PDF pre-fix).
+
+**Test coverage**: 6998 unit tests / 195 suites. New regression tests for
+every fix listed above. 69/69 live-LLM 7-persona acceptance.
+
+### v5.0.0 (2026-05-04)
+**Migration to Next.js 14 + TypeScript.** CRA + Express both retired.  Superseded by v5.1.0.
 
 - **Next.js 14 App Router** at the repo root. `app/` houses pages + API Route Handlers; legacy `client/` and `server.js` deleted.
 - **TypeScript** with strict mode. New code (`app/`, `lib/api/`, `components/marketing/`) is TS; legacy app components/contexts/hooks remain `.js` with `allowJs` while incrementally converted.

@@ -221,9 +221,10 @@ class VirginiaDivorcePetitionTemplate extends BaseDivorcePetitionTemplate {
    * @returns {string} Grounds text
    */
   getGroundsText(grounds, divorceData) {
-    const separationDate = divorceData.separationDate
-      ? this.formatDate(divorceData.separationDate)
-      : '[DATE OF SEPARATION]';
+    // formatDate returns null on freeform text ("a few months ago") — fall
+    // back to the denylist sentinel so the generate route surfaces a
+    // 422 rather than emitting the narrative verbatim (v12-B base fix).
+    const separationDate = this.formatDate(divorceData.separationDate) || '[DATE OF SEPARATION]';
 
     switch (grounds) {
       case 'separation_6mo':

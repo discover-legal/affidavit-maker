@@ -299,7 +299,15 @@ class BaseAffidavitTemplate {
    * @returns {string} Title text
    */
   generateTitle(affiantName) {
-    return `AFFIDAVIT OF ${(affiantName || '[NAME]').toUpperCase()}`;
+    // Route through captionUpper so internal-capital surnames the extraction
+    // layer preserves (McPherson, DiCaprio, van der Berg, O'Brien) don't get
+    // corrupted to MCPHERSON etc. in the affidavit header. The case caption
+    // already goes through captionUpper in every state template that renders
+    // one; this closes the gap for the affidavit-of-<name> header, which the
+    // live CA acceptance run caught rendering "AFFIDAVIT OF ALISON RAE
+    // MCPHERSON" in the financial declaration.
+    const { captionUpper } = require('./nameCase');
+    return `AFFIDAVIT OF ${affiantName ? captionUpper(affiantName) : '[NAME]'}`;
   }
 
   /**

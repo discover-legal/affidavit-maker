@@ -64,6 +64,16 @@ const ONTARIO_CASE = {
   serviceMethod: 'waiver',
   isUncontested: true,
   spousalSupportRequested: false,
+  // Post-2026-08 safety rule: a spousal-support waiver renders ONLY on
+  // an affirmative, user-confirmed waiver flag — bare
+  // `spousalSupportRequested === false` is no longer sufficient. The
+  // audited Ontario fixture is an UNCONTESTED case in which the parties
+  // affirmatively agreed to waive support, so set the confirmation.
+  spousalSupportWaived: true,
+  // Round-7 (Marcus ON, 2026-08-30 v30b): the ON decree no longer defaults
+  // an unspecified petitionerRepresentation to "self-represented"; the
+  // audited Ontario fixture is an uncontested self-rep filing, so state it.
+  petitionerRepresentation: 'self',
   childSupportAmount: '800',
   childSupportObligor: 'Jordan Quinn',
   childSupportObligee: 'Avery Quinn',
@@ -267,7 +277,7 @@ describe('decree spousal support', () => {
   });
 
   it('no spousal data at all still renders no spousal section', () => {
-    const doc = baseDecree({ spousalSupportRequested: undefined });
+    const doc = baseDecree({ spousalSupportRequested: undefined, spousalSupportWaived: undefined });
     expect(doc.sections.spousalSupport).toBeNull();
   });
 });
@@ -356,7 +366,12 @@ describe('US base petition pleads the agreed relief', () => {
       hasMinorChildren: true,
       children: [{ name: 'Riley Quinn', dob: '2015-04-02' }],
     }).fullText;
-    expect(genericText).toContain('divide the community/marital property in a just and right manner');
+    // Attorney round-2 (2026-08): a bare petition without an affirmative
+    // hasProperty flag no longer emits the community-property allegation
+    // — it emits a Draft-note blank so the filer must confirm before
+    // filing (see __tests__/templates/no-fabricated-property.test.js).
+    expect(genericText).not.toContain('divide the community/marital property in a just and right manner');
+    expect(genericText).toMatch(/\(Draft — confirm whether you and your spouse have any marital\/community property/);
     expect(genericText).toContain('Order child support in accordance with state guidelines;');
     expect(genericText).not.toContain('The parties have agreed');
   });

@@ -18,6 +18,7 @@
 const crypto = require('node:crypto');
 const { resolvePartyIncomes, INCOME_PLACEHOLDER } = require('./partyIncome');
 const { asList } = require('../../templates/core/dataShapes');
+const { captionUpper } = require('../../templates/core/nameCase');
 
 /**
  * Render a property/debt field as prose. Extraction stores these as ARRAYS
@@ -139,8 +140,10 @@ function utahCaption(data, parties) {
   const county = (normalizeCountyName(str(data.county)) || BLANK_SHORT).toUpperCase();
   const header = `IN THE DISTRICT COURT OF THE STATE OF UTAH, IN AND FOR ${county} COUNTY`;
   const caseNumber = str(data.caseNumber) || BLANK_SHORT;
-  const petitioner = (parties?.petitioner ?? resolvePetitioner(data)).toUpperCase();
-  const respondent = (parties?.respondent ?? resolveRespondent(data)).toUpperCase();
+  // captionUpper preserves McPherson/DiCaprio/van der Berg style internal
+  // capitals — same reason the state divorce templates use it for captions.
+  const petitioner = captionUpper(parties?.petitioner ?? resolvePetitioner(data));
+  const respondent = captionUpper(parties?.respondent ?? resolveRespondent(data));
   const formatted = [
     `${petitioner},`,
     'Petitioner,',

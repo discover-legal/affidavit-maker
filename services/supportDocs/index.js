@@ -4,10 +4,38 @@
 // services/pdfService.js renders on its generic affidavit path.
 
 const utah = require('./utah');
+const texas = require('./texas');
 const { childSupportWorksheet } = require('./utahChildSupportWorksheet');
 const { answerToPetition } = require('./utahAnswer');
 const { feeWaiverMotion } = require('./utahFeeWaiver');
 const { lawyerHandoff } = require('./lawyerHandoff');
+const { answerToPetition: floridaAnswer } = require('./floridaAnswer');
+const { answerToPetition: georgiaAnswer } = require('./georgiaAnswer');
+const { answerToPetition: newyorkAnswer } = require('./newyorkAnswer');
+const { answerToPetition: texasAnswer } = require('./texasAnswer');
+const { answerToPetition: californiaAnswer } = require('./californiaAnswer');
+const { answerToPetition: ontarioAnswer } = require('./ontarioAnswer');
+const { answerToPetition: albertaAnswer } = require('./albertaAnswer');
+
+// Shared registry entry for the Answer / Response / Statement of Defence
+// support-doc kind — every registered jurisdiction's `answer` entry shows
+// the same catalog copy in the UI even when the underlying pleading title
+// differs (Response, Answer, Statement of Defence). Per-jurisdiction titling
+// is inside each builder's rendered document.
+function answerEntry(builder) {
+  return {
+    build: builder,
+    title: 'Answer to the petition',
+    titleEs: 'Respuesta a la petición',
+    description:
+      "The respondent's formal response — you choose admit, deny, or " +
+      '"don\'t know" for each paragraph of the petition, with an optional ' +
+      'counterclaim.',
+    descriptionEs:
+      'La respuesta formal del demandado — tú eliges admitir, negar o ' +
+      '"no sé" para cada párrafo de la petición, con una contrademanda opcional.',
+  };
+}
 
 // State-agnostic kinds, available for every state (merged into list()).
 const GENERAL = {
@@ -26,6 +54,72 @@ const GENERAL = {
 };
 
 const REGISTRY = {
+  FL: {
+    answer: answerEntry(floridaAnswer),
+  },
+  GA: {
+    answer: answerEntry(georgiaAnswer),
+  },
+  NY: {
+    answer: answerEntry(newyorkAnswer),
+  },
+  CA: {
+    answer: answerEntry(californiaAnswer),
+  },
+  ON: {
+    answer: answerEntry(ontarioAnswer),
+  },
+  AB: {
+    answer: answerEntry(albertaAnswer),
+  },
+  TX: {
+    answer: answerEntry(texasAnswer),
+    statement_of_inability: {
+      build: texas.statementOfInability,
+      title: 'Statement of Inability to Afford Payment of Court Costs',
+      titleEs: 'Declaración de incapacidad para pagar los costos judiciales',
+      description:
+        'Sworn statement asking a Texas court to waive filing fees under Tex. R. Civ. P. 145, ' +
+        'prefilled from your itemized monthly income, expenses, dependents, and assets. ' +
+        'The court decides.',
+      descriptionEs:
+        'Declaración jurada que pide a un tribunal de Texas que exima las cuotas de ' +
+        'presentación conforme a la Regla 145, precompletada con tus ingresos, gastos, ' +
+        'dependientes y bienes mensuales detallados. El tribunal decide.',
+    },
+    // Alias — the DocumentSelectionAgent and the editor may use either
+    // 'indigency_affidavit' (the historical catalog kind) or the current
+    // 'statement_of_inability' (the actual title of the Rule 145 form).
+    // Both resolve to the same TX builder.
+    indigency_affidavit: {
+      build: texas.statementOfInability,
+      title: 'Statement of Inability to Afford Payment of Court Costs',
+      titleEs: 'Declaración de incapacidad para pagar los costos judiciales',
+      description:
+        'Sworn statement asking a Texas court to waive filing fees under Tex. R. Civ. P. 145, ' +
+        'prefilled from your itemized monthly income, expenses, dependents, and assets. ' +
+        'The court decides.',
+      descriptionEs:
+        'Declaración jurada que pide a un tribunal de Texas que exima las cuotas de ' +
+        'presentación conforme a la Regla 145, precompletada con tus ingresos, gastos, ' +
+        'dependientes y bienes mensuales detallados. El tribunal decide.',
+    },
+    financial_declaration: {
+      build: texas.financialInformationStatement,
+      title: "Petitioner's Financial Information Statement",
+      titleEs: 'Declaración informativa financiera del solicitante',
+      description:
+        'A plain-language summary of your income, expenses, property, and debts drawn from ' +
+        'the information on file. Texas has no single statewide financial declaration form; ' +
+        'this is a starting point, not a substitute for Tex. R. Civ. P. 194 initial ' +
+        'disclosures or a court-ordered inventory and appraisement.',
+      descriptionEs:
+        'Un resumen en lenguaje sencillo de tus ingresos, gastos, bienes y deudas basado en ' +
+        'la información registrada. Texas no publica un formulario financiero único; este ' +
+        'documento es un punto de partida, no un sustituto de las divulgaciones iniciales ' +
+        'de la Regla 194 ni del inventario y avalúo ordenado por el tribunal.',
+    },
+  },
   UT: {
     acceptance_of_service: {
       build: utah.acceptanceOfService,

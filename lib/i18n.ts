@@ -92,6 +92,11 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     'chapters.aria': 'Facts you have shared',
     'chapters.heading': 'In your own words',
 
+    'earlier.aria': 'Earlier notes',
+    'earlier.heading': 'Earlier notes (superseded)',
+    'earlier.body':
+      'These are things you told us that mention a different state. They may no longer apply — expand to review, and update your story in chat if any of them still do.',
+
     'privacy.aria': 'Privacy',
     'privacy.title': 'This story is yours.',
     'privacy.body':
@@ -251,6 +256,11 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
 
     'chapters.aria': 'Hechos que has compartido',
     'chapters.heading': 'En tus propias palabras',
+
+    'earlier.aria': 'Notas anteriores',
+    'earlier.heading': 'Notas anteriores (reemplazadas)',
+    'earlier.body':
+      'Esto es algo que nos contaste que menciona otro estado o provincia. Puede que ya no aplique — expande para revisarlo y actualiza tu historia en el chat si algo aún aplica.',
 
     'privacy.aria': 'Privacidad',
     'privacy.title': 'Esta historia es tuya.',

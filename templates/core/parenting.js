@@ -149,6 +149,17 @@ function resolveResidenceRole(divorceData) {
  * @returns {string|null} A display name, or null when no residence data exists
  */
 function resolvePrimaryResidenceName(divorceData) {
+  // Round-6 (Marcus ON, 2026-08-30 v29): a primary_residence FACT that
+  // names one caption party takes precedence over the structured
+  // primaryResidence/primaryCustodian slot — extraction has been observed
+  // to land the wrong name in the structured slot (Marcus ON profile
+  // stored `primaryCustodian: "Marcus Thompson"` while the extracted fact
+  // read "Our children, Ava and Ethan, live primarily with Priya
+  // Thompson"). Facts carry the interviewee's own words; the structured
+  // slot is a downstream inference. When they conflict, believe the fact.
+  const factName = _residenceFromFacts(divorceData);
+  if (factName) return factName;
+
   const raw = (divorceData && (divorceData.primaryResidence || divorceData.primaryCustodian)) || null;
   if (raw == null) return null;
   const value = String(raw).trim();
@@ -191,6 +202,48 @@ function resolveNonResidentialParentName(divorceData) {
   const custody = resolveCustodyArrangement(divorceData);
   if (custody.kind === 'sole_petitioner') return partyName('respondentName');
   if (custody.kind === 'sole_respondent') return partyName('petitionerName');
+  return null;
+}
+
+/**
+ * Scan facts[] for a `primary_residence` (or synonymous) fact whose content
+ * names a caption party via "live/lives/reside primarily with <name>" or
+ * "primarily with <name>". Returns the caption party's canonical name, or
+ * null when nothing definitive was found. Deliberately narrow: a fact that
+ * does not name a caption party unambiguously is ignored.
+ */
+function _residenceFromFacts(divorceData) {
+  if (!divorceData) return null;
+  const facts = Array.isArray(divorceData.facts) ? divorceData.facts : [];
+  if (facts.length === 0) return null;
+  // Case-sensitive intentionally: the `/i` flag makes [A-Z] match a-z too,
+  // which swallows following words like " in Toronto" into the party-name
+  // capture. Use two alternations for the verb so the pattern still matches
+  // "Live/Resides" at sentence start.
+  const primaryPattern =
+    /(?:[Ll]ive[s]?|[Rr]esid(?:e|es|ing))\s+(?:primarily|mostly|mainly|principally|chiefly|almost\s+entirely)\s+with\s+([A-Z][A-Za-zÀ-ſ.'’-]+(?:[\s-][A-Z][A-Za-zÀ-ſ.'’-]+){0,3})/;
+  for (const fact of facts) {
+    if (!fact || typeof fact !== 'object') continue;
+    const sub = String(fact.subcategory || '').toLowerCase();
+    const content = String(fact.content || fact.text || fact.value || '');
+    if (!content) continue;
+    // Broad match: any parenting-related fact whose text names a primary
+    // residence party. Not only subcategory === 'primary_residence' —
+    // extraction sometimes files the same information under 'children' or
+    // 'parenting'.
+    const parentingSub = /(primary_residence|primary_custod|parenting|children|custody)/.test(sub);
+    if (!parentingSub && !primaryPattern.test(content)) continue;
+    const m = content.match(primaryPattern);
+    if (!m) continue;
+    const name = m[1].trim();
+    const role = matchPartyRole(name, divorceData);
+    if (role === 'petitioner') {
+      return (divorceData.petitionerName && String(divorceData.petitionerName).trim()) || null;
+    }
+    if (role === 'respondent') {
+      return (divorceData.respondentName && String(divorceData.respondentName).trim()) || null;
+    }
+  }
   return null;
 }
 

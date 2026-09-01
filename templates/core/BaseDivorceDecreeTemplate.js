@@ -11,7 +11,7 @@
 // built-in and always resolvable.
 const { randomUUID: uuidv4 } = require('node:crypto');
 const { normalizeCountyName } = require('./countyName');
-const { asList } = require('./dataShapes');
+const { asList, partitionByCharacter } = require('./dataShapes');
 const { DEFAULT_TERMS } = require('./terminology');
 const {
   resolveCustodyArrangement,
@@ -19,6 +19,8 @@ const {
   resolveNonResidentialParentName,
 } = require('./parenting');
 const { captionNamesCourt, lineDuplicatesCaption, stripCourtLineFromFormatted } = require('./captionDedupe');
+const { resolveSpousalSupportDecision } = require('./spousalSupport');
+const { isRenderableDate, formatDate: sharedFormatDate } = require('./dateUtils');
 
 /**
  * Title-case an all-caps document title ("FINAL DECREE OF DIVORCE" →
@@ -221,6 +223,11 @@ class BaseDivorceDecreeTemplate {
     // generateHeader/generateVenue block is suppressed — that venue opener
     // belongs to a jurat, not the top of a decree, and rendering both
     // doubled the court line (templates/core/captionDedupe.js).
+    // Top-of-document prep-tool disclaimer (attorney-review requirement,
+    // 2026-08). This is a DRAFT organized by an AI intake tool; every
+    // paragraph must be reviewed by the filer before filing, and any
+    // "(Draft — ...)" blank in the body requires confirmation.
+    const draftBanner = 'DRAFT — This document was prepared with an AI intake tool to help organize your facts. Review every paragraph before filing. Blanks marked with "(Draft — ...)" require your confirmation. This is not legal advice.';
     const caseCaption = this.generateCaseCaption(divorceData);
     const captionCarriesCourt = captionNamesCourt(caseCaption);
     const headerCandidate = caseCaption.structured || captionCarriesCourt
@@ -272,6 +279,7 @@ class BaseDivorceDecreeTemplate {
         documentTitle: `${titleCaseDocumentTitle(this.documentTitle)} — ${this.stateName}`
       },
       sections: {
+        draftBanner,
         header,
         venue,
         caseCaption: caption,
@@ -291,13 +299,13 @@ class BaseDivorceDecreeTemplate {
         footer
       },
       fullText: this.generateFullText({
-        header, venue, caseCaption: caption, title, appearances, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock
       }),
       htmlContent: this.generateHTMLContent({
-        header, venue, caseCaption: caption, title, appearances, jurisdiction,
+        draftBanner, header, venue, caseCaption: caption, title, appearances, jurisdiction,
         dissolution, propertyDivision, debtAllocation, childCustody,
         childSupport, spousalSupport, nameChange, finalOrders,
         judgmentBlock, signatureBlock
@@ -471,9 +479,15 @@ class BaseDivorceDecreeTemplate {
    * @returns {Object} Jurisdiction section
    */
   generateJurisdictionSection(divorceData) {
+    // Visible fill-in blank when the date value is missing or not a
+    // renderable shape ("a few months ago"). Earlier this template
+    // interpolated formatDate's raw-input fallback, which reproduced the
+    // freeform narrative verbatim in the decree (v12-B follow-up).
+    const marriage = this.formatDate(divorceData.marriageDate) || '__________________';
+    const separation = this.formatDate(divorceData.separationDate) || '__________________';
     return {
       title: 'JURISDICTION',
-      text: `The Court finds that it has jurisdiction over this case and the parties, and that the jurisdictional prerequisites for this divorce have been satisfied. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and ceased to live together as spouses on or about ${this.formatDate(divorceData.separationDate) || '[DATE]'}.`,
+      text: `The Court finds that it has jurisdiction over this case and the parties, and that the jurisdictional prerequisites for this divorce have been satisfied. The parties were married on ${marriage} and ceased to live together as spouses on or about ${separation}.`,
       type: 'jurisdiction'
     };
   }
@@ -484,11 +498,10 @@ class BaseDivorceDecreeTemplate {
    * @returns {string} Formatted date
    */
   formatDate(dateStr) {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr;
-    const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
-    return date.toLocaleDateString('en-US', options);
+    // See BaseDivorcePetitionTemplate.formatDate — returns null on empty
+    // / non-date shapes / NaN so callers can render a visible blank
+    // instead of the raw narrative text.
+    return sharedFormatDate(dateStr);
   }
 
   /**
@@ -512,10 +525,28 @@ class BaseDivorceDecreeTemplate {
   generatePropertyDivisionSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasProperty === false) {
+    // SAFETY GATE (attorney review, 2026-08): "the Court finds there is
+    // no ... property" is a DISPOSITIVE nil-finding that extinguishes
+    // property claims. Emit ONLY on an affirmative user-confirmed
+    // statement — `hasProperty === false` together with a corroborating
+    // signal (`noPropertyConfirmed === true` OR a described
+    // `propertyAgreement`). Otherwise leave a visible blank + Draft
+    // note; a self-rep filer who never discussed property with the
+    // intake tool must NOT get a decree that silently waives it.
+    const nilPropertyConfirmed =
+      divorceData.hasProperty === false &&
+      (divorceData.noPropertyConfirmed === true ||
+        (typeof divorceData.propertyAgreement === 'string' &&
+          divorceData.propertyAgreement.trim() !== ''));
+    if (nilPropertyConfirmed) {
       items.push({
         content: 'The Court finds there is no community or marital property to be divided.',
         type: 'finding'
+      });
+    } else if (divorceData.hasProperty === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community property to divide, or a written agreement dividing it, before filing. Silence on this line may be treated as no property, waiving your claim.)',
+        type: 'property_draft_note'
       });
     } else {
       items.push({
@@ -577,10 +608,25 @@ class BaseDivorceDecreeTemplate {
   generateDebtAllocationSection(divorceData) {
     const items = [];
 
-    if (divorceData.hasDebts === false) {
+    // SAFETY GATE (attorney review, 2026-08): "no community debts" is a
+    // dispositive nil-finding — a debt not allocated in a final decree
+    // may become the exclusive obligation of the party who signed for
+    // it, WITHOUT the indemnity protection the debt-allocation clause
+    // provides. Emit ONLY on an affirmative user-confirmed statement.
+    const nilDebtsConfirmed =
+      divorceData.hasDebts === false &&
+      (divorceData.noDebtsConfirmed === true ||
+        (typeof divorceData.debtAgreement === 'string' &&
+          divorceData.debtAgreement.trim() !== ''));
+    if (nilDebtsConfirmed) {
       items.push({
         content: 'The Court finds there are no community debts to be allocated.',
         type: 'finding'
+      });
+    } else if (divorceData.hasDebts === false) {
+      items.push({
+        content: '________________________________________\n(Draft — confirm whether you and your spouse have any marital/community debts to allocate, or a written agreement dividing them, before filing. Silence on this line may leave you solely responsible for any unallocated debt.)',
+        type: 'debts_draft_note'
       });
     } else {
       items.push({
@@ -588,13 +634,21 @@ class BaseDivorceDecreeTemplate {
         type: 'order'
       });
 
-      const petitionerDebtsList = asList(divorceData.petitionerDebts);
-      if (petitionerDebtsList.length > 0) {
+      // "Separate debt: " prefixed items are pre-marital or otherwise
+      // non-marital debts the extraction layer flagged (see
+      // services/agents/extractionQuality.js). They are confirmed to the
+      // party who holds them, never allocated as community debt.
+      const petParts = partitionByCharacter(divorceData.petitionerDebts, 'debt');
+      const respParts = partitionByCharacter(divorceData.respondentDebts, 'debt');
+      const petitionerName = divorceData.petitionerName || this.terminology.filerLabel;
+      const respondentName = divorceData.respondentName || this.terminology.responderLabel;
+
+      if (petParts.community.length > 0) {
         items.push({
-          content: `IT IS ORDERED that ${divorceData.petitionerName || this.terminology.filerLabel} shall pay and be responsible for the following debts:`,
+          content: `IT IS ORDERED that ${petitionerName} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
-        petitionerDebtsList.forEach(debt => {
+        petParts.community.forEach(debt => {
           items.push({
             content: `- ${debt}`,
             type: 'debt_item'
@@ -602,15 +656,34 @@ class BaseDivorceDecreeTemplate {
         });
       }
 
-      const respondentDebtsList = asList(divorceData.respondentDebts);
-      if (respondentDebtsList.length > 0) {
+      if (respParts.community.length > 0) {
         items.push({
-          content: `IT IS ORDERED that ${divorceData.respondentName || this.terminology.responderLabel} shall pay and be responsible for the following debts:`,
+          content: `IT IS ORDERED that ${respondentName} shall pay and be responsible for the following debts:`,
           type: 'order'
         });
-        respondentDebtsList.forEach(debt => {
+        respParts.community.forEach(debt => {
           items.push({
             content: `- ${debt}`,
+            type: 'debt_item'
+          });
+        });
+      }
+
+      const hasSeparateDebt = petParts.separate.length + respParts.separate.length > 0;
+      if (hasSeparateDebt) {
+        items.push({
+          content: 'IT IS ORDERED that the following debts are confirmed as the separate obligations of the party who incurred them, and no order of allocation is made as to them:',
+          type: 'order'
+        });
+        petParts.separate.forEach(debt => {
+          items.push({
+            content: `- ${petitionerName}'s separate debt: ${debt}`,
+            type: 'debt_item'
+          });
+        });
+        respParts.separate.forEach(debt => {
+          items.push({
+            content: `- ${respondentName}'s separate debt: ${debt}`,
             type: 'debt_item'
           });
         });
@@ -756,6 +829,19 @@ class BaseDivorceDecreeTemplate {
    * @returns {string} Visitation language
    */
   getVisitationLanguage(divorceData) {
+    // A substantive parentTimeDetails string from extraction (alt weekends,
+    // holiday rotations, mid-week dinners) belongs in the order verbatim —
+    // the boilerplate "as mutually agreed" clause dropped it entirely
+    // (live Ontario audit, 2026-08). Extraction already phrases the value
+    // in neutral third-person court language; render it as-is with a
+    // fallback clause so an unenforceable agreement never leaves the
+    // parties without a default.
+    const details = typeof divorceData.parentTimeDetails === 'string'
+      ? divorceData.parentTimeDetails.trim()
+      : '';
+    if (details.length > 50) {
+      return `IT IS ORDERED that the parties shall have parenting time with the child(ren) on the following schedule: ${details} In the absence of agreement to vary the schedule, the terms above control.`;
+    }
     return `IT IS ORDERED that the parties shall have possession of and access to the child(ren) at times mutually agreed to by the parties. In the absence of agreement, the standard possession order of this state shall apply.`;
   }
 
@@ -807,25 +893,32 @@ class BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section or null if not applicable
    */
   generateSpousalSupportSection(divorceData) {
-    // spousalSupportRequested === false is the orchestrator's explicit
-    // "the parties waive spousal support" signal — render the waiver order.
-    const waived =
-      divorceData.spousalSupportWaived ||
-      (divorceData.spousalSupportRequested === false && !divorceData.spousalSupportAwarded);
-    if (!divorceData.spousalSupportAwarded && !waived) {
-      return null;
-    }
+    // Precedence (see templates/core/spousalSupport.js): a request-and-amount
+    // pair renders the AWARD even when spousalSupportAwarded is not set —
+    // a contested $1,800/mo request must NEVER render as a mutual waiver
+    // (live Ontario audit, 2026-08). A bare request with no amount pleads
+    // an honest reservation of jurisdiction rather than a false waiver.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const t = this.terminology;
+    const payor = decision.payor || t.responderLabel;
+    const payee = decision.payee || t.filerLabel;
 
-    if (waived && !divorceData.spousalSupportAwarded) {
+    if (decision.outcome === 'award') {
       items.push({
-        content: 'IT IS ORDERED that each party waives and relinquishes any claim for spousal maintenance/alimony from the other party, now and forever.',
+        content: `IT IS ORDERED that ${payor} shall pay spousal maintenance to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month for a period of ${decision.duration || '[DURATION]'}.`,
         type: 'order'
       });
-    } else if (divorceData.spousalSupportAwarded) {
+    } else if (decision.outcome === 'reserve') {
       items.push({
-        content: `IT IS ORDERED that ${divorceData.spousalSupportPayor || divorceData.respondentName || this.terminology.responderLabel} shall pay spousal maintenance to ${divorceData.spousalSupportPayee || divorceData.petitionerName || this.terminology.filerLabel} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month for a period of ${divorceData.spousalSupportDuration || '[DURATION]'}.`,
+        content: `IT IS ORDERED that the Court reserves jurisdiction over spousal maintenance/alimony, ${payee} having requested support with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'IT IS ORDERED that each party waives and relinquishes any claim for spousal maintenance/alimony from the other party, now and forever.',
         type: 'order'
       });
     }
@@ -945,6 +1038,11 @@ class BaseDivorceDecreeTemplate {
   generateFullText(sections) {
     let text = '';
 
+    // Prep-tool disclaimer above every other section.
+    if (sections.draftBanner) {
+      text += sections.draftBanner + '\n\n';
+    }
+
     // With a structured caption, sections.header keeps the court line for
     // the PDF layer's caption layout — skip it here when the caption's
     // formatted text already carries it, so the court renders once.
@@ -1035,6 +1133,7 @@ class BaseDivorceDecreeTemplate {
   </style>
 </head>
 <body>
+  ${sections.draftBanner ? `<div class="draft-banner" style="border:1px solid #b45309;background:#fff7ed;padding:10px 14px;margin:0 0 20px 0;font-size:10pt;line-height:1.4;color:#7c2d12;"><strong>DRAFT</strong> — ${escapeHtml(sections.draftBanner.replace(/^DRAFT — /, ''))}</div>` : ''}
   ${sections.header && !lineDuplicatesCaption(sections.header, sections.caseCaption) ? `<div class="header">${escapeHtml(sections.header)}</div>` : ''}
   ${sections.venue && !lineDuplicatesCaption(sections.venue, sections.caseCaption) ? `<div class="venue">${escapeHtml(sections.venue)}</div>` : ''}
   ${sections.caseCaption?.formatted ? `<div class="case-caption">${escapeHtml(sections.caseCaption.formatted)}</div>` : ''}

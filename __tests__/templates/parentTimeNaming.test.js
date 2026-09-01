@@ -61,6 +61,10 @@ const PERSONA = {
   childSupportObligor: 'Daniel James Hatch',
   childSupportObligee: "Kathleen O'Brien-Hatch",
   spousalSupportRequested: false,
+  // Post-2026-08 safety rule: waiver requires an affirmative confirmation
+  // flag — Utah persona is an uncontested case where the parties agreed
+  // to waive support.
+  spousalSupportWaived: true,
   petitionerProperty: ['house at 1487 E Sycamore Way in Millcreek', '2019 Honda Odyssey'],
   respondentProperty: ['Fidelity 401(k)', '2021 Toyota Tacoma'],
   propertyAgreement: 'The parties agree to the division set out below.',

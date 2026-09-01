@@ -82,8 +82,24 @@ export function isInternationalEnabled(): boolean {
   return process.env.ENABLE_INTERNATIONAL === 'true';
 }
 
+/**
+ * JURISDICTION_ALLOWLIST env-var override. Comma-separated codes
+ * ("ON,UT"). When set, ONLY those codes are surfaced. Overrides
+ * ENABLE_INTERNATIONAL. Use to launch narrow and expand progressively.
+ */
+function readAllowlist(): Set<string> | null {
+  const raw = process.env.JURISDICTION_ALLOWLIST;
+  if (typeof raw !== 'string') return null;
+  const codes = raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+  if (codes.length === 0) return null;
+  return new Set(codes);
+}
+
 export function getAllJurisdictions(): string[] {
-  return isInternationalEnabled()
+  const allowlist = readAllowlist();
+  const full = isInternationalEnabled()
     ? [...ALL_STATES, ...ALL_PROVINCES, ...ALL_INTERNATIONAL]
     : [...ALL_STATES, ...ALL_PROVINCES];
+  if (!allowlist) return full;
+  return full.filter((code) => allowlist.has(code));
 }

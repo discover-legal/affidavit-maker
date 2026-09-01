@@ -4,7 +4,25 @@
 
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
-const { asList } = require('../../core/dataShapes');
+const { asList, partitionByCharacter } = require('../../core/dataShapes');
+const { resolveSpousalSupportDecision } = require('../../core/spousalSupport');
+const { captionUpper } = require('../../core/nameCase');
+
+/**
+ * Shape-check for a date value. Mirrors the CA petition template's helper —
+ * see DivorcePetitionTemplate.js for the rationale (v11 CA replay). A
+ * freeform narrative like "a few months ago" must not slip through as a
+ * literal date; only ISO YYYY-MM-DD, M/D/YYYY, or "Month DD, YYYY" render.
+ */
+function isRenderableDate(v) {
+  if (typeof v !== 'string') return false;
+  const s = v.trim();
+  if (!s) return false;
+  if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(s)) return true;
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) return true;
+  if (/^[A-Za-z]+\s+\d{1,2},?\s+\d{4}$/.test(s)) return true;
+  return false;
+}
 
 /**
  * California Judgment of Dissolution Template
@@ -50,14 +68,20 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     }
 
     // California-specific required fields
+    // marriageDate and separationDate are legally required for a signed
+    // judgment, but drafts routinely originate before the drafter has
+    // pinned down exact dates. The template renders a visible fill-in
+    // blank + Draft note in that case (see generateJurisdictionSection)
+    // rather than emitting a `[DATE]` sentinel. caseNumber stays required
+    // for judgments — an unsigned decree without a case number is a
+    // draft-quality problem the interviewer should surface. (v10 CA
+    // replay, 2026-08.)
     this.requiredFields = [
       'petitionerName',
       'respondentName',
       'state',
       'county',
-      'caseNumber',
-      'marriageDate',
-      'separationDate'
+      'caseNumber'
     ];
 
     // California formatting requirements (per Rules of Court)
@@ -122,12 +146,16 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
 
     caption += `In re the Marriage of:\n\n`;
 
-    const petitioner = (divorceData.petitionerName || '[PETITIONER NAME]').toUpperCase();
+    // captionUpper preserves internal-capital surnames the extraction layer
+    // deliberately keeps (McPherson, DiCaprio, van der Berg, O'Brien-Hatch)
+    // instead of destroying them with `.toUpperCase()` — live California
+    // audit surfaced "McPHERSON" corrupted to "MCPHERSON".
+    const petitioner = divorceData.petitionerName ? captionUpper(divorceData.petitionerName) : '[PETITIONER NAME]';
     caption += `Petitioner: ${petitioner}\n\n`;
 
     caption += `and\n\n`;
 
-    const respondent = (divorceData.respondentName || '[RESPONDENT NAME]').toUpperCase();
+    const respondent = divorceData.respondentName ? captionUpper(divorceData.respondentName) : '[RESPONDENT NAME]';
     caption += `Respondent: ${respondent}`;
 
     const caseNumber = divorceData.caseNumber || '[CASE NUMBER]';
@@ -192,11 +220,122 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       ? `More than six months have elapsed since service of the Summons and Petition.`
       : `At least six months have elapsed since service of the Summons and Petition or the date Respondent filed a Response.`;
 
+    // Render visible fill-in-by-hand blanks for missing marriage/separation
+    // dates, plus a Draft note, rather than a `[DATE]` sentinel. Same
+    // pattern as the Ontario decree's case-number handling (v8-D). The
+    // packet path already sanitizes tokens to blanks in pdfService; this
+    // brings the per-document path in line. (v10 CA replay, 2026-08.)
+    const marriageDateFormatted = isRenderableDate(divorceData.marriageDate)
+      ? this.formatDate(divorceData.marriageDate)
+      : null;
+    const separationDateFormatted = isRenderableDate(divorceData.separationDate)
+      ? this.formatDate(divorceData.separationDate)
+      : null;
+    const marriageDisplay = marriageDateFormatted || '__________________';
+    const separationDisplay = separationDateFormatted || '__________________';
+    const dateNotes = [];
+    if (!marriageDateFormatted) {
+      dateNotes.push('date of marriage');
+    }
+    if (!separationDateFormatted) {
+      dateNotes.push('date of separation');
+    }
+    const dateDraftNote = dateNotes.length > 0
+      ? `\n(Draft — insert exact ${dateNotes.join(' and ')} before filing)`
+      : '';
+
+    let text = `The Court finds:\n\n1. This Court has jurisdiction over this proceeding.\n\n2. The residency requirements of Family Code § 2320 have been met. Petitioner has been a resident of California for at least six months and of ${divorceData.county || '[COUNTY]'} County for at least three months immediately preceding the filing of this Petition.\n\n3. ${waitingPeriodMet}\n\n4. The parties were married on ${marriageDisplay} and separated on ${separationDisplay}.${dateDraftNote}\n\n5. Irreconcilable differences have caused the irremediable breakdown of the marriage.`;
+
+    // Adult-children statement: when the case data records children but
+    // none are minors, name them here rather than erase them (live
+    // California audit, 2026-08). This never treats adult children as
+    // minors — that stays a null childCustody section.
+    const adultStatement = this.getAdultChildrenStatement(divorceData);
+    if (adultStatement) {
+      text += `\n\n6. ${adultStatement}`;
+    }
+
+    // Prenup preamble finding — placed in the JURISDICTION findings so it
+    // reads as a court finding underlying the property orders below.
+    if (this.hasPrenupAgreement(divorceData)) {
+      const prenupIndex = adultStatement ? 7 : 6;
+      text += `\n\n${prenupIndex}. ${this.getPrenupFindingText(divorceData)}`;
+    }
+
     return {
       title: 'JURISDICTION',
-      text: `The Court finds:\n\n1. This Court has jurisdiction over this proceeding.\n\n2. The residency requirements of Family Code § 2320 have been met. Petitioner has been a resident of California for at least six months and of ${divorceData.county || '[COUNTY]'} County for at least three months immediately preceding the filing of this Petition.\n\n3. ${waitingPeriodMet}\n\n4. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} and separated on ${this.formatDate(divorceData.separationDate) || '[DATE]'}.\n\n5. Irreconcilable differences have caused the irremediable breakdown of the marriage.`,
+      text,
       type: 'jurisdiction'
     };
+  }
+
+  /**
+   * When the case data lists children but none are minors, produce a
+   * statement naming them so they are not erased. Returns null when the
+   * data has minors (or none at all — the caller decides what to say).
+   */
+  getAdultChildrenStatement(divorceData) {
+    const d = divorceData || {};
+    if (d.hasMinorChildren === true) return null;
+
+    const childArr = Array.isArray(d.children) ? d.children : [];
+    const names = childArr
+      .map((c) => (typeof c === 'string' ? c : (c && c.name) || null))
+      .filter(Boolean);
+
+    // Resolve count the same way the petition does — explicit
+    // numberOfChildren wins, else fall back to the array length.
+    let numChildren = 0;
+    const rawNum = d.numberOfChildren;
+    if (typeof rawNum === 'number' && Number.isFinite(rawNum)) {
+      numChildren = rawNum;
+    } else if (typeof rawNum === 'string' && /^\d+$/.test(rawNum.trim())) {
+      numChildren = parseInt(rawNum.trim(), 10);
+    } else {
+      numChildren = childArr.length;
+    }
+
+    if (names.length > 0) {
+      const list = names.length === 1
+        ? names[0]
+        : names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+      return `The parties have the following children of the marriage, all of whom are adults: ${list}. No custody, visitation, or child support orders are entered as to any adult child.`;
+    }
+
+    if (d.hasMinorChildren === false && numChildren > 0) {
+      const noun = numChildren === 1 ? 'child' : 'children';
+      const verb = numChildren === 1 ? 'is' : 'are';
+      return `There ${verb} ${numChildren} adult ${noun} of the marriage. No custody, visitation, or child support orders are entered as to any adult child.`;
+    }
+
+    if (d.hasMinorChildren === false && this.factsMentionAdultChildren(d.facts)) {
+      return `There are adult children of the marriage. No custody, visitation, or child support orders are entered as to any adult child.`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Scan facts[] for a narrative mention of adult children — mirrors the
+   * petition template's helper so the decree does not fall back to
+   * silence when the extractor knows there are adult children but never
+   * populated a count or an array.
+   * @param {Array<Object|string>} facts
+   * @returns {boolean}
+   */
+  factsMentionAdultChildren(facts) {
+    if (!Array.isArray(facts)) return false;
+    const re = /\badult\s+child(?:ren)?\b/i;
+    for (const f of facts) {
+      if (!f) continue;
+      const text = typeof f === 'string'
+        ? f
+        : (typeof f.content === 'string' ? f.content
+          : typeof f.text === 'string' ? f.text
+            : '');
+      if (text && re.test(text)) return true;
+    }
+    return false;
   }
 
   /**
@@ -221,18 +360,47 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     const items = [];
 
     items.push({
-      content: 'The Court orders division of the community estate as follows (Family Code § 2550 - equal division):',
+      content: 'The Court orders division of the community estate as follows (Family Code § 2550 — equal division), subject to confirmation of separate property to each party (Family Code § 2581 et seq.):',
       type: 'finding'
     });
 
-    // Property to Petitioner
+    // A premarital agreement that both parties agree still governs gets a
+    // finding paragraph in the property section so the awards below are
+    // read against it (live California audit, 2026-08 — the prenup only
+    // appeared inline in property bullets, never as its own recital).
+    if (this.hasPrenupAgreement(divorceData)) {
+      items.push({
+        content: this.getPrenupFindingText(divorceData),
+        type: 'finding'
+      });
+    }
+
+    // Property AWARDED to Petitioner. Community property confirmed to one
+    // spouse is that spouse's SOLE PROPERTY — never call it "separate
+    // property" (which has a specific §770 meaning about pre-marital /
+    // gifted / inherited property). Live California audit, 2026-08.
+    const petitionerName = divorceData.petitionerName || '[PETITIONER NAME]';
+    const respondentName = divorceData.respondentName || '[RESPONDENT NAME]';
+    const prenupTail = this.hasPrenupAgreement(divorceData)
+      ? ', subject to any confirmation of separate character under the parties\' premarital agreement'
+      : '';
+
+    // Split each party's list into community vs separate property by the
+    // "Separate property: " prefix the extraction layer emits (see
+    // services/agents/extractionQuality.js). Community items go under the
+    // §2550 equal-division awards; separate items go under the §2581 et seq.
+    // confirmation clause below — never lumped together (a $45k inherited CD
+    // must not be re-cast as community property awarded as "sole property").
+    const petParts = partitionByCharacter(divorceData.petitionerProperty, 'property');
+    const respParts = partitionByCharacter(divorceData.respondentProperty, 'property');
+
     items.push({
-      content: `The following community property is confirmed to Petitioner ${divorceData.petitionerName || '[PETITIONER NAME]'} as separate property:`,
+      content: `IT IS ORDERED that the following community property is awarded to Petitioner ${petitionerName} as that party's sole property${prenupTail}:`,
       type: 'order'
     });
 
-    if (asList(divorceData.petitionerProperty).length > 0) {
-      asList(divorceData.petitionerProperty).forEach(prop => {
+    if (petParts.community.length > 0) {
+      petParts.community.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -242,14 +410,13 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     }
 
-    // Property to Respondent
     items.push({
-      content: `The following community property is confirmed to Respondent ${divorceData.respondentName || '[RESPONDENT NAME]'} as separate property:`,
+      content: `IT IS ORDERED that the following community property is awarded to Respondent ${respondentName} as that party's sole property${prenupTail}:`,
       type: 'order'
     });
 
-    if (asList(divorceData.respondentProperty).length > 0) {
-      asList(divorceData.respondentProperty).forEach(prop => {
+    if (respParts.community.length > 0) {
+      respParts.community.forEach(prop => {
         items.push({ content: `• ${prop}`, type: 'property_item' });
       });
     } else {
@@ -259,17 +426,109 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
       });
     }
 
-    // Separate property
-    items.push({
-      content: 'Each party\'s separate property is confirmed to that party.',
-      type: 'order'
-    });
+    // Separate property confirmation (Family Code § 2581 et seq.). When the
+    // extraction layer identified specific separate items, name them here so
+    // the tracing is on the record; otherwise fall back to the general
+    // confirmation.
+    const hasSeparate = petParts.separate.length + respParts.separate.length > 0;
+    if (hasSeparate) {
+      items.push({
+        content: 'IT IS ORDERED that the following property is confirmed as the separate property of each party (Family Code §§ 770-771, 2581 et seq.), and no order of division is made as to it:',
+        type: 'order'
+      });
+      petParts.separate.forEach(prop => {
+        items.push({ content: `• ${petitionerName}'s separate property: ${prop}`, type: 'property_item' });
+      });
+      respParts.separate.forEach(prop => {
+        items.push({ content: `• ${respondentName}'s separate property: ${prop}`, type: 'property_item' });
+      });
+    } else {
+      items.push({
+        content: 'Each party\'s separate property (as defined by Family Code §§ 770-771) is confirmed to that party.',
+        type: 'order'
+      });
+    }
+
+    // Equalization payment — its own ordered clause under DIVISION OF
+    // PROPERTY, never buried under ALLOCATION OF DEBTS (live California
+    // audit, 2026-08). Reads equalizationAmount/equalizationPayment,
+    // equalizationSchedule, equalizationPayor/equalizationPayee.
+    const eq = this.getEqualizationOrder(divorceData);
+    if (eq) items.push({ content: eq, type: 'order' });
 
     return {
       title: 'DIVISION OF PROPERTY',
       items,
       type: 'property'
     };
+  }
+
+  /**
+   * Whether the case data records a premarital ("prenuptial") agreement
+   * that both parties agree still governs. Fields checked (waiting on
+   * extraction schema to formalize prenupSignedDate/prenupGoverns):
+   *   prenuptialAgreement (truthy or string), hasPrenup, prenupSignedDate,
+   *   prenupGoverns.
+   */
+  hasPrenupAgreement(divorceData) {
+    const d = divorceData || {};
+    return Boolean(
+      d.hasPrenup ||
+      d.prenupGoverns ||
+      d.prenupSignedDate ||
+      // Interview extraction schema (services/agents/BaseDivorceOrchestrator):
+      // prenup_signed / prenup_governs_after_divorce / prenup_signed_year map
+      // to these camelCase fields.
+      d.prenupSigned ||
+      d.prenupGovernsAfterDivorce ||
+      d.prenupSignedYear ||
+      (typeof d.prenuptialAgreement === 'string' && d.prenuptialAgreement.trim() !== '') ||
+      d.prenuptialAgreement === true
+    );
+  }
+
+  /**
+   * Recital paragraph describing the parties' premarital agreement. Uses
+   * the signed date/year when the extraction layer has it (fields
+   * prenupSignedDate or prenupYear), else a neutral phrasing.
+   */
+  getPrenupFindingText(divorceData) {
+    const d = divorceData || {};
+    let dateFragment = '';
+    if (d.prenupSignedDate) {
+      const formatted = this.formatDate(d.prenupSignedDate);
+      dateFragment = formatted ? ` dated ${formatted}` : '';
+    } else if (d.prenupYear) {
+      dateFragment = ` dated ${d.prenupYear}`;
+    } else if (d.prenupSignedYear) {
+      // Interview extraction stores the signed year here (see
+      // services/agents/BaseDivorceOrchestrator prenup_signed_year field).
+      dateFragment = ` dated ${d.prenupSignedYear}`;
+    }
+    return `The Court finds that the parties entered a premarital agreement${dateFragment} which continues to govern the characterization and disposition of separate property confirmed herein.`;
+  }
+
+  /**
+   * Composed equalization order clause, or null when no equalization data
+   * exists. Fields (source of truth: interview extraction — a dedicated
+   * schema field is being added):
+   *   equalizationAmount / equalizationPayment — the $ figure
+   *   equalizationSchedule — human-readable schedule ("over 36 months")
+   *   equalizationPayor / equalizationPayee — parties (fall back to
+   *     respondent → petitioner if unspecified)
+   */
+  getEqualizationOrder(divorceData) {
+    const d = divorceData || {};
+    const amountRaw = d.equalizationAmount != null ? d.equalizationAmount : d.equalizationPayment;
+    const amount = amountRaw != null && String(amountRaw).trim() !== '' ? String(amountRaw) : null;
+    if (!amount) return null;
+    const payor = (d.equalizationPayor && String(d.equalizationPayor).trim()) || d.respondentName || 'Respondent';
+    const payee = (d.equalizationPayee && String(d.equalizationPayee).trim()) || d.petitionerName || 'Petitioner';
+    const schedule = d.equalizationSchedule && String(d.equalizationSchedule).trim()
+      ? String(d.equalizationSchedule).trim()
+      : null;
+    const scheduleClause = schedule ? `, payable ${schedule}` : ', payable on terms to be set by the Court';
+    return `IT IS ORDERED that ${payor} shall pay to ${payee} an equalization payment of $${amount}${scheduleClause}, pursuant to Family Code § 2550, to equalize the division of the community estate.`;
   }
 
   /**
@@ -434,32 +693,25 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
    * @returns {Object|null} Spousal support section
    */
   generateSpousalSupportSection(divorceData) {
-    if (!divorceData.spousalSupportAwarded && !divorceData.spousalSupportWaived) {
-      return null;
-    }
+    // Precedence (templates/core/spousalSupport.js): request-plus-amount
+    // renders the AWARD even absent an explicit awarded flag; a bare
+    // request with no amount pleads a reservation, never a false waiver.
+    const decision = resolveSpousalSupportDecision(divorceData);
+    if (decision.outcome === 'none') return null;
 
     const items = [];
+    const payor = decision.payor || 'Respondent';
+    const payee = decision.payee || 'Petitioner';
 
-    if (divorceData.spousalSupportWaived) {
-      items.push({
-        content: 'The Court terminates jurisdiction to award spousal support to either party.',
-        type: 'order'
-      });
-    } else if (divorceData.spousalSupportAwarded) {
-      const payor = divorceData.spousalSupportPayor || divorceData.respondentName || 'Respondent';
-      const payee = divorceData.spousalSupportPayee || divorceData.petitionerName || 'Petitioner';
-
+    if (decision.outcome === 'award') {
       items.push({
         content: `The Court, having considered the factors set forth in Family Code § 4320, orders as follows:`,
         type: 'finding'
       });
-
       items.push({
-        content: `IT IS ORDERED that ${payor} shall pay spousal support to ${payee} in the amount of $${divorceData.spousalSupportAmount || '[AMOUNT]'} per month, beginning ${this.formatDate(divorceData.spousalSupportStartDate) || '[DATE]'}.`,
+        content: `IT IS ORDERED that ${payor} shall pay spousal support to ${payee} in the amount of $${decision.amount || '[AMOUNT]'} per month, beginning ${this.formatDate(decision.startDate) || '[DATE]'}.`,
         type: 'order'
       });
-
-      // Duration
       const marriageLength = divorceData.marriageLengthYears || '[LENGTH]';
       if (marriageLength >= 10 || divorceData.longTermMarriage) {
         items.push({
@@ -468,10 +720,20 @@ class CaliforniaDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
         });
       } else {
         items.push({
-          content: `Spousal support shall continue for ${divorceData.spousalSupportDuration || 'one-half the length of the marriage'} unless modified or terminated.`,
+          content: `Spousal support shall continue for ${decision.duration || 'one-half the length of the marriage'} unless modified or terminated.`,
           type: 'order'
         });
       }
+    } else if (decision.outcome === 'reserve') {
+      items.push({
+        content: `IT IS ORDERED that the Court reserves jurisdiction over spousal support pursuant to Family Code § 4320, ${payee} having requested support with no specific amount yet on file; the amount and duration shall be set by the Court.`,
+        type: 'order'
+      });
+    } else if (decision.outcome === 'waive') {
+      items.push({
+        content: 'The Court terminates jurisdiction to award spousal support to either party.',
+        type: 'order'
+      });
     }
 
     return {

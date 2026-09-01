@@ -5,6 +5,43 @@
 const BaseDivorceDecreeTemplate = require('../../core/BaseDivorceDecreeTemplate');
 const { resolveCustodyArrangement, resolvePrimaryResidenceName } = require('../../core/parenting');
 const { asList } = require('../../core/dataShapes');
+const { resolveGroundsForDivorce } = require('./groundsResolver');
+
+/**
+ * NY decree grounds clause — mirrors the petition. Every DRL §170
+ * sub-ground gets its own pinpoint citation. Called from the FINDINGS
+ * OF FACT block so a fault-ground case doesn't emerge as a §170(7)
+ * no-fault judgment.
+ *
+ * @param {string} grounds  Canonical NY ground key
+ * @param {string} plaintiff
+ * @param {string} defendant
+ * @returns {string} Findings sentence
+ */
+function nyGroundClause(grounds, plaintiff, defendant) {
+  switch (grounds) {
+    case 'cruel_treatment':
+    case 'cruel_inhuman_treatment':
+    case 'cruelty':
+      return `${defendant}'s conduct so endangered the physical or mental well being of ${plaintiff} as to render it unsafe or improper for ${plaintiff} to cohabit with ${defendant}, within the meaning of Domestic Relations Law § 170(1).`;
+    case 'abandonment':
+      return `${defendant} abandoned ${plaintiff} for a period of one or more years, within the meaning of Domestic Relations Law § 170(2).`;
+    case 'imprisonment':
+    case 'confinement':
+      return `${defendant} was confined in prison for a period of three or more consecutive years after the marriage, within the meaning of Domestic Relations Law § 170(3).`;
+    case 'adultery':
+      return `${defendant} committed adultery, within the meaning of Domestic Relations Law § 170(4).`;
+    case 'separation_judgment':
+      return `The parties lived apart pursuant to a decree or judgment of separation for a period of one or more years, within the meaning of Domestic Relations Law § 170(5).`;
+    case 'separation_agreement':
+      return `The parties lived separate and apart pursuant to a written agreement of separation for a period of one or more years, within the meaning of Domestic Relations Law § 170(6).`;
+    case 'irretrievable_breakdown':
+    case 'no_fault':
+    case 'irreconcilable_differences':
+    default:
+      return `The relationship between ${plaintiff} and ${defendant} has broken down irretrievably for a period of at least six months, within the meaning of Domestic Relations Law § 170(7).`;
+  }
+}
 
 /**
  * New York Judgment of Divorce Template
@@ -198,11 +235,37 @@ class NewYorkDivorceDecreeTemplate extends BaseDivorceDecreeTemplate {
     // NY has complex residency requirements
     let residencyText = `The Court finds that the residency requirements of DRL § 230 have been satisfied.`;
 
+    // Route the grounds clause through the shared resolver so a fault-
+    // ground case (cruelty, adultery, abandonment, imprisonment, or
+    // separation-instrument) is not silently rewritten as no-fault
+    // §170(7) boilerplate. See ./groundsResolver.js.
+    const grounds = resolveGroundsForDivorce(divorceData);
+    const groundsClause = this.getDecreeGroundClause(divorceData, plaintiff, defendant, grounds);
+
     return {
       title: 'FINDINGS OF FACT',
-      text: `ORDERED, ADJUDGED and DECREED as follows:\n\n1. The Court has jurisdiction over this action pursuant to DRL § 230.\n\n2. ${residencyText}\n\n3. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} in ${divorceData.marriageLocation || '[LOCATION]'}.\n\n4. The relationship between ${plaintiff} and ${defendant} has broken down irretrievably for a period of at least six months. (DRL § 170(7))\n\n5. All economic issues have been resolved either by stipulation or by the Court's determination.`,
+      text: `ORDERED, ADJUDGED and DECREED as follows:\n\n1. The Court has jurisdiction over this action pursuant to DRL § 230.\n\n2. ${residencyText}\n\n3. The parties were married on ${this.formatDate(divorceData.marriageDate) || '[DATE]'} in ${divorceData.marriageLocation || '[LOCATION]'}.\n\n4. ${groundsClause}\n\n5. All economic issues have been resolved either by stipulation or by the Court's determination.`,
       type: 'jurisdiction'
     };
+  }
+
+  /**
+   * Resolve the ground clause used inside the FINDINGS OF FACT block.
+   * Extracted so tests (and other consumers) can assert the sub-ground
+   * routing without rendering the whole decree.
+   *
+   * @param {Object} divorceData
+   * @param {string} [plaintiff]
+   * @param {string} [defendant]
+   * @param {string} [grounds] Resolved slug (rarely needed; the resolver
+   *   is called for you when omitted).
+   * @returns {string}
+   */
+  getDecreeGroundClause(divorceData, plaintiff, defendant, grounds) {
+    const p = plaintiff || divorceData.petitionerName || 'Plaintiff';
+    const d = defendant || divorceData.respondentName || 'Defendant';
+    const g = grounds || resolveGroundsForDivorce(divorceData);
+    return nyGroundClause(g, p, d);
   }
 
   /**

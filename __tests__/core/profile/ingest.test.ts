@@ -13,6 +13,7 @@
  */
 
 import { ASK, JUDGE, ScriptedIntelligence, UnscriptedCallError, pick } from '@/core/intelligence';
+import type { JsonObject } from '@/core/intelligence';
 import { createLifeStoryService } from '@/core/profile';
 import type { LifeStoryService } from '@/core/profile';
 import { askCalls, at, judgeCalls, schemaRequired, story } from './_helpers';
@@ -32,15 +33,18 @@ const TEXT = [
   'Filed: 2025-06-17. Answer due: 2025-07-17. Served on Marcus Bell 2025-06-20.',
 ].join('\n');
 
-const ANSWER = {
+const ANSWER_FACTS = [
+  { statement: 'Dana Bell filed a petition for divorce against Marcus Bell on 2025-06-17', category: 'procedure', subcategory: 'filing' },
+  { statement: 'The petition alleges the marriage is irretrievably broken', category: 'relationship', subcategory: 'grounds' },
+];
+
+/** The scripted model answer (IngestResult-shaped, without ids / provenance / kind — code adds those). */
+const ANSWER: JsonObject = {
   events: [
     { date: '2025-06-17', title: 'Petition filed', detail: 'Petition for divorce filed by Dana Bell' },
     { date: '2025-07-17', title: 'Answer due' },
   ],
-  facts: [
-    { statement: 'Dana Bell filed a petition for divorce against Marcus Bell on 2025-06-17', category: 'procedure', subcategory: 'filing' },
-    { statement: 'The petition alleges the marriage is irretrievably broken', category: 'relationship', subcategory: 'grounds' },
-  ],
+  facts: ANSWER_FACTS,
   fields: {
     case_number: 'FS-26-01234',
     petitioner_name: 'Dana Bell',
@@ -114,7 +118,7 @@ describe('ingest — the result', () => {
     const out = await service.ingest(story(), { text: TEXT, documentId: DOCUMENT_ID });
 
     expect(out.facts).toHaveLength(2);
-    expect(out.facts.map((f) => f.statement)).toEqual(ANSWER.facts.map((f) => f.statement));
+    expect(out.facts.map((f) => f.statement)).toEqual(ANSWER_FACTS.map((f) => f.statement));
     expect(out.facts.map((f) => f.category)).toEqual(['procedure', 'relationship']);
     expect(out.facts[1].subcategory).toBe('grounds');
     const ids = out.facts.map((f) => f.id);

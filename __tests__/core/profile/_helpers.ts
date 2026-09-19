@@ -5,7 +5,8 @@
  * matched. Timestamps are fixed so provenance comparisons are exact.
  */
 
-import type { Json, JsonSchema, ScriptedCall, ScriptedIntelligence } from '@/core/intelligence';
+import type { Json, JsonSchema } from '@/core/intelligence';
+import type { ScriptedCall, ScriptedIntelligence } from '@/core/intelligence/scripted';
 import type { MatterDefinition } from '@/core/interview/types';
 import { emptyCaseFile } from '@/core/model';
 import type { CaseFile, Child, Fact, FactCategory, Field, Provenance, Source } from '@/core/model';

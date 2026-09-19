@@ -25,14 +25,10 @@ import { CHILD_SCHEMA, buildTurnSchema, conforms, isConfirmationKey, isFactCateg
  * decisions with legal consequences; this one only decides whether to
  * rewrite a sentence.
  */
-const MORE_LIKELY_THAN_NOT = 0.5;
+const MORE_LIKELY_THAN_NOT = THRESHOLDS.replyLanguage;
 
-/**
- * Two statements that assert the same fact: the second is dropped. THRESHOLDS
- * has no duplicate entry; a duplicate, like a correction, keeps a statement
- * off the record, so it takes the same bar.
- */
-const DUPLICATE_THRESHOLD = THRESHOLDS.supersedes;
+/** Two statements that assert the same fact: the second is dropped. */
+const DUPLICATE_THRESHOLD = THRESHOLDS.duplicate;
 
 /** Field keys a matter with `roles` uses to signal which side the user is on (identifiers, matched by equality). */
 const WHO_FILED_KEY = 'who_filed';

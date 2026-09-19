@@ -111,10 +111,18 @@ export const THRESHOLDS = {
   supersedes: 0.75,
   /** Two child records refer to the same child above this. */
   sameChild: 0.8,
+  /** Two fact statements assert the same fact above this. */
+  duplicate: 0.75,
+  /** Two party records describe the same person above this. */
+  samePerson: 0.8,
   /** A drafted paragraph is supported by the record above this; otherwise it becomes a blank. */
   supported: 0.8,
   /** Triage locks a matter type above this; otherwise it asks a clarifying question. */
   triage: 0.85,
+  /** Danger is surfaced (hotline first) above this: the lowest bar a probability can carry. */
+  danger: 0.5,
+  /** A reply is accepted as being in the case language above this; below, it is reformulated once. */
+  replyLanguage: 0.5,
 } as const;
 
 // ─── Question builders ──────────────────────────────────────────────────────

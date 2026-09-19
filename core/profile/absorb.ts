@@ -22,12 +22,12 @@
  * guessed into shape.
  */
 
-import { yesno } from '../intelligence/types';
+import { THRESHOLDS, yesno } from '../intelligence/types';
 import type { Intelligence, Json } from '../intelligence/types';
 import { JUDGE } from '../intelligence/purposes';
 import { newId, now } from '../model/types';
 import type { CaseFile, Child, Fact, Field, Party } from '../model/types';
-import { CHILD_FIELD_KEYS, DUPLICATE_FACT, PARTY_FIELD_KEYS, SAME_PERSON, THRESHOLD_SAME_CHILD, absorbField, compact, emptyLifeStory, hasAny, overlay } from './common';
+import { CHILD_FIELD_KEYS, DUPLICATE_FACT, PARTY_FIELD_KEYS, SAME_PERSON, compact, emptyLifeStory, hasAny, overlay } from './common';
 import type { LifeStory } from './types';
 
 const MAX_FACTS = 300;
@@ -152,7 +152,7 @@ async function findSameChild(intel: Intelligence, incoming: Child, candidates: C
       state: { incoming: childIdentity(incoming), existing: childIdentity(existing) },
       questions: { same_child: yesno('Do the incoming and existing records describe the same child?') },
     });
-    if (answers.same_child.probability >= THRESHOLD_SAME_CHILD) return existing;
+    if (answers.same_child.probability >= THRESHOLDS.sameChild) return existing;
   }
   return undefined;
 }
@@ -182,13 +182,13 @@ async function reconcileOtherParty(intel: Intelligence, people: Record<string, P
       return { ...rest, [id]: overlay(person, other, PARTY_FIELD_KEYS) };
     }
   }
-  return { ...people, [newId('person')]: overlay({}, other, PARTY_FIELD_KEYS) };
+  return { ...people, [newId('person')]: overlay<Party>({}, other, PARTY_FIELD_KEYS) };
 }
 
-/** The file names another party only when it holds a name part that did not itself come from the store. */
+/** The file names another party only when it holds a name part, and says something the store did not already supply. */
 function namesSomeone(other: Party): boolean {
   const named = hasAny(other, ['firstName', 'middleName', 'lastName']);
-  const fresh = PARTY_FIELD_KEYS.some((key) => other[key] !== undefined && absorbField(other[key], other[key]) !== undefined && other[key]?.provenance.source !== 'hydrated');
+  const fresh = PARTY_FIELD_KEYS.some((key) => other[key] !== undefined && other[key]?.provenance.source !== 'hydrated');
   return named && fresh;
 }
 

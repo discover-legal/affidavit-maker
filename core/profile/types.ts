@@ -62,6 +62,8 @@ export interface LifeStoryService {
   ingest(story: LifeStory | null, input: IngestInput): Promise<IngestResult>;
   /** Privacy erase: the returned story is empty and the caller persists that. */
   erase(userId: string): LifeStory;
+  /** Legal casing of a name as typed (casing only, count-in/count-out, fail-open). */
+  normalizeName(party: Party): Promise<Party>;
 }
 
 export interface LifeStoryDeps {

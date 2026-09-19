@@ -99,8 +99,8 @@ export const FIELD_GROUPS: Readonly<Record<string, FieldGroup>> = {
  * THRESHOLDS carries no entry for the two profile-side comparisons yet; each
  * borrows the nearest measured level until there is data of its own.
  */
-export const DUPLICATE_FACT = THRESHOLDS.supersedes;
-export const SAME_PERSON = THRESHOLDS.sameChild;
+export const DUPLICATE_FACT = THRESHOLDS.duplicate;
+export const SAME_PERSON = THRESHOLDS.samePerson;
 
 export function emptyLifeStory(userId: string): LifeStory {
   return { userId, self: {}, people: {}, children: [], fields: {}, facts: [], confirmations: {}, events: [], updatedAt: now() };
@@ -175,7 +175,7 @@ export function camelCase(key: string): string {
  * a wrongly typed answer landing on the record. Anything that does not fit
  * is treated as absent.
  */
-export function conforms(value: unknown, schema: Json): value is Json {
+export function conforms(value: unknown, schema: unknown): value is Json {
   if (value === undefined || value === null) return false;
   if (!isObject(schema)) return true;
   if (Array.isArray(schema.enum) && !schema.enum.some((option) => option === value)) return false;
@@ -199,7 +199,7 @@ function fitsType(value: unknown, type: unknown, schema: Record<string, unknown>
         (typeof schema.maximum !== 'number' || value <= schema.maximum)
       );
     case 'array':
-      return Array.isArray(value) && (schema.items === undefined || value.every((item) => conforms(item, schema.items as Json)));
+      return Array.isArray(value) && (schema.items === undefined || value.every((item) => conforms(item, schema.items)));
     case 'object':
       return isObject(value);
     case 'null':

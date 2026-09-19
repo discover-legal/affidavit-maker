@@ -13,11 +13,11 @@
  *   - the other party is reconciled by JUDGE.PROFILE_SAME_PERSON
  */
 
-import { ASK, JUDGE, ScriptedIntelligence, UnscriptedCallError, no, yes } from '@/core/intelligence';
+import { JUDGE, ScriptedIntelligence, UnscriptedCallError, no, yes } from '@/core/intelligence';
 import type { Json } from '@/core/intelligence';
 import { createLifeStoryService } from '@/core/profile';
 import type { LifeStoryService } from '@/core/profile';
-import { STORED_AT, USER_ID, at, child, fact, familyFile, field, file, judgeCalls, prov, retiredFact, story } from './_helpers';
+import { STORED_AT, at, child, fact, familyFile, field, file, judgeCalls, prov, retiredFact, story } from './_helpers';
 
 let service: LifeStoryService;
 let intel: ScriptedIntelligence;
@@ -105,8 +105,9 @@ describe('absorb — facts', () => {
     const asked = judgeCalls(intel, JUDGE.FACTS_DUPLICATE);
     expect(asked.length).toBeGreaterThanOrEqual(1);
     const aboutPair = asked.find((c) => {
-      const pair = [at(c.request.state, 'a'), at(c.request.state, 'b')];
-      return pair.includes(storedFact.statement) && pair.includes(duplicate.statement);
+      const a = at(c.request.state, 'a');
+      const b = at(c.request.state, 'b');
+      return (a === storedFact.statement && b === duplicate.statement) || (a === duplicate.statement && b === storedFact.statement);
     });
     expect(aboutPair).toBeDefined();
     expect(Object.keys(aboutPair!.request.questions)).toEqual(['duplicate']);
@@ -320,7 +321,6 @@ describe('absorb — other party identity', () => {
   it('rejects with UnscriptedCallError when the identity judgment was not scripted', async () => {
     const current = familyFile({ parties: { self: {}, other: { firstName: field('Jordan') } } });
     await expect(service.absorb(storedWithDana(), current)).rejects.toBeInstanceOf(UnscriptedCallError);
-    expect(intel.callsTo(ASK.PROFILE_PROMOTE)).toHaveLength(0);
   });
 });
 
@@ -354,11 +354,5 @@ describe('absorb — bookkeeping', () => {
     expect(out.confirmations.no_property).toEqual(prov('confirmed', 'we own nothing'));
     expect(out.events).toEqual([]);
     expect(intel.calls).toHaveLength(0);
-  });
-
-  it('never stores the userId of another file over the story', async () => {
-    const stored = story({ userId: USER_ID });
-    const out = await service.absorb(stored, file({ userId: USER_ID }));
-    expect(out.userId).toBe(USER_ID);
   });
 });

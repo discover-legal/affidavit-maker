@@ -56,7 +56,7 @@ export const JUDGE = {
   /** state: { a: Party-like, b: Party-like }  questions: same_person — yesno */
   PROFILE_SAME_PERSON: 'profile.samePerson',
   /**
-   * state: { paragraph, record: { fields, facts, confirmations } }
+   * state: { paragraph: { text, supportedBy }, record: { fields, facts, confirmations, parties, children, county, caseNumber } }
    * questions: supported — yesno: every claim in the paragraph is supported by the record
    */
   COMPOSE_VERIFY: 'compose.verify',

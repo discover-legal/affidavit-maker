@@ -42,11 +42,13 @@ export function partiesSection(ctx: ComposeContext): Section {
   else blocks.push(blank('otherName', `Draft — state the full legal name of the ${labels.other} (not a nickname).`, `${labels.other} name`));
 
   const otherAddress = file.parties.other.address?.value;
+  const hasAddress = typeof otherAddress === 'string' && otherAddress.length > 0;
   const whereaboutsUnknown = file.parties.other.whereaboutsUnknown?.value === true;
-  if (typeof otherAddress === 'string' && otherAddress.length > 0) {
-    blocks.push(paragraph(`${labels.other} resides at ${otherAddress} and may be served there.`, [partyId('other', 'address')]));
-  } else if (whereaboutsUnknown) {
+  if (whereaboutsUnknown) {
     // Only an affirmed "I do not know where they are" supports this allegation (I-10).
+    // An affirmation outranks a stated address: that address is then the LAST KNOWN one, and
+    // is pleaded as such rather than as a place where service can be made.
+    if (hasAddress) blocks.push(paragraph(`The last known address of ${labels.other} is ${otherAddress}.`, [partyId('other', 'address')]));
     blocks.push(paragraph(`The present residence and whereabouts of ${labels.other} are unknown to ${labels.self}.`, [partyId('other', 'whereaboutsUnknown')]));
     const suspected = file.parties.other.suspectedLocation?.value;
     if (typeof suspected === 'string' && suspected.length > 0) {
@@ -62,6 +64,8 @@ export function partiesSection(ctx: ComposeContext): Section {
         `Draft — because ${labels.other}'s address is unknown, the court will require a sworn account of the diligent efforts made to find them before it authorises substituted or alternative service (publication, posting, or service on a relative). Keep a record of every attempt.`,
       ),
     );
+  } else if (hasAddress) {
+    blocks.push(paragraph(`${labels.other} resides at ${otherAddress} and may be served there.`, [partyId('other', 'address')]));
   } else {
     blocks.push(
       blank('otherAddress', `Draft — state the ${labels.other}'s residence address so they can be served, or say in the interview that you do not know where they are.`, `${labels.other} address`),

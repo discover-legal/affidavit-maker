@@ -1,6 +1,18 @@
+/**
+ * Renderer factory — DocumentTree → PDF / HTML / text. Draws block kinds;
+ * interprets nothing.
+ */
+
 export * from './types';
+import { renderHtml } from './html';
+import { renderPdf } from './pdf';
+import { renderText } from './text';
 import type { Renderer } from './types';
 
 export function createRenderer(): Renderer {
-  throw new Error('core/render: not implemented yet');
+  return {
+    pdf: (tree, options) => renderPdf(tree, options ?? {}),
+    html: (tree, options) => renderHtml(tree, options ?? {}),
+    text: (tree) => renderText(tree),
+  };
 }

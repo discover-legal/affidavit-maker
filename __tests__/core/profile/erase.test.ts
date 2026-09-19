@@ -6,6 +6,7 @@
  */
 
 import { ScriptedIntelligence } from '@/core/intelligence';
+import { emptyCaseFile } from '@/core/model';
 import { createLifeStoryService } from '@/core/profile';
 import type { LifeStoryService } from '@/core/profile';
 
@@ -40,7 +41,6 @@ describe('erase', () => {
 
   it('hydrating from an erased story is the identity', () => {
     const erased = service.erase('user_42');
-    const { emptyCaseFile } = jest.requireActual<typeof import('@/core/model')>('@/core/model');
     const file = emptyCaseFile({ id: 'file_1', userId: 'user_42', matter: 'divorce' });
 
     expect(service.hydrate(erased, file, 'family')).toEqual(file);

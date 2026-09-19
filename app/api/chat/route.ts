@@ -7,6 +7,7 @@ import { isInternationalEnabled } from '@/lib/api/catalog-data';
 import { getUserProfile, hydrateAffidavitData, mergeUserProfileSafe } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
 import { readJsonBody } from '@/lib/api/requestBody';
+import { isCoreEngineEnabled, runCoreChat } from '@/lib/api/coreChat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -552,6 +553,32 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
 
     if (body.sessionId) sessionId = body.sessionId;
+
+    // v2 engine (core/): same request/response contract, new brain.
+    if (isCoreEngineEnabled()) {
+      const history = chunkConversation(conversationHistory)
+        .filter((m): m is NormalizedMessage & { role: 'user' | 'assistant' } => m.role !== 'system')
+        .map((m) => ({ role: m.role, content: m.content }));
+      const out = await runCoreChat({
+        userId: user.id,
+        sessionId,
+        message,
+        history,
+        affidavitData: affidavitData as Record<string, unknown>,
+      });
+      const processingTime = Date.now() - startTime;
+      logger.info('chat_completed', { sessionId, userId: user.id, processingTime, engine: 'v2' });
+      return NextResponse.json({
+        success: true,
+        response: out.response,
+        affidavitData: out.affidavitData,
+        newFacts: out.newFacts,
+        orchestratorState: out.orchestratorState,
+        processingTime,
+        sessionId,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Life-story hydration: fill gaps from the user's persistent profile so
     // returning users (new session, new document) never repeat themselves.

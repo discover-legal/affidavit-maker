@@ -112,7 +112,7 @@ export interface InterviewEngine {
 
 export interface InterviewDeps {
   intelligence: Intelligence;
-  matters: { get(code: string): MatterDefinition | null };
+  matters: { get(code: string, jurisdiction?: string): MatterDefinition | null };
   jurisdictions: JurisdictionRegistry;
 }
 

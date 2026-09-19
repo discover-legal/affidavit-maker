@@ -58,7 +58,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
   const matters = {
     get(code: string, jurisdiction?: string): MatterDefinition | null {
       if (code === 'divorce') {
-        const profile = jurisdictions.get(jurisdiction || '') ?? jurisdictions.defaultFor('US');
+        const profile =
+          jurisdictions.get(jurisdiction || '') ?? jurisdictions.defaultFor('US') ?? jurisdictions.all()[0] ?? null;
         return profile ? getDivorceDefinition(profile) : null;
       }
       return byCode.get(code) ?? null;
@@ -71,7 +72,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
   const interview = createInterviewEngine({
     intelligence,
     jurisdictions,
-    matters: { get: (code) => matters.get(code) },
+    matters: { get: (code, jurisdiction) => matters.get(code, jurisdiction) },
   });
   const triage = createTriage({ intelligence });
   const lifeStory = createLifeStoryService({ intelligence });

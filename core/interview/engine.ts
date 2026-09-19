@@ -43,7 +43,7 @@ export function createInterviewEngine(deps: InterviewDeps): InterviewEngine {
   const { intelligence } = deps;
 
   function requireDefinition(file: CaseFile): MatterDefinition {
-    const definition = file.matter ? deps.matters.get(file.matter) : null;
+    const definition = file.matter ? deps.matters.get(file.matter, file.jurisdiction) : null;
     if (!definition) throw new Error(`core/interview: no matter definition for "${file.matter ?? '(none)'}"`);
     return definition;
   }

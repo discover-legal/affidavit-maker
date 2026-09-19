@@ -6,6 +6,8 @@ import { toErrorResponse } from '@/lib/api/errors';
 import { getServices } from '@/lib/api/services';
 import { logger } from '@/lib/logger';
 import { readJsonBody } from '@/lib/api/requestBody';
+import { isCoreEngineEnabled } from '@/lib/api/coreChat';
+import { draftPreview } from '@/lib/api/coreDocuments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -255,6 +257,25 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     const isDivorce =
       docType === 'divorce_package' || DIVORCE_DOCUMENT_TYPES.has(effectiveDocType);
     const state = (affidavitData.state || '').toUpperCase();
+
+    // v2 engine (core/): typed document tree adapted to the same `sections`
+    // shape the editor paginates. Falls through to v1 when there is no
+    // jurisdiction yet.
+    if (isCoreEngineEnabled()) {
+      const v2 = await draftPreview({ userId: user.id, affidavitData: affidavitData as Record<string, unknown> });
+      if (v2) {
+        const totalFacts = Array.isArray(affidavitData.facts) ? affidavitData.facts.length : 0;
+        return NextResponse.json({
+          success: true,
+          preview: {
+            sections: v2.sections,
+            htmlContent: v2.htmlContent,
+            metadata: { totalFacts, blanks: v2.blanks, documentKind: v2.kind, engine: 'v2' },
+          },
+          metadata: { generatedAt: new Date().toISOString(), factCount: totalFacts, engine: 'v2' },
+        });
+      }
+    }
 
     // No state yet — use neutral fallback so we don't bias toward a default
     // jurisdiction. Matches legacy preview behaviour.

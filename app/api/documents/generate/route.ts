@@ -22,6 +22,8 @@ import {
 } from '@/lib/api/documentStructure';
 import { readJsonBody } from '@/lib/api/requestBody';
 import { getUserProfile } from '@/lib/api/profile';
+import { isCoreEngineEnabled } from '@/lib/api/coreChat';
+import { draftPdf } from '@/lib/api/coreDocuments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -321,6 +323,32 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
         documentId,
         reason: 'PAYMENTS_ENABLED=false',
       });
+    }
+
+    // v2 engine (core/): typed document tree → PDF. Word output and anything
+    // the v2 composer cannot draft fall through to the v1 pipeline below.
+    if (isCoreEngineEnabled() && !isDocx) {
+      const v2 = await draftPdf({ userId: user.id, affidavitData: affidavitData as Record<string, unknown> });
+      if (v2) {
+        const safeFilename = `${v2.prefix}-${sanitizeFilename(documentId, 'draft')}.pdf`;
+        logger.info('document_generated', {
+          userId: user.id,
+          documentId,
+          bytes: v2.buffer.length,
+          format: 'pdf',
+          engine: 'v2',
+          documentKind: v2.kind,
+        });
+        return new Response(new Uint8Array(v2.buffer), {
+          status: 200,
+          headers: {
+            'content-type': 'application/pdf',
+            'content-disposition': `attachment; filename="${safeFilename}"`,
+            'content-length': String(v2.buffer.length),
+            'cache-control': 'no-store',
+          },
+        });
+      }
     }
 
     // ── STEP 2: Classify request → build document structure ──────────────

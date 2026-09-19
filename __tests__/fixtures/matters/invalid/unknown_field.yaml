@@ -1,0 +1,11 @@
+code: unknown_field
+practice_area: civil
+display_name: Unknown Field
+short_name: UF
+tagline: references a field that does not exist
+documents: [a_doc]
+triage: { description: x, keywords: [x] }
+fields: { petitioner_first_name: string }
+phases:
+  - { id: INTAKE, display_name: Start, required_fields: [nope], prompt: "Intake prompt that is long enough." }
+  - { id: REVIEW, display_name: Review, prompt: "Review prompt that is long enough." }

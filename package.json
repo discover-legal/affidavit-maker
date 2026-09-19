@@ -1,7 +1,7 @@
 {
   "name": "affidavit-maker",
   "version": "5.0.0-migration",
-  "description": "Professional affidavit generation tool \u2014 Next.js + TypeScript",
+  "description": "Professional affidavit generation tool — Next.js + TypeScript",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -13,7 +13,8 @@
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
     "db:cleanup": "node scripts/cleanDatabase.js",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "matters:validate": "node scripts/validateMatters.js"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "4.25.0",
@@ -25,6 +26,7 @@
     "@tesseract.js-data/eng": "1.0.0",
     "docx": "^9.6.1",
     "file-type": "22.0.1",
+    "js-yaml": "^4.3.1",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lodash": "^4.17.21",

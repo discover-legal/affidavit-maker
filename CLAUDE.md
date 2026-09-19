@@ -405,6 +405,36 @@ Common patterns:
 
 ---
 
+## Matter (claim / interview) types
+
+A **matter** is a claim type the triage step can classify into, a catalog
+card, and the phased interview that collects its facts. Two sources:
+
+- **YAML** — `matters/<code>.yaml` (authoring guide: `matters/README.md`).
+  One file = catalog entry + triage description/keywords + extraction
+  `fields` + `phases`. Loaded once per process by `services/matters`
+  (`getMatterRegistry()`), validated with Zod (`services/matters/schema.js`),
+  and turned into a `BaseMatterOrchestrator` by
+  `services/matters/createOrchestrator.js`. Consumers: `lib/api/catalog-data.ts`
+  (merges into `MATTER_TYPES` / `DOCS_BY_MATTER` / `SUPPORTED_STATES`),
+  `services/agents/prompts/triage/index.js` (prompt list + tool enum),
+  `app/api/chat/route.ts` (orchestrator registry, `family_profile`
+  hydration opt-in, document selection). `name_change` is the reference
+  example (converted verbatim from its former JS pack).
+- **Built-in JS** — the other 16 matters still ship as
+  `services/agents/<Matter>Orchestrator.js` + `prompts/<matter>/index.js`
+  and a string-literal `require` in the chat route's
+  `MATTER_ORCHESTRATOR_LOADERS`. Their codes are reserved in
+  `services/matters/index.js` `BUILTIN_MATTER_CODES`; a YAML file may not
+  reuse one until the JS is removed (steps in `matters/README.md`).
+
+Rules: a broken YAML file is logged and skipped at runtime (never takes the
+catalog or chat down) but fails `npm run matters:validate` and the Jest
+suite (`__tests__/services/matters/loader.test.js` loads the shipped
+directory). `MATTERS_DIR` overrides the directory (tests). `js-yaml` v4
+`load` only — no custom tags. YAML files are traced into the standalone
+build via `next.config.mjs` `outputFileTracingIncludes`.
+
 ## Firm mode (BigLaw integration)
 
 When `BIGLAW_API_URL` + `BIGLAW_INTAKE_SECRET` are **both** set, the deployment

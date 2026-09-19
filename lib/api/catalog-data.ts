@@ -1,5 +1,13 @@
 // Source-of-truth catalog data. Mirrors the in-memory catalog from the legacy
 // routes/catalog.js. Kept in code (not DB) so it's fast and works pre-migration.
+//
+// Two sources feed the matter tables:
+//   - BUILTIN_* below: matters implemented as hand-written JS orchestrators
+//   - matters/*.yaml (services/matters): declarative matters, merged at import
+// Server-only: the YAML registry reads from disk. Never import this module
+// from a client component.
+
+import { getMatterRegistry, type MatterDefinition } from '@/services/matters';
 
 export type Matter = {
   code: string;
@@ -11,7 +19,7 @@ export type Matter = {
   is_packaged: boolean;
 };
 
-export const MATTER_TYPES: Matter[] = [
+const BUILTIN_MATTER_TYPES: Matter[] = [
   // Family Law
   { code: 'divorce', practice_area: 'family', display_name: 'Divorce / Dissolution of Marriage', short_name: 'Divorce', tagline: 'End your marriage and divide your assets fairly', sort_order: 10, is_packaged: true },
   { code: 'custody', practice_area: 'family', display_name: 'Child Custody & Visitation', short_name: 'Custody', tagline: 'Establish legal custody and a parenting schedule for your children', sort_order: 20, is_packaged: false },
@@ -25,7 +33,6 @@ export const MATTER_TYPES: Matter[] = [
   { code: 'emancipation', practice_area: 'family', display_name: 'Emancipation of a Minor', short_name: 'Emancipation', tagline: 'Gain adult legal independence before turning 18', sort_order: 100, is_packaged: false },
   // Civil Law
   { code: 'small_claims', practice_area: 'civil', display_name: 'Small Claims', short_name: 'Small Claims', tagline: 'Sue for money in small claims court — no lawyer needed', sort_order: 110, is_packaged: false },
-  { code: 'name_change', practice_area: 'civil', display_name: 'Name Change', short_name: 'Name Change', tagline: "Legally change your name or your child's name", sort_order: 120, is_packaged: false },
   { code: 'civil_harassment', practice_area: 'civil', display_name: 'Civil Harassment Restraining Order', short_name: 'Harassment RO', tagline: 'Get a restraining order against a neighbor, coworker, or acquaintance', sort_order: 130, is_packaged: false },
   { code: 'debt_defense', practice_area: 'civil', display_name: 'Debt Collection Defense', short_name: 'Debt Defense', tagline: 'Respond to a debt collection lawsuit and assert your defenses', sort_order: 140, is_packaged: false },
   { code: 'landlord_tenant', practice_area: 'civil', display_name: 'Landlord-Tenant', short_name: 'Landlord/Tenant', tagline: 'Handle evictions, deposits, or habitability disputes', sort_order: 150, is_packaged: false },
@@ -33,11 +40,30 @@ export const MATTER_TYPES: Matter[] = [
   { code: 'probate', practice_area: 'civil', display_name: 'Probate & Estate Administration', short_name: 'Probate', tagline: "Administer a loved one's estate after death", sort_order: 170, is_packaged: false },
 ];
 
+function toCatalogMatter(m: MatterDefinition): Matter {
+  return {
+    code: m.code,
+    practice_area: m.practiceArea,
+    display_name: m.displayName,
+    short_name: m.shortName,
+    tagline: m.tagline,
+    sort_order: m.sortOrder,
+    is_packaged: m.isPackaged,
+  };
+}
+
+/** YAML-defined matters (matters/*.yaml). Built-in codes are reserved by the loader. */
+const YAML_MATTERS: MatterDefinition[] = getMatterRegistry().list();
+
+export const MATTER_TYPES: Matter[] = [...BUILTIN_MATTER_TYPES, ...YAML_MATTERS.map(toCatalogMatter)].sort(
+  (a, b) => a.sort_order - b.sort_order,
+);
+
 export const MATTER_MAP: Record<string, Matter> = Object.fromEntries(
   MATTER_TYPES.map((m) => [m.code, m]),
 );
 
-export const DOCS_BY_MATTER: Record<string, string[]> = {
+const BUILTIN_DOCS_BY_MATTER: Record<string, string[]> = {
   divorce: ['divorce_petition', 'divorce_decree', 'parenting_plan', 'waiver_of_service', 'prove_up_affidavit', 'military_status_affidavit', 'cert_last_known_address', 'indigency_affidavit'],
   custody: ['petition_for_custody', 'motion_to_modify_custody', 'parenting_plan', 'declaration_in_support', 'indigency_affidavit'],
   child_support: ['petition_for_child_support', 'motion_to_modify_support', 'financial_declaration', 'motion_for_arrears', 'indigency_affidavit'],
@@ -49,12 +75,16 @@ export const DOCS_BY_MATTER: Record<string, string[]> = {
   adoption: ['petition_for_adoption', 'consent_to_adoption', 'stepparent_adoption_declaration', 'adult_adoptee_consent', 'minor_name_change_declaration', 'indigency_affidavit'],
   emancipation: ['petition_for_emancipation', 'emancipation_declaration', 'financial_statement'],
   small_claims: ['small_claims_complaint', 'demand_letter', 'indigency_affidavit'],
-  name_change: ['petition_for_name_change', 'notice_of_petition_name_change', 'minor_name_change_declaration', 'indigency_affidavit'],
   civil_harassment: ['request_for_tro', 'petition_for_chro', 'chro_declaration'],
   debt_defense: ['answer_to_complaint', 'counterclaim', 'motion_to_dismiss', 'indigency_affidavit'],
   landlord_tenant: ['notice_to_vacate', 'eviction_complaint', 'answer_to_eviction', 'small_claims_complaint', 'demand_letter', 'repair_demand_letter', 'habitability_complaint', 'tenant_declaration', 'lease_dispute_complaint', 'indigency_affidavit'],
   general_civil: ['civil_complaint', 'demand_letter', 'indigency_affidavit'],
   probate: ['petition_for_probate', 'petition_to_admit_will', 'notice_to_creditors', 'small_estate_affidavit', 'affidavit_of_heirship', 'application_for_muniment_of_title', 'petition_for_summary_administration', 'indigency_affidavit'],
+};
+
+export const DOCS_BY_MATTER: Record<string, string[]> = {
+  ...BUILTIN_DOCS_BY_MATTER,
+  ...Object.fromEntries(YAML_MATTERS.map((m) => [m.code, [...m.documents]])),
 };
 
 export const ALL_STATES = ['TX', 'AZ', 'CA', 'FL', 'IL', 'NY', 'UT', 'CO', 'GA', 'MA', 'MI', 'NC', 'NJ', 'OH', 'PA', 'VA', 'WA', 'IN', 'TN', 'MO', 'MD', 'MN', 'KY', 'WI', 'SC', 'AL', 'OR', 'OK', 'LA', 'CT', 'NV', 'NM', 'ID', 'IA', 'AR', 'KS', 'MS', 'NE', 'WV', 'HI', 'ME', 'NH', 'RI', 'MT', 'DE', 'DC', 'AK', 'ND', 'SD', 'VT', 'WY'];
@@ -76,6 +106,9 @@ const ALL_INTERNATIONAL = [
 
 export const SUPPORTED_STATES: Record<string, string[]> = {
   divorce: [...ALL_STATES, ...ALL_PROVINCES],
+  ...Object.fromEntries(
+    YAML_MATTERS.filter((m) => m.supportedJurisdictions).map((m) => [m.code, [...(m.supportedJurisdictions as string[])]]),
+  ),
 };
 
 export function isInternationalEnabled(): boolean {

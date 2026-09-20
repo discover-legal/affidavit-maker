@@ -21,6 +21,9 @@ const FONT_BOLD_ITALIC = 'Times-BoldItalic';
 const BODY_SIZE = 12;
 const NOTE_SIZE = 9;
 const FOOTER_SIZE = 10;
+const LINE_GAP = 3;
+/** Width of the "12." gutter so numbered paragraphs hang neatly. */
+const NUMBER_GUTTER = 28;
 const MARGIN = 72;
 /** Extra bottom margin reserved for the footer line. */
 const FOOTER_RESERVE = 24;
@@ -124,35 +127,54 @@ function drawBlock(doc: Doc, block: Block, numbering: { next: number }): void {
   const width = contentWidth(doc);
   switch (block.kind) {
     case 'heading': {
-      ensureSpace(doc, 40);
-      if (block.level === 1) doc.font(FONT_BOLD).fontSize(14).text(block.text, { align: 'center', width });
-      else if (block.level === 2) doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(block.text, { width });
+      ensureSpace(doc, 60);
+      doc.moveDown(0.4);
+      if (block.level === 1) doc.font(FONT_BOLD).fontSize(14).text(block.text.toUpperCase(), { align: 'center', width, characterSpacing: 0.5 });
+      else if (block.level === 2) doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(block.text.toUpperCase(), { width, characterSpacing: 0.3 });
       else doc.font(FONT_BOLD_ITALIC).fontSize(BODY_SIZE).text(block.text, { width });
-      doc.moveDown(0.5);
+      doc.moveDown(0.4);
       body(doc);
       return;
     }
     case 'paragraph': {
-      const text = block.numbered ? `${numbering.next++}. ${block.text}` : block.text;
-      body(doc).text(text, { width, align: 'left' });
-      doc.moveDown(0.6);
+      if (!block.numbered) {
+        body(doc).text(block.text, { width, align: 'justify', lineGap: LINE_GAP });
+        doc.moveDown(0.7);
+        return;
+      }
+      // Hanging indent: the number sits in a gutter, the text wraps flush.
+      ensureSpace(doc, 36);
+      const n = `${numbering.next++}.`;
+      const x = doc.page.margins.left;
+      const y = doc.y;
+      body(doc).text(n, x, y, { width: NUMBER_GUTTER, lineBreak: false });
+      doc.text(block.text, x + NUMBER_GUTTER, y, { width: width - NUMBER_GUTTER, align: 'justify', lineGap: LINE_GAP });
+      doc.x = x;
+      doc.moveDown(0.7);
       return;
     }
     case 'blank': {
-      ensureSpace(doc, 48);
-      if (block.label) body(doc).text(`${block.label}:`, { width });
-      rule(doc, Math.min(width, 300));
-      doc.font(FONT_ITALIC).fontSize(NOTE_SIZE).fillColor(MUTED).text(block.note, { width });
-      doc.moveDown(0.8);
+      ensureSpace(doc, 56);
+      const x = doc.page.margins.left;
+      if (block.label) body(doc).text(`${block.label}:`, x, doc.y, { width, lineGap: LINE_GAP });
+      rule(doc, Math.min(width, 320));
+      doc.font(FONT_ITALIC).fontSize(NOTE_SIZE).fillColor(MUTED).text(block.note, x, doc.y, { width, lineGap: 1 });
+      doc.moveDown(1);
       body(doc);
       return;
     }
     case 'list': {
       body(doc);
+      const x = doc.page.margins.left + NUMBER_GUTTER;
       block.items.forEach((item, i) => {
-        const marker = block.ordered ? `${i + 1}.` : '•';
-        doc.text(`${marker}  ${item}`, { width: width - 18, indent: 0 });
+        ensureSpace(doc, 24);
+        const marker = block.ordered ? `(${String.fromCharCode(97 + i)})` : '•';
+        const y = doc.y;
+        doc.text(marker, x, y, { width: NUMBER_GUTTER, lineBreak: false });
+        doc.text(item, x + NUMBER_GUTTER, y, { width: width - 2 * NUMBER_GUTTER, align: 'justify', lineGap: LINE_GAP });
+        doc.moveDown(0.25);
       });
+      doc.x = doc.page.margins.left;
       doc.moveDown(0.6);
       return;
     }
@@ -223,9 +245,10 @@ export function renderPdf(tree: DocumentTree, options: RenderOptions = {}): Prom
       const numbering = { next: 1 };
       for (const section of tree.sections) {
         if (section.title && !sectionHasHeading(section)) {
-          ensureSpace(doc, 40);
-          doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(section.title, { width: contentWidth(doc) });
-          doc.moveDown(0.5);
+          ensureSpace(doc, 60);
+          doc.moveDown(0.4);
+          doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(section.title.toUpperCase(), doc.page.margins.left, doc.y, { width: contentWidth(doc), characterSpacing: 0.3 });
+          doc.moveDown(0.4);
           body(doc);
         }
         for (const block of section.blocks) {

@@ -424,8 +424,11 @@ const DocumentPreview = () => {
 
       switch(section.type) {
         case 'header':
-        case 'venue':
           sectionHeight = 40; // One line (~24px) + margin-bottom (16px) = 40px
+          break;
+        case 'venue':
+          // Court name may stack several lines (e.g. ONTARIO / SUPERIOR COURT OF JUSTICE / FAMILY COURT).
+          sectionHeight = 24 * Math.max(1, String(section.content || '').split('\n').length) + 16;
           break;
         case 'title':
           sectionHeight = 80; // Title with border and 1.5 moveDown (PDF uses ~60 points = 80px)
@@ -750,7 +753,7 @@ const DocumentPreview = () => {
       
       case 'venue':
         return (
-          <div key={key} className="affidavit-venue">
+          <div key={key} className="affidavit-venue" style={{ whiteSpace: 'pre-line' }}>
             {section.content}
           </div>
         );

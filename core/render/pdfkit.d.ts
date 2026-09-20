@@ -30,6 +30,7 @@ declare module 'pdfkit' {
     continued?: boolean;
     paragraphGap?: number;
     lineGap?: number;
+    characterSpacing?: number;
   }
 
   class PDFDocument extends Readable {

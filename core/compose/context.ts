@@ -18,8 +18,14 @@ export interface ComposeContext {
   jurisdiction: JurisdictionProfile;
   labels: Labels;
   language: Language;
-  /** Verified narrative paragraphs that ADD to `alreadyStated` for a section, from ONE model ask. */
+  /**
+   * Verified narrative paragraphs that ADD to what the document already says
+   * (every section composed so far plus `alreadyStated` from the current
+   * one), from ONE model ask.
+   */
   narrative(sectionId: string, alreadyStated?: Block[]): Promise<Block[]>;
+  /** Blocks of the sections composed so far; the composer appends each finished section. */
+  readonly composed: Block[];
 }
 
 export interface DivorceContext extends ComposeContext {
@@ -27,12 +33,14 @@ export interface DivorceContext extends ComposeContext {
 }
 
 export function contextFor(intelligence: Intelligence, file: CaseFile, jurisdiction: JurisdictionProfile): ComposeContext {
+  const composed: Block[] = [];
   return {
     file,
     jurisdiction,
     labels: labelsFor(file, jurisdiction),
     language: languageOf(file),
-    narrative: (sectionId, alreadyStated) => narrativeFor({ intelligence, file, jurisdiction }, sectionId, alreadyStated),
+    composed,
+    narrative: (sectionId, alreadyStated = []) => narrativeFor({ intelligence, file, jurisdiction }, sectionId, [...composed, ...alreadyStated]),
   };
 }
 

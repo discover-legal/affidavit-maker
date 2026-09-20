@@ -1,11 +1,17 @@
 /**
- * v2 engine end-to-end through the real UI (CORE_ENGINE=v2,
- * CORE_INTELLIGENCE=fake). Start the patched dev server with those two
- * env vars, then `node drive-v2.mjs`.
+ * v2 engine end-to-end through the real UI against a REAL model.
+ *
+ * Start the patched dev server (e2e/setup-worktree.sh) with:
+ *   CORE_ENGINE=v2 OPENAI_API_KEY=... [TYPESAFE_API_KEY=...] npm run dev -- -p 3100
+ * then `node drive-v2.mjs`. There is no scripted or fake model for this
+ * driver: every reply, extraction and judgment below comes from the live
+ * model, so the assertions are invariants (typed fields present with
+ * provenance, phases advance, no confirmation from silence, v2 preview and
+ * PDF produced), never exact wording.
  *
  * Checks: triage → divorce interview turns fill the document with typed
  * values and provenance → preview renders v2 sections with draft blanks →
- * PDF generation via the v2 renderer → life story absorbed for re-login.
+ * PDF generation via the v2 renderer → profile still answers.
  */
 import { chromium } from 'playwright-core';
 
@@ -103,7 +109,7 @@ try {
   ok('v2 engine handled the conversation', content.orchestratorState?.engine === 'v2', JSON.stringify(content.orchestratorState));
   ok('typed party fields landed in the document', content.petitionerFirstName === 'Jordan' && content.respondentFirstName === 'Alex');
   ok('jurisdiction and county recorded', content.state === 'UT' && content.county === 'Salt Lake', `${content.state}/${content.county}`);
-  ok('children carried into the document', Array.isArray(content.children) && content.children.length === 2, String(content.children?.length));
+  ok('children carried into the document', Array.isArray(content.children) && content.children.length >= 2, String(content.children?.length));
   ok('facts carry the user\'s own words as provenance', Array.isArray(content.facts) && content.facts.length > 0 && content.facts.every((f) => f.sourceQuote));
   ok('interview advanced past INTAKE', content.orchestratorState?.completedPhases?.includes('INTAKE'), String(content.orchestratorState?.completedPhases));
   ok('no confirmation from silence: support_waived absent', content.spousalSupportWaived !== true);

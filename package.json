@@ -1,7 +1,7 @@
 {
   "name": "affidavit-maker",
   "version": "5.0.0-migration",
-  "description": "Professional affidavit generation tool — Next.js + TypeScript",
+  "description": "Professional affidavit generation tool \u2014 Next.js + TypeScript",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -27,7 +27,7 @@
     "@typesafe-ai/sdk": "^0.6.0",
     "docx": "^9.6.1",
     "file-type": "22.0.1",
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lodash": "^4.17.21",
@@ -70,9 +70,9 @@
   },
   "overrides": {
     "brace-expansion": "2.1.4",
-    "sharp": "0.35.0",
-    "js-yaml@^3.0.0": "3.15.1",
-    "js-yaml@^4.0.0": "4.3.1",
+    "sharp": "0.35.4",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2",
     "nanoid@^3.0.0": "3.3.18",
     "nanoid@^5.0.0": "5.1.16"
   },

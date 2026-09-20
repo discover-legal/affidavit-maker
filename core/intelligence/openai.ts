@@ -11,6 +11,7 @@
 import type OpenAI from 'openai';
 import type {
   AskRequest,
+  JsonSchema,
   Answers,
   Intelligence,
   Json,
@@ -24,6 +25,11 @@ export interface OpenAIIntelligenceOptions {
   model?: string;
   /** Model for cheap judgments; defaults to the main model. */
   judgeModel?: string;
+  /**
+   * 'chat' (Chat Completions, default — what OpenAI and every compatible provider serve) or 'responses' (OpenAI's Responses API,
+   * opt-in via CORE_LLM_API=responses).
+   */
+  api?: 'responses' | 'chat';
 }
 
 const DEFAULT_MODEL = process.env.CORE_LLM_MODEL || process.env.LLM_MODEL || 'gpt-5.5';
@@ -32,11 +38,13 @@ export class OpenAIIntelligence implements Intelligence {
   private readonly client: OpenAI;
   private readonly model: string;
   private readonly judgeModel: string;
+  private readonly api: 'responses' | 'chat';
 
   constructor(opts: OpenAIIntelligenceOptions) {
     this.client = opts.client;
     this.model = opts.model || DEFAULT_MODEL;
     this.judgeModel = opts.judgeModel || process.env.CORE_JUDGE_MODEL || this.model;
+    this.api = opts.api || (process.env.CORE_LLM_API === 'responses' ? 'responses' : 'chat');
   }
 
   async ask<T extends Json>(req: AskRequest): Promise<T> {
@@ -54,19 +62,48 @@ export class OpenAIIntelligence implements Intelligence {
       { role: 'user', content: `INPUT:\n${JSON.stringify(req.input, null, 2)}` },
     ];
 
-    const response = await this.client.responses.create({
-      model: this.model,
-      input,
-      text: {
-        format: {
-          type: 'json_schema',
-          name: req.purpose.replace(/[^a-zA-Z0-9_]/g, '_'),
-          schema: req.schema,
-          strict: true,
-        },
-      },
-    });
-    const text = response.output_text;
+    const name = req.purpose.replace(/[^a-zA-Z0-9_]/g, '_');
+    let text: string | null | undefined;
+    if (this.api === 'chat') {
+      // Chat Completions. Providers differ on structured output: OpenAI takes
+      // a json_schema response_format; others (DeepSeek) only json_object, so
+      // the schema also travels in the system message and the answer is
+      // checked for the schema's required keys before it is trusted.
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = input.map((m) => ({
+        role: m.role === 'developer' ? ('system' as const) : m.role,
+        content: m.content,
+      }));
+      messages[0] = { role: 'system', content: `${messages[0].content}\n\nAnswer with a single JSON object that conforms exactly to this JSON schema (no prose, no markdown):\n${JSON.stringify(req.schema)}` };
+      const strict = process.env.CORE_LLM_JSON_SCHEMA !== 'off';
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages,
+        response_format: strict
+          ? { type: 'json_schema', json_schema: { name, schema: req.schema, strict: true } }
+          : { type: 'json_object' },
+      });
+      text = completion.choices[0]?.message?.content;
+      if (!text) {
+        // Some providers occasionally return an empty completion; one retry
+        // is cheap and never fabricates anything.
+        const retry = await this.client.chat.completions.create({
+          model: this.model,
+          messages,
+          response_format: strict
+            ? { type: 'json_schema', json_schema: { name, schema: req.schema, strict: true } }
+            : { type: 'json_object' },
+        });
+        text = retry.choices[0]?.message?.content;
+      }
+      if (text) assertRequiredKeys(req.purpose, req.schema, text);
+    } else {
+      const response = await this.client.responses.create({
+        model: this.model,
+        input,
+        text: { format: { type: 'json_schema', name, schema: req.schema, strict: true } },
+      });
+      text = response.output_text;
+    }
     if (!text) throw new Error(`OpenAIIntelligence.ask(${req.purpose}): empty response`);
     return JSON.parse(text) as T;
   }
@@ -94,6 +131,14 @@ export class OpenAIIntelligence implements Intelligence {
 }
 
 type JsonObjectLike = { [key: string]: Json };
+
+/** Providers without schema-constrained output can still be held to the schema's top-level required keys. */
+function assertRequiredKeys(purpose: string, schema: JsonSchema, text: string): void {
+  const required = (schema as { required?: string[] }).required ?? [];
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const missing = required.filter((k) => !(k in parsed));
+  if (missing.length) throw new Error(`OpenAIIntelligence.ask(${purpose}): answer missing required keys ${missing.join(', ')}`);
+}
 
 function describe(questions: Questions): Json {
   return Object.fromEntries(

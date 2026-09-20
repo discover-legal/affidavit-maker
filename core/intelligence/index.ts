@@ -42,7 +42,10 @@ function build(): Intelligence {
   const { OpenAIIntelligence } = require('./openai') as typeof import('./openai');
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('core intelligence: OPENAI_API_KEY is not set');
-  const openai = new OpenAIIntelligence({ client: new OpenAI({ apiKey, timeout: 45_000, maxRetries: 2 }) });
+  // CORE_LLM_BASE_URL points the OpenAI SDK at any OpenAI-compatible
+  // provider (e.g. DeepSeek); pair it with CORE_LLM_API=chat and CORE_LLM_MODEL.
+  const baseURL = process.env.CORE_LLM_BASE_URL || undefined;
+  const openai = new OpenAIIntelligence({ client: new OpenAI({ apiKey, baseURL, timeout: 90_000, maxRetries: 2 }) });
 
   if (mode === 'typesafe') {
     const { TypeSafeClient } = require('@typesafe-ai/sdk') as typeof import('@typesafe-ai/sdk');

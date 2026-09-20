@@ -479,6 +479,18 @@ async function matchingChild(intelligence: Intelligence, existing: Child[], inco
  * over the user's verbatim message and recorded only at or above
  * THRESHOLDS.affirmation. Anything below is reported so the next turn asks.
  */
+/** What each confirmation means legally; judged against the user's words, never inferred from silence. */
+const CONFIRMATION_MEANING: Record<ConfirmationKey, string> = {
+  no_children: 'There are no children of this relationship.',
+  no_property: 'The parties own no property to divide.',
+  no_debts: 'The parties owe no debts to divide.',
+  support_waived: 'The person gives up (waives) any claim to spousal support now and in the future — not merely that they are not asking for it at this time.',
+  no_safety_concerns: 'There are no safety concerns involving the other party.',
+  not_military: 'The other party is not in active military service.',
+  evidence_reviewed: 'The person has reviewed the supporting evidence.',
+  review_confirmed: 'The person confirms the summarized information is correct and complete.',
+};
+
 async function applyAffirmations(
   intelligence: Intelligence,
   file: CaseFile,
@@ -492,8 +504,14 @@ async function applyAffirmations(
   for (const key of new Set(proposed)) {
     const { affirmed } = await intelligence.judge({
       purpose: JUDGE.INTERVIEW_AFFIRMATION,
-      state: { message, confirmation: key },
-      questions: { affirmed: yesno('Did the person explicitly and unambiguously state this condition in the message?') },
+      state: { message, confirmation: key, meaning: CONFIRMATION_MEANING[key] },
+      questions: {
+        affirmed: yesno(
+          'Did the person explicitly and unambiguously state the condition described in `meaning`, in this message? Answer no when they merely did not request something, left it open, or said something weaker than the condition.',
+          'The message itself states the condition, in the person\'s own words.',
+          'The message is silent, weaker, or only says what they are not asking for.',
+        ),
+      },
     });
     if (affirmed.probability >= THRESHOLDS.affirmation) {
       file.confirmations[key] = { source: 'confirmed', quote: message, turnId, at };

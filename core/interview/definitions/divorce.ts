@@ -46,14 +46,14 @@ function divorceFields(profile: JurisdictionProfile): FieldSpec[] {
     { key: 'county', target: 'county', schema: string(`The ${countyLabel} where the case is or will be filed.`), binds: 'county' },
     { key: 'case_number', target: 'caseNumber', schema: string('The court’s file number of an existing case, exactly as written.'), binds: 'caseNumber' },
     // Residency
-    { key: 'residency_state_months', target: 'residencyStateMonths', schema: number(`Months the qualifying spouse has lived in the ${profile.lexicon.regionLabel.toLowerCase()}.`) },
+    { key: 'residency_months', target: 'residencyMonths', schema: number(`Months the qualifying spouse has lived in the ${profile.lexicon.regionLabel.toLowerCase()}.`) },
     { key: 'residency_county_days', target: 'residencyCountyDays', schema: number(`Days the qualifying spouse has lived in the ${countyLabel}.`) },
     { key: 'residency_basis', target: 'residencyBasis', schema: string('The statutory residency basis relied on, where the jurisdiction lists alternatives.') },
     // Marriage and grounds
     { key: 'marriage_date', target: 'marriageDate', schema: isoDate('Date of marriage') },
     { key: 'marriage_place', target: 'marriagePlace', schema: string('City and region/state/country where the marriage took place.') },
     { key: 'separation_date', target: 'separationDate', schema: isoDate('Date the spouses began living separate and apart') },
-    { key: 'grounds', target: 'groundsForDivorce', schema: { type: 'string', enum: grounds, description: 'The ground for divorce, as one of the jurisdiction’s codes. Omit when none fits.' } },
+    { key: 'grounds', target: 'grounds', schema: { type: 'string', enum: grounds, description: 'The ground for divorce, as one of the jurisdiction’s codes. Omit when none fits.' } },
     // Children
     { key: 'has_minor_children', target: 'hasMinorChildren', schema: boolean('Whether there are children of the marriage under the age of majority.') },
     { key: 'number_of_children', target: 'numberOfChildren', schema: { type: 'integer', description: 'Number of children of the marriage, including adult children.' } },
@@ -62,8 +62,8 @@ function divorceFields(profile: JurisdictionProfile): FieldSpec[] {
     // Property and debts
     { key: 'has_property', target: 'hasProperty', schema: boolean('Whether the spouses own property to divide.') },
     { key: 'has_debts', target: 'hasDebts', schema: boolean('Whether the spouses owe debts to divide.') },
-    { key: 'property_description', target: 'propertyDescription', schema: string('The main property items, with the location of any real estate.') },
-    { key: 'debts_description', target: 'debtsDescription', schema: string('The main debts.') },
+    { key: 'property_items', target: 'propertyItems', schema: { type: 'array', items: { type: 'string' }, description: 'The main property items, one per entry, with the location of any real estate.' } },
+    { key: 'debt_items', target: 'debtItems', schema: { type: 'array', items: { type: 'string' }, description: 'The main debts, one per entry.' } },
     { key: 'property_division_agreed', target: 'propertyDivisionAgreed', schema: boolean('Whether the spouses have agreed how to divide property and debts.') },
     { key: 'prenup_signed', target: 'prenupSigned', schema: boolean('Whether a marriage contract or prenuptial agreement was signed.') },
     // Support
@@ -83,7 +83,7 @@ function divorceFields(profile: JurisdictionProfile): FieldSpec[] {
     { key: 'monthly_expenses', target: 'monthlyExpenses', schema: number('The user’s monthly expenses, for a fee waiver.') },
     { key: 'dependents_count', target: 'dependentsCount', schema: { type: 'integer', description: 'Number of dependants the user supports, for a fee waiver.' } },
     // Military
-    { key: 'respondent_military_status', target: 'respondentMilitaryStatus', schema: { type: 'string', enum: ['active_duty', 'not_active_duty'], description: 'Whether the spouse is in active military service.' } },
+    { key: 'other_party_military', target: 'otherPartyMilitary', schema: boolean('Whether the spouse is in active military service, as far as the user knows.') },
     { key: 'military_search_planned', target: 'militarySearchPlanned', schema: { type: 'string', enum: ['completed', 'before_filing'], description: 'Whether a military-status (DMDC) search has been done or will be done before filing.' } },
     // Name and review
     { key: 'name_restoration_requested', target: 'nameRestorationRequested', schema: boolean('Whether the user asks to resume a former name.') },
@@ -114,7 +114,7 @@ function divorcePhases(profile: JurisdictionProfile): PhaseSpec[] {
       guidance:
         'A court may grant a divorce only when the jurisdiction’s residency requirement is met. Collect how long the qualifying spouse has lived in the jurisdiction, in months, and how long in the place of filing where a local rule applies. ' +
         'Residency is never assumed: record the durations the user states, and note when the user is unsure.',
-      requiredFields: ['residencyStateMonths'],
+      requiredFields: ['residencyMonths'],
       factCategory: 'residence',
     },
     {
@@ -124,7 +124,7 @@ function divorcePhases(profile: JurisdictionProfile): PhaseSpec[] {
         'Collect the date and place of marriage, the date the spouses began living separate and apart, and the ground for divorce from the jurisdiction’s closed set. ' +
         'A no-fault ground is preferred where one exists. Fault grounds such as adultery, cruelty or abandonment are recorded only when the user raises them, with the supporting facts in the user’s own words; a contested or safety-related situation is a reason to recommend a lawyer once and continue. ' +
         'Record the ground code, never a paraphrase; when the user’s description matches no available ground, ask rather than choose.',
-      requiredFields: ['marriageDate', 'groundsForDivorce'],
+      requiredFields: ['marriageDate', 'grounds'],
       factCategory: 'relationship',
     },
     {

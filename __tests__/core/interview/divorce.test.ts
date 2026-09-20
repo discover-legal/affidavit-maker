@@ -101,7 +101,7 @@ describe('core/interview — divorce definition', () => {
       expect((overlay.GROUNDS ?? '').length).toBeGreaterThan(0);
       expect(typeof overlay.RESIDENCY).toBe('string');
 
-      const grounds = def.fields.find((f) => f.target === 'groundsForDivorce');
+      const grounds = def.fields.find((f) => f.target === 'grounds');
       expect(grounds?.key).toBe('grounds');
       expect(enumOf(def, 'grounds')).toEqual(profile.divorce?.grounds.map((g) => g.code));
     }
@@ -114,7 +114,7 @@ describe('core/interview — divorce definition', () => {
       expect(phase.guidance.length).toBeGreaterThan(0);
       expect(typeof phase.displayName).toBe('string');
     }
-    expect(def.phases.find((p) => p.id === 'GROUNDS')?.requiredFields).toEqual(expect.arrayContaining(['groundsForDivorce']));
+    expect(def.phases.find((p) => p.id === 'GROUNDS')?.requiredFields).toEqual(expect.arrayContaining(['grounds']));
   });
 
   test('the role field is who_filed with a closed enum, and the whereabouts fields bind to the other party', () => {
@@ -179,8 +179,8 @@ describe('core/interview — divorce turns', () => {
       { user: message, model: proposal({ fields: { grounds: 'insupportability' }, facts: [{ statement: 'Our marriage has become insupportable.', category: 'relationship', subcategory: 'grounds', quote: message, values: { ground: 'insupportability' } }] }) },
     ]);
 
-    expect(t1.file.fields.groundsForDivorce?.value).toBe('insupportability');
-    expect(t1.file.fields.groundsForDivorce?.provenance.quote).toBe(message);
+    expect(t1.file.fields.grounds?.value).toBe('insupportability');
+    expect(t1.file.fields.grounds?.provenance.quote).toBe(message);
     expect(t1.result.newFacts[0]?.values?.ground).toBe('insupportability');
   });
 
@@ -198,7 +198,7 @@ describe('core/interview — divorce turns', () => {
       },
     ]);
 
-    expect(t1.file.fields.groundsForDivorce).toBeUndefined();
+    expect(t1.file.fields.grounds).toBeUndefined();
     expect(t1.file.fields.separationDate?.value).toBe(separationDate);
     expect(t1.result.newFacts).toHaveLength(1);
     expect(t1.result.newFacts[0].values?.date).toBe(separationDate);
@@ -212,14 +212,14 @@ describe('core/interview — divorce turns', () => {
       { user: 'we separated over a year ago', model: proposal({ fields: { grounds: 'one_year_separation', separation_date: separationDate } }) },
     ]);
 
-    expect(t1.file.fields.groundsForDivorce?.value).toBe('one_year_separation');
+    expect(t1.file.fields.grounds?.value).toBe('one_year_separation');
     expect(t1.file.fields.separationDate?.value).toBe(separationDate);
   });
 
   test('grounds outside the jurisdiction’s closed set are not recorded', async () => {
     const h = harness('TX');
     const [t1] = await runInterview(h, divorceFile('TX', 'GROUNDS'), [{ user: 'irreconcilable differences I guess', model: proposal({ fields: { grounds: 'irreconcilable_differences' } }) }]);
-    expect(t1.file.fields.groundsForDivorce).toBeUndefined();
+    expect(t1.file.fields.grounds).toBeUndefined();
   });
 
   test('silence is never a waiver: not requesting support does not confirm support_waived', async () => {

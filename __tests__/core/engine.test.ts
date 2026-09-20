@@ -92,6 +92,18 @@ describe('v2 engine end to end (scripted)', () => {
     expect(html.length).toBeGreaterThan(0);
   });
 
+  test('the divorce interview writes the field keys the composer reads (shared vocabulary)', () => {
+    // The composer's structural sections read these CaseFile.fields keys; the
+    // interview definition must produce them under exactly these targets or
+    // stated facts silently render as blanks (caught live in e2e/drive-v2.mjs).
+    const composerReads = [
+      'marriageDate', 'marriagePlace', 'separationDate', 'residencyMonths', 'grounds',
+      'propertyItems', 'debtItems', 'spousalSupportRequested', 'indigencyRequested', 'otherPartyMilitary',
+    ];
+    const targets = new Set(engine().matters.get('divorce', 'ON')?.fields.map((f) => f.target));
+    for (const key of composerReads) expect(targets.has(key)).toBe(true);
+  });
+
   test('the matter registry resolves divorce per jurisdiction and YAML matters by code', () => {
     const eng = engine();
     const divorce = eng.matters.get('divorce', 'ON');

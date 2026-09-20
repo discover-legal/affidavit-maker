@@ -203,9 +203,12 @@ try {
   await page.goto(`${BASE}/serve?state=UT`);
   await page.waitForLoadState('networkidle');
   const serveText = await page.textContent('main');
+  // The heading depends on the user's role by this point in the run (the
+  // ingested paper flipped them to respondent: "Serving papers on the other
+  // side"); both variants share the "Serving" lead and the ways-to-serve list.
   ok(
     'serve page renders the walkthrough',
-    serveText.includes('Serving the papers') && serveText.includes('Ways to serve'),
+    serveText.includes('Serving') && serveText.toLowerCase().includes('ways to serve'),
   );
   await page.screenshot({ path: `${SHOTS}/5-serve.png`, fullPage: true });
 

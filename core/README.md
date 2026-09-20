@@ -69,7 +69,8 @@ with a spec change in `docs/spec/`.
 
 ```
 CORE_ENGINE=v2                 # route requests to core/ (default: v1)
-CORE_INTELLIGENCE=typesafe     # scripted | openai | typesafe (default: typesafe when TYPESAFE_API_KEY set, else openai)
+CORE_INTELLIGENCE=typesafe     # scripted | openai | typesafe | fake (default: typesafe when TYPESAFE_API_KEY set, else openai)
+                               # "fake" = deterministic, semantics-free stand-in for demos and e2e (e2e/drive-v2.mjs); never for production
 CORE_LLM_MODEL=gpt-5.5         # generative model
 CORE_JUDGE_MODEL=              # optional cheaper model for OpenAI-backed judgments
 TYPESAFE_API_KEY=              # enables Jev-backed judgments

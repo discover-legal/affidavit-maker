@@ -277,7 +277,7 @@ function applyFields(
     const value = proposed[spec.key];
     if (!conforms(value, spec.schema)) continue;
     if (spec.key === WHO_FILED_KEY || spec.key === SERVED_ON_USER_KEY) applyRoleSignal(file, spec.key, value);
-    if (spec.target === 'groundsForDivorce' && !separationGateAllows(file, jurisdiction, value, proposed, definition)) continue;
+    if (spec.target === 'grounds' && !separationGateAllows(file, jurisdiction, value, proposed, definition)) continue;
     switch (spec.binds) {
       case 'self.firstName':
       case 'self.lastName':

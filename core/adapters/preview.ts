@@ -110,11 +110,12 @@ function blockToItems(block: Block): Item[] {
     case 'paragraph':
       return [{ content: block.text, type: block.numbered === false ? 'text' : 'paragraph' }];
     case 'blank':
-      return [{ content: `${block.label ? `${block.label}: ` : ''}__________________\n(Draft — ${block.note})`, type: 'blank' }];
+      // Notes already begin with "Draft — "; render them as written.
+      return [{ content: `${block.label ? `${block.label}: ` : ''}__________________\n(${block.note})`, type: 'blank' }];
     case 'list':
       return block.items.map((item) => ({ content: item, type: block.ordered ? 'relief_item' : 'text' }));
     case 'note':
-      return [{ content: `(Draft note — ${block.text})`, type: 'note' }];
+      return [{ content: `(${block.text})`, type: 'note' }];
     case 'signature':
       return [{ content: signatureText(block), type: 'signature' }];
     case 'jurat':

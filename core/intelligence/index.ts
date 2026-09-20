@@ -16,6 +16,7 @@ export { ASK, JUDGE } from './purposes';
 export type { AskPurpose, JudgePurpose } from './purposes';
 export { ScriptedIntelligence, UnscriptedCallError, yes, no, pick, level } from './scripted';
 export { OpenAIIntelligence } from './openai';
+export { FakeIntelligence } from './fake';
 export { TypeSafeIntelligence } from './typesafe';
 
 let cached: Intelligence | null = null;
@@ -36,6 +37,12 @@ function build(): Intelligence {
   if (mode === 'scripted') {
     const { ScriptedIntelligence } = require('./scripted') as typeof import('./scripted');
     return new ScriptedIntelligence();
+  }
+  if (mode === 'fake') {
+    // Deterministic, semantics-free stand-in for demos and e2e runs. Never
+    // selected implicitly: only the literal value "fake" builds it.
+    const { FakeIntelligence } = require('./fake') as typeof import('./fake');
+    return new FakeIntelligence();
   }
 
   const OpenAI = (require('openai') as typeof import('openai')).default;

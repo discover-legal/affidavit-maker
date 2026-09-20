@@ -57,7 +57,6 @@ export const FIELD_GROUPS: Readonly<Record<string, FieldGroup>> = {
   selfEmployedPayor: 'family',
   incomeUnderreporting: 'family',
   grounds: 'family',
-  groundsForDivorce: 'family',
   spousalSupportRequested: 'family',
   spousalSupportWaived: 'family',
   hasProperty: 'family',

@@ -13,7 +13,8 @@
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
     "db:cleanup": "node scripts/cleanDatabase.js",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "matters:validate": "node scripts/validateMatters.js"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "4.25.0",
@@ -23,8 +24,10 @@
     "@stripe/react-stripe-js": "6.7.0",
     "@stripe/stripe-js": "9.5.0",
     "@tesseract.js-data/eng": "1.0.0",
+    "@typesafe-ai/sdk": "^0.6.0",
     "docx": "^9.6.1",
     "file-type": "22.0.1",
+    "js-yaml": "4.3.2",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lodash": "^4.17.21",
@@ -67,9 +70,9 @@
   },
   "overrides": {
     "brace-expansion": "2.1.4",
-    "sharp": "0.35.0",
-    "js-yaml@^3.0.0": "3.15.1",
-    "js-yaml@^4.0.0": "4.3.1",
+    "sharp": "0.35.4",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2",
     "nanoid@^3.0.0": "3.3.18",
     "nanoid@^5.0.0": "5.1.16"
   },

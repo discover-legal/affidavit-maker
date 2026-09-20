@@ -1,0 +1,11 @@
+code: custody
+practice_area: family
+display_name: Custody dup
+short_name: C
+tagline: collides with a built-in
+documents: [a_doc]
+triage: { description: x, keywords: [x] }
+fields: { petitioner_first_name: string }
+phases:
+  - { id: INTAKE, display_name: Start, prompt: "Intake prompt that is long enough." }
+  - { id: REVIEW, display_name: Review, prompt: "Review prompt that is long enough." }

@@ -405,6 +405,66 @@ Common patterns:
 
 ---
 
+## Matter (claim / interview) types
+
+A **matter** is a claim type the triage step can classify into, a catalog
+card, and the phased interview that collects its facts. Two sources:
+
+- **YAML** — `matters/<code>.yaml` (authoring guide: `matters/README.md`).
+  One file = catalog entry + triage description/keywords + extraction
+  `fields` + `phases`. Loaded once per process by `services/matters`
+  (`getMatterRegistry()`), validated with Zod (`services/matters/schema.js`),
+  and turned into a `BaseMatterOrchestrator` by
+  `services/matters/createOrchestrator.js`. Consumers: `lib/api/catalog-data.ts`
+  (merges into `MATTER_TYPES` / `DOCS_BY_MATTER` / `SUPPORTED_STATES`),
+  `services/agents/prompts/triage/index.js` (prompt list + tool enum),
+  `app/api/chat/route.ts` (orchestrator registry, `family_profile`
+  hydration opt-in, document selection). `name_change` is the reference
+  example (converted verbatim from its former JS pack).
+- **Built-in JS** — the other 16 matters still ship as
+  `services/agents/<Matter>Orchestrator.js` + `prompts/<matter>/index.js`
+  and a string-literal `require` in the chat route's
+  `MATTER_ORCHESTRATOR_LOADERS`. Their codes are reserved in
+  `services/matters/index.js` `BUILTIN_MATTER_CODES`; a YAML file may not
+  reuse one until the JS is removed (steps in `matters/README.md`).
+
+Rules: a broken YAML file is logged and skipped at runtime (never takes the
+catalog or chat down) but fails `npm run matters:validate` and the Jest
+suite (`__tests__/services/matters/loader.test.js` loads the shipped
+directory). `MATTERS_DIR` overrides the directory (tests). `js-yaml` v4
+`load` only — no custom tags. YAML files are traced into the standalone
+build via `next.config.mjs` `outputFileTracingIncludes`.
+
+## v2 engine (`core/`) — parallel rebuild behind `CORE_ENGINE=v2`
+
+`core/` is a second implementation of the product's brain (triage,
+interview, facts + life story, document composition, rendering), built from
+the functional specs in `docs/spec/01–04` and selected per request by
+`CORE_ENGINE=v2`. v1 (`services/`, `templates/`, `lib/api/profile.ts`) stays
+the default until v2 passes the persona acceptance run on a real model.
+
+- **Read `core/README.md` first.** Its principles are binding inside `core/`
+  and `__tests__/core/`: code owns workflow, invariants and state; the model
+  supplies judgment and language through `core/intelligence` (`ask()` for
+  structured generation, `judge()` for typed questions with probabilities —
+  Jev via `@typesafe-ai/sdk` when `TYPESAFE_API_KEY` is set, OpenAI
+  otherwise, `ScriptedIntelligence` in tests). No regexes, keyword lists or
+  substring heuristics for semantic decisions; unknown is absent (no
+  sentinels); every value carries provenance; dispositive statements render
+  only from explicit `Confirmations`.
+- **Call vocabulary**: `core/intelligence/purposes.ts` names every `ask`
+  purpose and `judge` question key. Tests script those names; add a new call
+  site there first.
+- **Integration**: `lib/api/coreChat.ts` (chat turn: blob → `CaseFile` via
+  `core/adapters/legacy` → `core/engine.chat` → life story absorb → blob),
+  `lib/api/coreDocuments.ts` (preview `sections` via `core/adapters/preview`
+  and PDF via `core/render`), `lib/api/lifeStoryStore.ts` (migration 022
+  `user_profiles.life_story`). Word output and packets stay on v1.
+- **Tests**: `__tests__/core/**` — structural assertions only, every model
+  answer scripted, interview scenarios driven as simple scripted loops;
+  `__tests__/core/engine.test.ts` runs triage → turn → draft → PDF end to end.
+  Real-model runs are a separate gate (`REAL_LLM=1`), not part of `npm test`.
+
 ## Firm mode (BigLaw integration)
 
 When `BIGLAW_API_URL` + `BIGLAW_INTAKE_SECRET` are **both** set, the deployment

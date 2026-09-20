@@ -29,6 +29,10 @@ const config = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/client/',
+    // Shared helpers for the core/ behaviour tests are not suites themselves.
+    '<rootDir>/__tests__/core/helpers/',
+    '<rootDir>/__tests__/core/.*/_helpers\\.ts$',
+    '<rootDir>/__tests__/fixtures/',
     // Legacy backend tests — many target Express middleware/routes that are
     // being removed in Phase 7. Skip until those tests are rewritten or
     // deleted.

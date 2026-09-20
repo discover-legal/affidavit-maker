@@ -122,3 +122,10 @@ MAINTENANCE_MODE=false
 BIGLAW_API_URL=
 BIGLAW_INTAKE_SECRET=
 BIGLAW_FIRM_NAME=
+
+# v2 engine (core/). Off by default; v1 pipeline serves every request.
+CORE_ENGINE=                  # "v2" routes chat, preview and PDF generation through core/
+CORE_INTELLIGENCE=            # scripted | openai | typesafe (default: typesafe when TYPESAFE_API_KEY is set, else openai)
+CORE_LLM_MODEL=               # generative model for core/ (default: LLM_MODEL, then gpt-5.5)
+CORE_JUDGE_MODEL=             # optional cheaper model for OpenAI-backed judgments
+TYPESAFE_API_KEY=             # enables Jev (System One) judgments via @typesafe-ai/sdk

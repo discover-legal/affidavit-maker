@@ -22,6 +22,24 @@ describe('catalog data', () => {
     expect(MATTER_TYPES.filter((m) => m.practice_area === 'civil')).toHaveLength(7);
   });
 
+  it('merges YAML-defined matters (matters/*.yaml) into the catalog in sort order', () => {
+    const nameChange = MATTER_MAP.name_change;
+    expect(nameChange).toBeDefined();
+    expect(nameChange.display_name).toBe('Name Change');
+    expect(nameChange.sort_order).toBe(120);
+    expect(DOCS_BY_MATTER.name_change).toEqual([
+      'petition_for_name_change',
+      'notice_of_petition_name_change',
+      'minor_name_change_declaration',
+      'indigency_affidavit',
+    ]);
+    const orders = MATTER_TYPES.map((m) => m.sort_order);
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
+    expect(MATTER_TYPES.findIndex((m) => m.code === 'name_change')).toBeGreaterThan(
+      MATTER_TYPES.findIndex((m) => m.code === 'small_claims'),
+    );
+  });
+
   it('every matter has a non-empty document list', () => {
     for (const matter of MATTER_TYPES) {
       const docs = DOCS_BY_MATTER[matter.code];

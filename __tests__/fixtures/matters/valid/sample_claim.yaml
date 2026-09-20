@@ -1,0 +1,55 @@
+code: sample_claim
+practice_area: family
+display_name: Sample Claim
+short_name: Sample
+tagline: A fixture matter used by the test-suite
+sort_order: 55
+family_profile: true
+supported_jurisdictions: [on, UT]
+documents: [sample_petition, indigency_affidavit]
+document_selection:
+  documents: [affidavit]
+  reasons:
+    affidavit: A sworn statement supporting your sample claim.
+triage:
+  description: A fixture claim about a sample dispute
+  keywords: [sample, fixture claim]
+  routing_notes:
+    - '"I have a sample problem" → sample_claim'
+shared_rules: |
+  SHARED: always call process_matter_data
+fields:
+  petitioner_first_name: string
+  petitioner_last_name: string
+  state: string
+  county: string
+  has_children: boolean
+  children:
+    type: array
+    items:
+      type: object
+      properties:
+        name: { type: string }
+        dob: { type: string }
+  urgency:
+    type: string
+    enum: [low, high]
+    target: urgencyLevel
+  user_confirmed_review: boolean
+phases:
+  - id: INTAKE
+    display_name: Getting Started
+    required_fields: [petitioner_first_name, petitionerLastName, state, county]
+    prompt: |
+      Intake prompt for the sample claim. Ask for names and where they file.
+  - id: CHILDREN
+    display_name: About the Children
+    skip_unless_any: [has_children]
+    fact_category: children
+    prompt: |
+      Children prompt for the sample claim. Collect each child's name and date of birth.
+  - id: REVIEW
+    display_name: Review & Confirm
+    required_fields: [user_confirmed_review]
+    prompt: |
+      Review prompt for the sample claim. Summarize and confirm.

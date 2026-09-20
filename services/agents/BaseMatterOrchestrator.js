@@ -410,7 +410,12 @@ class BaseMatterOrchestrator {
   }
 
   _buildFacts(extractedFacts, currentPhase, sourceMessage) {
-    const defaultCategory = DEFAULT_PHASE_CATEGORY[currentPhase] || 'general';
+    // A phase may declare its own default fact category (YAML matters do);
+    // otherwise fall back to the phase-name table above.
+    const defaultCategory =
+      this.phases[currentPhase]?.factCategory ||
+      DEFAULT_PHASE_CATEGORY[currentPhase] ||
+      'general';
     // Provenance: keep the user's own words so the review UI can show
     // exactly where each sworn statement came from.
     const sourceQuote = typeof sourceMessage === 'string'

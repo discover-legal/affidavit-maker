@@ -111,7 +111,12 @@ const LEGACY_SERVER_FILES = [
   './services/**/*',
   './templates/**/*',
   './utils/**/*',
+  './matters/**/*',
 ];
+
+// YAML matter definitions are read from disk at runtime (services/matters);
+// every route that touches the catalog needs them traced into standalone.
+const MATTER_DEFINITION_FILES = ['./matters/**/*'];
 
 const OCR_RUNTIME_FILES = [
   './node_modules/tesseract.js/**/*',
@@ -150,6 +155,7 @@ const nextConfig = {
   // templates/states/<jurisdiction>/<DocumentType>.js (110 jurisdictions ×
   // ~7 files each) and the runtime container 500s with "Cannot find module".
   outputFileTracingIncludes: {
+    '/api/catalog/**/*': MATTER_DEFINITION_FILES,
     '/api/chat': LEGACY_SERVER_FILES,
     '/api/documents/generate': LEGACY_SERVER_FILES,
     '/api/documents/preview': LEGACY_SERVER_FILES,

@@ -1,0 +1,11 @@
+code: missing_review
+practice_area: civil
+display_name: Missing Review
+short_name: MR
+tagline: no review phase
+documents: [a_doc]
+triage: { description: x, keywords: [x] }
+fields: { petitioner_first_name: string }
+phases:
+  - { id: INTAKE, display_name: Start, prompt: "Intake prompt that is long enough." }
+  - { id: DETAILS, display_name: Details, prompt: "Details prompt that is long enough." }

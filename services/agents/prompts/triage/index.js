@@ -4,9 +4,14 @@
  * Triage system prompt.
  *
  * The TriageOrchestrator's only job is to understand what the person needs
- * and classify it into one of the 17 matter types (or "general_affidavit" as
+ * and classify it into one of the matter types (or "general_affidavit" as
  * a catch-all). Once classified, it hands off to the appropriate matter
  * orchestrator — which starts at its own INTAKE phase.
+ *
+ * The MATTER TYPES block and the tool's enum are generated from two sources:
+ *   - BUILTIN_TRIAGE_ENTRIES below (matters implemented as JS orchestrators)
+ *   - YAML matter definitions in matters/*.yaml (services/matters)
+ * so adding a matter never means editing this prompt by hand.
  *
  * Design principles:
  * - Warm, non-legalistic opening
@@ -16,34 +21,87 @@
  * - No data collection here — that happens in the matter orchestrator's INTAKE
  */
 
-const TRIAGE_PROMPT = `You are a compassionate legal document assistant helping everyday people who represent themselves in court.
+const { getMatterRegistry } = require('../../../matters');
+
+// ─── Built-in matters (JS orchestrators) ─────────────────────────────────────
+// Order within each practice area is the order shown to the model.
+const BUILTIN_TRIAGE_ENTRIES = [
+  { code: 'divorce', practiceArea: 'family', description: 'Ending a marriage, dividing assets', keywords: ['divorce', 'dissolution', 'split up', 'separate from spouse', 'marital settlement'] },
+  { code: 'custody', practiceArea: 'family', description: 'Who children live with, parenting time, visitation', keywords: ['custody', 'parenting plan', 'my kids', 'visitation', 'parental rights', 'modify custody'] },
+  { code: 'child_support', practiceArea: 'family', description: "Money for children's expenses", keywords: ['child support', 'support order', 'support payment', 'modify support'] },
+  { code: 'dvro', practiceArea: 'family', description: 'Protection from domestic violence by an intimate partner, spouse, or parent of your child', keywords: ['restraining order against partner/husband/wife/boyfriend/girlfriend', 'domestic violence', 'abuse', 'DV'] },
+  { code: 'paternity', practiceArea: 'family', description: 'Establishing or removing legal fatherhood', keywords: ['father on birth certificate', 'DNA test', "prove he's the father", 'not the father', 'disestablish'] },
+  { code: 'legal_separation', practiceArea: 'family', description: 'Staying married but living apart with court orders', keywords: ['legal separation', 'separated', 'stay married but apart'] },
+  { code: 'annulment', practiceArea: 'family', description: 'Declaring a marriage was never valid', keywords: ['annulment', 'nullify marriage', 'marriage was fraud', 'bigamy', 'void marriage'] },
+  { code: 'guardianship_minor', practiceArea: 'family', description: 'Becoming legal guardian of a child who is not yours', keywords: ['guardian', 'take care of grandchild/niece/nephew', "parents can't care for"] },
+  { code: 'adoption', practiceArea: 'family', description: 'Legally adopting a child or adult', keywords: ['adopt', 'stepparent adoption', 'adult adoption'] },
+  { code: 'emancipation', practiceArea: 'family', description: 'Minor becoming legally independent', keywords: ['emancipated', 'legally independent', 'minor on my own'] },
+  { code: 'small_claims', practiceArea: 'civil', description: 'Suing someone for money in small claims court', keywords: ['sue', 'owe me money', 'damaged my property', 'small claims', "wasn't paid"] },
+  { code: 'civil_harassment', practiceArea: 'civil', description: 'Restraining order against a neighbor, coworker, or acquaintance', keywords: ['neighbor harassing', 'coworker stalking', 'restraining order not domestic'] },
+  { code: 'debt_defense', practiceArea: 'civil', description: 'Responding to a debt collection lawsuit', keywords: ['sued for debt', 'collection lawsuit', 'summons', 'credit card lawsuit', 'answer to complaint'] },
+  { code: 'landlord_tenant', practiceArea: 'civil', description: 'Eviction, security deposit, habitability disputes', keywords: ['eviction', 'landlord', 'tenant', 'deposit', 'rent', 'kicked out', 'repairs'] },
+  { code: 'general_civil', practiceArea: 'civil', description: "Money damages lawsuit that doesn't fit above", keywords: ['sue', 'breach of contract', 'personal injury', 'property damage', 'fraud'] },
+  { code: 'probate', practiceArea: 'civil', description: "Handling a deceased person's estate", keywords: ['probate', 'estate', 'someone died', 'will', 'heir', 'inherit', 'deceased'] },
+];
+
+const CATCH_ALL_CODE = 'general_affidavit';
+
+const PRACTICE_AREA_LABEL = { family: 'FAMILY LAW', civil: 'CIVIL LAW' };
+
+function formatEntry(e) {
+  return `  - ${e.code.padEnd(18)} → ${e.description} (keywords: ${e.keywords.join(', ')})`;
+}
+
+/** Built-in + YAML matters, keyed for the prompt and the tool enum. */
+function listTriageEntries() {
+  let yamlEntries = [];
+  try {
+    yamlEntries = getMatterRegistry().list().map((m) => ({
+      code: m.code,
+      practiceArea: m.practiceArea,
+      description: m.triage.description,
+      keywords: m.triage.keywords,
+      routingNotes: m.triage.routingNotes,
+    }));
+  } catch (err) {
+    // A broken registry must never take triage down — built-ins still work.
+    yamlEntries = [];
+  }
+  const builtinCodes = new Set(BUILTIN_TRIAGE_ENTRIES.map((e) => e.code));
+  return [...BUILTIN_TRIAGE_ENTRIES, ...yamlEntries.filter((e) => !builtinCodes.has(e.code))];
+}
+
+function listTriageMatterCodes() {
+  return [...listTriageEntries().map((e) => e.code), CATCH_ALL_CODE];
+}
+
+function renderMatterTypesBlock(entries) {
+  const lines = ['MATTER TYPES you can classify into:'];
+  for (const area of ['family', 'civil']) {
+    const group = entries.filter((e) => e.practiceArea === area);
+    if (group.length === 0) continue;
+    lines.push(`  ${PRACTICE_AREA_LABEL[area]}:`);
+    for (const e of group) lines.push(formatEntry(e));
+    lines.push('');
+  }
+  lines.push('  CATCH-ALL:');
+  lines.push(`  - ${CATCH_ALL_CODE.padEnd(18)} → Sworn statement of facts for any other purpose (keywords: affidavit, sworn statement, notarized statement, I need a document saying)`);
+  return lines.join('\n');
+}
+
+function renderRoutingNotes(entries) {
+  const notes = entries.flatMap((e) => e.routingNotes || []);
+  if (notes.length === 0) return '';
+  return `\nADDITIONAL ROUTING NOTES:\n${notes.map((n) => `  - ${n}`).join('\n')}\n`;
+}
+
+function buildTriagePrompt() {
+  const entries = listTriageEntries();
+  return `You are a compassionate legal document assistant helping everyday people who represent themselves in court.
 
 Your ONLY job right now is to understand what the person needs and identify the correct legal matter type.
 
-MATTER TYPES you can classify into:
-  FAMILY LAW:
-  - divorce            → Ending a marriage, dividing assets (keywords: divorce, dissolution, split up, separate from spouse, marital settlement)
-  - custody            → Who children live with, parenting time, visitation (keywords: custody, parenting plan, my kids, visitation, parental rights, modify custody)
-  - child_support      → Money for children's expenses (keywords: child support, support order, support payment, modify support)
-  - dvro               → Protection from domestic violence by an intimate partner, spouse, or parent of your child (keywords: restraining order against partner/husband/wife/boyfriend/girlfriend, domestic violence, abuse, DV)
-  - paternity          → Establishing or removing legal fatherhood (keywords: father on birth certificate, DNA test, prove he's the father, not the father, disestablish)
-  - legal_separation   → Staying married but living apart with court orders (keywords: legal separation, separated, stay married but apart)
-  - annulment          → Declaring a marriage was never valid (keywords: annulment, nullify marriage, marriage was fraud, bigamy, void marriage)
-  - guardianship_minor → Becoming legal guardian of a child who is not yours (keywords: guardian, take care of grandchild/niece/nephew, parents can't care for)
-  - adoption           → Legally adopting a child or adult (keywords: adopt, stepparent adoption, adult adoption)
-  - emancipation       → Minor becoming legally independent (keywords: emancipated, legally independent, minor on my own)
-
-  CIVIL LAW:
-  - small_claims       → Suing someone for money in small claims court (keywords: sue, owe me money, damaged my property, small claims, wasn't paid)
-  - name_change        → Legally changing your name (keywords: change my name, name change, new name, update name)
-  - civil_harassment   → Restraining order against a neighbor, coworker, or acquaintance (keywords: neighbor harassing, coworker stalking, restraining order not domestic)
-  - debt_defense       → Responding to a debt collection lawsuit (keywords: sued for debt, collection lawsuit, summons, credit card lawsuit, answer to complaint)
-  - landlord_tenant    → Eviction, security deposit, habitability disputes (keywords: eviction, landlord, tenant, deposit, rent, kicked out, repairs)
-  - general_civil      → Money damages lawsuit that doesn't fit above (keywords: sue, breach of contract, personal injury, property damage, fraud)
-  - probate            → Handling a deceased person's estate (keywords: probate, estate, someone died, will, heir, inherit, deceased)
-
-  CATCH-ALL:
-  - general_affidavit  → Sworn statement of facts for any other purpose (keywords: affidavit, sworn statement, notarized statement, I need a document saying)
+${renderMatterTypesBlock(entries)}
 
 MODIFICATION & ENFORCEMENT (route to the SAME matter type as the underlying case — the interviews handle both new cases and modifications):
   - "change my custody / parenting plan" / "modify visitation" → custody
@@ -59,7 +117,7 @@ ADDITIONAL CIVIL MATTERS:
   - workplace harassment / stalking by a coworker → civil_harassment
   - consumer fraud / scam / didn't receive what I paid for → small_claims or general_civil
   - wage theft / employer owes me money → small_claims or general_civil
-
+${renderRoutingNotes(entries)}
 OUT OF SCOPE (let the user know you can't help with these, suggest they contact a professional):
   - Criminal charges, DUIs, criminal defense → "This tool is for civil court documents. For criminal matters, you'll need a criminal defense attorney or the public defender's office."
   - Immigration → "Immigration documents require specialized forms. Visit uscis.gov or contact an immigration attorney."
@@ -110,6 +168,7 @@ SAFETY: If the person mentions violence, threats, or immediate danger, ALWAYS pr
   - Canada: Assaulted Women's Helpline 1-866-863-0511 | sheltersafe.ca
 Use the country context to pick the right one. If unsure, provide both.
 `;
+}
 
 /**
  * The single triage tool.
@@ -136,13 +195,7 @@ function buildTriageTool() {
           matter_type_code: {
             type: 'string',
             description: 'The classified matter type. REQUIRED when phase_complete is true.',
-            enum: [
-              'divorce', 'custody', 'child_support', 'dvro', 'paternity',
-              'legal_separation', 'annulment', 'guardianship_minor', 'adoption', 'emancipation',
-              'small_claims', 'name_change', 'civil_harassment', 'debt_defense',
-              'landlord_tenant', 'general_civil', 'probate',
-              'general_affidavit'
-            ]
+            enum: listTriageMatterCodes()
           },
           confidence: {
             type: 'number',
@@ -154,4 +207,16 @@ function buildTriageTool() {
   };
 }
 
-module.exports = { TRIAGE_PROMPT, buildTriageTool };
+// Rendered once at load for the orchestrator's system message; the YAML
+// registry is cached per process, so this matches buildTriageTool()'s enum.
+const TRIAGE_PROMPT = buildTriagePrompt();
+
+module.exports = {
+  TRIAGE_PROMPT,
+  buildTriagePrompt,
+  buildTriageTool,
+  listTriageEntries,
+  listTriageMatterCodes,
+  BUILTIN_TRIAGE_ENTRIES,
+  CATCH_ALL_CODE,
+};

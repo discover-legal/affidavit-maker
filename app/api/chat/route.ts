@@ -7,6 +7,7 @@ import { isInternationalEnabled } from '@/lib/api/catalog-data';
 import { getUserProfile, hydrateAffidavitData, mergeUserProfileSafe } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
 import { readJsonBody } from '@/lib/api/requestBody';
+import { isCoreEngineEnabled, runCoreChat } from '@/lib/api/coreChat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -72,6 +73,8 @@ type ChatOrchestratorRegistry = {
   matter: Record<string, Orchestrator>;
   divorce: Record<string, Orchestrator>;
   affidavitService: Orchestrator | null;
+  /** Matter codes whose interviews may hydrate spouse/children facts from the life story. */
+  familyMatterCodes: Set<string>;
 };
 
 // IMPORTANT: every require() below must take a string LITERAL. Webpack only
@@ -90,7 +93,6 @@ const MATTER_ORCHESTRATOR_LOADERS: Array<[string, () => unknown]> = [
   ['adoption',           () => require('@/services/agents/AdoptionOrchestrator')],
   ['emancipation',       () => require('@/services/agents/EmancipationOrchestrator')],
   ['small_claims',       () => require('@/services/agents/SmallClaimsOrchestrator')],
-  ['name_change',        () => require('@/services/agents/NameChangeOrchestrator')],
   ['debt_defense',       () => require('@/services/agents/DebtDefenseOrchestrator')],
   ['landlord_tenant',    () => require('@/services/agents/LandlordTenantOrchestrator')],
   ['civil_harassment',   () => require('@/services/agents/CivilHarassmentOrchestrator')],
@@ -175,6 +177,7 @@ async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
     matter: {},
     divorce: {},
     affidavitService: null,
+    familyMatterCodes: new Set(BUILTIN_FAMILY_MATTER_CODES),
   };
 
   // Wire `global.openAIService` FIRST, before any orchestrator selection runs.
@@ -235,6 +238,31 @@ async function loadOrchestrators(): Promise<ChatOrchestratorRegistry> {
     }
   }
 
+  // YAML-defined matters (matters/*.yaml). Each becomes a BaseMatterOrchestrator
+  // exactly like the JS packs above; a broken file is logged and skipped so
+  // one bad definition never disables the rest of the chat.
+  try {
+    const matters = require('@/services/matters') as typeof import('@/services/matters');
+    const matterRegistry = matters.getMatterRegistry();
+    for (const problem of matterRegistry.errors) {
+      logger.error('matter_definition_invalid', problem);
+    }
+    const selectionAgent = require('@/services/agents/DocumentSelectionAgent') as {
+      registerHandler: (state: string, area: string, fn: (data: unknown) => unknown) => void;
+    };
+    for (const def of matterRegistry.list()) {
+      try {
+        registry.matter[def.code] = matters.createOrchestrator(def) as unknown as Orchestrator;
+        matters.registerDocumentSelection(def, selectionAgent);
+        if (def.familyProfile) registry.familyMatterCodes.add(def.code);
+      } catch (err) {
+        logger.warn('yaml_matter_orchestrator_unavailable', { code: def.code, error: (err as Error).message });
+      }
+    }
+  } catch (err) {
+    logger.warn('matter_registry_unavailable', { error: (err as Error).message });
+  }
+
   // Legacy fallback: instantiate AffidavitService with the same templateManager
   // resolved above. Its constructor reads `global.openAIService` synchronously,
   // which is now guaranteed wired (or absent — in which case the service will
@@ -285,14 +313,16 @@ const DEFAULT_JURISDICTION: Record<string, string> = {
   US: 'TX', CA: 'ON', UK: 'ENG', IE: 'IRL', AU: 'NSW', NZ: 'NZ',
 };
 
-// Matter types whose interviews involve spouse/children/marriage details —
-// the only ones the life-story profile's family fields may hydrate into.
-const FAMILY_MATTER_CODES = new Set([
+// Built-in matter types whose interviews involve spouse/children/marriage
+// details — the only ones the life-story profile's family fields may hydrate
+// into. YAML matters opt in with `family_profile: true` (merged into the
+// registry's familyMatterCodes at load).
+const BUILTIN_FAMILY_MATTER_CODES = [
   'custody', 'child_support', 'dvro', 'paternity', 'legal_separation',
   'annulment', 'guardianship_minor', 'adoption', 'emancipation',
-]);
+];
 
-function isFamilyMatter(affidavitData: AffidavitData): boolean {
+function isFamilyMatter(affidavitData: AffidavitData, familyMatterCodes: Set<string>): boolean {
   // Deliberately NOT keyed on practiceArea — the client defaults every new
   // document to practiceArea 'family', which would leak divorce data into
   // general affidavits. Only explicit divorce docs / family matter codes.
@@ -300,7 +330,7 @@ function isFamilyMatter(affidavitData: AffidavitData): boolean {
     affidavitData.documentType || affidavitData.document_type || affidavitData.affidavitType || '',
   ).toLowerCase();
   if (docType.includes('divorce')) return true;
-  return FAMILY_MATTER_CODES.has(String(affidavitData.matterTypeCode || '').toLowerCase());
+  return familyMatterCodes.has(String(affidavitData.matterTypeCode || '').toLowerCase());
 }
 
 function detectCountry(req: NextRequest, affidavitData: AffidavitData): string {
@@ -524,6 +554,32 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
     if (body.sessionId) sessionId = body.sessionId;
 
+    // v2 engine (core/): same request/response contract, new brain.
+    if (isCoreEngineEnabled()) {
+      const history = chunkConversation(conversationHistory)
+        .filter((m): m is NormalizedMessage & { role: 'user' | 'assistant' } => m.role !== 'system')
+        .map((m) => ({ role: m.role, content: m.content }));
+      const out = await runCoreChat({
+        userId: user.id,
+        sessionId,
+        message,
+        history,
+        affidavitData: affidavitData as Record<string, unknown>,
+      });
+      const processingTime = Date.now() - startTime;
+      logger.info('chat_completed', { sessionId, userId: user.id, processingTime, engine: 'v2' });
+      return NextResponse.json({
+        success: true,
+        response: out.response,
+        affidavitData: out.affidavitData,
+        newFacts: out.newFacts,
+        orchestratorState: out.orchestratorState,
+        processingTime,
+        sessionId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Life-story hydration: fill gaps from the user's persistent profile so
     // returning users (new session, new document) never repeat themselves.
     // Gap-fill only — anything the current conversation/document already has
@@ -531,7 +587,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // family-law matters, and jurisdiction fields never hydrate (each new
     // document confirms where it's filed — see lib/api/profile.ts).
     // Best-effort: a profile read must never fail the chat turn.
-    const hydrationScope = isFamilyMatter(affidavitData) ? 'family' : 'general';
+    const registry = await getOrchestrators();
+    const hydrationScope = isFamilyMatter(affidavitData, registry.familyMatterCodes) ? 'family' : 'general';
     try {
       const storedProfile = await getUserProfile(user.id);
       affidavitData = hydrateAffidavitData(storedProfile, affidavitData, hydrationScope);
@@ -550,7 +607,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       countryCode: affidavitData.countryCode,
     });
 
-    const registry = await getOrchestrators();
     const chunkedHistory = chunkConversation(conversationHistory);
 
     const triageOrch = getTriageOrchestrator(registry, affidavitData);

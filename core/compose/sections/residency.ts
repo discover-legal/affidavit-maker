@@ -50,6 +50,6 @@ export async function residencySection(ctx: DivorceContext): Promise<Section> {
     }
   }
 
-  blocks.push(...(await ctx.narrative(RESIDENCY_SECTION)));
+  blocks.push(...(await ctx.narrative(RESIDENCY_SECTION, blocks)));
   return section(RESIDENCY_SECTION, 'Jurisdiction and Residency', blocks);
 }

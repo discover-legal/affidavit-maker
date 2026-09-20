@@ -47,6 +47,9 @@ export function buildCaption(file: CaseFile, jurisdiction: JurisdictionProfile, 
 export function captionSection(file: CaseFile, jurisdiction: JurisdictionProfile, caption: Caption): Section | undefined {
   const { lexicon } = jurisdiction;
   const blocks = [];
+  // The caption row itself shows the file-number blank; the block below is
+  // index-only (renderers skip blanks whose field is the case number in the
+  // caption section) so "Court File No." is not printed twice.
   if (caption.fileNumber === undefined) {
     blocks.push(
       blank(

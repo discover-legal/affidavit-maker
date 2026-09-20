@@ -308,7 +308,8 @@ describe('anti-fabrication invariants', () => {
     function verifier(judge: (state: unknown) => ReturnType<typeof yes>) {
       const intel = new ScriptedIntelligence()
         .onAsk(ASK.COMPOSE_NARRATIVE, narrativeHandler())
-        .onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, (_q, state) => judge(state));
+        .onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, (_q, state) => judge(state))
+        .onJudge(`${JUDGE.COMPOSE_VERIFY}:restates`, () => no());
       return { intel, composer: createComposer({ intelligence: intel }) };
     }
 
@@ -412,12 +413,16 @@ describe('anti-fabrication invariants', () => {
           const s = state as { paragraph?: { supportedBy?: string[]; supported_by?: string[] } };
           const ids = s.paragraph?.supportedBy ?? s.paragraph?.supported_by ?? [];
           return ids.length === 1 && ids[0] === 'residencyMonths' ? no() : yes();
-        });
+        })
+        .onJudge(`${JUDGE.COMPOSE_VERIFY}:restates`, () => no());
       const tree = await compose(caseFile({ jurisdiction: 'TX' }), TX, intel);
       const residency = mustSection(tree, 'residency');
+      // The rejected addition is dropped outright. A blank marks a REQUIRED
+      // value that is missing, and residencyMonths is present on this file,
+      // so no blank appears for it either (the structural paragraph stands).
       expect(blocksOfKind(residency, 'paragraph').filter((p) => p.supportedBy.length === 1 && p.supportedBy[0] === 'residencyMonths')).toEqual([]);
-      expect(blocksOfKind(residency, 'blank').some((b) => b.field === 'residencyMonths')).toBe(true);
-      expect(blanksFor(tree, 'residencyMonths').map((b) => b.section)).toEqual(['residency']);
+      expect(blocksOfKind(residency, 'blank').some((b) => b.field === 'residencyMonths')).toBe(false);
+      expect(blanksFor(tree, 'residencyMonths')).toEqual([]);
     });
   });
 });

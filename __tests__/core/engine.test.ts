@@ -40,7 +40,8 @@ function scriptedIntel(): ScriptedIntelligence {
       const input = req.input as { section?: string };
       return { paragraphs: [{ text: `Narrative for ${input.section ?? 'section'}.`, supported_by: ['county'] }] };
     })
-    .onJudge('supported', () => yes());
+    .onJudge('supported', () => yes())
+    .onJudge('restates', () => no());
 }
 
 describe('v2 engine end to end (scripted)', () => {

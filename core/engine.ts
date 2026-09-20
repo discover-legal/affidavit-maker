@@ -120,8 +120,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
     async draft(file, kind) {
       const jurisdiction = jurisdictions.get(file.jurisdiction || '');
       if (!jurisdiction) throw new Error(`core engine: unknown jurisdiction "${file.jurisdiction}"`);
-      const tree = await composer.compose({ file, jurisdiction, kind });
-      return composer.verify(tree, file);
+      // compose() verifies every model-drafted paragraph as it goes; the
+      // structural paragraphs are built from typed values and need no judge.
+      return composer.compose({ file, jurisdiction, kind });
     },
   };
 }

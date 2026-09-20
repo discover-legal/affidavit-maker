@@ -37,6 +37,14 @@ function maxY(doc: Doc): number {
   return doc.page.height - doc.page.margins.bottom;
 }
 
+/** The oath officer as a person reads it; the block carries the profile's enum. */
+const OFFICER_LABEL: Record<string, string> = {
+  notary: 'To be sworn or affirmed before a Notary Public.',
+  commissioner_for_oaths: 'To be sworn or affirmed before a Commissioner for Taking Oaths.',
+  either: 'To be sworn or affirmed before a Notary Public or a Commissioner for Taking Oaths.',
+};
+const officerLabel = (o: string): string => OFFICER_LABEL[o] ?? o;
+
 function ensureSpace(doc: Doc, height: number): void {
   if (doc.y + height > maxY(doc)) doc.addPage();
 }
@@ -55,6 +63,12 @@ function rule(doc: Doc, width: number): void {
 
 function drawBanner(doc: Doc, tree: DocumentTree): void {
   doc.font(FONT_ITALIC).fontSize(FOOTER_SIZE).fillColor(MUTED).text(tree.framing.draftNotice, { align: 'center' });
+  if (tree.framing.officialForms) {
+    doc.font(FONT).fontSize(FOOTER_SIZE).fillColor(MUTED).text(`${tree.framing.officialForms.name}: ${tree.framing.officialForms.url}`, {
+      align: 'center',
+      link: tree.framing.officialForms.url,
+    });
+  }
   const y = doc.y + 2;
   doc.strokeColor(MUTED).lineWidth(0.5).moveTo(doc.page.margins.left, y).lineTo(doc.page.width - doc.page.margins.right, y).stroke();
   doc.y = y + 14;
@@ -143,7 +157,8 @@ function drawBlock(doc: Doc, block: Block, numbering: { next: number }): void {
       return;
     }
     case 'signature': {
-      ensureSpace(doc, 60);
+      // Keep the signature with the jurat that follows it: never orphan the oath.
+      ensureSpace(doc, 200);
       doc.y += 20;
       rule(doc, 250);
       body(doc).text(block.label, { width });
@@ -153,7 +168,7 @@ function drawBlock(doc: Doc, block: Block, numbering: { next: number }): void {
     case 'jurat': {
       ensureSpace(doc, 80);
       body(doc).text(block.text, { width });
-      if (block.officer) doc.font(FONT_ITALIC).fontSize(BODY_SIZE).text(block.officer, { width });
+      if (block.officer) doc.font(FONT_ITALIC).fontSize(NOTE_SIZE).fillColor(MUTED).text(officerLabel(block.officer), { width });
       if (block.citations.length > 0) doc.font(FONT).fontSize(NOTE_SIZE).fillColor(MUTED).text(block.citations.join('; '), { width });
       doc.moveDown(0.8);
       body(doc);
@@ -213,16 +228,10 @@ export function renderPdf(tree: DocumentTree, options: RenderOptions = {}): Prom
           doc.moveDown(0.5);
           body(doc);
         }
-        for (const block of section.blocks) drawBlock(doc, block, numbering);
-      }
-
-      doc.moveDown(1);
-      doc.font(FONT_ITALIC).fontSize(FOOTER_SIZE).fillColor(MUTED).text(tree.framing.draftNotice, { width: contentWidth(doc) });
-      if (tree.framing.officialForms) {
-        doc.font(FONT).fontSize(FOOTER_SIZE).fillColor(MUTED).text(`${tree.framing.officialForms.name}: ${tree.framing.officialForms.url}`, {
-          width: contentWidth(doc),
-          link: tree.framing.officialForms.url,
-        });
+        for (const block of section.blocks) {
+          if (section.id === 'caption' && block.kind === 'blank' && block.field === 'caseNumber') continue; // drawn in the caption row
+          drawBlock(doc, block, numbering);
+        }
       }
 
       drawFooters(doc, options);

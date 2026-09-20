@@ -31,7 +31,7 @@
 
 import type { Json } from '@/core/intelligence/types';
 import type { AskRequest } from '@/core/intelligence/types';
-import { ScriptedIntelligence, yes } from '@/core/intelligence/scripted';
+import { ScriptedIntelligence, no, yes } from '@/core/intelligence/scripted';
 import { ASK, JUDGE } from '@/core/intelligence/purposes';
 import type { JurisdictionProfile } from '@/core/jurisdictions/types';
 import type { CaseFile, Child, Confirmations, Fact, Field, Provenance } from '@/core/model/types';
@@ -369,7 +369,8 @@ export function narrativeHandler(table: Record<string, NarrativeParagraph[]> = D
 export function composeIntel(table: Record<string, NarrativeParagraph[]> = DEFAULT_NARRATIVE): ScriptedIntelligence {
   return new ScriptedIntelligence()
     .onAsk(ASK.COMPOSE_NARRATIVE, narrativeHandler(table))
-    .onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, () => yes());
+    .onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, () => yes())
+    .onJudge(`${JUDGE.COMPOSE_VERIFY}:restates`, () => no());
 }
 
 // ─── Tree finders ───────────────────────────────────────────────────────────

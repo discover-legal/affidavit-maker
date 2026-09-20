@@ -42,6 +42,6 @@ export async function propertySection(ctx: DivorceContext): Promise<Section> {
     blocks.push(blank('debts', `Draft — list the ${maritalDebts} (mortgage, loans, credit cards), or confirm in the interview that there are none. Nothing has been assumed.`, 'Debts'));
   }
 
-  if (items || debts) blocks.push(...(await ctx.narrative(PROPERTY_SECTION)));
+  if (items || debts) blocks.push(...(await ctx.narrative(PROPERTY_SECTION, blocks)));
   return section(PROPERTY_SECTION, 'Property and Debts', blocks);
 }

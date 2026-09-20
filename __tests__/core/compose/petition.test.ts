@@ -7,7 +7,7 @@
  */
 import { createComposer } from '@/core/compose';
 import type { DocumentTree } from '@/core/compose';
-import { ScriptedIntelligence, UnscriptedCallError, yes } from '@/core/intelligence/scripted';
+import { ScriptedIntelligence, UnscriptedCallError, no, yes } from '@/core/intelligence/scripted';
 import { ASK, JUDGE } from '@/core/intelligence/purposes';
 import type { JurisdictionProfile } from '@/core/jurisdictions/types';
 import type { CaseFile } from '@/core/model/types';
@@ -262,7 +262,7 @@ describe('compose divorce_petition', () => {
     });
 
     it('an unscripted model call throws — the composer never fails open on the model', async () => {
-      const intel = new ScriptedIntelligence().onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, () => yes());
+      const intel = new ScriptedIntelligence().onJudge(`${JUDGE.COMPOSE_VERIFY}:supported`, () => yes()).onJudge(`${JUDGE.COMPOSE_VERIFY}:restates`, () => no());
       // No ASK.COMPOSE_NARRATIVE scripted.
       const composer = createComposer({ intelligence: intel });
       await expect(composer.compose({ file: caseFile({ jurisdiction: 'TX' }), jurisdiction: TX, kind: 'divorce_petition' })).rejects.toBeInstanceOf(

@@ -105,6 +105,6 @@ export async function groundsSection(ctx: DivorceContext): Promise<Section> {
     }
   }
 
-  blocks.push(...(await ctx.narrative(GROUNDS_SECTION)));
+  blocks.push(...(await ctx.narrative(GROUNDS_SECTION, blocks)));
   return section(GROUNDS_SECTION, 'Grounds for Divorce', blocks);
 }

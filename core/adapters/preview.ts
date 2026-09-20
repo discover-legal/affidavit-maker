@@ -11,13 +11,21 @@
 import type { Block, DocumentTree, Section } from '../compose/types';
 
 type Item = { content: string; type?: string };
+
+const OFFICER_LABEL: Record<string, string> = {
+  notary: 'To be sworn or affirmed before a Notary Public.',
+  commissioner_for_oaths: 'To be sworn or affirmed before a Commissioner for Taking Oaths.',
+  either: 'To be sworn or affirmed before a Notary Public or a Commissioner for Taking Oaths.',
+};
 type Titled = { title?: string; items: Item[] };
 export type LegacySections = Record<string, string | { formatted: string } | { content: string } | Titled | { text: string }>;
 
 /** Petition section ids → the keys DocumentPreview orders for `divorce_petition`. */
 const PETITION_KEYS: Record<string, string> = {
+  caption: 'parties',
   parties: 'parties',
   residency: 'jurisdiction',
+  marriage: 'marriageInfo',
   grounds: 'grounds',
   children: 'childrenInfo',
   property: 'propertyInfo',
@@ -41,7 +49,8 @@ const DECREE_KEYS: Record<string, string> = {
 
 export function toLegacyPreview(tree: DocumentTree): LegacySections {
   const out: LegacySections = {};
-  out.header = tree.caption.courtLines.join('\n');
+  // `venue` renders line-per-line in the editor; `header` collapses newlines.
+  out.venue = tree.caption.courtLines.join('\n');
   out.caseCaption = { formatted: captionText(tree) };
   out.title = tree.caption.title;
 
@@ -50,11 +59,13 @@ export function toLegacyPreview(tree: DocumentTree): LegacySections {
   if (keyed) {
     for (const section of tree.sections) {
       const key = keyed[section.id] ?? section.id;
-      const items = section.blocks.flatMap(blockToItems);
-      const signature = section.blocks.find((b): b is Extract<Block, { kind: 'signature' }> => b.kind === 'signature');
-      const jurat = section.blocks.find((b): b is Extract<Block, { kind: 'jurat' }> => b.kind === 'jurat');
+      // The caption row already shows the file-number blank.
+      const blocks = section.id === 'caption' ? section.blocks.filter((b) => !(b.kind === 'blank' && b.field === 'caseNumber')) : section.blocks;
+      const items = blocks.flatMap(blockToItems);
+      const signature = blocks.find((b): b is Extract<Block, { kind: 'signature' }> => b.kind === 'signature');
+      const jurat = blocks.find((b): b is Extract<Block, { kind: 'jurat' }> => b.kind === 'jurat');
       if (signature) out.signatureBlock = { formatted: signatureText(signature) };
-      if (jurat) out.notaryBlock = { content: jurat.text };
+      if (jurat) out.notaryBlock = { content: `${jurat.text}\n${OFFICER_LABEL[jurat.officer] ?? ''}`.trim() };
       const body = items.filter((i) => i.type !== 'signature' && i.type !== 'jurat');
       if (body.length === 0) continue;
       const existing = out[key];

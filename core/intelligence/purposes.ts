@@ -58,6 +58,8 @@ export const JUDGE = {
   /**
    * state: { paragraph: { text, supportedBy }, record: { fields, facts, confirmations, parties, children, county, caseNumber } }
    * questions: supported — yesno: every claim in the paragraph is supported by the record
+   * (for narrative additions the state also carries already_stated and a second question
+   *  restates — yesno: the paragraph repeats what an already-stated paragraph says)
    */
   COMPOSE_VERIFY: 'compose.verify',
   /** state: { text, kind_options }  questions: kind — choice petition | response | notice | order | unknown */

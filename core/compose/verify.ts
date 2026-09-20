@@ -43,6 +43,35 @@ export function blankForParagraph(paragraph: ParagraphBlock): BlankBlock {
   return blank(paragraph.supportedBy[0] ?? 'narrative', UNSUPPORTED_NOTE) as BlankBlock;
 }
 
+/**
+ * Judge narrative additions once each; keep only those the record supports
+ * AND that do not restate what the section already says. Both are judgments
+ * over the same state in one call.
+ */
+export async function keepSupported(intelligence: Intelligence, paragraphs: ParagraphBlock[], record: Json, alreadyStated: string[] = []): Promise<Block[]> {
+  const out: Block[] = [];
+  for (const p of paragraphs) {
+    const answers = await intelligence.judge({
+      purpose: JUDGE.COMPOSE_VERIFY,
+      state: { paragraph: { text: p.text, supportedBy: [...p.supportedBy] }, record, already_stated: alreadyStated },
+      questions: {
+        supported: yesno(
+          'Is every factual claim in the paragraph supported by the record (its fields, facts, confirmations, parties and children)?',
+          'Everything the paragraph asserts is stated in the record.',
+          'The paragraph asserts, implies or embellishes something the record does not contain, or contradicts it.',
+        ),
+        restates: yesno(
+          'Does the paragraph merely repeat, rephrase or summarise something one of the already_stated paragraphs already says?',
+          'It adds no fact beyond what already_stated contains.',
+          'It adds at least one fact from the record that already_stated does not contain.',
+        ),
+      },
+    });
+    if (answers.supported.probability > THRESHOLDS.supported && answers.restates.probability < THRESHOLDS.supported) out.push(p);
+  }
+  return out;
+}
+
 /** Judge a list of paragraphs once each; unsupported ones come back as blanks, in the same order. */
 export async function verifyParagraphs(intelligence: Intelligence, paragraphs: ParagraphBlock[], record: Json): Promise<Block[]> {
   const out: Block[] = [];

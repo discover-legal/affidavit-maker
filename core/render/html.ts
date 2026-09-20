@@ -65,7 +65,7 @@ function renderBlock(block: Block, numbering: { next: number }): string {
     case 'jurat':
       return (
         `<div class="jurat"><div class="text">${esc(block.text)}</div>` +
-        (block.officer ? `<div class="officer">${esc(block.officer)}</div>` : '') +
+        (block.officer ? `<div class="officer">${esc(officerLabel(block.officer))}</div>` : '') +
         block.citations.map((c) => `<cite>${esc(c)}</cite>`).join('') +
         '</div>'
       );
@@ -75,6 +75,14 @@ function renderBlock(block: Block, numbering: { next: number }): string {
       return '';
   }
 }
+
+/** The oath officer as a person reads it; the block carries the profile's enum. */
+const OFFICER_LABEL: Record<string, string> = {
+  notary: 'To be sworn or affirmed before a Notary Public.',
+  commissioner_for_oaths: 'To be sworn or affirmed before a Commissioner for Taking Oaths.',
+  either: 'To be sworn or affirmed before a Notary Public or a Commissioner for Taking Oaths.',
+};
+const officerLabel = (o: string): string => OFFICER_LABEL[o] ?? o;
 
 export function renderHtml(tree: DocumentTree, options: RenderOptions = {}): string {
   const { caption, framing } = tree;
@@ -106,7 +114,10 @@ export function renderHtml(tree: DocumentTree, options: RenderOptions = {}): str
   for (const section of tree.sections) {
     parts.push(`<section id="${esc(section.id)}">`);
     if (section.title && !sectionHasHeading(section)) parts.push(`<div class="section-title">${esc(section.title)}</div>`);
-    for (const block of section.blocks) parts.push(renderBlock(block, numbering));
+    for (const block of section.blocks) {
+      if (section.id === 'caption' && block.kind === 'blank' && block.field === 'caseNumber') continue; // shown in the caption row
+      parts.push(renderBlock(block, numbering));
+    }
     parts.push('</section>');
   }
   parts.push('</main>');

@@ -62,17 +62,24 @@ async function bodySections(ctx: ComposeContext, kind: DocumentKind): Promise<Se
   switch (kind) {
     case 'divorce_petition': {
       const d = divorceContext(ctx);
-      return [
-        partiesSection(d),
-        await residencySection(d),
-        marriageSection(d),
-        await groundsSection(d),
-        await childrenSection(d),
-        await propertySection(d),
-        supportSection(d),
-        reliefSection(d),
-        verificationSection(d, d.divorce.instrument.petition),
-      ];
+      // Sequential on purpose: each section's narrative may only add what
+      // the sections before it did not already say.
+      const out: Section[] = [];
+      const add = (s: Section) => {
+        out.push(s);
+        d.composed.push(...s.blocks);
+        return s;
+      };
+      add(partiesSection(d));
+      add(await residencySection(d));
+      add(marriageSection(d));
+      add(await groundsSection(d));
+      add(await childrenSection(d));
+      add(await propertySection(d));
+      add(supportSection(d));
+      add(reliefSection(d));
+      add(verificationSection(d, d.divorce.instrument.petition));
+      return out;
     }
     case 'divorce_answer': {
       const d = divorceContext(ctx);

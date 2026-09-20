@@ -10,8 +10,17 @@
   ],
   "version": "1.0",
   "legallyCompliant": true,
-  "requiredFields": ["affiantName", "state", "county"],
-  "optionalFields": ["caseNumber", "courtName", "plaintiff", "defendant"],
+  "requiredFields": [
+    "affiantName",
+    "state",
+    "county"
+  ],
+  "optionalFields": [
+    "caseNumber",
+    "courtName",
+    "plaintiff",
+    "defendant"
+  ],
   "features": {
     "perjuryStatement": false,
     "notaryBlock": true,
@@ -29,7 +38,10 @@
     "appealCourt": "Court of Appeal for Ontario"
   },
   "divorceTerminology": {
-    "parties": ["Applicant", "Respondent"],
+    "parties": [
+      "Applicant",
+      "Respondent"
+    ],
     "grounds": "Divorce Act (RSC 1985, c. 3)",
     "primaryGround": "separation of one year (s.8(2)(a))",
     "propertyDivision": "Family Law Act (RSO 1990, c. F.3), Part I (Equalization of Net Family Property)"
@@ -56,7 +68,7 @@
       "description": "Ontario affidavit requirements — oath before commissioner for taking oaths"
     }
   ],
-  "affidavitJurat": "SWORN before me at the [City/Town] of ___, in the Province of Ontario, this ___ day of ___, [Year].\n\n________________________________\nA Commissioner for Taking Oaths\nin and for the Province of Ontario",
+  "affidavitJurat": "SWORN (or AFFIRMED) before me at the City/Town of ______________________, in the Province of Ontario, this ______ day of ______________________, 20____.\n\n________________________________\nA Commissioner for Taking Oaths\nin and for the Province of Ontario",
   "exhibitRules": {
     "labelStyle": "letters",
     "requireCoverPage": true,

@@ -8,7 +8,7 @@
 
 import type { Section } from '../types';
 import type { DivorceContext } from '../context';
-import { booleanField, confirmed, list, listField, note, section } from '../record';
+import { booleanField, confirmed, list, listField, paragraph, section } from '../record';
 
 export const RELIEF_SECTION = 'relief';
 
@@ -23,8 +23,10 @@ export function reliefSection(ctx: DivorceContext): Section {
   else if (confirmed(file, 'support_waived')) items.push('an order recording that both parties waive spousal support;');
   items.push('such further relief as the Court considers just.');
 
+  // The prayer's lead sentence asserts nothing; it cites whatever the prayer rests on.
+  const restsOn = [file.fields.grounds ? 'grounds' : null, ...file.children.map((c) => c.id), listField(file, 'propertyItems') ? 'propertyItems' : null].filter((id): id is string => Boolean(id));
   return section(RELIEF_SECTION, 'Relief Requested', [
-    note(`${labels.self} asks the Court for the following relief:`),
+    paragraph(`The ${labels.self} asks the Court for the following relief:`, restsOn.length ? restsOn : ['relief'], false),
     list(items, true),
   ]);
 }

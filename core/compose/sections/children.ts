@@ -44,12 +44,14 @@ export async function childrenSection(ctx: DivorceContext): Promise<Section> {
   if (file.children.length > 0) {
     blocks.push(paragraph(`There ${file.children.length === 1 ? 'is one child' : `are ${file.children.length} children`} of the marriage, named below.`, file.children.map((c) => c.id)));
     file.children.forEach((child, i) => blocks.push(...childParagraph(child, i, ctx)));
+    blocks.push(...(await ctx.narrative(CHILDREN_SECTION, blocks)));
     blocks.push(
-      note(
-        `Draft — for each child the court will also want where the child has lived for the past five years and any other case about the child. Say so in the interview if it is missing.`,
+      blank(
+        'childResidenceHistory',
+        `Draft — for each child, state where the child has lived for the past five years and whether any other court case concerns the child. Courts require this before making parenting orders.`,
+        'Residence history of the children',
       ),
     );
-    blocks.push(...(await ctx.narrative(CHILDREN_SECTION, blocks)));
   } else if (confirmed(file, 'no_children')) {
     // Dispositive: only the confirmation supports it.
     blocks.push(paragraph('There are no children of the marriage, born or adopted, and none are expected.', ['no_children']));

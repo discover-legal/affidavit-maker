@@ -10,6 +10,10 @@ describe('marketing sitemap', () => {
     expect(urls).toEqual(
       expect.arrayContaining([
         'https://discover.legal/',
+        'https://discover.legal/services',
+        'https://discover.legal/tools/affidavits',
+        'https://discover.legal/tools/biglaw',
+        'https://discover.legal/research',
         'https://discover.legal/resources',
         'https://discover.legal/privacy',
         'https://discover.legal/tos',

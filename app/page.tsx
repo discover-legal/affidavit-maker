@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import LandingPage from '@/components/marketing/LandingPage';
+import ConsultancyPage from '@/components/marketing/consultancy/ConsultancyPage';
+import { GITHUB_ORG, SERVICES } from '@/components/marketing/consultancy/content';
 import { jsonLd } from '@/lib/json-ld';
 
-const pageTitle =
-  'Free AI-Assisted Divorce Drafts & Affidavits';
+const pageTitle = 'Legal Technology Consultancy: Buy, Build, Run';
 const pageDescription =
-  'Free guided interviews organize your story into divorce petition, decree, affidavit, and supporting document drafts — with bilingual step-by-step help for serving, responding, and hearings in seven U.S. states.';
+  'discover.legal helps law firms and legal teams select legal technology, build custom intake and document automation, and run it as a managed service. Two free solutions: discover.legal Documents and the open-source BigLaw platform.';
 const pageUrl = 'https://discover.legal/';
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
         url: 'https://discover.legal/app-icon-1024.png',
         width: 1024,
         height: 1024,
-        alt: 'discover.legal — AI-Powered Legal Documents',
+        alt: 'discover.legal — Legal technology consultancy',
       },
     ],
   },
@@ -34,81 +34,41 @@ export const metadata: Metadata = {
     images: ['https://discover.legal/app-icon-1024.png'],
   },
   keywords: [
-    'free divorce papers',
-    'divorce package',
-    'divorce papers online',
-    'divorce paperwork organizer',
-    'court forms help',
-    'uncontested divorce',
-    'AI legal documents',
-    'affidavit generator',
-    'sworn statement',
-    'family law',
-    'court forms',
-    'legal document preparation',
-    'respond to divorce papers',
-    'fee waiver',
-    'divorcio gratis',
+    'legal technology consultancy',
+    'legaltech consulting',
+    'law firm technology',
+    'legal software selection',
+    'legal document automation',
+    'client intake software',
+    'legal AI',
+    'managed services for law firms',
+    'fractional CTO law firm',
+    'open source legal AI',
   ],
   robots: { index: true, follow: true },
 };
-
-/**
- * Build the Offer block for a digital-delivery product. Google's
- * Merchant Listings rich result requires `availability`,
- * `hasMerchantReturnPolicy`, and `shippingDetails` even for digital
- * goods — we model instant, free, US delivery and a no-returns
- * policy (these are completed legal documents, not subscriptions).
- */
-function digitalOffer(opts: {
-  url: string;
-  price: string;
-  priceCurrency: string;
-}) {
-  return {
-    '@type': 'Offer',
-    url: opts.url,
-    price: opts.price,
-    priceCurrency: opts.priceCurrency,
-    availability: 'https://schema.org/InStock',
-    itemCondition: 'https://schema.org/NewCondition',
-    hasMerchantReturnPolicy: {
-      '@type': 'MerchantReturnPolicy',
-      applicableCountry: 'US',
-      returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
-    },
-    shippingDetails: {
-      '@type': 'OfferShippingDetails',
-      shippingRate: {
-        '@type': 'MonetaryAmount',
-        value: '0',
-        currency: opts.priceCurrency,
-      },
-      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'US' },
-      deliveryTime: {
-        '@type': 'ShippingDeliveryTime',
-        handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
-        transitTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
-      },
-    },
-  };
-}
-
-const BRAND = { '@type': 'Brand', name: 'discover.legal' } as const;
-const PRODUCT_IMAGE = 'https://discover.legal/app-icon-1024.png';
 
 export default function HomePage() {
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
       {
-        '@type': 'Organization',
+        '@type': 'ProfessionalService',
         '@id': 'https://discover.legal/#organization',
         name: 'discover.legal',
         url: 'https://discover.legal',
         logo: { '@type': 'ImageObject', url: 'https://discover.legal/logo512.png' },
-        description:
-          'Free AI-assisted preparation and organization of affidavit and divorce document drafts for Arizona, California, Florida, Illinois, New York, Texas, and Utah — bilingual English/Spanish.',
+        sameAs: [GITHUB_ORG],
+        description: pageDescription,
+        knowsAbout: ['Legal technology', 'Document automation', 'Legal AI', 'Managed services'],
+        hasOfferCatalog: {
+          '@type': 'OfferCatalog',
+          name: 'Consultancy services',
+          itemListElement: SERVICES.map((s) => ({
+            '@type': 'Offer',
+            itemOffered: { '@type': 'Service', name: `${s.name}: ${s.headline}`, description: s.body, url: `https://discover.legal/services#${s.key}` },
+          })),
+        },
       },
       {
         '@type': 'WebSite',
@@ -118,46 +78,13 @@ export default function HomePage() {
         description: pageDescription,
         publisher: { '@id': 'https://discover.legal/#organization' },
       },
-      {
-        '@type': 'Product',
-        '@id': 'https://discover.legal/#product-divorce-package',
-        name: 'Divorce Package',
-        description:
-          'Guided divorce document preparation: organized petition and proposed decree drafts tailored to your jurisdiction — source material for your court’s official forms or a lawyer’s review.',
-        image: [PRODUCT_IMAGE],
-        brand: BRAND,
-        category: 'Legal document preparation',
-        offers: digitalOffer({
-          url: 'https://discover.legal/',
-          price: '0.00',
-          priceCurrency: 'USD',
-        }),
-      },
-      {
-        '@type': 'Product',
-        '@id': 'https://discover.legal/#product-general-affidavit',
-        name: 'General Affidavit',
-        description:
-          "AI-guided sworn-statement draft that organizes your facts, formatted to your jurisdiction's conventions.",
-        image: [PRODUCT_IMAGE],
-        brand: BRAND,
-        category: 'Legal document preparation',
-        offers: digitalOffer({
-          url: 'https://discover.legal/',
-          price: '0.00',
-          priceCurrency: 'USD',
-        }),
-      },
     ],
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
-      />
-      <LandingPage />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
+      <ConsultancyPage />
     </>
   );
 }

@@ -7,11 +7,11 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://discover.legal'),
   title: {
-    default: 'discover.legal — AI Legal Documents',
+    default: 'discover.legal — Legal Technology Consultancy',
     template: '%s | discover.legal',
   },
   description:
-    'AI-assisted affidavit, divorce petition, and proposed decree drafts using jurisdiction-specific templates.',
+    'Legal technology consultancy for law firms and legal teams: selection, custom builds, managed services and advisory. Free solutions: discover.legal Documents and the open-source BigLaw platform.',
   applicationName: 'discover.legal',
   authors: [{ name: 'discover.legal' }],
   icons: {

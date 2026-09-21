@@ -5,11 +5,8 @@
  * the only async part is the narrative request.
  */
 
-import type { Intelligence } from '../intelligence/types';
 import type { DivorceProfile, JurisdictionProfile } from '../jurisdictions/types';
 import type { CaseFile, Language } from '../model/types';
-import type { Block } from './types';
-import { narrativeFor } from './narrative';
 import { labelsFor, languageOf } from './record';
 import type { Labels } from './record';
 
@@ -18,29 +15,18 @@ export interface ComposeContext {
   jurisdiction: JurisdictionProfile;
   labels: Labels;
   language: Language;
-  /**
-   * Verified narrative paragraphs that ADD to what the document already says
-   * (every section composed so far plus `alreadyStated` from the current
-   * one), from ONE model ask.
-   */
-  narrative(sectionId: string, alreadyStated?: Block[]): Promise<Block[]>;
-  /** Blocks of the sections composed so far; the composer appends each finished section. */
-  readonly composed: Block[];
 }
 
 export interface DivorceContext extends ComposeContext {
   divorce: DivorceProfile;
 }
 
-export function contextFor(intelligence: Intelligence, file: CaseFile, jurisdiction: JurisdictionProfile): ComposeContext {
-  const composed: Block[] = [];
+export function contextFor(file: CaseFile, jurisdiction: JurisdictionProfile): ComposeContext {
   return {
     file,
     jurisdiction,
     labels: labelsFor(file, jurisdiction),
     language: languageOf(file),
-    composed,
-    narrative: (sectionId, alreadyStated = []) => narrativeFor({ intelligence, file, jurisdiction }, sectionId, [...composed, ...alreadyStated]),
   };
 }
 

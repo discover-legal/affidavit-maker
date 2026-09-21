@@ -31,7 +31,7 @@ function describe(g: Ground): string {
   return g.citation ? `${g.label} (${g.citation})` : g.label;
 }
 
-export async function groundsSection(ctx: DivorceContext): Promise<Section> {
+export function groundsSection(ctx: DivorceContext): Section {
   const { file, labels, divorce, language } = ctx;
   const available = divorce.grounds.map(describe).join('; ');
   const code = stringField(file, 'grounds');
@@ -105,6 +105,5 @@ export async function groundsSection(ctx: DivorceContext): Promise<Section> {
     }
   }
 
-  blocks.push(...(await ctx.narrative(GROUNDS_SECTION, blocks)));
   return section(GROUNDS_SECTION, 'Grounds for Divorce', blocks);
 }

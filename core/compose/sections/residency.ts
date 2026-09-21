@@ -15,7 +15,7 @@ import { COUNTY_ID, blank, note, numberField, paragraph, section } from '../reco
 
 export const RESIDENCY_SECTION = 'residency';
 
-export async function residencySection(ctx: DivorceContext): Promise<Section> {
+export function residencySection(ctx: DivorceContext): Section {
   const { file, labels, jurisdiction, divorce } = ctx;
   const blocks: Block[] = [];
   const months = numberField(file, 'residencyMonths');
@@ -50,6 +50,5 @@ export async function residencySection(ctx: DivorceContext): Promise<Section> {
     }
   }
 
-  blocks.push(...(await ctx.narrative(RESIDENCY_SECTION, blocks)));
   return section(RESIDENCY_SECTION, 'Jurisdiction and Residency', blocks);
 }

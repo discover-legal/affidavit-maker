@@ -11,8 +11,9 @@
 import type { Intelligence } from '../intelligence/types';
 import type { JurisdictionProfile } from '../jurisdictions/types';
 import type { CaseFile } from '../model/types';
-import type { Composer, ComposerDeps, DocumentKind, DocumentTree, Section, SelectionInput } from './types';
+import type { Block, Composer, ComposerDeps, DocumentKind, DocumentTree, Section, SelectionInput } from './types';
 import { buildCaption, captionSection } from './caption';
+import { narrativeForDocument } from './narrative';
 import { contextFor, divorceContext } from './context';
 import type { ComposeContext } from './context';
 import { framingFor } from './framing';
@@ -58,28 +59,21 @@ function titleFor(kind: DocumentKind, jurisdiction: JurisdictionProfile): string
 }
 
 /** The body sections of each document family, in their fixed order. */
-async function bodySections(ctx: ComposeContext, kind: DocumentKind): Promise<Section[]> {
+function bodySections(ctx: ComposeContext, kind: DocumentKind): Section[] {
   switch (kind) {
     case 'divorce_petition': {
       const d = divorceContext(ctx);
-      // Sequential on purpose: each section's narrative may only add what
-      // the sections before it did not already say.
-      const out: Section[] = [];
-      const add = (s: Section) => {
-        out.push(s);
-        d.composed.push(...s.blocks);
-        return s;
-      };
-      add(partiesSection(d));
-      add(await residencySection(d));
-      add(marriageSection(d));
-      add(await groundsSection(d));
-      add(await childrenSection(d));
-      add(await propertySection(d));
-      add(supportSection(d));
-      add(reliefSection(d));
-      add(verificationSection(d, d.divorce.instrument.petition));
-      return out;
+      return [
+        partiesSection(d),
+        residencySection(d),
+        marriageSection(d),
+        groundsSection(d),
+        childrenSection(d),
+        propertySection(d),
+        supportSection(d),
+        reliefSection(d),
+        verificationSection(d, d.divorce.instrument.petition),
+      ];
     }
     case 'divorce_answer': {
       const d = divorceContext(ctx);
@@ -106,12 +100,37 @@ async function bodySections(ctx: ComposeContext, kind: DocumentKind): Promise<Se
   }
 }
 
+/** Sections whose facts the model may expand on; the rest are structure only. */
+const NARRATIVE_SECTIONS = new Set(['residency', 'grounds', 'children', 'property']);
+
 async function composeTree(intelligence: Intelligence, input: SelectionInput & { kind: DocumentKind }): Promise<DocumentTree> {
   const { file, jurisdiction, kind } = input;
-  const ctx = contextFor(intelligence, file, jurisdiction);
+  const ctx = contextFor(file, jurisdiction);
   const caption = buildCaption(file, jurisdiction, titleFor(kind, jurisdiction));
   const lead = captionSection(file, jurisdiction, caption);
-  const sections = [...(lead ? [lead] : []), ...(await bodySections(ctx, kind))];
+  // Phase 1: every section from typed values, no model. Phase 2: ONE
+  // narrative ask over the whole document, verified concurrently, spliced
+  // to the end of the section each addition belongs to.
+  const structural = [...(lead ? [lead] : []), ...bodySections(ctx, kind)];
+  // Eligible: a narrative section that is not closed by a legal gate. The
+  // grounds gate (separation too short, unknown ground, no separation date)
+  // renders a `grounds` blank and nothing may be pleaded around it; a
+  // missing residency figure or property list is a blank the model may
+  // still add stated facts beside.
+  const gated = (s: Section) => s.id === 'grounds' && s.blocks.some((b) => b.kind === 'blank' && b.field === 'grounds');
+  const eligible = structural.filter((s) => NARRATIVE_SECTIONS.has(s.id) && !gated(s));
+  const additions = eligible.length > 0 ? await narrativeForDocument({ intelligence, file, jurisdiction }, structural) : new Map<string, Block[]>();
+  const eligibleIds = new Set(eligible.map((s) => s.id));
+  const sections = structural.map((s) => {
+    const extra = additions.get(s.id);
+    // A section the record could not fill (a gated ground, an unstated
+    // property list) is a blank on purpose; the model may not fill it.
+    if (!extra || extra.length === 0 || !eligibleIds.has(s.id)) return s;
+    // Keep trailing blanks / notes last: additions go before them.
+    const idx = s.blocks.findIndex((b, i) => i > 0 && (b.kind === 'blank' || b.kind === 'note') && s.blocks.slice(i).every((t) => t.kind === 'blank' || t.kind === 'note'));
+    const at = idx === -1 ? s.blocks.length : idx;
+    return { ...s, blocks: [...s.blocks.slice(0, at), ...extra, ...s.blocks.slice(at)] };
+  });
   return {
     kind,
     jurisdiction: jurisdiction.code,

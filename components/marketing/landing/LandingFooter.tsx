@@ -6,7 +6,7 @@ export default function LandingFooter() {
   return (
     <footer className="bg-slate-950 text-slate-400 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-4 gap-8 mb-10">
+        <div className="grid md:grid-cols-5 gap-8 mb-10">
           <div className="md:col-span-2">
             <div className="flex items-center space-x-2 mb-3">
               <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg p-1.5">
@@ -18,7 +18,8 @@ export default function LandingFooter() {
             </div>
             <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
               Free, AI-assisted legal document preparation for everyday people &mdash; in English
-              and Espa&ntilde;ol. Not a law firm; not a substitute for legal advice.
+              and Espa&ntilde;ol. A free solution from discover.legal, a legal technology
+              consultancy. Not a law firm; not a substitute for legal advice.
             </p>
           </div>
 
@@ -45,6 +46,29 @@ export default function LandingFooter() {
               <li>
                 <Link href="/resources" className="hover:text-white transition-colors">
                   Resources
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-3">
+              discover.legal
+            </h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/" className="hover:text-white transition-colors">
+                  Consultancy
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="hover:text-white transition-colors">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/biglaw" className="hover:text-white transition-colors">
+                  BigLaw
                 </Link>
               </li>
             </ul>

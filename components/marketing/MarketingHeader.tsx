@@ -31,7 +31,7 @@ export default function MarketingHeader({ showBack = true }: MarketingHeaderProp
                 <span className="text-xl sm:text-2xl font-bold text-blue-600">
                   discover.legal <StageBadge className="ml-1" />
                 </span>
-                <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Legal Documents</p>
+                <p className="text-xs text-gray-500 hidden sm:block">Legal technology consultancy</p>
               </div>
             </Link>
           </div>

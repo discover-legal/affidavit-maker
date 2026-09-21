@@ -28,7 +28,7 @@ export function propertySection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'no_property')) {
     blocks.push(paragraph(`There is no ${maritalProperty} to be divided by the Court.`, ['no_property']));
   } else {
-    blocks.push(blank('property', `Draft — list the ${maritalProperty} (home, vehicles, accounts, pensions), or confirm in the interview that there is none to divide. Nothing has been assumed.`, 'Property'));
+    blocks.push(blank('property', `Draft — list the ${maritalProperty} (home, vehicles, accounts, pensions), or confirm in the interview that there is none to divide. Nothing has been assumed.`, 'Property', `The ${maritalProperty} of the parties consists of ___.`));
   }
 
   const debts = listField(file, 'debtItems');
@@ -39,7 +39,7 @@ export function propertySection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'no_debts')) {
     blocks.push(paragraph(`There are no ${maritalDebts} to be allocated by the Court.`, ['no_debts']));
   } else {
-    blocks.push(blank('debts', `Draft — list the ${maritalDebts} (mortgage, loans, credit cards), or confirm in the interview that there are none. Nothing has been assumed.`, 'Debts'));
+    blocks.push(blank('debts', `Draft — list the ${maritalDebts} (mortgage, loans, credit cards), or confirm in the interview that there are none. Nothing has been assumed.`, 'Debts', `The ${maritalDebts} of the parties consist of ___.`));
   }
 
   return section(PROPERTY_SECTION, 'Property and Debts', blocks);

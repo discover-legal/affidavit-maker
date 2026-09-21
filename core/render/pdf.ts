@@ -81,45 +81,59 @@ function drawBanner(doc: Doc, tree: DocumentTree): void {
 function drawCaption(doc: Doc, tree: DocumentTree): void {
   const { caption } = tree;
   const width = contentWidth(doc);
-  doc.font(FONT_BOLD).fontSize(BODY_SIZE).fillColor(INK);
-  for (const line of caption.courtLines) doc.text(line, { align: 'center', width });
-  doc.moveDown(0.75);
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
 
+  // File number, top right, before the court name (Form 8 / most US forms).
   body(doc);
+  const fileLabel = `${caption.fileNumberLabel} `;
+  const fileY = doc.y;
   if (caption.fileNumber !== undefined) {
-    doc.text(`${caption.fileNumberLabel} ${caption.fileNumber}`, { align: 'right', width });
+    doc.text(`${fileLabel}${caption.fileNumber}`, left, fileY, { width, align: 'right' });
   } else {
-    // Absent file number → drawn as a blank, never as a placeholder string.
-    const label = `${caption.fileNumberLabel} `;
-    const ruleWidth = 120;
-    const labelWidth = doc.widthOfString(label);
-    const x = doc.page.width - doc.page.margins.right - ruleWidth - labelWidth;
-    const y = doc.y;
-    doc.text(label, x, y, { lineBreak: false });
-    doc.strokeColor(INK).lineWidth(0.75).moveTo(x + labelWidth, y + BODY_SIZE).lineTo(x + labelWidth + ruleWidth, y + BODY_SIZE).stroke();
-    doc.x = doc.page.margins.left;
-    doc.y = y + BODY_SIZE + 4;
+    const ruleWidth = 130;
+    const labelWidth = doc.widthOfString(fileLabel);
+    const x = right - ruleWidth - labelWidth;
+    doc.text(fileLabel, x, fileY, { lineBreak: false });
+    doc.strokeColor(INK).lineWidth(0.75).moveTo(x + labelWidth, fileY + BODY_SIZE).lineTo(right, fileY + BODY_SIZE).stroke();
+    doc.x = left;
+    doc.y = fileY + BODY_SIZE + 4;
   }
-  doc.moveDown(0.75);
+  doc.moveDown(0.6);
 
+  // Court name, centred.
+  doc.font(FONT_BOLD).fontSize(BODY_SIZE).fillColor(INK);
+  for (const line of caption.courtLines) doc.text(line, left, doc.y, { align: 'center', width });
+  doc.moveDown(1);
+
+  // Style of cause: name on the left, role on the right, the joining word centred between.
   const p = caption.parties;
-  const selfLine = p.selfName !== undefined ? `${p.selfName}, ${p.selfLabel}` : undefined;
-  if (selfLine) doc.text(selfLine, { width });
-  else {
-    rule(doc, 220);
-    doc.text(p.selfLabel, { width });
-  }
-  doc.text(p.versus, { width, indent: 36 });
-  const otherLine = p.otherName !== undefined ? `${p.otherName}, ${p.otherLabel}` : undefined;
-  if (otherLine) doc.text(otherLine, { width });
-  else {
-    rule(doc, 220);
-    doc.text(p.otherLabel, { width });
-  }
-  doc.moveDown(1);
+  const roleWidth = 110;
+  const nameWidth = width - roleWidth - 24;
+  const party = (name: string | undefined, role: string) => {
+    ensureSpace(doc, 40);
+    const y = doc.y;
+    body(doc);
+    if (name !== undefined) doc.text(name, left, y, { width: nameWidth, lineBreak: false });
+    else doc.strokeColor(INK).lineWidth(0.75).moveTo(left, y + BODY_SIZE).lineTo(left + nameWidth * 0.8, y + BODY_SIZE).stroke();
+    doc.font(FONT_ITALIC).fontSize(BODY_SIZE).text(role, right - roleWidth, y, { width: roleWidth, align: 'right', lineBreak: false });
+    doc.x = left;
+    doc.y = y + BODY_SIZE + 6;
+  };
+  party(p.selfName, p.selfLabel);
+  doc.font(FONT).fontSize(BODY_SIZE).fillColor(INK).text(p.versus, left, doc.y, { width, align: 'center' });
+  doc.moveDown(0.3);
+  party(p.otherName, p.otherLabel);
+  doc.moveDown(0.8);
 
-  doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(caption.title, { align: 'center', width });
-  doc.moveDown(1);
+  // Title, centred, ruled above and below.
+  const ruleY = doc.y;
+  doc.strokeColor(INK).lineWidth(0.75).moveTo(left, ruleY).lineTo(right, ruleY).stroke();
+  doc.y = ruleY + 8;
+  doc.font(FONT_BOLD).fontSize(13).text(caption.title.toUpperCase(), left, doc.y, { align: 'center', width, characterSpacing: 0.5 });
+  const under = doc.y + 6;
+  doc.strokeColor(INK).lineWidth(0.75).moveTo(left, under).lineTo(right, under).stroke();
+  doc.y = under + 16;
   body(doc);
 }
 
@@ -154,17 +168,49 @@ function drawBlock(doc: Doc, block: Block, numbering: { next: number }): void {
       return;
     }
     case 'blank': {
-      ensureSpace(doc, 56);
+      // The draft note that explains what belongs here is for the review
+      // pane (tree.blanks), not the document. With a sentence, the blank is a
+      // numbered pleading paragraph whose gap is an underlined space.
+      if (block.sentence) {
+        ensureSpace(doc, 40);
+        const n = `${numbering.next++}.`;
+        const x0 = doc.page.margins.left;
+        const y0 = doc.y;
+        body(doc).text(n, x0, y0, { width: NUMBER_GUTTER, lineBreak: false });
+        // Draw the sentence as runs: plain text, then an underlined run of
+        // spaces for each gap, with `continued` so it wraps as one paragraph.
+        const parts = block.sentence.split('___');
+        const gap = '\u00a0'.repeat(26);
+        doc.x = x0 + NUMBER_GUTTER;
+        doc.y = y0;
+        parts.forEach((part, i) => {
+          const last = i === parts.length - 1;
+          if (part.length > 0) doc.text(part, { width: width - NUMBER_GUTTER, align: 'left', lineGap: LINE_GAP, continued: !last || false, underline: false });
+          if (!last) doc.text(gap, { width: width - NUMBER_GUTTER, lineGap: LINE_GAP, continued: true, underline: true });
+        });
+        if (parts[parts.length - 1].length === 0) doc.text('', { continued: false });
+        doc.x = x0;
+        doc.moveDown(0.7);
+        return;
+      }
+      ensureSpace(doc, 40);
       const x = doc.page.margins.left;
-      if (block.label) body(doc).text(`${block.label}:`, x, doc.y, { width, lineGap: LINE_GAP });
-      rule(doc, Math.min(width, 320));
-      doc.font(FONT_ITALIC).fontSize(NOTE_SIZE).fillColor(MUTED).text(block.note, x, doc.y, { width, lineGap: 1 });
-      doc.moveDown(1);
+      const label = block.label ? `${block.label}: ` : '';
+      const y = doc.y;
       body(doc);
+      if (label) doc.text(label, x, y, { lineBreak: false });
+      const labelWidth = label ? doc.widthOfString(label) : 0;
+      const lineEnd = Math.min(x + width, x + labelWidth + 260);
+      doc.strokeColor(INK).lineWidth(0.75).moveTo(x + labelWidth, y + BODY_SIZE).lineTo(lineEnd, y + BODY_SIZE).stroke();
+      doc.x = x;
+      doc.y = y + BODY_SIZE + 4;
+      doc.moveDown(0.7);
       return;
     }
     case 'list': {
       body(doc);
+      // Keep a short list on one page.
+      if (block.items.length <= 6) ensureSpace(doc, 20 * block.items.length + 12);
       const x = doc.page.margins.left + NUMBER_GUTTER;
       block.items.forEach((item, i) => {
         ensureSpace(doc, 24);
@@ -197,6 +243,9 @@ function drawBlock(doc: Doc, block: Block, numbering: { next: number }): void {
       return;
     }
     case 'note': {
+      // Draft notes ("Draft — …") belong to the review pane; other notes are
+      // document text (e.g. the alternative-ground explanation) and print.
+      if (block.text.startsWith('Draft — ')) return;
       doc.font(FONT_ITALIC).fontSize(FOOTER_SIZE).fillColor(MUTED).text(block.text, { width });
       doc.moveDown(0.6);
       body(doc);
@@ -245,7 +294,11 @@ export function renderPdf(tree: DocumentTree, options: RenderOptions = {}): Prom
       const numbering = { next: 1 };
       for (const section of tree.sections) {
         if (section.title && !sectionHasHeading(section)) {
-          ensureSpace(doc, 60);
+          // A short section (heading, lead sentence, a few list items or a
+          // signature and jurat) stays on one page rather than splitting
+          // after its heading.
+          const short = section.blocks.length <= 4 && section.blocks.every((b) => b.kind !== 'paragraph' || b.text.length < 400);
+          ensureSpace(doc, short ? 180 : 60);
           doc.moveDown(0.4);
           doc.font(FONT_BOLD).fontSize(BODY_SIZE).text(section.title.toUpperCase(), doc.page.margins.left, doc.y, { width: contentWidth(doc), characterSpacing: 0.3 });
           doc.moveDown(0.4);

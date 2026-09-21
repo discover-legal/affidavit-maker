@@ -30,16 +30,16 @@ export function partiesSection(ctx: ComposeContext): Section {
     }
     blocks.push(paragraph(`${text}.`, ids));
   } else {
-    blocks.push(blank('selfName', `Draft — state the full legal name of the ${labels.self} exactly as it appears on your identification.`, `${labels.self} name`));
+    blocks.push(blank('selfName', `Draft — state the full legal name of the ${labels.self} exactly as it appears on your identification.`, `${labels.self} name`, `The ${labels.self} is ___.`));
   }
   if (typeof selfAddress !== 'string' || selfAddress.length === 0) {
-    blocks.push(blank('selfAddress', `Draft — state the ${labels.self}'s residence address; the court uses it for notices.`, `${labels.self} address`));
+    blocks.push(blank('selfAddress', `Draft — state the ${labels.self}'s residence address; the court uses it for notices.`, `${labels.self} address`, `The ${labels.self} resides at ___.`));
   }
 
   // ── The other party ──
   const other = partyName(file, 'other');
   if (other.name) blocks.push(paragraph(`${labels.other} is ${other.name}.`, other.ids));
-  else blocks.push(blank('otherName', `Draft — state the full legal name of the ${labels.other} (not a nickname).`, `${labels.other} name`));
+  else blocks.push(blank('otherName', `Draft — state the full legal name of the ${labels.other} (not a nickname).`, `${labels.other} name`, `The ${labels.other} is ___.`));
 
   const otherAddress = file.parties.other.address?.value;
   const hasAddress = typeof otherAddress === 'string' && otherAddress.length > 0;
@@ -68,7 +68,7 @@ export function partiesSection(ctx: ComposeContext): Section {
     blocks.push(paragraph(`${labels.other} resides at ${otherAddress} and may be served there.`, [partyId('other', 'address')]));
   } else {
     blocks.push(
-      blank('otherAddress', `Draft — state the ${labels.other}'s residence address so they can be served, or say in the interview that you do not know where they are.`, `${labels.other} address`),
+      blank('otherAddress', `Draft — state the ${labels.other}'s residence address so they can be served, or say in the interview that you do not know where they are.`, `${labels.other} address`, `The ${labels.other} resides at ___.`),
     );
   }
 

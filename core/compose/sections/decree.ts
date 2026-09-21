@@ -29,11 +29,11 @@ export function findingsSection(ctx: DivorceContext): Section {
   const blocks: Block[] = [];
   const marriageDate = dateField(file, 'marriageDate');
   if (marriageDate) blocks.push(paragraph(`The Court finds that the parties were married on ${formatDate(marriageDate, language)}.`, ['marriageDate']));
-  else blocks.push(blank('marriageDate', 'Draft — the date of the marriage is needed for the findings.', 'Date of marriage'));
+  else blocks.push(blank('marriageDate', 'Draft — the date of the marriage is needed for the findings.', 'Date of marriage', 'The parties were married on ___.'));
   const code = stringField(file, 'grounds');
   const ground = divorce.grounds.find((g) => g.code === code);
   if (ground) blocks.push(paragraph(`The Court finds that the ground of ${ground.label}${ground.citation ? ` (${ground.citation})` : ''} pleaded by ${labels.self} is established.`, ['grounds']));
-  else blocks.push(blank('grounds', 'Draft — the ground for the divorce is not settled on the record; see the petition.', 'Ground'));
+  else blocks.push(blank('grounds', 'Draft — the ground for the divorce is not settled on the record; see the petition.', 'Ground', `The ${labels.self} seeks a divorce on the ground that ___.`));
   return section('findings', 'Findings', blocks);
 }
 
@@ -62,7 +62,7 @@ export function decreeChildrenSection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'no_children')) {
     blocks.push(paragraph('There are no children of the marriage.', ['no_children'], false));
   } else {
-    blocks.push(blank('children', 'Draft — confirm whether there are children of the marriage.', 'Children'));
+    blocks.push(blank('children', 'Draft — confirm whether there are children of the marriage.', 'Children', 'The children of the marriage are ___.'));
   }
   return section('children', 'Children', blocks);
 }
@@ -79,7 +79,7 @@ export function decreePropertySection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'no_property')) {
     blocks.push(paragraph(`The Court finds that there is no ${maritalProperty} to be divided.`, ['no_property'], false));
   } else {
-    blocks.push(blank('property', `Draft — list the ${maritalProperty} or confirm there is none.`, 'Property'));
+    blocks.push(blank('property', `Draft — list the ${maritalProperty} or confirm there is none.`, 'Property', `The ${maritalProperty} of the parties consists of ___.`));
   }
   const debts = listField(file, 'debtItems');
   if (debts) {
@@ -89,7 +89,7 @@ export function decreePropertySection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'no_debts')) {
     blocks.push(paragraph(`The Court finds that there are no ${maritalDebts} to be allocated.`, ['no_debts'], false));
   } else {
-    blocks.push(blank('debts', `Draft — list the ${maritalDebts} or confirm there are none.`, 'Debts'));
+    blocks.push(blank('debts', `Draft — list the ${maritalDebts} or confirm there are none.`, 'Debts', `The ${maritalDebts} of the parties consist of ___.`));
   }
   return section('property', 'Property and Debts', blocks);
 }
@@ -105,7 +105,7 @@ export function decreeSupportSection(ctx: DivorceContext): Section {
   } else if (confirmed(file, 'support_waived')) {
     blocks.push(paragraph(`${orderIntro} that neither party shall pay spousal support to the other, both having waived it.`, ['support_waived'], false));
   } else {
-    blocks.push(blank('support', 'Draft — spousal support is neither requested nor waived on the record; no order is proposed. Resolve this in the interview.', 'Spousal support'));
+    blocks.push(blank('support', 'Draft — spousal support is neither requested nor waived on the record; no order is proposed. Resolve this in the interview.', 'Spousal support', `The ${labels.self} ___ (claims / does not claim / waives) spousal support.`));
   }
   return section('support', 'Spousal Support', blocks);
 }

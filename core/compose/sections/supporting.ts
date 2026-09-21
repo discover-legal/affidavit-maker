@@ -21,7 +21,7 @@ export function waiverSections(ctx: DivorceContext): Section[] {
   if (other.name) {
     blocks.push(paragraph(`I, ${other.name}, am the ${labels.other} in this case. I have received a copy of the ${divorce.instrument.petition} and I waive formal service of it.`, other.ids));
   } else {
-    blocks.push(blank('otherName', `Draft — the ${labels.other}'s full legal name is needed; they sign this document.`, `${labels.other} name`));
+    blocks.push(blank('otherName', `Draft — the ${labels.other}'s full legal name is needed; they sign this document.`, `${labels.other} name`, `The ${labels.other} is ___.`));
   }
   blocks.push(note('Draft — the other party signs this voluntarily, after receiving the initiating document. Some courts require the signature to be notarised and dated after the case is filed.'));
   return [
@@ -37,19 +37,19 @@ export function proveUpSections(ctx: DivorceContext): Section[] {
   const self = partyName(file, 'self');
   const blocks: Block[] = [];
   if (self.name) blocks.push(paragraph(`I, ${self.name}, am the ${labels.self}. I am over eighteen and competent to make this affidavit.`, self.ids));
-  else blocks.push(blank('selfName', 'Draft — state your full legal name.', 'Affiant'));
+  else blocks.push(blank('selfName', 'Draft — state your full legal name.', 'Affiant', 'I, ___, am unable to pay the court costs in this case and ask the court to allow me to proceed without paying them.'));
   const months = file.fields.residencyMonths?.value;
   if (typeof months === 'number') blocks.push(paragraph(`I have resided in ${jurisdiction.name} for ${months} months.`, ['residencyMonths']));
-  else blocks.push(blank('residencyMonths', `Draft — state how long you have lived in ${jurisdiction.name}.`, 'Residency'));
+  else blocks.push(blank('residencyMonths', `Draft — state how long you have lived in ${jurisdiction.name}.`, 'Residency', `The ${labels.self} has been ordinarily resident in ${jurisdiction.name} for ___ immediately before the commencement of this proceeding.`));
   const marriageDate = dateField(file, 'marriageDate');
   if (marriageDate) blocks.push(paragraph(`The parties were married on ${formatDate(marriageDate, language)}.`, ['marriageDate']));
-  else blocks.push(blank('marriageDate', 'Draft — state the date of the marriage.', 'Date of marriage'));
+  else blocks.push(blank('marriageDate', 'Draft — state the date of the marriage.', 'Date of marriage', 'The parties were married on ___.'));
   const ground = divorce.grounds.find((g) => g.code === stringField(file, 'grounds'));
   if (ground) blocks.push(paragraph(`The ground for the divorce is ${ground.label}${ground.citation ? ` (${ground.citation})` : ''}, as pleaded.`, ['grounds']));
-  else blocks.push(blank('grounds', 'Draft — the ground for the divorce must be settled before the hearing.', 'Ground'));
+  else blocks.push(blank('grounds', 'Draft — the ground for the divorce must be settled before the hearing.', 'Ground', `The ${labels.self} seeks a divorce on the ground that ___.`));
   if (file.children.length > 0) blocks.push(paragraph(`The children of the marriage are: ${file.children.map((c, i) => c.name?.value ?? `Child ${i + 1}`).join('; ')}.`, file.children.map((c) => c.id)));
   else if (confirmed(file, 'no_children')) blocks.push(paragraph('There are no children of the marriage.', ['no_children']));
-  else blocks.push(blank('children', 'Draft — confirm whether there are children of the marriage.', 'Children'));
+  else blocks.push(blank('children', 'Draft — confirm whether there are children of the marriage.', 'Children', 'The children of the marriage are ___.'));
   blocks.push(note(`Draft — at the hearing you will also swear that the allegations of the ${divorce.instrument.petition} are true and ask the court to grant the ${divorce.instrument.decree}.`));
   return [section('proveUp', 'Prove-Up Affidavit', blocks), signatureAndJurat(ctx)];
 }
@@ -81,7 +81,7 @@ export function indigencySections(ctx: ComposeContext): Section[] {
   const self = partyName(file, 'self');
   const blocks: Block[] = [];
   if (self.name) blocks.push(paragraph(`I, ${self.name}, am unable to pay the court costs in this case and ask the court to allow me to proceed without paying them.`, [...self.ids, 'indigencyRequested']));
-  else blocks.push(blank('selfName', 'Draft — state your full legal name.', 'Affiant'));
+  else blocks.push(blank('selfName', 'Draft — state your full legal name.', 'Affiant', 'I, ___, am unable to pay the court costs in this case and ask the court to allow me to proceed without paying them.'));
   for (const [id, label, prompt] of [
     ['income', 'Income', 'Draft — list every source and amount of monthly income.'],
     ['expenses', 'Expenses', 'Draft — list monthly expenses (housing, food, utilities, transport, debts).'],
@@ -106,7 +106,7 @@ export function lastKnownAddressSections(ctx: DivorceContext): Section[] {
   if (typeof address === 'string' && address.length > 0) {
     blocks.push(paragraph(`The last known address of ${who} is ${address}.`, [partyId('other', 'address')]));
   } else {
-    blocks.push(blank('otherAddress', `Draft — state the last address at which ${who} is known to have lived, even if they are no longer there.`, 'Last known address'));
+    blocks.push(blank('otherAddress', `Draft — state the last address at which ${who} is known to have lived, even if they are no longer there.`, 'Last known address', `The ${labels.other} resides at ___.`));
   }
   if (file.parties.other.whereaboutsUnknown?.value === true) {
     blocks.push(paragraph(`The present whereabouts of ${who} are unknown to ${labels.self}.`, [partyId('other', 'whereaboutsUnknown')]));

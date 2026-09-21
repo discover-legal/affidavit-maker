@@ -49,13 +49,14 @@ export function childrenSection(ctx: DivorceContext): Section {
         'childResidenceHistory',
         `Draft — for each child, state where the child has lived for the past five years and whether any other court case concerns the child. Courts require this before making parenting orders.`,
         'Residence history of the children',
+        'During the past five years each child has lived at ___, and no other court case concerns the children except ___.',
       ),
     );
   } else if (confirmed(file, 'no_children')) {
     // Dispositive: only the confirmation supports it.
     blocks.push(paragraph('There are no children of the marriage, born or adopted, and none are expected.', ['no_children']));
   } else {
-    blocks.push(blank('children', `Draft — list every child of the marriage (name, date of birth, who they live with), or confirm in the interview that there are none. Nothing about children has been assumed.`, 'Children'));
+    blocks.push(blank('children', `Draft — list every child of the marriage (name, date of birth, who they live with), or confirm in the interview that there are none. Nothing about children has been assumed.`, 'Children', 'The children of the marriage are ___.'));
   }
 
   return section(CHILDREN_SECTION, 'Children', blocks);

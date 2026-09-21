@@ -25,7 +25,7 @@ export function verificationSection(ctx: ComposeContext, instrument: string): Se
       ),
     );
   } else {
-    blocks.push(blank('selfName', `Draft — the ${labels.self}'s full legal name is needed for the verification.`, `${labels.self} name`));
+    blocks.push(blank('selfName', `Draft — the ${labels.self}'s full legal name is needed for the verification.`, `${labels.self} name`, `I, ___, the ${labels.self} in this proceeding, state that I have read this document and that the facts stated in it are true to my knowledge.`));
   }
 
   blocks.push({ kind: 'signature', party: 'self', label: `${labels.self}, ${labels.selfRepresented}` });

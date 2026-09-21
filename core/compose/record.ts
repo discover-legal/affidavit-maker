@@ -143,8 +143,11 @@ export function paragraph(text: string, supportedBy: string[], numbered = true):
   return { kind: 'paragraph', text, numbered, supportedBy: [...supportedBy] };
 }
 
-export function blank(fieldId: string, note: string, label?: string): Block {
-  return label === undefined ? { kind: 'blank', field: fieldId, note } : { kind: 'blank', field: fieldId, note, label };
+export function blank(fieldId: string, note: string, label?: string, sentence?: string): Block {
+  const b: Extract<Block, { kind: 'blank' }> = { kind: 'blank', field: fieldId, note };
+  if (label !== undefined) b.label = label;
+  if (sentence !== undefined) b.sentence = sentence;
+  return b;
 }
 
 export function note(text: string): Block {

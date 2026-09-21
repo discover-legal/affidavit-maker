@@ -25,7 +25,7 @@ export function introductionSection(ctx: ComposeContext): Section {
     text += `, in the ${jurisdiction.lexicon.regionLabel} of ${jurisdiction.name}, make oath and say (or affirm) as follows:`;
     blocks.push(paragraph(text, ids, false));
   } else {
-    blocks.push(blank('selfName', 'Draft — state your full legal name as the affiant.', 'Affiant'));
+    blocks.push(blank('selfName', 'Draft — state your full legal name as the affiant.', 'Affiant', 'I, ___, make oath and say as follows.'));
   }
   blocks.push(paragraph('I am over the age of eighteen, of sound mind, and have personal knowledge of the facts stated in this affidavit.', self.ids.length > 0 ? self.ids : [partyId('self', 'firstName')], true));
   return section('introduction', undefined, blocks);

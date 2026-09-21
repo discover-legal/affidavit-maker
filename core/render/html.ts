@@ -25,6 +25,9 @@ const STYLE = [
   'body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.5;max-width:8.5in;margin:1in auto;padding:0 16px;color:#111}',
   '.draft-banner{border-bottom:1px solid #999;text-align:center;font-style:italic;color:#555;padding-bottom:6px;margin-bottom:18px}',
   'header.caption{margin-bottom:24px}',
+  '.file-number{text-align:right;margin-bottom:12px}.court{text-align:center;font-weight:bold}',
+  '.parties{margin:18px 0}.party{display:flex;justify-content:space-between;align-items:baseline;margin:4px 0}.party .role{font-style:italic}.versus{text-align:center;margin:4px 0}',
+  '.title{text-align:center;font-weight:bold;text-transform:uppercase;letter-spacing:.04em;border-top:1px solid #111;border-bottom:1px solid #111;padding:8px 0;margin:12px 0 20px}',
   '.court{text-align:center;font-weight:bold;text-transform:uppercase}',
   '.file-number{text-align:right;margin-top:12px}',
   '.parties{margin:12px 0}',
@@ -50,11 +53,11 @@ function renderBlock(block: Block, numbering: { next: number }): string {
       }
       return `<p>${esc(block.text)}</p>`;
     case 'blank':
+      // The draft note explaining the gap is review-pane material (tree.blanks), not document text.
       return (
         `<div class="blank" data-field="${esc(block.field)}">` +
         (block.label ? `<span class="label">${esc(block.label)}:</span> ` : '') +
-        '<span class="rule" aria-hidden="true"></span>' +
-        `<small class="note">${esc(block.note)}</small></div>`
+        '<span class="rule" aria-hidden="true"></span></div>'
       );
     case 'list': {
       const tag = block.ordered ? 'ol' : 'ul';
@@ -70,6 +73,7 @@ function renderBlock(block: Block, numbering: { next: number }): string {
         '</div>'
       );
     case 'note':
+      if (block.text.startsWith('Draft — ')) return '';
       return `<aside class="note">${esc(block.text)}</aside>`;
     default:
       return '';
@@ -94,17 +98,18 @@ export function renderHtml(tree: DocumentTree, options: RenderOptions = {}): str
   if (options.draftBanner) parts.push(`<div class="draft-banner">${esc(framing.draftNotice)}</div>`);
 
   parts.push('<header class="caption">');
-  for (const line of caption.courtLines) parts.push(`<div class="court">${esc(line)}</div>`);
   parts.push(
     `<div class="file-number">${esc(caption.fileNumberLabel)} ` +
       (caption.fileNumber ? `<span class="value">${esc(caption.fileNumber)}</span>` : '<span class="rule" aria-hidden="true"></span>') +
       '</div>',
   );
+  for (const line of caption.courtLines) parts.push(`<div class="court">${esc(line)}</div>`);
+  // Style of cause: name left, role right, the joining word centred between.
   const p = caption.parties;
   parts.push('<div class="parties">');
-  parts.push(`<div class="party self">${p.selfName ? esc(p.selfName) : '<span class="rule" aria-hidden="true"></span>'}, ${esc(p.selfLabel)}</div>`);
+  parts.push(`<div class="party self"><span class="name">${p.selfName ? esc(p.selfName) : '<span class="rule" aria-hidden="true"></span>'}</span><span class="role">${esc(p.selfLabel)}</span></div>`);
   parts.push(`<div class="versus">${esc(p.versus)}</div>`);
-  parts.push(`<div class="party other">${p.otherName ? esc(p.otherName) : '<span class="rule" aria-hidden="true"></span>'}, ${esc(p.otherLabel)}</div>`);
+  parts.push(`<div class="party other"><span class="name">${p.otherName ? esc(p.otherName) : '<span class="rule" aria-hidden="true"></span>'}</span><span class="role">${esc(p.otherLabel)}</span></div>`);
   parts.push('</div>');
   parts.push(`<div class="title">${esc(caption.title)}</div>`);
   parts.push('</header>');

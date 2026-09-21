@@ -26,9 +26,9 @@ export function marriageSection(ctx: DivorceContext): Section {
     }
     blocks.push(paragraph(`${text}.`, ids));
   } else {
-    blocks.push(blank('marriageDate', 'Draft — state the date of the marriage as it appears on the marriage certificate (year, month and day).', 'Date of marriage'));
+    blocks.push(blank('marriageDate', 'Draft — state the date of the marriage as it appears on the marriage certificate (year, month and day).', 'Date of marriage', 'The parties were married on ___.'));
     if (marriagePlace) blocks.push(paragraph(`The parties were married in ${marriagePlace}.`, ['marriagePlace']));
-    else blocks.push(blank('marriagePlace', 'Draft — state the city and country where the marriage took place.', 'Place of marriage'));
+    else blocks.push(blank('marriagePlace', 'Draft — state the city and country where the marriage took place.', 'Place of marriage', 'The parties were married at ___.'));
   }
 
   const separationDate = dateField(file, 'separationDate');
@@ -36,7 +36,7 @@ export function marriageSection(ctx: DivorceContext): Section {
     blocks.push(paragraph(`The parties separated on ${formatDate(separationDate, language)} and have lived separate and apart since that date.`, ['separationDate']));
   } else if (file.fields.separationDate !== undefined) {
     // Present but not date-shaped: the value stays out of the draft (I-5).
-    blocks.push(blank('separationDate', 'Draft — state the date the parties separated (year, month and day). A description such as "a few months ago" cannot be pleaded.', 'Date of separation'));
+    blocks.push(blank('separationDate', 'Draft — state the date the parties separated (year, month and day). A description such as "a few months ago" cannot be pleaded.', 'Date of separation', 'The parties separated on ___ and have lived separate and apart since that date.'));
   }
 
   return section(MARRIAGE_SECTION, 'The Marriage', blocks);

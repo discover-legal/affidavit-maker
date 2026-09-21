@@ -50,6 +50,8 @@ export interface DraftInput {
  * paying the model twice. In-process, per user, short-lived; a changed
  * record changes the key and misses.
  */
+/** Bump when composition or rendering changes shape; cached trees from older code are then ignored. */
+const COMPOSER_VERSION = process.env.RENDER_GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || '2026-09-21.2';
 const COMPOSE_CACHE_TTL_MS = 10 * 60 * 1000;
 const COMPOSE_CACHE_MAX = 200;
 
@@ -71,7 +73,9 @@ function cacheKey(userId: number, kind: DocumentKind, file: CaseFile): string {
   // legacy adapter stamps `at: now()` on every conversion, which would make
   // two identical requests hash differently.
   const content = JSON.stringify(stable, (k, v) => (k === 'at' || k === 'turnId' ? undefined : v));
-  return createHash('sha256').update(`${userId}|${kind}|${content}`).digest('hex');
+  // The composer's version is part of the key so a deploy that changes how
+  // documents are built never serves a tree composed by the previous code.
+  return createHash('sha256').update(`${COMPOSER_VERSION}|${userId}|${kind}|${content}`).digest('hex');
 }
 
 function cachedTree(key: string): DocumentTree | undefined {

@@ -10,7 +10,7 @@
 
 import type { Block, DocumentTree, Section } from '../compose/types';
 
-type Item = { content: string; type?: string };
+type Item = { content: string; type?: string; number?: number };
 
 const OFFICER_LABEL: Record<string, string> = {
   notary: 'To be sworn or affirmed before a Notary Public.',
@@ -55,13 +55,17 @@ export function toLegacyPreview(tree: DocumentTree): LegacySections {
   out.title = tree.caption.title;
 
   const keyed = tree.kind === 'divorce_petition' ? PETITION_KEYS : tree.kind === 'divorce_decree' ? DECREE_KEYS : null;
+  // Pleading paragraphs are numbered continuously through the document, as
+  // the PDF numbers them; the editor's per-section prefixer honours an
+  // explicit `number` and leaves everything else in that section unprefixed.
+  const numbering = { next: 1 };
 
   if (keyed) {
     for (const section of tree.sections) {
       const key = keyed[section.id] ?? section.id;
       // The caption row already shows the file-number blank.
       const blocks = section.id === 'caption' ? section.blocks.filter((b) => !(b.kind === 'blank' && b.field === 'caseNumber')) : section.blocks;
-      const items = blocks.flatMap(blockToItems);
+      const items = blocks.flatMap((b) => blockToItems(b, numbering));
       const signature = blocks.find((b): b is Extract<Block, { kind: 'signature' }> => b.kind === 'signature');
       const jurat = blocks.find((b): b is Extract<Block, { kind: 'jurat' }> => b.kind === 'jurat');
       if (signature) out.signatureBlock = { formatted: signatureText(signature) };
@@ -79,7 +83,7 @@ export function toLegacyPreview(tree: DocumentTree): LegacySections {
   } else {
     // Affidavit-style documents: introduction / facts / conclusion order.
     const [first, ...rest] = tree.sections;
-    const intro = first ? first.blocks.flatMap(blockToItems).map((i) => i.content).join('\n\n') : '';
+    const intro = first ? first.blocks.flatMap((b) => blockToItems(b)).map((i) => i.content).join('\n\n') : '';
     if (intro) out.introduction = intro;
     const facts: Item[] = [];
     let conclusion = '';
@@ -101,11 +105,15 @@ export function toLegacyPreview(tree: DocumentTree): LegacySections {
 
 function captionText(tree: DocumentTree): string {
   const c = tree.caption;
+  // The editor centres the caption block, so use the centred style of cause
+  // ("Name, Role" / joining word / "Name, Role"); the PDF draws the columns.
+  const rule = '______________________________';
   const lines = [
-    `${c.parties.selfLabel}: ${c.parties.selfName ?? '________________________'}`,
-    c.parties.versus,
-    `${c.parties.otherLabel}: ${c.parties.otherName ?? '________________________'}`,
     `${c.fileNumberLabel} ${c.fileNumber ?? '____________'}`,
+    '',
+    `${c.parties.selfName ?? rule}, ${c.parties.selfLabel}`,
+    c.parties.versus,
+    `${c.parties.otherName ?? rule}, ${c.parties.otherLabel}`,
   ];
   return lines.join('\n');
 }
@@ -114,19 +122,33 @@ function signatureText(block: Extract<Block, { kind: 'signature' }>): string {
   return `________________________________\n${block.label}`;
 }
 
-function blockToItems(block: Block): Item[] {
+interface Numbering { next: number }
+
+function numbered(content: string, numbering?: Numbering): Item {
+  return numbering ? { content, type: 'paragraph', number: numbering.next++ } : { content, type: 'paragraph' };
+}
+
+/** (a), (b), … as the PDF letters relief items. */
+function letterOf(index: number): string {
+  return String.fromCharCode(97 + (index % 26));
+}
+
+function blockToItems(block: Block, numbering?: Numbering): Item[] {
   switch (block.kind) {
     case 'heading':
       return [{ content: block.text, type: 'section_header' }];
     case 'paragraph':
-      return [{ content: block.text, type: block.numbered === false ? 'text' : 'paragraph' }];
+      return block.numbered === false ? [{ content: block.text, type: 'text' }] : [numbered(block.text, numbering)];
     case 'blank':
-      // Notes already begin with "Draft — "; render them as written.
-      return [{ content: `${block.label ? `${block.label}: ` : ''}__________________\n(${block.note})`, type: 'blank' }];
+      // The draft note is for the review pane, not the document. A sentenced
+      // blank is a numbered pleading sentence with an underscored gap.
+      if (block.sentence) return [numbered(block.sentence.split('___').join('______________'), numbering)];
+      return [{ content: `${block.label ? `${block.label}: ` : ''}______________________________`, type: 'blank' }];
     case 'list':
-      return block.items.map((item) => ({ content: item, type: block.ordered ? 'relief_item' : 'text' }));
+      // Markers travel in the text so the editor's prefixer skips these items.
+      return block.items.map((item, i) => (block.ordered ? { content: `(${letterOf(i)}) ${item}`, type: 'relief_item' } : { content: `• ${item}`, type: 'text' }));
     case 'note':
-      return [{ content: `(${block.text})`, type: 'note' }];
+      return block.text.startsWith('Draft — ') ? [] : [{ content: block.text, type: 'note' }];
     case 'signature':
       return [{ content: signatureText(block), type: 'signature' }];
     case 'jurat':

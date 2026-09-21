@@ -33,7 +33,14 @@ export type DocumentKind =
 export type Block =
   | { kind: 'heading'; text: string; level: 1 | 2 | 3 }
   | { kind: 'paragraph'; text: string; numbered?: boolean; supportedBy: string[] /* fact / field ids or confirmation keys */ }
-  | { kind: 'blank'; field: string; note: string; label?: string }
+  | {
+      kind: 'blank';
+      field: string;
+      note: string;
+      label?: string;
+      /** When set, the blank prints as a numbered pleading sentence with a fill-in line where `___` appears. */
+      sentence?: string;
+    }
   | { kind: 'list'; items: string[]; ordered?: boolean }
   | { kind: 'signature'; party: 'self' | 'other'; label: string }
   | { kind: 'jurat'; text: string; officer: string; citations: string[] }

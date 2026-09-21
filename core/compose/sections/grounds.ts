@@ -39,7 +39,7 @@ export function groundsSection(ctx: DivorceContext): Section {
   // Gate 1 — nothing pleaded.
   if (code === undefined) {
     return section(GROUNDS_SECTION, 'Grounds for Divorce', [
-      blank('grounds', `Draft — state the ground for the divorce. Grounds available: ${available}.`, 'Ground'),
+      blank('grounds', `Draft — state the ground for the divorce. Grounds available: ${available}.`, 'Ground', `The ${labels.self} seeks a divorce on the ground that ___.`),
       note('Draft — the ground must be one the court recognises; the interview can help you choose from the list above.'),
     ]);
   }
@@ -48,7 +48,7 @@ export function groundsSection(ctx: DivorceContext): Section {
   const ground = divorce.grounds.find((g) => g.code === code);
   if (!ground) {
     return section(GROUNDS_SECTION, 'Grounds for Divorce', [
-      blank('grounds', `Draft — "${code}" is not a ground this court recognises. Grounds available: ${available}.`, 'Ground'),
+      blank('grounds', `Draft — "${code}" is not a ground this court recognises. Grounds available: ${available}.`, 'Ground', `The ${labels.self} seeks a divorce on the ground that ___.`),
       note('Draft — restate the ground in the interview using one of the grounds listed.'),
     ]);
   }
@@ -63,7 +63,7 @@ export function groundsSection(ctx: DivorceContext): Section {
     const alternatives = faultGrounds.length > 0 ? ` If the separation is shorter, the divorce may instead be sought on: ${faultGrounds}.` : '';
     if (!separationDate) {
       return section(GROUNDS_SECTION, 'Grounds for Divorce', [
-        blank('grounds', `Draft — ${describe(ground)} rests on ${required} months of living separate and apart, and no date of separation is on record. State the separation date.${alternatives}`, 'Ground'),
+        blank('grounds', `Draft — ${describe(ground)} rests on ${required} months of living separate and apart, and no date of separation is on record. State the separation date.${alternatives}`, 'Ground', `The ${labels.self} seeks a divorce on the ground that ___.`),
         note(`Draft — the court cannot grant a divorce on ${ground.label} without the date the parties separated.`),
       ]);
     }

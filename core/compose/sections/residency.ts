@@ -43,10 +43,10 @@ export function residencySection(ctx: DivorceContext): Section {
     }
   } else {
     blocks.push(
-      blank('residencyMonths', `Draft — state how long the ${labels.self} (or the ${labels.other}) has lived in ${jurisdiction.name}. Requirement: ${rule.text}${cited}`, 'Residency'),
+      blank('residencyMonths', `Draft — state how long the ${labels.self} (or the ${labels.other}) has lived in ${jurisdiction.name}. Requirement: ${rule.text}${cited}`, 'Residency', `The ${labels.self} has been ordinarily resident in ${jurisdiction.name} for ___ immediately before the commencement of this proceeding.`),
     );
     if (typeof county !== 'string' || county.length === 0) {
-      blocks.push(blank(COUNTY_ID, `Draft — state the ${jurisdiction.lexicon.countyLabel} of residence; it fixes the court where the case is filed.`, jurisdiction.lexicon.countyLabel));
+      blocks.push(blank(COUNTY_ID, `Draft — state the ${jurisdiction.lexicon.countyLabel} of residence; it fixes the court where the case is filed.`, jurisdiction.lexicon.countyLabel, `The ${labels.self} resides in the ${jurisdiction.lexicon.countyLabel} of ___.`));
     }
   }
 

@@ -29,15 +29,19 @@ export function supportSection(ctx: DivorceContext): Section {
   } else if (waived) {
     blocks.push(paragraph('The parties waive any claim to spousal support from each other, now and in the future.', ['support_waived']));
   } else if (requested === false) {
+    // What the user actually said, as a pleading sentence. It is not a
+    // waiver, and the blank's note (review pane) explains the difference.
+    blocks.push(paragraph(`${labels.self} makes no claim for spousal support at this time.`, ['spousalSupportRequested']));
     blocks.push(
       blank(
         'support',
         `Draft — you said you are not asking for spousal support. That is not the same as waiving it: a waiver is permanent and must be stated expressly, and a court will not infer it from silence. Confirm in the interview whether both parties waive support, or whether the question should be left open (reserved).`,
-        'Spousal support',
+        'Waiver or reservation of spousal support',
+        'The question of spousal support is ___ (waived by both parties / reserved).',
       ),
     );
   } else {
-    blocks.push(blank('support', 'Draft — say whether you are asking for spousal support, whether both parties waive it, or whether the question should be left open.', 'Spousal support'));
+    blocks.push(blank('support', 'Draft — say whether you are asking for spousal support, whether both parties waive it, or whether the question should be left open.', 'Spousal support', `The ${labels.self} ___ (claims / does not claim) spousal support.`));
   }
 
   return section(SUPPORT_SECTION, 'Spousal Support', blocks);

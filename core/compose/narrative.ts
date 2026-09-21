@@ -1,9 +1,10 @@
 /**
- * Narrative paragraphs — ONE ask(ASK.COMPOSE_NARRATIVE) per section that
- * needs prose, drafted from the record, then verified paragraph by
- * paragraph. The section id travels in `input` (never in the instructions),
- * as does the record and the jurisdiction's vocabulary; the answer's
- * `supported_by` ids become `supportedBy`.
+ * Narrative paragraphs — ONE ask(ASK.COMPOSE_NARRATIVE) per DOCUMENT,
+ * drafted from the record against everything the structural sections
+ * already say, then verified concurrently paragraph by paragraph. Section
+ * ids travel in `input` (never in the instructions), as does the record and
+ * the jurisdiction's vocabulary; the answer's `supported_by` ids become
+ * `supportedBy`.
  *
  * Code disposes of what the model proposes:
  *   - an id the record does not carry is dropped;
@@ -30,8 +31,9 @@ const NARRATIVE_SCHEMA: JsonSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['text', 'supported_by'],
+        required: ['section', 'text', 'supported_by'],
         properties: {
+          section: { type: 'string', description: 'The id of the section this paragraph belongs to, one of input.sections[].id.' },
           text: { type: 'string', description: 'One numbered pleading paragraph, third person, past tense for events.' },
           supported_by: {
             type: 'array',
@@ -45,8 +47,8 @@ const NARRATIVE_SCHEMA: JsonSchema = {
 };
 
 const INSTRUCTIONS = [
-  'Draft ADDITIONAL pleading paragraphs for the section named in input.section of a family-law document, using ONLY the record in input.record.',
-  'input.already_stated lists the paragraphs the section already contains. Never restate, rephrase or summarise any of them; add only facts from the record that they do not cover. If nothing is left to add, return an empty list — that is the usual answer.',
+  'Draft ADDITIONAL pleading paragraphs for a family-law document, using ONLY the record in input.record. input.sections lists each section by id with the paragraphs it already contains.',
+  'Never restate, rephrase or summarise anything already in any section; add only facts from the record that no section covers, and tag each paragraph with the id of the section it belongs in. If nothing is left to add, return an empty list — that is the usual answer.',
   'State facts the record contains; never infer, assume, soften or embellish.',
   'Use the party labels and vocabulary in input.jurisdiction.lexicon and cite statutes only from input.jurisdiction.citations or the ground citations given.',
   'Every paragraph must list, in supported_by, the ids of the record entries it relies on. Do not write a paragraph you cannot support.',
@@ -69,7 +71,7 @@ function stripLeadingOrdinal(text: string): string {
 }
 
 interface NarrativeAnswer {
-  paragraphs?: Array<{ text?: unknown; supported_by?: unknown }>;
+  paragraphs?: Array<{ section?: unknown; text?: unknown; supported_by?: unknown }>;
 }
 
 export interface NarrativeSource {
@@ -78,14 +80,28 @@ export interface NarrativeSource {
   jurisdiction: JurisdictionProfile;
 }
 
-/** Ask for one section's narrative, keep only citable ids, verify, and return paragraph / blank blocks. */
-export async function narrativeFor(src: NarrativeSource, sectionId: string, alreadyStated: Block[] = []): Promise<Block[]> {
+/** What the model may add to: each section's id, title and the text it already holds. */
+export interface StatedSection {
+  id: string;
+  title?: string;
+  blocks: Block[];
+}
+
+function statedText(blocks: Block[]): string[] {
+  return blocks.flatMap((b) => (b.kind === 'paragraph' ? [b.text] : b.kind === 'list' ? b.items : []));
+}
+
+/**
+ * ONE narrative ask for the whole document: the model sees every section
+ * and what each already says, and proposes additions tagged by section.
+ * Every proposal is verified concurrently (supported + not a restatement);
+ * survivors come back grouped by section id, in the model's order.
+ */
+export async function narrativeForDocument(src: NarrativeSource, sections: StatedSection[]): Promise<Map<string, Block[]>> {
   const { intelligence, file, jurisdiction } = src;
-  const stated = alreadyStated.flatMap((b) => (b.kind === 'paragraph' ? [b.text] : b.kind === 'list' ? b.items : []));
   const grounds = jurisdiction.divorce?.grounds ?? [];
   const input: Json = {
-    section: sectionId,
-    already_stated: stated,
+    sections: sections.map((s) => ({ id: s.id, title: s.title ?? s.id, already_stated: statedText(s.blocks) })),
     record: recordJson(file),
     jurisdiction: {
       code: jurisdiction.code,
@@ -101,24 +117,38 @@ export async function narrativeFor(src: NarrativeSource, sectionId: string, alre
     schema: NARRATIVE_SCHEMA,
     language: languageOf(file),
   });
-  const proposed = normalise(answer, citableIds(file));
-  if (proposed.length === 0) return [];
-  // Unsupported additions are dropped, not noted: a note belongs to a
-  // required value that is missing, and structure already places those.
-  return keepSupported(intelligence, proposed, recordJson(file), stated);
+  const known = new Set(sections.map((s) => s.id));
+  const proposed = normalise(answer, citableIds(file), known);
+  const out = new Map<string, Block[]>();
+  if (proposed.length === 0) return out;
+  const stated = sections.flatMap((s) => statedText(s.blocks));
+  const record = recordJson(file);
+  // Unsupported or restating additions are dropped, not noted: a note belongs
+  // to a required value that is missing, and structure already places those.
+  const kept = await keepSupported(intelligence, proposed.map((p) => p.block), record, stated);
+  const keptSet = new Set(kept);
+  for (const p of proposed) {
+    if (!keptSet.has(p.block)) continue;
+    const list = out.get(p.section) ?? [];
+    list.push(p.block);
+    out.set(p.section, list);
+  }
+  return out;
 }
 
-/** Shape-check the answer and drop ids / paragraphs the record cannot back. */
-function normalise(answer: Json, citable: Set<string>): ParagraphBlock[] {
+/** Shape-check the answer and drop ids / paragraphs the record cannot back or sections that do not exist. */
+function normalise(answer: Json, citable: Set<string>, sections: Set<string>): Array<{ section: string; block: ParagraphBlock }> {
   const raw = (answer && typeof answer === 'object' && !Array.isArray(answer) ? (answer as NarrativeAnswer).paragraphs : undefined) ?? [];
-  const out: ParagraphBlock[] = [];
+  const out: Array<{ section: string; block: ParagraphBlock }> = [];
   for (const item of Array.isArray(raw) ? raw : []) {
     if (!item || typeof item !== 'object') continue;
+    const section = typeof item.section === 'string' ? item.section : '';
+    if (!sections.has(section)) continue;
     const text = stripLeadingOrdinal(typeof item.text === 'string' ? item.text.trim() : '');
     if (text.length === 0) continue;
     const ids = Array.isArray(item.supported_by) ? item.supported_by.filter((id): id is string => typeof id === 'string' && citable.has(id)) : [];
     if (ids.length === 0) continue;
-    out.push(paragraph(text, Array.from(new Set(ids))) as ParagraphBlock);
+    out.push({ section, block: paragraph(text, Array.from(new Set(ids))) as ParagraphBlock });
   }
   return out;
 }

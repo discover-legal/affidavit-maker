@@ -41,7 +41,7 @@ Functional specs (what the system does, not how): `docs/spec/*.md`.
 | `core/triage` | `types.ts` | Classify the need into a matter, clarify, or say it is out of scope; safety first. |
 | `core/interview` | `types.ts` | One engine for every matter definition (YAML matters + divorce with jurisdiction overlays). |
 | `core/profile` | `types.ts` | Life story: hydrate, absorb, promote (one extraction replaces the rescue loops), ingest court papers, erase. |
-| `core/compose` | `types.ts` | Select documents; build a typed `DocumentTree`; verify every drafted paragraph against the record. |
+| `core/compose` | `types.ts` | Select documents; build a typed `DocumentTree` from typed values (no model), then ONE narrative ask for the whole document, verified concurrently and spliced in. |
 | `core/render` | `types.ts` | `DocumentTree` → PDF / HTML / text. Draws blocks; interprets nothing. |
 | `core/engine.ts` | | Wires modules; the façade the routes call when `CORE_ENGINE=v2`. |
 
@@ -64,6 +64,16 @@ with a spec change in `docs/spec/`.
   each turn.
 - Real-model runs are a separate gate (`REAL_LLM=1`) and are not part of the
   unit suite.
+
+## Cost of a document
+
+A composed document is one narrative `ask` (the model sees every section and
+what it already says, and proposes tagged additions) plus one `judge` per
+proposed paragraph, all judgments in parallel. Structural paragraphs come
+from typed values and are never sent to a judge. `lib/api/coreDocuments.ts`
+caches the composed tree per (user, kind, record content) so the editor's
+preview and the download share one composition. Measured on DeepSeek flash:
+25–40 s cold, then instant for the same record.
 
 ## Environment
 

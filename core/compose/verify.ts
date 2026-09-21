@@ -49,8 +49,8 @@ export function blankForParagraph(paragraph: ParagraphBlock): BlankBlock {
  * over the same state in one call.
  */
 export async function keepSupported(intelligence: Intelligence, paragraphs: ParagraphBlock[], record: Json, alreadyStated: string[] = []): Promise<Block[]> {
-  const out: Block[] = [];
-  for (const p of paragraphs) {
+  // Each paragraph's judgment is independent of the others: run them together.
+  const verdicts = await Promise.all(paragraphs.map(async (p) => {
     const answers = await intelligence.judge({
       purpose: JUDGE.COMPOSE_VERIFY,
       state: { paragraph: { text: p.text, supportedBy: [...p.supportedBy] }, record, already_stated: alreadyStated },
@@ -67,16 +67,15 @@ export async function keepSupported(intelligence: Intelligence, paragraphs: Para
         ),
       },
     });
-    if (answers.supported.probability > THRESHOLDS.supported && answers.restates.probability < THRESHOLDS.supported) out.push(p);
-  }
-  return out;
+    return answers.supported.probability > THRESHOLDS.supported && answers.restates.probability < THRESHOLDS.supported;
+  }));
+  return paragraphs.filter((_, i) => verdicts[i]);
 }
 
 /** Judge a list of paragraphs once each; unsupported ones come back as blanks, in the same order. */
 export async function verifyParagraphs(intelligence: Intelligence, paragraphs: ParagraphBlock[], record: Json): Promise<Block[]> {
-  const out: Block[] = [];
-  for (const p of paragraphs) out.push((await isSupported(intelligence, p, record)) ? p : blankForParagraph(p));
-  return out;
+  const verdicts = await Promise.all(paragraphs.map((p) => isSupported(intelligence, p, record)));
+  return paragraphs.map((p, i) => (verdicts[i] ? p : blankForParagraph(p)));
 }
 
 /** Every blank block in the tree, with its section id, in document order. */
@@ -97,9 +96,12 @@ export async function verifyTree(intelligence: Intelligence, tree: DocumentTree,
   const added: DocumentTree['blanks'] = [];
   const sections: Section[] = [];
   for (const s of tree.sections) {
+    const paragraphs = s.blocks.filter((b): b is ParagraphBlock => b.kind === 'paragraph');
+    const verdicts = new Map<Block, boolean>();
+    await Promise.all(paragraphs.map(async (p) => verdicts.set(p, await isSupported(intelligence, p, record))));
     const blocks: Block[] = [];
     for (const b of s.blocks) {
-      if (b.kind !== 'paragraph' || (await isSupported(intelligence, b, record))) {
+      if (b.kind !== 'paragraph' || verdicts.get(b)) {
         blocks.push(b);
         continue;
       }

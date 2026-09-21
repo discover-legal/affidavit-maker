@@ -15,7 +15,7 @@ import { blank, confirmed, list, listField, paragraph, section } from '../record
 
 export const PROPERTY_SECTION = 'property';
 
-export async function propertySection(ctx: DivorceContext): Promise<Section> {
+export function propertySection(ctx: DivorceContext): Section {
   const { file, labels, jurisdiction } = ctx;
   const { maritalProperty, maritalDebts } = jurisdiction.lexicon;
   const blocks: Block[] = [];
@@ -42,6 +42,5 @@ export async function propertySection(ctx: DivorceContext): Promise<Section> {
     blocks.push(blank('debts', `Draft — list the ${maritalDebts} (mortgage, loans, credit cards), or confirm in the interview that there are none. Nothing has been assumed.`, 'Debts'));
   }
 
-  if (items || debts) blocks.push(...(await ctx.narrative(PROPERTY_SECTION, blocks)));
   return section(PROPERTY_SECTION, 'Property and Debts', blocks);
 }

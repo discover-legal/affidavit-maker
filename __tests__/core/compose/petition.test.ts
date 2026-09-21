@@ -238,16 +238,17 @@ describe('compose divorce_petition', () => {
   });
 
   describe('model calls', () => {
-    it('asks for narrative with the section id in the input, never inside instructions', async () => {
+    it('asks for narrative ONCE per document, with every section and what it already says in the input', async () => {
       const { intel } = await petition(caseFile({ jurisdiction: 'TX' }), TX);
       const asks = intel.callsTo(ASK.COMPOSE_NARRATIVE);
-      expect(asks.length).toBeGreaterThan(0);
-      for (const call of asks) {
-        if (call.kind !== 'ask') continue;
-        const input = call.request.input as { [key: string]: unknown };
-        expect(typeof input.section).toBe('string');
-        expect(typeof call.request.schema).toBe('object');
-      }
+      expect(asks).toHaveLength(1);
+      const call = asks[0];
+      if (call.kind !== 'ask') throw new Error('expected an ask');
+      const input = call.request.input as { sections?: Array<{ id: string; already_stated: string[] }> };
+      const ids = (input.sections ?? []).map((s) => s.id);
+      for (const id of ['parties', 'residency', 'grounds', 'children', 'property', 'relief']) expect(ids).toContain(id);
+      expect((input.sections ?? []).every((s) => Array.isArray(s.already_stated))).toBe(true);
+      expect(typeof call.request.schema).toBe('object');
     });
 
     it('verifies every narrative paragraph it keeps', async () => {

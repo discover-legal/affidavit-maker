@@ -357,11 +357,16 @@ export const DEFAULT_NARRATIVE: Record<string, NarrativeParagraph[]> = {
  * in the tree is the composer's decision, not the script's.
  */
 export function narrativeHandler(table: Record<string, NarrativeParagraph[]> = DEFAULT_NARRATIVE) {
+  // ONE ask per document: input.sections lists every section; the answer tags
+  // each paragraph with the section it belongs to.
   return (req: AskRequest): Json => {
     const input = (req.input ?? {}) as { [key: string]: Json };
-    const section = typeof input.section === 'string' ? input.section : '';
-    const paragraphs = table[section] ?? [];
-    return { paragraphs: paragraphs.map((p) => ({ text: p.text, supported_by: [...p.supported_by] })) };
+    const sections = Array.isArray(input.sections) ? (input.sections as Array<{ [key: string]: Json }>) : [];
+    const paragraphs = sections.flatMap((s) => {
+      const id = typeof s.id === 'string' ? s.id : '';
+      return (table[id] ?? []).map((p) => ({ section: id, text: p.text, supported_by: [...p.supported_by] }));
+    });
+    return { paragraphs };
   };
 }
 

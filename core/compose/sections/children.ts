@@ -37,14 +37,13 @@ function childParagraph(child: Child, index: number, ctx: DivorceContext): Block
   return blocks;
 }
 
-export async function childrenSection(ctx: DivorceContext): Promise<Section> {
+export function childrenSection(ctx: DivorceContext): Section {
   const { file } = ctx;
   const blocks: Block[] = [];
 
   if (file.children.length > 0) {
     blocks.push(paragraph(`There ${file.children.length === 1 ? 'is one child' : `are ${file.children.length} children`} of the marriage, named below.`, file.children.map((c) => c.id)));
     file.children.forEach((child, i) => blocks.push(...childParagraph(child, i, ctx)));
-    blocks.push(...(await ctx.narrative(CHILDREN_SECTION, blocks)));
     blocks.push(
       blank(
         'childResidenceHistory',

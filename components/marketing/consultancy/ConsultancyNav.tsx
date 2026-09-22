@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { Scale } from 'lucide-react';
 import { AUTH0_PROFILE_ROUTE } from '@/lib/auth0-routes';
-import BookingCta from './BookingCta';
+import ContactCta from './ContactCta';
 
 const LINKS = [
   { href: '/services', label: 'Services' },
@@ -51,7 +51,7 @@ export default function ConsultancyNav() {
             >
               {user ? 'Dashboard' : 'Sign in'}
             </a>
-            <BookingCta variant="nav" />
+            <ContactCta variant="nav" />
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { AlertTriangle, ArrowRight, Check, Code2 } from 'lucide-react';
 import ConsultancyNav from '@/components/marketing/consultancy/ConsultancyNav';
 import ConsultancyFooter from '@/components/marketing/consultancy/ConsultancyFooter';
-import BookingCta, { BookingNote } from '@/components/marketing/consultancy/BookingCta';
+import ContactCta from '@/components/marketing/consultancy/ContactCta';
 import { BIGLAW_REPO } from '@/components/marketing/consultancy/content';
 import { jsonLd } from '@/lib/json-ld';
 
@@ -102,9 +102,8 @@ export default function BigLawPage() {
             View on GitHub
             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
           </a>
-          <BookingCta variant="hero">Have us run it for your firm</BookingCta>
+          <ContactCta variant="hero">Have us run it for your firm</ContactCta>
         </div>
-        <BookingNote className="mt-3" />
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -171,7 +170,7 @@ export default function BigLawPage() {
                 </li>
               ))}
             </ul>
-            <BookingCta variant="card">Talk about a deployment</BookingCta>
+            <ContactCta variant="card">Talk about a deployment</ContactCta>
           </div>
         </div>
       </section>

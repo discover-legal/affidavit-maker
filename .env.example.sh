@@ -107,7 +107,7 @@ JURISDICTION_ALLOWLIST=ON,UT
 PAYMENTS_ENABLED=false
 # "Buy us a coffee" link — coffee links render only when this is set.
 NEXT_PUBLIC_DONATION_URL=
-NEXT_PUBLIC_BOOKING_URL=      # paid consultation scheduler; consultancy CTAs link GitHub when unset
+NEXT_PUBLIC_BOOKING_URL=      # optional scheduler; consultancy CTAs are an obfuscated mailto when unset
 ENABLE_WEBHOOKS=true
 ENABLE_ANALYTICS=true
 ENABLE_EMAIL_NOTIFICATIONS=false

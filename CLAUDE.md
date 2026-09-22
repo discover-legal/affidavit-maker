@@ -280,7 +280,7 @@ JURISDICTION_ALLOWLIST=ON,UT # Narrow launch: comma-separated codes surface ONLY
 PAYMENTS_ENABLED=false      # FREE by default (donation-supported). true re-arms
                             # Stripe charging; the payment infra stays dormant
 NEXT_PUBLIC_DONATION_URL=   # "Buy us a coffee" link; coffee links render only when set
-NEXT_PUBLIC_BOOKING_URL=    # Paid consultation scheduler; consultancy CTAs fall back to GitHub when unset
+NEXT_PUBLIC_BOOKING_URL=    # Optional scheduler; consultancy CTAs are an obfuscated mailto when unset
 MAINTENANCE_MODE=true       # Kill-switch: proxy.ts serves 503 maintenance page for
                             # every request. Unset (or =false) to bring the site back.
 ```

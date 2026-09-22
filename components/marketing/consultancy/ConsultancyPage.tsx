@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
 import ConsultancyNav from './ConsultancyNav';
 import ConsultancyFooter from './ConsultancyFooter';
-import BookingCta, { BookingNote } from './BookingCta';
+import ContactCta from './ContactCta';
 import { CONSULTANCY_FAQS, FREE_SOLUTIONS, PRINCIPLES, RESEARCH, SERVICES } from './content';
 
 function Hero() {
@@ -42,7 +42,7 @@ function Hero() {
             are free for anyone to use.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
-            <BookingCta variant="hero" />
+            <ContactCta variant="hero" />
             <Link
               href="/services"
               className="inline-flex items-center justify-center px-6 py-3.5 bg-white text-slate-900 text-base font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
@@ -50,7 +50,6 @@ function Hero() {
               See the services
             </Link>
           </div>
-          <BookingNote />
         </div>
       </div>
     </section>
@@ -277,7 +276,7 @@ function ClosingCta() {
           A vendor decision, a workflow nobody sells, a platform that needs running, or a
           roadmap that needs an owner. We come back with a scoped proposal.
         </p>
-        <BookingCta variant="closing" />
+        <ContactCta variant="closing" />
       </div>
     </section>
   );

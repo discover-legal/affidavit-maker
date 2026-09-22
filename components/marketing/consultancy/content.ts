@@ -255,6 +255,6 @@ export const CONSULTANCY_FAQS = [
   },
   {
     q: 'How do we start?',
-    a: 'Book a consultation. It is a paid session; we use it to understand the problem and come back with a scoped proposal.',
+    a: 'Email us with the problem. We use a first conversation to understand it and come back with a scoped proposal.',
   },
 ] as const;

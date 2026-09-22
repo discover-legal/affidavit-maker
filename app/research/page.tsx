@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ArrowRight, Check, Code2, FlaskConical } from 'lucide-react';
 import ConsultancyNav from '@/components/marketing/consultancy/ConsultancyNav';
 import ConsultancyFooter from '@/components/marketing/consultancy/ConsultancyFooter';
-import BookingCta, { BookingNote } from '@/components/marketing/consultancy/BookingCta';
+import ContactCta from '@/components/marketing/consultancy/ContactCta';
 import { RESEARCH } from '@/components/marketing/consultancy/content';
 import { jsonLd } from '@/lib/json-ld';
 
@@ -116,8 +116,7 @@ export default function ResearchPage() {
             their documents, in their language, under their constraints. That is a scoped
             engagement.
           </p>
-          <BookingCta variant="hero" />
-          <BookingNote className="mt-3" />
+          <ContactCta variant="hero" />
         </div>
       </section>
 

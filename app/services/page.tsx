@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Check } from 'lucide-react';
 import ConsultancyNav from '@/components/marketing/consultancy/ConsultancyNav';
 import ConsultancyFooter from '@/components/marketing/consultancy/ConsultancyFooter';
-import BookingCta, { BookingNote } from '@/components/marketing/consultancy/BookingCta';
+import ContactCta from '@/components/marketing/consultancy/ContactCta';
 import { SERVICES } from '@/components/marketing/consultancy/content';
 import { jsonLd } from '@/lib/json-ld';
 
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 const STAGES = [
-  { n: '01', title: 'Consultation', body: 'A paid session to understand the problem, the firm and the constraints. You leave with our read on it.' },
+  { n: '01', title: 'First conversation', body: 'Email us. A first conversation to understand the problem, the firm and the constraints. You leave with our read on it.' },
   { n: '02', title: 'Scoped proposal', body: 'A written scope with deliverables, timeline and price. Fixed where the work can be fixed; monthly where it is a service.' },
   { n: '03', title: 'The work', body: 'Selection, build, deployment or advisory, with a named point of contact and written checkpoints.' },
   { n: '04', title: 'Handover or run', body: 'Code and documentation delivered to you, or the system operated for you under a managed-service agreement.' },
@@ -107,8 +107,7 @@ export default function ServicesPage() {
             ))}
           </div>
           <div className="mt-12 flex flex-col items-start gap-3">
-            <BookingCta variant="hero" />
-            <BookingNote />
+            <ContactCta variant="hero" />
           </div>
         </div>
       </section>

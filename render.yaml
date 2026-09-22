@@ -137,8 +137,8 @@ services:
       - key: NEXT_PUBLIC_DONATION_URL
         sync: false
 
-      # Consultancy booking — paid consultation scheduler. CTAs fall back to
-      # the GitHub organisation when unset (build-time, baked into bundle).
+      # Consultancy scheduler (optional). CTAs are an obfuscated mailto when
+      # unset (build-time, baked into bundle).
       - key: NEXT_PUBLIC_BOOKING_URL
         sync: false
 

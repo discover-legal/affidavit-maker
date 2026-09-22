@@ -15,7 +15,7 @@ const COLUMNS = [
   {
     title: 'Free solutions',
     links: [
-      { href: '/tools/affidavits', label: 'discover.legal Documents' },
+      { href: '/tools/documents', label: 'discover.legal Documents' },
       { href: '/tools/biglaw', label: 'BigLaw' },
       { href: BIGLAW_REPO, label: 'BigLaw on GitHub', external: true },
       { href: '/resources', label: 'Resources' },

@@ -8,7 +8,7 @@ import ContactCta from './ContactCta';
 
 const LINKS = [
   { href: '/services', label: 'Services' },
-  { href: '/tools/affidavits', label: 'Documents' },
+  { href: '/tools/documents', label: 'Documents' },
   { href: '/tools/biglaw', label: 'BigLaw' },
   { href: '/research', label: 'Research' },
   { href: '/resources', label: 'Resources' },

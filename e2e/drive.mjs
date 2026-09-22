@@ -80,16 +80,6 @@ try {
   // ── 2. Divorce interview — the children-merge repro, live ────────────────
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  // Hydration race: keep clicking Utah (our primary launch jurisdiction)
-  // until the chat input materializes.
-  for (let i = 0; i < 10; i++) {
-    await page.getByRole('button', { name: /Utah/ }).first().click().catch(() => {});
-    const appeared = await page
-      .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) break;
-  }
   await page.waitForSelector('input[placeholder="Type your message..."]');
 
   await sendChat(page, 'Hi, my name is Jordan Example.');

@@ -80,14 +80,6 @@ try {
   // ── 1. Divorce interview through the v2 engine ───────────────────────────
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  for (let i = 0; i < 10; i++) {
-    await page.getByRole('button', { name: /Utah/ }).first().click().catch(() => {});
-    const appeared = await page
-      .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) break;
-  }
   await page.waitForSelector('input[placeholder="Type your message..."]');
 
   const turns = [

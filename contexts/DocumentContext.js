@@ -754,10 +754,10 @@ export const DocumentProvider = ({ children }) => {
         console.warn('📄 Profile seed unavailable:', profileError.message);
       }
 
-      // Never pre-fill the state — the user picks it explicitly in the
-      // chat UI. A pre-filled value hides the state selector on mobile
-      // and silently biases the document toward a jurisdiction the user
-      // didn't choose.
+      // Never pre-fill the state here. The chat sets it when the deployment
+      // surfaces exactly one jurisdiction; otherwise the interview establishes
+      // it. A pre-filled value would silently bias the document toward a
+      // jurisdiction the person did not state.
       const payload = {
         affidavitData: {
           state: '',

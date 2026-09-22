@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, lastModified, changeFrequency: 'weekly', priority: 1.0 },
     { url: `${BASE_URL}/services`, lastModified, changeFrequency: 'monthly', priority: 0.9 },
-    { url: `${BASE_URL}/tools/affidavits`, lastModified, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${BASE_URL}/tools/documents`, lastModified, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${BASE_URL}/tools/biglaw`, lastModified, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE_URL}/research`, lastModified, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/resources`, lastModified, changeFrequency: 'weekly', priority: 0.8 },

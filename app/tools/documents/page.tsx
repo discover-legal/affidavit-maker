@@ -6,7 +6,7 @@ const pageTitle =
   'Free AI-Assisted Divorce Drafts & Affidavits';
 const pageDescription =
   'Free guided interviews organize your story into divorce petition, decree, affidavit, and supporting document drafts — with bilingual step-by-step help for serving, responding, and hearings in seven U.S. states.';
-const pageUrl = 'https://discover.legal/tools/affidavits';
+const pageUrl = 'https://discover.legal/tools/documents';
 
 export const metadata: Metadata = {
   title: { absolute: `${pageTitle} | discover.legal` },
@@ -97,7 +97,7 @@ function digitalOffer(opts: {
 const BRAND = { '@type': 'Brand', name: 'discover.legal' } as const;
 const PRODUCT_IMAGE = 'https://discover.legal/app-icon-1024.png';
 
-export default function AffidavitsToolPage() {
+export default function DocumentsToolPage() {
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [

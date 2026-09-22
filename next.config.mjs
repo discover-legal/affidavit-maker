@@ -244,6 +244,12 @@ const nextConfig = {
     // Both go to the canonical apex.
     return [
       {
+        // The document tool's original marketing path.
+        source: '/tools/affidavits',
+        destination: '/tools/documents',
+        permanent: true,
+      },
+      {
         source: '/',
         has: [{ type: 'host', value: 'www.discover.legal' }],
         destination: 'https://discover.legal/',

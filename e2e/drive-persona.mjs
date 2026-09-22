@@ -45,11 +45,8 @@ try {
 
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  // Ontario is in the "All jurisdictions" dropdown, not a quick-pick button.
-  for (let i = 0; i < 10; i++) {
-    await page.locator('select').first().selectOption({ value: 'ON' }).catch(() => {});
-    if (await page.waitForSelector('input[placeholder="Type your message..."]:not([disabled])', { timeout: 2000 }).then(() => true).catch(() => false)) break;
-  }
+  // Jurisdiction is set by the server (JURISDICTION_ALLOWLIST=ON); no picker.
+  await page.waitForSelector('input[placeholder="Type your message..."]');
   await page.screenshot({ path: `${SHOTS}/p1-editor-start.png`, fullPage: true });
 
   const turns = [

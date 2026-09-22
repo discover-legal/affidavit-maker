@@ -56,51 +56,12 @@ const DIVORCE_PHASE_NAMES_BY_STATE = {
   }
 };
 
-// Quick-pick states shown as buttons — Utah first (primary launch state).
-// The FULL jurisdiction list (every supported state, province, and — when
-// enabled — international jurisdiction) is fetched from /api/templates/states
-// and offered in the dropdown below the quick picks.
-const POPULAR_STATES = [
-  { code: 'UT', name: 'Utah' },
-  { code: 'TX', name: 'Texas' },
-  { code: 'AZ', name: 'Arizona' },
-  { code: 'CA', name: 'California' },
-  { code: 'FL', name: 'Florida' },
-  { code: 'IL', name: 'Illinois' },
-  { code: 'NY', name: 'New York' }
-];
-
 // Use relative URLs in production (empty string), localhost in development
 const API_BASE_URL = '';
 
 const ChatInterface = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-
-  // Full jurisdiction list for the picker. The quick-pick buttons work even
-  // if this fetch fails — the dropdown simply doesn't render (fail-open to
-  // the popular seven, never a broken picker).
-  const [moreStates, setMoreStates] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/templates/states`);
-        if (!res.ok) return;
-        const list = await res.json();
-        if (cancelled || !Array.isArray(list)) return;
-        const popular = new Set(POPULAR_STATES.map((s) => s.code));
-        const rest = list
-          .map((s) => ({ code: s.stateCode, name: s.stateName }))
-          .filter((s) => s.code && s.name && !popular.has(s.code))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        setMoreStates(rest);
-      } catch {
-        /* keep quick picks only */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   // Gap-tap prefill from the profile page (?ask=<topic>): put the user's
   // "I want to add…" message in the input for them to edit and send.
@@ -143,6 +104,29 @@ const ChatInterface = () => {
   // Use split contexts to prevent unnecessary re-renders
   const { currentDocument } = useDocumentData();
   const { updateDocumentData } = useDocumentActions();
+
+  // No jurisdiction picker. The server surfaces the active jurisdictions
+  // (JURISDICTION_ALLOWLIST); when exactly one is active it is the document's
+  // jurisdiction and is set here without asking. With several active, the
+  // interview establishes it from what the person says.
+  useEffect(() => {
+    if (currentDocument.state || !currentDocument.documentId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/templates/states`);
+        if (!res.ok) return;
+        const list = await res.json();
+        if (cancelled || !Array.isArray(list) || list.length !== 1) return;
+        const only = list[0];
+        if (only?.stateCode) updateDocumentData({ state: only.stateCode });
+      } catch {
+        /* the interview can still establish the jurisdiction */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentDocument.state, currentDocument.documentId, updateDocumentData]);
+
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   // Helper function to generate a signature for facts (used for caching)
@@ -273,14 +257,14 @@ const ChatInterface = () => {
               type: 'bot',
               content: `Hi! I'm here to help you create your divorce package, which includes both your Divorce Petition and Divorce Decree.
 
-First, please select your state above. Each state has different requirements for divorce documents, and I need to know your state to ensure your documents are legally compliant.`
+To begin, tell me your full legal name, your spouse's full legal name, and where you live.`
             }]);
           } else {
             setMessages([{
               type: 'bot',
               content: `Hi! I'm here to help you create your affidavit. I'll ask you questions to gather the facts and build your document.
 
-First, please select your state above. Each state has different legal requirements, and I need to know your state to ensure your affidavit is compliant.`
+Start with your full legal name, then tell me what happened in your own words.`
             }]);
           }
         }
@@ -429,31 +413,6 @@ First, please select your state above. Each state has different legal requiremen
   // The user's own name for the status bar — role-aware, never the spouse's
   // petitioner caption when the user is the respondent.
   const statusName = partyDisplayName(currentDocument);
-  const chooseState = (state) => {
-    updateDocumentData({ state: state.code });
-    const isDivorcePackage = currentDocument.documentType === 'divorce_package' || currentDocument.documentType === 'divorce_petition' || currentDocument.documentType === 'divorce_decree';
-    // Role-aware: when the user is the respondent, the petitioner caption is
-    // the spouse — never treat it as the user's own name (or vice versa).
-    const knowsUserName = Boolean(partyDisplayName(currentDocument));
-    const knowsSpouseName = Boolean(spouseDisplayName(currentDocument));
-    const nextPrompt = isDivorcePackage
-      ? knowsUserName && knowsSpouseName
-        ? `I already have both names from My Story. To continue, how long have you lived in ${state.name}, and which county do you live in?`
-        : knowsUserName
-          ? `I already have your name from My Story. To continue, tell me your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
-          : `To begin, tell me your full legal name, your spouse's full legal name, how long you have lived in ${state.name}, and which county you live in.`
-      : knowsUserName
-        ? 'I already have your name from My Story. Tell me what happened, including dates, people, and what you personally saw or did.'
-        : 'Start with your full legal name, then tell me what happened in your own words.';
-    setMessages(prev => [...prev, {
-      type: 'bot',
-      content: `Great! You've selected ${state.name}. ${isDivorcePackage
-        ? `I'll make sure your divorce documents comply with ${state.name} requirements.`
-        : `I'll make sure your affidavit complies with ${state.name} requirements.`
-      }\n\n${nextPrompt}`
-    }]);
-  };
-
   const orchestratorPhase = currentDocument.orchestratorState?.currentPhase;
   const currentPhaseIndex = orchestratorPhase ? DIVORCE_PHASE_ORDER.indexOf(orchestratorPhase) : -1;
   const divorcePhaseNames = DIVORCE_PHASE_NAMES_BY_STATE[currentDocument.state] || DEFAULT_DIVORCE_PHASE_NAMES;
@@ -463,47 +422,6 @@ First, please select your state above. Each state has different legal requiremen
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* State Selector - Shows prominently when no state is selected */}
-      {!currentDocument.state && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <MapPin className="h-5 w-5 text-blue-600" />
-            <span className="font-semibold text-gray-800">Select Your State</span>
-            <span className="text-xs text-red-500 font-medium">(Required)</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {POPULAR_STATES.map((state) => (
-              <button
-                key={state.code}
-                onClick={() => chooseState(state)}
-                className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium text-gray-700 hover:text-blue-700"
-              >
-                {state.code} - {state.name}
-              </button>
-            ))}
-          </div>
-          {moreStates.length > 0 && (
-            <div className="mt-2">
-              <label className="sr-only" htmlFor="chat-state-select">All states and provinces</label>
-              <select
-                id="chat-state-select"
-                defaultValue=""
-                onChange={(e) => {
-                  const picked = moreStates.find((s) => s.code === e.target.value);
-                  if (picked) chooseState(picked);
-                }}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="" disabled>All jurisdictions — states, provinces &amp; more…</option>
-                {moreStates.map((s) => (
-                  <option key={s.code} value={s.code}>{s.name} ({s.code})</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* State-aware divorce interview progress trail */}
       {isDivorceDoc && currentPhaseIndex >= 0 && (
         <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2">
@@ -646,7 +564,7 @@ First, please select your state above. Each state has different legal requiremen
             {currentDocument.state && (
               <div className="flex items-center text-green-600">
                 <Check className="h-3 w-3 mr-1" />
-                <span>State: {currentDocument.state}</span>
+                <span>Jurisdiction: {currentDocument.state}</span>
               </div>
             )}
             {currentDocument.facts?.length > 0 && (
@@ -669,18 +587,16 @@ First, please select your state above. Each state has different legal requiremen
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={currentDocument.state ? "Type your message..." : "Please select your state above first..."}
-            className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              !currentDocument.state ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
-            }`}
-            disabled={isLoading || !currentDocument.state}
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isLoading}
           />
           <button
             type="submit"
             aria-label="Send message"
-            disabled={isLoading || !message.trim() || !currentDocument.state}
+            disabled={isLoading || !message.trim()}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isLoading || !message.trim() || !currentDocument.state
+              isLoading || !message.trim()
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}

@@ -57,14 +57,7 @@ try {
   // Interview — real model, so generous per-turn timeout.
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  for (let i = 0; i < 10; i++) {
-    await page.getByRole('button', { name: /Utah/ }).first().click().catch(() => {});
-    const appeared = await page
-      .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) break;
-  }
+  await page.waitForSelector('input[placeholder="Type your message..."]');
 
   const sendChat = async (text) => {
     const input = page.getByPlaceholder('Type your message...');

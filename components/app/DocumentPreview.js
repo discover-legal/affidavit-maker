@@ -925,8 +925,8 @@ const DocumentPreview = () => {
             <h3 className="text-lg font-medium text-gray-700 mb-2">Preview will appear shortly!</h3>
             <p className="text-gray-500 mb-4">
               {isDivorcePackage
-                ? 'Once you provide your name and state in the chat, your divorce documents (petition and decree) will appear here with the correct formatting for your jurisdiction.'
-                : 'Once you provide your name and state in the chat, your affidavit preview will appear here with the correct formatting for your jurisdiction.'}
+                ? 'Once you provide your name in the chat, your divorce documents (petition and decree) will appear here with the correct formatting for your jurisdiction.'
+                : 'Once you provide your name in the chat, your affidavit preview will appear here with the correct formatting for your jurisdiction.'}
             </p>
           </div>
         </div>

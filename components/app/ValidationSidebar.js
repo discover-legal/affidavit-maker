@@ -1248,7 +1248,7 @@ const ValidationSidebar = () => {
               <XCircle className="h-4 w-4 text-gray-300 mr-2" />
             )}
             <span className={currentDocument.state ? 'text-gray-700' : 'text-gray-400'}>
-              State selected
+              Jurisdiction set
             </span>
           </div>
           <div className="flex items-center text-sm">

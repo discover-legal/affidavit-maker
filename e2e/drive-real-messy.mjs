@@ -11,7 +11,7 @@
  * decree, facts stored as verbatim typo transcriptions.
  *
  * Needs: worktree server on :3100 with a real OPENAI_API_KEY and
- * ENABLE_INTERNATIONAL=true (ON lives in the dropdown).
+ * JURISDICTION_ALLOWLIST=ON (there is no picker; the chat sets it).
  */
 import { chromium } from 'playwright-core';
 
@@ -58,14 +58,7 @@ try {
 
   await page.goto(`${BASE}/editor/new?type=divorce_package&caseType=family`);
   await page.waitForLoadState('networkidle');
-  for (let i = 0; i < 10; i++) {
-    await page.selectOption('#chat-state-select', 'ON').catch(() => {});
-    const appeared = await page
-      .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) break;
-  }
+  await page.waitForSelector('input[placeholder="Type your message..."]');
   ok('picker accepts Ontario', true);
 
   const sendChat = async (text) => {

@@ -70,25 +70,13 @@ async function sendChat(page, text) {
   );
 }
 
-// Pick a jurisdiction, retrying through the hydration race (drive.mjs
-// pattern: keep interacting until the chat input materializes). Quick-pick
-// buttons render as "TX - Texas"; every other jurisdiction lives in
-// <select id="chat-state-select"> with the state CODE as the option value.
-async function pickJurisdiction(page, j) {
-  let appeared = false;
-  for (let i = 0; i < 10 && !appeared; i++) {
-    if (j.pick === 'button') {
-      await page.getByRole('button', { name: j.buttonName }).first().click().catch(() => {});
-    } else {
-      // selectOption fires the change event React listens for.
-      await page.selectOption('#chat-state-select', j.code, { timeout: 2000 }).catch(() => {});
-    }
-    appeared = await page
-      .waitForSelector('input[placeholder="Type your message..."]', { timeout: 2000 })
-      .then(() => true)
-      .catch(() => false);
-  }
-  return appeared;
+// There is no jurisdiction picker. Run the server with
+// JURISDICTION_ALLOWLIST=<code> for the leg under test; the chat sets it.
+async function pickJurisdiction(page) {
+  return page
+    .waitForSelector('input[placeholder="Type your message..."]', { timeout: 20000 })
+    .then(() => true)
+    .catch(() => false);
 }
 
 // Poll for the autosaved document (autosave is debounced; the real model is slow).

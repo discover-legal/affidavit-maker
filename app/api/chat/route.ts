@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rateLimit';
 import { toErrorResponse, ValidationError } from '@/lib/api/errors';
 import { isInternationalEnabled } from '@/lib/api/catalog-data';
+import { activeJurisdictions } from '@/config/jurisdictions';
 import { getUserProfile, hydrateAffidavitData, mergeUserProfileSafe } from '@/lib/api/profile';
 import { logger } from '@/lib/logger';
 import { readJsonBody } from '@/lib/api/requestBody';
@@ -543,6 +544,12 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     }
     if (body.state && !affidavitData.state) {
       affidavitData.state = body.state;
+    }
+    // No jurisdiction picker in the UI: when the deployment surfaces exactly
+    // one jurisdiction (JURISDICTION_ALLOWLIST), it is the document's.
+    if (!affidavitData.state) {
+      const active = Array.from(activeJurisdictions());
+      if (active.length === 1) affidavitData.state = active[0];
     }
     if (body.country && !affidavitData.countryCode) {
       affidavitData.countryCode = body.country;

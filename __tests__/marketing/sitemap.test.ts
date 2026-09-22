@@ -11,7 +11,7 @@ describe('marketing sitemap', () => {
       expect.arrayContaining([
         'https://discover.legal/',
         'https://discover.legal/services',
-        'https://discover.legal/tools/affidavits',
+        'https://discover.legal/tools/documents',
         'https://discover.legal/tools/biglaw',
         'https://discover.legal/research',
         'https://discover.legal/resources',

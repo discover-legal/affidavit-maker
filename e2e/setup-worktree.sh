@@ -92,6 +92,9 @@ E2E_AUTH_BYPASS=1
 E2E_FAKE_LLM=$FAKE
 PAYMENTS_ENABLED=false
 ENABLE_INTERNATIONAL=$INTL
+# No jurisdiction picker in the UI: the single active jurisdiction is set
+# automatically. E2E_JURISDICTIONS overrides (empty = full default set).
+JURISDICTION_ALLOWLIST=${E2E_JURISDICTIONS-UT}
 DOCUMENTS_PATH=/tmp/e2e-docs
 $KEY_LINES
 ENV

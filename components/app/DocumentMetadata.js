@@ -5,16 +5,6 @@ import React from 'react';
 import { useDocumentData, useDocumentActions } from '@/contexts/DocumentContext';
 import '@/styles/DocumentMetadata.css';
 
-const SUPPORTED_STATES = [
-  { code: 'UT', name: 'Utah' },
-  { code: 'TX', name: 'Texas' },
-  { code: 'AZ', name: 'Arizona' },
-  { code: 'CA', name: 'California' },
-  { code: 'FL', name: 'Florida' },
-  { code: 'IL', name: 'Illinois' },
-  { code: 'NY', name: 'New York' }
-];
-
 /**
  * Component for collecting document metadata including case caption information.
  * Adapts fields based on document type (affidavit vs divorce package).
@@ -158,23 +148,12 @@ const DocumentMetadata = () => {
           </div>
         )}
 
-        {/* State selector - grid buttons matching chat interface */}
+        {/* Jurisdiction is set by the deployment or established in the interview; never picked from a list. */}
         <div className="form-group">
-          <label className="form-label">
-            State <span className="required">*</span>
-          </label>
-          <div className="state-grid">
-            {SUPPORTED_STATES.map((state) => (
-              <button
-                key={state.code}
-                type="button"
-                onClick={() => handleChange('state', state.code)}
-                className={`state-button ${currentDocument.state === state.code ? 'state-button-active' : ''}`}
-              >
-                {state.code} - {state.name}
-              </button>
-            ))}
-          </div>
+          <label className="form-label">Jurisdiction</label>
+          <p className="form-static">
+            {currentDocument.state || 'Established from your interview'}
+          </p>
         </div>
 
         <div className="form-group">

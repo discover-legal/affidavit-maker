@@ -124,7 +124,7 @@ export const FREE_SOLUTIONS: readonly FreeSolution[] = [
   {
     key: 'documents',
     name: 'discover.legal Documents',
-    href: '/tools/affidavits',
+    href: '/tools/documents',
     status: 'Free · Beta · Ontario at launch',
     tagline:
       'A guided interview turns a person’s story into organized affidavit and divorce drafts, in the vocabulary their court uses.',
